@@ -1,8 +1,19 @@
+import { Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { Choices } from '@components/Choices';
-import { DESTINATIONS } from '@ledova/shared';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
+import {
+  FIELD_LIMITS,
+  DESTINATIONS,
+  UPLOAD_RULE,
+  uploadRefusal,
+  formatCryptoBalance,
+  formatMoney,
+  shortReference,
+} from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
   CloudArrowUpIcon,
@@ -25,6 +36,7 @@ import { ICON_SM, ICON_MD } from '@components/iconSizes';
 
 import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
 import type { Document, UserDocumentType, ExtractionStatus } from '@ledova/shared';
+import { LoadError, Loading } from '@components/Ledger';
 
 const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',
@@ -39,21 +51,10 @@ const DOCUMENT_TYPES = [
   ['tax_return', 'Tax return (coming soon)'],
 ] as const;
 
-const MAX_FILE_MB = 10;
-
 const claimLabel = (claim: InvestorClassification) => `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}`;
 
-function formatDocumentMoney(raw: string | null): string {
-  if (!raw) return '—';
-  const n = Number(raw);
-  if (Number.isNaN(n)) return raw;
-  return n.toLocaleString(undefined, { style: 'currency', currency: 'AUD', maximumFractionDigits: 2 });
-}
-
-function formatDocumentDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+const documentMoney = (raw: string | null) =>
+  raw && /^-?\d+(\.\d+)?$/.test(raw) ? formatMoney(formatCryptoBalance(raw, '', 2).trimEnd(), 'AUD') : raw || '—';
 
 function StatusPill({ status }: { status: ExtractionStatus | undefined }) {
   if (!status || status === 'pending') {
@@ -100,14 +101,14 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
     { label: 'ABN', value: text('abn') ?? '—' },
     {
       label: 'Pay period',
-      value: `${formatDocumentDate(text('periodStart'))} → ${formatDocumentDate(text('periodEnd'))}`,
+      value: `${formatDate(text('periodStart'), '—')} → ${formatDate(text('periodEnd'), '—')}`,
     },
-    { label: 'Gross pay', value: formatDocumentMoney(text('grossPay')) },
-    { label: 'Net pay', value: formatDocumentMoney(text('netPay')) },
-    { label: 'Tax withheld', value: formatDocumentMoney(text('taxWithheld')) },
-    { label: 'Superannuation', value: formatDocumentMoney(text('superannuation')) },
-    { label: 'YTD gross', value: formatDocumentMoney(text('ytdGross')) },
-    { label: 'YTD tax', value: formatDocumentMoney(text('ytdTax')) },
+    { label: 'Gross pay', value: documentMoney(text('grossPay')) },
+    { label: 'Net pay', value: documentMoney(text('netPay')) },
+    { label: 'Tax withheld', value: documentMoney(text('taxWithheld')) },
+    { label: 'Superannuation', value: documentMoney(text('superannuation')) },
+    { label: 'YTD gross', value: documentMoney(text('ytdGross')) },
+    { label: 'YTD tax', value: documentMoney(text('ytdTax')) },
   ];
 
   return (
@@ -137,11 +138,15 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
 }
 
 function ClaimSelector({
+  id,
+  error,
   claims,
   value,
   onChange,
   disabled,
 }: {
+  id?: string;
+  error?: string | null;
   claims: InvestorClassification[];
   value: string;
   onChange: (value: string) => void;
@@ -149,12 +154,14 @@ function ClaimSelector({
 }) {
   return (
     <SelectField
+      id={id}
+      error={error}
       label="Classification claim"
       options={[
         { value: '', label: 'Keep unattached' },
         ...claims
           .filter((claim) => claim.status === 'submitted')
-          .map((claim) => ({ value: claim.uuid, label: claimLabel(claim), reference: claim.uuid.slice(0, 8) })),
+          .map((claim) => ({ value: claim.uuid, label: claimLabel(claim), reference: shortReference(claim.uuid) })),
       ]}
       value={value}
       disabled={disabled}
@@ -170,12 +177,17 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const attached = claims.find((claim) => claim.uuid === doc.classification);
   const attachedLabel = attached
     ? claims.some((claim) => claim.uuid !== attached.uuid && claimLabel(claim) === claimLabel(attached))
-      ? `${claimLabel(attached)} · ${attached.uuid.slice(0, 8)}`
+      ? `${claimLabel(attached)} · ${shortReference(attached.uuid)}`
       : claimLabel(attached)
-    : doc.classification?.slice(0, 8);
+    : doc.classification
+      ? shortReference(doc.classification)
+      : undefined;
   const del = useDeleteDocument();
   const attach = useAttachDocument();
   const [classification, setClassification] = useState('');
+  const attachment = useErrorSummary({
+    classification: !classification && 'Choose the claim to attach this payslip to.',
+  });
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -186,7 +198,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         <div className="min-w-0 flex-1">
           <p className="text-sm text-text-primary truncate">{doc.originalFilename}</p>
           <p className="text-xs text-text-muted">
-            {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDocumentDate(doc.createdAt)}
+            {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt, '—')}
           </p>
         </div>
         <StatusPill status={extraction?.status} />
@@ -206,11 +218,13 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
       {doc.classification ? (
         <p className="mt-3 text-xs text-text-muted">
           Attached to claim {attachedLabel}. Retained{' '}
-          {doc.retentionUntil ? `until ${formatDocumentDate(doc.retentionUntil)}` : 'with the claim'}.
+          {doc.retentionUntil ? `until ${formatDate(doc.retentionUntil, '—')}` : 'with the claim'}.
         </p>
       ) : (
         <div className="mt-3 space-y-2">
+          <ErrorSummary {...attachment.summary} />
           <ClaimSelector
+            {...attachment.field('classification')}
             claims={claims}
             value={classification}
             onChange={setClassification}
@@ -221,12 +235,13 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
             label="Attach to claim"
             busy={attach.isPending}
             busyLabel="Attaching…"
-            disabled={!classification}
-            onClick={() => attach.mutate({ uuid: doc.uuid, classification })}
+            onClick={() => {
+              if (attachment.check()) attach.mutate({ uuid: doc.uuid, classification });
+            }}
           />
           <p className="text-xs text-text-muted">
             Unattached payslips are removed{' '}
-            {doc.retentionUntil ? `on ${formatDocumentDate(doc.retentionUntil)}` : 'according to the retention policy'}.
+            {doc.retentionUntil ? `on ${formatDate(doc.retentionUntil, '—')}` : 'according to the retention policy'}.
           </p>
         </div>
       )}
@@ -274,12 +289,9 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const upload = useUploadDocument();
 
-  const [tooLarge, setTooLarge] = useState(false);
+  const [refusal, setRefusal] = useState<string | null>(null);
   const handleSubmit = async () => {
     if (!file) return;
-    const oversized = file.size > MAX_FILE_MB * 1024 * 1024;
-    setTooLarge(oversized);
-    if (oversized) return;
     upload.mutate(
       { file, documentType, note, classification: classification || undefined },
       {
@@ -303,7 +315,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
         >
           <CloudArrowUpIcon size={32} className="mb-2" />
           <p className="text-sm">Click to upload a payslip</p>
-          <p className="text-xs mt-1">PDF or image, max {MAX_FILE_MB} MB</p>
+          <p className="text-xs mt-1">{UPLOAD_RULE.HINT}</p>
         </button>
       ) : (
         <div className="space-y-3">
@@ -317,7 +329,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
               type="button"
               onClick={() => {
                 setFile(null);
-                setTooLarge(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
               }}
               className="text-text-muted hover:text-text-primary p-1 flex-shrink-0"
               disabled={upload.isPending}
@@ -336,17 +348,15 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
               disabled={upload.isPending}
               onChange={setDocumentType}
             />
-            <label className="flex min-w-0 flex-1 basis-40 flex-col gap-1 text-sm text-text-primary">
-              Note (optional)
-              <input
+            <Field label="Note" optional className="min-w-0 flex-1 basis-40">
+              <TextInput
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                maxLength={255}
-                className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                maxLength={FIELD_LIMITS.NOTE}
                 disabled={upload.isPending}
               />
-            </label>
+            </Field>
           </div>
 
           <ClaimSelector
@@ -368,16 +378,19 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="application/pdf,image/png,image/jpeg,image/jpg"
+        accept={UPLOAD_RULE.ACCEPT}
         onChange={(e) => {
-          setTooLarge(false);
-          setFile(e.target.files?.[0] ?? null);
+          const chosen = e.target.files?.[0] ?? null;
+          const problem = chosen && uploadRefusal(chosen);
+          setRefusal(problem);
+          setFile(problem ? null : chosen);
+          if (problem) e.target.value = '';
         }}
         className="hidden"
       />
-      {tooLarge && (
+      {refusal && (
         <p role="alert" className="text-sm text-error-light">
-          The file is larger than {MAX_FILE_MB} MB. Choose a smaller file.
+          {refusal}
         </p>
       )}
       {upload.error && (
@@ -405,17 +418,26 @@ export function DocumentsPanel() {
         Your payslips are private to you and permitted platform operations staff. Issuers cannot review them.
       </p>
       <UploadCard claims={claims} />
-      {!claims.some((claim) => claim.status === 'submitted') && (
+      {claimsQuery.isError && (
+        <LoadError retry={() => claimsQuery.refetch()} busy={claimsQuery.isFetching}>
+          Your classification claims could not be loaded.
+        </LoadError>
+      )}
+      {claimsQuery.isSuccess && !claims.some((claim) => claim.status === 'submitted') && (
         <a href={DESTINATIONS.investorEligibility.path} className="text-sm text-brand-light">
           Submit a classification claim to attach supporting evidence.
         </a>
       )}
 
-      {docs.isLoading && <p className="text-sm text-text-muted">Loading…</p>}
+      {docs.isLoading && <Loading>Loading your documents…</Loading>}
 
-      {!docs.isLoading && list.length === 0 && (
-        <p className="text-sm text-text-muted">No documents yet — upload your first payslip above.</p>
+      {docs.isError && (
+        <LoadError retry={() => docs.refetch()} busy={docs.isFetching}>
+          Your documents could not be loaded.
+        </LoadError>
       )}
+
+      {docs.isSuccess && list.length === 0 && <p className="text-sm text-text-muted">No documents yet.</p>}
 
       {list.map((doc) => (
         <DocumentCard key={doc.uuid} initialDoc={doc} claims={claims} />

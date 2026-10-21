@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { DESTINATIONS, companyActivationOutcome, useCompanyActivation, useCompanySelection } from '@ledova/shared';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
 import { LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { Modal } from '@components/Modal';
+import { CheckboxField } from '@components/Field';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
@@ -29,11 +32,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
     : [];
   return (
     <>
-      <Page
-        narrow
-        loading={read.isLoading}
-        actions={<PageLink to={DESTINATIONS.settings.path} label="Back to Settings" />}
-      >
+      <Page narrow loading={read.isLoading}>
         <CompanySelection read={read} />
         {action.busy && (
           <p role="status" className="text-sm text-text-muted">
@@ -94,7 +93,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                 )}
               </Section>
             )}
-            <LinkRow to={DESTINATIONS.company.path} label="Company information and retained documents" />
+            <LinkRow to={DESTINATIONS.company.path} label={DESTINATIONS.company.title} />
           </>
         )}
         {action.error && (
@@ -106,7 +105,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
           <p className="text-sm text-text-muted">
             Use your own profile to complete the configured identity verification before activation.
           </p>
-          <LinkRow to={DESTINATIONS.userProfile.path} label="Open your profile" />
+          <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title} />
         </Section>
       </Page>
       {action.preview && <ActivationConfirmation action={action} />}
@@ -118,6 +117,7 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
   const target = action.preview!;
   const [acceptance, setAcceptance] = useState<typeof action.preview>(null);
   const accepted = acceptance === target;
+  const declaration = useErrorSummary({ accepted: !accepted && 'Accept the declaration for this company.' });
   return (
     <Modal
       isOpen
@@ -126,23 +126,21 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
       confirmLabel="Confirm activation"
       busy={action.busy}
       busyLabel="Activating…"
-      confirmDisabled={!accepted}
       onClose={action.cancel}
       onConfirm={() => {
-        if (accepted) void action.confirm(target);
+        if (declaration.check()) void action.confirm(target);
       }}
     >
+      <ErrorSummary {...declaration.summary} className="mb-3" />
       <p className="text-sm text-text-primary">{target.name}</p>
       <p className="whitespace-pre-wrap text-sm text-text-primary">{target.text}</p>
-      <label className="flex items-start gap-2 text-sm text-text-primary">
-        <input
-          type="checkbox"
-          checked={accepted}
-          disabled={action.busy}
-          onChange={(event) => setAcceptance(event.target.checked ? target : null)}
-        />
-        I accept this declaration for this company.
-      </label>
+      <CheckboxField
+        {...declaration.field('accepted')}
+        label="I accept this declaration for this company."
+        checked={accepted}
+        disabled={action.busy}
+        onChange={(event) => setAcceptance(event.target.checked ? target : null)}
+      />
       <p className="text-sm text-text-muted">
         The configured ABR lookup must match before activation can be applied. A failed or unavailable check remains in
         the record.

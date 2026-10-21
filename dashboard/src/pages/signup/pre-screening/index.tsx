@@ -8,6 +8,8 @@ import { ErrorState } from '@pages/signup/shared/ErrorState';
 
 import { useSignupPreScreening } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 export default function SignupPreScreening() {
   const navigate = useNavigate();
@@ -18,14 +20,23 @@ export default function SignupPreScreening() {
     generalError,
     isLoading,
     isSubmitting,
-    isFormValid,
     setFieldValue,
     handleSubmit,
     retryLoad,
   } = useSignupPreScreening();
 
+  const checks = useErrorSummary({
+    confirmedOver18: !form.confirmedOver18 && 'Confirm that you are 18 years or older.',
+    confirmedAustralianResident:
+      !form.confirmedAustralianResident && 'Confirm that you are currently an Australian resident.',
+    confirmedIndividualAccount: !form.confirmedIndividualAccount && 'Confirm that you are acting on your own behalf.',
+    acknowledgedWholesaleOnly:
+      !acknowledgedWholesaleOnly && 'Confirm that you understand share offerings here are wholesale only.',
+  });
+
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!checks.check()) return;
     await handleSubmit(() => {
       navigate(SIGNUP_PATHS.userProfile);
     });
@@ -37,24 +48,28 @@ export default function SignupPreScreening() {
 
   const declarations = [
     {
+      key: 'confirmedOver18' as const,
       label: 'I am 18 years or older',
       description: 'You must be at least 18 to use our platform',
       checked: form.confirmedOver18,
       onChange: (checked: boolean) => setFieldValue('confirmedOver18', checked),
     },
     {
+      key: 'confirmedAustralianResident' as const,
       label: 'I am currently an Australian resident',
       description: 'Our services are currently only available to Australian residents',
       checked: form.confirmedAustralianResident,
       onChange: (checked: boolean) => setFieldValue('confirmedAustralianResident', checked),
     },
     {
+      key: 'confirmedIndividualAccount' as const,
       label: 'I am acting on my own behalf',
       description: 'Not for a business, trust, or on behalf of someone else',
       checked: form.confirmedIndividualAccount,
       onChange: (checked: boolean) => setFieldValue('confirmedIndividualAccount', checked),
     },
     {
+      key: 'acknowledgedWholesaleOnly' as const,
       label: 'I understand share offerings here are wholesale only',
       description:
         'Offers are made without a disclosure document to wholesale and sophisticated investors. You will need to evidence that status before you can subscribe.',
@@ -64,7 +79,7 @@ export default function SignupPreScreening() {
   ];
 
   if (isLoading) {
-    return <LoadingState message="Loading…" />;
+    return <LoadingState message="Loading your answers…" />;
   }
 
   if (generalError && !isSubmitting) {
@@ -80,7 +95,8 @@ export default function SignupPreScreening() {
       </AuthHeader>
 
       <AuthCard>
-        <form onSubmit={handleContinue} className="space-y-6">
+        <form noValidate onSubmit={handleContinue} className="space-y-6">
+          <ErrorSummary {...checks.summary} />
           {generalError && (
             <div className={ERROR_BANNER_CLASS}>
               <div className="flex items-start">
@@ -96,25 +112,30 @@ export default function SignupPreScreening() {
             </div>
           )}
 
-          {declarations.map((declaration) => (
-            <Field key={declaration.label} className="flex items-start gap-3" disabled={isSubmitting}>
-              <Checkbox
-                checked={declaration.checked}
-                onChange={declaration.onChange}
-                className="group mt-0.5 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-sm border-2 border-border bg-surface-tertiary transition-colors focus:outline-none data-[checked]:border-brand-mid data-[checked]:bg-brand-mid data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-2 data-[focus]:ring-offset-surface-raised"
-              >
-                <CheckCircleIcon size={ICON_MD} className="hidden text-white group-data-[checked]:block" />
-              </Checkbox>
-              <div className="flex-1">
-                <Label className="mb-1 block cursor-pointer text-base font-medium text-text-primary">
-                  {declaration.label}
-                </Label>
-                <Description className="text-xs text-text-subtle">{declaration.description}</Description>
-              </div>
-            </Field>
-          ))}
+          {declarations.map((declaration) => {
+            const check = checks.field(declaration.key);
+            return (
+              <Field key={declaration.label} id={check.id} className="flex items-start gap-3" disabled={isSubmitting}>
+                <Checkbox
+                  checked={declaration.checked}
+                  onChange={declaration.onChange}
+                  aria-invalid={check.error ? true : undefined}
+                  className="group mt-0.5 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-sm border-2 border-border bg-surface-tertiary transition-colors focus:outline-none data-[checked]:border-brand-mid data-[checked]:bg-brand-mid data-[focus]:ring-2 data-[focus]:ring-border-focus data-[focus]:ring-offset-2 data-[focus]:ring-offset-surface-raised"
+                >
+                  <CheckCircleIcon size={ICON_MD} className="hidden text-white group-data-[checked]:block" />
+                </Checkbox>
+                <div className="flex-1">
+                  <Label className="mb-1 block cursor-pointer text-base font-medium text-text-primary">
+                    {declaration.label}
+                  </Label>
+                  <Description className="text-xs text-text-subtle">{declaration.description}</Description>
+                  {check.error && <Description className="mt-1 text-sm text-error-light">{check.error}</Description>}
+                </div>
+              </Field>
+            );
+          })}
 
-          <button type="submit" disabled={!isFormValid || isSubmitting} className={AUTH_BUTTON_CLASS}>
+          <button type="submit" disabled={isSubmitting} className={AUTH_BUTTON_CLASS}>
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>

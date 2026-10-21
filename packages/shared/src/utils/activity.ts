@@ -1,4 +1,5 @@
-import { formatShareCount, getTransactionStatus } from '../constants';
+import { getTransactionStatus } from '../constants';
+import { formatShareCount } from './formatting';
 import type { Transaction } from '../types';
 
 export function activityAmount(amount: string | null, symbol: string) {

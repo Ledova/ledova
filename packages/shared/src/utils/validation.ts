@@ -10,6 +10,18 @@ export function validatePassword(password: string, minLength = 8): PasswordValid
   return { isValid: lengthValid && notNumeric, lengthValid, notNumeric };
 }
 
+export const PASSWORD_PROBLEMS = {
+  CURRENT: 'Enter your current password.',
+  LENGTH: 'Use at least 8 characters for the new password.',
+  NUMERIC: 'Use letters or symbols as well as numbers in the new password.',
+  MATCH: 'The new passwords do not match.',
+} as const;
+
+export function newPasswordProblem(password: string): string | null {
+  const { lengthValid, notNumeric } = validatePassword(password);
+  return !lengthValid ? PASSWORD_PROBLEMS.LENGTH : !notNumeric ? PASSWORD_PROBLEMS.NUMERIC : null;
+}
+
 export function formatVerificationToken(token: string): string {
   return token.trim().replace(/[^0-9]/g, '');
 }

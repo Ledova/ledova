@@ -4,6 +4,11 @@ export function failureStatus(failure: unknown) {
   return (failure as { response?: { status?: number } })?.response?.status;
 }
 
+export function retryServerFailures(failures: number, failure: unknown) {
+  const status = failureStatus(failure);
+  return !(status !== undefined && status >= 400 && status < 500) && failures < 3;
+}
+
 export function createUserFriendlyError(message: string, originalError?: unknown): UserFriendlyError {
   const error = new Error(message) as UserFriendlyError;
   error.isUserFriendly = true;

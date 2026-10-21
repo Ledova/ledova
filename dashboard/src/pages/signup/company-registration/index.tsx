@@ -37,11 +37,11 @@ export default function SignupCompanyRegistration() {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading company data…" />;
+    return <LoadingState message="Loading your company details…" />;
   }
 
-  if ((loadError && !hasLoadedForm) || (generalError && !form.name && !isSubmitting)) {
-    return <ErrorState title="Unable to load" message={loadError || generalError} onRetry={retryLoad} />;
+  if (loadError && !hasLoadedForm) {
+    return <ErrorState title="Unable to load" message={loadError} onRetry={retryLoad} />;
   }
 
   return (

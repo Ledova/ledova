@@ -1,5 +1,7 @@
+import { Field, TextArea } from '@components/Field';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
+  FIELD_LIMITS,
   useRegisterDecision,
   type RegisterDecisionFamily,
   type RegisterDecisionKind,
@@ -7,8 +9,10 @@ import {
 } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { STEP_CHANGED, type RegisterSteps } from './proposals';
+import { Loading } from '@components/Ledger';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 type Proposal = { uuid: string; providedBy: string; status: string };
 type Preview = { previewDigest: string; canDecide: boolean; unmetRequirements: string[] };
@@ -54,6 +58,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
 }) {
   const [active, setActive] = useState<RegisterDecisionKind | null>(null);
   const [reason, setReason] = useState('');
+  const checks = useErrorSummary({ reason: !reason.trim() && 'Give the reason for rejection.' });
   const options = (kind: RegisterDecisionKind) => ({
     appointment: steps[kind]?.uuid,
     newKey: () => crypto.randomUUID(),
@@ -93,6 +98,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   const begin = (kind: RegisterDecisionKind) => {
     if (active || busy) return;
     setReason(decisions[kind].recovery?.request.reason ?? '');
+    checks.reset();
     setActive(kind);
     void decisions[kind].open(kind);
   };
@@ -168,23 +174,22 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
             )}
             {active === 'reject' && (
               <>
-                <label className={LABEL}>
-                  {copy.REJECTION_REASON}
-                  <textarea
-                    className={FIELD_CLASS}
+                <ErrorSummary {...checks.summary} />
+                <Field {...checks.field('reason')} label={copy.REJECTION_REASON}>
+                  <TextArea
                     rows={3}
-                    maxLength={1000}
+                    maxLength={FIELD_LIMITS.REASON}
                     value={reason}
                     disabled={decision.busy || !!decision.recovery}
                     onChange={(event) => setReason(event.target.value)}
                   />
-                </label>
+                </Field>
                 <PageAction
                   label="Preview the rejection"
-                  disabled={
-                    decision.busy || !!decision.recovery || !reason.trim() || target?.request.reason === reason.trim()
-                  }
-                  onClick={() => void reject.open('reject', reason.trim())}
+                  disabled={decision.busy || !!decision.recovery || target?.request.reason === reason.trim()}
+                  onClick={() => {
+                    if (checks.check()) void reject.open('reject', reason.trim());
+                  }}
                 />
               </>
             )}
@@ -198,11 +203,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
                 {STEP_CHANGED}
               </p>
             )}
-            {decision.busy && !preview && (
-              <p role="status" className="text-sm text-text-muted">
-                Loading the preview…
-              </p>
-            )}
+            {decision.busy && !preview && <Loading>Loading the preview…</Loading>}
             {preview && (
               <>
                 {note?.(active, preview)}

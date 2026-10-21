@@ -11,11 +11,14 @@ import {
   type OwnCompanyAppointment,
   type RegisterAward,
   type RegisterGrant,
+  shareCount,
+  formatDate,
+  shortReference,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Status } from '@components/Ledger';
+import { LinkRow, Row, Rows, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { PageAction, PageLink } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
-import { STAGE_TONES, shareCount } from '@pages/company/shared/proposals';
+import { STAGE_TONES } from '@pages/company/shared/proposals';
 import { shareholderPath } from '@pages/company/register/shared/shareholders';
 import {
   awardVestingsKey,
@@ -28,8 +31,6 @@ import {
 import { AwardVestingForm } from './AwardVestingForm';
 import { AwardAdjustmentForm } from './AwardAdjustmentForm';
 import { useAwardRecordDownload } from './useRegisterRecordDownload';
-
-const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';
 
 export function AwardRecord({
   owner,
@@ -107,9 +108,7 @@ export function AwardRecord({
     ? (remainingRegisterAwardVesting(correcting, reversals.data ?? []) ?? undefined)
     : undefined;
   return (
-    <RecordShell
-      className={`flex flex-col gap-4 ${visible ? 'rounded-xl border border-border-subtle bg-surface-raised p-4 sm:p-5' : ''}`}
-    >
+    <RecordShell className={`flex flex-col gap-4 ${visible ? 'border-t border-border-subtle pt-4' : ''}`}>
       {visible && (
         <>
           <h4 className="text-base font-medium text-text-primary">{award.recipientName}</h4>
@@ -164,10 +163,9 @@ export function AwardRecord({
                 />
               )}
           </div>
-          <details>
-            <summary className={SUMMARY}>Agreement and vesting schedule</summary>
+          <Disclosure summary="Agreement and vesting schedule">
             <Rows>
-              <Row label={COPY.TERMS_ON}>{award.termsOn}</Row>
+              <Row label={COPY.TERMS_ON}>{formatDate(award.termsOn)}</Row>
               <Row label={COPY.TERMS}>{award.terms}</Row>
               <Row label={COPY.SCHEDULE}>{award.schedule}</Row>
               <Row label="Residential address">{award.recipientResidentialAddress}</Row>
@@ -181,32 +179,20 @@ export function AwardRecord({
               disabled={blocked || download.isPending}
               onClick={() => download.mutate(undefined)}
             />
-          </details>
+          </Disclosure>
           {download.isError && (
             <RecordDownloadFailure>
               The retained document could not be downloaded. Refresh and try again.
             </RecordDownloadFailure>
           )}
           {events.isPending ? (
-            <p role="status" className="text-sm text-text-muted">
-              Loading vesting events…
-            </p>
+            <Loading>Loading vesting events…</Loading>
           ) : events.isError ? (
-            <>
-              <p role="alert" className="text-sm text-error-light">
-                The vesting events could not be loaded.
-              </p>
-              <PageAction
-                label="Retry vesting events"
-                disabled={events.isFetching}
-                onClick={() => void events.refetch()}
-              />
-            </>
+            <LoadError retry={() => events.refetch()} busy={events.isFetching}>
+              Vesting events could not be loaded.
+            </LoadError>
           ) : (
-            <details>
-              <summary className={SUMMARY}>
-                Recorded vesting history{events.data.length > 0 ? ` · ${events.data.length}` : ''}
-              </summary>
+            <Disclosure summary={`Recorded vesting history${events.data.length > 0 ? ` · ${events.data.length}` : ''}`}>
               {events.data.length === 0 && (
                 <p className="text-sm text-text-muted">No company-recorded vesting event.</p>
               )}
@@ -215,7 +201,7 @@ export function AwardRecord({
                   <div key={event.uuid} className="space-y-2 border-t border-border-subtle pt-3">
                     <Rows>
                       <Row label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Row>
-                      <Row label={COPY.VESTED_ON}>{event.vestedOn}</Row>
+                      <Row label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Row>
                       <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
                       <Row label="Recorded by">{event.preparedByName || 'Name not recorded'}</Row>
                     </Rows>
@@ -227,14 +213,14 @@ export function AwardRecord({
                         download.variables.uuid === event.uuid
                       }
                       busyLabel="Downloading…"
-                      context={`${event.shares} shares dated ${event.vestedOn}`}
+                      context={`${shareCount(event.shares)} dated ${formatDate(event.vestedOn)}`}
                       disabled={blocked || download.isPending || !eventReady}
                       onClick={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
                     />
                     {appointment && (
                       <PageAction
                         label={COPY.REVERSE}
-                        context={`${event.shares} shares dated ${event.vestedOn}`}
+                        context={`${shareCount(event.shares)} dated ${formatDate(event.vestedOn)}`}
                         disabled={
                           blocked ||
                           !eventReady ||
@@ -252,32 +238,26 @@ export function AwardRecord({
                             setAdjusting({
                               appointment,
                               vesting: event.uuid,
-                              vestingLabel: `${event.shares} shares · ${event.vestedOn}`,
+                              vestingLabel: `${shareCount(event.shares)} · ${formatDate(event.vestedOn)}`,
                             });
                         }}
                       />
                     )}
                   </div>
                 ))}
-            </details>
+            </Disclosure>
           )}
           {ends.isPending || reversals.isPending || ends.isFetching || reversals.isFetching ? (
-            <p role="status" className="text-sm text-text-muted">
-              Loading entitlement changes…
-            </p>
+            <Loading>Loading entitlement changes…</Loading>
           ) : ends.isError || reversals.isError ? (
-            <>
-              <p role="alert" className="text-sm text-error-light">
-                Entitlement changes could not be loaded.
-              </p>
-              <PageAction
-                label="Retry entitlement changes"
-                onClick={() => void Promise.all([ends.refetch(), reversals.refetch()])}
-              />
-            </>
+            <LoadError
+              retry={() => Promise.all([ends.refetch(), reversals.refetch()])}
+              busy={ends.isFetching || reversals.isFetching}
+            >
+              Entitlement changes could not be loaded.
+            </LoadError>
           ) : (
-            <details>
-              <summary className={SUMMARY}>Entitlement changes</summary>
+            <Disclosure summary="Entitlement changes">
               {ends.data.length === 0 && reversals.data.length === 0 && (
                 <p className="text-sm text-text-muted">No entitlement changes recorded.</p>
               )}
@@ -286,7 +266,7 @@ export function AwardRecord({
                   <Rows>
                     <Row label={COPY.ENDED_UNVESTED}>{shareCount(event.unvestedShares)}</Row>
                     <Row label={COPY.ENDED_VESTED}>{shareCount(event.vestedShares)}</Row>
-                    <Row label={COPY.COMPANY_EVENT_ON}>{event.companyEventOn}</Row>
+                    <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
                     <Row label={COPY.REASON}>{event.reason}</Row>
                     <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
                     <Row label="Recorded by">{event.preparedByName || 'Name not recorded'}</Row>
@@ -297,7 +277,7 @@ export function AwardRecord({
                       download.isPending && download.variables?.kind === 'end' && download.variables.uuid === event.uuid
                     }
                     busyLabel="Downloading…"
-                    context={event.companyEventOn}
+                    context={formatDate(event.companyEventOn)}
                     disabled={blocked || download.isPending || !eventReady}
                     onClick={() => download.mutate({ kind: 'end', uuid: event.uuid })}
                   />
@@ -307,8 +287,8 @@ export function AwardRecord({
                 <div key={event.uuid} className="space-y-2 border-t border-border-subtle pt-3">
                   <Rows>
                     <Row label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Row>
-                    <Row label="Original vesting">{event.vesting}</Row>
-                    <Row label={COPY.COMPANY_EVENT_ON}>{event.companyEventOn}</Row>
+                    <Row label="Original vesting">{shortReference(event.vesting)}</Row>
+                    <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
                     <Row label={COPY.REASON}>{event.reason}</Row>
                     <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
                     <Row label="Recorded by">{event.preparedByName || 'Name not recorded'}</Row>
@@ -321,17 +301,16 @@ export function AwardRecord({
                       download.variables.uuid === event.uuid
                     }
                     busyLabel="Downloading…"
-                    context={event.companyEventOn}
+                    context={formatDate(event.companyEventOn)}
                     disabled={blocked || download.isPending || !eventReady}
                     onClick={() => download.mutate({ kind: 'reversal', uuid: event.uuid })}
                   />
                 </div>
               ))}
-            </details>
+            </Disclosure>
           )}
           {grants.length > 0 && (
-            <details>
-              <summary className={SUMMARY}>Non-paid issues from this award · {grants.length}</summary>
+            <Disclosure summary={`Non-paid issues from this award · ${grants.length}`}>
               {grants.map((grant) => (
                 <LinkRow
                   key={grant.uuid}
@@ -346,17 +325,16 @@ export function AwardRecord({
                   }
                 />
               ))}
-            </details>
+            </Disclosure>
           )}
-          <details>
-            <summary className={SUMMARY}>Record details</summary>
+          <Disclosure summary="Record details">
             <Rows>
-              <Row label="Member ID">{award.member}</Row>
-              <Row label="Award ID">{award.uuid}</Row>
+              <Row label="Member reference">{shortReference(award.member)}</Row>
+              <Row label="Award reference">{shortReference(award.uuid)}</Row>
               <Row label="Recorded on">{formatDateTime(award.createdAt)}</Row>
               <Row label="Recorded by">{award.preparedByName || 'Name not recorded'}</Row>
             </Rows>
-          </details>
+          </Disclosure>
         </>
       )}
       {adjusting && (

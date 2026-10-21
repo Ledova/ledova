@@ -8,10 +8,11 @@ import {
   formatDateTime,
   formatShareCount,
   registerImportTotals,
+  shortReference,
   type RegisterImport,
   type RegisterImportDecisionPreview,
 } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -88,8 +89,10 @@ export function ImportRecord({
   return (
     <RecordShell hidden={!visible}>
       {visible && (
-        <details open={proposal.status === 'submitted'} className="space-y-3">
-          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}</summary>
+        <Disclosure
+          summary={`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}
+          defaultOpen={proposal.status === 'submitted'}
+        >
           <Rows>
             <RecordStage stage={proposal.stage}>
               {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
@@ -98,9 +101,11 @@ export function ImportRecord({
               <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>
             )}
             <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
-            <Row label="Record date">{proposal.asAt}</Row>
+            <Row label="Record date">{formatDate(proposal.asAt)}</Row>
             {proposal.sourceReference && <Row label="Source record">{proposal.sourceReference}</Row>}
-            {proposal.correctionOf && <Row label="Corrects copied opening">{proposal.correctionOf}</Row>}
+            {proposal.correctionOf && (
+              <Row label="Corrects copied opening">{shortReference(proposal.correctionOf)}</Row>
+            )}
             <Row label="Reason">{proposal.reason}</Row>
             <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.DECISIONS} />
           </Rows>
@@ -146,7 +151,7 @@ export function ImportRecord({
             )}
           </div>
           {download.isError && <RecordDownloadFailure error={download.error} />}
-        </details>
+        </Disclosure>
       )}
       <RegisterDecisions
         family={REGISTER_IMPORT_DECISIONS}

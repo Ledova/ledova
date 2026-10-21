@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useOpenRows, useTransactions, type TransactionFilters } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Section } from '@components/Ledger';
+import { Section, LoadError, Loading } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { TransactionFilter } from './TransactionFilter';
 import { TransactionListItem } from './TransactionListItem';
@@ -68,20 +68,17 @@ const TransactionsPage = () => {
           onClear={handleClearFilters}
         />
         {isLoading ? (
-          <p role="status" className="py-3 text-sm text-text-muted">
-            Loading activity…
-          </p>
+          <Loading>Loading activity…</Loading>
         ) : hasError ? (
-          <div role="alert" className="flex flex-col items-start gap-3 py-3">
-            <p className="text-sm text-text-primary">Your activity could not be loaded. Try again before continuing.</p>
-            <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
-          </div>
+          <LoadError retry={retry} busy={isRefreshing}>
+            Your activity could not be loaded.
+          </LoadError>
         ) : (
           <>
             {transactions.length === 0 && !hasNextPage && !moreFailed ? (
               <>
                 <p className="py-3 text-sm text-text-muted">
-                  {hasActiveFilters ? 'No matching activity.' : 'No activity yet.'}
+                  {hasActiveFilters ? 'No activity matches.' : 'No activity yet.'}
                 </p>
                 {hasActiveFilters && <PageAction label="Clear filters" onClick={handleClearFilters} />}
               </>

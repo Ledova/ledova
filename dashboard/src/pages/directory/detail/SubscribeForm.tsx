@@ -1,9 +1,18 @@
+import { Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
-import { DESTINATIONS, SUBSCRIPTION_COPY, formatMoney, applicationAmount, failureSentence } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  FIELD_LIMITS,
+  SUBSCRIPTION_COPY,
+  formatMoney,
+  applicationAmount,
+  failureSentence,
+} from '@ledova/shared';
 import type { DirectoryOpenOffering, Wallet } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 interface SubscribeFormProps {
   offering: DirectoryOpenOffering;
@@ -31,6 +40,10 @@ export function SubscribeForm({
   const message = error
     ? failureSentence(error, 'The application could not be created. Check the details and try again.')
     : null;
+  const checks = useErrorSummary({
+    quantity: amount === null && 'Enter a positive whole number of shares.',
+    wallet: !chosenWallet && 'Choose a receiving wallet.',
+  });
 
   if (wallets.length === 0) {
     return (
@@ -45,26 +58,24 @@ export function SubscribeForm({
 
   return (
     <Section title="Apply for shares">
+      <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
         Choose your whole shares and receiving wallet. The offering price is stored on your application when you create
         the draft.
       </p>
       <div className="grid gap-4 py-2 sm:grid-cols-2">
-        <label className="block min-w-0">
-          <span className="text-sm text-text-primary">Shares</span>
-          <input
-            type="text"
+        <Field {...checks.field('quantity')} label="Shares" className="min-w-0">
+          <TextInput
             inputMode="numeric"
+            maxLength={FIELD_LIMITS.WHOLE_SHARES}
             value={quantity}
             onChange={(event) => onDraftChange({ ...draft, quantity: event.target.value })}
-            className={FIELD_CLASS}
             placeholder="Whole shares"
-            aria-invalid={quantity !== '' && amount === null}
-            aria-describedby={quantity !== '' && amount === null ? 'share-quantity-error' : undefined}
           />
-        </label>
+        </Field>
         <div className="min-w-0">
           <SelectField
+            {...checks.field('wallet')}
             label="Receiving wallet (Base)"
             options={[
               { value: '', label: 'Choose a receiving wallet', disabled: true },
@@ -78,11 +89,6 @@ export function SubscribeForm({
           />
         </div>
       </div>
-      {quantity !== '' && amount === null && (
-        <p id="share-quantity-error" className="text-sm text-error-light">
-          Enter a positive whole number of shares.
-        </p>
-      )}
       <Rows>
         <Row label="Amount on acceptance">
           <span className="break-all">{amount === null ? '—' : formatMoney(amount, offering.priceCurrency)}</span>
@@ -99,9 +105,8 @@ export function SubscribeForm({
           busy={busy}
           busyLabel="Creating draft…"
           primary
-          disabled={amount === null || !chosenWallet}
           onClick={() => {
-            if (amount !== null && chosenWallet && !busy)
+            if (checks.check() && amount !== null && chosenWallet && !busy)
               onSubscribe({ wallet: chosenWallet, quantity: Number(quantity) });
           }}
         />

@@ -51,17 +51,17 @@ area. The tables below are the standard; where today's code differs, the gap is 
 with the issue that closes it. The other folders hold what several areas, the route table or the
 frame share, and `packages/shared` holds what both clients share.
 
-| `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `BrowserRouter`), fonts and stylesheets; `App.tsx` renders `Layout` around the route table                                                                                                                                |
-| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `TradingRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                        |
-| `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                     |
-| `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `fieldClass`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `qr/`, and single components several areas show (`AwardStatus.tsx`) |
-| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                                  |
-| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                                                                                         |
-| `utils/`              | Browser and pure helpers used by more than one area or the frame (the software signer, `siteUrl.ts`, Keystone UR coding, which each client builds on its own registry libraries) and the web-only paths (`paths.ts`)                                                                                                                  |
-| `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                               |
-| `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                         |
+| `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `BrowserRouter`), fonts and stylesheets; `App.tsx` renders `Layout` around the route table                                                                                                                           |
+| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `TradingRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                   |
+| `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                |
+| `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `qr/`, and single components several areas show (`AwardStatus.tsx`) |
+| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                             |
+| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                                                                                    |
+| `utils/`              | Browser and pure helpers used by more than one area or the frame (the software signer, `siteUrl.ts`, Keystone UR coding, which each client builds on its own registry libraries) and the web-only paths (`paths.ts`)                                                                                                             |
+| `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                          |
+| `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                    |
 
 | `packages/shared/src/` | Owns                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -185,14 +185,14 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `PageTitle` only for a hash view.
 - **Errors and waiting.** A failed request reads as a `role="alert"` sentence
   ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
-  cast. A page's first read renders `<Page loading>`; a failed read offers Try again
-  ([lists](#lists-figures-and-currency)).
+  cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
+  ([loading, empty and error states](frontend-ux.md#loading-empty-and-error-states)).
 - **Formatting.** Figures, amounts and dates use the shared formatters (`formatMoney`,
-  `formatShareCount`, `marketQuantity`, `formatCryptoBalance`, `formatDate`;
-  [lists, figures and currency](#lists-figures-and-currency)). Never define a local formatter or
-  pass a displayed amount through `Number` or `parseFloat` (the existing local formatters and
-  `parseFloat` display paths change output, so they await the owner decision listed on
-  [#1065](https://github.com/Ledova/ledova/issues/1065)).
+  `formatShareCount`, `shareCount`, `shareChange`, `sharePercentage`, `marketQuantity`,
+  `marketShares`, `formatCryptoBalance`, `formatDate`, `formatDateTime`;
+  [dates, numbers and identifiers](frontend-ux.md#dates-numbers-and-identifiers)).
+  Never define a local formatter or pass a displayed amount through `Number` or `parseFloat`. The
+  exception is a market value `useCurrency` converts to AUD, because its rate is a number.
 - **Naming and exports.** A page folder takes the last fixed segment of its address and sits in the
   folder of the nearest page whose fixed address begins its own: `/company/register/:uuid/transfer`
   is `pages/company/register/transfer/`. An address that only adds a parameter to that page is `detail/`
@@ -244,7 +244,7 @@ test placement remain review checks. Moves remove the corresponding debt in the 
 4. Read and write through a `use<Thing>.ts` beside the entry over shared services. A new endpoint
    gets its service and contract types in `packages/shared` first; add a shared hook when mobile
    needs the same logic.
-5. Build it from `Page`, the ledger blocks, `Modal` and `fieldClass`
+5. Build it from `Page`, the ledger blocks, `Modal` and `Field`
    ([signed-in page conventions](frontend-ux.md#signed-in-page-conventions)), one `PascalCase.tsx` per section or
    dialog, and link it from its parent with `LinkRow` or from the sidebar by its `DESTINATIONS` key.
 6. When a second page needs one of its files, move the file by the placement rule in the same
@@ -302,14 +302,15 @@ The guard decides pages, not data: the API decides which rows a person sees, ans
 refused row.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
-`companyDashboard`, optionally with a hash (`/company/register#shareholders`, `#awards`,
+`companyDashboard`, optionally with a view (`/company/register#shareholders`, `#awards`,
 `#documents`, `/home#documents`). Its company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
-glance](../business/README.md#the-app-at-a-glance)). Settings opens `/settings` and stays marked
-active on `/company`, `/company/listing` (Activation), `/company/team` and `/company/authority`;
-Shareholders stays marked active on a shareholder's page. The register hashes switch the visible view without
+glance](../business/README.md#the-app-at-a-glance)). A page that isn't an item marks its nearest
+parent that is ([navigation](frontend-ux.md#navigation)): Settings on the Company pages, Activation
+and Profile, Shareholders on a shareholder's page. The register hashes switch the visible view without
 unmounting register forms or their recovery ([page mechanics](#page-mechanics)). The sidebar and
-phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a bounded grid.
+phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a bounded grid. Its
+items are links, and below `lg` the drawer is a dialog ([navigation](frontend-ux.md#navigation)).
 Native navigation is declared separately ([navigation](mobile.md#navigation)).
 
 ### Sign-up routes
@@ -577,11 +578,13 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   their task, class and any record (`allotments/`, `transfer/`, `history/`, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
   scope, disables the company, task and class selectors and pins held task work to its task and
-  class. A selection lasts one navigation (`location.key`); navigation state (`registerCompany`,
-  `registerToken`, `registerHistory`) picks the company, class and task and focuses that class, and
-  `inviteMember` chooses the invitation's recipient on Shareholders.
+  class. A selection lasts one navigation (`location.key`). Navigation state built by
+  `registerPlace` (`dashboard/src/pages/company/register/shared/registerPlace.ts`) picks the company
+  (or the class's company), class and task and focuses that class; with a record it focuses that
+  record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
+  Shareholders.
   History records are disclosures with a one-line summary, their detail and certificate control
-  rendered on demand; a section whose read succeeded empty is omitted, while a failed read keeps its
+  shown on demand; a section whose read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.

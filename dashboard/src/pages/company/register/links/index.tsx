@@ -1,18 +1,18 @@
-import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useLinkRegisters } from './useLinkRegisters';
 import { useMemo, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { REGISTER_LINK_COPY, appointmentForRegisterStep, type OrderSubmissionOwner } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useWaitingWallets } from '@pages/company/register/shared/useRegisterLinks';
 import { LinkForm } from './LinkForm';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_LINK_COPY;
 const LEDE =
@@ -22,7 +22,6 @@ const LEDE =
 export default function CompanyRegisterLinksPage() {
   const { company = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack />;
   if (owner && !preferences.isError)
     return (
       <OwnLinks
@@ -30,22 +29,19 @@ export default function CompanyRegisterLinksPage() {
         company={company}
         owner={owner}
         currentOwner={boundary.get}
-        back={back}
       />
     );
-  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
+  return <PreparationShell lede={LEDE} preferences={preferences} />;
 }
 
 function OwnLinks({
   company,
   owner,
   currentOwner,
-  back,
 }: {
   company: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
@@ -74,13 +70,26 @@ function OwnLinks({
   const stale = classes.isError || appointments.isError || registers.isError || waiting.isError;
   let content: ReactNode;
   if (!classes.data || !appointments.data)
-    content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content =
+      classes.isError || appointments.isError ? (
+        <LoadError retry={retry} busy={fetching}>
+          {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
+        </LoadError>
+      ) : (
+        <Loading>Loading the register…</Loading>
+      );
   else if (listed.length === 0)
     content = <p className="py-3 text-sm text-text-muted">This company is not in a register you can read.</p>;
   else if (!appointment)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (!registers.data || !waiting.data)
-    content = stale ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content = stale ? (
+      <LoadError retry={retry} busy={fetching}>
+        The register or your appointments could not be loaded.
+      </LoadError>
+    ) : (
+      <Loading>Loading the register…</Loading>
+    );
   else if (waiting.data.length === 0) content = <p className="py-3 text-sm text-text-muted">{COPY.NOTHING_WAITING}</p>;
   else
     content = (
@@ -89,7 +98,11 @@ function OwnLinks({
           <p className="text-sm text-text-muted">{COPY.APPLY_NOTE}</p>
         </Section>
         <Section title={COPY.PREPARE}>
-          {stale && <Unavailable retry={retry} busy={fetching} />}
+          {stale && (
+            <LoadError retry={retry} busy={fetching}>
+              The register or your appointments could not be loaded.
+            </LoadError>
+          )}
           <LinkForm
             owner={owner}
             guard={guard}
@@ -109,7 +122,7 @@ function OwnLinks({
       </>
     );
   return (
-    <Page narrow lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} back={registerPlace({ company, task: 'history' })}>
       {content}
     </Page>
   );

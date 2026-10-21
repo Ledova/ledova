@@ -5,6 +5,7 @@ import {
   ComboboxInput,
   ComboboxOption,
   ComboboxOptions,
+  Description,
   Field,
   Label,
 } from '@headlessui/react';
@@ -36,6 +37,8 @@ function Choice({ choice }: { choice: SearchChoice }) {
 }
 
 export function SearchSelect({
+  id,
+  error,
   label,
   choices,
   value,
@@ -45,6 +48,8 @@ export function SearchSelect({
   disabled = false,
   noun = ['option', 'options'],
 }: {
+  id?: string;
+  error?: string | null;
   label: string;
   choices: readonly SearchChoice[];
   value: string;
@@ -83,7 +88,7 @@ export function SearchSelect({
     }
   };
   return (
-    <Field className={LABEL} disabled={disabled}>
+    <Field id={id} className={LABEL} disabled={disabled}>
       <Combobox
         value={value}
         onChange={(next) => next && next !== value && onChange(next)}
@@ -99,6 +104,7 @@ export function SearchSelect({
             <div className="relative mt-1" onKeyDownCapture={keepChoice(open)}>
               <ComboboxInput
                 className={`${FIELD_BASE} pr-9`}
+                aria-invalid={error ? true : undefined}
                 autoComplete="off"
                 data-1p-ignore
                 placeholder={placeholder}
@@ -118,6 +124,7 @@ export function SearchSelect({
                 <CaretDownIcon size={ICON_SM} aria-hidden />
               </ComboboxButton>
             </div>
+            {error && <Description className="mt-1 text-sm text-error-light">{error}</Description>}
             <ComboboxOptions
               anchor="bottom start"
               modal={false}

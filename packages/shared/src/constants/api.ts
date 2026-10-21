@@ -83,6 +83,7 @@ export const COMPANY_ENDPOINTS = {
 } as const;
 
 export const COMPANY_TOKEN_ENDPOINTS = {
+  CLASS_RIGHTS: (uuid: string) => `/api/v1/tokens/${uuid}/class-rights/` as const,
   REGISTER_CERTIFICATE: (uuid: string) => `/api/v1/tokens/${uuid}/register/certificate/` as const,
   MEMBER_CERTIFICATE_PREVIEW: (uuid: string) =>
     `/api/v1/tokens/member-certificate-requests/${uuid}/fulfilment-preview/` as const,

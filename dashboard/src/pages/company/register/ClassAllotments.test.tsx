@@ -6,6 +6,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_ALLOTMENT_COPY as COPY,
   REGISTER_TRANSFER_COPY as TRANSFER_COPY,
+  formatDate,
   type RegisterAllotment,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
@@ -218,13 +219,18 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     });
   };
   expect((allotments.getByLabelText(COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
+  const refused = (label: string) => {
+    fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
+    expect(document.activeElement).toBe(allotments.getByText('Before continuing:').parentElement);
+    expect(allotments.getByLabelText(label).getAttribute('aria-invalid')).toBe('true');
+  };
   fillForm();
-  expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  refused(COPY.RECEIVED_AMOUNT);
   fireEvent.change(allotments.getByLabelText(COPY.RECEIVED_AMOUNT), { target: { value: '250' } });
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '' } });
-  expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  refused(COPY.COMPANY_EVENT_ON);
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '2099-01-01' } });
-  expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  refused(COPY.COMPANY_EVENT_ON);
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), {
     target: { value: ALLOTMENT_REQUEST.companyEventOn },
   });
@@ -255,10 +261,10 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(allotments.getByLabelText(COPY.CONSIDERATION)).toBeTruthy();
   failedRead = true;
   await refreshAllotments();
-  await allotments.findByText(/External allotments could not be read/);
+  await allotments.findByText(/External allotments could not be loaded/);
   expect(allotments.queryByLabelText('Name')).toBeNull();
   failedRead = false;
-  fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
   await allotments.findByLabelText('Name');
   slowRegister = true;
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
@@ -305,7 +311,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     const dialog = await screen.findByRole('dialog', { name: `${label} external allotment` });
     expect(
       within(within(dialog).getByText(COPY.COMPANY_EVENT_ON).parentElement!).getByText(
-        ALLOTMENT_REQUEST.companyEventOn,
+        formatDate(ALLOTMENT_REQUEST.companyEventOn),
       ),
     ).toBeTruthy();
     const confirm = within(dialog).getByRole('button', { name: `${label} external allotment` });
@@ -341,12 +347,12 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(allotments.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
   await act(async () => releaseRead!());
   pendingReadRelease = undefined;
-  await allotments.findByText(/External allotments could not be read/);
+  await allotments.findByText(/External allotments could not be loaded/);
   expect(allotments.queryByText('entry-a')).toBeNull();
   pauseRead = false;
   failedRead = false;
   appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
-  fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
   const recover = await allotments.findByRole('button', { name: /^Recover record issue receipt/ });
   const shareSummary = await screen.findByRole('region', { name: `${REGISTER.token.name} share summary` });
   expect(within(shareSummary).getByText('100')).toBeTruthy();
@@ -375,7 +381,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   await waitFor(() => expect(releaseFile).toBeTypeOf('function'));
   failedRead = true;
   await refreshAllotments();
-  await allotments.findByText(/External allotments could not be read/);
+  await allotments.findByText(/External allotments could not be loaded/);
   expect(allotments.queryByText('entry-a')).toBeNull();
   expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   expect(allotments.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
@@ -383,7 +389,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   pendingFileRelease = undefined;
   expect(save).not.toHaveBeenCalled();
   failedRead = false;
-  fireEvent.click(allotments.getByRole('button', { name: 'Retry allotments' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
   await allotments.findByText('Shares issued');
   expect(allotments.getByText('entry-a')).toBeTruthy();
   expect(allotments.getByText(ALLOTMENT_REQUEST.agreementReference)).toBeTruthy();
@@ -426,7 +432,9 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   fireEvent.click(historyTask);
   fireEvent.change(taskClass(), { target: { value: preference.token.uuid } });
   expect(
-    await screen.findByRole('heading', { name: `${preference.token.name} · ${preference.token.symbol}` }),
+    (await screen.findAllByRole('heading', { name: `${preference.token.name} · ${preference.token.symbol}` })).find(
+      (heading) => heading.closest('li'),
+    ),
   ).toBeTruthy();
   expect(screen.queryByText('entry-a')).toBeNull();
   fireEvent.change(taskClass(), { target: { value: REGISTER.token.uuid } });
@@ -484,7 +492,9 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     fireEvent.change(screen.getByLabelText(label), {
       target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
     });
-  expect((screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
+  expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
+  expect(screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON).getAttribute('aria-invalid')).toBe('true');
   fireEvent.change(screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON), { target: { value: '2026-10-03' } });
   fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
   await screen.findByRole('alert');
@@ -497,4 +507,4 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     signedOn: '2026-10-01',
     lodgedOn: '2026-10-02',
   });
-}, 15_000);
+});

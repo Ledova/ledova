@@ -1,4 +1,5 @@
-import { PUBLICATION_COPY, formatShareCount } from '../constants';
+import { PUBLICATION_COPY } from '../constants';
+import { formatShareCount } from './formatting';
 import type { Publication, PublicationPaymentRecord } from '../types';
 import { formatDate } from './date';
 

@@ -3,16 +3,23 @@ import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
+  FIELD_LIMITS,
   DESTINATIONS,
   ELIGIBILITY_RECORDS_NOTICE,
   isCurrentEligibilityAppointment,
   useCompanyEligibilityRecords,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
-import { LinkRow, Section } from '@components/Ledger';
+import { LinkRow, Section, LoadError } from '@components/Ledger';
+import { Pager } from '@components/List';
+import { PAGE_SIZE, useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { Page, PageAction } from '@components/Page';
-import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
+import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
+import { Field, TextInput } from '@components/Field';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 import { scopeLabels } from '@pages/company/shared/appointments';
 
@@ -20,10 +27,45 @@ const OUTCOMES = [
   ['accepted', 'Accept'],
   ['refused', 'Refuse'],
 ] as const;
+const QUEUE_OUTCOMES = [
+  ['', 'All'],
+  ['pending', 'Pending'],
+  ['accepted', 'Accepted'],
+  ['refused', 'Refused'],
+  ['withdrawn', 'Withdrawn'],
+  ['revoked', 'Revoked'],
+  ['expired', 'Expired'],
+] as const;
+
+type QueueOutcome = Exclude<(typeof QUEUE_OUTCOMES)[number][0], ''>;
+
 export default function CompanyEligibilityPage() {
-  const read = useCompanyEligibilityRecords(() => crypto.randomUUID());
+  const list = useListParams(['outcome']);
+  const outcome = QUEUE_OUTCOMES.find(([value]) => value && value === list.filters.outcome)?.[0] as
+    QueueOutcome | undefined;
+  const read = useCompanyEligibilityRecords(() => crypto.randomUUID(), undefined, {
+    page: list.page,
+    pageSize: PAGE_SIZE,
+    outcome,
+  });
+  const gone = useFirstPageWhenGone(list, read.listError);
+  const queue = read.queue;
   const [revocationReason, setRevocationReason] = useState('');
   const { running, track } = useRunningAction();
+  const accepting = read.draft.outcome === 'accepted';
+  const decisionChecks = useErrorSummary({
+    expiresAt:
+      accepting && !Number.isFinite(Date.parse(read.draft.expiresAt)) && 'Enter the acceptance expiry date and time.',
+    reason: !accepting && !read.draft.reason.trim() && 'Give the refusal reason.',
+  });
+  const revocationChecks = useErrorSummary({
+    reason: !revocationReason.trim() && 'Give the revocation reason.',
+  });
+  const forget = () => {
+    setRevocationReason('');
+    decisionChecks.reset();
+    revocationChecks.reset();
+  };
   const appointment = read.appointments.find(
     (item) => item.uuid === read.appointmentUuid && item.company === read.companyUuid,
   );
@@ -37,7 +79,9 @@ export default function CompanyEligibilityPage() {
       actions={
         <PageAction
           label="Refresh records"
-          disabled={read.busy || read.refreshing}
+          busy={read.refreshing}
+          busyLabel="Refreshing…"
+          disabled={read.busy}
           onClick={() => void read.refresh()}
         />
       }
@@ -46,13 +90,18 @@ export default function CompanyEligibilityPage() {
         <p>Your signed-in account must be checked before opening these records.</p>
       ) : (
         <>
-          {read.error && (
+          {read.readFailed && !gone && (
+            <LoadError retry={() => read.refresh()} busy={read.refreshing || read.busy}>
+              The company&apos;s eligibility records could not be loaded.
+            </LoadError>
+          )}
+          {(read.readFailed ? read.failure : read.error) && !gone && (
             <p role="alert" className="text-sm text-error-light">
-              {read.error}
+              {read.readFailed ? read.failure : read.error}
             </p>
           )}
           <Section title="Your personal company authority">
-            <LinkRow to={DESTINATIONS.companyTeam.path} label="Your appointments and company team" />
+            <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title} />
             <p className="text-sm text-text-muted">
               Current personal prepare or approve authority permits reading this company&apos;s queue and preparing a
               decision. Recording a decision or revocation requires your own approve appointment.
@@ -62,10 +111,13 @@ export default function CompanyEligibilityPage() {
               value={read.companyUuid}
               onChange={(uuid) => {
                 read.setCompany(uuid);
-                setRevocationReason('');
+                forget();
+                if (list.page > 1) list.setPage(1, true);
               }}
             />
-            {read.companies.length === 0 && <p>No current personal prepare or approve appointments are available.</p>}
+            {!read.readFailed && read.companies.length === 0 && (
+              <p>No current personal prepare or approve appointments are available.</p>
+            )}
             {read.companyUuid && (
               <SelectField
                 label="Your exact decision appointment"
@@ -82,7 +134,7 @@ export default function CompanyEligibilityPage() {
                       label: `${scopeLabels(item.capabilities)} · appointed ${formatDate(item.createdAt)}${
                         isCurrentEligibilityAppointment(item) ? '' : ' · inactive'
                       }`,
-                      reference: item.uuid.slice(0, 8),
+                      reference: shortReference(item.uuid),
                     })),
                 ]}
                 value={read.appointmentUuid}
@@ -92,13 +144,35 @@ export default function CompanyEligibilityPage() {
           </Section>
           {read.companyUuid && (
             <Section title="Company request queue">
-              <RecordsList
-                records={read.records}
-                select={(uuid) => {
-                  read.selectRecord(uuid);
-                  setRevocationReason('');
-                }}
-                selected={read.selectedRecord?.uuid}
+              <Choices
+                legend="Outcome"
+                options={QUEUE_OUTCOMES}
+                value={outcome ?? ''}
+                onChange={(value) => list.setFilter('outcome', value)}
+              />
+              {queue?.settled && queue.rows.length === 0 ? (
+                <p role="status" className="text-sm text-text-muted">
+                  {outcome ? 'No requests match.' : 'No requests yet.'}
+                </p>
+              ) : queue?.rows.length ? (
+                <div aria-busy={queue.busy} className={queue.busy ? 'opacity-60' : undefined}>
+                  <RecordsList
+                    records={queue.rows}
+                    disabled={queue.busy}
+                    select={(uuid) => {
+                      read.selectRecord(uuid);
+                      forget();
+                    }}
+                    selected={read.selectedRecord?.uuid}
+                  />
+                </div>
+              ) : null}
+              <Pager
+                label="Request pages"
+                list={list}
+                noun={['request', 'requests']}
+                count={queue?.count ?? 0}
+                busy={queue?.busy}
               />
             </Section>
           )}
@@ -107,51 +181,66 @@ export default function CompanyEligibilityPage() {
               <EligibilityHistory record={read.selectedRecord} />
               {read.selectedRecord.outcome === 'pending' && (
                 <Section title="Prepare the exact company decision">
+                  <ErrorSummary {...decisionChecks.summary} />
                   <Choices
                     legend="Decision outcome"
                     options={OUTCOMES}
                     value={read.draft.outcome}
-                    onChange={(outcome) => read.updateDraft({ outcome, reason: '', expiresAt: '' })}
+                    onChange={(outcome) => {
+                      decisionChecks.reset();
+                      read.updateDraft({ outcome, reason: '', expiresAt: '' });
+                    }}
                   />
-                  {read.draft.outcome === 'accepted' ? (
-                    <TextField
-                      label="Acceptance expiry (local date and time)"
-                      type="datetime-local"
-                      value={read.draft.expiresAt}
-                      onChange={(expiresAt) => read.updateDraft({ expiresAt })}
-                    />
+                  {accepting ? (
+                    <Field {...decisionChecks.field('expiresAt')} label="Acceptance expiry (local date and time)">
+                      <TextInput
+                        type="datetime-local"
+                        value={read.draft.expiresAt}
+                        onChange={(event) => read.updateDraft({ expiresAt: event.target.value })}
+                      />
+                    </Field>
                   ) : (
-                    <TextField
-                      label="Refusal reason"
-                      value={read.draft.reason}
-                      onChange={(reason) => read.updateDraft({ reason })}
-                    />
+                    <Field {...decisionChecks.field('reason')} label="Refusal reason">
+                      <TextInput
+                        maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
+                        value={read.draft.reason}
+                        onChange={(event) => read.updateDraft({ reason: event.target.value })}
+                      />
+                    </Field>
                   )}
                   <PageAction
                     label="Preview company decision"
                     busy={running === 'decision'}
                     busyLabel="Previewing…"
                     disabled={read.busy || read.refreshing || !appointment}
-                    onClick={() => track('decision', read.previewDecision())}
+                    onClick={() => {
+                      if (decisionChecks.check()) track('decision', read.previewDecision());
+                    }}
                   />
                 </Section>
               )}
               {read.selectedRecord.outcome === 'accepted' && (
                 <Section title="Revoke this acceptance">
-                  <TextField
-                    label="Revocation reason"
-                    value={revocationReason}
-                    onChange={(value) => {
-                      read.cancel();
-                      setRevocationReason(value);
-                    }}
-                  />
+                  <ErrorSummary {...revocationChecks.summary} />
+                  <Field {...revocationChecks.field('reason')} label="Revocation reason">
+                    <TextInput
+                      maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
+                      value={revocationReason}
+                      onChange={(event) => {
+                        read.cancel();
+                        setRevocationReason(event.target.value);
+                      }}
+                    />
+                  </Field>
                   <PageAction
                     label="Prepare acceptance revocation"
                     busy={running === 'revocation'}
                     busyLabel="Preparing…"
-                    disabled={read.busy || read.refreshing || !canApprove || !revocationReason.trim()}
-                    onClick={() => track('revocation', read.prepareRevocation(read.selectedRecord!, revocationReason))}
+                    disabled={read.busy || read.refreshing || !canApprove}
+                    onClick={() => {
+                      if (revocationChecks.check())
+                        track('revocation', read.prepareRevocation(read.selectedRecord!, revocationReason));
+                    }}
                   />
                 </Section>
               )}

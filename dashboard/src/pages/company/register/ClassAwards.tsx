@@ -17,6 +17,7 @@ import { registerKey } from '@hooks/useRegisterAccess';
 import { allPeopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { awardsKey, useRegisterAwards } from '@pages/company/register/shared/useRegisterAwards';
 import { grantsKey, useRegisterGrants } from '@pages/company/register/shared/useRegisterGrants';
+import { LoadError, Loading } from '@components/Ledger';
 
 export function ClassAwards({
   owner,
@@ -104,16 +105,9 @@ export function ClassAwards({
       <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       {appointments.isError && (
-        <>
-          <p role="alert" className="text-sm text-error-light">
-            Your appointments could not be read. Retry before recording an award.
-          </p>
-          <PageAction
-            label="Retry award appointments"
-            disabled={appointments.isFetching}
-            onClick={() => void appointments.refetch()}
-          />
-        </>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       )}
       {appointments.isSuccess && !appointment && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
       {((appointment && supported) || (editing && formAppointment)) && (
@@ -131,22 +125,11 @@ export function ClassAwards({
           }}
         />
       )}
-      {editing && members.isPending && (
-        <p role="status" className="text-sm text-text-muted">
-          Loading retained recipients…
-        </p>
-      )}
+      {editing && members.isPending && <Loading>Loading retained recipients…</Loading>}
       {editing && members.isError && (
-        <>
-          <p role="alert" className="text-sm text-error-light">
-            The retained recipients could not be read.
-          </p>
-          <PageAction
-            label="Retry award recipients"
-            disabled={members.isFetching}
-            onClick={() => void members.refetch()}
-          />
-        </>
+        <LoadError retry={() => members.refetch()} busy={members.isFetching}>
+          The retained recipients could not be loaded.
+        </LoadError>
       )}
       {editing && formAppointment && (
         <AwardForm
@@ -177,35 +160,31 @@ export function ClassAwards({
           }}
         />
       )}
-      {!readable ? (
+      {appointments.isError ? null : !appointments.isSuccess || (readable && awards.isPending) ? (
+        <Loading>Loading employee awards…</Loading>
+      ) : !readable ? (
         <p className="text-sm text-text-muted">
           A current company register appointment is required to read employee awards.
         </p>
-      ) : awards.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading employee awards…
-        </p>
       ) : null}
       {awards.isError && (
-        <p role="alert" className="text-sm text-error-light">
-          Employee awards could not be read. Retry before continuing.
-        </p>
+        <LoadError retry={refresh} busy={awards.isFetching || appointments.isFetching}>
+          Employee awards could not be loaded.
+        </LoadError>
       )}
       {grants.isError && (
-        <div role="alert" className="flex flex-col items-start gap-2">
-          <p className="text-sm text-error-light">The non-paid issues prepared from these awards could not be read.</p>
-          <PageAction
-            label="Retry non-paid issues"
-            disabled={grants.isFetching}
-            onClick={() => void grants.refetch()}
-          />
-        </div>
+        <LoadError retry={() => grants.refetch()} busy={grants.isFetching}>
+          The non-paid issues prepared from these awards could not be loaded.
+        </LoadError>
       )}
-      <PageAction
-        label={awards.isError ? 'Retry awards' : 'Refresh awards'}
-        disabled={awards.isFetching || appointments.isFetching}
-        onClick={() => void refresh()}
-      />
+      {!awards.isError && !appointments.isError && (
+        <PageAction
+          label="Refresh awards"
+          busy={awards.isFetching || appointments.isFetching}
+          busyLabel="Refreshing…"
+          onClick={() => void refresh()}
+        />
+      )}
       {visible && awards.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
       <ul className="space-y-4">
         {awards.data?.map((award) => (

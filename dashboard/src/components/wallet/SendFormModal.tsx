@@ -21,12 +21,16 @@ import {
   parseFiatValue,
   useCurrency,
 } from '@ledova/shared';
-import { ICON_XS, ICON_SM, ICON_MD, ICON_LG } from '@components/iconSizes';
+import { ICON_XS, ICON_SM, ICON_MD } from '@components/iconSizes';
 import type { Wallet, WhitelistStatus } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { useQRScanner, QRScannerView } from '@components/qr';
 import type { UnifiedAsset } from './useTransferFlow';
-import { FIELD_BASE } from '@components/fieldClass';
+import { Field, TextInput } from '@components/Field';
+import { FIELD_CLASS } from '@components/fieldClass';
+import { Loading } from '@components/Ledger';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 interface SendFormModalProps {
   isOpen: boolean;
@@ -75,7 +79,22 @@ export function SendFormModal({
   const isBitcoin = wallet.chain === BLOCKCHAIN.BITCOIN;
   const ChainIcon = isBitcoin ? CurrencyBtcIcon : CurrencyEthIcon;
   const displayAddress = formatWalletAddressShort(wallet.address);
-
+  const isValidAddress = isBitcoin
+    ? validateWalletAddress(toAddress, wallet.chain)
+    : toAddress.length === 42 && toAddress.startsWith('0x');
+  const parsedAmount = parseFloat(amount);
+  const parsedBalance = parseFloat(selectedAsset?.displayBalance.replace(/,/g, '') || '0');
+  const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= parsedBalance;
+  const checks = useErrorSummary({
+    asset: !selectedAsset && 'Choose an asset to send.',
+    address: !isValidAddress && `Enter a valid ${getBlockchainDisplayName(chainShortCode)} address.`,
+    amount:
+      !!selectedAsset &&
+      !isValidAmount &&
+      (parsedAmount > parsedBalance
+        ? 'Enter an amount no more than the available balance.'
+        : 'Enter an amount greater than zero.'),
+  });
   if (wasOpen !== isOpen) {
     setWasOpen(isOpen);
     if (isOpen) {
@@ -83,6 +102,7 @@ export function SendFormModal({
       setToAddress('');
       setAmount('');
       setShowAddressScanner(false);
+      checks.reset();
     }
   }
 
@@ -121,16 +141,7 @@ export function SendFormModal({
   const isShareToken = selectedAsset?.type === 'share_token';
   const isCrypto = selectedAsset?.type === 'crypto';
 
-  const isValidAddress = isBitcoin
-    ? validateWalletAddress(toAddress, wallet.chain)
-    : toAddress.length === 42 && toAddress.startsWith('0x');
-
-  const parsedAmount = parseFloat(amount);
-  const parsedBalance = parseFloat(selectedAsset?.displayBalance.replace(/,/g, '') || '0');
-  const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= parsedBalance;
-
   const whitelistValid = isShareToken ? isSenderWhitelisted && isRecipientWhitelisted : true;
-  const canTransfer = !!selectedAsset && isValidAddress && isValidAmount && whitelistValid;
 
   const handleUseMax = () => {
     if (!selectedAsset) return;
@@ -153,9 +164,7 @@ export function SendFormModal({
   };
 
   const handleConfirm = () => {
-    if (canTransfer && selectedAsset) {
-      onTransfer(selectedAsset, toAddress, amount);
-    }
+    if (checks.check() && whitelistValid && selectedAsset) onTransfer(selectedAsset, toAddress, amount);
   };
 
   const getAssetIcon = (asset: UnifiedAsset, selected: boolean) => {
@@ -178,6 +187,16 @@ export function SendFormModal({
 
   const amountPlaceholder = isShareToken ? '0' : '0.00';
   const addressPlaceholder = getAddressPlaceholder(chainShortCode);
+  const scanToggle = (
+    <button
+      type="button"
+      onClick={() => setShowAddressScanner(!showAddressScanner)}
+      className="flex items-center gap-1 text-xs text-brand-light transition-colors"
+    >
+      <QrCodeIcon size={ICON_SM} />
+      <span>{showAddressScanner ? 'Hide' : 'Scan QR'}</span>
+    </button>
+  );
 
   return (
     <Modal
@@ -190,24 +209,22 @@ export function SendFormModal({
       cancelLabel={onBack ? 'Back' : 'Cancel'}
       onCancel={onBack ?? onClose}
       confirmLabel="Continue"
-      confirmDisabled={!canTransfer}
+      confirmDisabled={!whitelistValid}
       onConfirm={handleConfirm}
     >
       <div className="space-y-4">
+        <ErrorSummary {...checks.summary} />
         <p className="flex items-center gap-2 text-sm text-text-primary">
           <ChainIcon size={ICON_MD} className="flex-shrink-0 text-text-muted" />
           <span className="font-mono">{displayAddress}</span>
         </p>
 
         {isLoadingAssets ? (
-          <div className="flex items-center py-2">
-            <ArrowsClockwiseIcon size={ICON_LG} className="animate-spin text-text-muted" />
-            <span className="ml-2 text-sm text-text-muted">Loading assets…</span>
-          </div>
+          <Loading>Loading this wallet&apos;s assets…</Loading>
         ) : assets.length === 0 ? (
-          <p className="text-sm text-text-muted">No assets in this wallet</p>
+          <p className="text-sm text-text-muted">No assets in this wallet yet.</p>
         ) : (
-          <div className="space-y-2">
+          <div id={checks.field('asset').id} className="space-y-2">
             {hasShareTokens && !isSenderWhitelisted && senderWhitelistStatus !== undefined && (
               <p className="flex items-start gap-2 text-sm text-warning-light">
                 <ShieldWarningIcon size={ICON_SM} className="mt-0.5 flex-shrink-0" />
@@ -265,47 +282,37 @@ export function SendFormModal({
         )}
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-text-primary">Destination address</label>
-            <button
-              type="button"
-              onClick={() => setShowAddressScanner(!showAddressScanner)}
-              className="flex items-center gap-1 text-xs text-brand-light transition-colors"
-            >
-              <QrCodeIcon size={ICON_SM} />
-              <span>{showAddressScanner ? 'Hide' : 'Scan QR'}</span>
-            </button>
-          </div>
-          {showAddressScanner ? (
-            <div className="space-y-2">
-              <QRScannerView
-                scannerId="send-form-address-scanner"
-                error={scannerError}
-                className="relative overflow-hidden rounded-lg bg-black mx-auto [&_video]:!object-cover [&_video]:!h-full [&_video]:!w-full"
-                style={{ width: 220, height: 220 }}
+          <Field
+            id={checks.field('address').id}
+            label="Destination address"
+            aside={scanToggle}
+            error={showAddressScanner ? null : checks.field('address').error}
+          >
+            {showAddressScanner ? (
+              <div className="mt-2 space-y-2">
+                <QRScannerView
+                  scannerId="send-form-address-scanner"
+                  error={scannerError}
+                  className="relative overflow-hidden rounded-lg bg-black mx-auto [&_video]:!object-cover [&_video]:!h-full [&_video]:!w-full"
+                  style={{ width: 220, height: 220 }}
+                />
+                <p className="text-xs text-text-muted text-center">Scan address QR code</p>
+              </div>
+            ) : (
+              <TextInput
+                value={toAddress}
+                onChange={(e) => handleAddressChange(e.target.value)}
+                placeholder={addressPlaceholder}
+                className={`${FIELD_CLASS} font-mono`}
               />
-              <p className="text-xs text-text-muted text-center">Scan address QR code</p>
-            </div>
-          ) : (
-            <input
-              type="text"
-              value={toAddress}
-              onChange={(e) => handleAddressChange(e.target.value)}
-              placeholder={addressPlaceholder}
-              className={`${FIELD_BASE} font-mono`}
-            />
-          )}
-          {toAddress && !isValidAddress && (
-            <p className="text-xs text-warning-light">
-              Please enter a valid {getBlockchainDisplayName(chainShortCode)} address
-            </p>
-          )}
+            )}
+          </Field>
         </div>
 
         {isShareToken && isValidAddress && (
           <div className="flex items-center gap-2">
             {isCheckingRecipientWhitelist ? (
-              <span className="flex items-center gap-1 text-xs text-text-muted">
+              <span role="status" className="flex items-center gap-1 text-xs text-text-muted">
                 <ArrowsClockwiseIcon size={ICON_XS} className="animate-spin" />
                 Checking whitelist…
               </span>
@@ -343,14 +350,14 @@ export function SendFormModal({
 
         {selectedAsset && (
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-primary">Amount ({selectedAsset.symbol})</label>
-            <input
-              type="text"
-              value={amount}
-              onChange={handleAmountChange}
-              placeholder={amountPlaceholder}
-              className={FIELD_BASE}
-            />
+            <Field {...checks.field('amount')} label={`Amount (${selectedAsset.symbol})`}>
+              <TextInput
+                inputMode="decimal"
+                value={amount}
+                onChange={handleAmountChange}
+                placeholder={amountPlaceholder}
+              />
+            </Field>
             {parseFiatValue(selectedAsset.marketValue) === null && (
               <p className="text-xs text-text-muted">Unpriced: no fiat estimate available.</p>
             )}
@@ -363,9 +370,6 @@ export function SendFormModal({
                 Use max
               </button>
             </div>
-            {amount && !isValidAmount && parsedAmount > parsedBalance && (
-              <p className="text-xs text-error-light">Amount exceeds available balance</p>
-            )}
           </div>
         )}
       </div>

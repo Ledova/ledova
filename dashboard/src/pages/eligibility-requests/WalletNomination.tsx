@@ -1,4 +1,7 @@
 import { SelectField } from '@components/SelectField';
+import { CheckboxField } from '@components/Field';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
@@ -7,17 +10,18 @@ import {
   COMPANY_WALLET_UNMET_COPY,
   type WalletNominationPreview,
   refusalSentences,
+  shortReference,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
 
 function Facts({ preview }: { preview: WalletNominationPreview }) {
   return (
     <Rows>
-      <Row label="Exact company">{preview.company}</Row>
-      <Row label="Eligibility request">{preview.request}</Row>
-      <Row label="Accepted GENERAL decision">{preview.decision ?? 'Not ready'}</Row>
+      <Row label="Company">{shortReference(preview.company)}</Row>
+      <Row label="Eligibility request">{shortReference(preview.request)}</Row>
+      <Row label="Accepted GENERAL decision">{preview.decision ? shortReference(preview.decision) : 'Not ready'}</Row>
       <Row label="Selected address">{preview.address}</Row>
       <Row label="Chain">{preview.chain}</Row>
       <Row label="Possession proof completed">{formatDateTime(preview.proofCompletedAt)}</Row>
@@ -30,6 +34,8 @@ function Facts({ preview }: { preview: WalletNominationPreview }) {
 export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: string; guardRequest: () => void }) {
   const data = useWalletNomination({ requestUuid, newKey: () => crypto.randomUUID(), guardRequest });
   const { running, track } = useRunningAction();
+  const reads = [data.request, data.nominations, data.wallets];
+  const readFailed = reads.some((read) => read.isError);
   const [consent, setConsent] = useState<{ preview: WalletNominationPreview | null; accepted: boolean }>({
     preview: null,
     accepted: false,
@@ -41,6 +47,10 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
   const preview = data.preview;
   const accepted = consent.preview === preview && consent.accepted;
   const proofOpen = verifying?.owner === data.owner && verifying.wallet === wallet?.uuid;
+  const checks = useErrorSummary({
+    wallet: !wallet && 'Choose one of your own Base wallets.',
+    consent: !accepted && 'Agree to share the selected address with this company.',
+  });
   if (!data.owner) return null;
   return (
     <Section title="Nominate one own Base wallet">
@@ -48,13 +58,22 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
         Select one own wallet for this company and review its current GENERAL eligibility and possession proof. Earlier
         evidence sharing does not share your wallets.
       </p>
-      <PageAction label="Refresh wallet nomination" disabled={data.busy} onClick={() => void data.refresh()} />
+      <ErrorSummary {...checks.summary} />
+      {!readFailed && (
+        <PageAction
+          label="Refresh wallet nomination"
+          busy={running === 'refresh'}
+          busyLabel="Refreshing…"
+          disabled={data.busy}
+          onClick={() => track('refresh', data.refresh())}
+        />
+      )}
       {data.original && (
         <div className="space-y-3">
           <p role="status">This original nomination is unconfirmed. Recover its receipt with the same body and key.</p>
           <Facts preview={data.original.preview} />
           <Rows>
-            <Row label="Original nomination key">{data.original.body.operationId}</Row>
+            <Row label="Original nomination key">{shortReference(data.original.body.operationId)}</Row>
           </Rows>
           <PageAction label="Recover original nomination" disabled={data.busy} onClick={() => void data.recover()} />
         </div>
@@ -64,14 +83,17 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
           {data.error}
         </p>
       )}
-      {(data.request.isError || data.wallets.isError) && (
-        <p role="alert">
-          The current own request or wallets could not be checked. Your original request remains available for recovery.
-        </p>
+      {readFailed && (
+        <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
+          Your request, nominations or own wallets could not be{' '}
+          {reads.every((read) => !read.isError || read.data) ? 'refreshed' : 'loaded'}. Your original request remains
+          available for recovery.
+        </LoadError>
       )}
       {!data.original && (
         <>
           <SelectField
+            {...checks.field('wallet')}
             label="Your own Base wallet"
             options={[
               { value: '', label: 'Select one own wallet' },
@@ -82,9 +104,14 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
             ]}
             value={data.walletUuid}
             disabled={blocked}
-            onChange={data.setWallet}
+            onChange={(uuid) => {
+              checks.reset();
+              data.setWallet(uuid);
+            }}
           />
-          {data.wallets.isSuccess && wallets.length === 0 && <p>No own Base wallets are available.</p>}
+          {data.wallets.isSuccess && wallets.length === 0 && (
+            <p className="text-sm text-text-muted">No own Base wallets yet.</p>
+          )}
           {wallet && (
             <PageAction
               label="Refresh selected wallet possession proof"
@@ -103,8 +130,10 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
             label="Review wallet nomination"
             busy={running === 'review'}
             busyLabel="Reviewing…"
-            disabled={blocked || !wallet}
-            onClick={() => track('review', data.review())}
+            disabled={blocked}
+            onClick={() => {
+              if (checks.check(['wallet'])) track('review', data.review());
+            }}
           />
           {preview && (
             <div className="space-y-3">
@@ -114,20 +143,20 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
                   {sentence}
                 </p>
               ))}
-              <label className="flex gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={accepted}
-                  disabled={blocked}
-                  onChange={(event) => setConsent({ preview, accepted: event.target.checked })}
-                />
-                Share this selected address with this exact company.
-              </label>
+              <CheckboxField
+                {...checks.field('consent')}
+                label="Share this selected address with this exact company."
+                checked={accepted}
+                disabled={blocked}
+                onChange={(event) => setConsent({ preview, accepted: event.target.checked })}
+              />
               <PageAction
                 label="Submit wallet nomination"
                 primary
-                disabled={blocked || !accepted || !preview.canSubmit}
-                onClick={() => void data.confirm()}
+                disabled={blocked || !preview.canSubmit}
+                onClick={() => {
+                  if (checks.check(['consent'])) void data.confirm();
+                }}
               />
             </div>
           )}
@@ -148,15 +177,15 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
         </p>
         {data.receipt && !data.nominations.isSuccess && (
           <Rows>
-            <Row label="Retained nomination receipt">{data.receipt.uuid}</Row>
+            <Row label="Retained nomination receipt">{shortReference(data.receipt.uuid)}</Row>
             <Row label="Shared address">{data.receipt.address}</Row>
-            <Row label="Company">{data.receipt.company}</Row>
+            <Row label="Company">{shortReference(data.receipt.company)}</Row>
           </Rows>
         )}
         {(data.nominations.isSuccess ? data.nominations.data : []).map((record) => (
           <Rows key={record.uuid}>
-            <Row label="Retained nomination">{record.uuid}</Row>
-            <Row label="Company">{record.company}</Row>
+            <Row label="Retained nomination">{shortReference(record.uuid)}</Row>
+            <Row label="Company">{shortReference(record.company)}</Row>
             <Row label="Shared address">{record.address}</Row>
             <Row label="Chain">{record.chain}</Row>
             <Row label="Submitted">{formatDateTime(record.submittedAt)}</Row>

@@ -1,11 +1,13 @@
+import { Field, TextInput } from '@components/Field';
 import { useState } from 'react';
-import { DESTINATIONS, failureSentence } from '@ledova/shared';
+import { FIELD_LIMITS, DESTINATIONS, failureSentence, readApiError } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
-import { LinkRow, Outcome, Section, SwitchRow } from '@components/Ledger';
-import { FIELD_CLASS } from '@components/fieldClass';
+import { LinkRow, Outcome, Section, SwitchRow, LoadError, Loading } from '@components/Ledger';
 import { setTheme } from '@hooks/useTheme';
+import { useErrorSummary } from '@hooks/useErrorSummary';
+import { ErrorSummary } from '@components/ErrorSummary';
 import { Verification } from './Verification';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
@@ -18,12 +20,16 @@ function ActionRow({ description, label, onClick }: { description: string; label
 }
 
 function PasswordInput({
+  id,
+  error,
   label,
   value,
   onChange,
   autoComplete,
   disabled,
 }: {
+  id: string;
+  error: string | null;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -33,17 +39,16 @@ function PasswordInput({
   const [visible, setVisible] = useState(false);
   return (
     <div className="space-y-1">
-      <label className="flex flex-col gap-1 text-sm text-text-muted">
-        {label}
-        <input
+      <Field id={id} error={error} label={label}>
+        <TextInput
           type={visible ? 'text' : 'password'}
+          maxLength={FIELD_LIMITS.PASSWORD}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}
           disabled={disabled}
-          className={FIELD_CLASS}
         />
-      </label>
+      </Field>
       <button
         type="button"
         aria-label={`${visible ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
@@ -72,7 +77,7 @@ function SettingsPage() {
     setNewPassword,
     confirmPassword,
     setConfirmPassword,
-    passwordError,
+    passwordProblems,
     passwordChanged,
     setPasswordChanged,
     deleteMutation,
@@ -81,18 +86,29 @@ function SettingsPage() {
     closePassword,
     savePassword,
   } = useSettings();
+  const passwordChecks = useErrorSummary(passwordProblems);
+  const passwordReading = passwordMutation.isError
+    ? readApiError(passwordMutation.error, {
+        fallback: 'Your password could not be changed. Try again.',
+        displayedFields: ['currentPassword', 'newPassword', 'newPasswordConfirm'],
+      })
+    : null;
+  const passwordField = (key: keyof typeof passwordProblems) => {
+    const check = passwordChecks.field(key);
+    return { id: check.id, error: check.error ?? passwordReading?.fieldErrors?.[key]?.join(' ') ?? null };
+  };
   return (
     <Page narrow>
       <Verification />
       <Section title="Company settings">
         <div className="divide-y divide-border-subtle">
-          <LinkRow to={DESTINATIONS.company.path} label="Company details">
+          <LinkRow to={DESTINATIONS.company.path} label={DESTINATIONS.company.title}>
             <p className="text-text-muted">Company information and administration.</p>
           </LinkRow>
           <LinkRow to={`${DESTINATIONS.company.path}#documents`} label="Company documents">
             <p className="text-text-muted">Upload optional supporting documents after company setup.</p>
           </LinkRow>
-          <LinkRow to={DESTINATIONS.companyTeam.path} label="Team and appointments">
+          <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title}>
             <p className="text-text-muted">
               Invite company users, accept an invitation and manage permitted appointments.
             </p>
@@ -113,7 +129,7 @@ function SettingsPage() {
             }}
           />
         </div>
-        {passwordChanged && <Outcome>Your password was changed.</Outcome>}
+        <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
       </Section>
       <Section title="Appearance">
         <SwitchRow
@@ -125,16 +141,11 @@ function SettingsPage() {
       </Section>
       <Section title="Notifications">
         {preferences.isError ? (
-          <>
-            <p role="alert" className="text-sm text-error-light">
-              Notification preferences could not be loaded.
-            </p>
-            <PageAction label="Try again" onClick={() => void preferences.refetch()} />
-          </>
+          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+            Notification preferences could not be loaded.
+          </LoadError>
         ) : preferences.isLoading ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading notification preferences…
-          </p>
+          <Loading>Loading notification preferences…</Loading>
         ) : transactionAlerts === undefined ? (
           <p className="text-sm text-text-muted">Notification preferences are unavailable.</p>
         ) : (
@@ -174,25 +185,30 @@ function SettingsPage() {
       </Section>
       <Modal
         isOpen={modal === 'password'}
-        onClose={closePassword}
+        onClose={() => {
+          passwordChecks.reset();
+          closePassword();
+        }}
         title="Change password"
         showFooter
         confirmLabel="Change password"
         formId="change-password"
         busy={passwordMutation.isPending}
         busyLabel="Changing password…"
-        confirmDisabled={!currentPassword || !newPassword || !confirmPassword}
       >
         {modal === 'password' && (
           <form
             id="change-password"
             className="space-y-4"
+            noValidate
             onSubmit={(event) => {
               event.preventDefault();
-              savePassword();
+              if (passwordChecks.check()) savePassword();
             }}
           >
+            <ErrorSummary {...passwordChecks.summary} />
             <PasswordInput
+              {...passwordField('currentPassword')}
               label="Current password"
               value={currentPassword}
               onChange={setCurrentPassword}
@@ -200,6 +216,7 @@ function SettingsPage() {
               disabled={passwordMutation.isPending}
             />
             <PasswordInput
+              {...passwordField('newPassword')}
               label="New password"
               value={newPassword}
               onChange={setNewPassword}
@@ -207,15 +224,16 @@ function SettingsPage() {
               disabled={passwordMutation.isPending}
             />
             <PasswordInput
+              {...passwordField('newPasswordConfirm')}
               label="Confirm new password"
               value={confirmPassword}
               onChange={setConfirmPassword}
               autoComplete="new-password"
               disabled={passwordMutation.isPending}
             />
-            {passwordError && (
+            {passwordReading && (
               <p role="alert" className="text-sm text-error-light">
-                {passwordError}
+                {passwordReading.generalError ?? 'The password was not changed. Check the fields above.'}
               </p>
             )}
           </form>

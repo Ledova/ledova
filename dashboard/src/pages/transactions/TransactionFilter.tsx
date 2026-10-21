@@ -1,11 +1,11 @@
+import { Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { Choices } from '@components/Choices';
 import type { Ref } from 'react';
 import { BLOCKCHAIN, formatDate } from '@ledova/shared';
 import type { TransactionFilters, Wallet } from '@ledova/shared';
-import { Disclosure } from '@components/Ledger';
+import { Disclosure, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 
 interface TransactionFilterProps {
   ref?: Ref<HTMLButtonElement>;
@@ -116,38 +116,29 @@ export function TransactionFilter({
                 disabled={walletsLoading || walletsFailed}
                 onChange={(wallet) => onFilterChange('wallet', wallet)}
               />
-              {walletsLoading && (
-                <p role="status" className="text-sm text-text-muted">
-                  Loading wallets…
-                </p>
-              )}
+              {walletsLoading && <Loading>Loading your wallets…</Loading>}
               {walletsFailed && (
-                <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-primary">
-                  <p>Wallet filters could not be loaded. Your activity can still be viewed.</p>
-                  <PageAction label="Try wallets again" onClick={onRetryWallets} disabled={walletsRefreshing} />
-                </div>
+                <LoadError retry={onRetryWallets} busy={walletsRefreshing}>
+                  Wallet filters could not be loaded. Your activity can still be viewed.
+                </LoadError>
               )}
             </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <label className={LABEL}>
-              From date
-              <input
+            <Field label="From date">
+              <TextInput
                 type="date"
-                className={FIELD_CLASS}
                 value={filters.start_date ?? ''}
                 onChange={(event) => onFilterChange('start_date', event.target.value)}
               />
-            </label>
-            <label className={LABEL}>
-              Through date
-              <input
+            </Field>
+            <Field label="Through date">
+              <TextInput
                 type="date"
-                className={FIELD_CLASS}
                 value={filters.end_date ?? ''}
                 onChange={(event) => onFilterChange('end_date', event.target.value)}
               />
-            </label>
+            </Field>
           </div>
           <p className="text-xs text-text-muted">Dates include the whole selected days in your local time.</p>
           {datesInvalid && (

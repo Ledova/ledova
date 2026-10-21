@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  DESTINATIONS,
   REGISTER_OPENING_COPY,
   apiErrorSentence,
   createUserFriendlyError,
@@ -22,8 +21,10 @@ import {
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 
 import { openingsKey } from '@pages/company/register/shared/useRegisterOpenings';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 type Draft = {
   file: File | null;
@@ -43,13 +44,16 @@ const CLOSED = 'This opening form is closed. Reopen it before continuing.';
 
 const NEW = 'new:';
 
-function problemsOf(draft: Draft) {
-  const problems: string[] = [];
-  if (!draft.file) problems.push('Choose the authority document.');
-  if (draft.authority === 'director_resolution' && !draft.director.trim())
-    problems.push('Name the approving director for a resolution.');
-  if (!draft.reference.trim() || !draft.reason.trim()) problems.push('Give the authority reference and the reason.');
-  return problems;
+function problemsOf(draft: Draft): Problems<'file' | 'director' | 'reference' | 'reason'> {
+  return {
+    file: !draft.file && 'Choose the authority document.',
+    director:
+      draft.authority === 'director_resolution' &&
+      !draft.director.trim() &&
+      'Name the approving director for a resolution.',
+    reference: !draft.reference.trim() && 'Give the authority reference.',
+    reason: !draft.reason.trim() && 'Give the reason.',
+  };
 }
 
 function byAddress(left: { address: string }, right: { address: string }) {
@@ -182,7 +186,7 @@ export function useOpeningPreparation({
   };
 
   const submit = async () => {
-    if (pending.current || busy || blocked || problems.length > 0 || !draft.file) return;
+    if (pending.current || busy || blocked || hasProblems(problems) || !draft.file) return;
     pending.current = true;
     setBusy(true);
     clear();
@@ -204,12 +208,14 @@ export function useOpeningPreparation({
       const sent = JSON.stringify(request);
       if (operation.current?.signature !== sent) operation.current = { signature: sent, key: crypto.randomUUID() };
       const preparation = { operationId: operation.current.key, ...request };
+      let prepared = '';
       try {
         check();
         const { data } = await prepareRegisterOpening(apiClient, preparation, { ledovaSubmissionGuard: check });
         check();
         if (!isPreparedRegisterOpening(data, preparation))
           throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+        prepared = data.uuid;
       } catch (failure) {
         if (failureStatus(failure) === 409) {
           operation.current = null;
@@ -220,7 +226,14 @@ export function useOpeningPreparation({
       check();
       await client.invalidateQueries({ queryKey: openingsKey(owner, token) });
       check();
-      navigate(DESTINATIONS.companyRegister.path);
+      const place = registerPlace({
+        company,
+        token,
+        task: 'history',
+        record: prepared,
+        outcome: 'Register opening prepared.',
+      });
+      navigate(place.to, { state: place.state });
     } catch (failure) {
       try {
         check();

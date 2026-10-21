@@ -9,8 +9,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 
 import { TransferRecord } from './TransferRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -18,8 +17,10 @@ import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { transfersKey, useRegisterTransfers } from '@pages/company/register/shared/useRegisterTransfers';
 import { allPeopleKey } from '@pages/company/register/shared/usePeople';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 export function ClassTransfers({
+  landed,
   owner,
   guard,
   register,
@@ -27,6 +28,7 @@ export function ClassTransfers({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   owner: OrderSubmissionOwner;
   guard: () => void;
   register: TokenHoldersResponse;
@@ -83,46 +85,37 @@ export function ClassTransfers({
             (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
             { uuid: token },
           )}
-          label={register.token.status === 'draft' ? 'Set up share register' : 'Share class settings'}
+          label={
+            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).title
+          }
         />
       )}
       {privateReady && steps?.prepare && supported && (
         <LinkRow to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })} label={COPY.PREPARE} />
       )}
       {appointments.isError && (
-        <div role="alert" className="flex flex-col items-start gap-2">
-          <p className="text-sm text-error-light">
-            Your appointments could not be loaded. Retry before preparing or deciding a transfer.
-          </p>
-          <PageAction
-            label="Retry appointments"
-            disabled={appointments.isFetching}
-            onClick={() => void appointments.refetch()}
-          />
-        </div>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       )}
       {steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
       {transfers.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading non-paid transfers…
-        </p>
+        <Loading>Loading non-paid transfers…</Loading>
       ) : transfers.isError ? (
-        <div role="alert">
-          <p className="text-sm text-error-light">The transfers could not be loaded.</p>
-          <PageAction
-            label="Retry transfers"
-            disabled={transfers.isFetching || appointments.isFetching}
-            onClick={() => {
-              void transfers.refetch();
-              void appointments.refetch();
-            }}
-          />
-        </div>
+        <LoadError
+          retry={() => Promise.all([transfers.refetch(), appointments.refetch()])}
+          busy={transfers.isFetching || appointments.isFetching}
+        >
+          Transfers could not be loaded.
+        </LoadError>
+      ) : privateReady && transfers.data.length === 0 ? (
+        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {(transfers.data ?? []).map((transfer) => (
           <TransferRecord
             key={transfer.uuid}
+            landed={landed?.record === transfer.uuid ? landed : undefined}
             transfer={transfer}
             visible={privateReady}
             onHeldChange={recordHeld}

@@ -2,7 +2,7 @@ import { ArrowSquareOutIcon } from '@phosphor-icons/react';
 import { PUBLICATION_COPY, PUBLICATION_KIND_LABELS, formatDate, formatShareCount } from '@ledova/shared';
 import type { BallotChoice, Publication } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
@@ -93,14 +93,9 @@ export default function PublicationsPage() {
         </p>
       )}
       {listFailed ? (
-        <div role="alert" className="flex flex-col items-start gap-3 py-6">
-          <p className="text-sm text-text-primary">
-            {publications.length
-              ? 'Your notices could not be refreshed. Try again before continuing.'
-              : PUBLICATION_COPY.LIST_FAILED}
-          </p>
-          <PageAction label={PUBLICATION_COPY.RETRY} onClick={retry} disabled={isRefreshing} />
-        </div>
+        <LoadError retry={retry} busy={isRefreshing}>
+          {publications.length ? 'Your notices could not be refreshed.' : PUBLICATION_COPY.LIST_FAILED}
+        </LoadError>
       ) : (
         <>
           {publications.length === 0 && !hasMore && !moreFailed ? (

@@ -316,6 +316,8 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
   and wallet nominations and instructions have none.
 - Issues, and subscriptions with a payment recorded by staff (not proved) still to be allotted or
   refunded, an obligation the company inherits.
+- Each class's company-supplied rights descriptions and document references, with every revision,
+  actor, appointment and recording time. References are text, not retained source-file proof.
 - Wallet approvals, the transactions Ledova sent for the company and the settlements it executed.
 - What the company published to its members, with each resolution's result, each dividend's payment
   records and read counts.
@@ -432,9 +434,9 @@ What a recipient should know (the builder's own limits are in
 
 ## The Wallet shares page
 
-**Wallet shares** (from **Wallets**: **View shares in your wallets** on web, **Wallet shares** on
-mobile) lists the share-class tokens in the person's own wallets, one row per company and class
-across networks, expanding into each network's and wallet's balance. A holding whose class details
+**Wallet shares** (from **Wallets** on both clients) lists the share-class tokens in the person's
+own wallets, one row per company and class across networks, expanding into each network's and
+wallet's balance. A holding whose class details
 cannot be read is listed under the asset's name. Company-recorded shares, wallet or not, are on
 **Dashboard** or **My shares**.
 

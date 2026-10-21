@@ -6,6 +6,7 @@ import { formatDateTime, DESTINATIONS, PUBLICATION_NOTICE, useNotifications } fr
 import { ICON_SM, ICON_MD } from './iconSizes';
 import { LoadMore } from './List';
 import type { DestinationKey, Notification } from '@ledova/shared';
+import { LoadError, Loading } from './Ledger';
 
 const NOTICE_PAGES: Record<string, DestinationKey> = {
   company: 'companyListing',
@@ -73,6 +74,7 @@ function NotificationList({
   load,
   notifications,
   isLoading,
+  failed,
   more,
   heading,
   onRead,
@@ -82,6 +84,7 @@ function NotificationList({
   load: () => unknown;
   notifications: Notification[];
   isLoading: boolean;
+  failed: boolean;
   more: { hasMore: boolean; failed: boolean; loading: boolean; onLoad: () => void };
   heading: RefObject<HTMLHeadingElement | null>;
   onRead: (uuid: string) => void;
@@ -109,13 +112,33 @@ function NotificationList({
   };
 
   if (isLoading && notifications.length === 0) {
-    return <p className="px-4 py-8 text-center text-sm text-text-muted">Loading…</p>;
+    return (
+      <div className="px-4 py-5">
+        <Loading>Loading your notifications…</Loading>
+      </div>
+    );
+  }
+  if (failed && notifications.length === 0) {
+    return (
+      <div className="px-4 py-5">
+        <LoadError retry={load} busy={isLoading}>
+          Your notifications could not be loaded.
+        </LoadError>
+      </div>
+    );
   }
   if (notifications.length === 0) {
-    return <p className="px-4 py-8 text-center text-sm text-text-muted">No notifications yet</p>;
+    return <p className="px-4 py-8 text-center text-sm text-text-muted">No notifications yet.</p>;
   }
   return (
     <>
+      {failed && (
+        <div className="px-4 pt-3">
+          <LoadError retry={load} busy={isLoading}>
+            Your notifications could not be refreshed.
+          </LoadError>
+        </div>
+      )}
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.uuid}
@@ -131,7 +154,7 @@ function NotificationList({
       ))}
       {(more.hasMore || more.failed) && (
         <div className="px-4 py-3">
-          <LoadMore noun={['notification', 'notifications']} disabled={isLoading && !more.loading} {...more} />
+          <LoadMore noun={['notification', 'notifications']} disabled={isLoading} {...more} />
         </div>
       )}
     </>
@@ -145,6 +168,7 @@ export function NotificationBell({ align }: NotificationBellProps) {
     unreadCount,
     notifications,
     isLoadingNotifications,
+    notificationsFailed,
     fetchNotifications,
     markAsRead,
     archive,
@@ -169,7 +193,7 @@ export function NotificationBell({ align }: NotificationBellProps) {
     <Popover>
       <PopoverButton
         aria-label={unreadCount > 0 ? `Notifications, ${badgeText} unread` : 'Notifications'}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-mid/30"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary"
       >
         <BellIcon size={ICON_MD} aria-hidden="true" />
         {unreadCount > 0 && (
@@ -209,6 +233,7 @@ export function NotificationBell({ align }: NotificationBellProps) {
                 load={fetchNotifications}
                 notifications={notifications}
                 isLoading={isLoadingNotifications}
+                failed={notificationsFailed}
                 more={{
                   hasMore: hasMoreNotifications,
                   failed: moreNotificationsFailed,

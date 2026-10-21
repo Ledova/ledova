@@ -1,15 +1,41 @@
 import { SelectField } from '@components/SelectField';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { DESTINATIONS, ELIGIBILITY_RECORDS_NOTICE, formatDate, useParticipantEligibilityRecords } from '@ledova/shared';
-import { LinkRow, Section } from '@components/Ledger';
+import {
+  FIELD_LIMITS,
+  DESTINATIONS,
+  ELIGIBILITY_RECORDS_NOTICE,
+  formatDate,
+  isUuid,
+  useParticipantEligibilityRecords,
+  shortReference,
+} from '@ledova/shared';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useDirectoryNames } from '@hooks/useDirectoryNames';
+import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
-import { ActionConfirmation, EligibilityHistory, RecordsList, TextField } from '@components/eligibility';
+import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
+import { Field, TextInput } from '@components/Field';
 import { WalletNomination } from './WalletNomination';
 
 export default function ParticipantEligibilityPage() {
   const read = useParticipantEligibilityRecords(() => crypto.randomUUID());
   const { running, track } = useRunningAction();
   const source = read.sources.find((item) => item.uuid === read.draft.source);
+  const directory = useDirectoryNames();
+  const productValue = source?.category === 'product_value';
+  const quantity = read.draft.quantity;
+  const request = useErrorSummary({
+    source: !source && 'Choose your evidence source.',
+    offering: productValue && !isUuid(read.draft.offering) && 'Enter the approved offering UUID.',
+    quantity:
+      productValue &&
+      (!/^[1-9]\d*$/.test(quantity) || !Number.isSafeInteger(Number(quantity))) &&
+      'Enter a positive whole-share quantity.',
+    company: !productValue && !isUuid(read.draft.company) && 'Enter the exact company UUID supplied by the company.',
+    requestedExpiresAt:
+      !Number.isFinite(Date.parse(read.draft.requestedExpiresAt)) && 'Enter the requested expiry date and time.',
+  });
   return (
     <Page
       narrow
@@ -18,7 +44,9 @@ export default function ParticipantEligibilityPage() {
       actions={
         <PageAction
           label="Refresh records"
-          disabled={read.busy || read.refreshing}
+          busy={read.refreshing}
+          busyLabel="Refreshing…"
+          disabled={read.busy}
           onClick={() => void read.refresh()}
         />
       }
@@ -27,71 +55,104 @@ export default function ParticipantEligibilityPage() {
         <p>Your signed-in account must be checked before opening these records.</p>
       ) : (
         <>
-          {read.error && (
+          {read.readFailed && (
+            <LoadError retry={() => read.refresh()} busy={read.refreshing || read.busy}>
+              Your company eligibility requests could not be loaded.
+            </LoadError>
+          )}
+          {(read.readFailed ? read.failure : read.error) && (
             <p role="alert" className="text-sm text-error-light">
-              {read.error}
+              {read.readFailed ? read.failure : read.error}
             </p>
           )}
           <Section title="Prepare a request for one company">
-            <LinkRow to={DESTINATIONS.investorEligibility.path} label="Upload or inspect your private evidence" />
+            <ErrorSummary {...request.summary} />
+            <LinkRow to={DESTINATIONS.investorEligibility.path} label={DESTINATIONS.investorEligibility.title} />
             <p className="text-sm text-text-muted">
               Select your own submitted evidence or retained historical evidence. Enter the exact company UUID supplied
               by the company, or an approved offering UUID for a product-value claim. The server confirms the target and
               terms.
             </p>
             <SelectField
+              {...request.field('source')}
               label="Your evidence source"
               options={[
                 { value: '', label: 'Select a source' },
                 ...read.sources.map((item) => ({
                   value: item.uuid,
                   label: `${item.categoryDisplay} · ${item.statusDisplay} · ${formatDate(item.createdAt)}`,
-                  reference: item.uuid.slice(0, 8),
+                  reference: shortReference(item.uuid),
                 })),
               ]}
               value={read.draft.source}
-              onChange={(source) => read.updateDraft({ source, company: '', offering: '', quantity: '' })}
+              onChange={(source) => {
+                request.reset();
+                read.updateDraft({ source, company: '', offering: '', quantity: '' });
+              }}
             />
-            {source?.category === 'product_value' ? (
+            {productValue ? (
               <>
-                <TextField
+                <Field
+                  {...request.field('offering')}
                   label="Approved offering UUID"
-                  value={read.draft.offering}
-                  onChange={(offering) => read.updateDraft({ offering })}
-                />
-                <TextField
-                  label="Whole-share quantity"
-                  value={read.draft.quantity}
-                  onChange={(quantity) => read.updateDraft({ quantity })}
-                />
+                  hint={directory.offering(read.draft.offering)}
+                >
+                  <TextInput
+                    value={read.draft.offering}
+                    onChange={(event) => read.updateDraft({ offering: event.target.value })}
+                  />
+                </Field>
+                <Field {...request.field('quantity')} label="Whole-share quantity">
+                  <TextInput
+                    inputMode="numeric"
+                    maxLength={FIELD_LIMITS.WHOLE_SHARES}
+                    value={read.draft.quantity}
+                    onChange={(event) => read.updateDraft({ quantity: event.target.value })}
+                  />
+                </Field>
               </>
             ) : (
-              <TextField
+              <Field
+                {...request.field('company')}
                 label="Exact company UUID"
-                value={read.draft.company}
-                onChange={(company) => read.updateDraft({ company })}
-              />
+                hint={directory.company(read.draft.company)}
+              >
+                <TextInput
+                  value={read.draft.company}
+                  onChange={(event) => read.updateDraft({ company: event.target.value })}
+                />
+              </Field>
             )}
-            <TextField
-              label="Requested expiry (local date and time)"
-              type="datetime-local"
-              value={read.draft.requestedExpiresAt}
-              onChange={(requestedExpiresAt) => read.updateDraft({ requestedExpiresAt })}
-            />
+            <Field {...request.field('requestedExpiresAt')} label="Requested expiry (local date and time)">
+              <TextInput
+                type="datetime-local"
+                value={read.draft.requestedExpiresAt}
+                onChange={(event) => read.updateDraft({ requestedExpiresAt: event.target.value })}
+              />
+            </Field>
             <PageAction
               label="Preview company eligibility request"
               busy={running === 'request'}
               busyLabel="Previewing…"
               disabled={read.busy || read.refreshing}
-              onClick={() => track('request', read.previewRequest())}
+              onClick={() => {
+                if (request.check()) track('request', read.previewRequest());
+              }}
             />
           </Section>
           {read.action && (
             <ActionConfirmation action={read.action} busy={read.busy} confirm={read.confirm} cancel={read.cancel} />
           )}
-          <Section title="Your company requests">
-            <RecordsList records={read.records} select={read.selectRecord} selected={read.selectedRecord?.uuid} />
-          </Section>
+          {!read.readFailed && (
+            <Section title="Your company requests">
+              <RecordsList
+                records={read.records}
+                select={read.selectRecord}
+                selected={read.selectedRecord?.uuid}
+                companyName={(uuid) => directory.companies.get(uuid)}
+              />
+            </Section>
+          )}
           {read.selectedRecord && (
             <>
               <EligibilityHistory record={read.selectedRecord} />

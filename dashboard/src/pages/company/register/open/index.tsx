@@ -1,4 +1,4 @@
-import { PreparationBack, PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
+import { PreparationNotice, PreparationShell } from '@pages/company/register/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/register/shared/useRegisterPreparationOwner';
 import { useOpeningHolders } from './useOpeningHolders';
 import { useMemo, type ReactNode } from 'react';
@@ -9,17 +9,18 @@ import {
   apiErrorSentence,
   appointmentForRegisterStep,
   failureStatus,
+  formatDate,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
+import { Page } from '@components/Page';
 
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 import { OpeningForm } from './OpeningForm';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_OPENING_COPY;
 const LEDE =
@@ -28,19 +29,18 @@ const LEDE =
 const REFUSED = 'This share class cannot be opened from the chain.';
 
 function HoldersFailure({ error, retry, busy }: { error: unknown; retry: () => void; busy: boolean }) {
-  if (failureStatus(error) !== 503) return <Unavailable retry={retry} busy={busy} />;
   return (
-    <div role="alert" className="flex flex-col items-start gap-3 py-3">
-      <p className="text-sm text-text-muted">{COPY.HOLDERS_UNAVAILABLE}</p>
-      <PageAction label="Try again" onClick={retry} disabled={busy} />
-    </div>
+    <LoadError retry={retry} busy={busy}>
+      {failureStatus(error) === 503
+        ? COPY.HOLDERS_UNAVAILABLE
+        : 'The register or your appointments could not be loaded.'}
+    </LoadError>
   );
 }
 
 export default function CompanyRegisterOpeningPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  const back = <PreparationBack />;
   if (owner && !preferences.isError)
     return (
       <OwnOpening
@@ -48,22 +48,19 @@ export default function CompanyRegisterOpeningPage() {
         uuid={uuid}
         owner={owner}
         currentOwner={boundary.get}
-        back={back}
       />
     );
-  return <PreparationShell lede={LEDE} actions={back} preferences={preferences} />;
+  return <PreparationShell lede={LEDE} preferences={preferences} />;
 }
 
 function OwnOpening({
   uuid,
   owner,
   currentOwner,
-  back,
 }: {
   uuid: string;
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
@@ -84,13 +81,20 @@ function OwnOpening({
   const failure = <HoldersFailure error={holders.error} retry={retry} busy={fetching} />;
   let content: ReactNode;
   if (!classes.data || !appointments.data)
-    content = classes.isError || appointments.isError ? <Unavailable retry={retry} busy={fetching} /> : <Loading />;
+    content =
+      classes.isError || appointments.isError ? (
+        <LoadError retry={retry} busy={fetching}>
+          {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
+        </LoadError>
+      ) : (
+        <Loading>Loading the register…</Loading>
+      );
   else if (!listed) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
   else if (!appointment)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (failureStatus(holders.error) === 400)
     content = <p className="py-3 text-sm text-text-muted">{apiErrorSentence(holders.error, REFUSED, REFUSED)}</p>;
-  else if (!holders.data) content = holders.isError ? failure : <Loading />;
+  else if (!holders.data) content = holders.isError ? failure : <Loading>Loading the register…</Loading>;
   else
     content = (
       <>
@@ -100,7 +104,7 @@ function OwnOpening({
           </p>
           <Rows>
             <Row label="Holdings read at">
-              {COPY.BOUNDARY_BLOCK(holders.data.block.number, holders.data.block.date)}
+              {COPY.BOUNDARY_BLOCK(holders.data.block.number, formatDate(holders.data.block.date))}
             </Row>
           </Rows>
           <p className="text-sm text-text-muted">{COPY.BOUNDARY_NOTE}</p>
@@ -127,7 +131,7 @@ function OwnOpening({
       </>
     );
   return (
-    <Page narrow lede={LEDE} actions={back}>
+    <Page narrow lede={LEDE} back={registerPlace({ token: uuid, task: 'history' })}>
       {content}
     </Page>
   );

@@ -6,11 +6,13 @@ export interface Destination {
   path: string;
   title: string;
   audience: Audience;
+  views?: Record<string, string>;
+  tasks?: Record<string, string>;
 }
 
 export const DESTINATIONS = {
   memberRecords: { path: '/member-records', title: 'My shares', audience: 'everyone' },
-  home: { path: '/home', title: 'My shares', audience: 'everyone' },
+  home: { path: '/home', title: 'My shares', audience: 'everyone', views: { documents: 'Documents' } },
   walletHoldings: { path: '/wallets/holdings', title: 'Wallet shares', audience: 'everyone' },
   wallets: { path: '/wallets', title: 'Wallets', audience: 'everyone' },
   transactions: { path: '/transactions', title: 'Activity', audience: 'everyone' },
@@ -23,20 +25,38 @@ export const DESTINATIONS = {
   eligibilityRequests: { path: '/eligibility-requests', title: 'Your company eligibility', audience: 'investing' },
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
   companyClass: { path: '/company/register/:uuid', title: 'Share class', audience: 'everyone' },
-  companyRegister: { path: '/company/register', title: 'Register', audience: 'everyone' },
-  companyRegisterSetup: { path: '/company/register/setup', title: 'Set up share register', audience: 'everyone' },
-  companyRegisterImport: { path: '/company/register/:uuid/import', title: 'Register', audience: 'everyone' },
-  companyRegisterCorrection: {
-    path: '/company/register/:uuid/correct/:entry',
+  companyRegister: {
+    path: '/company/register',
     title: 'Register',
     audience: 'everyone',
+    views: { shareholders: 'Shareholders', awards: 'Employee share scheme', documents: 'Documents' },
+    tasks: { issue: 'Issue shares', transfer: 'Transfer shares', history: 'History' },
   },
-  companyRegisterLinks: { path: '/company/register/companies/:company/links', title: 'Register', audience: 'everyone' },
-  companyRegisterTransfer: { path: '/company/register/:uuid/transfer', title: 'Register', audience: 'everyone' },
-  companyRegisterOpening: { path: '/company/register/:uuid/open', title: 'Register', audience: 'everyone' },
+  companyRegisterSetup: { path: '/company/register/setup', title: 'Set up your share register', audience: 'everyone' },
+  companyRegisterImport: {
+    path: '/company/register/:uuid/import',
+    title: 'Set up your share register',
+    audience: 'everyone',
+  },
+  companyRegisterCorrection: {
+    path: '/company/register/:uuid/correct/:entry',
+    title: 'Correction',
+    audience: 'everyone',
+  },
+  companyRegisterLinks: {
+    path: '/company/register/companies/:company/links',
+    title: 'Wallet links',
+    audience: 'everyone',
+  },
+  companyRegisterTransfer: {
+    path: '/company/register/:uuid/transfer',
+    title: 'Non-paid transfer',
+    audience: 'everyone',
+  },
+  companyRegisterOpening: { path: '/company/register/:uuid/open', title: 'Register opening', audience: 'everyone' },
   companyRegisterParticulars: {
     path: '/company/register/members/:member/particulars',
-    title: 'Register',
+    title: 'Particulars change',
     audience: 'everyone',
   },
   companyShareholder: { path: '/company/register/members/:member', title: 'Shareholder', audience: 'everyone' },
@@ -52,6 +72,36 @@ export const DESTINATIONS = {
 } as const satisfies Record<string, Destination>;
 
 export type DestinationKey = keyof typeof DESTINATIONS;
+
+export interface DestinationParent {
+  destination: DestinationKey;
+  view?: string;
+  back?: false;
+}
+
+export const DESTINATION_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
+  memberRecords: { destination: 'home', back: false },
+  walletHoldings: { destination: 'wallets' },
+  directoryDetail: { destination: 'directory' },
+  subscriptionDetail: { destination: 'subscriptions' },
+  eligibilityRequests: { destination: 'investorEligibility' },
+  companyClass: { destination: 'companyRegister' },
+  companyRegisterSetup: { destination: 'companyRegister', back: false },
+  companyRegisterImport: { destination: 'companyRegister', back: false },
+  companyRegisterCorrection: { destination: 'companyRegister' },
+  companyRegisterLinks: { destination: 'companyRegister' },
+  companyRegisterTransfer: { destination: 'companyRegister' },
+  companyRegisterOpening: { destination: 'companyRegister' },
+  companyRegisterParticulars: { destination: 'companyRegister', view: 'shareholders' },
+  companyShareholder: { destination: 'companyRegister', view: 'shareholders' },
+  company: { destination: 'settings' },
+  companyAuthority: { destination: 'company' },
+  companyTeam: { destination: 'settings' },
+  companyEligibility: { destination: 'company' },
+  companyListing: { destination: 'settings' },
+  companyPublications: { destination: 'company' },
+  userProfile: { destination: 'settings' },
+};
 
 const AUDIENCES_OF: Record<AccountRole, readonly Audience[]> = {
   investor: ['everyone', 'investing'],

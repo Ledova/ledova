@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from 'react';
 import { AnimatedQRCode } from '@keystonehq/animated-qr';
 import { getNumber } from 'ethers';
-import { WALLET_VERIFICATION_STATUS, type SwapSettlement, type Wallet } from '@ledova/shared';
+import {
+  WALLET_VERIFICATION_STATUS,
+  type SwapSettlement,
+  type Wallet,
+  formatDateTime,
+  SWAP_APPROVAL_OUTCOME_LABELS,
+} from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { QRCodeFrame, QRScannerView, useQRScanner } from '@components/qr';
 import {
   approvalTransactionForSigning,
@@ -73,6 +81,9 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
   const approval = state.approvalData?.needsApproval ? state.approvalData.transaction : null;
   const software = wallet?.signingPreference === 'software' || (!wallet?.derivationPath && !wallet?.masterFingerprint);
   const canSign = !!response?.canSign && !response.hasSigned && !!wallet;
+  const phraseCheck = useErrorSummary({
+    seedPhrase: !view.seedPhrase.trim() && 'Enter the seed phrase for this wallet.',
+  });
   const ready = ['ready', 'approval-ready'].includes(state.phase);
   const reviewedQr = view.qr;
   const liveQr = !!reviewedQr && reviewedQr.attempt === state.attempt;
@@ -85,6 +96,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     view.error = null;
     view.seedPhrase = '';
     view.kind = kind;
+    phraseCheck.reset();
     if (software) {
       view.step = 'software';
       render();
@@ -197,6 +209,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
     view.qr = null;
     view.error = null;
     view.step = 'review';
+    phraseCheck.reset();
     render();
   };
   const close = () => {
@@ -228,7 +241,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
               Network: {context.shareToken.chain} ({response.typedData.domain.chainId})
             </p>
             <p className="break-all">Wallet: {party?.address}</p>
-            <p>Signing deadline: {new Date(response.swapOrder.expiresAt).toLocaleString()}</p>
+            <p>Signing deadline: {formatDateTime(response.swapOrder.expiresAt)}</p>
           </div>
         )}
         {!ready && state.phase !== 'error' && (
@@ -275,7 +288,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
         )}
         {state.approvalOutcomes.map((approvalOutcome) => (
           <div role="status" className="space-y-1" key={approvalOutcome.txHash}>
-            <p>Original approval {approvalOutcome.outcome}.</p>
+            <p>Original approval: {SWAP_APPROVAL_OUTCOME_LABELS[approvalOutcome.outcome]}.</p>
             <p className="break-all">Approval transaction: {approvalOutcome.txHash}</p>
             {approvalOutcome.outcome !== 'confirmed' && (
               <p>This approval took no effect. Review a fresh approval if needed.</p>
@@ -283,7 +296,7 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
           </div>
         ))}
         {response?.hasSigned && (
-          <p role="status">Your signature is recorded. Trade status: {response.swapOrder.status}.</p>
+          <p role="status">Your signature is recorded. Trade status: {response.swapOrder.statusDisplay}.</p>
         )}
         {response && !response.hasSigned && !response.canSign && (
           <p>This trade is unavailable for a new signature. Its saved details remain available to check.</p>
@@ -295,8 +308,10 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
             <p className="break-all">Approved contract: {response.typedData.domain.verifyingContract}</p>
           </div>
         )}
+        {ready && canSign && view.step === 'software' && <ErrorSummary {...phraseCheck.summary} />}
         {ready && canSign && view.step === 'software' && (
           <SeedPhraseInput
+            {...phraseCheck.field('seedPhrase')}
             value={view.seedPhrase}
             // eslint-disable-next-line react-hooks/immutability
             onChange={(value) => {
@@ -360,9 +375,10 @@ export function SwapSettlementFlow({ settlement, wallets, onClose }: Props) {
             <PageAction
               label={view.kind === 'approval' ? 'Sign approval' : 'Sign trade'}
               primary
-              disabled={!view.seedPhrase.trim()}
               // eslint-disable-next-line react-hooks/immutability
-              onClick={signSoftware}
+              onClick={() => {
+                if (phraseCheck.check()) signSoftware();
+              }}
             />
           )}
           {ready && canSign && view.step === 'qr' && liveQr && view.qr && (

@@ -20,7 +20,7 @@ export const REGISTER_LINK_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_LINK_COPY = {
   TITLE: 'Wallet links',
-  EMPTY: 'No wallet link has been prepared for this company.',
+  EMPTY: 'No wallet links yet.',
   PREPARE: 'Link waiting wallets',
   NOTHING_WAITING: 'No completed issue or transfer is waiting for a wallet to be linked.',
   PROVIDED_BY_COMPANY: 'Provided by the company',
@@ -49,7 +49,6 @@ export const REGISTER_LINK_COPY = {
   NEW_MEMBER: 'New member',
   UNNAMED_MEMBER: 'Unnamed member',
   NOT_ON_REGISTER: 'A member not on the current register',
-  HOLDING: (shares: string, shareClass: string) => `${shares} ${shareClass} ${shares === '1' ? 'share' : 'shares'}`,
   MAPPING_NOTE:
     'Choose the member who owns each wallet: an existing member, or a new member that applying the link creates. ' +
     'Choose the same member for wallets that belong to one person.',
@@ -68,8 +67,8 @@ export const REGISTER_LINK_COPY = {
   NO_STATUS: "This wallet is not on the company's whitelist, so no proof or holder is shown for it.",
   AUTHORITY_DOCUMENT: 'Authority document',
   AUTHORITY_DOCUMENT_NOTE:
-    'The director resolution or court order that authorises this wallet link, provided by the company. PDF or ' +
-    'image, max 10 MB. Ledova does not verify it.',
+    'The director resolution or court order that authorises this wallet link, provided by the company. Ledova ' +
+    'does not verify it.',
   AUTHORITY: 'Authority',
   AUTHORITIES: {
     director_resolution: 'Director resolution',

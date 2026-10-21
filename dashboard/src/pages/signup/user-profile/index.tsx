@@ -44,7 +44,7 @@ export default function SignupUserProfile() {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading profile data…" />;
+    return <LoadingState message="Loading your personal details…" />;
   }
 
   if (generalError && !form.fullName) {

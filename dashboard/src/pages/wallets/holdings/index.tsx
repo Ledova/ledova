@@ -1,6 +1,6 @@
-import { formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
-import { Disclosure, Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { getChainConfig, shareCount, useOpenRows, useShareHoldings } from '@ledova/shared';
+import { Disclosure, Section, LoadError, Loading } from '@components/Ledger';
+import { Page } from '@components/Page';
 import { HoldingWork } from './HoldingWork';
 
 export default function HomePage() {
@@ -11,14 +11,11 @@ export default function HomePage() {
     <Page narrow lede="Wallet holdings. Company-recorded shares are shown in Your shares.">
       <Section title="Shares in your wallets">
         {isPending ? (
-          <p role="status" className="py-3 text-sm text-text-muted">
-            Loading your holdings…
-          </p>
+          <Loading>Loading your holdings…</Loading>
         ) : isError ? (
-          <div role="alert" className="flex flex-col items-start gap-3 py-3">
-            <p className="text-sm text-text-muted">We couldn&apos;t load all your holdings.</p>
-            <PageAction label="Try again" onClick={() => void refetch()} disabled={isFetching} />
-          </div>
+          <LoadError retry={refetch} busy={isFetching}>
+            Your holdings could not be loaded.
+          </LoadError>
         ) : holdings.length === 0 ? (
           <p className="py-3 text-sm text-text-muted">
             No wallet shares yet. See Your shares for company-recorded ownership.
@@ -39,7 +36,7 @@ export default function HomePage() {
                         <span className="block text-base text-text-primary">{holding.name}</span>
                       </span>
                       <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
-                        {formatShareCount(holding.quantity)} {holding.quantity === '1' ? 'share' : 'shares'}
+                        {shareCount(holding.quantity)}
                       </span>
                     </span>
                   }
@@ -49,16 +46,14 @@ export default function HomePage() {
                       <div key={chain.chain}>
                         <p className="flex flex-wrap justify-between gap-2 text-sm text-text-muted">
                           <span>{getChainConfig(chain.chain)?.name ?? chain.chain}</span>
-                          <span className="tabular-nums">
-                            {formatShareCount(chain.quantity)} {chain.quantity === '1' ? 'share' : 'shares'}
-                          </span>
+                          <span className="tabular-nums">{shareCount(chain.quantity)}</span>
                         </p>
                         <dl className="mt-2 divide-y divide-border-subtle">
                           {chain.wallets.map((wallet) => (
                             <div key={wallet.uuid} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
                               <dt className="min-w-0 break-all text-text-muted">{wallet.name || wallet.address}</dt>
                               <dd className="ml-auto text-right tabular-nums text-text-primary">
-                                {formatShareCount(wallet.quantity)} {wallet.quantity === '1' ? 'share' : 'shares'}
+                                {shareCount(wallet.quantity)}
                               </dd>
                             </div>
                           ))}

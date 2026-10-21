@@ -1,4 +1,4 @@
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import {
   REGISTER_DEPLOYMENT_COPY as COPY,
@@ -11,6 +11,10 @@ import {
   type RegisterDeployment,
   type RegisterDeploymentSnapshot,
   refusalSentences,
+  COMPANY_STATUS_LABELS,
+  DEPLOYMENT_SWAP_APPROVAL_LABELS,
+  type CompanyStatus,
+  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -25,7 +29,7 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
       <Row label="Company">
         {snapshot.company.name} · ACN {snapshot.company.acn}
       </Row>
-      <Row label="Company state">{snapshot.company.status}</Row>
+      <Row label="Company state">{COMPANY_STATUS_LABELS[snapshot.company.status as CompanyStatus]}</Row>
       <Row label="Share class">
         {snapshot.token.name} · {snapshot.token.symbol} · {snapshot.token.identifier}
       </Row>
@@ -51,10 +55,9 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
       <Row label="Factory">{snapshot.transaction.to}</Row>
       <Row label="Transaction value">{snapshot.transaction.value}</Row>
       <Row label="Transaction data">
-        <details>
-          <summary>View exact deployment data</summary>
+        <Disclosure summary="View exact deployment data">
           <p className="break-all">{snapshot.transaction.data}</p>
-        </details>
+        </Disclosure>
       </Row>
     </Rows>
   );
@@ -98,26 +101,40 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
           {error}
         </p>
       )}
-      {!Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
+      {appointments.isSuccess && !appointments.isFetching && !Object.values(steps).some(Boolean) && (
+        <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
+      )}
       {appointments.isError && (
-        <PageAction
-          label="Retry deployment appointments"
-          onClick={() => void appointments.refetch()}
-          disabled={appointments.isFetching}
-        />
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       )}
-      {deployments.isError && (
-        <p role="alert" className="text-sm text-error-light">
-          Deployment history could not be refreshed. Retained receipts remain below.
-        </p>
+      {deployments.isError ? (
+        <LoadError
+          retry={() => refresh().catch(() => undefined)}
+          busy={deployments.isFetching || appointments.isFetching}
+        >
+          {records.length
+            ? 'Deployment history could not be refreshed. Retained receipts remain below.'
+            : 'Deployment history could not be loaded.'}
+        </LoadError>
+      ) : (
+        !appointments.isError && (
+          <PageAction
+            label="Refresh deployments"
+            onClick={() => void refresh().catch(() => undefined)}
+            busy={deployments.isFetching || appointments.isFetching}
+            busyLabel="Refreshing…"
+          />
+        )
       )}
-      <PageAction
-        label="Refresh deployments"
-        onClick={() => void refresh().catch(() => undefined)}
-        disabled={deployments.isFetching || appointments.isFetching}
-      />
       {!records.length ? (
-        <p className="text-sm text-text-muted">{deployments.isPending ? 'Loading deployments…' : COPY.EMPTY}</p>
+        !deployments.isError &&
+        (deployments.isPending ? (
+          <Loading>Loading deployments…</Loading>
+        ) : (
+          <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
+        ))
       ) : (
         <ul className="divide-y divide-border-subtle">
           {records.map((proposal) => (
@@ -131,11 +148,15 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                 <Row label="Prepared by">
                   {proposal.preparedByName || 'Not recorded'} · {formatDateTime(proposal.createdAt)}
                 </Row>
-                <Row label="Original preparation">{proposal.operationId}</Row>
+                <Row label="Original preparation">{shortReference(proposal.operationId)}</Row>
                 <Row label="Intent digest">{proposal.intentDigest}</Row>
                 <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
-                {proposal.deploymentId && <Row label="Admitted deployment">{proposal.deploymentId}</Row>}
-                {proposal.approvalDecision && <Row label="Consumed approval">{proposal.approvalDecision}</Row>}
+                {proposal.deploymentId && (
+                  <Row label="Admitted deployment">{shortReference(proposal.deploymentId)}</Row>
+                )}
+                {proposal.approvalDecision && (
+                  <Row label="Consumed approval">{shortReference(proposal.approvalDecision)}</Row>
+                )}
               </Rows>
               <SnapshotRows snapshot={proposal.snapshot} />
               <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
@@ -145,14 +166,16 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                   <Rows>
                     <Row label="Execution">{registerDeploymentExecutionState(proposal)}</Row>
                     {proposal.execution?.operationId && (
-                      <Row label="Original execution">{proposal.execution.operationId}</Row>
+                      <Row label="Original execution">{shortReference(proposal.execution.operationId)}</Row>
                     )}
                     {proposal.execution?.txHash && <Row label="Transaction">{proposal.execution.txHash}</Row>}
                     {proposal.execution?.contractAddress && (
                       <Row label="Contract">{proposal.execution.contractAddress}</Row>
                     )}
                     {proposal.execution?.swapApprovalOutcome && (
-                      <Row label="Swap approval">{proposal.execution.swapApprovalOutcome}</Row>
+                      <Row label="Swap approval">
+                        {DEPLOYMENT_SWAP_APPROVAL_LABELS[proposal.execution.swapApprovalOutcome]}
+                      </Row>
                     )}
                   </Rows>
                   {refusalSentences(proposal.executionUnmetRequirements, REGISTER_DEPLOYMENT_UNMET_COPY).map(
@@ -183,7 +206,7 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                   )
                     throw createUserFriendlyError('Refresh the original deployment before starting a new decision.');
                 }}
-                context={`deployment ${proposal.uuid}`}
+                context={`deployment ${shortReference(proposal.uuid)}`}
                 onDecided={async (receipt) => {
                   guard();
                   retain(receipt);

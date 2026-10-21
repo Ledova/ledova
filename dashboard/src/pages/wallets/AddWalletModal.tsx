@@ -1,8 +1,10 @@
+import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { QrCodeIcon, CheckIcon } from '@phosphor-icons/react';
 import {
+  FIELD_LIMITS,
   getBlockchainDisplayName,
   getActiveChains,
   importAddressKey,
@@ -13,12 +15,14 @@ import { ICON_XS, ICON_SM } from '@components/iconSizes';
 import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useImportBalances } from './useImportBalances';
 import { useWalletForm } from './useWalletForm';
 import { extractFromKeystoneQR } from '@utils/keystone/bcurDecoder';
 
 const FIELD_CLASS =
-  'block w-full rounded-lg border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
+  'mt-1 block w-full rounded-lg border bg-surface-raised px-3 py-2 text-sm text-text-primary ' +
   'placeholder:text-text-muted focus:border-brand-mid focus:outline-none focus:ring-1 focus:ring-brand-mid';
 
 interface AddWalletModalProps {
@@ -50,10 +54,13 @@ export function AddWalletModal({
     onSubmit,
     onBatchSubmit,
   });
+  const checks = useErrorSummary(form.problems);
+  const address = checks.field('address');
 
   useEffect(() => {
     if (isOpen) {
       form.reset();
+      checks.reset();
     }
   }, [isOpen]);
 
@@ -61,8 +68,21 @@ export function AddWalletModal({
     if (isLoading) return;
     form.stopScanner();
     form.reset();
+    checks.reset();
     onClose();
   };
+
+  const scanToggle = (
+    <button
+      type="button"
+      onClick={form.toggleScanner}
+      disabled={isLoading}
+      className="flex items-center gap-1 text-sm text-brand-light transition-colors"
+    >
+      <QrCodeIcon size={ICON_SM} />
+      <span>{form.showScanner ? 'Hide scanner' : 'Scan QR'}</span>
+    </button>
+  );
 
   if (form.isSelectingAddresses && form.scannedURString) {
     return (
@@ -94,12 +114,13 @@ export function AddWalletModal({
       confirmLabel="Add wallet"
       busy={isLoading}
       busyLabel="Adding wallet…"
-      confirmDisabled={readBlocked || !form.address.trim()}
+      confirmDisabled={readBlocked}
       onConfirm={() => {
-        if (!readBlocked && !isLoading) form.handleSubmit();
+        if (!readBlocked && !isLoading && checks.check()) form.handleSubmit();
       }}
     >
       <div className="space-y-4">
+        <ErrorSummary {...checks.summary} />
         {notice}
         {error && (
           <p role="alert" className="text-sm text-error-light">
@@ -110,22 +131,14 @@ export function AddWalletModal({
           {form.showScanner ? 'Scan your wallet QR code' : 'Enter wallet details or scan a QR code'}
         </p>
 
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-sm text-text-muted">Wallet address</label>
-            <button
-              type="button"
-              onClick={form.toggleScanner}
-              disabled={isLoading}
-              className="flex items-center gap-1 text-sm text-brand-light transition-colors"
-            >
-              <QrCodeIcon size={ICON_SM} />
-              <span>{form.showScanner ? 'Hide scanner' : 'Scan QR'}</span>
-            </button>
-          </div>
-
+        <Field
+          id={address.id}
+          label="Wallet address"
+          aside={scanToggle}
+          error={form.showScanner ? null : address.error}
+        >
           {form.showScanner ? (
-            <div className="space-y-3">
+            <div className="mt-1 space-y-3">
               <div className="relative overflow-hidden rounded-lg bg-black mx-auto" style={{ width: 280, height: 280 }}>
                 <div id="wallet-qr-scanner" className="w-full h-full" />
               </div>
@@ -142,23 +155,20 @@ export function AddWalletModal({
               {form.scannerError && <p className="text-center text-sm text-error-light">{form.scannerError}</p>}
             </div>
           ) : (
-            <>
-              <input
-                type="text"
-                aria-label="Wallet address"
-                value={form.address}
-                onChange={(e) => form.handleAddressChange(e.target.value)}
-                className={`${FIELD_CLASS} font-mono ${form.errors.address ? 'border-error-light' : 'border-border'}`}
-                placeholder="0x… or tb1…"
-                disabled={isLoading}
-              />
-              {form.errors.address && <p className="text-xs text-error-light">{form.errors.address}</p>}
-            </>
+            <TextInput
+              maxLength={FIELD_LIMITS.WALLET_ADDRESS}
+              value={form.address}
+              onChange={(e) => form.handleAddressChange(e.target.value)}
+              className={`${FIELD_CLASS} font-mono ${address.error ? 'border-error-light' : 'border-border'}`}
+              placeholder="0x… or tb1…"
+              disabled={isLoading}
+            />
           )}
-        </div>
+        </Field>
 
         {!form.showScanner && (
           <Choices
+            {...checks.field('network')}
             legend="Wallet network"
             options={getActiveChains().map((chain) => [chain.code, chain.name] as const)}
             value={form.selectedChain ?? ''}
@@ -167,19 +177,15 @@ export function AddWalletModal({
           />
         )}
         {!form.showScanner && (
-          <div className="space-y-1">
-            <label className="text-sm text-text-muted">Wallet name (optional)</label>
-            <input
-              type="text"
-              aria-label="Wallet name"
+          <Field label="Wallet name" optional>
+            <TextInput
               value={form.name}
               onChange={(e) => form.setName(e.target.value)}
-              className={`${FIELD_CLASS} border-border`}
               placeholder="e.g., Savings, Trading, Cold Storage"
               disabled={isLoading}
-              maxLength={100}
+              maxLength={FIELD_LIMITS.WALLET_NAME}
             />
-          </div>
+          </Field>
         )}
       </div>
     </Modal>

@@ -3,6 +3,7 @@ import { formatShareCount } from '@ledova/shared';
 import { FIELD_BASE, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import { PAGE_SIZE, type ListParams } from '@hooks/useListParams';
+import { LoadError } from '@components/Ledger';
 
 export type Noun = readonly [string, string];
 
@@ -10,7 +11,9 @@ const counted = (count: number, [one, many]: Noun) => `${formatShareCount(String
 
 export interface Column {
   label: string;
+  detail?: string;
   align?: 'right';
+  hidden?: boolean;
 }
 
 export function Table({ caption, columns, children }: { caption: string; columns: Column[]; children: ReactNode }) {
@@ -26,7 +29,8 @@ export function Table({ caption, columns, children }: { caption: string; columns
                 scope="col"
                 className={`px-4 py-3 font-medium ${column.align === 'right' ? 'text-right' : ''}`}
               >
-                {column.label}
+                {column.hidden ? <span className="sr-only">{column.label}</span> : column.label}
+                {column.detail && <span className="sr-only"> {column.detail}</span>}
               </th>
             ))}
           </tr>
@@ -159,10 +163,9 @@ export function LoadMore({
 }) {
   if (failed)
     return (
-      <div role="alert" className="flex flex-col items-start gap-3">
-        <p className="text-sm text-text-primary">More {noun[1]} could not be loaded. The list is incomplete.</p>
-        <PageAction label={`Try more ${noun[1]} again`} onClick={onLoad} disabled={disabled} />
-      </div>
+      <LoadError retry={onLoad} busy={disabled}>
+        More {noun[1]} could not be loaded. The list is incomplete.
+      </LoadError>
     );
   return hasMore ? (
     <PageAction

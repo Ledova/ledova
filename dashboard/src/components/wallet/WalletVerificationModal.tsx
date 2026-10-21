@@ -7,6 +7,8 @@ import type { Wallet } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { SeedPhraseInput } from '@components/SeedPhraseInput';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useQRScanner, QRScannerView, QRCodeFrame } from '@components/qr';
 import { useWalletVerification } from './useWalletVerification';
 import { decodeKeystoneMessageSignature } from '@utils/keystone/urDecoder';
@@ -41,6 +43,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
   const [phrase, setPhrase] = useState({ owner, walletKey, value: '' });
   const seedPhrase = phrase.owner === owner && phrase.walletKey === walletKey ? phrase.value : '';
   const setSeedPhrase = useCallback((value: string) => setPhrase({ owner, walletKey, value }), [owner, walletKey]);
+  const phraseCheck = useErrorSummary({ seedPhrase: !seedPhrase.trim() && 'Enter the seed phrase for this wallet.' });
 
   const { error: scannerError, stopScanner } = useQRScanner({
     scannerId: 'qr-scanner',
@@ -80,6 +83,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
   const handleStartSeedPhraseVerification = () => {
     if (wallet) {
       setSeedPhrase('');
+      phraseCheck.reset();
       setMethod('software');
       startVerification(wallet, 'software');
     }
@@ -87,6 +91,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
 
   const handleBackFromSeedPhrase = () => {
     setSeedPhrase('');
+    phraseCheck.reset();
     goBack();
   };
 
@@ -177,7 +182,7 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
             {verificationError && <p className="text-sm text-error-light">{verificationError}</p>}
 
             {isVerifying && (
-              <div className="flex items-center gap-2">
+              <div role="status" className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-mid"></div>
                 <span className="text-sm text-text-muted">Verifying signature…</span>
               </div>
@@ -202,7 +207,9 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
               </p>
             </div>
 
+            <ErrorSummary {...phraseCheck.summary} />
             <SeedPhraseInput
+              {...phraseCheck.field('seedPhrase')}
               value={seedPhrase}
               onChange={setSeedPhrase}
               disabled={isSigningWithSeedPhrase || isVerifying}
@@ -226,8 +233,9 @@ export function WalletVerificationModal({ isOpen, wallet, guard, onClose }: Wall
                 primary
                 busy={isSigningWithSeedPhrase || isVerifying}
                 busyLabel="Verifying…"
-                onClick={handleSignWithSeedPhrase}
-                disabled={!seedPhrase.trim()}
+                onClick={() => {
+                  if (phraseCheck.check()) handleSignWithSeedPhrase();
+                }}
               />
             </ModalActions>
           </div>

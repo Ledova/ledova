@@ -18,14 +18,14 @@ import {
   useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  sharePercentage,
+  shareCount,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { registerClassesKey, registersQuery } from '@pages/company/shared/useCompanyRegister';
-import { percentage } from '@pages/company/register/shared/shareholders';
 import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useShareholder } from './useShareholder';
 
@@ -52,13 +52,6 @@ export default function CompanyShareholderPage() {
   const company = params.get('company') ?? '';
   const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
-  const back = (
-    <PageLink
-      to={SHAREHOLDERS}
-      state={company ? { registerCompany: company } : undefined}
-      label="Back to Shareholders"
-    />
-  );
   if (owner)
     return (
       <OwnShareholder
@@ -67,15 +60,16 @@ export default function CompanyShareholderPage() {
         currentOwner={boundary.get}
         company={company}
         member={member}
-        back={back}
       />
     );
   return (
-    <Page narrow actions={back}>
+    <Page narrow back={{ state: company ? { registerCompany: company } : undefined }}>
       {preferences.isLoading ? (
-        <Loading />
+        <Loading>Loading your account…</Loading>
       ) : (
-        <Unavailable retry={() => void preferences.refetch()} busy={preferences.isFetching} />
+        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+          Your account could not be loaded.
+        </LoadError>
       )}
     </Page>
   );
@@ -86,13 +80,11 @@ function OwnShareholder({
   currentOwner,
   company,
   member,
-  back,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
   company: string;
   member: string;
-  back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const data = useShareholder(owner, guard, company, member);
@@ -140,17 +132,21 @@ function OwnShareholder({
     appointments.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
   const settled = (query: Read) => authorised && query.isSuccess && query.fetchStatus === 'idle';
-  const privately = (query: Read, render: () => ReactNode) =>
+  const privately = (query: Read, noun: string, render: () => ReactNode) =>
     appointments.isError ? (
-      <Unavailable retry={() => void appointments.refetch()} busy={appointments.isFetching} />
+      <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+        Your appointments could not be loaded.
+      </LoadError>
     ) : !appointments.isSuccess || appointments.fetchStatus !== 'idle' ? (
-      <Loading />
+      <Loading>Loading your appointments…</Loading>
     ) : !authorised ? (
       <p className="text-sm text-text-muted">{PRIVATE_NOTE}</p>
     ) : query.isError ? (
-      <Unavailable retry={() => void query.refetch()} busy={query.isFetching} />
+      <LoadError retry={() => query.refetch()} busy={query.isFetching}>
+        {noun} could not be loaded.
+      </LoadError>
     ) : !settled(query) ? (
-      <Loading />
+      <Loading>Loading {noun.toLowerCase()}…</Loading>
     ) : (
       render()
     );
@@ -158,21 +154,27 @@ function OwnShareholder({
   let title: string = DESTINATIONS.companyShareholder.title;
   let content: ReactNode;
   if (preferenceRead.isError)
-    content = <Unavailable retry={() => void preferenceRead.refetch()} busy={preferenceRead.isFetching} />;
-  else if (data.classes.isPending) content = <Loading />;
+    content = (
+      <LoadError retry={() => preferenceRead.refetch()} busy={preferenceRead.isFetching}>
+        Your account could not be loaded.
+      </LoadError>
+    );
+  else if (data.classes.isPending) content = <Loading>Loading the register…</Loading>;
   else if (data.classes.isError || data.registers.isError)
     content = (
-      <Unavailable
+      <LoadError
         retry={() => {
           void data.classes.refetch();
           void data.registers.refetch();
         }}
         busy={data.classes.isFetching || data.registers.isFetching}
-      />
+      >
+        The register could not be loaded.
+      </LoadError>
     );
   else if (!data.company)
     content = <p className="py-3 text-sm text-text-muted">This shareholder is not on a register you can read.</p>;
-  else if (!sourceReady) content = <Loading />;
+  else if (!sourceReady) content = <Loading>Loading the register…</Loading>;
   else {
     const registers = data.registers.data ?? [];
     const holdings = registers.flatMap((register) =>
@@ -212,12 +214,12 @@ function OwnShareholder({
         appointments.isSuccess && appointments.fetchStatus === 'idle' && !authorised ? (
           absent
         ) : (
-          privately(data.particulars, () => absent)
+          privately(data.particulars, 'Their particulars', () => absent)
         )
       ) : (
         <>
           <Section title="Particulars">
-            {privately(data.particulars, () => (
+            {privately(data.particulars, 'Their particulars', () => (
               <Rows>
                 <Row label="Name">{recorded?.name || title}</Row>
                 <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
@@ -247,24 +249,26 @@ function OwnShareholder({
           <Section title="Holdings">
             {!holdings.length && <p className="text-sm text-text-muted">No current holding.</p>}
             {holdings.map(({ register, holder }) => (
-              <section key={register.token.uuid} className="space-y-3 rounded-xl border border-border-subtle p-4">
+              <section
+                key={register.token.uuid}
+                className="space-y-3 border-t border-border-subtle pt-4 first-of-type:border-t-0 first-of-type:pt-0"
+              >
                 <h3 className="break-words text-base font-medium text-text-primary">
                   {register.token.name} · {register.token.symbol}
                 </h3>
-                <dl className="grid gap-4 sm:grid-cols-2">
+                <Rows>
                   {[
                     ['Shares held', formatShareCount(holder.balance)],
-                    ['% of class', percentage(holder.balance, register.issuedSupply)],
+                    ['% of class', sharePercentage(holder.balance, register.issuedSupply)],
                     ['Date added', formatDate(holder.enteredOn, 'Not recorded')],
                     ['Holder type', HOLDER_TYPE_LABELS[holder.holderType]],
                     ...(holder.name && holder.name !== title ? [['Name for this class', holder.name]] : []),
                   ].map(([label, value]) => (
-                    <div key={label}>
-                      <dt className="text-xs text-text-muted">{label}</dt>
-                      <dd className="mt-1 break-words text-sm tabular-nums text-text-primary">{value}</dd>
-                    </div>
+                    <Row key={label} label={label}>
+                      {value}
+                    </Row>
                   ))}
-                </dl>
+                </Rows>
                 {holder.holderType === 'ambiguous' && (
                   <p className="text-sm text-text-muted">{REGISTER_COPY.AMBIGUOUS_NOTE}</p>
                 )}
@@ -296,7 +300,7 @@ function OwnShareholder({
             ))}
             {former.map(({ register, row }) => (
               <p key={`${register.token.uuid}/${row.uuid}`} className="text-sm text-text-muted">
-                {register.token.name} · {formatShareCount(row.sharesAtCessation)} shares, ceased{' '}
+                {register.token.name} · {shareCount(row.sharesAtCessation)}, ceased{' '}
                 {formatDate(row.ceasedOn, 'Not recorded')}
                 {row.returnedOn ? ` · returned ${formatDate(row.returnedOn)}` : ''}
                 {row.correctedBy ? ' · cessation corrected' : ''}
@@ -316,7 +320,7 @@ function OwnShareholder({
             )}
           </Section>
           <Section title="History">
-            {privately(data.entries, () =>
+            {privately(data.entries, 'Their history', () =>
               data.entries.data?.length ? (
                 <ul className="divide-y divide-border-subtle">
                   {data.entries.data.map(({ token, entry }) => (
@@ -337,13 +341,15 @@ function OwnShareholder({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-text-muted">No recorded changes.</p>
+                <p className="text-sm text-text-muted">No changes yet.</p>
               ),
             )}
           </Section>
           {authorised && data.awards.isError && (
             <Section title="Employee awards">
-              <Unavailable retry={() => void data.awards.refetch()} busy={data.awards.isFetching} />
+              <LoadError retry={() => data.awards.refetch()} busy={data.awards.isFetching}>
+                Employee awards could not be loaded.
+              </LoadError>
             </Section>
           )}
           {settled(data.awards) && !!data.awards.data?.length && (
@@ -396,7 +402,12 @@ function OwnShareholder({
   }
   return (
     <PageTitle.Provider value={title}>
-      <Page narrow lede={data.company?.name} actions={back}>
+      <Page
+        narrow
+        lede={data.company?.name}
+        documentTitle={DESTINATIONS.companyShareholder.title}
+        back={{ state: company ? { registerCompany: company } : undefined }}
+      >
         {content}
       </Page>
     </PageTitle.Provider>

@@ -18,7 +18,14 @@ export const authFieldBorder = (error: unknown, background = true, focus = 'focu
       : 'border-error focus:ring-error'
     : `border-border ${focus}`;
 
-export const authFieldClass = (error: unknown) =>
+export const authFieldClass = (
+  error: unknown,
+  padding = 'px-3',
+  background = true,
+  focus = 'focus:ring-border-focus',
+) =>
   `w-full bg-surface-tertiary border ${authFieldBorder(
     error,
-  )} rounded-lg px-3 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`;
+    background,
+    focus,
+  )} rounded-lg ${padding} py-3 text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:border-transparent transition-colors`;

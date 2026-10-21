@@ -1,4 +1,5 @@
 import type { RegisterTransferMembers } from '../types/domain/register-transfer';
+import { shortReference } from './formatting';
 
 export interface Person {
   member: string;
@@ -19,6 +20,11 @@ export interface PersonChoice {
 }
 
 export const NEW_PERSON = 'New person';
+
+export const NEW_PERSON_PROBLEMS = {
+  NAME: 'Give the new person’s name.',
+  ADDRESS: 'Give the new person’s residential address.',
+} as const;
 
 export function peopleFrom(data: RegisterTransferMembers | undefined): Person[] {
   if (!data) return [];
@@ -59,7 +65,7 @@ export function personChoices(people: readonly Person[], context?: (person: Pers
       person.residentialAddress,
       person.awardOnly || person.onRegister === false ? 'Award recipient without shares' : '',
       context?.(person) ?? '',
-      (records.get(particulars(person))?.size ?? 0) > 1 ? `Record ${person.member.slice(-8)}` : '',
+      (records.get(particulars(person))?.size ?? 0) > 1 ? `Member reference ${shortReference(person.member)}` : '',
     ]
       .filter(Boolean)
       .join(' · '),

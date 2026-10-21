@@ -3,7 +3,6 @@ import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  DESTINATIONS,
   REGISTER_COPY,
   TECHNICAL_SHARE_LIMIT,
   USER_PREFERENCES_QUERY_KEY,
@@ -12,9 +11,11 @@ import {
   getBlockExplorerAddressUrl,
   getBlockExplorerTxUrl,
   useUserPreferences,
+  shareCount,
 } from '@ledova/shared';
-import { Page, PageAction, PageLink } from '@components/Page';
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Page, PageAction } from '@components/Page';
+import { Row, Rows, Section, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
+import { LoadMore } from '@components/List';
 import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
 import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
 import { useShareClass } from './useShareClass';
@@ -22,6 +23,9 @@ import { DeploymentFlow } from './DeploymentFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';
 import { CompanyCapitalFlow } from './CompanyCapitalFlow';
 import { CompanyPauseFlow } from './CompanyPauseFlow';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
+import { ClassRights } from './ClassRights';
+import { useClassRights } from './useClassRights';
 
 interface ReadState {
   isPending: boolean;
@@ -31,18 +35,12 @@ interface ReadState {
 }
 
 function ReadResult({ query, label, children }: { query: ReadState; label: string; children: ReactNode }) {
-  if (query.isPending)
-    return (
-      <p role="status" className="py-3 text-sm text-text-muted">
-        Loading {label}…
-      </p>
-    );
+  if (query.isPending) return <Loading>Loading {label}…</Loading>;
   if (query.isError)
     return (
-      <div role="alert" className="flex flex-col items-start gap-2 py-3 text-sm text-text-muted">
-        <p>We couldn&apos;t load {label}.</p>
-        <PageAction label={`Retry ${label}`} onClick={() => void query.refetch()} disabled={query.isFetching} />
-      </div>
+      <LoadError retry={query.refetch} busy={query.isFetching}>
+        {label.charAt(0).toUpperCase() + label.slice(1)} could not be loaded.
+      </LoadError>
     );
   return <>{children}</>;
 }
@@ -50,11 +48,8 @@ function ReadResult({ query, label, children }: { query: ReadState; label: strin
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
   return (
-    <Page narrow actions={<PageLink to={DESTINATIONS.companyRegister.path} label="Back to Register" />}>
-      <ShareClassDetails
-        key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
-        data={data}
-      />
+    <Page narrow back={registerPlace({ token: uuid, task: 'history' })}>
+      <ShareClassRecord data={data} uuid={uuid} />
       <DeploymentFlow key={`${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`} uuid={uuid} data={data} />
       <CompanyIssueFlow
         key={`issues/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
@@ -80,7 +75,27 @@ export function ShareClass({ uuid }: { uuid: string }) {
   );
 }
 
-function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> }) {
+function ShareClassRecord({ data, uuid }: { data: ReturnType<typeof useShareClass>; uuid: string }) {
+  const [scope, setScope] = useState({ owner: data.owner, version: 0 });
+  if (scope.owner !== data.owner) {
+    setScope({ owner: data.owner, version: scope.version + 1 });
+    return null;
+  }
+  return <ShareClassRights key={`${uuid}/${scope.version}`} data={data} uuid={uuid} />;
+}
+
+function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClass>; uuid: string }) {
+  const rights = useClassRights(uuid, data.token.isSuccess && data.token.fetchStatus === 'idle');
+  return (
+    <ShareClassDetails
+      key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
+      data={data}
+      rights={<ClassRights rights={rights} />}
+    />
+  );
+}
+
+function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareClass>; rights: ReactNode }) {
   const [copyError, setCopyError] = useState(false);
   const preferences = useUserPreferences();
   const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
@@ -94,25 +109,29 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
     data.register.fetchStatus === 'idle';
   const token = data.token.data;
   const content = () => {
-    if (data.token.isPending) return <p role="status">Loading share class…</p>;
+    if (data.token.isPending)
+      return (
+        <>
+          <Loading>Loading the share class…</Loading>
+          {rights}
+        </>
+      );
     if (data.token.isError || !token)
       return (
         <>
-          <div role="alert" className="space-y-3">
-            <p className="text-sm text-text-muted">
-              This share class could not be loaded. It may be unavailable to this account.
-            </p>
-            <PageAction label="Try again" onClick={() => void data.token.refetch()} disabled={data.token.isFetching} />
-          </div>
+          <LoadError retry={data.token.refetch} busy={data.token.isFetching}>
+            This share class could not be loaded. It may be unavailable to this account.
+          </LoadError>
+          {rights}
         </>
       );
     const addressUrl =
       token.chain && token.contractAddress ? getBlockExplorerAddressUrl(token.chain, token.contractAddress) : '';
     const txUrl =
       token.chain && token.deploymentTxHash ? getBlockExplorerTxUrl(token.chain, token.deploymentTxHash) : '';
-    const requests = data.requests.data ?? [];
-    const capital = data.capital.data ?? [];
-    const issuances = data.issuances.data ?? [];
+    const requests = data.requests.rows;
+    const capital = data.capital.rows;
+    const issuances = data.issuances.rows;
     return (
       <>
         <Section title={token.name}>
@@ -127,10 +146,9 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
               {token.totalSupply !== TECHNICAL_SHARE_LIMIT ? (
                 <span className="break-all">{formatShareCount(token.totalSupply)}</span>
               ) : (
-                <details>
-                  <summary className="cursor-pointer">{REGISTER_COPY.QUANTITY_GUARD}</summary>
+                <Disclosure summary={REGISTER_COPY.QUANTITY_GUARD}>
                   <span className="break-all">{formatShareCount(token.totalSupply)}</span>
-                </details>
+                </Disclosure>
               )}
             </Row>
             <Row label="Issued shares">
@@ -190,6 +208,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
             </a>
           )}
         </Section>
+        {rights}
         <Section title="Register of members">
           <p className="text-sm text-text-muted">{REGISTER_COPY.PRIVACY_NOTE}</p>
           <PageAction
@@ -204,7 +223,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
               {REGISTER_COPY.DOWNLOAD_FAILED}
             </p>
           )}
-          <ReadResult query={data.register} label="register">
+          <ReadResult query={data.register} label="the register">
             {registerReady && data.register.data && <ClassRegister register={data.register.data} />}
           </ReadResult>
         </Section>
@@ -230,15 +249,17 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                       <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
                       {request.rejectionReason && <p className="text-text-muted">{request.rejectionReason}</p>}
                       {request.executionNotes && (
-                        <details className="text-text-muted">
-                          <summary className="cursor-pointer">Execution history</summary>
-                          <p className="whitespace-pre-wrap">{request.executionNotes}</p>
-                        </details>
+                        <Disclosure summary="Execution history">
+                          <div className="text-text-muted">
+                            <p className="whitespace-pre-wrap">{request.executionNotes}</p>
+                          </div>
+                        </Disclosure>
                       )}
                     </li>
                   ))}
                 </ul>
               )}
+              <LoadMore noun={['issuance request', 'issuance requests']} {...data.requests.more} />
             </ReadResult>
           </Section>
         )}
@@ -257,7 +278,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                       <p className="break-words text-text-primary">{request.purpose}</p>
                       <p className="text-text-muted">
                         +{formatShareCount(String(request.additionalShares))} →{' '}
-                        {formatShareCount(String(request.newAuthorizedTotal))} authorised shares
+                        {shareCount(request.newAuthorizedTotal, 'authorised')}
                       </p>
                       <p>
                         <Status tone={requestTone(request.status)}>{request.statusDisplay}</Status>
@@ -267,6 +288,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                   ))}
                 </ul>
               )}
+              <LoadMore noun={['authorised share request', 'authorised share requests']} {...data.capital.more} />
             </ReadResult>
           </Section>
         )}
@@ -280,7 +302,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                   {issuances.map((issuance) => (
                     <li key={issuance.uuid} className="space-y-2 py-4 text-sm">
                       <p className="break-words text-text-primary">
-                        {formatShareCount(issuance.amount)} shares to {issuance.recipientAddress}
+                        {shareCount(issuance.amount)} to {issuance.recipientAddress}
                       </p>
                       <p className="text-text-muted">
                         {issuance.statusDisplay} · {formatDate(issuance.createdAt)}
@@ -292,6 +314,7 @@ function ShareClassDetails({ data }: { data: ReturnType<typeof useShareClass> })
                   ))}
                 </ul>
               )}
+              <LoadMore noun={['issuance', 'issuances']} {...data.issuances.more} />
             </ReadResult>
           </Section>
         )}

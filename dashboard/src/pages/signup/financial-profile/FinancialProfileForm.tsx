@@ -7,8 +7,16 @@ import {
   AuthDivider,
 } from '@components/auth';
 import React from 'react';
-import { FormErrors, FinancialProfileFormState, SOURCE_OF_FUNDS_OPTIONS, INTENDED_USE_OPTIONS } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  FormErrors,
+  FinancialProfileFormState,
+  SOURCE_OF_FUNDS_OPTIONS,
+  INTENDED_USE_OPTIONS,
+} from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useFieldErrorSummary } from '@hooks/useErrorSummary';
 import { Field, Label, Description } from '@headlessui/react';
 import { WarningIcon } from '@phosphor-icons/react';
 import RadioGroupField from './RadioGroupField';
@@ -23,7 +31,7 @@ interface FinancialProfileFormProps {
     field: Field,
     value: FinancialProfileFormState[Field],
   ) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
   onBack?: () => void;
 }
 
@@ -39,11 +47,25 @@ export function FinancialProfileForm({
   const handleSourceOfFundsChange = (values: string[]) => {
     setFieldValue('sourceOfFunds', values);
   };
+  const reported = useFieldErrorSummary(errors, [
+    'sourceOfFunds',
+    'sourceOfFundsOtherText',
+    'intendedUse',
+    'intendedUseOtherText',
+    'occupation',
+  ]);
+  const funds = reported.field('sourceOfFunds');
+  const fundsOther = reported.field('sourceOfFundsOtherText');
+  const use = reported.field('intendedUse');
+  const useOther = reported.field('intendedUseOtherText');
+  const occupation = reported.field('occupation');
+  const submit = (event: React.FormEvent) => void onSubmit(event).then(reported.reported);
 
   return (
     <>
       <AuthCard>
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form noValidate onSubmit={submit} className="space-y-6">
+          <ErrorSummary {...reported.summary} />
           {generalError && (
             <div className={ERROR_BANNER_CLASS}>
               <div className="flex items-start">
@@ -60,6 +82,7 @@ export function FinancialProfileForm({
           )}
 
           <CheckboxGroupField
+            id={funds.id}
             label="What is your primary source of funds?"
             value={form.sourceOfFunds}
             options={SOURCE_OF_FUNDS_OPTIONS}
@@ -68,26 +91,27 @@ export function FinancialProfileForm({
           />
 
           {form.sourceOfFunds.includes('other') && (
-            <Field className="space-y-2">
+            <Field id={fundsOther.id} className="space-y-2">
               <Label className="block text-sm font-medium text-text-body">Please specify your source of funds</Label>
               <AuthInput
                 type="text"
                 name="sourceOfFundsOtherText"
+                maxLength={FIELD_LIMITS.FINANCIAL_DETAIL}
                 value={form.sourceOfFundsOtherText || ''}
                 onChange={(e) => setFieldValue('sourceOfFundsOtherText', e.target.value)}
                 className={authFieldClass(errors.sourceOfFundsOtherText)}
                 placeholder="Enter details"
+                invalid={!!fundsOther.error}
                 disabled={isSubmitting}
               />
-              {errors.sourceOfFundsOtherText && (
-                <Description className="text-error-light text-xs mt-1" role="alert">
-                  {errors.sourceOfFundsOtherText.join(' ')}
-                </Description>
+              {fundsOther.error && (
+                <Description className="text-error-light text-xs mt-1">{fundsOther.error}</Description>
               )}
             </Field>
           )}
 
           <RadioGroupField
+            id={use.id}
             label="What is your intended use of the platform?"
             value={form.intendedUse}
             options={INTENDED_USE_OPTIONS}
@@ -96,44 +120,42 @@ export function FinancialProfileForm({
           />
 
           {form.intendedUse === 'other' && (
-            <Field className="space-y-2">
+            <Field id={useOther.id} className="space-y-2">
               <Label className="block text-sm font-medium text-text-body">Please specify your intended use</Label>
               <AuthInput
                 type="text"
                 name="intendedUseOtherText"
+                maxLength={FIELD_LIMITS.FINANCIAL_DETAIL}
                 value={form.intendedUseOtherText || ''}
                 onChange={(e) => setFieldValue('intendedUseOtherText', e.target.value)}
                 className={authFieldClass(errors.intendedUseOtherText)}
                 placeholder="Enter details"
+                invalid={!!useOther.error}
                 disabled={isSubmitting}
               />
-              {errors.intendedUseOtherText && (
-                <Description className="text-error-light text-xs mt-1" role="alert">
-                  {errors.intendedUseOtherText.join(' ')}
-                </Description>
-              )}
+              {useOther.error && <Description className="text-error-light text-xs mt-1">{useOther.error}</Description>}
             </Field>
           )}
 
-          <Field className="space-y-2">
+          <Field id={occupation.id} className="space-y-2">
             <Label className="block text-sm font-medium text-text-body">What is your occupation?</Label>
             <AuthInput
               type="text"
               name="occupation"
+              maxLength={FIELD_LIMITS.FINANCIAL_DETAIL}
               value={form.occupation || ''}
               onChange={(e) => setFieldValue('occupation', e.target.value)}
               className={authFieldClass(errors.occupation)}
               placeholder="Enter your occupation"
+              invalid={!!occupation.error}
               disabled={isSubmitting}
             />
-            {errors.occupation && (
-              <Description className="text-error-light text-xs mt-1" role="alert">
-                {errors.occupation.join(' ')}
-              </Description>
+            {occupation.error && (
+              <Description className="text-error-light text-xs mt-1">{occupation.error}</Description>
             )}
           </Field>
 
-          <button type="submit" disabled={isSubmitting} onClick={onSubmit} className={AUTH_BUTTON_CLASS}>
+          <button type="submit" disabled={isSubmitting} onClick={submit} className={AUTH_BUTTON_CLASS}>
             {isSubmitting ? (
               <div className="flex items-center justify-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>

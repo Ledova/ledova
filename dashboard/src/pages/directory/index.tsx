@@ -1,9 +1,9 @@
 import { DIRECTORY_OFFERING_TONES } from '@pages/directory/shared/presentation';
 import { generatePath } from 'react-router-dom';
-import { DESTINATIONS, formatDate, formatMoney, useDirectoryTokens } from '@ledova/shared';
+import { DESTINATIONS, formatMoney, useDirectoryTokens, formatDateTime } from '@ledova/shared';
 import type { DirectoryToken } from '@ledova/shared';
-import { LinkRow, Section, Status } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { LinkRow, Section, Status, LoadError } from '@components/Ledger';
+import { Page } from '@components/Page';
 
 function ShareClassRow({ token }: { token: DirectoryToken }) {
   const offering = token.openOffering;
@@ -18,7 +18,7 @@ function ShareClassRow({ token }: { token: DirectoryToken }) {
               {formatMoney(offering.pricePerShare, offering.priceCurrency)} per share
             </p>
             <p className="text-text-muted">
-              {offering.closesAt ? `Closes ${formatDate(offering.closesAt)}` : 'No closing date'}
+              {offering.closesAt ? `Closes ${formatDateTime(offering.closesAt)}` : 'No closing date'}
             </p>
           </div>
         )
@@ -42,10 +42,9 @@ export default function DirectoryPage() {
   if (hasError) {
     return (
       <Page narrow>
-        <div role="alert" className="flex flex-col items-start gap-3 py-6">
-          <p className="text-sm text-text-primary">The directory could not be loaded. Try again before continuing.</p>
-          <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
-        </div>
+        <LoadError retry={retry} busy={isRefreshing}>
+          The directory could not be loaded.
+        </LoadError>
       </Page>
     );
   }

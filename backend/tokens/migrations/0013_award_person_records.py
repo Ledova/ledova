@@ -5,7 +5,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("tokens", "0011_required_signing_challenge_wallet"),
+        ("tokens", "0012_class_rights_revisions"),
     ]
 
     operations = [

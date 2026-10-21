@@ -2,9 +2,9 @@ import { CurrencyEthIcon, CurrencyBtcIcon, CurrencyCircleDollarIcon, SpinnerGapI
 import { BUYABLE_ASSETS, readApiError } from '@ledova/shared';
 import { ICON_SM, ICON_MD } from '@components/iconSizes';
 import { Modal } from '@components/Modal';
-import { PageAction } from '@components/Page';
 import { WalletChoice } from '@components/wallet';
 import { useBuyCryptoModal, type BuyCryptoModalProps } from './useBuyCryptoModal';
+import { LoadError } from '@components/Ledger';
 
 const ASSET_ICONS: Record<string, React.ReactNode> = {
   BTC: <CurrencyBtcIcon size={ICON_MD} className="text-text-primary" />,
@@ -58,6 +58,7 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
                   className="flex w-full items-center justify-between py-3 text-left disabled:opacity-50"
                   onClick={() => handleSelectAsset(asset)}
                   disabled={isProcessingAsset}
+                  aria-busy={isAssetProcessing || undefined}
                 >
                   <div className="flex items-center gap-3">
                     {ASSET_ICONS[asset.symbol]}
@@ -76,14 +77,9 @@ export function BuyCryptoModal({ isOpen, onClose, onNavigateToWidget, userAccoun
       )}
 
       {!isOnAssetStep && walletsFailed && (
-        <div role="alert" className="flex flex-col items-start gap-3">
-          <p className="text-sm text-text-muted">Your wallets could not be loaded. Try again before continuing.</p>
-          <PageAction
-            label="Try again"
-            disabled={walletsQuery.isFetching}
-            onClick={() => void walletsQuery.refetch()}
-          />
-        </div>
+        <LoadError retry={() => walletsQuery.refetch()} busy={walletsQuery.isFetching}>
+          Your wallets could not be loaded.
+        </LoadError>
       )}
 
       {!isOnAssetStep && !walletsFailed && matchingWallets.length === 0 && (
