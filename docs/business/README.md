@@ -224,7 +224,7 @@ reply never acts for the new one
 
 On the web, the sidebar shows:
 
-- Company, for a person who can read a company's register: Dashboard, Register, Shareholders, ESS
+- Company, for a person who can read a company's register: Dashboard, Ledger, Shareholders, ESS
   (Employee share scheme) and Documents. Personal holds Your shares.
 - For everyone else: Dashboard and Documents, both personal.
 - Configuration: Settings ([Profile and Settings](participants.md#profile-and-settings)).
@@ -242,7 +242,7 @@ company** ([activation](companies.md#activation-and-the-registry-check)) and **S
 register** ([register setup](register.md#bringing-in-existing-records)), each marked To do or Done.
 Register setup reads Done once the register of the company shown is opened, not when a class is
 merely created, and it does not wait for activation. Someone who can prepare the register but is
-not an administrator is pointed to Register instead. On mobile, the Register tab opens with the
+not an administrator is pointed to Ledger instead. On mobile, the Register tab opens with the
 same line and shows Getting started to an administrator of the company shown, judging register
 setup by that company's register.
 
@@ -252,7 +252,7 @@ classes, then one ownership donut per class with its five largest shareholders a
 exact share counts and percentages of that class's issued shares. A class without an opened
 register makes the company totals incomplete, and a failed or inconsistent read withholds totals
 and charts rather than showing zero. Detailed history and every action are on the
-[Register page](register.md#the-register-page).
+[Ledger page](register.md#the-register-page).
 
 The personal Dashboard (My shares on mobile) shows the person's own register records, with no
 wallet needed and never company totals or other shareholders; personal Documents holds their

@@ -181,8 +181,9 @@ The [principles](README.md#principles) apply; in particular, do not add:
 - **Paths and titles.** Link and navigate with `DESTINATIONS` paths, filling parameters with React
   Router's `generatePath`, or with the web-only paths in `utils/paths.ts` (the company dashboard,
   sign-in, sign-up and `SIGNUP_STEPS`); source writes no literal path. Titles come from
-  `signedInRoutes` ([routes, audiences and guards](#routes-audiences-and-guards)); a page sets
-  `PageTitle` only for a hash view.
+  the web `pageTitle` mapping used by `signedInRoutes`
+  ([routes, audiences and guards](#routes-audiences-and-guards)); a page sets `PageTitle` only for a
+  hash view.
 - **Errors and waiting.** A failed request reads as a `role="alert"` sentence
   ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
   cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
@@ -263,8 +264,9 @@ clients share with their address, title and audience. The whole dashboard route 
 `dashboard/src/routes/AppRoutes.tsx`, using `signedInRoutes` from `PAGES`
 (`dashboard/src/routes/pages.tsx`), a map keyed by that table, so
 TypeScript refuses an entry without a page or a page without an entry. Each route, detail pages
-included, gets the entry's title through `PageTitle`; the web titles `home` Dashboard, native My
-shares. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
+included, gets the entry's title through `PageTitle`. The web-only `pageTitle` mapping
+(`dashboard/src/utils/destinations.ts`) titles `home` Dashboard and `companyRegister` Ledger; native
+keeps My shares and Register. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
 `companyRegisterImport` render the same page. Outside the table sit the
 [sign-up steps](#sign-up-routes) and `/company/dashboard` (`COMPANY_DASHBOARD_PATH` in
 `dashboard/src/utils/paths.ts`, routed in `dashboard/src/routes/AppRoutes.tsx` under `ProtectedRoute`
@@ -486,7 +488,7 @@ with each procedure in [the register of members](../business/register.md).
 
 The web register's repeated row wrappers, stage rows and download failures use
 `dashboard/src/pages/company/register/RecordShell.tsx`; `shared/DecisionTrail.tsx` serves both
-the Register and share-class detail page. Six records use `useRegisterTaskGuard.ts` for their existing visible-task
+the Ledger and share-class detail page. Six records use `useRegisterTaskGuard.ts` for their existing visible-task
 check, while grant, allotment and award keep their distinct guards and wrappers. The preparation
 pages share `PreparationShell.tsx` for Back, preference fallback and read-only paragraphs, and
 `useRegisterPreparationOwner.ts` for the same account boundary and preferences reads. Page and form
@@ -543,7 +545,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------- |
 | [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                      | everyone  |
 | [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                  | everyone  |
-| [Register, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)    | `/company/register` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
+| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/register` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/register/members/:member?company=`                                         | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                              | `/company/register/:uuid`                                                            | everyone  |
 | [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`      | everyone  |
@@ -570,8 +572,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   register step by that company's registers alone.
 - Personal dashboard: reads the person's own member projection; the first own class's history loads
   when a member record opens, and choosing another class reads that class's own entries.
-- Register on the web (`dashboard/src/pages/company/register/index.tsx`): one page renders the
-  Register, Shareholders (with member access), Employee share scheme (ESS) and Documents views by hash and keeps every class's
+- Ledger on the web (`dashboard/src/pages/company/register/index.tsx`): one page renders the
+  Ledger, Shareholders (with member access), Employee share scheme (ESS) and Documents views by hash and keeps every class's
   controllers mounted, merely hidden, so changing view, task (`TASKS`) or class (the Task share
   class selector) keeps an unfinished request with its class, payload and retry key. Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
@@ -605,20 +607,20 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   `on_register` false marks them. `personRequest` (`packages/shared/src/utils/people.ts`) sends a
   chosen person under their member ID as an existing member, award recipients included, and a grant
   from an award names the award's recipient the same way; each flow filters the list by its own
-  rule. On Register, navigation state `issueMember` opens Issue shares
+  rule. On Ledger, navigation state `issueMember` opens Issue shares
   with Investor issue and that person chosen, `issueAward` opens it with Non-paid issue for that
   award, and `registerRecord` focuses a listed non-paid issue. `fromMember` chooses a transfer's
   transferor.
 
 - A shareholder's page on the web (`dashboard/src/pages/company/register/member`): reads the named
-  company's classes and holders through the same queries as Register, the company's recorded
+  company's classes and holders through the same queries as Ledger, the company's recorded
   particulars (`register/members/` of its first class), every page of the member's entries in each
   class (`register/entries/` with `member`) and their awards (`register-awards/` with `member`). It
   renders the person only while the account, classes and holders are current; particulars, history
   and awards also need `hasCurrentRegisterReadAuthority` on settled appointments and their own settled
   read. **Change particulars** rechecks those reads and a current preparation appointment before it
   opens. While register work is held, Shareholders' Details links are disabled.
-- Register on both clients: the web reads the person's appointments through Company team's
+- Register reads on both clients (Ledger on the web): the web reads the person's appointments through Company team's
   account-bound cache; mobile reads them itself. Both reread them after a revocation on Company team
   or Representative authority, a refused decision, preview or acknowledgement, a waiting-wallets
   read refused as not found, a recorded decision other than an import's (which refreshes the

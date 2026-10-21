@@ -51,7 +51,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
   muted sentence ("No activity yet.") and at most one action besides Refresh; a state is never a
-  title. A card's title is a heading, such as each class's summary on Register.
+  title. A card's title is a heading, such as each class's summary on Ledger on the web.
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
   mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals, register
@@ -124,9 +124,11 @@ is open, and Escape or a choice closes it. The first Tab on a signed-in page rea
 content", which moves focus to the page's heading.
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
-Register's views (Shareholders, Employee share scheme, Documents) and tasks, and Home's Documents
-view, and the sidebar and page titles read their names from it. On the web the company dashboard and
-Home are both titled Dashboard, so the company workspace lists Home as Your shares. The sidebar shows
+register views (Shareholders, Employee share scheme, Documents) and tasks, and Home's Documents
+view. The web sidebar, page titles and parent links use `pageTitle`
+(`dashboard/src/utils/destinations.ts`), which overrides Home as Dashboard and Register as Ledger;
+mobile keeps its existing names. The company dashboard is also Dashboard, so the company workspace
+lists Home as Your shares. The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
 beside it gives each page below a sidebar destination its parent, and `Page` puts one link back to it
 in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to Company on
@@ -134,19 +136,19 @@ Representative authority, Back to Shareholders on a shareholder's page. Once a p
 found its member, its link goes back to that member by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
 
-A way back to a Register class or task carries the place it means, built by `registerPlace`
-(`dashboard/src/pages/company/register/shared/registerPlace.ts`): a correction, an opening and a
-class's own page return to that class's History, a non-paid transfer to that class's Transfer shares,
+A way back to a Ledger class or task carries the place it means, built by `registerPlace`
+(`dashboard/src/pages/company/register/shared/registerPlace.ts`): a correction and an opening return
+to that class's History, a class's own page to Ledger, a non-paid transfer to that class's Transfer shares,
 and wallet links to the company's History. A shareholder's page links back to Shareholders with its
 company through `Page`'s parent link, and a transfer started there links back to them by name. Preparing a
 correction, opening, non-paid transfer, wallet link or particulars change lands on the new record in
-Register, at its class and task, focused and with one line naming what was prepared
+Ledger, at its class and task, focused and with one line naming what was prepared
 ([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
-Register, since a shareholder's page doesn't list prepared records.
+Ledger, since a shareholder's page doesn't list prepared records.
 
 Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`; a
 shareholder's page says "Shareholder" there, so their name stays out of the browser's history. After
-a route change, including a Register view, focus moves to the page's heading once any closing dialog
+a route change, including a Ledger view, focus moves to the page's heading once any closing dialog
 has handed focus back, unless the page has already focused something of its own, such as the
 register class it opens at. Focus stays where it is when a dialog stays open, after a redirect such
 as from `/` to your dashboard, and after a change to the search, filter or page in the address.
@@ -168,7 +170,7 @@ confirmation) or pressed, and comes in four forms:
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
   the title row's way back, Add share class, a shareholder's Details, Issue shares to them.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
-  it at once: the open Register task, the shown eligibility request and Wallets' sort.
+  it at once: the open Ledger task, the shown eligibility request and Wallets' sort.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a
@@ -235,12 +237,12 @@ identifier in their own details. It reports:
 - a placed or recovered order with its share class, above Trading's orders, until another order
   action or a class change starts;
 - a prepared correction, register opening, non-paid transfer, wallet link or particulars change, on
-  the record you land on in Register.
+  the record you land on in Ledger.
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and `CopyButton` (the payment instruction's values and the
 company's and an approved offering's UUIDs) confirms a copy with Copied beside the button.
-Register's other forms don't use `Outcome`. Mobile still reports success with native alerts and its
+Ledger's other forms don't use `Outcome`. Mobile still reports success with native alerts and its
 success dialog.
 
 ## Copy
@@ -354,7 +356,7 @@ Every web page that asks which company to work on uses `CompanyPicker`
 [choosing a person](#choosing-a-person), labelled **Company**, showing each company's name and, where
 it helps, a muted detail such as a draft company's ACN, never an internal identifier.
 
-- **Pages that keep their own choice:** Register, Dashboard, Company, Activation, Offerings, Published to
+- **Pages that keep their own choice:** Ledger, Dashboard, Company, Activation, Offerings, Published to
   your members and register setup each keep their own choice through `CompanySelection`. It hides the
   list when the account has one company and it is already chosen.
 - **Your shares** shows it when the person holds records in more than one company.
@@ -362,7 +364,7 @@ it helps, a muted detail such as a draft company's ACN, never an internal identi
   companies), Company eligibility and its wallet approvals show it whenever they ask for a company.
   Wallet approvals label theirs **Wallet approval company**, since the page has two.
 
-These rules are checked in review. The dashboard suite drives the picker on Register and in the award
+These rules are checked in review. The dashboard suite drives the picker on Ledger and in the award
 recovery case.
 
 ## Choosing a wallet or a paid subscription
@@ -388,7 +390,7 @@ answers. It asks for:
 - the authority for a correction, wallet link or register opening;
 - whether a mirrored allotment is held for someone else;
 - a new share class's type;
-- the kind of issue on Register's Issue shares task, which opens that kind's form in place;
+- the kind of issue on Ledger's Issue shares task, which opens that kind's form in place;
 - the requested state of a pause change;
 - the exemption an offering relies on;
 - a company eligibility decision's outcome and a wallet instruction's action;

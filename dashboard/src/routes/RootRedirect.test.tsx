@@ -178,7 +178,7 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
     showRoot();
     expect(await screen.findByText('Personal overview')).toBeTruthy();
     expect(screen.queryByText('Company overview')).toBeNull();
-    expect(await screen.findByRole('link', { name: 'Register' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Your shares' })).toBeTruthy();
     fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
     expect(await screen.findByText('Company overview')).toBeTruthy();
@@ -192,18 +192,18 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
     ]) {
       appointment = { ...currentAppointment, ...patch };
       await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
-      await waitFor(() => expect(screen.queryByRole('link', { name: 'Register' })).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull());
       expect(screen.getByText('Personal overview')).toBeTruthy();
     }
     appointment = currentAppointment;
     await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
-    expect(await screen.findByRole('link', { name: 'Register' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
     appointmentsRefused = true;
     await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
-    await waitFor(() => expect(screen.queryByRole('link', { name: 'Register' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull());
     appointmentsRefused = false;
     await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
-    expect(await screen.findByRole('link', { name: 'Register' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
     await waitFor(() => expect(client.isFetching()).toBe(0));
     holdAppointmentRead = true;
     const staleRead = client.refetchQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY });
@@ -226,7 +226,7 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
       await staleRead;
     });
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
     expect(screen.getByText('Personal overview')).toBeTruthy();
   } finally {
     cleanup();

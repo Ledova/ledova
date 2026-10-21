@@ -465,7 +465,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
   expect(screen.queryByText(former.name)).toBeNull();
-  expect(screen.getByRole('link', { name: 'Back to Register' }).getAttribute('href')).toBe('/company/register');
+  expect(screen.getByRole('link', { name: 'Back to Ledger' }).getAttribute('href')).toBe('/company/register');
   const technical = screen.getByRole('button', { name: 'Technical details and chain workflows' });
   expect(technical.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(technical);
@@ -1981,7 +1981,7 @@ it('shows an account without register access a calm empty state, reads no member
   expect(await screen.findByRole('link', { name: 'Company team' })).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, PROFILES]);
-  expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();
+  expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
 });
 
 it("retains a dashboard's validated company/class context and reads only the chosen company's members", async () => {

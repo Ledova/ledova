@@ -35,7 +35,7 @@ The class-creation API requires a current personal company administrator or prep
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
 [Register setup](register.md#bringing-in-existing-records) on web and mobile lists companies from those
 appointments, including a preparer who is not the owner. Classes are created only through that
-setup in Register: on the web **Add share class**; on mobile
+setup: on the web **Ledger**, **Add share class**; on mobile
 **Set up your share register** in Getting started or **Create share class** on the Register tab.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
@@ -55,7 +55,7 @@ on the Share class page, separate from its current register summary and Class ri
 
 ### Class rights
 
-On the web, choose **Class details** on a class's Register card. Its details show the company's optional
+On the web, choose **Class details** on a class's Ledger card. Its details show the company's optional
 **Class rights** summary and plain **Document reference** below the current register summary.
 A current company register reader can read the latest record and its history;
 a current personal company administrator can add or edit it. Ownership or platform staff status
@@ -137,7 +137,7 @@ members, and publications still reach them.
 A grant on a class with no contract is a register entry only; a chain grant mints shares, and the
 register records the issue once the mint is final.
 
-On the web, the first three paths start from Register's **Issue shares** task, which asks **What
+On the web, the first three paths start from Ledger's **Issue shares** task, which asks **What
 kind of issue?**:
 
 - **Investor issue** opens the external allotment form.
@@ -191,7 +191,7 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
 A non-paid grant records a company-authorised issue as an Issue entry, with no application, payment,
 wallet or chain transaction.
 
-1. On Register, choose Issue shares and the class, then Non-paid issue; or choose Issue vested
+1. On the web, in Ledger choose Issue shares and the class, then Non-paid issue; or choose Issue vested
    shares on an award in Employee share scheme.
 2. Choose who receives the shares ([choosing a person](register.md#choosing-a-person)), or New person
    with their name and residential address; names never link an account.
@@ -238,12 +238,12 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 2. Choose Record vesting on the award for a company-confirmed event with its shares, date and
    evidence. Dates are no later than today (UTC), an event cannot predate the agreement, and total
    vesting cannot exceed the remaining unvested entitlement.
-3. When vested shares are available, choose Issue vested shares. Register opens Issue shares with
+3. When vested shares are available, choose Issue vested shares. Ledger opens Issue shares with
    Non-paid issue chosen. The grant form shows the recipient and available quantity, and is bound to
    the award's class, recipient and retained agreement. Upload the authority document, name the
    approving director and add any required acceptance. Preparing keeps you on Issue shares, with the
    new issue in the Non-paid issues list; approve, then choose Record issue. The award lists the
-   non-paid issues prepared from it, each with its stage and a link to its record on Register.
+   non-paid issues prepared from it, each with its stage and a link to its record on Ledger.
 4. To reduce or end an entitlement, choose End unissued rights. Enter exactly how many unvested and/or
    vested-but-unissued rights the company ends, its event date, reason and evidence. Zero is allowed
    for either pool, but the total must be positive. Ledova applies no automatic leaver policy.
@@ -283,7 +283,7 @@ award fulfilment.
 A company records an investment it arranged outside Ledova and the fully paid allotment it approves.
 No deployment, application, payment or chain receipt is involved.
 
-1. On Register, choose Issue shares and the class, then Investor issue.
+1. On the web, in Ledger choose Issue shares and the class, then Investor issue.
 2. Person and shares: choose who receives the shares, or New person with their particulars
    ([choosing a person](register.md#choosing-a-person)), then give the shares
    and the full consideration in AUD.

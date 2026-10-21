@@ -2,7 +2,7 @@
 
 [Business processes](README.md) · [Documentation](../README.md)
 
-How a company keeps the register of members of each share class in Ledova, and what the Register
+How a company keeps the register of members of each share class in Ledova, and what the web Ledger
 page shows. It is for company representatives, product owners, support staff and engineers learning
 the domain. Issuing shares is in [share classes and issuing shares](issuing-shares.md); copies,
 certificates and member access are in [member records and register outputs](member-records.md).
@@ -17,7 +17,7 @@ Contents:
 - [Completed chain effects and waiting entries](#completed-chain-effects-and-waiting-entries)
 - [Retained director instructions](#retained-director-instructions)
 - [Reconciliation with the chain](#reconciliation-with-the-chain)
-- [The Register page](#the-register-page)
+- [The Ledger page](#the-register-page)
 
 ## The register and the company's records
 
@@ -102,9 +102,9 @@ shares; a member can have no linked wallet or several. Holder types:
 - Member: resolves to one person, as below.
 - Treasury: held at a labelled company treasury address, such as an employee share trust.
 - Ambiguous: its wallets point to more than one person, or two wallet records share its address, so
-  no name is shown and the Register says the identity needs review.
+  no name is shown and the shareholder view says the identity needs review.
 - Unidentified: no wallet resolves to a named person and no particulars are recorded, so the
-  Register suggests asking the participant to add their full name in Profile, or to verify and
+  shareholder view suggests asking the participant to add their full name in Profile, or to verify and
   nominate the wallet for approval.
 
 A member's name and residential address come from the first available of: the live verified identity
@@ -192,17 +192,17 @@ contract it is the opening, creating the members, the Opening state entry and th
 together; for a class opened from the chain it adds particulars and former members from before
 Ledova, and its holdings must match the stored register. On the web:
 
-1. On Register, choose **Add share class**; or choose History, the class, then Bring records
+1. On Ledger, choose **Add share class**; or choose History, the class, then Bring records
    under Register mirror. Issue shares and Transfer shares also offer Set up your share register for a
-   class not yet set up. Register is the only place where share classes are created, on the web
-   and on mobile.
+   class not yet set up. Share classes are created only through register setup, in Ledger on the
+   web and Register on mobile.
 2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
    ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
    type. The company choices come from current personal administrator or preparer appointments,
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
-   With no classes yet, a preparer uses the company sidebar's Register and its setup action.
+   With no classes yet, a preparer uses the company sidebar's Ledger and its setup action.
    Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: choose a recorded person or New person
    ([choosing a person](#choosing-a-person); names never link records, and existing names and
@@ -359,8 +359,8 @@ A company can record a genuine non-paid transfer between members of an imported 
 has no contract, when neither has a linked wallet anywhere in the company. It creates no wallet,
 account, payment, application or chain transaction.
 
-1. On Register, choose Transfer shares, the class, then Prepare a non-paid transfer. For a tokenised
-   class the task says its transfers use wallet and chain controls.
+1. On the web, in Ledger choose Transfer shares, the class, then Prepare a non-paid transfer. For a
+   tokenised class the task says its transfers use wallet and chain controls.
 2. Choose the transferor, recipient and shares ([choosing a person](#choosing-a-person)). An
    existing recipient, including a former member
    returning from zero, keeps their member ID; a new one gets a new member ID with the name and
@@ -397,7 +397,7 @@ opening already holds records nothing, nor does a settlement between two wallets
 Recording stops at the first effect it cannot record, so the register never skips ahead of the
 chain, though the issue or settlement itself still completes; it resumes at the next completion in
 the class, applied wallet link or applied instruction. A waiting effect is in no holding until it is
-recorded, and the Register shows how many wait.
+recorded, and the class summary shows how many wait.
 
 ### Why a completed effect waits
 
@@ -467,7 +467,7 @@ of zero shares, which anyone can send, are ignored.
 
 Each run is kept as Matched, Discrepant or Failed, with the block and register entry compared. An
 unreadable chain fails the reconciliation, never the register, and reconciliation never writes a
-register entry. The company cannot start a run; it sees the latest on the Register and in the CSV
+register entry. The company cannot start a run; it sees the latest in the register view and the CSV
 summary. The register cannot follow a divergence it did not cause: no entry records an outside
 transfer, and a correction only reverses an existing entry.
 
@@ -502,16 +502,17 @@ reason, the person, their appointment and the time, and the
 
 ## The Register page
 
-On the web Register is open to every signed-in account and shows the registers of companies the
-person owns or where their appointment includes register access. With none, it offers **Add share
-class** to someone who can prepare one and otherwise says there are none. A company
-selector appears when several companies are readable. Register, Shareholders, ESS and Documents in
+The web destination is **Ledger**, with the subtitle **Share classes and current ownership.** The
+mobile destination remains Register. Ledger is open to every signed-in account and shows the
+registers of companies the person owns or where their appointment includes register access. With
+none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
+selector appears when several companies are readable. Ledger, Shareholders, ESS and Documents in
 the web sidebar are views of one page, so switching between them keeps unfinished forms
-and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Register starts with the
+and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
 company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
 
-The Register view shows:
+The Ledger view shows:
 
 - a card for each class with **Class details**: Issued shares, Current shareholders, Register opened or Register not
   opened, Authorised shares (or a Technical share limit for a class set up from existing records), a
@@ -535,7 +536,7 @@ held the company, task and class cannot be changed. A failed read withholds the 
 shareholder list rather than implying holdings are zero.
 
 Dedicated Issue shares, Transfer shares and History workflows are the next web increments under
-[#1165](https://github.com/Ledova/ledova/issues/1165). The task controls above remain in Register
+[#1165](https://github.com/Ledova/ledova/issues/1165). The task controls above remain in Ledger
 until those replacements land; their authority checks and original-request recovery are unchanged.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
@@ -580,7 +581,7 @@ reached from Recipient details on their award. It shows:
 
 Details show only while the account, the classes and the holdings read are current; a refresh
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
-current company register appointment and settled reads, as on Register.
+current company register appointment and settled reads, as on Ledger.
 
 ### Choosing a person
 
@@ -608,7 +609,7 @@ person chosen.
 
 ### The Share class page
 
-Each class opens directly from **Class details** on its Register card. Its details show the class's
+Each class opens directly from **Class details** on its Ledger card. Its details show the class's
 name, code, type, state and current register summary, followed by the company's optional
 [Class rights](issuing-shares.md#class-rights). Shareholder management stays on Shareholders and
 register downloads on Documents. **Technical details and chain workflows** opens the retained

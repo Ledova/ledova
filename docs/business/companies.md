@@ -361,7 +361,8 @@ Its Company administration section links to:
   ([the Published page](publications.md#the-published-page)).
 
 Activation is at the top of Settings, and share classes are listed and added only in
-[Register](register.md#bringing-in-existing-records). Company documents follow for administrators.
+[Ledger](register.md#bringing-in-existing-records) on the web (Register on mobile). Company documents
+follow for administrators.
 
 Next: [participants and eligibility](participants.md) ·
 [register of members](register.md) ·

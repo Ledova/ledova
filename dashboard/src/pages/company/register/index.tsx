@@ -68,7 +68,7 @@ function RegisterPage({
               ? 'Prepare permitted register copies, certificates and company packs.'
               : hash === '#shareholders'
                 ? 'Who holds shares, what they hold in each class, and their access to their own records.'
-                : undefined
+                : 'Share classes and current ownership.'
         }
       >
         {selection}

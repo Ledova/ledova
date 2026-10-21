@@ -38,7 +38,7 @@ company owner may download the register CSV.
 | -------------------- | ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
 | Register CSV         | The company owner or a register reader     | **Documents**: **Download CSV**                         | Who took it, the class, the entry it runs to, row counts |
 | Inspection copy      | A register reader                          | **Documents**: **Inspection copy**                      | SHA-256, instruction, request date, recipient, late flag |
-| Certificate          | A register reader                          | **Register**, **History** (web); **Documents** (mobile) | SHA-256 and instruction                                  |
+| Certificate          | A register reader                          | **Ledger**, **History** (web); **Documents** (mobile)   | SHA-256 and instruction                                  |
 | Member's certificate | A register reader, on the member's request | **Member access and requests**                          | The PDF itself, as a certificate record                  |
 | Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**                             | SHA-256, period and instruction                          |
 | Core company pack    | A company administrator                    | **Documents**: **Company pack**                         | Manifest SHA-256, instruction, recipient, per class      |
@@ -182,7 +182,7 @@ register, or a correction has since reversed the entry (the refusal names the co
 ### Preparing a certificate in the Register
 
 1. Keep the company's written instruction and note its reference.
-2. On web, in **Register** choose **History** and the share class, open an issue or transfer entry
+2. On web, in **Ledger** choose **History** and the share class, open an issue or transfer entry
    and choose **Prepare unsigned certificate**. On mobile, open the class's entries in
    **Documents**.
 3. Enter the reference and choose **Preview unsigned certificate**. Check the entry, register
@@ -289,7 +289,8 @@ You need **Can change register outputs**.
 3. Tell the company what is due and when.
 4. For notice figures, on the company's written instruction, follow the row's link and
    [prepare the notice figures](#preparing-notice-figures). A certificate row has no link and
-   reads **Certificate (company register)**: the company prepares it in its own Register.
+   reads **Certificate (company register)**: the company prepares it in Ledger on the web or Documents
+   on mobile.
 
 ## The company pack
 

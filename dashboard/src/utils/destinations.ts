@@ -6,6 +6,11 @@ export interface Place {
   view?: string;
 }
 
+const WEB_TITLES: Partial<Record<DestinationKey, string>> = {
+  home: 'Dashboard',
+  companyRegister: 'Ledger',
+};
+
 function viewName(key: DestinationKey, view: string): string | undefined {
   const destination: Destination = DESTINATIONS[key];
   const views = destination.views;
@@ -15,7 +20,7 @@ function viewName(key: DestinationKey, view: string): string | undefined {
 export function pageTitle(key: DestinationKey, view?: string): string {
   const named = view ? viewName(key, view) : undefined;
   if (named) return named;
-  return key === 'home' ? 'Dashboard' : DESTINATIONS[key].title;
+  return WEB_TITLES[key] ?? DESTINATIONS[key].title;
 }
 
 export function backLink(key: DestinationKey) {

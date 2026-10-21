@@ -12,7 +12,7 @@ import { ShareClassTechnical } from './ShareClassTechnical';
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
   return (
-    <Page back={{ ...registerPlace({ company: data.token.data?.companyUuid }), label: 'Back to Register' }}>
+    <Page back={{ ...registerPlace({ company: data.token.data?.companyUuid }), label: 'Back to Ledger' }}>
       <ShareClassRecord data={data} uuid={uuid} />
       <ShareClassTechnical uuid={uuid} data={data} />
     </Page>

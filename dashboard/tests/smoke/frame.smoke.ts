@@ -83,7 +83,7 @@ async function openTheSidebar(page: Page, role: Role) {
   await aside.locator('summary').filter({ hasText: 'More' }).click();
   await expect(aside.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
   await expect(aside.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
-  await expect(aside.getByRole('link', { name: 'Register', exact: true })).toHaveCount(role === 'company' ? 0 : 1);
+  await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(role === 'company' ? 0 : 1);
   await expect(aside.getByText(LONG_NAME)).toHaveCount(0);
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();
   return aside;
