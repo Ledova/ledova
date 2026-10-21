@@ -127,7 +127,9 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
             <Snapshot snapshot={preview.snapshot} />
             <Rows>
               <Row label="Intent fingerprint">{preview.intentDigest}</Row>
-              <Row label="Selected approval">{preview.approvalDecision ?? 'Not selected'}</Row>
+              <Row label="Selected approval">
+                {preview.approvalDecision ? shortReference(preview.approvalDecision) : 'Not selected'}
+              </Row>
             </Rows>
           </>
         )}

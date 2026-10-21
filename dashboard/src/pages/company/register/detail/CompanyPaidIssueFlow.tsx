@@ -112,7 +112,9 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
             <Row label="Actual allotment recorded">
               {record.allottedAt ? formatDateTime(record.allottedAt) : 'Not recorded'}
             </Row>
-            <Row label="Original issuance request">{record.request || 'No issuance request admitted'}</Row>
+            <Row label="Original issuance request">
+              {record.request ? shortReference(record.request) : 'No issuance request admitted'}
+            </Row>
             {execution && (
               <>
                 <Row label="Original execution">{shortReference(execution.execution)}</Row>
@@ -125,8 +127,12 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
                 <Row label="Original completion date">
                   {execution.completedAt ? formatDateTime(execution.completedAt) : 'Not recorded'}
                 </Row>
-                <Row label="Original issuance">{execution.issuance || 'Not recorded'}</Row>
-                <Row label="Register entry">{execution.registerEntry || 'Not recorded'}</Row>
+                <Row label="Original issuance">
+                  {execution.issuance ? shortReference(execution.issuance) : 'Not recorded'}
+                </Row>
+                <Row label="Register entry">
+                  {execution.registerEntry ? shortReference(execution.registerEntry) : 'Not recorded'}
+                </Row>
                 <Row label="Entry effective date">{formatDate(execution.effectiveOn, 'Not recorded')}</Row>
               </>
             )}

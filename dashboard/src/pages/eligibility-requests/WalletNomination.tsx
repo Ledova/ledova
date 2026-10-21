@@ -21,7 +21,7 @@ function Facts({ preview }: { preview: WalletNominationPreview }) {
     <Rows>
       <Row label="Exact company">{shortReference(preview.company)}</Row>
       <Row label="Eligibility request">{shortReference(preview.request)}</Row>
-      <Row label="Accepted GENERAL decision">{preview.decision ?? 'Not ready'}</Row>
+      <Row label="Accepted GENERAL decision">{preview.decision ? shortReference(preview.decision) : 'Not ready'}</Row>
       <Row label="Selected address">{preview.address}</Row>
       <Row label="Chain">{preview.chain}</Row>
       <Row label="Possession proof completed">{formatDateTime(preview.proofCompletedAt)}</Row>
