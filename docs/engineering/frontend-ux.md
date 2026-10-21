@@ -52,9 +52,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
   muted sentence ("No activity yet.") and at most one action besides Refresh; a state is never a
   title. A card's title is a heading, such as each class's summary on Register.
-- `Rows` and `Row`: ruled label and value pairs, figures in tabular numerals, for a record's labelled
-  facts, such as a shareholder's holding or an import's supporting records.
-  Breakdowns of figures (company ownership, a class's totals, register setup's summary, a holding's
+- `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
+  shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
+  mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals, register setup's summary, a holding's
   wallets) and an award's chart legend keep their own layout, without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such

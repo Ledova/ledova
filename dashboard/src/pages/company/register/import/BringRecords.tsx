@@ -125,7 +125,7 @@ export function BringRecords({
       )}
       {step === 'shareholders' && (
         <>
-          <fieldset className="space-y-3">
+          <fieldset className="min-w-0 space-y-3">
             <legend className="sr-only">Shareholders</legend>
             {!editorOpen && (
               <div className="flex flex-wrap items-center justify-between gap-3">
