@@ -15,6 +15,8 @@ import { ICON_XS, ICON_SM } from '@components/iconSizes';
 import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useImportBalances } from './useImportBalances';
 import { useWalletForm } from './useWalletForm';
 import { extractFromKeystoneQR } from '@utils/keystone/bcurDecoder';
@@ -52,6 +54,8 @@ export function AddWalletModal({
     onSubmit,
     onBatchSubmit,
   });
+  const checks = useErrorSummary(form.problems);
+  const address = checks.field('address');
 
   useEffect(() => {
     if (isOpen) {
@@ -63,6 +67,7 @@ export function AddWalletModal({
     if (isLoading) return;
     form.stopScanner();
     form.reset();
+    checks.reset();
     onClose();
   };
 
@@ -108,12 +113,13 @@ export function AddWalletModal({
       confirmLabel="Add wallet"
       busy={isLoading}
       busyLabel="Adding wallet…"
-      confirmDisabled={readBlocked || !form.address.trim()}
+      confirmDisabled={readBlocked}
       onConfirm={() => {
-        if (!readBlocked && !isLoading) form.handleSubmit();
+        if (!readBlocked && !isLoading && checks.check()) form.handleSubmit();
       }}
     >
       <div className="space-y-4">
+        <ErrorSummary {...checks.summary} />
         {notice}
         {error && (
           <p role="alert" className="text-sm text-error-light">
@@ -124,7 +130,12 @@ export function AddWalletModal({
           {form.showScanner ? 'Scan your wallet QR code' : 'Enter wallet details or scan a QR code'}
         </p>
 
-        <Field label="Wallet address" aside={scanToggle} error={form.showScanner ? null : form.errors.address}>
+        <Field
+          id={address.id}
+          label="Wallet address"
+          aside={scanToggle}
+          error={form.showScanner ? null : address.error}
+        >
           {form.showScanner ? (
             <div className="mt-1 space-y-3">
               <div className="relative overflow-hidden rounded-lg bg-black mx-auto" style={{ width: 280, height: 280 }}>
@@ -147,7 +158,7 @@ export function AddWalletModal({
               maxLength={FIELD_LIMITS.WALLET_ADDRESS}
               value={form.address}
               onChange={(e) => form.handleAddressChange(e.target.value)}
-              className={`${FIELD_CLASS} font-mono ${form.errors.address ? 'border-error-light' : 'border-border'}`}
+              className={`${FIELD_CLASS} font-mono ${address.error ? 'border-error-light' : 'border-border'}`}
               placeholder="0x… or tb1…"
               disabled={isLoading}
             />
@@ -156,6 +167,7 @@ export function AddWalletModal({
 
         {!form.showScanner && (
           <Choices
+            {...checks.field('network')}
             legend="Wallet network"
             options={getActiveChains().map((chain) => [chain.code, chain.name] as const)}
             value={form.selectedChain ?? ''}
