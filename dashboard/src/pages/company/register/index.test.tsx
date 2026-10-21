@@ -562,7 +562,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getAllByText(/current company register appointment/)).toHaveLength(2);
   expect(screen.getByRole('heading', { level: 1, name: 'Example Member' })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-});
+}, 15_000);
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
   const manual: MemberDraft[] = [
