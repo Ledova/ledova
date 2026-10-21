@@ -36,6 +36,12 @@ export const FIELD_LIMITS = {
   VERIFICATION_CODE: 6,
 } as const;
 
+export const INVITATION_CODE_PROBLEM = 'Enter the full invitation code the company gave you.';
+
+export function isInvitationCode(code: string): boolean {
+  return /^[A-Za-z0-9_-]{43}$/.test(code);
+}
+
 const UPLOAD_TYPES: Readonly<Record<string, string>> = {
   '.pdf': 'application/pdf',
   '.png': 'image/png',

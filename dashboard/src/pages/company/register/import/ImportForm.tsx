@@ -12,6 +12,8 @@ import {
 import { Row, Rows } from '@components/Ledger';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useState } from 'react';
 
 import { BringRecords } from './BringRecords';
 import { MemberRecords } from '@pages/company/register/shared/MemberRecords';
@@ -43,6 +45,7 @@ export function ImportForm({
   onHeldChange,
 }: ImportFormProps) {
   const { running, track } = useRunningAction();
+  const [tries, setTries] = useState(0);
   const {
     importDescription,
     today,
@@ -142,8 +145,10 @@ export function ImportForm({
             canPrepare ? (
               <form
                 className="space-y-6 rounded-2xl border border-border bg-surface-raised p-4 sm:p-6"
+                noValidate
                 onSubmit={(event) => {
                   event.preventDefault();
+                  setTries((count) => count + 1);
                   if (phase === 'details') {
                     setAttempted(true);
                     if (!detailProblems.length && !blocked) {
@@ -156,6 +161,12 @@ export function ImportForm({
                 <h2 className="font-display text-xl text-text-primary">
                   {phase === 'details' ? 'Share details' : 'Shareholders'}
                 </h2>
+                <ErrorSummary
+                  attempt={tries}
+                  problems={
+                    attempted ? (phase === 'details' ? detailProblems : problems).map((message) => ({ message })) : []
+                  }
+                />
                 <fieldset
                   disabled={busy || uncertain || blocked}
                   className={phase === 'details' ? 'grid items-start gap-6 md:grid-cols-2' : 'space-y-5'}
@@ -192,13 +203,6 @@ export function ImportForm({
                     </p>
                   )}
                 </fieldset>
-                {attempted && (phase === 'details' ? detailProblems : problems).length > 0 && (
-                  <ul role="alert" className="space-y-1 text-sm text-error-light">
-                    {(phase === 'details' ? detailProblems : problems).map((problem) => (
-                      <li key={problem}>{problem}</li>
-                    ))}
-                  </ul>
-                )}
                 {!uncertain && !holderEditor && (
                   <FormActions>
                     {phase === 'shareholders' && (

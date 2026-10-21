@@ -1,11 +1,13 @@
 import { Field, TextInput } from '@components/Field';
 import { useState } from 'react';
-import { FIELD_LIMITS, DESTINATIONS, failureSentence } from '@ledova/shared';
+import { FIELD_LIMITS, DESTINATIONS, failureSentence, readApiError } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { LinkRow, Outcome, Section, SwitchRow, LoadError, Loading } from '@components/Ledger';
 import { setTheme } from '@hooks/useTheme';
+import { useErrorSummary } from '@hooks/useErrorSummary';
+import { ErrorSummary } from '@components/ErrorSummary';
 import { Verification } from './Verification';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
@@ -18,12 +20,16 @@ function ActionRow({ description, label, onClick }: { description: string; label
 }
 
 function PasswordInput({
+  id,
+  error,
   label,
   value,
   onChange,
   autoComplete,
   disabled,
 }: {
+  id: string;
+  error: string | null;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -33,7 +39,7 @@ function PasswordInput({
   const [visible, setVisible] = useState(false);
   return (
     <div className="space-y-1">
-      <Field label={label}>
+      <Field id={id} error={error} label={label}>
         <TextInput
           type={visible ? 'text' : 'password'}
           maxLength={FIELD_LIMITS.PASSWORD}
@@ -71,7 +77,7 @@ function SettingsPage() {
     setNewPassword,
     confirmPassword,
     setConfirmPassword,
-    passwordError,
+    passwordProblems,
     passwordChanged,
     setPasswordChanged,
     deleteMutation,
@@ -80,6 +86,17 @@ function SettingsPage() {
     closePassword,
     savePassword,
   } = useSettings();
+  const passwordChecks = useErrorSummary(passwordProblems);
+  const passwordReading = passwordMutation.isError
+    ? readApiError(passwordMutation.error, {
+        fallback: 'Your password could not be changed. Try again.',
+        displayedFields: ['currentPassword', 'newPassword', 'newPasswordConfirm'],
+      })
+    : null;
+  const passwordField = (key: keyof typeof passwordProblems) => {
+    const check = passwordChecks.field(key);
+    return { id: check.id, error: check.error ?? passwordReading?.fieldErrors?.[key]?.join(' ') ?? null };
+  };
   return (
     <Page narrow>
       <Verification />
@@ -175,18 +192,20 @@ function SettingsPage() {
         formId="change-password"
         busy={passwordMutation.isPending}
         busyLabel="Changing password…"
-        confirmDisabled={!currentPassword || !newPassword || !confirmPassword}
       >
         {modal === 'password' && (
           <form
             id="change-password"
             className="space-y-4"
+            noValidate
             onSubmit={(event) => {
               event.preventDefault();
-              savePassword();
+              if (passwordChecks.check()) savePassword();
             }}
           >
+            <ErrorSummary {...passwordChecks.summary} />
             <PasswordInput
+              {...passwordField('currentPassword')}
               label="Current password"
               value={currentPassword}
               onChange={setCurrentPassword}
@@ -194,6 +213,7 @@ function SettingsPage() {
               disabled={passwordMutation.isPending}
             />
             <PasswordInput
+              {...passwordField('newPassword')}
               label="New password"
               value={newPassword}
               onChange={setNewPassword}
@@ -201,15 +221,16 @@ function SettingsPage() {
               disabled={passwordMutation.isPending}
             />
             <PasswordInput
+              {...passwordField('newPasswordConfirm')}
               label="Confirm new password"
               value={confirmPassword}
               onChange={setConfirmPassword}
               autoComplete="new-password"
               disabled={passwordMutation.isPending}
             />
-            {passwordError && (
+            {passwordReading && (
               <p role="alert" className="text-sm text-error-light">
-                {passwordError}
+                {passwordReading.generalError ?? 'The password was not changed. Check the fields above.'}
               </p>
             )}
           </form>
