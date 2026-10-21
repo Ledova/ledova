@@ -98,7 +98,9 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
           {error}
         </p>
       )}
-      {!Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
+      {appointments.isSuccess && !appointments.isFetching && !Object.values(steps).some(Boolean) && (
+        <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
+      )}
       {appointments.isError && (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.
