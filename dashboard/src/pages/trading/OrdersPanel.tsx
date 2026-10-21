@@ -112,7 +112,7 @@ export function OrdersPanel({
         ) : isLoadingUserOrders ? (
           <Loading>Loading your orders…</Loading>
         ) : userOrders.length === 0 ? (
-          <p className="text-sm text-text-muted">No recorded orders.</p>
+          <p className="text-sm text-text-muted">No orders yet.</p>
         ) : (
           userOrders.map((order) => (
             <article key={order.uuid} className="border-b border-border-subtle py-3 last:border-b-0">

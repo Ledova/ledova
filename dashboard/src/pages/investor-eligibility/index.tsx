@@ -82,9 +82,7 @@ export default function InvestorEligibilityPage() {
                 </p>
               )}
               {classifications.length === 0 ? (
-                <p className="py-3 text-sm text-text-muted">
-                  You have not submitted evidence yet. Choose a category below.
-                </p>
+                <p className="py-3 text-sm text-text-muted">No claims yet. Choose a category below.</p>
               ) : (
                 <div className="divide-y divide-border-subtle">
                   {classifications.map((claim) => {

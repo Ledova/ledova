@@ -420,9 +420,7 @@ export function DocumentsPanel() {
         </LoadError>
       )}
 
-      {docs.isSuccess && list.length === 0 && (
-        <p className="text-sm text-text-muted">No documents yet — upload your first payslip above.</p>
-      )}
+      {docs.isSuccess && list.length === 0 && <p className="text-sm text-text-muted">No documents yet.</p>}
 
       {list.map((doc) => (
         <DocumentCard key={doc.uuid} initialDoc={doc} claims={claims} />

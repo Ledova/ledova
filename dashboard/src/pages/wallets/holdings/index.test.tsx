@@ -246,7 +246,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   record = { ...MEMBER_RECORD, classes: [] };
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
-  expect(await screen.findByText('No issued shares recorded.')).toBeTruthy();
+  expect(await screen.findByText('No issued shares yet.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }));
   await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
@@ -257,7 +257,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
   fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
   await screen.findByText('Your award records could not be confirmed. Refresh before continuing.');
   expect(screen.queryByRole('img')).toBeNull();
-  expect(screen.queryByText('No issued shares recorded.')).toBeNull();
+  expect(screen.queryByText('No issued shares yet.')).toBeNull();
   record = {
     ...record,
     awards: [{ ...MEMBER_RECORD.awards[0], shares: '0', vestedShares: '0', availableShares: '0' }],
@@ -289,5 +289,5 @@ it('puts own register shares and awards first without wallet reads, preserves se
   expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
   expect(screen.getByRole('alert').textContent).toMatch(/Your member records could not be loaded/);
   expect(screen.queryByRole('heading', { name: 'Get access to your shares' })).toBeNull();
-  expect(screen.queryByText('No issued shares recorded.')).toBeNull();
+  expect(screen.queryByText('No issued shares yet.')).toBeNull();
 });

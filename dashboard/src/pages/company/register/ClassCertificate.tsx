@@ -114,7 +114,7 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
           {error}
         </p>
       )}
-      {downloaded && <Outcome>The unsigned certificate was downloaded.</Outcome>}
+      <Outcome>{downloaded && 'The unsigned certificate was downloaded.'}</Outcome>
     </div>
   );
 }

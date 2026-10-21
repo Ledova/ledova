@@ -49,7 +49,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   `rounded-2xl` in the frame, `rounded-xl` outside it) with its Newsreader title inside. Forms and
   things to act on are cards too; a group inside a card gets a rule or a small heading, never a
   nested card. An empty section keeps its real title, one muted sentence ("No activity yet.") and at
-  most one action; a state is never a title.
+  most one action besides Refresh; a state is never a title.
 - `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   after its destination, with optional detail lines and an aside. A title row never repeats a
@@ -165,8 +165,10 @@ confirm with native alerts.
 `Outcome` (`dashboard/src/components/Ledger.tsx`) says what just happened in one line: a
 `role="status"` sentence in the primary text colour, after the mark `Status` uses for done. It sits
 under the change or on the record you land on, and stays until the next action replaces it; there
-are no toasts. It names the record rather than its identifier; team invitations, appointments and
-authority requests show their identifier in their own details. It reports:
+are no toasts. Its status region stays in place, empty and visually hidden, before there is anything
+to report, so a screen reader announces the sentence when it arrives. It names the record rather
+than its identifier; team invitations, appointments and authority requests show their identifier in
+their own details. It reports:
 
 - a changed password, saved personal details, and an offering submitted for review, withdrawn or
   deleted;
@@ -452,7 +454,26 @@ Both eligibility pages, member access and Home's member records read through sha
 keep a reason of their own. While a read fails they show the block, with any such reason under it,
 such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
-Empty states are still to follow under [#1180](https://github.com/Ledova/ledova/issues/1180).
+An empty list says it has none yet in one muted sentence, such as "No applications yet." or "No
+notices yet.", sometimes followed by where to add or find them, and an empty section keeps at
+most one action besides Refresh ([signed-in page conventions](#signed-in-page-conventions)). An
+empty class import instead invites bringing in the company's existing records. A list narrowed by
+a search or filter says what matched instead, such as "No applications match your search." or "No
+requests match."
+
+A class's awards, grants, allotments, openings, imports, non-paid transfers, deployments and
+reconciliation, notices, offer documents and an offering's applications take their empty sentence
+from shared copy in `packages/shared/src/constants/business/`, which both clients show; mobile
+Home's recent notices keep their own words until #1201. On the web, a section with no corrections,
+register entries or particulars changes is hidden instead, and so is one with no wallet links
+unless wallets are waiting for a link you can prepare, so those shared sentences show only on
+mobile. Other empty sentences are each client's own, and mobile's move to these words
+under [#1201](https://github.com/Ledova/ledova/issues/1201). A sentence that reports a state rather
+than an empty list keeps its own words, such as "No votes need your attention." or "No orders
+listed." for a market's live order book. A class's awards, grants, allotments, non-paid transfers
+and deployments, and an award's vesting and entitlement changes, can't be made on every class or
+award, so theirs says none has been recorded or prepared for it, such as "No employee award has
+been recorded for this share class."
 
 Some messages keep their own form:
 

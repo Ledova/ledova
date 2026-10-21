@@ -24,9 +24,9 @@ export const REGISTER_CORRECTION_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_CORRECTION_COPY = {
   TITLE: 'Corrections',
-  EMPTY: 'No correction has been prepared for this share class.',
+  EMPTY: 'No corrections yet.',
   ENTRIES_TITLE: 'Register entries',
-  ENTRIES_EMPTY: 'The register of this share class has no entries yet.',
+  ENTRIES_EMPTY: 'No register entries yet.',
   PREPARE: 'Correct this entry',
   PROVIDED_BY_COMPANY: 'Provided by the company',
   STAFF_VERIFIED: 'Verified by Ledova staff before corrections were company-run',

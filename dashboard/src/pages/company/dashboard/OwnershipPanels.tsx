@@ -117,9 +117,7 @@ export function ShareholderPanels({ registers }: { registers: TokenHoldersRespon
                 This share class has no opened register. Issued shares are not recorded.
               </p>
             ) : segments.length === 0 ? (
-              <p className="text-sm text-text-muted">
-                No issued shares or current shareholders are recorded for this class.
-              </p>
+              <p className="text-sm text-text-muted">No issued shares or current shareholders yet.</p>
             ) : (
               <>
                 <p className="break-words text-sm tabular-nums text-text-muted">

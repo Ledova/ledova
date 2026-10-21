@@ -95,6 +95,8 @@ export function ClassImports({
         <LoadError retry={() => imports.refetch()} busy={imports.isFetching}>
           Imports could not be loaded.
         </LoadError>
+      ) : privateReady && imports.data.length === 0 ? (
+        <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.EMPTY}</p>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {(imports.data ?? []).map((proposal) => (

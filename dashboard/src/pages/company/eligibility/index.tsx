@@ -151,7 +151,7 @@ export default function CompanyEligibilityPage() {
               />
               {queue?.settled && queue.rows.length === 0 ? (
                 <p role="status" className="text-sm text-text-muted">
-                  {outcome ? 'No requests match.' : 'No requests recorded.'}
+                  {outcome ? 'No requests match.' : 'No requests yet.'}
                 </p>
               ) : queue?.rows.length ? (
                 <div aria-busy={queue.busy} className={queue.busy ? 'opacity-60' : undefined}>
