@@ -560,7 +560,7 @@ Some messages keep their own form:
   or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
   to the control and an error sets `aria-invalid`. The label sits above the control. A standalone optional
   field ends with "(optional)"; an optional group declares this once in its heading, without repeating it
-  on each field. Repeatable sections entered through **+ Add** use plain headings, such as
+  on each field. Repeatable sections added on demand use plain headings, such as
   **Allocation history** and **Documents** in ledger setup; an empty section requires no entry.
   Labels use the group's context instead of repeating its name: **Documents** contains **Category**
   and **File**, with a numbered accessible group name distinguishing each attachment.
@@ -584,16 +584,17 @@ Some messages keep their own form:
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
 - **Repeated allocations.** Web ledger setup separates **Current shares held** from **Allocation
-  history**, which starts empty. **+ Add** beside the section heading opens its first entry. It keeps
+  history**, which starts empty. **Add allocation** beside the section heading opens its first entry. It keeps
   one editor expanded. Adding another
   validates the current entry, folds it into a compact date, shares, paid and unpaid summary with
-  pencil and trash controls, then opens an unfinished entry or a new blank one. Row icons sit with
-  the entry they affect and keep contextual accessible names, hover/focus tooltips and usable targets.
+  **Edit** and **Remove**, then opens an unfinished entry or a new blank one. Actions use descriptive
+  text buttons with contextual accessible names. Open allocation and document fields share the full-width
+  grid, with **Remove** beneath the entry, aligned right; section add actions sit beside their headings.
   Fields never collapse on
   blur or simply because they look complete. Editing or switching entries preserves unfinished input;
   validation opens the entry needing attention. **Add shareholder**, or **Save changes** when editing,
   completes the shareholder and their optional history, with Cancel beside it. These main actions
-  retain visible text. Historical quantities never set or limit current
+  share the same button typography and spacing, with the main action alone emphasised. Historical quantities never set or limit current
   holdings; there is no remaining-share counter or equality requirement. New paid/unpaid fields
   default to zero, including when cleared; stored unknown amounts are not rewritten.
 - **UTC dates.** Register and company dates are UTC calendar dates: `utcToday`

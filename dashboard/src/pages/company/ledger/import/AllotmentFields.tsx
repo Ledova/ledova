@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { FIELD_LIMITS, formatDate, formatShareCount, registerImportMoney, wholeShares } from '@ledova/shared';
 import { Field, TextInput } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
-import { RecordAction } from '@pages/company/ledger/shared/RecordAction';
+import { PageAction } from '@components/Page';
 import { allotmentProblems, blankAllotment, type AllotmentDraft } from './preparation';
 
 export function AllotmentFields({
@@ -70,9 +70,9 @@ export function AllotmentFields({
   };
   return (
     <section aria-label="Allocation history" className="space-y-3 border-t border-border-subtle pt-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h4 className="text-sm font-medium text-text-primary">Allocation history</h4>
-        <RecordAction action="add" text="Add" label={`Add allocation (shareholder ${shareholder})`} onClick={add} />
+        <PageAction label="Add allocation" context={`shareholder ${shareholder}`} onClick={add} />
       </div>
       {allotments.length > 0 && (
         <div className="divide-y divide-border-subtle">
@@ -98,84 +98,74 @@ export function AllotmentFields({
                       </p>
                       {problems.length > 0 && <p className="mt-1 text-xs text-error-light">Needs details</p>}
                     </div>
-                    <div className="flex shrink-0 gap-1">
-                      <RecordAction
-                        action="edit"
-                        label={`Edit allocation ${at + 1}`}
-                        onClick={() => edit(allotment.id)}
-                      />
-                      <RecordAction
-                        action="remove"
-                        label={`Remove allocation ${at + 1}`}
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <PageAction label="Edit" context={`allocation ${at + 1}`} onClick={() => edit(allotment.id)} />
+                      <PageAction
+                        label="Remove"
+                        context={`allocation ${at + 1}`}
                         onClick={() => remove(allotment.id)}
                       />
                     </div>
                   </div>
                 )}
-                <div hidden={!shown}>
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1 space-y-3">
-                      <ErrorSummary
-                        attempt={check.id === allotment.id ? check.attempt : 0}
-                        problems={check.id === allotment.id ? problems.map((message) => ({ message })) : []}
+                <div hidden={!shown} className="space-y-3">
+                  <ErrorSummary
+                    attempt={check.id === allotment.id ? check.attempt : 0}
+                    problems={check.id === allotment.id ? problems.map((message) => ({ message })) : []}
+                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Date">
+                      <TextInput
+                        ref={(element) => {
+                          if (element) dates.current.set(allotment.id, element);
+                          else dates.current.delete(allotment.id);
+                        }}
+                        type="date"
+                        max={asAt}
+                        value={allotment.allottedOn}
+                        onChange={(event) => set({ allottedOn: event.target.value })}
                       />
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <Field label="Date">
-                          <TextInput
-                            ref={(element) => {
-                              if (element) dates.current.set(allotment.id, element);
-                              else dates.current.delete(allotment.id);
-                            }}
-                            type="date"
-                            max={asAt}
-                            value={allotment.allottedOn}
-                            onChange={(event) => set({ allottedOn: event.target.value })}
-                          />
-                        </Field>
-                        <Field label="Shares">
-                          <TextInput
-                            maxLength={FIELD_LIMITS.REGISTER_SHARES}
-                            inputMode="numeric"
-                            value={allotment.shares}
-                            onChange={(event) => set({ shares: event.target.value })}
-                          />
-                        </Field>
-                        <Field label="Amount paid">
-                          <TextInput
-                            maxLength={FIELD_LIMITS.AMOUNT}
-                            inputMode="decimal"
-                            placeholder="0.00"
-                            value={allotment.amountPaid}
-                            onChange={(event) => set({ amountPaid: event.target.value })}
-                            onBlur={() => {
-                              if (!allotment.amountPaid.trim()) set({ amountPaid: '0.00' });
-                            }}
-                          />
-                        </Field>
-                        <Field label="Amount unpaid">
-                          <TextInput
-                            maxLength={FIELD_LIMITS.AMOUNT}
-                            inputMode="decimal"
-                            placeholder="0.00"
-                            value={allotment.amountUnpaid}
-                            onChange={(event) =>
-                              set({
-                                amountUnpaid: event.target.value,
-                                fullyPaid: registerImportMoney(event.target.value.trim() || '0') === '0.00',
-                              })
-                            }
-                            onBlur={() => {
-                              if (!allotment.amountUnpaid.trim()) set({ amountUnpaid: '0.00', fullyPaid: true });
-                            }}
-                          />
-                        </Field>
-                      </div>
-                    </div>
-                    <RecordAction
-                      action="remove"
-                      label={`Remove allocation ${at + 1}`}
-                      onClick={() => remove(allotment.id)}
-                    />
+                    </Field>
+                    <Field label="Shares">
+                      <TextInput
+                        maxLength={FIELD_LIMITS.REGISTER_SHARES}
+                        inputMode="numeric"
+                        value={allotment.shares}
+                        onChange={(event) => set({ shares: event.target.value })}
+                      />
+                    </Field>
+                    <Field label="Amount paid">
+                      <TextInput
+                        maxLength={FIELD_LIMITS.AMOUNT}
+                        inputMode="decimal"
+                        placeholder="0.00"
+                        value={allotment.amountPaid}
+                        onChange={(event) => set({ amountPaid: event.target.value })}
+                        onBlur={() => {
+                          if (!allotment.amountPaid.trim()) set({ amountPaid: '0.00' });
+                        }}
+                      />
+                    </Field>
+                    <Field label="Amount unpaid">
+                      <TextInput
+                        maxLength={FIELD_LIMITS.AMOUNT}
+                        inputMode="decimal"
+                        placeholder="0.00"
+                        value={allotment.amountUnpaid}
+                        onChange={(event) =>
+                          set({
+                            amountUnpaid: event.target.value,
+                            fullyPaid: registerImportMoney(event.target.value.trim() || '0') === '0.00',
+                          })
+                        }
+                        onBlur={() => {
+                          if (!allotment.amountUnpaid.trim()) set({ amountUnpaid: '0.00', fullyPaid: true });
+                        }}
+                      />
+                    </Field>
+                  </div>
+                  <div className="flex justify-end">
+                    <PageAction label="Remove" context={`allocation ${at + 1}`} onClick={() => remove(allotment.id)} />
                   </div>
                 </div>
               </fieldset>

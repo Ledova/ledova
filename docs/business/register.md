@@ -217,11 +217,11 @@ Ledova, and its holdings must match the stored register. On the web:
    references stay with saved records and corrections. **Documents** optionally attaches one or more
    files to this shareholder and share class, each with **Category** and **File** fields
    ([supporting documents](#shareholder-documents)).
-   **+ Add** beside each section heading adds an allocation or document. One allocation is open
+   **Add allocation** and **Add document** sit beside their respective section headings. One allocation is open
    for editing at a time. Adding another checks the current entry,
    folds it into a date, shares, paid and unpaid summary, and opens any unfinished entry or a new one.
-   Pencil and trash controls edit or remove the relevant entry, with accessible names and tooltips;
-   unfinished input is kept when switching entries. Entries do not collapse while typing.
+   **Edit** and **Remove** sit beside a collapsed summary; an open entry has **Remove** below its
+   full-width fields. Unfinished input is kept when switching entries. Entries do not collapse while typing.
    **Add shareholder**, or **Save changes** when editing, finishes the shareholder and any history
    entered. Removing the final entry leaves no copied history. History never sets
    or limits current holdings. New paid/unpaid fields start at zero; clearing either records zero,

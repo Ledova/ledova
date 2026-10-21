@@ -7,7 +7,6 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberFields } from './MemberFields';
 import { blankMember, type PreparationDraft, type MemberDraft } from './preparation';
 import { Disclosure } from '@components/Ledger';
-import { RecordAction } from '@pages/company/ledger/shared/RecordAction';
 
 export function BringRecords({
   draft,
@@ -148,18 +147,18 @@ export function BringRecords({
                       <td className="whitespace-nowrap px-4 py-4 text-text-muted">{formatDate(row.enteredOn, '—')}</td>
                       <td className="px-4 py-4">
                         <div className="flex gap-2">
-                          <RecordAction
-                            action="edit"
-                            label={`Edit shareholder ${index + 1}`}
+                          <PageAction
+                            label="Edit"
+                            context={`shareholder ${index + 1}`}
                             disabled={busy || editorOpen}
                             onClick={() => {
                               forget();
                               setEditor({ member: row.member, original: row });
                             }}
                           />
-                          <RecordAction
-                            action="remove"
-                            label={`Remove shareholder ${index + 1}`}
+                          <PageAction
+                            label="Remove"
+                            context={`shareholder ${index + 1}`}
                             disabled={busy || editorOpen}
                             onClick={() =>
                               update((current) => ({

@@ -1,8 +1,8 @@
 import { FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
+import { PageAction } from '@components/Page';
 import type { RegisterMemberDocumentCategory } from '@ledova/shared';
 import { DOCUMENT_CATEGORIES, type DocumentDraft } from './documentAttachmentDraft';
-import { RecordAction } from './RecordAction';
 
 export function DocumentAttachments({
   documents,
@@ -18,11 +18,9 @@ export function DocumentAttachments({
   return (
     <fieldset disabled={disabled} className={heading ? 'space-y-3 border-t border-border-subtle pt-4' : 'space-y-3'}>
       <legend className="sr-only">Documents</legend>
-      <div className={`flex items-center gap-3 ${heading ? 'justify-between' : 'justify-end'}`}>
+      <div className={`flex flex-wrap items-center gap-3 ${heading ? 'justify-between' : 'justify-end'}`}>
         {heading && <h3 className="text-sm font-medium text-text-primary">Documents</h3>}
-        <RecordAction
-          action="add"
-          text="Add"
+        <PageAction
           label="Add document"
           disabled={disabled}
           onClick={() => update([...documents, { id: crypto.randomUUID(), category: 'other', file: null }])}
@@ -31,9 +29,9 @@ export function DocumentAttachments({
       {documents.length > 0 && (
         <div className="divide-y divide-border-subtle">
           {documents.map((document, index) => (
-            <fieldset key={document.id} className="flex min-w-0 items-start gap-2 py-3 first:pt-0">
+            <fieldset key={document.id} className="min-w-0 space-y-3 py-3 first:pt-0">
               <legend className="sr-only">Document {index + 1}</legend>
-              <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                 <SelectField
                   label="Category"
                   options={Object.entries(DOCUMENT_CATEGORIES).map(([value, label]) => ({ value, label }))}
@@ -58,12 +56,14 @@ export function DocumentAttachments({
                   />
                 )}
               </div>
-              <RecordAction
-                action="remove"
-                label={`Remove document ${index + 1}`}
-                disabled={disabled}
-                onClick={() => update(documents.filter((row) => row.id !== document.id))}
-              />
+              <div className="flex justify-end">
+                <PageAction
+                  label="Remove"
+                  context={`document ${index + 1}`}
+                  disabled={disabled}
+                  onClick={() => update(documents.filter((row) => row.id !== document.id))}
+                />
+              </div>
             </fieldset>
           ))}
         </div>

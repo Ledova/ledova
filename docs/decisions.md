@@ -1340,9 +1340,11 @@ earlier unknown amounts, calculated values and exact retries. The company's lega
 records and the separate new-issue safeguards remain unchanged.
 
 For the same form, the owner approved **Allocation history** and **Documents** without optional
-markers. Keep optional sections empty until **+ Add** beside their heading is used. Pencil and
-trash icons sit with the entry they edit or remove, retaining accessible names and tooltips.
-The main footer keeps Cancel and the labelled **Add shareholder** or **Save changes** action.
+markers. Keep optional sections empty until **Add allocation** or **Add document** beside their
+heading is used. The owner then chose descriptive text buttons throughout this form, replacing the
+icon controls and their tooltip helper. **Edit** and **Remove** sit together beside collapsed
+summaries; **Remove** sits below full-width open entry fields. Buttons share typography and spacing,
+and the main footer keeps Cancel and the emphasised **Add shareholder** or **Save changes** action.
 This changes presentation, not whether history or documents are required.
 
 ## Paper and Dark themes

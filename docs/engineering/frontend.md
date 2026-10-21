@@ -479,10 +479,11 @@ downloads use these retained links, not a public storage URL
 ([attachment rules](../business/register.md#shareholder-documents)). Mobile keeps its existing setup.
 
 The web setup's **Allocation history** is independent of **Current shares held** and starts empty.
-Its **+ Add** heading action keeps one editor open, retains unfinished input when switching and
-folds checked entries into compact summaries. Pencil and trash controls sit with their entry,
-sharing `dashboard/src/pages/company/ledger/shared/RecordAction.tsx` with document and draft-row
-actions. **Add shareholder** or **Save changes** finishes the shareholder. Historical quantities
+Its **Add allocation** heading action keeps one editor open, retains unfinished input when switching
+and folds checked entries into compact summaries. Allocation, document and draft-row actions use
+the existing descriptive text buttons. Full-width entry fields have **Remove** beneath them;
+collapsed summaries have **Edit** and **Remove** together. **Add shareholder** or **Save changes**
+finishes the shareholder. Historical quantities
 neither set nor limit the current holding; new paid/unpaid blanks normalize to zero
 ([form conventions](frontend-ux.md#forms)).
 
