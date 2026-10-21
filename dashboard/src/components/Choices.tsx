@@ -1,6 +1,8 @@
 import { useId } from 'react';
 
 export function Choices<T extends string>({
+  id,
+  error,
   legend,
   options,
   value,
@@ -8,6 +10,8 @@ export function Choices<T extends string>({
   unavailable = [],
   disabled = false,
 }: {
+  id?: string;
+  error?: string | null;
   legend: string;
   options: readonly (readonly [T, string])[];
   value: T | '';
@@ -17,7 +21,12 @@ export function Choices<T extends string>({
 }) {
   const name = useId();
   return (
-    <fieldset disabled={disabled} className="min-w-0 text-sm text-text-primary">
+    <fieldset
+      id={id}
+      disabled={disabled}
+      aria-describedby={error ? `${name}-error` : undefined}
+      className="min-w-0 text-sm text-text-primary"
+    >
       <legend>{legend}</legend>
       <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
         {options.map(([option, label]) => (
@@ -35,6 +44,11 @@ export function Choices<T extends string>({
           </label>
         ))}
       </div>
+      {error && (
+        <p id={`${name}-error`} className="mt-1 text-sm text-error-light">
+          {error}
+        </p>
+      )}
     </fieldset>
   );
 }

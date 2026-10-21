@@ -1,5 +1,7 @@
 import { Field, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { FIELD_LIMITS, REGISTER_ALLOTMENT_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { useAllotmentForm, type DocumentKind } from './useAllotmentForm';
@@ -46,7 +48,7 @@ export function AllotmentForm({
   visible?: boolean;
   initialMember?: string;
 }) {
-  const { today, member, setMember, fields, setFields, setFiles, busy, held, error, problem, submit } =
+  const { today, member, setMember, fields, setFiles, busy, held, error, problems, submit, setFields } =
     useAllotmentForm({
       company,
       token,
@@ -60,9 +62,11 @@ export function AllotmentForm({
       onHeldChange,
       visible,
     });
+  const checks = useErrorSummary(problems);
   const field = (key: Exclude<keyof typeof fields, 'name' | 'residentialAddress'>) => (
     <Field
       key={key}
+      {...checks.field(key)}
       label={
         {
           shares: COPY.SHARES,
@@ -91,6 +95,7 @@ export function AllotmentForm({
   );
   const document = (kind: DocumentKind) => (
     <FileField
+      {...checks.field(`${kind}Document`)}
       label={COPY.DOCUMENTS[kind]}
       onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
     />
@@ -99,11 +104,13 @@ export function AllotmentForm({
   return (
     <form
       className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        if (held || checks.check()) void submit();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked || held} className="space-y-4">
         <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
           <legend className="px-1 text-sm font-medium">1. Person and shares</legend>
@@ -121,6 +128,8 @@ export function AllotmentForm({
               onResidentialAddress={(residentialAddress) =>
                 setFields((current) => ({ ...current, residentialAddress }))
               }
+              nameCheck={checks.field('name')}
+              addressCheck={checks.field('residentialAddress')}
             />
           )}
           {field('shares')}
@@ -150,7 +159,6 @@ export function AllotmentForm({
           </p>
         </fieldset>
       </fieldset>
-      {problem && <p className="text-sm text-text-muted">{problem}</p>}
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -164,7 +172,7 @@ export function AllotmentForm({
           label={COPY.SUBMIT}
           busy={busy}
           busyLabel="Preparing allotment…"
-          disabled={blocked || (!held && !!problem)}
+          disabled={blocked}
         />
       </FormActions>
     </form>

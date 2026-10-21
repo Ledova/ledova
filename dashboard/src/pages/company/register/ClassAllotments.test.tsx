@@ -218,13 +218,18 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     });
   };
   expect((allotments.getByLabelText(COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
+  const refused = (label: string) => {
+    fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
+    expect(document.activeElement).toBe(allotments.getByText('Before continuing:').parentElement);
+    expect(allotments.getByLabelText(label).getAttribute('aria-invalid')).toBe('true');
+  };
   fillForm();
-  expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  refused(COPY.RECEIVED_AMOUNT);
   fireEvent.change(allotments.getByLabelText(COPY.RECEIVED_AMOUNT), { target: { value: '250' } });
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '' } });
-  expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  refused(COPY.COMPANY_EVENT_ON);
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), { target: { value: '2099-01-01' } });
-  expect((allotments.getByRole('button', { name: COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  refused(COPY.COMPANY_EVENT_ON);
   fireEvent.change(allotments.getByLabelText(COPY.COMPANY_EVENT_ON), {
     target: { value: ALLOTMENT_REQUEST.companyEventOn },
   });
@@ -484,7 +489,9 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     fireEvent.change(screen.getByLabelText(label), {
       target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
     });
-  expect((screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
+  expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
+  expect(screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON).getAttribute('aria-invalid')).toBe('true');
   fireEvent.change(screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON), { target: { value: '2026-10-03' } });
   fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
   await screen.findByRole('alert');

@@ -424,7 +424,9 @@ it('retains original award, vesting and linked issue preparations through interr
   expect((screen.getByLabelText(GRANT.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   fillGrant();
   fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '' } });
-  expect((screen.getByRole('button', { name: 'Prepare vested share issue' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
+  expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
+  expect(screen.getByLabelText(GRANT.COMPANY_EVENT_ON).getAttribute('aria-invalid')).toBe('true');
   fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '2026-10-06' } });
   fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
   const recover = await screen.findByRole('button', { name: 'Recover original grant preparation' });
@@ -596,7 +598,9 @@ it('retains original award, vesting and linked issue preparations through interr
     target: { value: 'Company ends part of unissued vested rights' },
   });
   fireEvent.change(screen.getByLabelText(COPY.ADJUSTMENT_DOCUMENT), { target: { files: [FILE] } });
-  expect((screen.getByRole('button', { name: COPY.END }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: COPY.END }));
+  expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
+  expect(screen.getByLabelText(COPY.END_VESTED).getAttribute('aria-invalid')).toBe('true');
   fireEvent.change(screen.getByLabelText(COPY.END_VESTED), { target: { value: '20' } });
   fireEvent.click(screen.getByRole('button', { name: COPY.END }));
   await screen.findByRole('alert');

@@ -1,5 +1,7 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { useAwardForm } from './useAwardForm';
@@ -47,7 +49,7 @@ export function AwardForm({
     held,
     error,
     today,
-    problem,
+    problems,
     submit,
   } = useAwardForm({
     company,
@@ -61,15 +63,18 @@ export function AwardForm({
     visible,
     canPrepare,
   });
+  const checks = useErrorSummary(problems);
   if (!visible) return null;
   return (
     <form
       className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        if (held || checks.check()) void submit();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked || held || !canPrepare} className="space-y-4">
         <fieldset className="grid gap-4 sm:grid-cols-2">
           <legend className="pb-2 text-base font-medium">Person and promised shares</legend>
@@ -80,9 +85,16 @@ export function AwardForm({
             onChange={setMember}
           />
           {member === 'new' && (
-            <PersonFields name={name} residentialAddress={address} onName={setName} onResidentialAddress={setAddress} />
+            <PersonFields
+              name={name}
+              residentialAddress={address}
+              onName={setName}
+              onResidentialAddress={setAddress}
+              nameCheck={checks.field('name')}
+              addressCheck={checks.field('address')}
+            />
           )}
-          <Field label={COPY.SHARES}>
+          <Field {...checks.field('shares')} label={COPY.SHARES}>
             <TextInput
               inputMode="numeric"
               maxLength={FIELD_LIMITS.REGISTER_SHARES}
@@ -93,18 +105,19 @@ export function AwardForm({
         </fieldset>
         <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>div:has(textarea)]:sm:col-span-2">
           <legend className="pb-2 text-base font-medium">Agreement</legend>
-          <Field label={COPY.TERMS_ON}>
+          <Field {...checks.field('termsOn')} label={COPY.TERMS_ON}>
             <TextInput type="date" max={today} value={termsOn} onChange={(event) => setTermsOn(event.target.value)} />
           </Field>
-          <Field label={COPY.TERMS}>
+          <Field {...checks.field('terms')} label={COPY.TERMS}>
             <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
           </Field>
-          <FileField label={COPY.AGREEMENT_DOCUMENT} onFile={setFile} />
+          <FileField {...checks.field('file')} label={COPY.AGREEMENT_DOCUMENT} onFile={setFile} />
           <p className="text-sm text-text-muted">{COPY.NOTE}</p>
         </fieldset>
         <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>div:has(textarea)]:sm:col-span-2">
           <legend className="pb-2 text-base font-medium">Vesting schedule</legend>
           <Field
+            {...checks.field('schedule')}
             label={COPY.SCHEDULE}
             hint="Retain the company's schedule. Each vesting event is recorded separately; dates create no vesting or issued shares."
           >
@@ -116,7 +129,6 @@ export function AwardForm({
           </Field>
         </fieldset>
       </fieldset>
-      {problem && <p className="text-sm text-text-muted">{problem}</p>}
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -130,7 +142,7 @@ export function AwardForm({
           label={COPY.SUBMIT}
           busy={busy}
           busyLabel="Recording award…"
-          disabled={blocked || (!held && (!canPrepare || !!problem))}
+          disabled={blocked || (!held && !canPrepare)}
         />
       </FormActions>
     </form>

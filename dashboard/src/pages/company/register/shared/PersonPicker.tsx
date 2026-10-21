@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { FIELD_LIMITS, NEW_PERSON, personChoices, type Person } from '@ledova/shared';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
+import type { FieldCheck } from '@hooks/useErrorSummary';
 
 const READ_ONLY = 'read-only:bg-surface-tertiary read-only:text-text-muted';
 const NEW_CHOICE = [{ value: 'new', label: NEW_PERSON }];
@@ -10,6 +11,8 @@ const PEOPLE = ['person', 'people'] as const;
 const NONE: string[] = [];
 
 export function PersonSelect({
+  id,
+  error,
   label,
   people,
   value,
@@ -19,6 +22,8 @@ export function PersonSelect({
   context,
   disabled = false,
 }: {
+  id?: string;
+  error?: string | null;
   label: string;
   people: Person[];
   value: string;
@@ -36,6 +41,8 @@ export function PersonSelect({
   }, [people, context, disabledMembers]);
   return (
     <SearchSelect
+      id={id}
+      error={error}
       label={label}
       choices={choices}
       first={allowNew ? NEW_CHOICE : []}
@@ -55,7 +62,11 @@ export function PersonFields({
   onResidentialAddress,
   nameReadOnly = false,
   addressReadOnly = false,
+  nameCheck,
+  addressCheck,
 }: {
+  nameCheck?: FieldCheck;
+  addressCheck?: FieldCheck;
   name: string;
   residentialAddress: string;
   onName: (value: string) => void;
@@ -65,7 +76,7 @@ export function PersonFields({
 }) {
   return (
     <>
-      <Field label="Name">
+      <Field {...nameCheck} label="Name">
         <TextInput
           className={`${FIELD_CLASS} ${READ_ONLY}`}
           value={name}
@@ -74,7 +85,7 @@ export function PersonFields({
           onChange={(event) => onName(event.target.value)}
         />
       </Field>
-      <Field label="Residential address">
+      <Field {...addressCheck} label="Residential address">
         <TextArea
           className={`${FIELD_CLASS} ${READ_ONLY}`}
           value={residentialAddress}

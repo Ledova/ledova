@@ -19,6 +19,11 @@ export interface PersonChoice {
 
 export const NEW_PERSON = 'New person';
 
+export const NEW_PERSON_PROBLEMS = {
+  NAME: 'Give the new person’s name.',
+  ADDRESS: 'Give the new person’s residential address.',
+} as const;
+
 export function peopleFrom(data: RegisterTransferMembers | undefined): Person[] {
   if (!data) return [];
   return [

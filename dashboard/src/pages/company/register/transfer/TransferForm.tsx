@@ -3,6 +3,8 @@ import { useTransferPreparation, type TransferFormProps } from './useTransferPre
 
 import { REGISTER_TRANSFER_COPY as COPY, type Person } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { formatShareCount } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 
@@ -33,7 +35,7 @@ export function TransferForm({
     eligible,
     recipient,
     fresh,
-    problem,
+    problems,
     submit,
     fields,
   } = useTransferPreparation({
@@ -47,17 +49,21 @@ export function TransferForm({
     onRefused,
     initialFrom,
   });
+  const checks = useErrorSummary(problems);
 
   return (
     <form
       className="space-y-5"
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void submit();
+        if (operation || checks.check()) void submit();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked} className="space-y-4">
         <PersonSelect
+          {...checks.field('fromMember')}
           label={COPY.FROM}
           people={eligible.filter((member) => member.particularsRetained && BigInt(member.currentShares) > 0n)}
           value={draft.fromMember}
@@ -66,6 +72,7 @@ export function TransferForm({
           context={inClass}
         />
         <PersonSelect
+          {...checks.field('toMember')}
           label={COPY.TO}
           people={eligible.filter((member) => member.member !== draft.fromMember)}
           value={draft.toMember}
@@ -87,6 +94,8 @@ export function TransferForm({
             onResidentialAddress={(value) => change('residentialAddress', value)}
             nameReadOnly={!!recipient?.awardOnly}
             addressReadOnly={!!recipient?.awardOnly}
+            nameCheck={checks.field('name')}
+            addressCheck={checks.field('residentialAddress')}
           />
         ) : (
           <p className="text-sm text-text-muted">
@@ -105,7 +114,7 @@ export function TransferForm({
           </p>
         )}
         {fields.map(([key, label, maxLength]) => (
-          <Field key={key} label={label}>
+          <Field key={key} {...checks.field(key)} label={label}>
             <TextInput
               type={key.endsWith('On') ? 'date' : 'text'}
               max={key.endsWith('On') ? today : undefined}
@@ -122,6 +131,7 @@ export function TransferForm({
         {(['authority', 'instrument'] as const).map((kind) => (
           <FileField
             key={kind}
+            {...checks.field(`${kind}Document`)}
             label={kind === 'authority' ? COPY.AUTHORITY_DOCUMENT : COPY.INSTRUMENT_DOCUMENT}
             onFile={(file) => {
               setOperation(null);
@@ -131,13 +141,11 @@ export function TransferForm({
         ))}
         <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
       </fieldset>
-      {operation ? (
+      {operation && (
         <p className="text-sm text-text-muted">
           The unchanged retry will retrieve the original preparation, including its member IDs and retained documents.
           Edit a field to prepare a different transfer.
         </p>
-      ) : (
-        problem && <p className="text-sm text-text-muted">{problem}</p>
       )}
       {error && (
         <p role="alert" className="text-sm text-error-light">
@@ -154,7 +162,7 @@ export function TransferForm({
           label={COPY.SUBMIT}
           busy={busy}
           busyLabel="Preparing transfer…"
-          disabled={blocked || (!operation && !!problem)}
+          disabled={blocked}
         />
       </FormActions>
     </form>

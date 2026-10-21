@@ -18,6 +18,7 @@ import {
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { particularsKey } from '@pages/company/register/shared/useRegisterParticulars';
 
 type Draft = { file: File | null; name: string; address: string; asAt: string; reason: string };
@@ -32,13 +33,14 @@ const CLOSED = 'This particulars form is closed. Reopen it before continuing.';
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-function problemsOf(draft: Draft, today: string) {
-  const problems: string[] = [];
-  if (!draft.file) problems.push('Choose the supporting document.');
-  if (!draft.name.trim() || !draft.address.trim()) problems.push('Give the name and the residential address.');
-  if (!DAY.test(draft.asAt) || draft.asAt > today) problems.push('Enter an as-at date no later than today (UTC).');
-  if (!draft.reason.trim()) problems.push('Give the reason for the change.');
-  return problems;
+function problemsOf(draft: Draft, today: string): Problems<'file' | 'name' | 'address' | 'asAt' | 'reason'> {
+  return {
+    file: !draft.file && 'Choose the supporting document.',
+    name: !draft.name.trim() && 'Give the name.',
+    address: !draft.address.trim() && 'Give the residential address.',
+    asAt: (!DAY.test(draft.asAt) || draft.asAt > today) && 'Enter an as-at date no later than today (UTC).',
+    reason: !draft.reason.trim() && 'Give the reason for the change.',
+  };
 }
 
 export type ParticularsFormProps = {
@@ -117,7 +119,7 @@ export function useParticularsPreparation({
   };
 
   const submit = async () => {
-    if (pending.current || busy || blocked || problems.length > 0 || !draft.file) return;
+    if (pending.current || busy || blocked || hasProblems(problems) || !draft.file) return;
     pending.current = true;
     setBusy(true);
     setError('');
