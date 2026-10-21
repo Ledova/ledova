@@ -1,4 +1,4 @@
-import { useContext, useId, type ReactNode, type Ref } from 'react';
+import { useContext, useId, useState, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatDate } from '@ledova/shared';
@@ -101,42 +101,57 @@ export function Disclosure({
   summary,
   open,
   onToggle,
+  defaultOpen = false,
+  keepMounted = open === undefined,
   region = false,
   children,
 }: {
   ref?: Ref<HTMLButtonElement>;
   summary: ReactNode;
-  open: boolean;
-  onToggle: () => void;
+  open?: boolean;
+  onToggle?: () => void;
+  defaultOpen?: boolean;
+  keepMounted?: boolean;
   region?: boolean;
   children: ReactNode;
 }) {
   const id = useId();
+  const [own, setOwn] = useState(defaultOpen);
+  const shown = open ?? own;
   return (
     <div>
       <button
         ref={ref}
         type="button"
         id={`${id}summary`}
-        aria-expanded={open}
+        aria-expanded={shown}
         aria-controls={`${id}detail`}
-        onClick={onToggle}
+        onClick={() => {
+          if (open === undefined) setOwn((value) => !value);
+          onToggle?.();
+        }}
         className="group flex w-full cursor-pointer items-start gap-3 py-4 text-left"
       >
         <CaretRightIcon
           aria-hidden="true"
-          className={`mt-0.5 shrink-0 text-text-muted group-hover:text-brand-light ${open ? 'rotate-90' : ''}`}
+          className={`mt-0.5 shrink-0 text-text-muted group-hover:text-brand-light ${shown ? 'rotate-90' : ''}`}
         />
-        <span className="min-w-0 flex-1">{summary}</span>
+        <span className="min-w-0 flex-1">
+          {typeof summary === 'string' ? (
+            <span className="text-sm font-medium text-text-primary">{summary}</span>
+          ) : (
+            summary
+          )}
+        </span>
       </button>
       <div
         id={`${id}detail`}
         role={region ? 'region' : undefined}
         aria-labelledby={region ? `${id}summary` : undefined}
-        hidden={!open}
-        className="pb-4 pl-7"
+        hidden={!shown}
+        className="space-y-3 pb-4 pl-7"
       >
-        {open && children}
+        {(shown || keepMounted) && children}
       </div>
     </div>
   );

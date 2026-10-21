@@ -1,4 +1,4 @@
-import { Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import {
   REGISTER_DEPLOYMENT_COPY as COPY,
@@ -55,10 +55,9 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
       <Row label="Factory">{snapshot.transaction.to}</Row>
       <Row label="Transaction value">{snapshot.transaction.value}</Row>
       <Row label="Transaction data">
-        <details>
-          <summary>View exact deployment data</summary>
+        <Disclosure summary="View exact deployment data">
           <p className="break-all">{snapshot.transaction.data}</p>
-        </details>
+        </Disclosure>
       </Row>
     </Rows>
   );

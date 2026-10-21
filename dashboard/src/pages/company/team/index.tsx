@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { CompanyPicker } from '@components/CompanyPicker';
-import { LinkRow, Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import {
@@ -232,10 +232,11 @@ function OwnTeam({
                   <Row label="Accepted">{formatDateTime(item.acceptedAt, 'Not yet accepted')}</Row>
                   <Row label="Appointment expiry">{formatDateTime(item.appointmentExpiresAt, 'No expiry')}</Row>
                 </Rows>
-                <details className="pt-2 text-sm">
-                  <summary className="cursor-pointer text-text-muted">Invitation record</summary>
-                  <p className="pt-2">Invitation reference {shortReference(item.uuid)}</p>
-                </details>
+                <Disclosure summary="Invitation record">
+                  <div className="text-sm">
+                    <p className="pt-2">Invitation reference {shortReference(item.uuid)}</p>
+                  </div>
+                </Disclosure>
               </li>
             ))}
           </ul>

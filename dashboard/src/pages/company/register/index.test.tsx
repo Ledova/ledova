@@ -242,7 +242,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;
   expect(within(formerSection).getByRole('heading', { name: /^Ordinary shares ·/ })).toBeTruthy();
   expect(within(formerSection).queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
-  expect(within(formerSection).getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`)).toBeTruthy();
+  fireEvent.click(within(formerSection).getByRole('button', { name: `${REGISTER_COPY.FORMER_TITLE} · 1` }));
   expect(within(formerSection).getByRole('link', { name: 'Details (Departed Shareholder)' }).getAttribute('href')).toBe(
     '/company/register/members/former-member-private?company=harbour',
   );
@@ -350,10 +350,11 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(classNamesakes[1]).getByText('1')).toBeTruthy();
   expect(within(classNamesakes[1]).getByText('<0.01%')).toBeTruthy();
   expect(within(classTable).queryByRole('columnheader', { name: /PREFERENCE/ })).toBeNull();
-  const formerHistory = screen.getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`).closest('details')!;
-  expect(formerHistory.open).toBe(false);
-  fireEvent.click(formerHistory.querySelector('summary')!);
-  expect(formerHistory.open).toBe(true);
+  const formerToggle = screen.getByRole('button', { name: `${REGISTER_COPY.FORMER_TITLE} · 1` });
+  expect(formerToggle.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(formerToggle);
+  expect(formerToggle.getAttribute('aria-expanded')).toBe('true');
+  const formerHistory = document.getElementById(formerToggle.getAttribute('aria-controls')!)!;
   expect(within(formerHistory).getByText(former.name)).toBeTruthy();
   expect(within(formerHistory).getByText(shortReference(former.member!))).toBeTruthy();
   expect(within(formerHistory).getByText(former.walletAddress!)).toBeTruthy();
@@ -377,10 +378,10 @@ it('reads every class page and groups exact holdings by member identity with sea
     await refreshing;
   });
   expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
-  const refreshedHistory = screen.getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`).closest('details')!;
-  expect(refreshedHistory.open).toBe(false);
-  fireEvent.click(refreshedHistory.querySelector('summary')!);
-  expect(refreshedHistory.open).toBe(true);
+  const refreshedHistory = screen.getByRole('button', { name: `${REGISTER_COPY.FORMER_TITLE} · 1` });
+  expect(refreshedHistory.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(refreshedHistory);
+  expect(refreshedHistory.getAttribute('aria-expanded')).toBe('true');
   const preferenceResponse = client.getQueryData(USER_PREFERENCES_QUERY_KEY);
   const classRead = api.get.getMockImplementation()!;
   let pausePreferences = true;
@@ -419,10 +420,10 @@ it('reads every class page and groups exact holdings by member identity with sea
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
   });
   expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
-  const recoveredHistory = screen.getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`).closest('details')!;
-  expect(recoveredHistory.open).toBe(false);
-  fireEvent.click(recoveredHistory.querySelector('summary')!);
-  expect(recoveredHistory.open).toBe(true);
+  const recoveredHistory = screen.getByRole('button', { name: `${REGISTER_COPY.FORMER_TITLE} · 1` });
+  expect(recoveredHistory.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(recoveredHistory);
+  expect(recoveredHistory.getAttribute('aria-expanded')).toBe('true');
   pauseHolders = false;
   try {
     expect(screen.getByRole('table', { name: 'Company shareholders' })).toBeTruthy();
@@ -441,7 +442,9 @@ it('reads every class page and groups exact holdings by member identity with sea
     await act(async () => onlineManager.setOnline(true));
     await waitFor(() => expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.fetchStatus).toBe('idle'));
     expect(await screen.findByRole('table', { name: 'Company shareholders' })).toBeTruthy();
-    expect(screen.getByText(`${REGISTER_COPY.FORMER_TITLE} · 1`).closest('details')!.open).toBe(false);
+    expect(
+      screen.getByRole('button', { name: `${REGISTER_COPY.FORMER_TITLE} · 1` }).getAttribute('aria-expanded'),
+    ).toBe('false');
   } finally {
     act(() => onlineManager.setOnline(true));
   }
@@ -900,12 +903,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByText('Payment status')).toBeNull();
   fireEvent.click(within(held).getByRole('radio', { name: 'No' }));
   expect(within(held).getByRole('radio', { checked: true }).getAttribute('value')).toBe('no');
-  const references = screen.getByText('References (optional)').closest('details')!;
-  expect(references.open).toBe(false);
-  fireEvent.click(screen.getByText('References (optional)'));
+  const references = screen.getByRole('button', { name: 'References (optional)' });
+  expect(references.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(references);
   fireEvent.change(screen.getByLabelText('Share numbers or reference'), { target: { value: '1–400' } });
   fireEvent.change(screen.getByLabelText('Certificate reference'), { target: { value: 'CERT-001' } });
-  expect(references.open).toBe(true);
+  expect(references.getAttribute('aria-expanded')).toBe('true');
   fireEvent.click(screen.getByRole('button', { name: 'Add allotment (shareholder 1)' }));
   fireEvent.change(screen.getAllByLabelText('Allotment date')[1], { target: { value: '2016-01-01' } });
   fireEvent.change(screen.getAllByLabelText('Shares in allotment')[1], { target: { value: '200' } });
@@ -922,7 +925,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
   expect((screen.getAllByLabelText('Share numbers or reference')[0] as HTMLInputElement).value).toBe('1–400');
-  expect(screen.getAllByText('References (optional)')[0].closest('details')!.open).toBe(true);
+  expect(screen.getAllByRole('button', { name: 'References (optional)' })[0].getAttribute('aria-expanded')).toBe(
+    'true',
+  );
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Discarded edit' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
@@ -1060,11 +1065,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   client.clear();
   show();
   fireEvent.click(await screen.findByRole('button', { name: 'History' }));
-  const copiedSummary = await screen.findByText(/^Copied opening ·/);
-  const copiedOpening = copiedSummary.closest('details')!;
-  expect(copiedOpening.open).toBe(false);
+  const copiedSummary = await screen.findByRole('button', { name: /^Copied opening ·/ });
+  expect(copiedSummary.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(copiedSummary);
-  expect(copiedOpening.open).toBe(true);
+  expect(copiedSummary.getAttribute('aria-expanded')).toBe('true');
+  const copiedOpening = document.getElementById(copiedSummary.getAttribute('aria-controls')!)!;
   const copiedMembers = within(copiedOpening).getByRole('table', { name: 'Shareholders' });
   expect(within(copiedMembers).getByText('Example Shareholder')).toBeTruthy();
   expect(within(copiedMembers).getByText('600')).toBeTruthy();
@@ -1181,6 +1186,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
   expect(screen.getByText(/Attach the optional ASIC extract/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Keep source copies and former records (optional)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Leave out ASIC comparison' }));
   expect((screen.getByLabelText('Issued shares in the comparison source (optional)') as HTMLInputElement).value).toBe(
     '',
@@ -1821,9 +1827,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
   fireEvent.click(screen.getByRole('link', { name: 'Open dashboard class' }));
   const preference = await screen.findByRole('heading', { name: /^Preference shares ·/ });
   await waitFor(() => expect(document.activeElement).toBe(preference.closest('li')));
-  expect(preference.closest('li')!.querySelector<HTMLDetailsElement>('details[data-register-history]')!.open).toBe(
-    true,
-  );
+  expect(within(preference.closest('li')!).getByRole('heading', { name: 'Recorded changes' })).toBeTruthy();
   expect(screen.getByText('Inland Example Pty Ltd', { selector: 'p' })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));

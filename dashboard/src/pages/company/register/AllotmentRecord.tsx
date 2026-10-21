@@ -11,7 +11,7 @@ import {
   formatDate,
   shortReference,
 } from '@ledova/shared';
-import { Row, Rows, Status } from '@components/Ledger';
+import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -93,8 +93,7 @@ export function AllotmentRecord({
                   ? 'No shares were issued by this rejected allotment. The agreement and company receipt remain recorded.'
                   : 'Next: review and approve the company instruction. This allotment has not issued any shares.'}
           </p>
-          <details className="space-y-3">
-            <summary className="cursor-pointer text-sm font-medium">Record details and documents</summary>
+          <Disclosure summary="Record details and documents">
             <Rows>
               <RecordStage stage={allotment.stage}>{COPY.STAGES[allotment.stage] ?? allotment.stage}</RecordStage>
               <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>
@@ -127,7 +126,7 @@ export function AllotmentRecord({
               ))}
             </div>
             {download.isError && <RecordDownloadFailure error={download.error} />}
-          </details>
+          </Disclosure>
         </>
       )}
       <RegisterDecisions

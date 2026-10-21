@@ -10,7 +10,7 @@ import {
   formatDate,
   shortReference,
 } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -67,8 +67,10 @@ export function TransferRecord({
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
-        <details open={transfer.status === 'submitted'} className="space-y-3">
-          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Transfer · ${formatDateTime(transfer.createdAt)} · ${COPY.STAGES[transfer.stage] ?? transfer.stage}`}</summary>
+        <Disclosure
+          summary={`Transfer · ${formatDateTime(transfer.createdAt)} · ${COPY.STAGES[transfer.stage] ?? transfer.stage}`}
+          defaultOpen={transfer.status === 'submitted'}
+        >
           <Rows>
             <RecordStage stage={transfer.stage}>{COPY.STAGES[transfer.stage] ?? transfer.stage}</RecordStage>
             <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
@@ -94,7 +96,7 @@ export function TransferRecord({
             ))}
           </div>
           {download.isError && <RecordDownloadFailure error={download.error} />}
-        </details>
+        </Disclosure>
       )}
       <RegisterDecisions
         family={REGISTER_TRANSFER_DECISIONS}

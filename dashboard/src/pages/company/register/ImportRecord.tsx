@@ -12,7 +12,7 @@ import {
   type RegisterImport,
   type RegisterImportDecisionPreview,
 } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -89,8 +89,10 @@ export function ImportRecord({
   return (
     <RecordShell hidden={!visible}>
       {visible && (
-        <details open={proposal.status === 'submitted'} className="space-y-3">
-          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}</summary>
+        <Disclosure
+          summary={`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}
+          defaultOpen={proposal.status === 'submitted'}
+        >
           <Rows>
             <RecordStage stage={proposal.stage}>
               {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
@@ -149,7 +151,7 @@ export function ImportRecord({
             )}
           </div>
           {download.isError && <RecordDownloadFailure error={download.error} />}
-        </details>
+        </Disclosure>
       )}
       <RegisterDecisions
         family={REGISTER_IMPORT_DECISIONS}

@@ -58,7 +58,7 @@ export function TransactionDetail({ transaction }: { transaction: Transaction })
           href={explorerUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-block text-sm text-brand-light underline"
+          className="inline-block text-sm text-brand-light underline"
         >
           View on explorer
         </a>

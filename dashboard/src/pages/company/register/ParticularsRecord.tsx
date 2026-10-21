@@ -7,7 +7,7 @@ import {
   type RegisterParticularsChange,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -63,8 +63,10 @@ export function ParticularsRecord({
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
-        <details open={change.status === 'submitted'} className="space-y-3">
-          <summary className="cursor-pointer text-sm font-medium text-text-primary">{`${member} · ${COPY.STAGES[change.stage] ?? change.stage}`}</summary>
+        <Disclosure
+          summary={`${member} · ${COPY.STAGES[change.stage] ?? change.stage}`}
+          defaultOpen={change.status === 'submitted'}
+        >
           <Rows>
             <Row label={COPY.MEMBER}>{member}</Row>
             <RecordStage stage={change.stage}>{COPY.STAGES[change.stage] ?? change.stage}</RecordStage>
@@ -87,7 +89,7 @@ export function ParticularsRecord({
             />
           </div>
           {download.isError && <RecordDownloadFailure error={download.error} />}
-        </details>
+        </Disclosure>
       )}
       <RegisterDecisions
         family={REGISTER_PARTICULARS_DECISIONS}

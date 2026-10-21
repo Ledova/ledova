@@ -15,7 +15,7 @@ import {
   formatDate,
   shortReference,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Status, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, Row, Rows, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
 import { STAGE_TONES } from '@pages/company/shared/proposals';
@@ -30,8 +30,6 @@ import {
 import { AwardVestingForm } from './AwardVestingForm';
 import { AwardAdjustmentForm } from './AwardAdjustmentForm';
 import { useAwardRecordDownload } from './useRegisterRecordDownload';
-
-const SUMMARY = 'cursor-pointer py-2 text-sm font-medium text-text-primary';
 
 export function AwardRecord({
   owner,
@@ -159,8 +157,7 @@ export function AwardRecord({
                 />
               )}
           </div>
-          <details>
-            <summary className={SUMMARY}>Agreement and vesting schedule</summary>
+          <Disclosure summary="Agreement and vesting schedule">
             <Rows>
               <Row label={COPY.TERMS_ON}>{formatDate(award.termsOn)}</Row>
               <Row label={COPY.TERMS}>{award.terms}</Row>
@@ -176,7 +173,7 @@ export function AwardRecord({
               disabled={blocked || download.isPending}
               onClick={() => download.mutate(undefined)}
             />
-          </details>
+          </Disclosure>
           {download.isError && (
             <RecordDownloadFailure>
               The retained document could not be downloaded. Refresh and try again.
@@ -189,10 +186,7 @@ export function AwardRecord({
               Vesting events could not be loaded.
             </LoadError>
           ) : (
-            <details>
-              <summary className={SUMMARY}>
-                Recorded vesting history{events.data.length > 0 ? ` · ${events.data.length}` : ''}
-              </summary>
+            <Disclosure summary={`Recorded vesting history${events.data.length > 0 ? ` · ${events.data.length}` : ''}`}>
               {events.data.length === 0 && (
                 <p className="text-sm text-text-muted">No company-recorded vesting event.</p>
               )}
@@ -245,7 +239,7 @@ export function AwardRecord({
                     )}
                   </div>
                 ))}
-            </details>
+            </Disclosure>
           )}
           {ends.isPending || reversals.isPending || ends.isFetching || reversals.isFetching ? (
             <Loading>Loading entitlement changes…</Loading>
@@ -257,8 +251,7 @@ export function AwardRecord({
               Entitlement changes could not be loaded.
             </LoadError>
           ) : (
-            <details>
-              <summary className={SUMMARY}>Entitlement changes</summary>
+            <Disclosure summary="Entitlement changes">
               {ends.data.length === 0 && reversals.data.length === 0 && (
                 <p className="text-sm text-text-muted">No entitlement changes recorded.</p>
               )}
@@ -308,11 +301,10 @@ export function AwardRecord({
                   />
                 </div>
               ))}
-            </details>
+            </Disclosure>
           )}
           {grants.length > 0 && (
-            <details>
-              <summary className={SUMMARY}>Non-paid issues from this award · {grants.length}</summary>
+            <Disclosure summary={`Non-paid issues from this award · ${grants.length}`}>
               {grants.map((grant) => (
                 <LinkRow
                   key={grant.uuid}
@@ -327,17 +319,16 @@ export function AwardRecord({
                   }
                 />
               ))}
-            </details>
+            </Disclosure>
           )}
-          <details>
-            <summary className={SUMMARY}>Record details</summary>
+          <Disclosure summary="Record details">
             <Rows>
               <Row label="Member reference">{shortReference(award.member)}</Row>
               <Row label="Award reference">{shortReference(award.uuid)}</Row>
               <Row label="Recorded on">{formatDateTime(award.createdAt)}</Row>
               <Row label="Recorded by">{award.preparedByName || 'Name not recorded'}</Row>
             </Rows>
-          </details>
+          </Disclosure>
         </>
       )}
       {adjusting && (

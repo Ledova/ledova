@@ -15,7 +15,7 @@ import { PageAction } from '@components/Page';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { Row, Rows, Status } from '@components/Ledger';
+import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { Confirmation, Modal } from '@components/Modal';
 import { SITE_URL } from '@utils/siteUrl';
 
@@ -75,14 +75,15 @@ export function AuthorityRequestRecord({
         <Row label="Requested actions">{scopeLabels(request.requestedCapabilities)}</Row>
         <Row label="Requested delegation">{scopeLabels(request.delegatableCapabilities)}</Row>
       </Rows>
-      <details className="text-sm">
-        <summary className="cursor-pointer text-text-muted">Request record</summary>
-        <Rows>
-          <Row label="Request">{shortReference(request.uuid)}</Row>
-          <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
-          {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
-        </Rows>
-      </details>
+      <Disclosure summary="Request record">
+        <div className="text-sm">
+          <Rows>
+            <Row label="Request">{shortReference(request.uuid)}</Row>
+            <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
+            {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
+          </Rows>
+        </div>
+      </Disclosure>
       <p className="text-sm text-text-muted">{request.verificationMessage}</p>
       {request.fileUrl && (
         <PageAction
@@ -175,20 +176,21 @@ export function AuthorityRequestRecord({
             </Row>
             {appointment.revokedAt && <Row label="Revoked">{formatDateTime(appointment.revokedAt)}</Row>}
           </Rows>
-          <details className="text-sm">
-            <summary className="cursor-pointer text-text-muted">Appointment and declaration record</summary>
-            <div className="space-y-3 pt-3">
-              <Rows>
-                <Row label="Appointment">{shortReference(appointment.uuid)}</Row>
-                <Row label="Declaration version">{appointment.declarationVersion}</Row>
-              </Rows>
-              <p className="text-text-primary">{appointment.declarationText}</p>
-              <p className="text-text-muted">
-                This is your recorded self-declaration. Company information is provided by the company. An appointment
-                does not activate the company or approve any register action.
-              </p>
+          <Disclosure summary="Appointment and declaration record">
+            <div className="text-sm">
+              <div className="space-y-3 pt-3">
+                <Rows>
+                  <Row label="Appointment">{shortReference(appointment.uuid)}</Row>
+                  <Row label="Declaration version">{appointment.declarationVersion}</Row>
+                </Rows>
+                <p className="text-text-primary">{appointment.declarationText}</p>
+                <p className="text-text-muted">
+                  This is your recorded self-declaration. Company information is provided by the company. An appointment
+                  does not activate the company or approve any register action.
+                </p>
+              </div>
             </div>
-          </details>
+          </Disclosure>
           <p className="text-sm text-text-muted">
             Revocation permanently removes this appointment&apos;s company authority. You cannot restore it by making
             another initial self-declaration. Its declaration and evidence remain retained.

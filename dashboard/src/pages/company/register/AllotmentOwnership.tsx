@@ -6,7 +6,7 @@ import {
   shareCount,
   shortReference,
 } from '@ledova/shared';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Disclosure } from '@components/Ledger';
 import { Table } from '@components/List';
 
 export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDecisionPreview }) {
@@ -59,12 +59,9 @@ export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDeci
       </Rows>
       {table(impact.rows.length > 5 ? impact.rows.slice(0, 1) : impact.rows, 'Share class ownership forecast')}
       {impact.rows.length > 5 && (
-        <details className="space-y-3">
-          <summary className="cursor-pointer py-2 text-sm font-medium">
-            Other shareholders ({impact.rows.length - 1})
-          </summary>
+        <Disclosure summary={`Other shareholders (${impact.rows.length - 1})`}>
           {table(impact.rows.slice(1), 'Other shareholder ownership forecast')}
-        </details>
+        </Disclosure>
       )}
       <p className="text-sm text-text-muted">{COPY.OWNERSHIP_NOTE}</p>
     </section>
