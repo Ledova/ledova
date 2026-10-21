@@ -5,8 +5,11 @@ import {
   DESTINATIONS,
   ELIGIBILITY_RECORDS_NOTICE,
   formatDate,
+  isUuid,
   useParticipantEligibilityRecords,
 } from '@ledova/shared';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
@@ -17,6 +20,19 @@ export default function ParticipantEligibilityPage() {
   const read = useParticipantEligibilityRecords(() => crypto.randomUUID());
   const { running, track } = useRunningAction();
   const source = read.sources.find((item) => item.uuid === read.draft.source);
+  const productValue = source?.category === 'product_value';
+  const quantity = read.draft.quantity;
+  const request = useErrorSummary({
+    source: !source && 'Choose your evidence source.',
+    offering: productValue && !isUuid(read.draft.offering) && 'Enter the approved offering UUID.',
+    quantity:
+      productValue &&
+      (!/^[1-9]\d*$/.test(quantity) || !Number.isSafeInteger(Number(quantity))) &&
+      'Enter a positive whole-share quantity.',
+    company: !productValue && !isUuid(read.draft.company) && 'Enter the exact company UUID supplied by the company.',
+    requestedExpiresAt:
+      !Number.isFinite(Date.parse(read.draft.requestedExpiresAt)) && 'Enter the requested expiry date and time.',
+  });
   return (
     <Page
       narrow
@@ -47,6 +63,7 @@ export default function ParticipantEligibilityPage() {
             </p>
           )}
           <Section title="Prepare a request for one company">
+            <ErrorSummary {...request.summary} />
             <LinkRow to={DESTINATIONS.investorEligibility.path} label="Upload or inspect your private evidence" />
             <p className="text-sm text-text-muted">
               Select your own submitted evidence or retained historical evidence. Enter the exact company UUID supplied
@@ -54,6 +71,7 @@ export default function ParticipantEligibilityPage() {
               terms.
             </p>
             <SelectField
+              {...request.field('source')}
               label="Your evidence source"
               options={[
                 { value: '', label: 'Select a source' },
@@ -64,17 +82,20 @@ export default function ParticipantEligibilityPage() {
                 })),
               ]}
               value={read.draft.source}
-              onChange={(source) => read.updateDraft({ source, company: '', offering: '', quantity: '' })}
+              onChange={(source) => {
+                request.reset();
+                read.updateDraft({ source, company: '', offering: '', quantity: '' });
+              }}
             />
-            {source?.category === 'product_value' ? (
+            {productValue ? (
               <>
-                <Field label="Approved offering UUID">
+                <Field {...request.field('offering')} label="Approved offering UUID">
                   <TextInput
                     value={read.draft.offering}
                     onChange={(event) => read.updateDraft({ offering: event.target.value })}
                   />
                 </Field>
-                <Field label="Whole-share quantity">
+                <Field {...request.field('quantity')} label="Whole-share quantity">
                   <TextInput
                     inputMode="numeric"
                     maxLength={FIELD_LIMITS.WHOLE_SHARES}
@@ -84,14 +105,14 @@ export default function ParticipantEligibilityPage() {
                 </Field>
               </>
             ) : (
-              <Field label="Exact company UUID">
+              <Field {...request.field('company')} label="Exact company UUID">
                 <TextInput
                   value={read.draft.company}
                   onChange={(event) => read.updateDraft({ company: event.target.value })}
                 />
               </Field>
             )}
-            <Field label="Requested expiry (local date and time)">
+            <Field {...request.field('requestedExpiresAt')} label="Requested expiry (local date and time)">
               <TextInput
                 type="datetime-local"
                 value={read.draft.requestedExpiresAt}
@@ -103,7 +124,9 @@ export default function ParticipantEligibilityPage() {
               busy={running === 'request'}
               busyLabel="Previewing…"
               disabled={read.busy || read.refreshing}
-              onClick={() => track('request', read.previewRequest())}
+              onClick={() => {
+                if (request.check()) track('request', read.previewRequest());
+              }}
             />
           </Section>
           {read.action && (
