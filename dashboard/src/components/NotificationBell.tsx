@@ -132,6 +132,13 @@ function NotificationList({
   }
   return (
     <>
+      {failed && (
+        <div className="px-4 pt-3">
+          <LoadError retry={load} busy={isLoading}>
+            Your notifications could not be refreshed.
+          </LoadError>
+        </div>
+      )}
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.uuid}

@@ -16,7 +16,7 @@ import {
   type CompanyWalletDecisionPreview,
   refusalSentences,
 } from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { SearchSelect } from '@components/SearchSelect';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -232,6 +232,8 @@ function Preparation({ data }: { data: Read }) {
 }
 export function CompanyWalletInstructions() {
   const data = useCompanyWalletInstructions({ newKey: () => crypto.randomUUID() });
+  const { running, track } = useRunningAction();
+  const readFailed = data.canRead && (data.nominations.isError || data.targets.isError || data.instructions.isError);
   return (
     <Section title="Company wallet approvals">
       {!data.owner ? (
@@ -242,6 +244,11 @@ export function CompanyWalletInstructions() {
             Current personal company administration or a register step grants this section. Earlier eligibility evidence
             sharing exposes no wallet directory.
           </p>
+          {data.appointments.isError && (
+            <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
+              Your appointments could not be loaded.
+            </LoadError>
+          )}
           <CompanyPicker
             label="Wallet approval company"
             companies={data.companies}
@@ -249,11 +256,13 @@ export function CompanyWalletInstructions() {
             disabled={data.busy}
             onChange={data.setCompany}
           />
-          {data.companyUuid && (
+          {data.companyUuid && !readFailed && !data.appointments.isError && (
             <PageAction
               label="Refresh company wallet instructions"
+              busy={running === 'refresh'}
+              busyLabel="Refreshing…"
               disabled={data.busy}
-              onClick={() => void data.refresh()}
+              onClick={() => track('refresh', data.refresh())}
             />
           )}
           {data.error && (
@@ -261,7 +270,7 @@ export function CompanyWalletInstructions() {
               {data.error}
             </p>
           )}
-          {data.companyUuid && !data.canRead && (
+          {data.companyUuid && !data.canRead && !data.appointments.isError && (
             <p role="status">
               Refresh current personal register access before reading these private wallet records. Original requests
               are retained.
@@ -286,10 +295,11 @@ export function CompanyWalletInstructions() {
             </div>
           )}
           {data.companyUuid && <Preparation key={data.scopeKey} data={data} />}
-          {data.canRead && (data.nominations.isError || data.targets.isError || data.instructions.isError) && (
-            <p role="alert">
-              The current wallet records could not be refreshed. Original receipts remain available for recovery.
-            </p>
+          {readFailed && (
+            <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
+              The current wallet records could not be {data.instructions.data ? 'refreshed' : 'loaded'}. Original
+              receipts remain available for recovery.
+            </LoadError>
           )}
           {data.retainedRecords.map((record) => (
             <Record key={`${data.scopeKey}/${record.uuid}`} record={record} data={data} />

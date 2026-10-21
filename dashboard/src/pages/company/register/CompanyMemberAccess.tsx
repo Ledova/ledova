@@ -8,7 +8,7 @@ import {
   type TokenHoldersResponse,
   utcToday,
 } from '@ledova/shared';
-import { Outcome, Section, Loading } from '@components/Ledger';
+import { Outcome, Section, Loading, LoadError } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
@@ -75,10 +75,21 @@ export function CompanyMemberAccess({
         appointment, holding or wallet link. Share the code privately; Ledova does not email it.
       </p>
       <ErrorSummary {...checks.summary} />
-      <PageAction label="Refresh member access" disabled={access.busy || uploading} onClick={() => void refresh()} />
-      {access.error && (
+      <PageAction
+        label="Refresh member access"
+        busy={running === 'refresh'}
+        busyLabel="Refreshing…"
+        disabled={access.busy || uploading}
+        onClick={() => track('refresh', refresh())}
+      />
+      {access.readFailed && (
+        <LoadError retry={() => track('refresh', refresh())} busy={running === 'refresh' || access.busy || uploading}>
+          Member access or members&apos; requests could not be loaded.
+        </LoadError>
+      )}
+      {(access.readFailed ? access.failure : access.error) && (
         <p role="alert" className="text-sm text-error-light">
-          {access.error}
+          {access.readFailed ? access.failure : access.error}
         </p>
       )}
       {access.notice && <Outcome>{access.notice}</Outcome>}
@@ -121,10 +132,16 @@ export function CompanyMemberAccess({
             }}
           />
           {awards.isPending && <Loading>Loading company recipients…</Loading>}
-          {(awards.isError || recipientsError) && (
-            <p role="alert" className="text-sm text-error-light">
-              {recipientsError || 'The company recipients could not be loaded. Refresh before inviting a member.'}
-            </p>
+          {awards.isError ? (
+            <LoadError retry={() => awards.refetch()} busy={awards.isFetching}>
+              The company recipients could not be loaded.
+            </LoadError>
+          ) : (
+            recipientsError && (
+              <p role="alert" className="text-sm text-error-light">
+                {recipientsError}
+              </p>
+            )
           )}
           {recipientsReady && candidates.length === 0 && (
             <p className="text-sm text-text-muted">Record a member or employee award before inviting its recipient.</p>

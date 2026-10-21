@@ -4,7 +4,7 @@ import {
   companiesAwaitingActivation,
   getUserVerificationStatus,
 } from '@ledova/shared';
-import { LinkRow, Section, Status } from '@components/Ledger';
+import { LinkRow, Section, Status, LoadError } from '@components/Ledger';
 import { ActivationStep } from '@components/SetupStep';
 import { VERIFICATION_TONES } from '@components/statusTones';
 import { useSignedInAppointments } from '@hooks/useOwnAppointments';
@@ -18,6 +18,11 @@ export function Verification() {
   const identity = getUserVerificationStatus(userProfile);
   return (
     <Section title={administers ? 'Verification and activation' : 'Identity'}>
+      {appointments.isError && (
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
+      )}
       <div className="divide-y divide-border-subtle">
         {administers && <ActivationStep done={companiesAwaitingActivation(own).length === 0} />}
         <LinkRow

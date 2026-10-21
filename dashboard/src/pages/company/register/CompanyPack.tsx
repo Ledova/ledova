@@ -1,6 +1,6 @@
 import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type OrderSubmissionOwner } from '@ledova/shared';
-import { Outcome, Section } from '@components/Ledger';
+import { Outcome, Section, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -31,7 +31,11 @@ export function CompanyPack({
           make the whole archive unavailable; use supported inspection copies or unsigned certificates instead.
         </p>
       </details>
-      {appointment ? (
+      {appointments.isError ? (
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
+      ) : appointment ? (
         <PackForm
           key={JSON.stringify([company, appointment.uuid, sourceReady])}
           company={company}
@@ -39,14 +43,20 @@ export function CompanyPack({
           guard={check}
           sourceReady={sourceReady}
         />
-      ) : (
+      ) : appointments.isSuccess && !appointments.isFetching ? (
         <p className="text-sm text-text-muted">A current administrator appointment for this company is required.</p>
+      ) : (
+        <Loading>Loading your appointments…</Loading>
       )}
-      <PageAction
-        label="Refresh pack appointment"
-        disabled={appointments.isFetching || !sourceReady}
-        onClick={() => void appointments.refetch()}
-      />
+      {!appointments.isError && (
+        <PageAction
+          label="Refresh pack appointment"
+          busy={appointments.isFetching}
+          busyLabel="Refreshing…"
+          disabled={!sourceReady}
+          onClick={() => void appointments.refetch()}
+        />
+      )}
     </Section>
   );
 }

@@ -104,23 +104,21 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
           Your appointments could not be loaded.
         </LoadError>
       )}
-      {deployments.isError && records.length > 0 && (
-        <p role="alert" className="text-sm text-error-light">
-          Deployment history could not be refreshed. Retained receipts remain below.
-        </p>
-      )}
-      {deployments.isError && !records.length ? (
+      {deployments.isError ? (
         <LoadError
           retry={() => refresh().catch(() => undefined)}
           busy={deployments.isFetching || appointments.isFetching}
         >
-          Deployment history could not be loaded.
+          {records.length
+            ? 'Deployment history could not be refreshed. Retained receipts remain below.'
+            : 'Deployment history could not be loaded.'}
         </LoadError>
       ) : (
         <PageAction
           label="Refresh deployments"
           onClick={() => void refresh().catch(() => undefined)}
-          disabled={deployments.isFetching || appointments.isFetching}
+          busy={deployments.isFetching || appointments.isFetching}
+          busyLabel="Refreshing…"
         />
       )}
       {!records.length ? (

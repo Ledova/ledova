@@ -97,7 +97,13 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
               disabled={blocked}
               onClick={() => void download()}
             />
-            <PageAction label="Refresh certificate preview" disabled={blocked} onClick={() => void preview()} />
+            <PageAction
+              label="Refresh certificate preview"
+              busy={busy === 'preview'}
+              busyLabel="Refreshing…"
+              disabled={blocked}
+              onClick={() => void preview()}
+            />
             <PageAction label="Edit certificate request" disabled={blocked} onClick={() => setTarget(null)} />
           </div>
         </>

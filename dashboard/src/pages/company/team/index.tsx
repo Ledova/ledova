@@ -91,7 +91,9 @@ function OwnTeam({
         {!own.isError && (
           <PageAction
             label="Refresh appointments"
-            disabled={disabled || own.isFetching}
+            busy={own.isFetching}
+            busyLabel="Refreshing…"
+            disabled={disabled}
             onClick={() => void own.refetch()}
           />
         )}
@@ -162,7 +164,9 @@ function OwnTeam({
                 {!team.isError && (
                   <PageAction
                     label="Refresh company team"
-                    disabled={disabled || team.isFetching}
+                    busy={team.isFetching}
+                    busyLabel="Refreshing…"
+                    disabled={disabled}
                     onClick={() => void team.refetch()}
                   />
                 )}
@@ -200,7 +204,9 @@ function OwnTeam({
         {!invitations.isError && (
           <PageAction
             label="Refresh invitations"
-            disabled={disabled || invitations.isFetching}
+            busy={invitations.isFetching}
+            busyLabel="Refreshing…"
+            disabled={disabled}
             onClick={() => void invitations.refetch()}
           />
         )}

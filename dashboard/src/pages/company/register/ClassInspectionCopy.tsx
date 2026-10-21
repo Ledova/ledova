@@ -98,7 +98,13 @@ function InspectionForm({
               disabled={blocked}
               onClick={() => void download()}
             />
-            <PageAction label="Refresh inspection preview" disabled={blocked} onClick={() => void preview()} />
+            <PageAction
+              label="Refresh inspection preview"
+              busy={busy === 'preview'}
+              busyLabel="Refreshing…"
+              disabled={blocked}
+              onClick={() => void preview()}
+            />
             <PageAction label="Edit request" disabled={blocked} onClick={() => setTarget(null)} />
           </div>
         </>
