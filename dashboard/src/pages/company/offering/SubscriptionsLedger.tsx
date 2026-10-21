@@ -9,7 +9,7 @@ import {
   type OfferingListItem,
   type SubscriptionStatus,
 } from '@ledova/shared';
-import { Section, Status } from '@components/Ledger';
+import { Section, Status, Loading } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { useCompanyOfferingSubscriptions } from './useOffering';
@@ -102,9 +102,7 @@ export function SubscriptionsLedger({
           label={REGISTER_COPY.APPLICATIONS_TITLE}
         />
       ) : !data || gone || (read.isPlaceholderData && data.count === 0) ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading applications…
-        </p>
+        <Loading>Loading applications…</Loading>
       ) : empty ? (
         <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_EMPTY}</p>
       ) : (

@@ -9,7 +9,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, LoadError } from '@components/Ledger';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 
 import { OpeningRecord } from './OpeningRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -78,9 +78,7 @@ export function ClassOpenings({
         </div>
       )}
       {openings.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading openings…
-        </p>
+        <Loading>Loading openings…</Loading>
       ) : openings.isError ? (
         <LoadError retry={() => openings.refetch()} busy={openings.isFetching}>
           Openings could not be loaded.

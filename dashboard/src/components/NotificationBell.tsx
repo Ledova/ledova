@@ -6,7 +6,7 @@ import { formatDateTime, DESTINATIONS, PUBLICATION_NOTICE, useNotifications } fr
 import { ICON_SM, ICON_MD } from './iconSizes';
 import { LoadMore } from './List';
 import type { DestinationKey, Notification } from '@ledova/shared';
-import { LoadError } from './Ledger';
+import { LoadError, Loading } from './Ledger';
 
 const NOTICE_PAGES: Record<string, DestinationKey> = {
   company: 'companyListing',
@@ -112,7 +112,11 @@ function NotificationList({
   };
 
   if (isLoading && notifications.length === 0) {
-    return <p className="px-4 py-8 text-center text-sm text-text-muted">Loading…</p>;
+    return (
+      <div className="px-4 py-5">
+        <Loading>Loading your notifications…</Loading>
+      </div>
+    );
   }
   if (failed && notifications.length === 0) {
     return (

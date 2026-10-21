@@ -37,7 +37,7 @@ export default function SignupCompanyRegistration() {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading company data…" />;
+    return <LoadingState message="Loading your company details…" />;
   }
 
   if ((loadError && !hasLoadedForm) || (generalError && !form.name && !isSubmitting)) {

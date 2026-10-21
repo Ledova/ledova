@@ -15,7 +15,7 @@ import {
   type RegisterDiscrepancy,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Row, Rows, Status, type Tone, LoadError } from '@components/Ledger';
+import { Row, Rows, Status, type Tone, LoadError, Loading } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 
@@ -155,9 +155,7 @@ export function ClassReconciliation({
         appointments.isSuccess && !acknowledger && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
       {reconciliation.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading the reconciliation…
-        </p>
+        <Loading>Loading the reconciliation…</Loading>
       ) : reconciliation.isError ? (
         <LoadError retry={() => reconciliation.refetch()} busy={reconciliation.isFetching}>
           The reconciliation could not be loaded.

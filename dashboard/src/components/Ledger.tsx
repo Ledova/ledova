@@ -185,6 +185,14 @@ export function Outcome({ children }: { children: ReactNode }) {
   );
 }
 
+export function Loading({ children }: { children: ReactNode }) {
+  return (
+    <p role="status" className="py-3 text-sm text-text-muted">
+      {children}
+    </p>
+  );
+}
+
 export function LoadError({
   retry,
   busy = false,

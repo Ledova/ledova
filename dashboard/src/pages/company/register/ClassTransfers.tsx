@@ -9,7 +9,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, LoadError } from '@components/Ledger';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 
 import { TransferRecord } from './TransferRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -95,9 +95,7 @@ export function ClassTransfers({
       )}
       {steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
       {transfers.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading non-paid transfers…
-        </p>
+        <Loading>Loading non-paid transfers…</Loading>
       ) : transfers.isError ? (
         <LoadError
           retry={() => Promise.all([transfers.refetch(), appointments.refetch()])}

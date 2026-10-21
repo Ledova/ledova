@@ -14,7 +14,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { LinkRow, LoadError } from '@components/Ledger';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 
 import { CorrectionRecord } from './CorrectionRecord';
@@ -64,9 +64,7 @@ function EntryHistory({
     >
       <h3 className="text-sm font-medium text-text-primary">{COPY.ENTRIES_TITLE}</h3>
       {history.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading register entries…
-        </p>
+        <Loading>Loading register entries…</Loading>
       ) : history.hasError ? (
         <LoadError retry={history.retry} busy={history.isFetching}>
           Register entries could not be loaded.
@@ -238,9 +236,7 @@ export function ClassCorrections({
           !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
         )}
         {corrections.isPending ? (
-          <p role="status" className="text-sm text-text-muted">
-            Loading corrections…
-          </p>
+          <Loading>Loading corrections…</Loading>
         ) : corrections.isError ? (
           <LoadError retry={() => corrections.refetch()} busy={corrections.isFetching}>
             Corrections could not be loaded.

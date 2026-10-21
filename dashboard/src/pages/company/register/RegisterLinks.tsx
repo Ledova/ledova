@@ -10,7 +10,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, Section, LoadError } from '@components/Ledger';
+import { LinkRow, Section, LoadError, Loading } from '@components/Ledger';
 
 import { LinkRecord } from './LinkRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -106,9 +106,7 @@ export function RegisterLinks({
           ) : null)
         ))}
       {links.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading wallet links…
-        </p>
+        <Loading>Loading wallet links…</Loading>
       ) : links.isError ? (
         <LoadError retry={() => links.refetch()} busy={links.isFetching}>
           Wallet links could not be loaded.

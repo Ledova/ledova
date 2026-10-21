@@ -42,9 +42,9 @@ export function BuyCryptoWidgetModal({ isOpen, onClose, onComplete, widgetUrl }:
             referrerPolicy="strict-origin-when-cross-origin"
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
+          <div role="status" className="flex flex-col items-center justify-center h-full gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-mid" />
-            <span className="text-sm text-text-muted">Loading…</span>
+            <span className="text-sm text-text-muted">Loading the purchase form…</span>
           </div>
         )}
       </div>

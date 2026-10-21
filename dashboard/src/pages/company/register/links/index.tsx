@@ -5,9 +5,8 @@ import { useMemo, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { REGISTER_LINK_COPY, appointmentForRegisterStep, type OrderSubmissionOwner } from '@ledova/shared';
-import { Section, LoadError } from '@components/Ledger';
+import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -80,7 +79,7 @@ function OwnLinks({
           {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
         </LoadError>
       ) : (
-        <Loading />
+        <Loading>Loading the register…</Loading>
       );
   else if (listed.length === 0)
     content = <p className="py-3 text-sm text-text-muted">This company is not in a register you can read.</p>;
@@ -92,7 +91,7 @@ function OwnLinks({
         The register or your appointments could not be loaded.
       </LoadError>
     ) : (
-      <Loading />
+      <Loading>Loading the register…</Loading>
     );
   else if (waiting.data.length === 0) content = <p className="py-3 text-sm text-text-muted">{COPY.NOTHING_WAITING}</p>;
   else

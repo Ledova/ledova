@@ -1,6 +1,6 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import {
   FIELD_LIMITS,
@@ -232,7 +232,7 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
           You can read company pause history. Preparation requires current company administration or prepare capability.
         </p>
       )}
-      {commands.visible && commands.instructions.isPending && <p role="status">Loading company pause records…</p>}
+      {commands.visible && commands.instructions.isPending && <Loading>Loading company pause records…</Loading>}
       {commands.visible && commands.instructions.isError && (
         <p role="alert">The pause records could not be refreshed. Retained original receipts remain available.</p>
       )}

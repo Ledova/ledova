@@ -9,7 +9,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, LoadError } from '@components/Ledger';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 
 import { ImportRecord } from './ImportRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -90,9 +90,7 @@ export function ClassImports({
           </div>
         )}
       {imports.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading imports…
-        </p>
+        <Loading>Loading imports…</Loading>
       ) : imports.isError ? (
         <LoadError retry={() => imports.refetch()} busy={imports.isFetching}>
           Imports could not be loaded.

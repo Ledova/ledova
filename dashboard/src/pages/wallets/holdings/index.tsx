@@ -1,5 +1,5 @@
 import { formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
-import { Disclosure, Section, LoadError } from '@components/Ledger';
+import { Disclosure, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { HoldingWork } from './HoldingWork';
 
@@ -11,9 +11,7 @@ export default function HomePage() {
     <Page narrow lede="Wallet holdings. Company-recorded shares are shown in Your shares.">
       <Section title="Shares in your wallets">
         {isPending ? (
-          <p role="status" className="py-3 text-sm text-text-muted">
-            Loading your holdings…
-          </p>
+          <Loading>Loading your holdings…</Loading>
         ) : isError ? (
           <LoadError retry={refetch} busy={isFetching}>
             Your holdings could not be loaded.

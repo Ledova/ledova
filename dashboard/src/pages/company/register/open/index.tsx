@@ -11,9 +11,8 @@ import {
   failureStatus,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { Row, Rows, Section, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -90,14 +89,14 @@ function OwnOpening({
           {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
         </LoadError>
       ) : (
-        <Loading />
+        <Loading>Loading the register…</Loading>
       );
   else if (!listed) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
   else if (!appointment)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (failureStatus(holders.error) === 400)
     content = <p className="py-3 text-sm text-text-muted">{apiErrorSentence(holders.error, REFUSED, REFUSED)}</p>;
-  else if (!holders.data) content = holders.isError ? failure : <Loading />;
+  else if (!holders.data) content = holders.isError ? failure : <Loading>Loading the register…</Loading>;
   else
     content = (
       <>

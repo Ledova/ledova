@@ -14,7 +14,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
-import { LinkRow, LoadError } from '@components/Ledger';
+import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
@@ -169,9 +169,7 @@ export function useInvestorIssues({
     <div hidden={!open} className="flex flex-col gap-3">
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       {members.isPending ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading retained recipients…
-        </p>
+        <Loading>Loading retained recipients…</Loading>
       ) : members.isError ? (
         <LoadError retry={() => members.refetch()} busy={members.isFetching}>
           The retained recipients could not be loaded.
@@ -223,9 +221,7 @@ export function useInvestorIssues({
           A current company register appointment is required to read external allotments.
         </p>
       ) : allotments.isPending || allotments.isFetching || !sourceReady ? (
-        <p role="status" className="text-sm text-text-muted">
-          Loading external allotments…
-        </p>
+        <Loading>Loading external allotments…</Loading>
       ) : allotments.isError ? (
         <LoadError retry={() => refresh().catch(() => {})} busy={allotments.isFetching || appointments.isFetching}>
           External allotments could not be loaded.

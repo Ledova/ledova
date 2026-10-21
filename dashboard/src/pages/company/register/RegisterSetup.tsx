@@ -5,9 +5,8 @@ import {
   appointmentForRegisterStep,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { Section, LoadError } from '@components/Ledger';
+import { Section, LoadError, Loading } from '@components/Ledger';
 import { PageLink } from '@components/Page';
-import { Loading } from '@pages/company/shared/RegisterStatus';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 export function RegisterSetup({ owner, guard }: { owner: OrderSubmissionOwner; guard: () => void }) {
@@ -18,7 +17,7 @@ export function RegisterSetup({ owner, guard }: { owner: OrderSubmissionOwner; g
         Your appointments could not be loaded.
       </LoadError>
     );
-  if (appointments.isPending || appointments.isFetching) return <Loading />;
+  if (appointments.isPending || appointments.isFetching) return <Loading>Loading your appointments…</Loading>;
   const canPrepare = appointments.data.some(
     (appointment) =>
       !appointment.revokedAt && appointmentForRegisterStep([appointment], appointment.company, 'prepare'),

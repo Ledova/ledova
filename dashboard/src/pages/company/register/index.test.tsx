@@ -1883,7 +1883,7 @@ it("starts again for another signed-in account without showing the previous acco
       data: { ...other, userProfile: 'profile-two', userAccount: { ...other.userAccount!, uuid: 'account-two' } },
     }),
   );
-  expect(screen.getByRole('status').textContent).toBe('Loading your register…');
+  expect(screen.getByRole('status').textContent).toBe('Loading the register…');
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
