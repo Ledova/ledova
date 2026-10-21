@@ -34,7 +34,7 @@ export function invitationMembers(registers: TokenHoldersResponse[], awards: Reg
   }
   for (const award of awards) {
     if (award.company !== company) throw new Error('The award recipients belong to another company.');
-    add(award.member, award.name, award.token, 'Award recipient');
+    add(award.member, award.recipientName, award.token, 'Award recipient');
   }
   return [...members.values()].sort(
     (left, right) => left.name.localeCompare(right.name) || left.uuid.localeCompare(right.uuid),

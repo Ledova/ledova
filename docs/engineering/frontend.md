@@ -596,13 +596,16 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   - Member invitations give `PersonSelect` the company's holders and award recipients from
     `invitationMembers`.
   - The share-class issue's member choice reads `register/members/` through
-    `useCompanyIssueInstructions`.
+    `useCompanyIssueInstructions`, which leaves out award recipients without shares on web and
+    mobile.
   - Wallet links label the holders of every class with `registerLinkMemberLabels`, and register
     opening labels its linked members with `openingMemberLabels`.
 
-  `personRequest` (`packages/shared/src/utils/people.ts`) sends an award recipient without shares
-  under their reserved member ID with their award's particulars, as register setup does; each flow
-  filters the list by its own rule. On Register, navigation state `issueMember` opens Issue shares
+  The list includes award recipients without shares, whose first award gave them a person record;
+  `on_register` false marks them. `personRequest` (`packages/shared/src/utils/people.ts`) sends a
+  chosen person under their member ID as an existing member, award recipients included, and a grant
+  from an award names the award's recipient the same way; each flow filters the list by its own
+  rule. On Register, navigation state `issueMember` opens Issue shares
   with Investor issue and that person chosen, `issueAward` opens it with Non-paid issue for that
   award, and `registerRecord` focuses a listed non-paid issue. `fromMember` chooses a transfer's
   transferor.

@@ -72,19 +72,37 @@ function OwnParticulars({
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const preparing = classes.data && appointments.data ? preparingCompanies(classes.data, appointments.data) : [];
-  const registers = useParticularsRegisters(owner, preparing, guard);
-  const found = preparing.flatMap((company, index) => {
+  const { registers, people } = useParticularsRegisters(owner, preparing, guard);
+  const found = preparing.flatMap<{
+    company: Preparing;
+    name: string | null;
+    label: string;
+    read: { isError: boolean; refetch: () => unknown };
+  }>((company, index) => {
     const holder = registers[index].data?.flatMap((register) => register.holders).find((row) => row.member === member);
-    return holder ? [{ company, holder, read: registers[index] }] : [];
+    if (holder)
+      return [
+        {
+          company,
+          name: holder.name,
+          label: holder.name || HOLDER_TYPE_LABELS[holder.holderType],
+          read: registers[index],
+        },
+      ];
+    const recipient = people[index].data?.members.find((row) => row.member === member && row.onRegister === false);
+    return recipient
+      ? [{ company, name: recipient.name, label: recipient.name || COPY.UNNAMED_MEMBER, read: people[index] }]
+      : [];
   })[0];
+  const reads = [...registers, ...people];
   const retry = () => {
     if (classes.isError) void classes.refetch();
     if (appointments.isError) void appointments.refetch();
-    for (const read of registers) if (read.isError) void read.refetch();
+    for (const read of reads) if (read.isError) void read.refetch();
   };
-  const fetching = classes.isFetching || appointments.isFetching || registers.some((read) => read.isFetching);
+  const fetching = classes.isFetching || appointments.isFetching || reads.some((read) => read.isFetching);
   const stale =
-    classes.isError || appointments.isError || (found ? found.read.isError : registers.some((read) => read.isError));
+    classes.isError || appointments.isError || (found ? found.read.isError : reads.some((read) => read.isError));
   let content: ReactNode;
   if (!classes.data || !appointments.data)
     content =
@@ -98,7 +116,7 @@ function OwnParticulars({
   else if (preparing.length === 0)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (!found)
-    content = registers.some((read) => read.isPending) ? (
+    content = reads.some((read) => read.isPending) ? (
       <Loading>Loading the register…</Loading>
     ) : stale ? (
       <LoadError retry={retry} busy={fetching}>
@@ -110,7 +128,7 @@ function OwnParticulars({
   else
     content = (
       <>
-        <Section title={found.holder.name || COPY.UNNAMED_MEMBER}>
+        <Section title={found.name || COPY.UNNAMED_MEMBER}>
           <p className="text-sm text-text-muted">{found.company.name}</p>
           <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>
         </Section>
@@ -143,7 +161,7 @@ function OwnParticulars({
       back={
         found && {
           to: shareholderPath(member, found.company.uuid),
-          label: `Back to ${found.holder.name || HOLDER_TYPE_LABELS[found.holder.holderType]}`,
+          label: `Back to ${found.label}`,
         }
       }
     >

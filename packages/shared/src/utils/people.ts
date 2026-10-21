@@ -10,6 +10,7 @@ export interface Person {
   currentShares: string;
   lastCeasedOn: string | null;
   awardOnly: boolean;
+  onRegister?: boolean;
 }
 
 export interface PersonChoice {
@@ -37,6 +38,7 @@ export function peopleFrom(data: RegisterTransferMembers | undefined): Person[] 
       currentShares: row.currentShares,
       lastCeasedOn: row.lastCeasedOn ?? null,
       awardOnly: false,
+      onRegister: row.onRegister !== false,
     })),
     ...data.awardRecipients.map((row) => ({
       member: row.member,
@@ -61,7 +63,7 @@ export function personChoices(people: readonly Person[], context?: (person: Pers
     label: person.name || 'Name not recorded',
     detail: [
       person.residentialAddress,
-      person.awardOnly ? 'Award recipient without shares' : '',
+      person.awardOnly || person.onRegister === false ? 'Award recipient without shares' : '',
       context?.(person) ?? '',
       (records.get(particulars(person))?.size ?? 0) > 1 ? `Member reference ${shortReference(person.member)}` : '',
     ]

@@ -6,7 +6,6 @@ import {
   formatDate,
   formatShareCount,
   type RegisterTransferMember,
-  type RegisterAwardRecipient,
 } from '@ledova/shared';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
@@ -26,7 +25,6 @@ export function BringRecords({
   setMember,
   setFormer,
   companyMembers,
-  awardRecipients,
   preserveParticulars,
   step,
   validateMember,
@@ -42,7 +40,6 @@ export function BringRecords({
   setMember: (index: number, patch: Partial<MemberDraft>) => void;
   setFormer: (index: number, patch: Partial<FormerDraft>) => void;
   companyMembers: RegisterTransferMember[];
-  awardRecipients: RegisterAwardRecipient[];
   preserveParticulars: boolean;
   step: 'details' | 'shareholders';
   validateMember: (index: number) => string[];
@@ -209,7 +206,6 @@ export function BringRecords({
                   index={editingIndex}
                   asAt={draft.asAt}
                   companyMembers={companyMembers}
-                  awardRecipients={awardRecipients}
                   preserveParticulars={preserveParticulars}
                   usedMembers={draft.members.filter((_, at) => at !== editingIndex).map((member) => member.member)}
                   update={(patch) => {

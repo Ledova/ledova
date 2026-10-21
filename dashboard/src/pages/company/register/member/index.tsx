@@ -206,9 +206,16 @@ function OwnShareholder({
       const register = registers.find((item) => item.token.uuid === token);
       return register ? `${register.token.name} · ${register.token.symbol}` : 'Share class';
     };
+    const absent = (
+      <p className="py-3 text-sm text-text-muted">This shareholder is not on the register of {data.company.name}.</p>
+    );
     content =
       !holdings.length && !former.length && !recorded ? (
-        <p className="py-3 text-sm text-text-muted">This shareholder is not on the register of {data.company.name}.</p>
+        appointments.isSuccess && appointments.fetchStatus === 'idle' && !authorised ? (
+          absent
+        ) : (
+          privately(data.particulars, 'Their particulars', () => absent)
+        )
       ) : (
         <>
           <Section title="Particulars">
@@ -218,7 +225,7 @@ function OwnShareholder({
                 <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
               </Rows>
             ))}
-            {prepare && holdings.length > 0 && (
+            {prepare && (holdings.length > 0 || recorded?.onRegister === false) && (
               <PageLink
                 to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
                 label={REGISTER_PARTICULARS_COPY.PREPARE}

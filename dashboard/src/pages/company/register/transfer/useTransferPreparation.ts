@@ -126,8 +126,7 @@ export function useTransferPreparation({
   );
   const recipient = eligible.find((member) => member.member === draft.toMember);
   const fresh =
-    operation?.newParticulars ??
-    (draft.toMember === 'new' || (!!recipient && (!recipient.particularsRetained || recipient.awardOnly)));
+    operation?.newParticulars ?? (draft.toMember === 'new' || (!!recipient && !recipient.particularsRetained));
   const past = (date: string) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today;
   const problems: Problems<keyof Draft | 'authorityDocument' | 'instrumentDocument'> = {
     fromMember: !from && 'Select an identified transferor holding shares in this class.',
@@ -204,7 +203,7 @@ export function useTransferPreparation({
           tokenId: token,
           fromMember: draft.fromMember,
           toMember: draft.toMember === 'new' ? newMemberId : draft.toMember,
-          newMember: draft.toMember === 'new' || !!recipient?.awardOnly,
+          newMember: draft.toMember === 'new',
           ...(fresh ? { name: draft.name.trim(), residentialAddress: draft.residentialAddress.trim() } : {}),
           shares: draft.shares,
           companyEventOn: draft.companyEventOn,
