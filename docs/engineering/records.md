@@ -398,12 +398,16 @@ The schema leaves `members` and `former_members` free-form. A member row has exa
 `allotted_on`, `shares`, `share_reference`, `certificate_reference`, `amount_paid`, `amount_unpaid`,
 `fully_paid` and `beneficially_held`; a former row exactly `name`, `residential_address`, `shares`
 and `ceased_on`. Shares are positive whole numbers, dates no later than `as_at`, money at most two
-decimal places and names up to 255 characters; a member's 1 to 10,000 allotments sum to its holding,
+decimal places and names up to 255 characters; a member has 0 to 10,000 optional historical allotments,
+whose quantities are independent of the current holding,
 and `fully_paid` agrees with a zero `amount_unpaid`. `beneficially_held` is a boolean or explicit
 JSON null for **Not recorded**; its key is required, and strings are refused. New web entries leave
-it unknown, while existing answers and references remain intact. The stored row adds `amount_paid`, the sum of
-its allotments, and `tokens_mirror_members_valid` rechecks the stored shape in PostgreSQL. Earlier
-snapshots keep their missing fields unknown.
+it unknown, while existing answers and references remain intact. The stored row adds `amount_paid`:
+new snapshots use null because optional history does not establish the current holding's paid
+amount. Earlier calculated amounts and exact retries remain intact. New web draft paid/unpaid
+fields normalize blank to zero before submission; the API and stored-record parser still require
+valid explicit amounts on each supplied historical row. `tokens_mirror_members_valid` rechecks
+the stored shape in PostgreSQL. Earlier snapshots keep their missing fields unknown.
 
 Empty `members` and `former_members` arrays are accepted only for an unopened draft class with no
 chain activity or correction source. `tokens_empty_mirror_opening_ready` enforces that boundary

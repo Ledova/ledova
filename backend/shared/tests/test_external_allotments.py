@@ -167,9 +167,8 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
         self.decision(endpoint, existing_id, "apply")
         with use_operator():
             projected = _stored_register(self.token)
-            self.assertEqual(
-                str(next(row for row in projected["rows"] if row["member"] == str(self.member.pk))["amount_paid"]),
-                "350.00",
+            self.assertIsNone(
+                next(row for row in projected["rows"] if row["member"] == str(self.member.pk))["amount_paid"]
             )
         grant = self.client.post(
             "/api/v1/tokens/register-grants/",

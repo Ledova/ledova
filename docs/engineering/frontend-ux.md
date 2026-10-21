@@ -581,13 +581,16 @@ Some messages keep their own form:
   [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
-- **Repeated allotments.** Web register setup keeps one allotment editor expanded. **Add another allotment**
+- **Repeated allotments.** Web ledger setup separates **Current shares held** from optional allotment
+  history, which starts empty. **Add allotment** opens its first entry. It keeps one editor expanded.
+  **Add another allotment**
   validates the current entry, folds it into a compact date, shares, paid and unpaid summary with
   **Edit** and **Remove**, then opens an unfinished entry or a new blank one. Fields never collapse on
   blur or simply because they look complete. Editing or switching entries preserves unfinished input;
   validation opens the entry needing attention. **Add to draft** completes the shareholder and their
-  final allotment, without another save step. The recorded share total and remainder are read-only,
-  calculated with exact whole-share arithmetic, and never adjust the entered holdings.
+  optional history, without another save step. Historical quantities never set or limit current
+  holdings; there is no remaining-share counter or equality requirement. New paid/unpaid fields
+  default to zero, including when cleared; stored unknown amounts are not rewritten.
 - **UTC dates.** Register and company dates are UTC calendar dates: `utcToday`
   (`packages/shared/src/utils/date.ts`) is their default and their `max`, so a date the server
   would refuse as in the future can't be picked. A team invitation's deadline and appointment

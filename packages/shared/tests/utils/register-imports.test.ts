@@ -156,8 +156,61 @@ it('matches the complete company mirror and retained correction source without i
   expect(isRegisterMemberDocumentReceipt({ ...documentLink, member: documentLink.token }, linkRequest)).toBe(false);
   expect(isRegisterMemberDocument({ ...documentLink, snapshot: attachment.snapshot })).toBe(false);
   expect(registerImportMoney('0')).toBe('0.00');
+  expect(registerImportMoney('')).toBeNull();
   expect(registerImportMoney('0.001')).toBeNull();
   expect(isPreparedRegisterImport(proposal, request)).toBe(true);
+  for (const allotments of [
+    [],
+    proposal.members[0]!.allotments!.map((allotment) => ({ ...allotment, shares: '1000' })),
+    proposal.members[0]!.allotments!.map((allotment) => ({ ...allotment, shares: '1' })),
+  ]) {
+    const openingRequest: RegisterImportPreparation = {
+      ...request,
+      members: request.members.map((member) => ({ ...member, allotments })),
+    };
+    const opening = registerImportOf({
+      ...record,
+      members: proposal.members.map((member) => ({ ...member, amountPaid: null, allotments })),
+    });
+    expect(opening.members[0]!.shares).toBe('600');
+    expect(opening.members[0]!.amountPaid).toBeNull();
+    expect(opening.members[0]!.allotments).toEqual(allotments);
+    expect(isPreparedRegisterImport(opening, openingRequest)).toBe(true);
+    expect(
+      isPreparedRegisterImport(
+        { ...opening, members: opening.members.map((member) => ({ ...member, shares: '601' })) },
+        openingRequest,
+      ),
+    ).toBe(false);
+    expect(isPreparedRegisterImport(opening, request)).toBe(false);
+  }
+  for (const change of [
+    { shares: '0' },
+    { shares: (2n ** 256n).toString() },
+    { enteredOn: '2026-02-30' },
+    { amountPaid: '' },
+    { amountPaid: '-1.00' },
+  ])
+    expect(() => registerImportOf({ ...record, members: [{ ...proposal.members[0]!, ...change }] })).toThrow(
+      'The register import rows could not be read.',
+    );
+  for (const change of [
+    { shares: '0' },
+    { shares: (2n ** 256n).toString() },
+    { allottedOn: '2026-02-30' },
+    { amountPaid: '' },
+    { amountUnpaid: '' },
+    { amountUnpaid: '1.00', fullyPaid: true },
+  ])
+    expect(() =>
+      registerImportOf({
+        ...record,
+        members: proposal.members.map((member) => ({
+          ...member,
+          allotments: member.allotments!.map((allotment) => ({ ...allotment, ...change })),
+        })),
+      }),
+    ).toThrow('The register import rows could not be read.');
   expect(isPreparedRegisterImport({ ...proposal, sourceReference: 'Other company records' }, request)).toBe(false);
   expect(isPreparedRegisterImport({ ...proposal, correctionOf: null }, request)).toBe(false);
   expect(
@@ -221,7 +274,7 @@ it('matches the complete company mirror and retained correction source without i
   expect(() => registerImportOf({ ...record, members: [oldMember] })).toThrow(
     'The register import rows could not be read.',
   );
-  expect(() => registerImportOf({ ...record, members: [{ ...proposal.members[0]!, amountPaid: '1.00' }] })).toThrow(
-    'The register import rows could not be read.',
-  );
+  const retained = registerImportOf({ ...record, members: [{ ...proposal.members[0]!, amountPaid: '1.00' }] });
+  expect(retained.members[0]!.amountPaid).toBe('1.00');
+  expect(isPreparedRegisterImport(retained, request)).toBe(true);
 });

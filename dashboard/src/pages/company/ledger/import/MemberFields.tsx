@@ -83,7 +83,7 @@ export function MemberFields({
             onChange={(event) => update({ enteredOn: event.target.value })}
           />
         </Field>
-        <Field label="Shares held">
+        <Field label="Current shares held">
           <TextInput
             maxLength={FIELD_LIMITS.REGISTER_SHARES}
             inputMode="numeric"
@@ -94,7 +94,6 @@ export function MemberFields({
       </div>
       <AllotmentFields
         allotments={row.allotments}
-        sharesHeld={row.shares}
         asAt={asAt}
         shareholder={index + 1}
         validationAttempt={validationAttempt}

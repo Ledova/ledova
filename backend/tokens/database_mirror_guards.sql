@@ -16,10 +16,11 @@ BEGIN
             OR jsonb_typeof(member->'shares') IS DISTINCT FROM 'string' OR member->>'shares' !~ '^[1-9][0-9]{0,77}$'
             OR jsonb_typeof(member->'entered_on') IS DISTINCT FROM 'string'
             OR member->>'entered_on' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-            OR jsonb_typeof(member->'amount_paid') IS DISTINCT FROM 'string'
-            OR member->>'amount_paid' !~ '^(0|[1-9][0-9]{0,21})[.][0-9]{2}$'
+            OR (jsonb_typeof(member->'amount_paid') IS DISTINCT FROM 'null'
+                AND (jsonb_typeof(member->'amount_paid') IS DISTINCT FROM 'string'
+                    OR member->>'amount_paid' !~ '^(0|[1-9][0-9]{0,21})[.][0-9]{2}$'))
             OR jsonb_typeof(member->'allotments') IS DISTINCT FROM 'array'
-            OR jsonb_array_length(member->'allotments') NOT BETWEEN 1 AND 10000 THEN RETURN false; END IF;
+            OR jsonb_array_length(member->'allotments') > 10000 THEN RETURN false; END IF;
         IF (member->>'entered_on')::date > as_at THEN RETURN false; END IF;
         quantity := 0; paid := 0;
         FOR allotment IN SELECT value FROM jsonb_array_elements(member->'allotments') LOOP
@@ -44,14 +45,17 @@ BEGIN
                     AND (jsonb_typeof(allotment->'certificate_reference') IS DISTINCT FROM 'string'
                         OR length(btrim(allotment->>'certificate_reference')) NOT BETWEEN 1 AND 255))
                 THEN RETURN false; END IF;
-            IF (allotment->>'allotted_on')::date > as_at
+            IF (allotment->>'shares')::numeric > 115792089237316195423570985008687907853269984665640564039457584007913129639935
+                OR (allotment->>'allotted_on')::date > as_at
                 OR (allotment->>'fully_paid')::boolean IS DISTINCT FROM ((allotment->>'amount_unpaid')::numeric = 0)
                 THEN RETURN false; END IF;
             quantity := quantity + (allotment->>'shares')::numeric;
             paid := paid + (allotment->>'amount_paid')::numeric;
         END LOOP;
-        IF quantity <> (member->>'shares')::numeric OR quantity > 115792089237316195423570985008687907853269984665640564039457584007913129639935
-            OR paid <> (member->>'amount_paid')::numeric THEN RETURN false; END IF;
+        IF (member->>'shares')::numeric > 115792089237316195423570985008687907853269984665640564039457584007913129639935
+            OR (jsonb_typeof(member->'amount_paid') = 'string'
+                AND (quantity <> (member->>'shares')::numeric OR paid <> (member->>'amount_paid')::numeric))
+            THEN RETURN false; END IF;
     END LOOP;
     RETURN (SELECT count(DISTINCT item->>'member') = jsonb_array_length(members)
         AND COALESCE(sum((item->>'shares')::numeric), 0) <= 115792089237316195423570985008687907853269984665640564039457584007913129639935

@@ -141,7 +141,9 @@ naming the member, or a recorded cessation of one of its wallets between its fir
 opening, touches it; a pre-opening transfer that emptied none of its wallets and kept its quantity
 cannot be seen. Unallotted applications, holdings without allotments and quantity mismatches leave
 it blank; a pending refund never inflates it, zero never stands for an unknown amount, and non-paid
-terms establish none. An imported amount paid holds while the holding is unchanged since the import,
+terms establish none. New opening snapshots leave the current holding's amount paid unknown:
+optional historical allotments do not establish it. Earlier recorded imported amounts remain
+unchanged. An imported amount paid holds while the holding is unchanged since the import,
 plus the AUD consideration of later external investor allotments (blank stays blank; a member the
 import did not carry shows the consideration alone); any other later entry for the member, such as a
 non-paid grant or transfer, blanks it. An import records amounts paid and unpaid as the company
@@ -207,20 +209,23 @@ Ledova, and its holdings must match the stored register. On the web:
 3. Shareholders, one at a time: choose a recorded person or New person
    ([choosing a person](#choosing-a-person); names never link records, and existing names and
    addresses are kept), then enter from this
-   class's records the name, residential address, original date entered, whole-share holding and
-   each allotment (date, quantity, paid and unpaid amounts). New web records leave beneficial
+   class's records the name, residential address, original date entered and **Current shares held**.
+   **Allotment history (optional)** copies available dates, quantities and paid/unpaid amounts;
+   these historical quantities need not equal today's holding after transfers or cancellations.
+   New web records leave beneficial
    ownership **Not recorded**, with no ownership question or reference inputs; existing answers and
    references stay with saved records and corrections. **Documents (optional)** attaches one or more
    files to this shareholder and share class, each with **Category** and **File** fields
    ([supporting documents](#shareholder-documents)).
-   One allotment is open for editing at a time. **Add another allotment** checks the current entry,
+   **Add allotment** opens the first optional entry. One allotment is open for editing at a time.
+   **Add another allotment** checks the current entry,
    folds it into a date, shares, paid and unpaid summary, and opens any unfinished entry or a new one.
    **Edit** reopens a summary, **Remove** drops an unsaved entry, and unfinished input is kept when
    switching entries. Entries do not collapse while typing. **Add to draft** finishes the shareholder
-   and their final allotment. A read-only total shows the recorded shares and any remainder without
-   changing the entered holding. Allotments must add
-   up to the holding, a fully paid allotment has nothing unpaid, and a blank amount stays unknown
-   rather than zero. For a genuinely unopened non-tokenised class
+   and any history entered. Removing the final entry leaves no copied history. History never sets
+   or limits current holdings. New paid/unpaid fields start at zero; clearing either records zero,
+   and fully paid means nothing remains unpaid. Existing unknown amounts remain unknown.
+   For a genuinely unopened non-tokenised class
    with no issued shares or earlier members, leave the draft empty to record its empty opening.
 4. Review the shares, shareholders and record date in one table, with particulars under Details.
    Confirm loads a fresh preview and records approval and application together; an appointee who may

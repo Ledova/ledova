@@ -7,14 +7,12 @@ import { allotmentProblems, blankAllotment, type AllotmentDraft } from './prepar
 
 export function AllotmentFields({
   allotments,
-  sharesHeld,
   asAt,
   shareholder,
   validationAttempt,
   update,
 }: {
   allotments: AllotmentDraft[];
-  sharesHeld: string;
   asAt: string;
   shareholder: number;
   validationAttempt: number;
@@ -29,10 +27,8 @@ export function AllotmentFields({
   const focus = useRef(false);
   const dates = useRef(new Map<string, HTMLInputElement>());
   const active = allotments.some((row) => row.id === selected) ? selected : allotments[0]?.id;
-  const total = allotments.reduce((sum, row) => sum + (wholeShares(row.shares.trim()) ?? 0n), 0n);
-  const target = wholeShares(sharesHeld.trim());
   const money = (value: string) => {
-    const amount = registerImportMoney(value);
+    const amount = registerImportMoney(value.trim() || '0');
     return amount === null ? '—' : formatShareCount(amount);
   };
   if (editor.validationAttempt !== validationAttempt) {
@@ -54,9 +50,8 @@ export function AllotmentFields({
     setEditor((current) => ({ ...current, selected: id, check: { id: '', attempt: 0 } }));
   };
   const remove = (id: string) => {
-    if (allotments.length < 2) return;
     const remaining = allotments.filter((row) => row.id !== id);
-    if (active === id) edit(remaining[0].id);
+    if (active === id && remaining[0]) edit(remaining[0].id);
     update(remaining);
   };
   const add = () => {
@@ -74,8 +69,8 @@ export function AllotmentFields({
     }
   };
   return (
-    <section aria-label="Allotments" className="space-y-3 border-t border-border-subtle pt-4">
-      <h4 className="text-sm font-medium text-text-primary">Allotments</h4>
+    <section aria-label="Allotment history" className="space-y-3 border-t border-border-subtle pt-4">
+      <h4 className="text-sm font-medium text-text-primary">Allotment history (optional)</h4>
       <div className="divide-y divide-border-subtle">
         {allotments.map((allotment, at) => {
           const shown = active === allotment.id;
@@ -138,6 +133,9 @@ export function AllotmentFields({
                       placeholder="0.00"
                       value={allotment.amountPaid}
                       onChange={(event) => set({ amountPaid: event.target.value })}
+                      onBlur={() => {
+                        if (!allotment.amountPaid.trim()) set({ amountPaid: '0.00' });
+                      }}
                     />
                   </Field>
                   <Field label="Amount unpaid">
@@ -149,34 +147,28 @@ export function AllotmentFields({
                       onChange={(event) =>
                         set({
                           amountUnpaid: event.target.value,
-                          fullyPaid: registerImportMoney(event.target.value) === '0.00',
+                          fullyPaid: registerImportMoney(event.target.value.trim() || '0') === '0.00',
                         })
                       }
+                      onBlur={() => {
+                        if (!allotment.amountUnpaid.trim()) set({ amountUnpaid: '0.00', fullyPaid: true });
+                      }}
                     />
                   </Field>
                 </div>
-                {allotments.length > 1 && (
-                  <div className="flex justify-end">
-                    <PageAction label="Remove" context={`allotment ${at + 1}`} onClick={() => remove(allotment.id)} />
-                  </div>
-                )}
+                <div className="flex justify-end">
+                  <PageAction label="Remove" context={`allotment ${at + 1}`} onClick={() => remove(allotment.id)} />
+                </div>
               </div>
             </fieldset>
           );
         })}
       </div>
-      {(allotments.length > 1 || (target !== null && total !== target)) && (
-        <p
-          className={`text-sm tabular-nums ${target !== null && total > target ? 'text-error-light' : 'text-text-muted'}`}
-        >
-          Recorded: {formatShareCount(total.toString())}
-          {target === null ? ' shares' : ` of ${formatShareCount(target.toString())} shares`}
-          {target !== null &&
-            total !== target &&
-            ` · ${formatShareCount((total < target ? target - total : total - target).toString())} ${total < target ? 'remaining' : 'over'}`}
-        </p>
-      )}
-      <PageAction label="Add another allotment" context={`shareholder ${shareholder}`} onClick={add} />
+      <PageAction
+        label={allotments.length ? 'Add another allotment' : 'Add allotment'}
+        context={`shareholder ${shareholder}`}
+        onClick={add}
+      />
     </section>
   );
 }

@@ -48,6 +48,7 @@ import {
   blankMember,
   canOpenEmptyRegister,
   preparationProblems,
+  memberRows,
   type MemberDraft,
 } from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../testSupport/company';
@@ -985,6 +986,30 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     statedCount: '',
   };
   expect(preparationProblems(emptyDraft, '2026-10-14', true)).toEqual([]);
+  expect(preparationProblems({ ...emptyDraft, members: [{ ...manual[0], allotments: [] }] }, '2026-10-14')).toEqual([]);
+  expect(preparationProblems({ ...emptyDraft, members: [{ ...manual[0], shares: '500' }] }, '2026-10-14')).toEqual([]);
+  expect(memberRows([{ ...manual[0], allotments: [] }])[0].allotments).toEqual([]);
+  const blankAmounts = {
+    ...manual[0],
+    allotments: [{ ...manual[0].allotments[0], amountPaid: '', amountUnpaid: '', fullyPaid: false }],
+  };
+  expect(preparationProblems({ ...emptyDraft, members: [blankAmounts] }, '2026-10-14')).toEqual([]);
+  expect(memberRows([blankAmounts])[0].allotments[0]).toMatchObject({
+    amountPaid: '0.00',
+    amountUnpaid: '0.00',
+    fullyPaid: true,
+    shareReference: '1–400',
+    certificateReference: 'CERT-001',
+  });
+  expect(
+    preparationProblems(
+      {
+        ...emptyDraft,
+        members: [{ ...manual[0], allotments: [{ ...manual[0].allotments[0], amountUnpaid: '-1' }] }],
+      },
+      '2026-10-14',
+    ),
+  ).toEqual(expect.arrayContaining([expect.stringMatching(/valid paid and unpaid amounts/)]));
   expect(preparationProblems(emptyDraft, '2026-10-14')).toContain('Add at least one current shareholder.');
   expect(preparationProblems({ ...emptyDraft, members: [blankMember()] }, '2026-10-14', true).length).toBeGreaterThan(
     0,
@@ -1302,32 +1327,46 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     target: { value: '1 Example Street, Sydney NSW 2000' },
   });
   fireEvent.change(screen.getByLabelText('Date first added to register'), { target: { value: '2020-01-01' } });
-  fireEvent.change(screen.getByLabelText('Shares held'), { target: { value: '600' } });
+  fireEvent.change(screen.getByLabelText('Current shares held'), { target: { value: '600' } });
+  expect(screen.getByRole('heading', { name: 'Allotment history (optional)' })).toBeTruthy();
+  expect(screen.queryByRole('group', { name: 'Allotment 1' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
+  expect(screen.queryByLabelText('Name')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
+  expect(screen.queryByRole('group', { name: 'Allotment 1' })).toBeNull();
   const allotmentFields = (number: number) => within(screen.getByRole('group', { name: `Allotment ${number}` }));
-  const addAllotment = () => fireEvent.click(screen.getByRole('button', { name: /^Add another allotment/ }));
+  const addAllotment = () => fireEvent.click(screen.getByRole('button', { name: /^Add (another )?allotment/ }));
+  addAllotment();
+  expect((allotmentFields(1).getByLabelText('Amount paid') as HTMLInputElement).value).toBe('0.00');
+  expect((allotmentFields(1).getByLabelText('Amount unpaid') as HTMLInputElement).value).toBe('0.00');
+  fireEvent.click(screen.getByRole('button', { name: 'Remove (allotment 1)' }));
+  expect(screen.queryByRole('group', { name: 'Allotment 1' })).toBeNull();
+  addAllotment();
   addAllotment();
   expect(screen.queryByRole('group', { name: 'Allotment 2' })).toBeNull();
   fireEvent.change(allotmentFields(1).getByLabelText('Date'), { target: { value: '2015-01-01' } });
   fireEvent.change(allotmentFields(1).getByLabelText('Shares'), { target: { value: '400' } });
-  fireEvent.change(allotmentFields(1).getByLabelText('Amount paid'), { target: { value: '400' } });
-  fireEvent.change(allotmentFields(1).getByLabelText('Amount unpaid'), { target: { value: '0' } });
+  fireEvent.change(allotmentFields(1).getByLabelText('Amount paid'), { target: { value: '' } });
+  fireEvent.blur(allotmentFields(1).getByLabelText('Amount paid'));
+  expect((allotmentFields(1).getByLabelText('Amount paid') as HTMLInputElement).value).toBe('0.00');
+  fireEvent.change(allotmentFields(1).getByLabelText('Amount paid'), { target: { value: '' } });
+  fireEvent.change(allotmentFields(1).getByLabelText('Amount unpaid'), { target: { value: '' } });
   expect(screen.queryByRole('group', { name: 'Held for someone else?' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'References (optional)' })).toBeNull();
   expect(screen.queryByLabelText('Share numbers or reference')).toBeNull();
   expect(screen.queryByLabelText('Certificate reference')).toBeNull();
-  expect(screen.getByText(/Recorded: 400 of 600 shares/)).toBeTruthy();
-  expect(screen.getByText(/200 remaining/)).toBeTruthy();
+  expect(screen.queryByText(/Recorded:/)).toBeNull();
   addAllotment();
   expect(allotmentFields(1).queryByRole('textbox', { name: 'Shares' })).toBeNull();
   expect(allotmentFields(1).getByText(/400 shares/)).toBeTruthy();
+  expect(allotmentFields(1).getByText('Paid 0.00 · Unpaid 0.00')).toBeTruthy();
   addAllotment();
   expect(screen.queryByRole('group', { name: 'Allotment 3' })).toBeNull();
-  fireEvent.change(allotmentFields(2).getByLabelText('Date'), { target: { value: '2016-01-01' } });
   fireEvent.change(allotmentFields(2).getByLabelText('Shares'), { target: { value: '200' } });
   fireEvent.change(allotmentFields(2).getByLabelText('Amount paid'), { target: { value: '200' } });
   fireEvent.click(screen.getByRole('button', { name: 'Edit (allotment 1)' }));
   expect(allotmentFields(2).queryByRole('textbox', { name: 'Shares' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Done editing' }));
   expect((allotmentFields(2).getByRole('textbox', { name: 'Shares' }) as HTMLInputElement).value).toBe('200');
   expect((allotmentFields(2).getByLabelText('Amount paid') as HTMLInputElement).value).toBe('200');
   expect(api.post).not.toHaveBeenCalled();
@@ -1337,20 +1376,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Remove (allotment 2)' }));
   expect(screen.queryByRole('group', { name: 'Allotment 2' })).toBeNull();
   expect((allotmentFields(1).getByRole('textbox', { name: 'Shares' }) as HTMLInputElement).value).toBe('400');
-  expect(screen.queryByRole('button', { name: 'Remove (allotment 1)' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Remove (allotment 1)' })).toBeTruthy();
   addAllotment();
   fireEvent.change(allotmentFields(2).getByLabelText('Date'), { target: { value: '2016-01-01' } });
-  fireEvent.change(allotmentFields(2).getByLabelText('Shares'), { target: { value: '200' } });
-  fireEvent.change(allotmentFields(2).getByLabelText('Amount paid'), { target: { value: '200' } });
-  fireEvent.change(allotmentFields(2).getByLabelText('Amount unpaid'), { target: { value: '0' } });
-  fireEvent.change(screen.getByLabelText('Shares held'), { target: { value: '9007199254740995' } });
   fireEvent.change(allotmentFields(2).getByLabelText('Shares'), { target: { value: '9007199254740595' } });
-  expect(screen.getByText(/Recorded: 9,007,199,254,740,995 of 9,007,199,254,740,995 shares/)).toBeTruthy();
-  fireEvent.change(screen.getByLabelText('Shares held'), { target: { value: '600' } });
+  fireEvent.change(allotmentFields(2).getByLabelText('Amount paid'), { target: { value: '200' } });
+  fireEvent.change(allotmentFields(2).getByLabelText('Amount unpaid'), { target: { value: '' } });
+  fireEvent.change(screen.getByLabelText('Current shares held'), { target: { value: '9007199254740995' } });
+  expect(screen.queryByText(/Recorded:/)).toBeNull();
+  fireEvent.change(screen.getByLabelText('Current shares held'), { target: { value: '600' } });
   fireEvent.change(allotmentFields(2).getByLabelText('Shares'), { target: { value: '201' } });
-  expect(screen.getByText(/1 over/)).toBeTruthy();
-  fireEvent.change(allotmentFields(2).getByLabelText('Shares'), { target: { value: '200' } });
-  expect(screen.getByText(/Recorded: 600 of 600 shares/)).toBeTruthy();
+  expect(screen.queryByText(/remaining|over$/)).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Add document' }));
   fireEvent.change(within(screen.getByRole('group', { name: 'Document 1' })).getByLabelText('Category'), {
     target: { value: 'share_certificate' },
@@ -1365,9 +1401,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(within(screen.getByRole('group', { name: 'Document 2' })).getByLabelText('File'), {
     target: { files: [agreement] },
   });
-  fireEvent.submit(screen.getByRole('button', { name: 'Add to draft' }).closest('form')!);
+  fireEvent.submit(screen.getByRole('button', { name: 'Done editing' }).closest('form')!);
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Done editing' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
   expect(screen.queryByLabelText('Name')).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
@@ -1443,7 +1479,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(preparations[0]).toEqual(preparations[1]);
   expect(proposal!.sourceReference).toBe('Company-provided share records');
   expect(proposal!.members[0].enteredOn).toBe('2020-01-01');
-  expect(proposal!.members[0].allotments?.[0].allottedOn).toBe('2015-01-01');
+  expect(proposal!.members[0].allotments?.[0]).toMatchObject({
+    allottedOn: '2015-01-01',
+    shares: '400',
+    amountPaid: '0.00',
+    amountUnpaid: '0.00',
+    fullyPaid: true,
+  });
+  expect(proposal!.members[0].allotments?.[1].shares).toBe('201');
   expect(proposal!.members[0].allotments?.map((allotment) => allotment.beneficiallyHeld)).toEqual([null, null]);
   expect(proposal!.members[0].allotments?.[0].shareReference).toBeNull();
   expect(proposal!.members[0].allotments?.[0].certificateReference).toBeNull();
@@ -1850,15 +1893,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('');
-  expect((screen.getByLabelText('Shares held') as HTMLInputElement).value).toBe('');
+  expect((screen.getByLabelText('Current shares held') as HTMLInputElement).value).toBe('');
   expect(screen.getByRole('button', { name: 'Add to draft' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Save draft and review' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   const enterHolding = () => {
+    if (!screen.queryByRole('group', { name: 'Allotment 1' }))
+      fireEvent.click(screen.getByRole('button', { name: /^Add allotment/ }));
     act(() => {
       for (const [label, value] of [
         ['Date first added to register', '2020-01-01'],
-        ['Shares held', '600'],
+        ['Current shares held', '600'],
         ['Date', '2015-01-01'],
         ['Shares', '600'],
         ['Amount paid', '600'],
@@ -1955,8 +2000,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   );
   expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
   expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
-  for (const label of ['Date first added to register', 'Shares held', 'Date', 'Shares', 'Amount paid'])
+  for (const label of ['Date first added to register', 'Current shares held'])
     expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe('');
+  expect(screen.queryByRole('group', { name: 'Allotment 1' })).toBeNull();
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add to draft' }));
   const preferences = companyPreferences();

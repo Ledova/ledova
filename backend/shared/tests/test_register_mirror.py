@@ -24,8 +24,10 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.services.company_pack_documents import member_documents
+from tokens.services.register import _stored_register
 from tokens.services.register_authority import register_command
 from tokens.services.register_events import verify_register
+from tokens.services.register_imports import _rows
 
 
 class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
@@ -97,7 +99,10 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
                 "ceased_on": "2020-06-01",
             }
         ]
-        prepared = self.client.post(endpoint, payload, format="json")
+        legacy_members, legacy_former = _rows(payload["members"], payload["former_members"], timezone.localdate())
+        legacy_members[0]["amount_paid"] = "70.00"
+        with patch("tokens.services.register_imports._rows", return_value=(legacy_members, legacy_former)):
+            prepared = self.client.post(endpoint, payload, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
         identifier = prepared.json()["uuid"]
         self.assertIsNone(RegisterImport.objects.get(pk=identifier).members[0]["allotments"][2]["beneficially_held"])
@@ -217,7 +222,6 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         correction = deepcopy(payload)
         correction.update(operation_id=str(uuid4()), correction_of=identifier, reason="Correct a copied quantity")
         correction["members"][0]["shares"] = "90"
-        correction["members"][0]["allotments"][1]["shares"] = "20"
         prepared = self.client.post(endpoint, correction, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
         corrected_id = prepared.json()["uuid"]
@@ -229,8 +233,14 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(refused.status_code, 409, refused.content)
         self.decision(endpoint, corrected_id, "approve")
         applied, decision = self.decision(endpoint, corrected_id, "apply")
-        corrected = self.client.get(f"{endpoint}{corrected_id}/").json()["members"][0]["allotments"]
+        corrected_member = self.client.get(f"{endpoint}{corrected_id}/").json()["members"][0]
+        corrected = corrected_member["allotments"]
         self.assertEqual([row["beneficiallyHeld"] for row in corrected], [True, False, None])
+        self.assertEqual(sum(int(row["shares"]) for row in corrected), 100)
+        self.assertEqual(corrected_member["shares"], "90")
+        self.assertIsNone(corrected_member["amountPaid"])
+        with use_operator():
+            self.assertIsNone(_stored_register(token)["rows"][0]["amount_paid"])
         retried = self.client.post(f"{endpoint}{corrected_id}/decide/", decision, format="json")
         self.assertEqual(retried.status_code, 200, retried.content)
         self.assertEqual(applied.json()["correctionOf"], identifier)
@@ -292,8 +302,12 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         another_opening.update(
             operation_id=str(uuid4()), token_id=another_class.json()["uuid"], correction_of=None, former_members=[]
         )
+        another_opening["members"][0]["allotments"] = []
         prepared = self.client.post(endpoint, another_opening, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
+        self.assertEqual(prepared.json()["members"][0]["allotments"], [])
+        self.assertIsNone(prepared.json()["members"][0]["amountPaid"])
+        self.assertEqual(self.client.post(endpoint, another_opening, format="json").status_code, 200)
         another_id = prepared.json()["uuid"]
         self.decision(endpoint, another_id, "approve")
         self.decision(endpoint, another_id, "apply")
@@ -468,7 +482,11 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
             {key: value for key, value in row.items() if key != "amount_paid"} for row in original.members
         ]
         invalid_members = []
-        for field, value in (("amount_unpaid", None), ("beneficially_held", "false")):
+        for field, value in (
+            ("amount_unpaid", None),
+            ("beneficially_held", "false"),
+            ("shares", str(MAX_UINT256 + 1)),
+        ):
             raw_members = deepcopy(original.members)
             raw_members[0]["allotments"][0][field] = value
             invalid_members.append(raw_members)
@@ -529,10 +547,6 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         too_many = deepcopy(payload)
         too_many["members"][0]["shares"] = str(MAX_UINT256 + 1)
         refused = self.client.post(endpoint, too_many, format="json")
-        self.assertEqual(refused.status_code, 400, refused.content)
-        bad_total = deepcopy(payload)
-        bad_total["members"][0]["shares"] = "99"
-        refused = self.client.post(endpoint, bad_total, format="json")
         self.assertEqual(refused.status_code, 400, refused.content)
         first = self.client.post(endpoint, payload, format="json")
         self.assertEqual(first.status_code, 201, first.content)

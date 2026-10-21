@@ -118,8 +118,8 @@ def _reference(value):
     return value.strip()
 
 
-def _allotments(rows, shares, as_at):
-    if not isinstance(rows, list) or not rows or len(rows) > 10000:
+def _allotments(rows, as_at):
+    if not isinstance(rows, list) or len(rows) > 10000:
         raise ValueError
     result = []
     for row in rows:
@@ -145,8 +145,6 @@ def _allotments(rows, shares, as_at):
                 "beneficially_held": row["beneficially_held"],
             }
         )
-    if sum(int(row["shares"]) for row in result) != int(shares):
-        raise ValidationError("Each member's allotments must add up to their current holding.")
     return sorted(
         result, key=lambda row: (row["allotted_on"], row["share_reference"] or "", row["certificate_reference"] or "")
     )
@@ -162,7 +160,7 @@ def _rows(members, former_members, as_at):
                 raise ValueError
             shares = _whole(row["shares"])
             entered_on = _day(row["entered_on"], as_at)
-            allotments = _allotments(row["allotments"], shares, as_at)
+            allotments = _allotments(row["allotments"], as_at)
             current.append(
                 {
                     **({"documents": document_rows(row["documents"])} if "documents" in row else {}),
@@ -172,7 +170,7 @@ def _rows(members, former_members, as_at):
                     "shares": shares,
                     "entered_on": entered_on,
                     "allotments": allotments,
-                    "amount_paid": format(sum(Decimal(item["amount_paid"]) for item in allotments), ".2f"),
+                    "amount_paid": None,
                 }
             )
         former = []
@@ -190,8 +188,8 @@ def _rows(members, former_members, as_at):
     except (ValueError, TypeError, AttributeError):
         raise ValidationError(
             "Each current member needs a member ID, name, residential address, whole shares, a date entered no later "
-            "than the mirror date and complete allotments with dates, references where present, paid/unpaid amounts "
-            "and beneficial status; each former member needs a name, residential "
+            "than the mirror date. Optional allotment history needs dates, whole shares, references where present, "
+            "paid/unpaid amounts and beneficial status; each former member needs a name, residential "
             "address, whole shares and a date ceased no later than the register date."
         ) from None
     if sum(int(row["shares"]) for row in current) > MAX_UINT256:
@@ -436,7 +434,10 @@ def prepare_import(
             }
             existing = RegisterImport.objects.filter(pk=operation_id).first()
             if existing is not None:
-                if any(getattr(existing, key) != value for key, value in expected.items()):
+                retained_members = [{**row, "amount_paid": None} for row in existing.members]
+                if retained_members != current or any(
+                    getattr(existing, key) != value for key, value in expected.items() if key != "members"
+                ):
                     raise RegisterChangeConflict()
                 return existing, False
             unmet = _empty_opening_requirements(

@@ -1330,6 +1330,15 @@ use the same attachment control. The company continues to keep its complete lega
 Ledova's mirror does not replace it. Mobile workflow changes remain deferred, with a read-only
 compatibility label for unknown values.
 
+The owner then separated the opening balance from optional allotment history. **Current shares
+held** comes from the company's current records; copied historical allotments may be absent or
+total a different quantity after transfers or cancellations. They neither issue shares nor impose
+an allowance on future issues. Remove the remaining-share counter and the forced equality in web,
+API and PostgreSQL validation. New opening snapshots do not infer the current holding's amount paid
+from optional history. New web paid/unpaid fields default to zero, including when cleared; retain
+earlier unknown amounts, calculated values and exact retries. The company's legal historical
+records and the separate new-issue safeguards remain unchanged.
+
 ## Paper and Dark themes
 
 On 14 October 2026 the owner directed under

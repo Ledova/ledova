@@ -68,7 +68,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                 </Row>
               ))}
             </Rows>
-            {selected.allotments ? (
+            {selected.allotments?.length ? (
               <div className="space-y-4">
                 {selected.allotments.map((allotment, index) => (
                   <section key={index} className="space-y-3 border-t border-border-subtle pt-4">
@@ -103,7 +103,9 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
               </div>
             ) : (
               <p className="text-sm text-text-muted">
-                Allotment particulars were not captured in this earlier snapshot.
+                {selected.allotments
+                  ? 'No allotment history recorded.'
+                  : 'Allotment particulars were not captured in this earlier snapshot.'}
               </p>
             )}
             {!!selected.documents?.length && (

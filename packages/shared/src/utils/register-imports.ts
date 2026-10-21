@@ -12,6 +12,7 @@ import type {
 } from '../types';
 import { rowsOf } from './register-commands';
 import { isRegisterImportMemberDocuments } from './register-member-documents';
+import { isCalendarDate } from './date';
 
 const MEMBER_TEXT = ['member', 'name', 'residentialAddress', 'shares', 'enteredOn'];
 const FORMER_TEXT = ['name', 'residentialAddress', 'shares', 'ceasedOn'];
@@ -50,6 +51,10 @@ export function registerImportMoney(value: string) {
   return match ? `${match[1]}.${(match[2] ?? '').padEnd(2, '0')}` : null;
 }
 
+function positiveShares(value: string) {
+  return /^[1-9]\d{0,77}$/.test(value) && BigInt(value) < 2n ** 256n;
+}
+
 function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
   return (
     rowsOf<RegisterImportAllotment>(
@@ -57,12 +62,12 @@ function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
       ['allottedOn', 'shares', 'amountPaid', 'amountUnpaid'],
       ['shareReference', 'certificateReference'],
     ) &&
-    value.length > 0 &&
     value.every(
       (row) =>
+        isCalendarDate(row.allottedOn) &&
         typeof row.fullyPaid === 'boolean' &&
         (row.beneficiallyHeld === null || typeof row.beneficiallyHeld === 'boolean') &&
-        /^[1-9]\d*$/.test(row.shares) &&
+        positiveShares(row.shares) &&
         registerImportMoney(row.amountPaid) !== null &&
         registerImportMoney(row.amountUnpaid) !== null &&
         row.fullyPaid === (registerImportMoney(row.amountUnpaid) === '0.00'),
@@ -71,14 +76,11 @@ function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
 }
 
 function currentRowOf(row: RegisterImportMemberRow) {
-  if (!allotmentsOf(row.allotments)) return false;
-  const shares = row.allotments.reduce((sum, allotment) => sum + BigInt(allotment.shares), 0n);
-  const paid = row.allotments.reduce(
-    (sum, allotment) => sum + BigInt(registerImportMoney(allotment.amountPaid)!.replace('.', '')),
-    0n,
-  );
   return (
-    row.shares === shares.toString() && row.amountPaid === `${paid / 100n}.${(paid % 100n).toString().padStart(2, '0')}`
+    positiveShares(row.shares) &&
+    isCalendarDate(row.enteredOn) &&
+    (row.amountPaid === null || registerImportMoney(row.amountPaid) !== null) &&
+    allotmentsOf(row.allotments)
   );
 }
 

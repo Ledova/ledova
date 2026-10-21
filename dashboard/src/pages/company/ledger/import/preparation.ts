@@ -60,13 +60,11 @@ export function allotmentProblems(allotment: AllotmentDraft, asAt: string) {
   const problems: string[] = [];
   if (!isCalendarDate(allotment.allottedOn) || allotment.allottedOn > asAt || positiveShares(allotment.shares) === null)
     problems.push('Enter shares and an allotment date no later than the record date.');
-  if (registerImportMoney(allotment.amountPaid) === null || registerImportMoney(allotment.amountUnpaid) === null)
-    problems.push('Enter paid and unpaid amounts, using 0 where none is recorded.');
   if (
-    registerImportMoney(allotment.amountUnpaid) !== null &&
-    allotment.fullyPaid !== (registerImportMoney(allotment.amountUnpaid) === '0.00')
+    registerImportMoney(allotment.amountPaid.trim() || '0') === null ||
+    registerImportMoney(allotment.amountUnpaid.trim() || '0') === null
   )
-    problems.push('Payment status must agree with the unpaid amount.');
+    problems.push('Enter valid paid and unpaid amounts.');
   return problems;
 }
 
@@ -77,8 +75,8 @@ export function blankAllotment(): AllotmentDraft {
     shares: '',
     shareReference: '',
     certificateReference: '',
-    amountPaid: '',
-    amountUnpaid: '',
+    amountPaid: '0.00',
+    amountUnpaid: '0.00',
     fullyPaid: true,
     beneficiallyHeld: null,
   };
@@ -91,7 +89,7 @@ export function blankMember(): MemberDraft {
     residentialAddress: '',
     shares: '',
     enteredOn: '',
-    allotments: [blankAllotment()],
+    allotments: [],
     documents: [],
   };
 }
@@ -112,7 +110,7 @@ export function initialMembers(register: TokenHoldersResponse, correction?: Regi
             shareReference: allotment.shareReference ?? '',
             certificateReference: allotment.certificateReference ?? '',
           }))
-        : [blankAllotment()],
+        : [],
     }));
   if (!register.initialized) return [blankMember()];
   return register.holders.map((holder) => ({
@@ -122,7 +120,7 @@ export function initialMembers(register: TokenHoldersResponse, correction?: Regi
     documents: [],
     shares: holder.balance,
     enteredOn: holder.enteredOn,
-    allotments: [blankAllotment()],
+    allotments: [],
   }));
 }
 
@@ -143,11 +141,11 @@ export function memberRows(members: MemberDraft[]): RegisterImportCurrentMemberR
     allotments: row.allotments.map((allotment) => {
       return {
         allottedOn: allotment.allottedOn,
-        fullyPaid: allotment.fullyPaid,
+        fullyPaid: registerImportMoney(allotment.amountUnpaid.trim() || '0') === '0.00',
         beneficiallyHeld: allotment.beneficiallyHeld,
         shares: positiveShares(allotment.shares) ?? allotment.shares.trim(),
-        amountPaid: registerImportMoney(allotment.amountPaid) ?? allotment.amountPaid.trim(),
-        amountUnpaid: registerImportMoney(allotment.amountUnpaid) ?? allotment.amountUnpaid.trim(),
+        amountPaid: registerImportMoney(allotment.amountPaid.trim() || '0') ?? allotment.amountPaid.trim(),
+        amountUnpaid: registerImportMoney(allotment.amountUnpaid.trim() || '0') ?? allotment.amountUnpaid.trim(),
         shareReference: allotment.shareReference.trim() || null,
         certificateReference: allotment.certificateReference.trim() || null,
       };
@@ -257,17 +255,10 @@ export function preparationProblems(draft: PreparationDraft, today: string, empt
       problems.push(
         `${label}: enter a name, address, shares and original membership date no later than the record date.`,
       );
-    if (row.allotments.length === 0) problems.push(`${label}: add the allotments underlying this holding.`);
-    let total = 0n;
     row.allotments.forEach((allotment, at) => {
       const prefix = `${label}, allotment ${at + 1}`;
-      const shares = positiveShares(allotment.shares);
-      if (shares !== null) total += BigInt(shares);
       problems.push(...allotmentProblems(allotment, draft.asAt).map((problem) => `${prefix}: ${problem}`));
     });
-    const shares = positiveShares(row.shares);
-    if (shares !== null && total !== BigInt(shares))
-      problems.push(`${label}: allotment shares must add up to the current holding.`);
   });
   if (draft.former.some((row) => incomplete(row) || !dated(row.ceasedOn)))
     problems.push('Complete any former shareholder details copied from the source record.');
