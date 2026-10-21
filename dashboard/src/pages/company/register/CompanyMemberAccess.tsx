@@ -88,7 +88,7 @@ export function CompanyMemberAccess({
           {access.readFailed ? access.failure : access.error}
         </p>
       )}
-      {access.notice && <Outcome>{access.notice}</Outcome>}
+      <Outcome>{access.notice}</Outcome>
       {access.retry && (
         <PageAction
           label="Retry original company member action"

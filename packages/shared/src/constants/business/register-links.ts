@@ -20,7 +20,7 @@ export const REGISTER_LINK_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_LINK_COPY = {
   TITLE: 'Wallet links',
-  EMPTY: 'No wallet link has been prepared for this company.',
+  EMPTY: 'No wallet links yet.',
   PREPARE: 'Link waiting wallets',
   NOTHING_WAITING: 'No completed issue or transfer is waiting for a wallet to be linked.',
   PROVIDED_BY_COMPANY: 'Provided by the company',

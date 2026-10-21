@@ -81,11 +81,9 @@ function OwnAuthorityRequests({
             }}
           />
         )}
+        <Outcome>{recorded && `Request recorded. ${recorded.verificationMessage}`}</Outcome>
         {recorded ? (
-          <div className="space-y-2">
-            <Outcome>Request recorded. {recorded.verificationMessage}</Outcome>
-            <PageAction label="Start another request" onClick={() => setRecorded(null)} />
-          </div>
+          <PageAction label="Start another request" onClick={() => setRecorded(null)} />
         ) : (
           company && (
             <AuthorityRequestForm
@@ -110,7 +108,7 @@ function OwnAuthorityRequests({
             Your authority requests could not be loaded.
           </LoadError>
         ) : (history.data ?? []).length === 0 ? (
-          <p className="text-sm text-text-muted">No authority requests recorded.</p>
+          <p className="text-sm text-text-muted">No authority requests yet.</p>
         ) : (
           <ul className="divide-y divide-border-subtle">
             {(history.data ?? []).map((request) => (

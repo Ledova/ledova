@@ -103,7 +103,7 @@ function PackForm({
           {error}
         </p>
       )}
-      {downloaded && <Outcome>The company pack was downloaded.</Outcome>}
+      <Outcome>{downloaded && 'The company pack was downloaded.'}</Outcome>
     </div>
   );
 }

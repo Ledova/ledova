@@ -234,7 +234,7 @@ export function useNonPaidIssues({
       ) : privateReady && grants.data.length === 0 ? (
         <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
-      {!grants.isError && (
+      {!grants.isError && !appointments.isError && (
         <PageAction
           label="Refresh grants"
           busy={grants.isFetching || appointments.isFetching}

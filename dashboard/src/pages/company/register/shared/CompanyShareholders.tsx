@@ -67,7 +67,7 @@ export function CompanyShareholders({
         </p>
       )}
       {shareholders.length === 0 ? (
-        <p className="text-sm text-text-muted">No current shareholders are recorded.</p>
+        <p className="text-sm text-text-muted">No current shareholders yet.</p>
       ) : (
         <>
           <ListSearch

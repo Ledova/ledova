@@ -341,7 +341,7 @@ function OwnShareholder({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-text-muted">No recorded changes.</p>
+                <p className="text-sm text-text-muted">No changes yet.</p>
               ),
             )}
           </Section>

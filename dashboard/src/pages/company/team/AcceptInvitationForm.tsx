@@ -83,7 +83,7 @@ export function AcceptInvitationForm({
           {error}
         </p>
       )}
-      {receipt && <Outcome>{receipt}</Outcome>}
+      <Outcome>{receipt}</Outcome>
       <FormActions>
         <PageAction
           type="submit"
