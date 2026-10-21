@@ -20,6 +20,7 @@ const scannerTeardowns = new Map<string, Promise<void>>();
 
 const CAMERA_UNAVAILABLE =
   'The camera could not be started. Check that this device has a camera and that the browser may use it.';
+const PREVIOUS_CAMERA_RUNNING = 'The previous camera could not be stopped. Reload before scanning again.';
 
 export function useQRScanner({
   scannerId,
@@ -94,7 +95,8 @@ export function useQRScanner({
             if (state === 2 || state === 3) await run.scanner!.stop();
             release();
           } catch {
-            fail(new Error('The previous camera could not be stopped. Reload before scanning again.'));
+            if (run.scanner && !run.scanner.isScanning) release();
+            else fail(new Error(PREVIOUS_CAMERA_RUNNING));
           }
         })();
       },
@@ -135,9 +137,13 @@ export function useQRScanner({
           });
           await run.starting;
           if (current()) setIsScanning(true);
-        } catch {
+        } catch (err) {
           if (!current()) return;
-          setError(CAMERA_UNAVAILABLE);
+          setError(
+            err instanceof Error && err.message === PREVIOUS_CAMERA_RUNNING
+              ? PREVIOUS_CAMERA_RUNNING
+              : CAMERA_UNAVAILABLE,
+          );
           run.stop();
         }
       })();
