@@ -78,7 +78,11 @@ function EntryHistory({
           return (
             <li key={entry.uuid} hidden={!privateReady} className="flex flex-col gap-2 py-4">
               <Disclosure
-                summary={`${COPY.ENTRY_KINDS[entry.kind] ?? entry.kind} · Entry ${entry.sequence} · ${formatDate(entry.effectiveOn)}`}
+                summary={
+                  privateReady
+                    ? `${COPY.ENTRY_KINDS[entry.kind] ?? entry.kind} · Entry ${entry.sequence} · ${formatDate(entry.effectiveOn)}`
+                    : ''
+                }
               >
                 {privateReady && (
                   <>

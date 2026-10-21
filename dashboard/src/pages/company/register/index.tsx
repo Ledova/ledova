@@ -549,7 +549,7 @@ function OwnRegister({
                   </div>
                   <div hidden={view !== 'register' || selectedTask !== 'history'}>
                     <div className="space-y-4">
-                      <h4 className="text-sm font-medium">Recorded changes</h4>
+                      <h3 className="text-sm font-medium">Recorded changes</h3>
                       {sourceReady && (
                         <LinkRow
                           to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}

@@ -505,7 +505,9 @@ function MemberRecords({
                 {invitation}
               </Section>
             ) : (
-              <Disclosure summary="Accept another member invitation">{invitation}</Disclosure>
+              <div className="rounded-xl border border-border p-4">
+                <Disclosure summary="Accept another member invitation">{invitation}</Disclosure>
+              </div>
             )}
           </>
         )}

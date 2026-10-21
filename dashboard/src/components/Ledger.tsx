@@ -126,7 +126,10 @@ export function Disclosure({
         id={`${id}summary`}
         aria-expanded={shown}
         aria-controls={`${id}detail`}
-        onClick={() => (onToggle ? onToggle() : setOwn((value) => !value))}
+        onClick={() => {
+          if (open === undefined) setOwn((value) => !value);
+          onToggle?.();
+        }}
         className="group flex w-full cursor-pointer items-start gap-3 py-4 text-left"
       >
         <CaretRightIcon

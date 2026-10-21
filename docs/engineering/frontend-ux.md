@@ -64,10 +64,11 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
 - `Disclosure`: every expandable section on a web page, a button with `aria-expanded` (expanded or
   collapsed on mobile) and a leading caret that opens its detail in place under its row; a summary
-  given as text takes the one summary style. A list's rows open independently (`useOpenRows` from
-  `@ledova/shared`) and hold their detail only while open. Any other section keeps its detail mounted
-  while closed, so unfinished input survives, and may start open, as a prepared register record
-  does. The sidebar's More group is the one native toggle, styled as a navigation item. Activity's
+  given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
+  independently through `useOpenRows` from `@ledova/shared`), Activity's filter and Wallets' sort
+  hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
+  so unfinished input survives, and may start open, as a prepared register record does. The
+  sidebar's More group is the one native toggle, styled as a navigation item. Activity's
   filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
   naming what it applies; applying or clearing closes it and every open entry and returns focus to
   its button. Dialogs are for work that sets the page aside: a form that creates or changes
@@ -130,8 +131,8 @@ found its member, its link goes back to that member by name. Register setup has 
 A way back to a Register class or task carries the place it means, built by `registerPlace`
 (`dashboard/src/pages/company/register/shared/registerPlace.ts`): a correction, an opening and a
 class's own page return to that class's History, a non-paid transfer to that class's Transfer shares,
-and wallet links to the company's History; a shareholder's page links back to Shareholders with its
-company. A transfer started from a shareholder's page links back to them by name. Preparing a
+and wallet links to the company's History. A shareholder's page links back to Shareholders with its
+company through `Page`'s parent link, and a transfer started there links back to them by name. Preparing a
 correction, opening, non-paid transfer, wallet link or particulars change lands on the new record in
 Register, at its class and task, focused and with one line naming what was prepared
 ([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
