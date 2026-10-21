@@ -35,6 +35,7 @@ export function AuthorityRequestForm({
     change,
     busy,
     problems,
+    watchDate,
     toggle,
     send,
   } = useAuthorityRequestForm({
@@ -71,12 +72,7 @@ export function AuthorityRequestForm({
             const values = scope === 'requested' ? requested : delegatable;
             const set = scope === 'requested' ? setRequested : setDelegatable;
             return (
-              <fieldset
-                key={scope}
-                disabled={disabled || busy}
-                aria-describedby={actions.error ? actionsError : undefined}
-                className="space-y-2"
-              >
+              <fieldset key={scope} disabled={disabled || busy} className="space-y-2">
                 <legend className="text-sm font-medium text-text-primary">
                   {scope === 'requested'
                     ? 'Actions you request for yourself'
@@ -88,6 +84,7 @@ export function AuthorityRequestForm({
                       type="checkbox"
                       className="mt-1 shrink-0"
                       aria-invalid={actions.error ? true : undefined}
+                      aria-describedby={actions.error ? actionsError : undefined}
                       checked={values.includes(value)}
                       onChange={() => change(() => set(toggle(values, value)))}
                     />
@@ -109,6 +106,7 @@ export function AuthorityRequestForm({
           type="date"
           min={utcToday()}
           value={expiry}
+          {...watchDate('expiry')}
           disabled={disabled || busy}
           onChange={(event) => change(() => setExpiry(event.target.value))}
         />

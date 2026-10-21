@@ -7,6 +7,8 @@ import {
   type RegisterAllotment,
   type RegisterAllotmentDecisionPreview,
   shareCount,
+  formatMoney,
+  formatDate,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -25,23 +27,25 @@ function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterA
       <Row label="Residential address">{allotment.residentialAddress}</Row>
       <Row label="Member record">{allotment.newMember ? 'New member' : 'Existing member'}</Row>
       <Row label={COPY.SHARES}>{shareCount(allotment.shares)}</Row>
-      <Row label={COPY.CONSIDERATION}>AUD {allotment.consideration}</Row>
+      <Row label={COPY.CONSIDERATION}>{formatMoney(allotment.consideration, allotment.currency)}</Row>
       <Row label={COPY.AGREEMENT_REFERENCE}>{allotment.agreement.reference}</Row>
-      <Row label={COPY.AGREEMENT_ON}>{allotment.agreement.agreedOn}</Row>
+      <Row label={COPY.AGREEMENT_ON}>{formatDate(allotment.agreement.agreedOn)}</Row>
       <Row label={COPY.TERMS}>{allotment.agreement.terms}</Row>
       <Row label="Agreement recorded">
         {allotment.agreement.recordedBy} · {formatDateTime(allotment.agreement.recordedAt)}
       </Row>
-      <Row label={COPY.RECEIVED_AMOUNT}>AUD {allotment.contribution.amount}</Row>
-      <Row label={COPY.RECEIVED_ON}>{allotment.contribution.receivedOn}</Row>
+      <Row label={COPY.RECEIVED_AMOUNT}>{formatMoney(allotment.contribution.amount, allotment.currency)}</Row>
+      <Row label={COPY.RECEIVED_ON}>{formatDate(allotment.contribution.receivedOn)}</Row>
       <Row label="Receipt attested">
         {allotment.contribution.recordedBy} · {formatDateTime(allotment.contribution.recordedAt)}
       </Row>
-      <Row label={COPY.COMPANY_EVENT_ON}>{allotment.companyEventOn || 'Not recorded'}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(allotment.companyEventOn, 'Not recorded')}</Row>
       {'registerEntry' in allotment &&
         allotment.registerEntry &&
         allotment.effectiveOn &&
-        allotment.effectiveOn !== allotment.companyEventOn && <Row label="Ledger date">{allotment.effectiveOn}</Row>}
+        allotment.effectiveOn !== allotment.companyEventOn && (
+          <Row label="Ledger date">{formatDate(allotment.effectiveOn)}</Row>
+        )}
       <Row label={COPY.DIRECTOR}>{allotment.approvingDirector}</Row>
     </Rows>
   );
@@ -76,7 +80,7 @@ export function AllotmentRecord({
             <div>
               <h4 className="text-base font-medium">{allotment.name}</h4>
               <p className="text-sm text-text-muted">
-                {shareCount(allotment.shares)} · AUD {allotment.consideration}
+                {shareCount(allotment.shares)} · {formatMoney(allotment.consideration, allotment.currency)}
               </p>
             </div>
             <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
@@ -85,7 +89,7 @@ export function AllotmentRecord({
           </div>
           <p className="text-sm text-text-muted">
             {allotment.stage === 'applied'
-              ? `${allotment.companyEventOn ? `Shares issued on ${allotment.companyEventOn}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
+              ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
               : allotment.stage === 'approved'
                 ? 'Next: record the approved share issue. Approval has not changed ownership.'
                 : allotment.stage === 'rejected'

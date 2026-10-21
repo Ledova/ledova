@@ -103,7 +103,10 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
             ]}
             value={data.walletUuid}
             disabled={blocked}
-            onChange={data.setWallet}
+            onChange={(uuid) => {
+              checks.reset();
+              data.setWallet(uuid);
+            }}
           />
           {data.wallets.isSuccess && wallets.length === 0 && (
             <p className="text-sm text-text-muted">No own Base wallets yet.</p>

@@ -60,6 +60,7 @@ export function AddWalletModal({
   useEffect(() => {
     if (isOpen) {
       form.reset();
+      checks.reset();
     }
   }, [isOpen]);
 

@@ -1,6 +1,6 @@
 import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
-import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_DECISIONS, formatDateTime } from '@ledova/shared';
+import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_DECISIONS, formatDateTime, formatDate } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
@@ -43,7 +43,7 @@ export function CorrectionRecord({
               <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>
             )}
             <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
-            <Row label={COPY.EFFECTIVE_ON}>{proposal.effectiveOn}</Row>
+            <Row label={COPY.EFFECTIVE_ON}>{formatDate(proposal.effectiveOn)}</Row>
             <Row label={COPY.ORIGINAL_CHANGES}>
               <span className="block">{describeEntry(entry)}</span>
               <RegisterChanges changes={entry.changes} />
@@ -90,7 +90,7 @@ export function CorrectionRecord({
         {(preview) => (
           <Rows>
             <Row label="Register sequence">{preview.registerSequence}</Row>
-            <Row label={COPY.EFFECTIVE_ON}>{preview.effectiveOn}</Row>
+            <Row label={COPY.EFFECTIVE_ON}>{formatDate(preview.effectiveOn)}</Row>
             <Row label={COPY.ORIGINAL_CHANGES}>
               <RegisterChanges changes={preview.originalChanges} named={entry.changes} />
             </Row>

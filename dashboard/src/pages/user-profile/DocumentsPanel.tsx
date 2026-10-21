@@ -3,6 +3,8 @@ import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { Choices } from '@components/Choices';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
   FIELD_LIMITS,
   DESTINATIONS,
@@ -135,11 +137,15 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
 }
 
 function ClaimSelector({
+  id,
+  error,
   claims,
   value,
   onChange,
   disabled,
 }: {
+  id?: string;
+  error?: string | null;
   claims: InvestorClassification[];
   value: string;
   onChange: (value: string) => void;
@@ -147,6 +153,8 @@ function ClaimSelector({
 }) {
   return (
     <SelectField
+      id={id}
+      error={error}
       label="Classification claim"
       options={[
         { value: '', label: 'Keep unattached' },
@@ -174,6 +182,9 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const del = useDeleteDocument();
   const attach = useAttachDocument();
   const [classification, setClassification] = useState('');
+  const attachment = useErrorSummary({
+    classification: !classification && 'Choose the claim to attach this payslip to.',
+  });
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -208,7 +219,9 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         </p>
       ) : (
         <div className="mt-3 space-y-2">
+          <ErrorSummary {...attachment.summary} />
           <ClaimSelector
+            {...attachment.field('classification')}
             claims={claims}
             value={classification}
             onChange={setClassification}
@@ -219,8 +232,9 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
             label="Attach to claim"
             busy={attach.isPending}
             busyLabel="Attaching…"
-            disabled={!classification}
-            onClick={() => attach.mutate({ uuid: doc.uuid, classification })}
+            onClick={() => {
+              if (attachment.check()) attach.mutate({ uuid: doc.uuid, classification });
+            }}
           />
           <p className="text-xs text-text-muted">
             Unattached payslips are removed{' '}

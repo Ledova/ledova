@@ -8,6 +8,7 @@ import {
   openingMemberLabels,
   type RegisterOpening,
   shareCount,
+  formatDate,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -54,7 +55,7 @@ export function OpeningRecord({
             )}
             <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
             <Row label={COPY.BOUNDARY}>
-              {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, summary.date) : 'Not captured'}
+              {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, formatDate(summary.date)) : 'Not captured'}
             </Row>
           </Rows>
           {summary && (
@@ -121,7 +122,7 @@ export function OpeningRecord({
         {(preview) =>
           preview.effectiveOn !== null && (
             <Rows>
-              <Row label="Effective on">{preview.effectiveOn}</Row>
+              <Row label="Effective on">{formatDate(preview.effectiveOn)}</Row>
               <Row label="Opening entry">
                 {preview.changes.length === 0 ? (
                   COPY.NO_HOLDINGS

@@ -40,6 +40,7 @@ export function TeamInvitationForm({
     busy,
     error,
     problems,
+    watchDate,
     recorded,
     setRecorded,
     keyRef,
@@ -114,12 +115,7 @@ export function TeamInvitationForm({
               const values = scope === 'personal' ? personal : delegatable;
               const set = scope === 'personal' ? setPersonal : setDelegatable;
               return (
-                <fieldset
-                  key={scope}
-                  disabled={disabled || busy}
-                  aria-describedby={actions.error ? actionsError : undefined}
-                  className="space-y-2"
-                >
+                <fieldset key={scope} disabled={disabled || busy} className="space-y-2">
                   <legend className="text-sm font-medium text-text-primary">
                     {scope === 'personal' ? 'Actions for the appointee' : 'Actions the appointee may delegate'}
                   </legend>
@@ -130,6 +126,7 @@ export function TeamInvitationForm({
                           type="checkbox"
                           className="mt-1 shrink-0"
                           aria-invalid={actions.error ? true : undefined}
+                          aria-describedby={actions.error ? actionsError : undefined}
                           checked={values.includes(value)}
                           onChange={() => change(() => set(toggle(values, value)))}
                         />
@@ -154,6 +151,7 @@ export function TeamInvitationForm({
               min={utcToday()}
               max={addCalendarDays(utcToday(), 29)}
               value={deadline}
+              {...watchDate('deadline')}
               disabled={disabled || busy}
               onChange={(event) => change(() => setDeadline(event.target.value))}
             />
@@ -163,6 +161,7 @@ export function TeamInvitationForm({
               type="date"
               min={utcToday()}
               value={expiry}
+              {...watchDate('expiry')}
               disabled={disabled || busy}
               onChange={(event) => change(() => setExpiry(event.target.value))}
             />

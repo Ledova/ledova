@@ -3,6 +3,9 @@ import { DESTINATIONS, companyActivationOutcome, useCompanyActivation, useCompan
 import { Page, PageAction, PageLink } from '@components/Page';
 import { LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { Modal } from '@components/Modal';
+import { CheckboxField } from '@components/Field';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
@@ -118,6 +121,7 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
   const target = action.preview!;
   const [acceptance, setAcceptance] = useState<typeof action.preview>(null);
   const accepted = acceptance === target;
+  const declaration = useErrorSummary({ accepted: !accepted && 'Accept the declaration for this company.' });
   return (
     <Modal
       isOpen
@@ -126,23 +130,21 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
       confirmLabel="Confirm activation"
       busy={action.busy}
       busyLabel="Activating…"
-      confirmDisabled={!accepted}
       onClose={action.cancel}
       onConfirm={() => {
-        if (accepted) void action.confirm(target);
+        if (declaration.check()) void action.confirm(target);
       }}
     >
+      <ErrorSummary {...declaration.summary} className="mb-3" />
       <p className="text-sm text-text-primary">{target.name}</p>
       <p className="whitespace-pre-wrap text-sm text-text-primary">{target.text}</p>
-      <label className="flex items-start gap-2 text-sm text-text-primary">
-        <input
-          type="checkbox"
-          checked={accepted}
-          disabled={action.busy}
-          onChange={(event) => setAcceptance(event.target.checked ? target : null)}
-        />
-        I accept this declaration for this company.
-      </label>
+      <CheckboxField
+        {...declaration.field('accepted')}
+        label="I accept this declaration for this company."
+        checked={accepted}
+        disabled={action.busy}
+        onChange={(event) => setAcceptance(event.target.checked ? target : null)}
+      />
       <p className="text-sm text-text-muted">
         The configured ABR lookup must match before activation can be applied. A failed or unavailable check remains in
         the record.

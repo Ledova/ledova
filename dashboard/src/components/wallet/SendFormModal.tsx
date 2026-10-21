@@ -29,6 +29,8 @@ import type { UnifiedAsset } from './useTransferFlow';
 import { Field, TextInput } from '@components/Field';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { Loading } from '@components/Ledger';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 interface SendFormModalProps {
   isOpen: boolean;
@@ -77,7 +79,22 @@ export function SendFormModal({
   const isBitcoin = wallet.chain === BLOCKCHAIN.BITCOIN;
   const ChainIcon = isBitcoin ? CurrencyBtcIcon : CurrencyEthIcon;
   const displayAddress = formatWalletAddressShort(wallet.address);
-
+  const isValidAddress = isBitcoin
+    ? validateWalletAddress(toAddress, wallet.chain)
+    : toAddress.length === 42 && toAddress.startsWith('0x');
+  const parsedAmount = parseFloat(amount);
+  const parsedBalance = parseFloat(selectedAsset?.displayBalance.replace(/,/g, '') || '0');
+  const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= parsedBalance;
+  const checks = useErrorSummary({
+    asset: !selectedAsset && 'Choose an asset to send.',
+    address: !isValidAddress && `Enter a valid ${getBlockchainDisplayName(chainShortCode)} address.`,
+    amount:
+      !!selectedAsset &&
+      !isValidAmount &&
+      (parsedAmount > parsedBalance
+        ? 'Enter an amount no more than the available balance.'
+        : 'Enter an amount greater than zero.'),
+  });
   if (wasOpen !== isOpen) {
     setWasOpen(isOpen);
     if (isOpen) {
@@ -85,6 +102,7 @@ export function SendFormModal({
       setToAddress('');
       setAmount('');
       setShowAddressScanner(false);
+      checks.reset();
     }
   }
 
@@ -123,16 +141,7 @@ export function SendFormModal({
   const isShareToken = selectedAsset?.type === 'share_token';
   const isCrypto = selectedAsset?.type === 'crypto';
 
-  const isValidAddress = isBitcoin
-    ? validateWalletAddress(toAddress, wallet.chain)
-    : toAddress.length === 42 && toAddress.startsWith('0x');
-
-  const parsedAmount = parseFloat(amount);
-  const parsedBalance = parseFloat(selectedAsset?.displayBalance.replace(/,/g, '') || '0');
-  const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= parsedBalance;
-
   const whitelistValid = isShareToken ? isSenderWhitelisted && isRecipientWhitelisted : true;
-  const canTransfer = !!selectedAsset && isValidAddress && isValidAmount && whitelistValid;
 
   const handleUseMax = () => {
     if (!selectedAsset) return;
@@ -155,9 +164,7 @@ export function SendFormModal({
   };
 
   const handleConfirm = () => {
-    if (canTransfer && selectedAsset) {
-      onTransfer(selectedAsset, toAddress, amount);
-    }
+    if (checks.check() && whitelistValid && selectedAsset) onTransfer(selectedAsset, toAddress, amount);
   };
 
   const getAssetIcon = (asset: UnifiedAsset, selected: boolean) => {
@@ -202,10 +209,11 @@ export function SendFormModal({
       cancelLabel={onBack ? 'Back' : 'Cancel'}
       onCancel={onBack ?? onClose}
       confirmLabel="Continue"
-      confirmDisabled={!canTransfer}
+      confirmDisabled={!whitelistValid}
       onConfirm={handleConfirm}
     >
       <div className="space-y-4">
+        <ErrorSummary {...checks.summary} />
         <p className="flex items-center gap-2 text-sm text-text-primary">
           <ChainIcon size={ICON_MD} className="flex-shrink-0 text-text-muted" />
           <span className="font-mono">{displayAddress}</span>
@@ -216,7 +224,7 @@ export function SendFormModal({
         ) : assets.length === 0 ? (
           <p className="text-sm text-text-muted">No assets in this wallet yet.</p>
         ) : (
-          <div className="space-y-2">
+          <div id={checks.field('asset').id} className="space-y-2">
             {hasShareTokens && !isSenderWhitelisted && senderWhitelistStatus !== undefined && (
               <p className="flex items-start gap-2 text-sm text-warning-light">
                 <ShieldWarningIcon size={ICON_SM} className="mt-0.5 flex-shrink-0" />
@@ -274,7 +282,12 @@ export function SendFormModal({
         )}
 
         <div className="space-y-2">
-          <Field label="Destination address" aside={scanToggle}>
+          <Field
+            id={checks.field('address').id}
+            label="Destination address"
+            aside={scanToggle}
+            error={showAddressScanner ? null : checks.field('address').error}
+          >
             {showAddressScanner ? (
               <div className="mt-2 space-y-2">
                 <QRScannerView
@@ -294,11 +307,6 @@ export function SendFormModal({
               />
             )}
           </Field>
-          {toAddress && !isValidAddress && (
-            <p className="text-xs text-warning-light">
-              Please enter a valid {getBlockchainDisplayName(chainShortCode)} address
-            </p>
-          )}
         </div>
 
         {isShareToken && isValidAddress && (
@@ -342,7 +350,7 @@ export function SendFormModal({
 
         {selectedAsset && (
           <div className="space-y-2">
-            <Field label={`Amount (${selectedAsset.symbol})`}>
+            <Field {...checks.field('amount')} label={`Amount (${selectedAsset.symbol})`}>
               <TextInput
                 inputMode="decimal"
                 value={amount}
@@ -362,9 +370,6 @@ export function SendFormModal({
                 Use max
               </button>
             </div>
-            {amount && !isValidAmount && parsedAmount > parsedBalance && (
-              <p className="text-xs text-error-light">Amount exceeds available balance</p>
-            )}
           </div>
         )}
       </div>

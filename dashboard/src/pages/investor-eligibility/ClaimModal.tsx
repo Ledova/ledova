@@ -191,15 +191,17 @@ export function ClaimModal({
               <UploadSimpleIcon size={32} className="text-text-muted" weight="light" />
               <div className="text-center">
                 <p className="mb-3 text-sm text-text-primary">Drag and drop your evidence or choose a file.</p>
-                <PageAction label="Choose evidence file" onClick={() => fileInputRef.current?.click()} />
+                <PageAction
+                  label="Choose evidence file"
+                  describedBy={evidenceError ? evidenceErrorId : undefined}
+                  onClick={() => fileInputRef.current?.click()}
+                />
                 <p className="text-xs text-text-muted mt-1">{UPLOAD_RULE.HINT}</p>
               </div>
               <input
                 ref={fileInputRef}
                 type="file"
                 aria-label="Evidence file"
-                aria-invalid={evidenceError ? true : undefined}
-                aria-describedby={evidenceError ? evidenceErrorId : undefined}
                 accept={UPLOAD_RULE.ACCEPT}
                 onChange={(e) => {
                   chooseFile(e.target.files?.[0] ?? null);

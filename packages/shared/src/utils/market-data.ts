@@ -1,8 +1,12 @@
-import { formatShareCount } from './formatting';
+import { formatShareCount, shareCount } from './formatting';
 import { formatMoney } from './distributions';
 
 export function marketQuantity(value: number): string {
   return Number.isSafeInteger(value) && value >= 0 ? formatShareCount(String(value)) : 'Unavailable';
+}
+
+export function marketShares(value: number): string {
+  return Number.isSafeInteger(value) && value >= 0 ? shareCount(value) : 'Unavailable';
 }
 
 export function priceCents(value: string): bigint | null {

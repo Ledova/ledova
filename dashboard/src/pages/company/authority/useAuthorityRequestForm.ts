@@ -8,6 +8,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
+import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
@@ -67,12 +68,12 @@ export function useAuthorityRequestForm({
   };
   const busy = submission.isPending;
   const available = !disabled && !busy;
+  const dates = useIncompleteDates<'expiry'>();
   const problems: Problems<'actions' | 'expiry'> = {
     actions: !requested.length && !delegatable.length && 'Choose at least one action to request or to delegate.',
     expiry:
-      !!expiry &&
-      (!isCalendarDate(expiry) || expiry < utcToday()) &&
-      'Enter a requested expiry no earlier than today (UTC).',
+      (dates.incomplete.expiry || (!!expiry && (!isCalendarDate(expiry) || expiry < utcToday()))) &&
+      'Enter a requested expiry no earlier than today (UTC), or clear it.',
   };
   const toggle = (values: CompanyCapability[], value: CompanyCapability) =>
     values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value].sort();
@@ -99,6 +100,7 @@ export function useAuthorityRequestForm({
     change,
     busy,
     problems,
+    watchDate: dates.watch,
     toggle,
     send,
   };

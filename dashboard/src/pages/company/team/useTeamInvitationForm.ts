@@ -8,6 +8,7 @@ import {
   utcToday,
 } from '@ledova/shared';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
+import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { sameScope } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
@@ -55,16 +56,16 @@ export function useTeamInvitationForm({
   const toggle = (values: CompanyCapability[], value: CompanyCapability) =>
     values.includes(value) ? values.filter((item) => item !== value) : [...values, value].sort();
   const today = utcToday();
+  const dates = useIncompleteDates<'deadline' | 'expiry'>();
   const problems: Problems<'actions' | 'deadline' | 'expiry'> = {
     actions: !personal.length && !delegatable.length && 'Choose at least one action for the appointee or to delegate.',
     deadline:
-      !!deadline &&
-      (!isCalendarDate(deadline) || deadline < today || deadline > addCalendarDays(today, 29)) &&
-      'Enter an invitation deadline from today to 29 days ahead (UTC).',
+      (dates.incomplete.deadline ||
+        (!!deadline && (!isCalendarDate(deadline) || deadline < today || deadline > addCalendarDays(today, 29)))) &&
+      'Enter an invitation deadline from today to 29 days ahead (UTC), or clear it.',
     expiry:
-      !!expiry &&
-      (!isCalendarDate(expiry) || expiry < today) &&
-      'Enter an appointment expiry no earlier than today (UTC).',
+      (dates.incomplete.expiry || (!!expiry && (!isCalendarDate(expiry) || expiry < today))) &&
+      'Enter an appointment expiry no earlier than today (UTC), or clear it.',
   };
   const send = async () => {
     if (disabled || pending.current || recorded || hasProblems(problems)) return;
@@ -139,6 +140,7 @@ export function useTeamInvitationForm({
     busy,
     error,
     problems,
+    watchDate: dates.watch,
     recorded,
     setRecorded,
     keyRef,
