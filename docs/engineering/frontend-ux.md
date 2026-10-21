@@ -108,10 +108,10 @@ authorises.
 
 The web sidebar (`dashboard/src/components/Sidebar.tsx`) is a `<nav>` labelled "Main" whose items
 are links, and the current page's item carries `aria-current="page"`; a page that isn't an item
-marks its nearest parent that is. Below 1024 pixels the header's
-menu button opens the same sidebar as a Headless UI `Dialog`: the button reports `aria-expanded`,
-focus stays inside the drawer while it is open, and Escape or a choice closes it. The first Tab on a
-signed-in page reaches "Skip to main content", which moves focus to the page's heading.
+marks its nearest parent that is. Below 1024 pixels the header's menu button opens the same sidebar
+as a Headless UI `Dialog`: the button reports `aria-expanded`, focus stays inside the drawer while it
+is open, and Escape or a choice closes it. The first Tab on a signed-in page reaches "Skip to main
+content", which moves focus to the page's heading.
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
 Register's views (Shareholders, Employee awards, Documents) and tasks, and Home's Documents view, and
@@ -132,7 +132,7 @@ as from `/` to your dashboard, and after a change to the search, filter or page 
 
 Focus outlines come in one style: two pixels in the focus colour (`--color-border-focus`), set once
 for `:focus-visible` in `dashboard/src/styles/index.css`. Text fields, and the sign-in and sign-up
-fields and buttons, keep their own focus rings.
+fields and action buttons, keep their own focus rings.
 
 ## Actions
 
