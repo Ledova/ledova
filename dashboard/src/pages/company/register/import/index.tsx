@@ -181,7 +181,7 @@ function OwnImport({
             state={{ registerCompany: listed.companyUuid }}
             className="text-brand-light underline"
           >
-            Open Register
+            Open Ledger
           </Link>{' '}
           to open it from the chain or check its deployment state.
         </p>

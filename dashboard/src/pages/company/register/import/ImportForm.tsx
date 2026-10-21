@@ -72,12 +72,10 @@ export function ImportForm({
     mutable,
     update,
     setMember,
-    setFormer,
     problems,
     detailProblems,
     holderProblems,
     differs,
-    imported,
     prepare,
     decision,
     kind,
@@ -186,10 +184,8 @@ export function ImportForm({
                     correction={!!correction}
                     busy={busy}
                     differs={differs}
-                    imported={imported}
                     update={update}
                     setMember={setMember}
-                    setFormer={setFormer}
                     companyMembers={knownMembers}
                     preserveParticulars={preserveParticulars}
                     step={phase === 'details' ? 'details' : 'shareholders'}

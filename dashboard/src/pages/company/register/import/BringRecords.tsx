@@ -1,17 +1,11 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useLayoutEffect, useState } from 'react';
-import {
-  FIELD_LIMITS,
-  REGISTER_IMPORT_COPY,
-  formatDate,
-  formatShareCount,
-  type RegisterTransferMember,
-} from '@ledova/shared';
+import { FIELD_LIMITS, formatDate, formatShareCount, type RegisterTransferMember } from '@ledova/shared';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberFields } from './MemberFields';
-import { blankMember, blankFormer, type PreparationDraft, type MemberDraft, type FormerDraft } from './preparation';
+import { blankMember, type PreparationDraft, type MemberDraft } from './preparation';
 import { Disclosure } from '@components/Ledger';
 
 export function BringRecords({
@@ -20,10 +14,8 @@ export function BringRecords({
   correction,
   busy,
   differs,
-  imported,
   update,
   setMember,
-  setFormer,
   companyMembers,
   preserveParticulars,
   step,
@@ -35,10 +27,8 @@ export function BringRecords({
   correction: boolean;
   busy: boolean;
   differs: boolean;
-  imported: { total: string; count: number };
   update: (apply: (current: PreparationDraft) => PreparationDraft) => void;
   setMember: (index: number, patch: Partial<MemberDraft>) => void;
-  setFormer: (index: number, patch: Partial<FormerDraft>) => void;
   companyMembers: RegisterTransferMember[];
   preserveParticulars: boolean;
   step: 'details' | 'shareholders';
@@ -85,12 +75,6 @@ export function BringRecords({
   };
   return (
     <>
-      {step === 'shareholders' && draft.earlierCopiesNotReused && (
-        <p className="text-sm text-text-muted">
-          The earlier source copies stay with the earlier snapshot. This draft does not reuse them; choose optional
-          replacements below. To keep copied ASIC comparison figures, add an ASIC extract or leave out the comparison.
-        </p>
-      )}
       {step === 'details' && (
         <fieldset className="space-y-3">
           <legend className="sr-only">Record date</legend>
@@ -243,123 +227,51 @@ export function BringRecords({
               </div>
             )}
           </fieldset>
-          <Disclosure summary="Keep source copies and former records (optional)">
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-medium text-text-primary">Supporting copies (optional)</legend>
-              <FileField
-                label="Current share register"
-                optional
-                hint={
-                  draft.registerEvidence && 'The retained source copy will be reused unless you choose another file.'
-                }
-                onFile={(file) => update((current) => ({ ...current, registerFile: file }))}
-              />
-              <FileField
-                label="ASIC extract"
-                optional
-                hint={draft.asicEvidence && 'The retained ASIC copy and figures will be reused unless you change them.'}
-                onFile={(file) => update((current) => ({ ...current, asicFile: file }))}
-              />
-              <p className="text-sm text-text-muted">Ledova does not verify either document.</p>
-            </fieldset>
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-medium text-text-primary">Former members</legend>
+          <Disclosure summary="Add documents (optional)">
+            {draft.earlierCopiesNotReused && (
               <p className="text-sm text-text-muted">
-                Copy former shareholders only if useful. The company continues to retain its legal historical records
-                elsewhere.
+                Earlier source documents remain with their original record. Add replacement documents if needed.
               </p>
-              {draft.former.map((row, index) => (
-                <fieldset key={row.id} className="space-y-2 border-t border-border-subtle pt-3">
-                  <legend className="text-sm text-text-primary">Former member {index + 1}</legend>
-                  <Field label="Name">
-                    <TextInput
-                      value={row.name}
-                      maxLength={FIELD_LIMITS.NAME}
-                      onChange={(event) => setFormer(index, { name: event.target.value })}
-                    />
-                  </Field>
-                  <Field label="Residential address">
-                    <TextInput
-                      value={row.residentialAddress}
-                      maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
-                      onChange={(event) => setFormer(index, { residentialAddress: event.target.value })}
-                    />
-                  </Field>
-                  <Field label="Shares">
-                    <TextInput
-                      maxLength={FIELD_LIMITS.REGISTER_SHARES}
-                      inputMode="numeric"
-                      value={row.shares}
-                      onChange={(event) => setFormer(index, { shares: event.target.value })}
-                    />
-                  </Field>
-                  <Field label="Date ceased">
-                    <TextInput
-                      type="date"
-                      max={draft.asAt}
-                      value={row.ceasedOn}
-                      onChange={(event) => setFormer(index, { ceasedOn: event.target.value })}
-                    />
-                  </Field>
-                  <PageAction
-                    label={`Remove former member ${index + 1}`}
-                    disabled={busy}
-                    onClick={() =>
-                      update((current) => ({ ...current, former: current.former.filter((_, at) => at !== index) }))
-                    }
-                  />
-                </fieldset>
-              ))}
-              <PageAction
-                label="Add a former member"
-                disabled={busy}
-                onClick={() => update((current) => ({ ...current, former: [...current.former, blankFormer()] }))}
-              />
-            </fieldset>
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-medium text-text-primary">Comparison figures (optional)</legend>
-              <p className="text-sm text-text-muted">
-                An ASIC extract may list only some shareholders. Its listed count is a cross-check, not the source for
-                the full ownership record.
-              </p>
-              <Field label="Issued shares in the comparison source (optional)">
-                <TextInput
-                  maxLength={FIELD_LIMITS.REGISTER_SHARES}
-                  inputMode="numeric"
-                  value={draft.statedTotal}
-                  onChange={(event) => {
-                    const statedTotal = event.target.value;
-                    update((current) => ({ ...current, statedTotal }));
-                  }}
-                />
-              </Field>
-              <Field label="Shareholders listed in the comparison source (optional)">
-                <TextInput
-                  maxLength={FIELD_LIMITS.WHOLE_SHARES}
-                  inputMode="numeric"
-                  value={draft.statedCount}
-                  onChange={(event) => {
-                    const statedCount = event.target.value;
-                    update((current) => ({ ...current, statedCount }));
-                  }}
-                />
-              </Field>
-              {(draft.statedTotal || draft.statedCount) && (
+            )}
+            <FileField
+              label="Current share register"
+              optional
+              hint={draft.registerEvidence && 'The retained source copy will be reused unless you choose another file.'}
+              onFile={(file) => update((current) => ({ ...current, registerFile: file }))}
+            />
+            <FileField
+              label="ASIC extract"
+              optional
+              hint={draft.asicEvidence && 'The retained ASIC copy and figures will be reused unless you change them.'}
+              onFile={(file) => update((current) => ({ ...current, asicFile: file }))}
+            />
+            {(draft.statedTotal || draft.statedCount) && (
+              <fieldset className="space-y-3 border-t border-border-subtle pt-3">
+                <legend className="sr-only">Earlier ASIC comparison</legend>
+                <p className="text-sm text-text-muted">
+                  Earlier ASIC comparison
+                  {draft.statedTotal && ` · ${formatShareCount(draft.statedTotal)} issued shares`}
+                  {draft.statedCount &&
+                    ` · ${formatShareCount(draft.statedCount)} ${draft.statedCount === '1' ? 'shareholder' : 'shareholders'} listed`}
+                </p>
+                {!draft.asicEvidence && !draft.asicFile && (
+                  <p className="text-sm text-text-muted">
+                    Add a replacement ASIC extract above or leave out these earlier comparison figures.
+                  </p>
+                )}
+                {differs && (
+                  <p role="alert" className="text-sm text-error-light">
+                    The earlier comparison differs from the current shareholders. Check the source or leave out the
+                    comparison before continuing.
+                  </p>
+                )}
                 <PageAction
                   label="Leave out ASIC comparison"
                   disabled={busy}
                   onClick={() => update((current) => ({ ...current, statedTotal: '', statedCount: '' }))}
                 />
-              )}
-              <p className="text-sm text-text-primary">
-                {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(imported.total), imported.count)}
-              </p>
-              {differs && (
-                <p role="alert" className="text-sm text-error-light">
-                  The comparison figures differ from the copied rows. Check both against the source before continuing.
-                </p>
-              )}
-            </fieldset>
+              </fieldset>
+            )}
           </Disclosure>
         </>
       )}

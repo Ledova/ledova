@@ -1315,6 +1315,12 @@ exact-request recovery or retained history. Implement Ledger and class details f
 step in Chrome on localhost. Mobile remains deferred under
 [#1201](https://github.com/Ledova/ledova/issues/1201).
 
+The same walkthrough simplified the web Shareholders step: **Add documents (optional)** retains
+just the register copy and ASIC extract. Fresh setup no longer asks for former shareholders or
+ASIC comparison figures. Saved and historical records keep their existing values; an inherited
+ASIC comparison is read-only and may be explicitly left out when revising. The company's legal
+historical records and responsibilities remain unchanged.
+
 ## Paper and Dark themes
 
 On 14 October 2026 the owner directed under

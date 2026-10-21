@@ -12,7 +12,6 @@ import {
   isPreparedRegisterImport,
   isRegisterEvidenceReceipt,
   prepareRegisterImport,
-  registerImportTotals,
   uploadRegisterEvidence,
   useRegisterDecision,
   type OrderSubmissionOwner,
@@ -41,7 +40,6 @@ import {
   preparationProblems,
   memberIdentityProblems,
   statedFigures,
-  type FormerDraft,
   type MemberDraft,
   type PreparationDraft,
 } from './preparation';
@@ -288,11 +286,6 @@ export function useImportPreparation({
       ...current,
       members: current.members.map((row, at) => (at === index ? { ...row, ...patch } : row)),
     }));
-  const setFormer = (index: number, patch: Partial<FormerDraft>) =>
-    update((current) => ({
-      ...current,
-      former: current.former.map((row, at) => (at === index ? { ...row, ...patch } : row)),
-    }));
   const problems = [
     ...classProblems,
     ...preparationProblems(draft, today, !correction && emptyOpeningAllowed),
@@ -315,7 +308,6 @@ export function useImportPreparation({
         problem.startsWith('Each company'),
     );
   const differs = figuresDiffer(draft);
-  const imported = registerImportTotals(draft.members);
   const upload = async (kind: RegisterEvidenceKind, file: File) => {
     const preparingAppointment = checkPreparation();
     const previous = uploads.current[kind];
@@ -507,12 +499,10 @@ export function useImportPreparation({
     mutable,
     update,
     setMember,
-    setFormer,
     problems,
     detailProblems,
     holderProblems,
     differs,
-    imported,
     prepare,
     decision,
     kind,

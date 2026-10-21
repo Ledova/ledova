@@ -137,7 +137,7 @@ function OwnDashboard({
               <>
                 {' '}
                 <Link to={DESTINATIONS.companyRegister.path} className="text-brand-light underline">
-                  Open Register
+                  Open Ledger
                 </Link>{' '}
                 to set it up.
               </>

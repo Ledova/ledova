@@ -211,7 +211,7 @@ Ledova, and its holdings must match the stored register. On the web:
    each allotment (date, quantity, paid and unpaid amounts, and Held for someone else?, where Yes
    means held non-beneficially), with optional share and certificate references. Allotments must add
    up to the holding, a fully paid allotment has nothing unpaid, and a blank amount stays unknown
-   rather than zero. Former shareholders can be added. For a genuinely unopened non-tokenised class
+   rather than zero. For a genuinely unopened non-tokenised class
    with no issued shares or earlier members, leave the draft empty to record its empty opening.
 4. Review the shares, shareholders and record date in one table, with particulars under Details.
    Confirm loads a fresh preview and records approval and application together; an appointee who may
@@ -244,11 +244,14 @@ copied holding records an opening balance, not an award-linked issue.
 Web imports are attributed to "Company-provided share records", with a snapshot naming the company,
 record date and preparer; the mobile app asks for a source reference and keeps separate Review and
 Confirm mirror screens. Confirming is the company's confirmation that the records are its own, not a
-new director resolution. Copies of its register and an ASIC extract are optional and kept without
-being read; stated ASIC totals are an optional cross-check, and an extract may list only some
-shareholders. The Import button is marked Coming soon: document extraction will later fill these
-forms for review. Earlier imports keep their evidence and authority, and fields their snapshots lack
-stay unknown.
+new director resolution. On the web, **Add documents (optional)** holds a register copy and ASIC
+extract, kept without being read. Fresh setup asks for neither former shareholders nor ASIC
+comparison figures. Earlier former-member records remain in saved snapshots, review and history;
+an inherited **Earlier ASIC comparison** is read-only, with **Leave out ASIC comparison** available
+when revising it. Mobile keeps its optional ASIC comparison fields;
+an extract may list only some shareholders. The Import button is marked Coming soon: document
+extraction will later fill these forms for review. Earlier imports keep their evidence and
+authority, and fields their snapshots lack stay unknown.
 
 An import is refused when the class already has an applied import; once an issue was approved or an
 instruction applied for the class (open it from the chain, then import particulars); when its

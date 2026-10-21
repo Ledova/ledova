@@ -1373,23 +1373,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByText(/retained ASIC copy and figures will be reused/)).toBeTruthy();
   showReplacement('another-preparer');
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(screen.getByText(/earlier source copies stay with the earlier snapshot/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Add documents (optional)' }));
+  expect(screen.getByText(/Earlier source documents remain with their original record/)).toBeTruthy();
   expect(screen.queryByText(/will be reused/)).toBeNull();
-  expect((screen.getByLabelText('Issued shares in the comparison source (optional)') as HTMLInputElement).value).toBe(
-    '600',
-  );
+  expect(screen.getByRole('group', { name: 'Earlier ASIC comparison' }).textContent).toContain('600 issued shares');
+  expect(screen.queryByLabelText('Issued shares in the comparison source (optional)')).toBeNull();
   api.post.mockClear();
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
   expect(screen.getByText(/Attach the optional ASIC extract/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Keep source copies and former records (optional)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Leave out ASIC comparison' }));
-  expect((screen.getByLabelText('Issued shares in the comparison source (optional)') as HTMLInputElement).value).toBe(
-    '',
-  );
-  expect(
-    (screen.getByLabelText('Shareholders listed in the comparison source (optional)') as HTMLInputElement).value,
-  ).toBe('');
+  expect(screen.queryByRole('group', { name: 'Earlier ASIC comparison' })).toBeNull();
   api.post.mockImplementation(async (url: string, request: RegisterImportPreparation) => {
     expect(url).toBe(IMPORTS);
     return {
@@ -1502,7 +1496,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     showJourney(importPath);
     expect(await screen.findByText(/This class cannot open from copied records/)).toBeTruthy();
     expect(screen.queryByLabelText('Record date')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Open Register' }).getAttribute('href')).toBe('/company/register');
+    expect(screen.getByRole('link', { name: 'Open Ledger' }).getAttribute('href')).toBe('/company/register');
   }
   cleanup();
   client.clear();

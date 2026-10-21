@@ -79,10 +79,6 @@ export function blankMember(): MemberDraft {
   };
 }
 
-export function blankFormer(): FormerDraft {
-  return { id: crypto.randomUUID(), name: '', residentialAddress: '', shares: '', ceasedOn: '' };
-}
-
 export function initialMembers(register: TokenHoldersResponse, correction?: RegisterImport): MemberDraft[] {
   if (correction)
     return correction.members.map((row) => ({
