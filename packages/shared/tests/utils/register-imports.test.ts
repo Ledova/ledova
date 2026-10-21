@@ -274,7 +274,45 @@ it('matches the complete company mirror and retained correction source without i
   expect(() => registerImportOf({ ...record, members: [oldMember] })).toThrow(
     'The register import rows could not be read.',
   );
-  const retained = registerImportOf({ ...record, members: [{ ...proposal.members[0]!, amountPaid: '1.00' }] });
-  expect(retained.members[0]!.amountPaid).toBe('1.00');
-  expect(isPreparedRegisterImport(retained, request)).toBe(true);
+  expect(() => registerImportOf({ ...record, members: [{ ...proposal.members[0]!, amountPaid: '1.00' }] })).toThrow(
+    'The register import rows could not be read.',
+  );
+  expect(() => registerImportOf({ ...record, members: [{ ...proposal.members[0]!, shares: '1' }] })).toThrow(
+    'The register import rows could not be read.',
+  );
+  const retainedAllotments = Array.from({ length: 10000 }, () => ({
+    ...proposal.members[0]!.allotments![0]!,
+    shares: '1',
+    amountPaid: '999999999999999999.00',
+  }));
+  const retainedMember = {
+    ...proposal.members[0]!,
+    shares: '10000',
+    amountPaid: '9999999999999999990000.00',
+    allotments: retainedAllotments,
+  };
+  const largeRetained = registerImportOf({ ...record, members: [retainedMember] });
+  expect(largeRetained.members[0]!.amountPaid).toBe('9999999999999999990000.00');
+  expect(isPreparedRegisterImport(largeRetained, { ...request, members: [retainedMember] })).toBe(true);
+  for (const amountPaid of ['99999999999999999900000.00', '01.00', '1', '1.000'])
+    expect(() => registerImportOf({ ...record, members: [{ ...retainedMember, amountPaid }] })).toThrow(
+      'The register import rows could not be read.',
+    );
+  expect(() =>
+    registerImportOf({
+      ...record,
+      members: [{ ...retainedMember, allotments: [...retainedAllotments, retainedAllotments[0]!] }],
+    }),
+  ).toThrow('The register import rows could not be read.');
+  expect(() =>
+    registerImportOf({
+      ...record,
+      members: [
+        {
+          ...retainedMember,
+          allotments: [{ ...retainedAllotments[0]!, amountPaid: '1000000000000000000.00' }],
+        },
+      ],
+    }),
+  ).toThrow('The register import rows could not be read.');
 });

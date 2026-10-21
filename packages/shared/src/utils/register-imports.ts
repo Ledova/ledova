@@ -62,6 +62,7 @@ function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
       ['allottedOn', 'shares', 'amountPaid', 'amountUnpaid'],
       ['shareReference', 'certificateReference'],
     ) &&
+    value.length <= 10000 &&
     value.every(
       (row) =>
         isCalendarDate(row.allottedOn) &&
@@ -76,11 +77,15 @@ function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
 }
 
 function currentRowOf(row: RegisterImportMemberRow) {
+  if (!positiveShares(row.shares) || !isCalendarDate(row.enteredOn) || !allotmentsOf(row.allotments)) return false;
+  if (row.amountPaid === null) return true;
+  const shares = row.allotments.reduce((sum, allotment) => sum + BigInt(allotment.shares), 0n);
+  const paid = row.allotments.reduce(
+    (sum, allotment) => sum + BigInt(registerImportMoney(allotment.amountPaid)!.replace('.', '')),
+    0n,
+  );
   return (
-    positiveShares(row.shares) &&
-    isCalendarDate(row.enteredOn) &&
-    (row.amountPaid === null || registerImportMoney(row.amountPaid) !== null) &&
-    allotmentsOf(row.allotments)
+    row.shares === shares.toString() && row.amountPaid === `${paid / 100n}.${(paid % 100n).toString().padStart(2, '0')}`
   );
 }
 
