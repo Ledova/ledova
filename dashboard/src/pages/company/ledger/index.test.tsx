@@ -1172,7 +1172,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         reason: request.reason,
         members: request.members.map((member) => ({
           ...member,
-          amountPaid: '600.00',
+          amountPaid: null,
           ...(member.documents
             ? {
                 documents: member.documents.map((document) => {
@@ -1734,7 +1734,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         asicMemberCount: null,
         correctionOf: request.correctionOf ?? null,
         reason: request.reason,
-        members: request.members.map((member) => ({ ...member, amountPaid: '600.00' })),
+        members: request.members.map((member) => ({ ...member, amountPaid: null })),
       },
     };
   });
@@ -1981,7 +1981,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       stage: 'submitted',
       correctionOf: null,
       reason: request.reason,
-      members: request.members.map((member) => ({ ...member, amountPaid: '600.00' })),
+      members: request.members.map((member) => ({ ...member, amountPaid: null })),
     };
     return { data: proposal };
   };
