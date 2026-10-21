@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  DESTINATIONS,
   FIELD_LIMITS,
   REGISTER_TRANSFER_COPY as COPY,
   apiErrorSentence,
@@ -25,6 +24,7 @@ import {
 import apiClient from '@services/apiClient';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { transfersKey } from '@pages/company/register/shared/useRegisterTransfers';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 type Draft = {
   fromMember: string;
@@ -229,7 +229,14 @@ export function useTransferPreparation({
       setOperation(null);
       await client.invalidateQueries({ queryKey: transfersKey(owner, token) });
       check();
-      navigate(DESTINATIONS.companyRegister.path);
+      const place = registerPlace({
+        company,
+        token,
+        task: 'transfer',
+        record: data.uuid,
+        outcome: 'Non-paid transfer prepared.',
+      });
+      navigate(place.to, { state: place.state });
     } catch (failure) {
       const status = failureStatus(failure);
       if (status && status < 500) setOperation(null);

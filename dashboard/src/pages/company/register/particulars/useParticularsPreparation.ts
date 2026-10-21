@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  DESTINATIONS,
   REGISTER_PARTICULARS_COPY,
   apiErrorSentence,
   createUserFriendlyError,
@@ -20,6 +19,7 @@ import {
 import apiClient from '@services/apiClient';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { particularsKey } from '@pages/company/register/shared/useRegisterParticulars';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 type Draft = { file: File | null; name: string; address: string; asAt: string; reason: string };
 
@@ -138,6 +138,7 @@ export function useParticularsPreparation({
       const signature = JSON.stringify(request);
       if (operation.current?.signature !== signature) operation.current = { signature, key: crypto.randomUUID() };
       const preparation = { operationId: operation.current.key, ...request };
+      let prepared = '';
       try {
         check();
         const { data } = await prepareRegisterParticularsChange(apiClient, preparation, {
@@ -146,6 +147,7 @@ export function useParticularsPreparation({
         check();
         if (!isPreparedRegisterParticularsChange(data, preparation))
           throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
+        prepared = data.uuid;
       } catch (failure) {
         if (failureStatus(failure) === 409) operation.current = null;
         throw failure;
@@ -153,7 +155,13 @@ export function useParticularsPreparation({
       check();
       await client.invalidateQueries({ queryKey: particularsKey(owner, company) });
       check();
-      navigate(DESTINATIONS.companyRegister.path);
+      const place = registerPlace({
+        company,
+        task: 'history',
+        record: prepared,
+        outcome: 'Particulars change prepared.',
+      });
+      navigate(place.to, { state: place.state });
     } catch (failure) {
       try {
         check();

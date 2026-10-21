@@ -1794,7 +1794,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
       <Link to="/" state={{ registerCompany: 'inland', registerToken: 'ordinary' }}>
         Open mismatched dashboard class
       </Link>
-      <Link to="/" state={{ registerCompany: 'inland', registerToken: 'preference', registerHistory: true }}>
+      <Link to="/" state={{ registerCompany: 'inland', registerToken: 'preference', registerTask: 'history' }}>
         Open dashboard class
       </Link>
       <Link to="/#shareholders" state={{ registerCompany: 'inland' }}>

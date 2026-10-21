@@ -28,6 +28,7 @@ import {
 } from '@pages/company/register/shared/useClassCorrections';
 import { entriesKey, useRegisterEntries } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_CORRECTION_COPY;
 
@@ -141,6 +142,7 @@ function EntryHistory({
 }
 
 export function ClassCorrections({
+  landed,
   owner,
   guard,
   token,
@@ -150,6 +152,7 @@ export function ClassCorrections({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   owner: OrderSubmissionOwner;
   guard: () => void;
   token: string;
@@ -246,6 +249,7 @@ export function ClassCorrections({
           {(corrections.data ?? []).map((correction) => (
             <CorrectionRecord
               key={correction.proposal.uuid}
+              landed={landed?.record === correction.proposal.uuid ? landed : undefined}
               correction={correction}
               visible={privateReady}
               onHeldChange={recordHeld}

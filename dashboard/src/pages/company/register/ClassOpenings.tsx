@@ -16,10 +16,12 @@ import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { openingsKey, useRegisterOpenings } from '@pages/company/register/shared/useRegisterOpenings';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_OPENING_COPY;
 
 export function ClassOpenings({
+  landed,
   owner,
   guard,
   register,
@@ -27,6 +29,7 @@ export function ClassOpenings({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   owner: OrderSubmissionOwner;
   guard: () => void;
   register: TokenHoldersResponse;
@@ -90,6 +93,7 @@ export function ClassOpenings({
         {(openings.data ?? []).map((proposal) => (
           <OpeningRecord
             key={proposal.uuid}
+            landed={landed?.record === proposal.uuid ? landed : undefined}
             proposal={proposal}
             visible={privateReady}
             onHeldChange={recordHeld}

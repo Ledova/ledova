@@ -13,6 +13,7 @@ import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useParticularsRecordDownload } from './useRegisterRecordDownload';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_PARTICULARS_COPY;
 
@@ -36,6 +37,7 @@ function Particulars({ title, held }: { title: string; held: Held | null }) {
 }
 
 export function ParticularsRecord({
+  landed,
   change,
   member,
   steps,
@@ -45,6 +47,7 @@ export function ParticularsRecord({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   change: RegisterParticularsChange;
   member: string;
   steps: RegisterSteps;
@@ -58,7 +61,7 @@ export function ParticularsRecord({
   const download = useParticularsRecordDownload(change, check);
   const context = `change for ${member} prepared ${formatDateTime(change.createdAt)}`;
   return (
-    <RecordShell hidden={!visible}>
+    <RecordShell hidden={!visible} landed={landed}>
       {visible && (
         <details open={change.status === 'submitted'} className="space-y-3">
           <summary className="cursor-pointer text-sm font-medium text-text-primary">{`${member} · ${COPY.STAGES[change.stage] ?? change.stage}`}</summary>

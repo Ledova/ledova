@@ -20,6 +20,7 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 import { OpeningForm } from './OpeningForm';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_OPENING_COPY;
 const LEDE =
@@ -130,7 +131,7 @@ function OwnOpening({
       </>
     );
   return (
-    <Page narrow lede={LEDE}>
+    <Page narrow lede={LEDE} back={registerPlace({ token: uuid, task: 'history' })}>
       {content}
     </Page>
   );
