@@ -1,3 +1,4 @@
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -6,6 +7,7 @@ from users.models.user_profile import UserProfile
 from users.serializers.identity_verification import RejectionLabelsField
 
 SIGNUP_IS_COMPLETE = "Sign-up cannot be reopened once it is complete."
+DATE_OF_BIRTH_IN_FUTURE = "Date of birth cannot be in the future."
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -89,6 +91,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_residence_country_name(self, obj) -> str | None:
         return obj.residence_country.name if obj.residence_country else None
+
+    def validate_date_of_birth(self, value):
+        if value is not None and value > timezone.now().date():
+            raise serializers.ValidationError(DATE_OF_BIRTH_IN_FUTURE)
+        return value
 
     def validate_is_signup_completed(self, value):
         if self.instance is not None and self.instance.is_signup_completed and not value:
