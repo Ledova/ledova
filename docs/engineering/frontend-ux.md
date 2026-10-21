@@ -609,7 +609,7 @@ Some messages keep their own form:
   10 MB. Its empty control reads **Choose file**, showing the filename after selection while keeping
   the native picker, keyboard focus and accessible label. By default its hint starts with
   "PDF, PNG or JPEG, up to 10 MB." Compact forms such as
-  Agreement and receipt may omit this routine hint with `showUploadHint={false}`. Validation stays
+  Investor issue may omit this routine hint with `showUploadHint={false}`. Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
   of up to 10 MB." on the field. The payslip upload on Profile and the evidence in an eligibility claim keep their dashed
   areas but apply the same rule. Mobile's pickers keep their own wording until
@@ -627,6 +627,8 @@ Some messages keep their own form:
   Related groups within a step use named fieldsets and the existing responsive grid, side by side
   when there is room and stacked in reading order otherwise. Use short contextual labels instead
   of repeating each group's name; keep their validation messages specific to the affected record.
+  Keep the issue summary beside its company-authority fields in the review step, using `Rows` and
+  the same grid without nested cards or a visible heading that repeats the step indicator.
 - **Repeated allocations.** Web ledger setup separates **Current shares held** from **Allocation
   history**, which starts empty. **Add allocation** beside the section heading opens its first entry. It keeps
   one editor expanded. Adding another

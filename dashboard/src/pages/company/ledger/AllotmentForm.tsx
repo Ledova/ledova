@@ -151,7 +151,7 @@ export function AllotmentForm({
     <FileField
       {...checks.field(`${kind}Document`)}
       label={label ?? COPY.DOCUMENTS[kind]}
-      showUploadHint={kind === 'authority'}
+      showUploadHint={false}
       onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
     />
   );
@@ -235,26 +235,30 @@ export function AllotmentForm({
           </fieldset>
         </div>
         <div hidden={step !== 'review'}>
-          <fieldset className="space-y-4">
-            <legend className="pb-4 text-base font-medium">Company authority and review</legend>
-            <Rows>
-              <Row label="Issue to">{member === 'new' ? fields.name : recipient?.name}</Row>
-              <Row label="Share class">{classLabel}</Row>
-              <Row label={COPY.SHARES}>{shareCount(fields.shares)}</Row>
-              <Row label={COPY.CONSIDERATION}>{formatMoney(fields.consideration, 'AUD')}</Row>
-              <Row label={COPY.RECEIVED_ON}>{formatDate(fields.receivedOn)}</Row>
-            </Rows>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {field('companyEventOn')}
-              {field('approvingDirector')}
-              {field('authorityReference')}
-              {field('reason')}
+          <fieldset className="min-w-0">
+            <legend className="sr-only">Company authority and review</legend>
+            <div className="grid items-start gap-6 lg:grid-cols-2">
+              <fieldset className="min-w-0">
+                <legend className="pb-4 text-base font-medium">Issue summary</legend>
+                <Rows>
+                  <Row label="Issue to">{member === 'new' ? fields.name : recipient?.name}</Row>
+                  <Row label="Share class">{classLabel}</Row>
+                  <Row label="Shares">{shareCount(fields.shares)}</Row>
+                  <Row label="Amount (AUD)">{formatMoney(fields.consideration, 'AUD')}</Row>
+                  <Row label="Receipt date">{formatDate(fields.receivedOn)}</Row>
+                </Rows>
+              </fieldset>
+              <fieldset className="min-w-0 space-y-4 border-t border-border-subtle pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+                <legend className="pb-4 text-base font-medium">Company authority</legend>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {field('companyEventOn')}
+                  {field('approvingDirector')}
+                  {field('authorityReference')}
+                  {field('reason')}
+                </div>
+                {document('authority')}
+              </fieldset>
             </div>
-            {document('authority')}
-            <p className="text-sm text-text-muted">
-              The approving director must not be the recipient. Preparation records the agreement and receipt; approval
-              and recording the share issue remain separate actions. {COPY.EFFECTIVE_NOTE}
-            </p>
           </fieldset>
         </div>
       </fieldset>
