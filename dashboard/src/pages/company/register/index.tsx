@@ -45,11 +45,13 @@ const TASKS = Object.entries(DESTINATIONS.companyRegister.tasks) as [RegisterTas
 function RegisterPage({
   selection,
   companyName,
+  actions,
   sections,
   children,
 }: {
   selection?: ReactNode;
   companyName?: string;
+  actions?: ReactNode;
   sections?: ReactNode;
   children: ReactNode;
 }) {
@@ -58,6 +60,7 @@ function RegisterPage({
   return (
     <PageTitle.Provider value={title}>
       <Page
+        actions={actions}
         lede={
           hash === '#awards'
             ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
@@ -65,7 +68,7 @@ function RegisterPage({
               ? 'Prepare permitted register copies, certificates and company packs.'
               : hash === '#shareholders'
                 ? 'Who holds shares, what they hold in each class, and their access to their own records.'
-                : 'Share classes, share issues, transfers and the history of recorded changes.'
+                : undefined
         }
       >
         {selection}
@@ -326,6 +329,29 @@ function OwnRegister({
   return (
     <RegisterPage
       companyName={readable && sourceReady ? scope?.company.name : undefined}
+      actions={
+        scope &&
+        view === 'register' && (
+          <>
+            {TASKS.map(([task, label]) => (
+              <PageAction
+                key={task}
+                label={label}
+                pressed={selectedTask === task}
+                disabled={held || !sourceReady}
+                onClick={() => chooseTask(task)}
+              />
+            ))}
+            {canAddClass && (
+              <PageLink
+                primary
+                to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
+                label="Add share class"
+              />
+            )}
+          </>
+        )
+      }
       selection={
         preferences?.status === 'success' &&
         preferences.fetchStatus === 'idle' &&
@@ -445,28 +471,25 @@ function OwnRegister({
                     {register.token.name} · {register.token.symbol}
                   </h2>
                   <ClassRegister register={register} former={false} />
+                  {held ? (
+                    <PageAction
+                      label="Class details"
+                      context={register.token.name}
+                      disabled
+                      onClick={() => undefined}
+                    />
+                  ) : (
+                    <PageLink
+                      to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
+                      label="Class details"
+                      context={register.token.name}
+                    />
+                  )}
                 </section>
               ))}
             </div>
           )}
           <section aria-label="Register tasks" className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {TASKS.map(([task, label]) => (
-                <PageAction
-                  key={task}
-                  label={label}
-                  pressed={selectedTask === task}
-                  disabled={held || !sourceReady}
-                  onClick={() => chooseTask(task)}
-                />
-              ))}
-              {canAddClass && (
-                <PageLink
-                  to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
-                  label="Add share class"
-                />
-              )}
-            </div>
             {selectedTask && sourceReady && scope.registers.length > 1 && (
               <div className="max-w-sm">
                 <SelectField

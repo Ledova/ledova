@@ -13,7 +13,6 @@ import {
   createUserFriendlyError,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
 import { ownershipSummary } from '@pages/company/shared/summary';
 import { guarded } from '@pages/company/register/shared/registerReads';
 import { useRecordFeed } from '@pages/company/register/shared/useRecordFeed';
@@ -94,7 +93,6 @@ export function useShareClass(uuid: string) {
       queryClient.invalidateQueries({ queryKey: TOKENS_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
     ]);
-  const download = useRegisterDownload(uuid, token.data?.symbol);
   return {
     owner,
     boundary,
@@ -106,7 +104,6 @@ export function useShareClass(uuid: string) {
     issuances,
     capital,
     requests,
-    download,
     refresh,
   };
 }

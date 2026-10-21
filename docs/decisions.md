@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Current; #1166–#1168 and award recipients (#1169) on the web; mobile (#1170); ESS (#1185)                       |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 21 October 2026                          | Current; web foundations delivered; revised Register workflows under #1165; mobile deferred under #1201        |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
@@ -1297,6 +1297,20 @@ record lists, and awards listing their non-paid issues." Register's one task, Is
 which kind of issue, shows that form in place, and lists the class's investor and non-paid issues
 under it. Each award lists the non-paid issues prepared from it. Tokenised classes keep their chain
 issues in Share class settings.
+
+On 21 October 2026 the owner approved the revised structure under
+[#1165](https://github.com/Ledova/ledova/issues/1165). Register starts with the company's current
+share classes and structure, with direct class details showing the current position and optional
+Class rights. Shareholder management and downloads keep their own destinations. Existing technical
+controls and retained history stay available on demand rather than dominating the class page.
+
+Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
+a genuinely empty class; it does not issue new shares. Later issues, transfers and history are to
+have focused workflows, reusing the same people and register records. This replaces their placement
+as inline Register tasks above once those increments land, without changing company authority,
+exact-request recovery or retained history. Implement Register and class details first and show each
+step in Chrome on localhost. Mobile remains deferred under
+[#1201](https://github.com/Ledova/ledova/issues/1201).
 
 ## Paper and Dark themes
 

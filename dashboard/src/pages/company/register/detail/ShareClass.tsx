@@ -1,76 +1,20 @@
-import { requestTone, SHARE_CLASS_STATUS_TONES } from '@pages/company/shared/statusTones';
-import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  REGISTER_COPY,
-  TECHNICAL_SHARE_LIMIT,
-  USER_PREFERENCES_QUERY_KEY,
-  formatDate,
-  formatShareCount,
-  getBlockExplorerAddressUrl,
-  getBlockExplorerTxUrl,
-  useUserPreferences,
-  shareCount,
-} from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
-import { Row, Rows, Section, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
-import { LoadMore } from '@components/List';
-import { ClassRegister } from '@pages/company/register/shared/ClassRegister';
-import { CompanyShareholders } from '@pages/company/register/shared/CompanyShareholders';
-import { useShareClass } from './useShareClass';
-import { DeploymentFlow } from './DeploymentFlow';
-import { CompanyIssueFlow } from './CompanyIssueFlow';
-import { CompanyCapitalFlow } from './CompanyCapitalFlow';
-import { CompanyPauseFlow } from './CompanyPauseFlow';
+import { REGISTER_COPY, USER_PREFERENCES_QUERY_KEY, formatShareCount, useUserPreferences } from '@ledova/shared';
+import { Page } from '@components/Page';
+import { LoadError, Loading, Section, Status } from '@components/Ledger';
 import { registerPlace } from '@pages/company/register/shared/registerPlace';
+import { useShareClass } from './useShareClass';
 import { ClassRights } from './ClassRights';
 import { useClassRights } from './useClassRights';
-
-interface ReadState {
-  isPending: boolean;
-  isError: boolean;
-  isFetching: boolean;
-  refetch: () => Promise<unknown>;
-}
-
-function ReadResult({ query, label, children }: { query: ReadState; label: string; children: ReactNode }) {
-  if (query.isPending) return <Loading>Loading {label}…</Loading>;
-  if (query.isError)
-    return (
-      <LoadError retry={query.refetch} busy={query.isFetching}>
-        {label.charAt(0).toUpperCase() + label.slice(1)} could not be loaded.
-      </LoadError>
-    );
-  return <>{children}</>;
-}
+import { ShareClassTechnical } from './ShareClassTechnical';
 
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
   return (
-    <Page narrow back={registerPlace({ token: uuid, task: 'history' })}>
+    <Page back={{ ...registerPlace({ company: data.token.data?.companyUuid }), label: 'Back to Register' }}>
       <ShareClassRecord data={data} uuid={uuid} />
-      <DeploymentFlow key={`${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`} uuid={uuid} data={data} />
-      <CompanyIssueFlow
-        key={`issues/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
-        uuid={uuid}
-        data={data}
-      />
-      <CompanyCapitalFlow
-        key={`capital/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
-        uuid={uuid}
-        data={data}
-      />
-      <CompanyPaidIssueFlow
-        key={`paid-issue/${uuid}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
-        uuid={uuid}
-        data={data}
-      />
-      <CompanyPauseFlow
-        key={`pause/${uuid}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
-        uuid={uuid}
-        data={data}
-      />
+      <ShareClassTechnical uuid={uuid} data={data} />
     </Page>
   );
 }
@@ -96,7 +40,6 @@ function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClas
 }
 
 function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareClass>; rights: ReactNode }) {
-  const [copyError, setCopyError] = useState(false);
   const preferences = useUserPreferences();
   const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
   const registerReady =
@@ -108,218 +51,75 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
     data.register.isSuccess &&
     data.register.fetchStatus === 'idle';
   const token = data.token.data;
-  const content = () => {
-    if (data.token.isPending)
-      return (
-        <>
-          <Loading>Loading the share class…</Loading>
-          {rights}
-        </>
-      );
-    if (data.token.isError || !token)
-      return (
-        <>
-          <LoadError retry={data.token.refetch} busy={data.token.isFetching}>
-            This share class could not be loaded. It may be unavailable to this account.
-          </LoadError>
-          {rights}
-        </>
-      );
-    const addressUrl =
-      token.chain && token.contractAddress ? getBlockExplorerAddressUrl(token.chain, token.contractAddress) : '';
-    const txUrl =
-      token.chain && token.deploymentTxHash ? getBlockExplorerTxUrl(token.chain, token.deploymentTxHash) : '';
-    const requests = data.requests.rows;
-    const capital = data.capital.rows;
-    const issuances = data.issuances.rows;
+  if (data.token.isPending)
     return (
       <>
-        <Section title={token.name}>
-          <p className="text-sm text-text-muted">
-            {token.companyName} · {token.symbol} · {token.tokenTypeDisplay}
-          </p>
-          <Rows>
-            <Row label="Class state">
-              <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>{token.statusDisplay}</Status>
-            </Row>
-            <Row label="Technical share limit">
-              {token.totalSupply !== TECHNICAL_SHARE_LIMIT ? (
-                <span className="break-all">{formatShareCount(token.totalSupply)}</span>
-              ) : (
-                <Disclosure summary={REGISTER_COPY.QUANTITY_GUARD}>
-                  <span className="break-all">{formatShareCount(token.totalSupply)}</span>
-                </Disclosure>
-              )}
-            </Row>
-            <Row label="Issued shares">
-              <span className="break-all">
-                {data.register.isPending
-                  ? 'Loading…'
-                  : data.register.isError
-                    ? 'Unavailable'
-                    : data.register.data?.issuedSupply === null
-                      ? 'Not recorded'
-                      : formatShareCount(data.register.data?.issuedSupply ?? '')}
-              </span>
-            </Row>
-            <Row label="Transferable">{token.isTransferable ? 'Yes' : 'No'}</Row>
-            <Row label="Divisible">{token.isDivisible ? 'Yes' : 'No'}</Row>
-            <Row label="Decimals">{token.decimals}</Row>
-            {token.deployedAt && <Row label="Deployed">{formatDate(token.deployedAt)}</Row>}
-          </Rows>
-          {token.contractAddress ? (
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <span className="min-w-0 break-all text-text-muted">{token.contractAddress}</span>
-              {addressUrl && (
-                <a href={addressUrl} target="_blank" rel="noopener noreferrer" className="text-brand-light underline">
-                  View contract
-                </a>
-              )}
-              <PageAction
-                label="Copy contract address"
-                onClick={() => {
-                  setCopyError(false);
-                  void Promise.resolve()
-                    .then(() => navigator.clipboard.writeText(token.contractAddress!))
-                    .catch(() => setCopyError(true));
-                }}
-              />
-            </div>
-          ) : (
-            <p className="text-sm text-text-muted">
-              {token.status === 'deploying'
-                ? 'Deployment is in progress. The contract appears after confirmation.'
-                : 'This class is not deployed.'}
-            </p>
-          )}
-          {copyError && (
-            <p role="alert" className="text-sm text-error-light">
-              The address could not be copied.
-            </p>
-          )}
-          {txUrl && (
-            <a
-              href={txUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-fit text-sm text-brand-light underline"
-            >
-              View deployment transaction
-            </a>
-          )}
-        </Section>
+        <Loading>Loading the share class…</Loading>
         {rights}
-        <Section title="Register of members">
-          <p className="text-sm text-text-muted">{REGISTER_COPY.PRIVACY_NOTE}</p>
-          <PageAction
-            label={REGISTER_COPY.DOWNLOAD}
-            busy={data.download.isPending}
-            busyLabel="Downloading…"
-            onClick={() => data.download.mutate()}
-            disabled={data.register.isPending || data.register.isError || !data.register.data?.initialized}
-          />
-          {data.download.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              {REGISTER_COPY.DOWNLOAD_FAILED}
-            </p>
-          )}
-          <ReadResult query={data.register} label="the register">
-            {registerReady && data.register.data && <ClassRegister register={data.register.data} />}
-          </ReadResult>
-        </Section>
-        {registerReady && data.register.data && (
-          <CompanyShareholders registers={[data.register.data]} company={token.companyUuid} />
-        )}
-        {data.isOwner && (
-          <Section title="Issuance requests">
-            <ReadResult query={data.requests} label="issuance requests">
-              {requests.length === 0 ? (
-                <p className="py-3 text-sm text-text-muted">No issuance requests yet.</p>
-              ) : (
-                <ul className="divide-y divide-border-subtle">
-                  {requests.map((request) => (
-                    <li key={request.uuid} className="space-y-2 py-4 text-sm">
-                      <p className="break-words text-text-primary">
-                        {formatShareCount(String(request.amount))} {request.tokenSymbol} to {request.recipientAddress}
-                      </p>
-                      <p className="text-text-muted">{request.reason || request.issuanceTypeDisplay}</p>
-                      <p>
-                        <Status tone={requestTone(request.status)}>{request.statusDisplay}</Status>
-                      </p>
-                      <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
-                      {request.rejectionReason && <p className="text-text-muted">{request.rejectionReason}</p>}
-                      {request.executionNotes && (
-                        <Disclosure summary="Execution history">
-                          <div className="text-text-muted">
-                            <p className="whitespace-pre-wrap">{request.executionNotes}</p>
-                          </div>
-                        </Disclosure>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <LoadMore noun={['issuance request', 'issuance requests']} {...data.requests.more} />
-            </ReadResult>
-          </Section>
-        )}
-        {data.isOwner && (
-          <Section title="Authorised share requests">
-            <p className="text-sm text-text-muted">
-              Retained original capital request history. New increases use the company workflow below.
-            </p>
-            <ReadResult query={data.capital} label="authorised share requests">
-              {capital.length === 0 ? (
-                <p className="py-3 text-sm text-text-muted">No authorised share requests yet.</p>
-              ) : (
-                <ul className="divide-y divide-border-subtle">
-                  {capital.map((request) => (
-                    <li key={request.uuid} className="space-y-2 py-4 text-sm">
-                      <p className="break-words text-text-primary">{request.purpose}</p>
-                      <p className="text-text-muted">
-                        +{formatShareCount(String(request.additionalShares))} →{' '}
-                        {shareCount(request.newAuthorizedTotal, 'authorised')}
-                      </p>
-                      <p>
-                        <Status tone={requestTone(request.status)}>{request.statusDisplay}</Status>
-                      </p>
-                      <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <LoadMore noun={['authorised share request', 'authorised share requests']} {...data.capital.more} />
-            </ReadResult>
-          </Section>
-        )}
-        {data.isOwner && (
-          <Section title="Issuances">
-            <ReadResult query={data.issuances} label="issuances">
-              {issuances.length === 0 ? (
-                <p className="py-3 text-sm text-text-muted">No issuances yet.</p>
-              ) : (
-                <ul className="divide-y divide-border-subtle">
-                  {issuances.map((issuance) => (
-                    <li key={issuance.uuid} className="space-y-2 py-4 text-sm">
-                      <p className="break-words text-text-primary">
-                        {shareCount(issuance.amount)} to {issuance.recipientAddress}
-                      </p>
-                      <p className="text-text-muted">
-                        {issuance.statusDisplay} · {formatDate(issuance.createdAt)}
-                      </p>
-                      {issuance.subscriptionReference && (
-                        <p className="text-text-muted">Application {issuance.subscriptionReference}</p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <LoadMore noun={['issuance', 'issuances']} {...data.issuances.more} />
-            </ReadResult>
-          </Section>
-        )}
       </>
     );
-  };
-  return content();
+  if (data.token.isError || !token)
+    return (
+      <>
+        <LoadError retry={data.token.refetch} busy={data.token.isFetching}>
+          This share class could not be loaded. It may be unavailable to this account.
+        </LoadError>
+        {rights}
+      </>
+    );
+  const register = registerReady ? data.register.data : undefined;
+  return (
+    <>
+      <Section title={token.name}>
+        <p className="text-sm text-text-muted">
+          {token.companyName} · {token.symbol} · {token.tokenTypeDisplay}
+        </p>
+        {preferencesRead?.status === 'error' ? (
+          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : data.register.isError ? (
+          <LoadError retry={data.register.refetch} busy={data.register.isFetching}>
+            The current ownership could not be loaded.
+          </LoadError>
+        ) : !register ? (
+          <Loading>Loading current ownership…</Loading>
+        ) : (
+          <section aria-label="Current ownership" className="space-y-4">
+            <dl className="grid grid-cols-2 gap-4">
+              <div className="min-w-0">
+                <dt className="text-xs text-text-muted">Issued shares</dt>
+                <dd className="mt-1 break-all text-xl font-medium tabular-nums">
+                  {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
+                </dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-text-muted">Current shareholders</dt>
+                <dd className="mt-1 text-xl font-medium tabular-nums">
+                  {register.initialized ? formatShareCount(String(register.totalHolders)) : 'Not recorded'}
+                </dd>
+              </div>
+            </dl>
+            <p className="text-xs text-text-muted">
+              <Status tone={register.initialized ? 'done' : 'waiting'}>
+                {register.initialized ? 'Register opened' : 'Register not opened'}
+              </Status>
+            </p>
+            {!register.initialized ? (
+              <p className="text-sm text-text-muted">{REGISTER_COPY.NOT_OPENED_NOTE}</p>
+            ) : register.waitingEffects === null ? (
+              <p role="status" className="text-sm text-text-muted">
+                {REGISTER_COPY.WAITING_UNKNOWN_NOTE}
+              </p>
+            ) : register.waitingEffects > 0 ? (
+              <p role="status" className="text-sm text-text-muted">
+                {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
+              </p>
+            ) : null}
+          </section>
+        )}
+      </Section>
+      {rights}
+    </>
+  );
 }

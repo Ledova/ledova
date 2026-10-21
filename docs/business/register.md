@@ -178,8 +178,8 @@ opened from the chain) and within the retention period, and
 are listed without a wallet address and purged on the same clock from the date they ceased.
 
 Only the company owner, current register appointees and the operator read former members, in the CSV
-(with residential addresses), under Former shareholders on Shareholders, on the Share class page and
-on a former member's own page. Particulars are
+(with residential addresses), under Former shareholders on Shareholders and on a former member's
+own page. Particulars are
 kept while a person is a member and for the retention period after they last held shares, at least
 seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)).
 
@@ -192,8 +192,7 @@ contract it is the opening, creating the members, the Opening state entry and th
 together; for a class opened from the chain it adds particulars and former members from before
 Ledova, and its holdings must match the stored register. On the web:
 
-1. On Register, choose **Set up your share register** (shown while no share class is readable) or,
-   once a register exists, **Add share class**; or choose History, the class, then Bring records
+1. On Register, choose **Add share class**; or choose History, the class, then Bring records
    under Register mirror. Issue shares and Transfer shares also offer Set up your share register for a
    class not yet set up. Register is the only place where share classes are created, on the web
    and on mobile.
@@ -504,26 +503,26 @@ reason, the person, their appointment and the time, and the
 ## The Register page
 
 On the web Register is open to every signed-in account and shows the registers of companies the
-person owns or where their appointment includes register access. With none, it offers **Set up your
-share register** to someone who can prepare one and otherwise says there are none. A company
+person owns or where their appointment includes register access. With none, it offers **Add share
+class** to someone who can prepare one and otherwise says there are none. A company
 selector appears when several companies are readable. Register, Shareholders, ESS and Documents in
 the web sidebar are views of one page, so switching between them keeps unfinished forms
-and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Register holds the share
-classes and their changes; who holds the shares is on Shareholders
+and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Register starts with the
+company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
 
 The Register view shows:
 
-- a card for each class: Issued shares, Current shareholders, Register opened or Register not
+- a card for each class with **Class details**: Issued shares, Current shareholders, Register opened or Register not
   opened, Authorised shares (or a Technical share limit for a class set up from existing records), a
   note when completed issues or transfers wait or cannot be checked;
-- three tasks sharing one share-class selector, only the selected one shown: Issue shares
+- header actions for three tasks sharing one share-class selector, only the selected one shown: Issue shares
   ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
   ([non-paid transfers](#non-paid-transfers-between-members)) and History. History holds,
   under Recorded changes, a link to the class's Share class page, Openings (for a class on chain),
   Register mirror, Register entries (newest first, with certificate controls), Corrections and
   Reconciliation with the chain, then the company's Particulars changes and Wallet links;
-- **Add share class** beside the tasks, for someone who can prepare the register, opening
+- **Add share class** in the header, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
 History shows each record as one line (its kind, date and stage) that opens on demand to its
@@ -534,6 +533,10 @@ section that read successfully with nothing to show is left out, but a class on 
 reconciliation says so. An unfinished request keeps its class and exact request, and while one is
 held the company, task and class cannot be changed. A failed read withholds the class cards and the
 shareholder list rather than implying holdings are zero.
+
+Dedicated Issue shares, Transfer shares and History workflows are the next web increments under
+[#1165](https://github.com/Ledova/ledova/issues/1165). The task controls above remain in Register
+until those replacements land; their authority checks and original-request recovery are unchanged.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
@@ -605,10 +608,12 @@ person chosen.
 
 ### The Share class page
 
-Share class, reached from History or, for a tokenised class, from the Share class link in Record
-investor share issue and Transfer shares, shows the class's state, issued shares and register
-members, and the history and actions of its company-authorised deployment, chain grants, paid
-issues, capital increases and pause changes ([share classes](issuing-shares.md#share-classes)).
+Each class opens directly from **Class details** on its Register card. Its details show the class's
+name, code, type, state and current register summary, followed by the company's optional
+[Class rights](issuing-shares.md#class-rights). Shareholder management stays on Shareholders and
+register downloads on Documents. **Technical details and chain workflows** opens the retained
+technical metadata, request history and company-authorised deployment, chain issue, capital and
+pause workflows ([share classes](issuing-shares.md#share-classes)).
 
 Next: [share classes and issuing shares](issuing-shares.md),
 [member records and register outputs](member-records.md),

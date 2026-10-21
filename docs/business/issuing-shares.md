@@ -35,7 +35,7 @@ The class-creation API requires a current personal company administrator or prep
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
 [Register setup](register.md#bringing-in-existing-records) on web and mobile lists companies from those
 appointments, including a preparer who is not the owner. Classes are created only through that
-setup in Register: on the web **Set up your share register**, then **Add share class**; on mobile
+setup in Register: on the web **Add share class**; on mobile
 **Set up your share register** in Getting started or **Create share class** on the Register tab.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
@@ -50,10 +50,14 @@ ISSUE; a subsequent approved grant or investor allotment records the first share
 this empty-opening choice through the same draft, review and confirmation as copied holdings
 ([register setup](register.md#bringing-in-existing-records)).
 
+On the web, the chain actions described below are under **Technical details and chain workflows**
+on the Share class page, separate from its current register summary and Class rights.
+
 ### Class rights
 
-On the web, the Share class page shows the company's optional **Class rights** summary and plain
-**Document reference**. A current company register reader can read the latest record and its history;
+On the web, choose **Class details** on a class's Register card. Its details show the company's optional
+**Class rights** summary and plain **Document reference** below the current register summary.
+A current company register reader can read the latest record and its history;
 a current personal company administrator can add or edit it. Ownership or platform staff status
 alone grants no editing authority. Existing classes have no record until the company adds one.
 
@@ -143,6 +147,9 @@ Switching between the two keeps what was entered in each form until the issue fo
 issue is prepared. The class's Investor issues and Non-paid issues are listed under the form, each
 with its stage and next action. For a deployed class the task links to Share class, where chain
 grants and paid issues stay.
+
+A dedicated web issue workflow is planned under [#1165](https://github.com/Ledova/ledova/issues/1165);
+the issue task above remains the current entry point until that increment lands.
 
 ### What each record changes
 
