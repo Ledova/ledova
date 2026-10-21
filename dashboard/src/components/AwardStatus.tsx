@@ -68,8 +68,8 @@ export function AwardStatus({
         ))}
       </dl>
       <p className="text-xs text-text-muted">
-        {formatShareCount(remainingUnissuedShares)} shares remain unissued. Issued award shares are already included in
-        the holding.
+        {shareCount(remainingUnissuedShares)} {remainingUnissuedShares === '1' ? 'remains' : 'remain'} unissued. Issued
+        award shares are already included in the holding.
       </p>
     </div>
   );

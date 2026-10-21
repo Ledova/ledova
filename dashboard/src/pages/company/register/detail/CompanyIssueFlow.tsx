@@ -85,7 +85,7 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
           <SnapshotRows snapshot={record.snapshot} />
           <Rows>
             <Row label="Shares">{formatShareCount(record.shares)}</Row>
-            <Row label="Terms date">{formatDate(record.termsOn)}</Row>
+            <Row label="Terms date">{formatDate(record.termsOn, 'Not recorded')}</Row>
             <Row label="Non-paid terms">{record.terms}</Row>
             <Row label="Approving director">{record.approvingDirector}</Row>
             <Row label="Authority reference">{record.authorityReference}</Row>

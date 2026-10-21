@@ -9,6 +9,7 @@ import {
   REGISTER_PAID_ISSUE_COPY as COPY,
   REGISTER_PAID_ISSUE_DECISIONS,
   REGISTER_PAID_ISSUE_UNMET_COPY,
+  formatDate,
   formatDateTime,
   formatMoney,
   formatShareCount,
@@ -50,7 +51,7 @@ function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
       <Row label="Refund recorded in captured source">
         {source.refundedAt ? formatDateTime(source.refundedAt) : 'No refund recorded'}
       </Row>
-      <Row label="Payment received date">{source.paymentReceivedOn || 'Not recorded'}</Row>
+      <Row label="Payment received date">{formatDate(source.paymentReceivedOn, 'Not recorded')}</Row>
       <Row label="Recorded payment reference">{source.paymentReferenceSeen || 'Not recorded'}</Row>
       <Row label="Recorded payment hash">{source.paymentTxHash || 'Not recorded'}</Row>
       <Row label="Payment recorded on">
@@ -121,7 +122,7 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
                 </Row>
                 <Row label="Original issuance">{execution.issuance || 'Not recorded'}</Row>
                 <Row label="Register entry">{execution.registerEntry || 'Not recorded'}</Row>
-                <Row label="Entry effective date">{execution.effectiveOn || 'Not recorded'}</Row>
+                <Row label="Entry effective date">{formatDate(execution.effectiveOn, 'Not recorded')}</Row>
               </>
             )}
           </Rows>

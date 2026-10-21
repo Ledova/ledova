@@ -55,7 +55,7 @@ export function OpeningRecord({
             )}
             <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
             <Row label={COPY.BOUNDARY}>
-              {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, summary.date) : 'Not captured'}
+              {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, formatDate(summary.date)) : 'Not captured'}
             </Row>
           </Rows>
           {summary && (

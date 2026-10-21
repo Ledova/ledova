@@ -10,7 +10,6 @@ import {
   formatWalletAddressShort,
   marketAmount,
   shareCount,
-  formatShareCount,
 } from '@ledova/shared';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
@@ -124,7 +123,7 @@ export function CreateOrderSigningFlow({ submission, wallet, tokens, onClose, on
               Current status: {state.snapshot.order.statusDisplay ?? state.snapshot.order.status.replace(/_/g, ' ')}
             </p>
             <p>
-              {formatShareCount(String(state.snapshot.order.quantity))} {state.snapshot.order.tokenSymbol} shares at{' '}
+              {shareCount(state.snapshot.order.quantity)} of {state.snapshot.order.tokenSymbol} at{' '}
               {marketAmount(state.snapshot.order.pricePerShare)}
             </p>
           </div>

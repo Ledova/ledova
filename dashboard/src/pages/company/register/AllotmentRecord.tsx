@@ -27,14 +27,14 @@ function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterA
       <Row label="Residential address">{allotment.residentialAddress}</Row>
       <Row label="Member record">{allotment.newMember ? 'New member' : 'Existing member'}</Row>
       <Row label={COPY.SHARES}>{shareCount(allotment.shares)}</Row>
-      <Row label={COPY.CONSIDERATION}>{formatMoney(allotment.consideration, 'AUD')}</Row>
+      <Row label={COPY.CONSIDERATION}>{formatMoney(allotment.consideration, allotment.currency)}</Row>
       <Row label={COPY.AGREEMENT_REFERENCE}>{allotment.agreement.reference}</Row>
       <Row label={COPY.AGREEMENT_ON}>{formatDate(allotment.agreement.agreedOn)}</Row>
       <Row label={COPY.TERMS}>{allotment.agreement.terms}</Row>
       <Row label="Agreement recorded">
         {allotment.agreement.recordedBy} · {formatDateTime(allotment.agreement.recordedAt)}
       </Row>
-      <Row label={COPY.RECEIVED_AMOUNT}>{formatMoney(allotment.contribution.amount, 'AUD')}</Row>
+      <Row label={COPY.RECEIVED_AMOUNT}>{formatMoney(allotment.contribution.amount, allotment.currency)}</Row>
       <Row label={COPY.RECEIVED_ON}>{formatDate(allotment.contribution.receivedOn)}</Row>
       <Row label="Receipt attested">
         {allotment.contribution.recordedBy} · {formatDateTime(allotment.contribution.recordedAt)}
@@ -80,7 +80,7 @@ export function AllotmentRecord({
             <div>
               <h4 className="text-base font-medium">{allotment.name}</h4>
               <p className="text-sm text-text-muted">
-                {shareCount(allotment.shares)} · {formatMoney(allotment.consideration, 'AUD')}
+                {shareCount(allotment.shares)} · {formatMoney(allotment.consideration, allotment.currency)}
               </p>
             </div>
             <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
