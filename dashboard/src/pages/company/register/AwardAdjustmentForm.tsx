@@ -1,6 +1,5 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
 import { useAwardAdjustmentForm } from './useAwardAdjustmentForm';
 
@@ -65,15 +64,7 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
             onChange={(event) => form.setReason(event.target.value)}
           />
         </Field>
-        <label className={LABEL}>
-          {COPY.ADJUSTMENT_DOCUMENT}
-          <input
-            type="file"
-            accept="application/pdf,image/png,image/jpeg"
-            className={FIELD_CLASS}
-            onChange={(event) => form.setFile(event.target.files?.[0] ?? null)}
-          />
-        </label>
+        <FileField label={COPY.ADJUSTMENT_DOCUMENT} onFile={form.setFile} />
       </fieldset>
       {form.problem && <p className="text-sm text-text-muted">{form.problem}</p>}
       {form.error && (

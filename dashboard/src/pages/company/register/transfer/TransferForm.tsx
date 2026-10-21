@@ -1,9 +1,8 @@
-import { Field, TextInput } from '@components/Field';
+import { Field, TextInput, FileField } from '@components/Field';
 import { useTransferPreparation, type TransferFormProps } from './useTransferPreparation';
 
 import { REGISTER_TRANSFER_COPY as COPY, type Person } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { formatShareCount } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 
@@ -121,20 +120,16 @@ export function TransferForm({
           {COPY.DIRECTOR_NOTE} {COPY.EFFECTIVE_NOTE}
         </p>
         {(['authority', 'instrument'] as const).map((kind) => (
-          <label key={kind} className={LABEL}>
-            {kind === 'authority' ? COPY.AUTHORITY_DOCUMENT : COPY.INSTRUMENT_DOCUMENT}
-            <input
-              type="file"
-              accept="application/pdf,image/png,image/jpeg"
-              className={FIELD_CLASS}
-              onChange={(event) => {
-                setOperation(null);
-                setFiles((current) => ({ ...current, [kind]: event.target.files?.[0] }));
-              }}
-            />
-          </label>
+          <FileField
+            key={kind}
+            label={kind === 'authority' ? COPY.AUTHORITY_DOCUMENT : COPY.INSTRUMENT_DOCUMENT}
+            onFile={(file) => {
+              setOperation(null);
+              setFiles((current) => ({ ...current, [kind]: file ?? undefined }));
+            }}
+          />
         ))}
-        <p className="text-sm text-text-muted">PDF or image, max 10 MB each. {COPY.PROVIDED_BY_COMPANY}</p>
+        <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
       </fieldset>
       {operation ? (
         <p className="text-sm text-text-muted">

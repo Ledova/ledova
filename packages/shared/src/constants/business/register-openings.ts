@@ -75,8 +75,8 @@ export const REGISTER_OPENING_COPY = {
   CHOICES_RESET: 'The holdings changed, so some member choices were reset. Check each holding before preparing.',
   AUTHORITY_DOCUMENT: 'Authority document',
   AUTHORITY_DOCUMENT_NOTE:
-    'The director resolution or court order that authorises this opening, provided by the company. PDF or image, ' +
-    'max 10 MB. Ledova does not verify it.',
+    'The director resolution or court order that authorises this opening, provided by the company. Ledova does ' +
+    'not verify it.',
   AUTHORITY: 'Authority',
   AUTHORITIES: {
     director_resolution: 'Director resolution',

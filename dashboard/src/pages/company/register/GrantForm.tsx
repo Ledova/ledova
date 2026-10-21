@@ -1,9 +1,8 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './useGrantPreparation';
 
 import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, formatShareCount } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { PersonFields, PersonSelect } from '@pages/company/register/shared/PersonPicker';
 
 const DOCUMENTS: Record<DocumentKind, string> = {
@@ -189,17 +188,13 @@ export function GrantForm({
           {COPY.ACCEPTANCE_REQUIRED}
         </label>
         {documentKinds.map((kind) => (
-          <label key={kind} className={LABEL}>
-            {DOCUMENTS[kind]}
-            <input
-              type="file"
-              accept="application/pdf,image/png,image/jpeg"
-              className={FIELD_CLASS}
-              onChange={(event) => setFiles((current) => ({ ...current, [kind]: event.target.files?.[0] }))}
-            />
-          </label>
+          <FileField
+            key={kind}
+            label={DOCUMENTS[kind]}
+            onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
+          />
         ))}
-        <p className="text-sm text-text-muted">PDF or image, max 10 MB each. {COPY.PROVIDED_BY_COMPANY}</p>
+        <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
         {award && <p className="text-sm text-text-muted">The retained award agreement will be used for this issue.</p>}
       </fieldset>
       {problem && <p className="text-sm text-text-muted">{problem}</p>}

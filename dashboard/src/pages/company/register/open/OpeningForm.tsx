@@ -1,15 +1,12 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { useOpeningPreparation, type OpeningFormProps, COPY } from './useOpeningPreparation';
 
 import { FIELD_LIMITS, type RegisterCorrectionAuthority } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
 
 import { shareCount } from '@pages/company/shared/proposals';
-
-const EVIDENCE = 'application/pdf,image/png,image/jpeg';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 
@@ -56,16 +53,11 @@ export function OpeningForm({
       <fieldset disabled={busy} className="space-y-5">
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Evidence provided by the company</legend>
-          <label className={LABEL}>
-            {COPY.AUTHORITY_DOCUMENT}
-            <input
-              type="file"
-              accept={EVIDENCE}
-              className={FIELD_CLASS}
-              onChange={(event) => update({ file: event.target.files?.[0] ?? null })}
-            />
-          </label>
-          <p className="text-sm text-text-muted">{COPY.AUTHORITY_DOCUMENT_NOTE}</p>
+          <FileField
+            label={COPY.AUTHORITY_DOCUMENT}
+            hint={COPY.AUTHORITY_DOCUMENT_NOTE}
+            onFile={(file) => update({ file })}
+          />
         </fieldset>
         <fieldset className="space-y-3">
           <legend className="text-sm font-medium text-text-primary">Authority and reason</legend>

@@ -1,5 +1,5 @@
+import { FileField } from '@components/Field';
 import { Modal } from '@components/Modal';
-import { PageAction } from '@components/Page';
 import { apiErrorSentence, type DocumentType } from '@ledova/shared';
 import { useCompanyDocumentUpload } from './useCompanyDocumentUpload';
 import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
@@ -21,7 +21,7 @@ export function UploadModal({
   onClose: () => void;
   onSuccess: () => Promise<unknown>;
 }) {
-  const { file, setFile, input, pendingRef, upload, valid } = useCompanyDocumentUpload({
+  const { setFile, pendingRef, upload, valid } = useCompanyDocumentUpload({
     companyUuid,
     documentType,
     canUpload,
@@ -46,7 +46,14 @@ export function UploadModal({
       }}
       onClose={onClose}
     >
-      <fieldset disabled={upload.isPending} className="space-y-4">
+      <fieldset
+        disabled={upload.isPending}
+        className="space-y-4"
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          if (!(event.target instanceof HTMLInputElement)) event.preventDefault();
+        }}
+      >
         <CompanyReadNotice read={read} />
         {!canUpload && !read.error && !read.isRefreshing && (
           <p role="alert" className="text-sm text-text-muted">
@@ -62,34 +69,7 @@ export function UploadModal({
             )}
           </p>
         )}
-        {file ? (
-          <div className="space-y-2 text-sm">
-            <p className="break-all">{file.name}</p>
-            <PageAction label="Remove selected file" onClick={() => setFile(null)} disabled={upload.isPending} />
-          </div>
-        ) : (
-          <div
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              if (!upload.isPending) setFile(event.dataTransfer.files[0] ?? null);
-            }}
-            className="space-y-3 py-4"
-          >
-            <p className="text-sm text-text-muted">
-              Drop your document here or choose a file. PDF or images, up to 10 MB.
-            </p>
-            <PageAction label="Choose document file" onClick={() => input.current?.click()} />
-            <input
-              ref={input}
-              type="file"
-              aria-label="Document file"
-              className="hidden"
-              accept="application/pdf,image/*"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            />
-          </div>
-        )}
+        <FileField label="Document file" onFile={setFile} />
       </fieldset>
     </Modal>
   );
