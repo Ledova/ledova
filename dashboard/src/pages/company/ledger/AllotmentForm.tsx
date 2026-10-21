@@ -151,6 +151,7 @@ export function AllotmentForm({
     <FileField
       {...checks.field(`${kind}Document`)}
       label={label ?? COPY.DOCUMENTS[kind]}
+      showUploadHint={kind === 'authority'}
       onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
     />
   );
@@ -229,7 +230,6 @@ export function AllotmentForm({
                   {field('receivedOn', 'Date')}
                 </div>
                 {document('receipt', 'Document')}
-                <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
               </fieldset>
             </div>
           </fieldset>

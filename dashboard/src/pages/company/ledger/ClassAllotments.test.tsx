@@ -8,6 +8,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_ALLOTMENT_COPY as COPY,
   REGISTER_TRANSFER_COPY as TRANSFER_COPY,
+  UPLOAD_RULE,
   formatDate,
   type RegisterAllotment,
   type OwnCompanyAppointment,
@@ -227,6 +228,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     });
   };
   const fillForm = (receivedAmount = '249') => {
+    const writesBefore = api.post.mock.calls.length;
     act(() => {
       for (const [label, value] of [
         ['Name', ALLOTMENT_REQUEST.name!],
@@ -237,6 +239,11 @@ it('preserves original preparation and issue recovery through refresh, keeps app
         fireEvent.change(allotments.getByLabelText(label), { target: { value } });
     });
     fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));
+    fireEvent.change(agreement().getByLabelText('Document'), {
+      target: { files: [new File(['synthetic'], 'evidence.txt', { type: 'text/plain' })] },
+    });
+    expect(agreement().getByRole('alert').textContent).toBe(UPLOAD_RULE.REFUSAL);
+    expect(api.post.mock.calls).toHaveLength(writesBefore);
     act(() => {
       for (const [label, value] of [
         ['Reference', ALLOTMENT_REQUEST.agreementReference],

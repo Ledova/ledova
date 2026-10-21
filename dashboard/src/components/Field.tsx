@@ -77,6 +77,7 @@ export function FileField({
   hint,
   error,
   optional,
+  showUploadHint = true,
   onFile,
   ...props
 }: Omit<InputProps, 'id' | 'type' | 'accept' | 'onChange' | 'className'> & {
@@ -85,6 +86,7 @@ export function FileField({
   hint?: string;
   error?: string | null;
   optional?: boolean;
+  showUploadHint?: boolean;
   onFile: (file: File | null) => void;
 }) {
   const [refusal, setRefusal] = useState<string | null>(null);
@@ -92,7 +94,7 @@ export function FileField({
     <Field
       id={id}
       label={label}
-      hint={hint ? `${UPLOAD_RULE.HINT} ${hint}` : UPLOAD_RULE.HINT}
+      hint={showUploadHint ? (hint ? `${UPLOAD_RULE.HINT} ${hint}` : UPLOAD_RULE.HINT) : hint}
       error={refusal ?? error}
       alert={!!refusal}
       optional={optional}
