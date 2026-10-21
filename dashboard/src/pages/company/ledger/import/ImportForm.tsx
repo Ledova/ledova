@@ -331,10 +331,6 @@ export function ImportForm({
                 )}
                 {proposal.status === 'submitted' && (
                   <>
-                    <p className="text-sm text-text-primary">
-                      {REGISTER_IMPORT_COPY.SOURCE_CONFIRMATION} Confirming this mirror does not issue shares or change
-                      the legal register.
-                    </p>
                     {proposal.correctionOf && preview && (
                       <>
                         <p aria-hidden="true" className="text-sm text-text-muted">
