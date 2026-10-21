@@ -1,20 +1,29 @@
-import { useContext, useId, type MouseEvent, type ReactNode } from 'react';
+import { useContext, useEffect, useId, type MouseEvent, type ReactNode } from 'react';
 import { Link, type To } from 'react-router-dom';
 import { PageTitle } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
 
 interface PageProps {
   actions?: ReactNode;
+  documentTitle?: string;
   lede?: string;
   loading?: boolean;
   narrow?: boolean;
   children?: ReactNode;
 }
 
-export function Page({ actions, lede, loading = false, narrow = false, children }: PageProps) {
+export function Page({ actions, documentTitle, lede, loading = false, narrow = false, children }: PageProps) {
   const title = useContext(PageTitle);
   const inFrame = useContext(InSignedInFrame);
   const ledeId = useId();
+  const tabTitle = documentTitle ?? title;
+  useEffect(() => {
+    if (!tabTitle) return;
+    document.title = `${tabTitle} · Ledova`;
+    return () => {
+      document.title = 'Ledova';
+    };
+  }, [tabTitle]);
 
   return (
     <div
@@ -23,8 +32,9 @@ export function Page({ actions, lede, loading = false, narrow = false, children 
       <header>
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
           <h1
+            tabIndex={-1}
             aria-describedby={lede ? ledeId : undefined}
-            className="font-display text-3xl tracking-[-0.01em] text-text-primary"
+            className="font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none"
           >
             {title}
           </h1>
