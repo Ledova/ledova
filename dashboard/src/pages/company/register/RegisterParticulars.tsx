@@ -14,10 +14,12 @@ import { ParticularsRecord } from './ParticularsRecord';
 import { registerMembers, registerSteps } from '@pages/company/shared/proposals';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { particularsKey, useRegisterParticulars } from '@pages/company/register/shared/useRegisterParticulars';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_PARTICULARS_COPY;
 
 export function RegisterParticulars({
+  landed,
   owner,
   guard,
   company,
@@ -25,6 +27,7 @@ export function RegisterParticulars({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
@@ -81,6 +84,7 @@ export function RegisterParticulars({
         {(changes.data ?? []).map((change) => (
           <ParticularsRecord
             key={change.uuid}
+            landed={landed?.record === change.uuid ? landed : undefined}
             change={change}
             visible={privateReady}
             onHeldChange={onHeldChange}

@@ -15,10 +15,12 @@ import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { WalletStatus } from '@pages/company/register/shared/WalletStatus';
 import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useLinkRecordDownload } from './useRegisterRecordDownload';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_LINK_COPY;
 
 export function LinkRecord({
+  landed,
   link,
   holders,
   steps,
@@ -28,6 +30,7 @@ export function LinkRecord({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   link: RegisterLink;
   holders: TokenHoldersResponse['holders'];
   steps: RegisterSteps;
@@ -42,7 +45,7 @@ export function LinkRecord({
   const labels = registerLinkMemberLabels(link.mappingSummary, holders);
   const context = `wallet link prepared ${formatDateTime(link.createdAt)}`;
   return (
-    <RecordShell hidden={!visible}>
+    <RecordShell hidden={!visible} landed={landed}>
       {visible && (
         <details open={link.status === 'submitted'} className="space-y-3">
           <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Wallet link · ${formatDateTime(link.createdAt)} · ${COPY.STAGES[link.stage] ?? link.stage}`}</summary>

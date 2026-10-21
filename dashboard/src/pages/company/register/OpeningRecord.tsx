@@ -17,10 +17,12 @@ import { RegisterChanges } from '@pages/company/register/shared/RegisterChanges'
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useOpeningRecordDownload } from './useRegisterRecordDownload';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 const COPY = REGISTER_OPENING_COPY;
 
 export function OpeningRecord({
+  landed,
   proposal,
   steps,
   guard,
@@ -29,6 +31,7 @@ export function OpeningRecord({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   proposal: RegisterOpening;
   steps: RegisterSteps;
   guard: () => void;
@@ -44,7 +47,7 @@ export function OpeningRecord({
   const labels = openingMemberLabels(holdings);
   const context = `opening prepared ${formatDateTime(proposal.createdAt)}`;
   return (
-    <RecordShell hidden={!visible}>
+    <RecordShell hidden={!visible} landed={landed}>
       {visible && (
         <details open={proposal.status === 'submitted'} className="space-y-3">
           <summary className="cursor-pointer text-sm font-medium text-text-primary">{`Chain opening · ${formatDateTime(proposal.createdAt)} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}</summary>

@@ -23,6 +23,7 @@ import { DeploymentFlow } from './DeploymentFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';
 import { CompanyCapitalFlow } from './CompanyCapitalFlow';
 import { CompanyPauseFlow } from './CompanyPauseFlow';
+import { registerPlace } from '@pages/company/register/shared/registerPlace';
 
 interface ReadState {
   isPending: boolean;
@@ -45,7 +46,7 @@ function ReadResult({ query, label, children }: { query: ReadState; label: strin
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
   return (
-    <Page narrow>
+    <Page narrow back={registerPlace({ token: uuid, task: 'history' })}>
       <ShareClassDetails
         key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
         data={data}

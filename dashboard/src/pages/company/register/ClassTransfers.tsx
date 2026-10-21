@@ -17,8 +17,10 @@ import { entriesKey } from '@pages/company/register/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { transfersKey, useRegisterTransfers } from '@pages/company/register/shared/useRegisterTransfers';
 import { allPeopleKey } from '@pages/company/register/shared/usePeople';
+import type { Landed } from '@pages/company/register/shared/registerPlace';
 
 export function ClassTransfers({
+  landed,
   owner,
   guard,
   register,
@@ -26,6 +28,7 @@ export function ClassTransfers({
   visible = true,
   onHeldChange,
 }: {
+  landed?: Landed;
   owner: OrderSubmissionOwner;
   guard: () => void;
   register: TokenHoldersResponse;
@@ -112,6 +115,7 @@ export function ClassTransfers({
         {(transfers.data ?? []).map((transfer) => (
           <TransferRecord
             key={transfer.uuid}
+            landed={landed?.record === transfer.uuid ? landed : undefined}
             transfer={transfer}
             visible={privateReady}
             onHeldChange={recordHeld}
