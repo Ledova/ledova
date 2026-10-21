@@ -5,6 +5,7 @@ interface UseQRScannerOptions {
   scannerId: string;
   onScanSuccess: (decodedText: string) => void;
   enabled?: boolean;
+  continuous?: boolean;
   fps?: number;
   qrboxSize?: number;
 }
@@ -17,10 +18,15 @@ interface UseQRScannerReturn {
 
 const scannerTeardowns = new Map<string, Promise<void>>();
 
+const CAMERA_UNAVAILABLE =
+  'The camera could not be started. Check that this device has a camera and that the browser may use it.';
+const PREVIOUS_CAMERA_RUNNING = 'The previous camera could not be stopped. Reload before scanning again.';
+
 export function useQRScanner({
   scannerId,
   onScanSuccess,
   enabled = true,
+  continuous = false,
   fps = 10,
   qrboxSize = 250,
 }: UseQRScannerOptions): UseQRScannerReturn {
@@ -89,7 +95,8 @@ export function useQRScanner({
             if (state === 2 || state === 3) await run.scanner!.stop();
             release();
           } catch {
-            fail(new Error('The previous camera could not be stopped. Reload before scanning again.'));
+            if (run.scanner && !run.scanner.isScanning) release();
+            else fail(new Error(PREVIOUS_CAMERA_RUNNING));
           }
         })();
       },
@@ -104,9 +111,11 @@ export function useQRScanner({
 
     const onSuccess = (decodedText: string) => {
       if (!current() || run.processed) return;
-      run.processed = true;
       const callback = onScanSuccessRef.current;
-      run.stop();
+      if (!continuous) {
+        run.processed = true;
+        run.stop();
+      }
       callback(decodedText);
     };
 
@@ -130,14 +139,18 @@ export function useQRScanner({
           if (current()) setIsScanning(true);
         } catch (err) {
           if (!current()) return;
-          setError(err instanceof Error ? err.message : 'Failed to start camera');
+          setError(
+            err instanceof Error && err.message === PREVIOUS_CAMERA_RUNNING
+              ? PREVIOUS_CAMERA_RUNNING
+              : CAMERA_UNAVAILABLE,
+          );
           run.stop();
         }
       })();
     }, 100);
 
     return run.stop;
-  }, [enabled, scannerId, fps, qrboxSize, stopScanner]);
+  }, [enabled, scannerId, continuous, fps, qrboxSize, stopScanner]);
 
   return { isScanning, error, stopScanner };
 }
