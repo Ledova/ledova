@@ -11,7 +11,6 @@ import {
 import type { DirectoryOpenOffering, Wallet } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { LABEL } from '@components/fieldClass';
 
 interface SubscribeFormProps {
   offering: DirectoryOpenOffering;
@@ -60,7 +59,7 @@ export function SubscribeForm({
       <div className="grid gap-4 py-2 sm:grid-cols-2">
         <Field
           label="Shares"
-          className={`${LABEL} min-w-0`}
+          className="min-w-0"
           error={quantity !== '' && amount === null ? 'Enter a positive whole number of shares.' : null}
         >
           <TextInput

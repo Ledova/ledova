@@ -124,14 +124,9 @@ export function AddWalletModal({
           {form.showScanner ? 'Scan your wallet QR code' : 'Enter wallet details or scan a QR code'}
         </p>
 
-        {form.showScanner ? (
-          <div className="space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm text-text-primary">Wallet address</p>
-              {scanToggle}
-            </div>
-
-            <div className="space-y-3">
+        <Field label="Wallet address" aside={scanToggle} error={form.showScanner ? null : form.errors.address}>
+          {form.showScanner ? (
+            <div className="mt-1 space-y-3">
               <div className="relative overflow-hidden rounded-lg bg-black mx-auto" style={{ width: 280, height: 280 }}>
                 <div id="wallet-qr-scanner" className="w-full h-full" />
               </div>
@@ -147,9 +142,7 @@ export function AddWalletModal({
 
               {form.scannerError && <p className="text-center text-sm text-error-light">{form.scannerError}</p>}
             </div>
-          </div>
-        ) : (
-          <Field label="Wallet address" aside={scanToggle} error={form.errors.address}>
+          ) : (
             <TextInput
               maxLength={FIELD_LIMITS.WALLET_ADDRESS}
               value={form.address}
@@ -158,8 +151,8 @@ export function AddWalletModal({
               placeholder="0x… or tb1…"
               disabled={isLoading}
             />
-          </Field>
-        )}
+          )}
+        </Field>
 
         {!form.showScanner && (
           <Choices

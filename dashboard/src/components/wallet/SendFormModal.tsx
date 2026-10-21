@@ -276,30 +276,26 @@ export function SendFormModal({
         )}
 
         <div className="space-y-2">
-          {showAddressScanner ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm text-text-primary">Destination address</p>
-                {scanToggle}
+          <Field label="Destination address" aside={scanToggle}>
+            {showAddressScanner ? (
+              <div className="mt-2 space-y-2">
+                <QRScannerView
+                  scannerId="send-form-address-scanner"
+                  error={scannerError}
+                  className="relative overflow-hidden rounded-lg bg-black mx-auto [&_video]:!object-cover [&_video]:!h-full [&_video]:!w-full"
+                  style={{ width: 220, height: 220 }}
+                />
+                <p className="text-xs text-text-muted text-center">Scan address QR code</p>
               </div>
-              <QRScannerView
-                scannerId="send-form-address-scanner"
-                error={scannerError}
-                className="relative overflow-hidden rounded-lg bg-black mx-auto [&_video]:!object-cover [&_video]:!h-full [&_video]:!w-full"
-                style={{ width: 220, height: 220 }}
-              />
-              <p className="text-xs text-text-muted text-center">Scan address QR code</p>
-            </div>
-          ) : (
-            <Field label="Destination address" aside={scanToggle}>
+            ) : (
               <TextInput
                 value={toAddress}
                 onChange={(e) => handleAddressChange(e.target.value)}
                 placeholder={addressPlaceholder}
                 className={`${FIELD_CLASS} font-mono`}
               />
-            </Field>
-          )}
+            )}
+          </Field>
           {toAddress && !isValidAddress && (
             <p className="text-xs text-warning-light">
               Please enter a valid {getBlockchainDisplayName(chainShortCode)} address

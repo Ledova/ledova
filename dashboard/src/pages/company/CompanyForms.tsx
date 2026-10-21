@@ -1,5 +1,4 @@
 import { Field, TextInput } from '@components/Field';
-import { LABEL } from '@components/fieldClass';
 import { Modal } from '@components/Modal';
 import { apiErrorSentence } from '@ledova/shared';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
@@ -52,7 +51,7 @@ export function EditCompanyForm(props: FormProps) {
             <Field
               key={key}
               label={label}
-              className={`${LABEL} ${['name', 'addressLine1', 'addressLine2'].includes(key) ? 'sm:col-span-2' : ''}`}
+              className={['name', 'addressLine1', 'addressLine2'].includes(key) ? 'sm:col-span-2' : undefined}
             >
               <TextInput
                 maxLength={maxLength}

@@ -8,9 +8,11 @@ import {
   type InputProps,
   type TextareaProps,
 } from '@headlessui/react';
-import { FIELD_CLASS, LABEL } from '@components/fieldClass';
+import { FIELD_CLASS } from '@components/fieldClass';
 
 const Invalid = createContext(false);
+
+const FIELD = 'block text-sm text-text-primary';
 
 export function Field({
   label,
@@ -18,7 +20,7 @@ export function Field({
   error,
   optional = false,
   aside,
-  className = LABEL,
+  className,
   children,
 }: {
   label: ReactNode;
@@ -36,7 +38,7 @@ export function Field({
     </Label>
   );
   return (
-    <HeadlessField className={className}>
+    <HeadlessField className={className ? `${FIELD} ${className}` : FIELD}>
       {aside ? (
         <div className="flex items-center justify-between gap-2">
           {name}
@@ -46,8 +48,8 @@ export function Field({
         name
       )}
       <Invalid.Provider value={!!error}>{children}</Invalid.Provider>
-      {hint && <Description className="text-sm text-text-muted">{hint}</Description>}
-      {error && <Description className="text-sm text-error-light">{error}</Description>}
+      {hint && <Description className="mt-1 text-sm text-text-muted">{hint}</Description>}
+      {error && <Description className="mt-1 text-sm text-error-light">{error}</Description>}
     </HeadlessField>
   );
 }

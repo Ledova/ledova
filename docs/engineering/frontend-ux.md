@@ -422,11 +422,12 @@ record's own page.
 
 - **Fields.** A web form field is `Field` (`dashboard/src/components/Field.tsx`): Headless UI's
   `Field`, `Label` and `Description` around a `TextInput` or `TextArea` with the `FIELD_CLASS` look,
-  so the label, the hint and any error are linked to the input and an error sets `aria-invalid`. The
-  label sits above the input, an optional field ends with "(optional)", a sentence about one field
-  is that field's hint, and an action beside the label, such as Scan QR, is its `aside`. Choices,
-  the searchable pickers, file inputs and checkboxes keep their own controls, and sign-in and sign-up
-  keep their own look on the same Headless parts.
+  or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
+  to the control and an error sets `aria-invalid`. The label sits above the control, an optional
+  field ends with "(optional)", a sentence about one field is that field's hint, and an action
+  beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, file inputs,
+  checkboxes, the list search and Trading's order form keep their own controls, and sign-in and
+  sign-up keep their own look on the same Headless parts.
 - **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
   (`packages/shared/src/constants/business/field-limits.ts`): one constant per kind of backend field,
   equal to its serializer or model limit, such as `NAME` (255), `REASON` (1000), `REGISTER_SHARES`

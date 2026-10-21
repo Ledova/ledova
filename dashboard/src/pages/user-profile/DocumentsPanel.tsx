@@ -1,4 +1,3 @@
-import { LABEL } from '@components/fieldClass';
 import { Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
@@ -338,7 +337,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
               disabled={upload.isPending}
               onChange={setDocumentType}
             />
-            <Field label="Note" optional className={`${LABEL} min-w-0 flex-1 basis-40`}>
+            <Field label="Note" optional className="min-w-0 flex-1 basis-40">
               <TextInput
                 type="text"
                 value={note}

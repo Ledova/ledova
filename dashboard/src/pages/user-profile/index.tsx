@@ -1,4 +1,3 @@
-import { LABEL } from '@components/fieldClass';
 import { Field, TextArea, TextInput } from '@components/Field';
 import { useState } from 'react';
 import { FIELD_LIMITS, formatDate, formatDateTime, getUserVerificationStatus, failureSentence } from '@ledova/shared';
@@ -129,7 +128,7 @@ function UserProfilePage() {
               />
             </Field>
             <div className="flex flex-wrap gap-3">
-              <Field label="Country code" className={`${LABEL} w-28`}>
+              <Field label="Country code" className="w-28">
                 <TextInput
                   maxLength={FIELD_LIMITS.PHONE_COUNTRY_CODE}
                   type="tel"
@@ -139,7 +138,7 @@ function UserProfilePage() {
                   onChange={(event) => setPhoneCode(event.target.value)}
                 />
               </Field>
-              <Field label="Phone number" className={`${LABEL} min-w-0 flex-1`}>
+              <Field label="Phone number" className="min-w-0 flex-1">
                 <TextInput
                   maxLength={FIELD_LIMITS.PHONE}
                   type="tel"
