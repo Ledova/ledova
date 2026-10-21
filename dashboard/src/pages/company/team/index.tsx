@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { CompanyPicker } from '@components/CompanyPicker';
-import { LinkRow, Row, Rows, Section } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, LoadError } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import {
@@ -22,8 +22,13 @@ export default function CompanyTeamPage() {
   if (!owner || preferences.isError)
     return (
       <Page narrow>
-        <p className="text-sm text-text-muted">Your signed-in account must be checked before opening company team.</p>
-        <PageAction label="Retry your account" onClick={() => void preferences.refetch()} />
+        {preferences.isError ? (
+          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : (
+          <p className="text-sm text-text-muted">Your signed-in account must be checked before opening company team.</p>
+        )}
       </Page>
     );
   return <OwnTeam key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} currentOwner={boundary.get} />;
@@ -83,17 +88,19 @@ function OwnTeam({
         />
       </Section>
       <Section title="Your appointments">
-        <PageAction
-          label="Refresh appointments"
-          disabled={disabled || own.isFetching}
-          onClick={() => void own.refetch()}
-        />
+        {!own.isError && (
+          <PageAction
+            label="Refresh appointments"
+            disabled={disabled || own.isFetching}
+            onClick={() => void own.refetch()}
+          />
+        )}
         {own.isPending ? (
           <p role="status">Loading your appointments…</p>
         ) : own.isError ? (
-          <p role="alert" className="text-sm text-error-light">
-            Your appointments could not be loaded. Refresh before using company authority.
-          </p>
+          <LoadError retry={() => own.refetch()} busy={own.isFetching}>
+            Your appointments could not be loaded.
+          </LoadError>
         ) : appointments.length === 0 ? (
           <p>No company appointments recorded.</p>
         ) : (
@@ -152,17 +159,19 @@ function OwnTeam({
             {canAdmin ? (
               <>
                 <h3 className="text-sm font-medium">Company team</h3>
-                <PageAction
-                  label="Refresh company team"
-                  disabled={disabled || team.isFetching}
-                  onClick={() => void team.refetch()}
-                />
+                {!team.isError && (
+                  <PageAction
+                    label="Refresh company team"
+                    disabled={disabled || team.isFetching}
+                    onClick={() => void team.refetch()}
+                  />
+                )}
                 {team.isPending ? (
                   <p role="status">Loading company team…</p>
                 ) : team.isError ? (
-                  <p role="alert" className="text-sm text-error-light">
-                    Company team could not be loaded. Refresh before managing it.
-                  </p>
+                  <LoadError retry={() => team.refetch()} busy={team.isFetching}>
+                    Company team could not be loaded.
+                  </LoadError>
                 ) : (
                   <ul className="divide-y divide-border-subtle">
                     {(team.data ?? []).map((item) => (
@@ -188,17 +197,19 @@ function OwnTeam({
         )}
       </Section>
       <Section title="Invitations you issued">
-        <PageAction
-          label="Refresh invitations"
-          disabled={disabled || invitations.isFetching}
-          onClick={() => void invitations.refetch()}
-        />
+        {!invitations.isError && (
+          <PageAction
+            label="Refresh invitations"
+            disabled={disabled || invitations.isFetching}
+            onClick={() => void invitations.refetch()}
+          />
+        )}
         {invitations.isPending ? (
           <p role="status">Loading your invitations…</p>
         ) : invitations.isError ? (
-          <p role="alert" className="text-sm text-error-light">
+          <LoadError retry={() => invitations.refetch()} busy={invitations.isFetching}>
             Your invitations could not be loaded.
-          </p>
+          </LoadError>
         ) : (invitations.data ?? []).length === 0 ? (
           <p>No invitations recorded.</p>
         ) : (

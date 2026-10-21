@@ -1,6 +1,6 @@
 import { formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
-import { Disclosure, Section } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Disclosure, Section, LoadError } from '@components/Ledger';
+import { Page } from '@components/Page';
 import { HoldingWork } from './HoldingWork';
 
 export default function HomePage() {
@@ -15,10 +15,9 @@ export default function HomePage() {
             Loading your holdings…
           </p>
         ) : isError ? (
-          <div role="alert" className="flex flex-col items-start gap-3 py-3">
-            <p className="text-sm text-text-muted">We couldn&apos;t load all your holdings.</p>
-            <PageAction label="Try again" onClick={() => void refetch()} disabled={isFetching} />
-          </div>
+          <LoadError retry={refetch} busy={isFetching}>
+            Your holdings could not be loaded.
+          </LoadError>
         ) : holdings.length === 0 ? (
           <p className="py-3 text-sm text-text-muted">
             No wallet shares yet. See Your shares for company-recorded ownership.

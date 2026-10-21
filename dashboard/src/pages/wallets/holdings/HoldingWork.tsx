@@ -9,8 +9,7 @@ import {
   useResolutionStatus,
   type Publication,
 } from '@ledova/shared';
-import { Section, Status } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { Section, Status, LoadError } from '@components/Ledger';
 import { useHoldingWork } from './useHoldingWork';
 import type { ApplicationWork } from './applicationWork';
 
@@ -62,15 +61,6 @@ function RecentNotice({ publication }: { publication: Publication }) {
   );
 }
 
-function ReadError({ children, retry, busy }: { children: string; retry: () => void; busy: boolean }) {
-  return (
-    <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-text-muted">
-      <p>{children}</p>
-      <PageAction label="Try again" onClick={retry} disabled={busy} />
-    </div>
-  );
-}
-
 export function HoldingWork() {
   const { role, applications, notices, recent } = useHoldingWork();
   const applicationsReady = role.isKnown && (!role.isInvestor || applications.isSuccess);
@@ -89,26 +79,26 @@ export function HoldingWork() {
       {showReadState && (
         <div className="flex flex-col gap-3">
           {role.isUnavailable ? (
-            <ReadError retry={() => void role.retry()} busy={role.isLoading}>
-              We couldn&apos;t check your account type or applications.
-            </ReadError>
+            <LoadError retry={() => role.retry()} busy={role.isLoading}>
+              Your account type and applications could not be loaded.
+            </LoadError>
           ) : !role.isKnown || (role.isInvestor && applications.isPending) ? (
             <p role="status" className="text-sm text-text-muted">
               Checking your applications…
             </p>
           ) : role.isInvestor && applications.isError ? (
-            <ReadError retry={() => void applications.refetch()} busy={applications.isFetching}>
-              We couldn&apos;t load all your applications.
-            </ReadError>
+            <LoadError retry={() => applications.refetch()} busy={applications.isFetching}>
+              Your applications could not be loaded.
+            </LoadError>
           ) : null}
           {notices.isPending ? (
             <p role="status" className="text-sm text-text-muted">
               Checking your notices…
             </p>
           ) : notices.isError ? (
-            <ReadError retry={() => void notices.retry()} busy={notices.isFetching}>
-              We couldn&apos;t check your notices.
-            </ReadError>
+            <LoadError retry={() => notices.retry()} busy={notices.isFetching}>
+              Your notices could not be loaded.
+            </LoadError>
           ) : null}
         </div>
       )}
@@ -168,9 +158,9 @@ export function HoldingWork() {
             Checking what was published to you…
           </p>
         ) : recent.isError ? (
-          <ReadError retry={() => void recent.refetch()} busy={recent.isFetching}>
-            We couldn&apos;t load what was published to you.
-          </ReadError>
+          <LoadError retry={() => recent.refetch()} busy={recent.isFetching}>
+            What has been published to you could not be loaded.
+          </LoadError>
         ) : recent.data.length === 0 ? (
           <p className="py-3 text-sm text-text-muted">Nothing has been published to you yet.</p>
         ) : (

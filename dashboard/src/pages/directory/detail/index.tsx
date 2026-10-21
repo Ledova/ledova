@@ -13,8 +13,8 @@ import {
   useSubscribableWallets,
   type DirectoryDocument,
 } from '@ledova/shared';
-import { Row, Rows, Section, Status } from '@components/Ledger';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Row, Rows, Section, Status, LoadError } from '@components/Ledger';
+import { Page, PageLink } from '@components/Page';
 import { SubscribeForm } from './SubscribeForm';
 import { useCreateSubscription } from './useCreateSubscription';
 
@@ -26,14 +26,9 @@ function OfferDocuments({ read }: { read: ReturnType<typeof useDirectoryDocument
           {OFFER_DOCUMENT_COPY.LOADING}
         </p>
       ) : read.hasError ? (
-        <div role="alert" className="flex flex-col items-start gap-3 py-2">
-          <p className="text-sm text-text-primary">{OFFER_DOCUMENT_COPY.FAILED}</p>
-          <PageAction
-            label={OFFER_DOCUMENT_COPY.RETRY}
-            onClick={() => void read.retry()}
-            disabled={read.isRefreshing}
-          />
-        </div>
+        <LoadError retry={read.retry} busy={read.isRefreshing}>
+          {OFFER_DOCUMENT_COPY.FAILED}
+        </LoadError>
       ) : read.documents.length === 0 ? (
         <p className="py-2 text-sm text-text-muted">{OFFER_DOCUMENT_COPY.EMPTY}</p>
       ) : (
@@ -94,12 +89,9 @@ export default function DirectoryTokenPage() {
   if (hasError) {
     return (
       <Page narrow actions={back}>
-        <div role="alert" className="flex flex-col items-start gap-3 py-6">
-          <p className="text-sm text-text-primary">
-            This share class could not be loaded. Try again before continuing.
-          </p>
-          <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
-        </div>
+        <LoadError retry={retry} busy={isRefreshing}>
+          This share class could not be loaded.
+        </LoadError>
       </Page>
     );
   }
@@ -167,16 +159,9 @@ export default function DirectoryTokenPage() {
             Loading your receiving wallets…
           </p>
         ) : wallets.hasError ? (
-          <div role="alert" className="flex flex-col items-start gap-3 py-3">
-            <p className="text-sm text-text-primary">
-              Your receiving wallets could not be loaded. Try again before applying.
-            </p>
-            <PageAction
-              label="Try wallets again"
-              onClick={() => void wallets.retry()}
-              disabled={wallets.isRefreshing}
-            />
-          </div>
+          <LoadError retry={wallets.retry} busy={wallets.isRefreshing}>
+            Your receiving wallets could not be loaded.
+          </LoadError>
         ) : (
           <SubscribeForm
             key={offering.uuid}
@@ -195,14 +180,9 @@ export default function DirectoryTokenPage() {
             Loading operator details…
           </p>
         ) : operatorFailed ? (
-          <div role="alert" className="flex flex-col items-start gap-3 py-2">
-            <p className="text-sm text-text-primary">Operator details could not be loaded.</p>
-            <PageAction
-              label="Try operator details again"
-              onClick={() => void retryOperator()}
-              disabled={operatorRefreshing}
-            />
-          </div>
+          <LoadError retry={retryOperator} busy={operatorRefreshing}>
+            Operator details could not be loaded.
+          </LoadError>
         ) : (
           <p className="py-2 text-sm text-text-muted">
             {operator?.name ?? 'The operator'} reviews your application. After it is accepted, open the application for

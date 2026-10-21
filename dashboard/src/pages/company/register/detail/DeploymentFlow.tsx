@@ -1,4 +1,4 @@
-import { Row, Rows, Section, Status } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import {
   REGISTER_DEPLOYMENT_COPY as COPY,
@@ -100,24 +100,33 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
       )}
       {!Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
       {appointments.isError && (
-        <PageAction
-          label="Retry deployment appointments"
-          onClick={() => void appointments.refetch()}
-          disabled={appointments.isFetching}
-        />
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       )}
-      {deployments.isError && (
+      {deployments.isError && records.length > 0 && (
         <p role="alert" className="text-sm text-error-light">
           Deployment history could not be refreshed. Retained receipts remain below.
         </p>
       )}
-      <PageAction
-        label="Refresh deployments"
-        onClick={() => void refresh().catch(() => undefined)}
-        disabled={deployments.isFetching || appointments.isFetching}
-      />
+      {deployments.isError && !records.length ? (
+        <LoadError
+          retry={() => refresh().catch(() => undefined)}
+          busy={deployments.isFetching || appointments.isFetching}
+        >
+          Deployment history could not be loaded.
+        </LoadError>
+      ) : (
+        <PageAction
+          label="Refresh deployments"
+          onClick={() => void refresh().catch(() => undefined)}
+          disabled={deployments.isFetching || appointments.isFetching}
+        />
+      )}
       {!records.length ? (
-        <p className="text-sm text-text-muted">{deployments.isPending ? 'Loading deployments…' : COPY.EMPTY}</p>
+        !deployments.isError && (
+          <p className="text-sm text-text-muted">{deployments.isPending ? 'Loading deployments…' : COPY.EMPTY}</p>
+        )
       ) : (
         <ul className="divide-y divide-border-subtle">
           {records.map((proposal) => (

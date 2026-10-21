@@ -2,8 +2,8 @@ import { marketQuantity } from '@ledova/shared';
 import { generatePath } from 'react-router-dom';
 import { DESTINATIONS, formatDate, formatMoney, useSubscriptions } from '@ledova/shared';
 import type { Subscription } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, Status } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { LinkRow, Row, Rows, Section, Status, LoadError } from '@components/Ledger';
+import { Page } from '@components/Page';
 import { LoadMore } from '@components/List';
 import { applicationState } from '@pages/subscriptions/shared/presentation';
 
@@ -49,12 +49,9 @@ export default function SubscriptionsPage() {
   return (
     <Page narrow>
       {hasError ? (
-        <div role="alert" className="flex flex-col items-start gap-3 py-6">
-          <p className="text-sm text-text-primary">
-            Your applications could not be loaded. Try again before continuing.
-          </p>
-          <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
-        </div>
+        <LoadError retry={retry} busy={isRefreshing}>
+          Your applications could not be loaded.
+        </LoadError>
       ) : (
         <>
           {subscriptions.length === 0 && !hasMore && !moreFailed ? (

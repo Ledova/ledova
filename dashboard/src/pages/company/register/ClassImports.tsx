@@ -9,8 +9,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { LinkRow, LoadError } from '@components/Ledger';
 
 import { ImportRecord } from './ImportRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -64,14 +63,9 @@ export function ClassImports({
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">{REGISTER_IMPORT_COPY.TITLE}</h3>
       {appointments.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>Your appointments could not be loaded. Retry before preparing or deciding an import.</p>
-          <PageAction
-            label="Retry appointments"
-            onClick={() => void appointments.refetch()}
-            disabled={appointments.isFetching}
-          />
-        </div>
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your appointments could not be loaded.
+        </LoadError>
       ) : (
         steps &&
         !Object.values(steps).some(Boolean) && (
@@ -100,10 +94,9 @@ export function ClassImports({
           Loading imports…
         </p>
       ) : imports.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-muted">
-          <p>We couldn&apos;t load the imports for this share class.</p>
-          <PageAction label="Retry imports" onClick={() => void imports.refetch()} disabled={imports.isFetching} />
-        </div>
+        <LoadError retry={() => imports.refetch()} busy={imports.isFetching}>
+          Imports could not be loaded.
+        </LoadError>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {(imports.data ?? []).map((proposal) => (

@@ -19,7 +19,7 @@ import {
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Loading } from '@pages/company/shared/RegisterStatus';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { importsKey, useRegisterImports } from '@pages/company/register/shared/useRegisterImports';
@@ -30,6 +30,7 @@ import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';
+import { LoadError } from '@components/Ledger';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
@@ -158,7 +159,12 @@ function OwnImport({
   if (!held && fresh && record && !saved)
     return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
   if (!retained || (!held && (!fresh || !canOpen))) {
-    if (stale) return <Unavailable retry={retry} busy={fetching} />;
+    if (stale)
+      return (
+        <LoadError retry={retry} busy={fetching}>
+          The register or your appointments could not be loaded.
+        </LoadError>
+      );
     if (
       !classes.data ||
       !appointments.data ||

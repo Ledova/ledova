@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatDate } from '@ledova/shared';
 import { InSignedInFrame } from './InSignedInFrame';
+import { PageAction } from './Page';
 
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   const inFrame = useContext(InSignedInFrame);
@@ -181,6 +182,26 @@ export function Outcome({ children }: { children: ReactNode }) {
       <span aria-hidden="true" className={`h-2 w-2 flex-shrink-0 translate-y-[-1px] rounded-full ${MARKS.done}`} />
       <span>{children}</span>
     </p>
+  );
+}
+
+export function LoadError({
+  retry,
+  busy = false,
+  children,
+}: {
+  retry: () => unknown;
+  busy?: boolean;
+  children: ReactNode;
+}) {
+  const sentence = useId();
+  return (
+    <div role="alert" className="flex flex-col items-start gap-3 py-3">
+      <p id={sentence} className="text-sm text-text-primary">
+        {children}
+      </p>
+      <PageAction label="Try again" describedBy={sentence} onClick={() => void retry()} disabled={busy} />
+    </div>
   );
 }
 

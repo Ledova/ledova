@@ -19,13 +19,14 @@ import {
 } from '@ledova/shared';
 
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
-import { Loading, Unavailable } from '@pages/company/shared/RegisterStatus';
+import { Loading } from '@pages/company/shared/RegisterStatus';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
+import { LoadError } from '@components/Ledger';
 
 const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
 const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
@@ -135,7 +136,11 @@ export function NewClassSetup({
       throw createUserFriendlyError('Your company or authority changed. Reopen this action.');
   };
   if ((!held || !context) && (classes.isError || appointments.isError || members.isError))
-    return <Unavailable retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching} />;
+    return (
+      <LoadError retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching}>
+        The register or your appointments could not be loaded.
+      </LoadError>
+    );
   if (!context && (!classes.data || !appointments.data)) return <Loading />;
   return (
     <div className="space-y-5">

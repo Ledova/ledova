@@ -12,7 +12,7 @@ import {
   type RegisterAward,
   type RegisterGrant,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Status } from '@components/Ledger';
+import { LinkRow, Row, Rows, Status, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
 import { STAGE_TONES, shareCount } from '@pages/company/shared/proposals';
@@ -184,16 +184,9 @@ export function AwardRecord({
               Loading vesting events…
             </p>
           ) : events.isError ? (
-            <>
-              <p role="alert" className="text-sm text-error-light">
-                The vesting events could not be loaded.
-              </p>
-              <PageAction
-                label="Retry vesting events"
-                disabled={events.isFetching}
-                onClick={() => void events.refetch()}
-              />
-            </>
+            <LoadError retry={() => events.refetch()} busy={events.isFetching}>
+              Vesting events could not be loaded.
+            </LoadError>
           ) : (
             <details>
               <summary className={SUMMARY}>
@@ -258,15 +251,12 @@ export function AwardRecord({
               Loading entitlement changes…
             </p>
           ) : ends.isError || reversals.isError ? (
-            <>
-              <p role="alert" className="text-sm text-error-light">
-                Entitlement changes could not be loaded.
-              </p>
-              <PageAction
-                label="Retry entitlement changes"
-                onClick={() => void Promise.all([ends.refetch(), reversals.refetch()])}
-              />
-            </>
+            <LoadError
+              retry={() => Promise.all([ends.refetch(), reversals.refetch()])}
+              busy={ends.isFetching || reversals.isFetching}
+            >
+              Entitlement changes could not be loaded.
+            </LoadError>
           ) : (
             <details>
               <summary className={SUMMARY}>Entitlement changes</summary>

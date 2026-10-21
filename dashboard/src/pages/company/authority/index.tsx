@@ -1,5 +1,5 @@
 import { CompanyPicker } from '@components/CompanyPicker';
-import { Outcome, Section } from '@components/Ledger';
+import { Outcome, Section, LoadError } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, failureSentence } from '@ledova/shared';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
@@ -12,10 +12,15 @@ export default function CompanyAuthorityPage() {
   if (!owner)
     return (
       <Page narrow>
-        <p className="text-sm text-text-muted">
-          Verify your signed-in account before opening representative authority.
-        </p>
-        {preferences.isError && <PageAction label="Retry your account" onClick={() => void preferences.refetch()} />}
+        {preferences.isError ? (
+          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : (
+          <p className="text-sm text-text-muted">
+            Verify your signed-in account before opening representative authority.
+          </p>
+        )}
       </Page>
     );
   return (
@@ -62,14 +67,9 @@ function OwnAuthorityRequests({
             Loading your companies…
           </p>
         ) : companies.isError ? (
-          <div role="alert" className="space-y-2 text-sm text-error-light">
-            <p>Your companies could not be loaded.</p>
-            <PageAction
-              label="Retry companies"
-              onClick={() => void companies.refetch()}
-              disabled={companies.isFetching}
-            />
-          </div>
+          <LoadError retry={() => companies.refetch()} busy={companies.isFetching}>
+            Your companies could not be loaded.
+          </LoadError>
         ) : drafts.length === 0 ? (
           <p className="text-sm text-text-muted">No draft company is available for an authority request.</p>
         ) : (
@@ -110,14 +110,9 @@ function OwnAuthorityRequests({
             Loading your requests…
           </p>
         ) : history.isError ? (
-          <div role="alert" className="space-y-2 text-sm text-error-light">
-            <p>Your authority requests could not be loaded.</p>
-            <PageAction
-              label="Retry request history"
-              onClick={() => void history.refetch()}
-              disabled={history.isFetching}
-            />
-          </div>
+          <LoadError retry={() => history.refetch()} busy={history.isFetching}>
+            Your authority requests could not be loaded.
+          </LoadError>
         ) : (history.data ?? []).length === 0 ? (
           <p className="text-sm text-text-muted">No authority requests recorded.</p>
         ) : (

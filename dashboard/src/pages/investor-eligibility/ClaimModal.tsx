@@ -7,6 +7,7 @@ import { FIELD_LIMITS, addCalendarDays, addCalendarYears, formatFileSize, utcTod
 import type { InvestorCategory } from '@ledova/shared';
 import { useInvestorClaim } from './useInvestorClaim';
 import { CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
+import { LoadError } from '@components/Ledger';
 
 interface ClaimModalProps {
   isOpen: boolean;
@@ -77,12 +78,16 @@ export function ClaimModal({
       busyLabel="Saving…"
     >
       <div className="space-y-4">
-        {submissionBlockedReason && (
-          <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-primary">
-            <p>{submissionBlockedReason}</p>
-            {onRetry && <PageAction label="Try again" onClick={onRetry} disabled={isRetrying} />}
-          </div>
-        )}
+        {submissionBlockedReason &&
+          (onRetry ? (
+            <LoadError retry={onRetry} busy={isRetrying}>
+              {submissionBlockedReason}
+            </LoadError>
+          ) : (
+            <p role="status" className="text-sm text-text-primary">
+              {submissionBlockedReason}
+            </p>
+          ))}
         {error && (
           <p role="alert" className="text-sm text-error-light">
             {error}

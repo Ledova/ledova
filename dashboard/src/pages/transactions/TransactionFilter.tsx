@@ -4,7 +4,7 @@ import { Choices } from '@components/Choices';
 import type { Ref } from 'react';
 import { BLOCKCHAIN, formatDate } from '@ledova/shared';
 import type { TransactionFilters, Wallet } from '@ledova/shared';
-import { Disclosure } from '@components/Ledger';
+import { Disclosure, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 
 interface TransactionFilterProps {
@@ -122,10 +122,9 @@ export function TransactionFilter({
                 </p>
               )}
               {walletsFailed && (
-                <div role="alert" className="flex flex-col items-start gap-2 text-sm text-text-primary">
-                  <p>Wallet filters could not be loaded. Your activity can still be viewed.</p>
-                  <PageAction label="Try wallets again" onClick={onRetryWallets} disabled={walletsRefreshing} />
-                </div>
+                <LoadError retry={onRetryWallets} busy={walletsRefreshing}>
+                  Wallet filters could not be loaded. Your activity can still be viewed.
+                </LoadError>
               )}
             </div>
           </div>

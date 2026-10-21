@@ -1,7 +1,6 @@
 import { COMPANY_STATUS_TONES } from './statusTones';
 import type { CompanyStatus, useCompanySelection } from '@ledova/shared';
-import { Status } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { Status, LoadError } from '@components/Ledger';
 
 type CompanyRead = Pick<ReturnType<typeof useCompanySelection>, 'error' | 'isRefreshing' | 'refetch'>;
 export type CompanyActionRead = CompanyRead &
@@ -24,14 +23,9 @@ export function CompanyReadNotice({
 }) {
   if (read.error)
     return (
-      <div role="alert" className="space-y-2 text-sm text-text-muted">
-        <p>{label} could not be loaded. Try again before continuing.</p>
-        <PageAction
-          label={`Retry ${label.toLowerCase()}`}
-          onClick={() => void read.refetch()}
-          disabled={read.isRefreshing}
-        />
-      </div>
+      <LoadError retry={read.refetch} busy={read.isRefreshing}>
+        {label} could not be loaded.
+      </LoadError>
     );
   return read.isRefreshing ? (
     <p role="status" className="text-sm text-text-muted">

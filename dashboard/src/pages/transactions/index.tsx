@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useOpenRows, useTransactions, type TransactionFilters } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { Section } from '@components/Ledger';
+import { Section, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { TransactionFilter } from './TransactionFilter';
 import { TransactionListItem } from './TransactionListItem';
@@ -72,10 +72,9 @@ const TransactionsPage = () => {
             Loading activity…
           </p>
         ) : hasError ? (
-          <div role="alert" className="flex flex-col items-start gap-3 py-3">
-            <p className="text-sm text-text-primary">Your activity could not be loaded. Try again before continuing.</p>
-            <PageAction label="Try again" onClick={() => void retry()} disabled={isRefreshing} />
-          </div>
+          <LoadError retry={retry} busy={isRefreshing}>
+            Your activity could not be loaded.
+          </LoadError>
         ) : (
           <>
             {transactions.length === 0 && !hasNextPage && !moreFailed ? (
