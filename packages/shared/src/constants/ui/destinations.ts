@@ -29,7 +29,7 @@ export const DESTINATIONS = {
     path: '/company/register',
     title: 'Register',
     audience: 'everyone',
-    views: { shareholders: 'Shareholders', awards: 'Employee awards', documents: 'Documents' },
+    views: { shareholders: 'Shareholders', awards: 'Employee share scheme', documents: 'Documents' },
     tasks: { issue: 'Issue shares', transfer: 'Transfer shares', history: 'History' },
   },
   companyRegisterSetup: { path: '/company/register/setup', title: 'Set up your share register', audience: 'everyone' },

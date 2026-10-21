@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Current; #1166–#1168 and award recipients (#1169) on the web; mobile (#1170)                                    |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Current; #1166–#1168 and award recipients (#1169) on the web; mobile (#1170); ESS (#1185)                       |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
@@ -1208,7 +1208,8 @@ awards and documents under [#1014](https://github.com/Ledova/ledova/issues/1014)
 Prepare independent work in parallel and merge focused reviewed increments in order.
 
 Company users with readable register access land on Dashboard. Everyday work is
-Dashboard, Register, Employee awards and Documents; company details, classes
+Dashboard, Register, Employee awards (named ESS on [20 October](#share-classes-shareholders-and-employee-awards))
+and Documents; company details, classes
 (moved to Register on [19 October](#dashboard-settings-and-register-for-a-new-company)),
 appointments and named-member invitations (moved to Shareholders on
 [20 October](#share-classes-shareholders-and-employee-awards)) belong in Settings. Personal views
@@ -1283,6 +1284,11 @@ checks one at a time: the Shareholders page
 _Award recipients as person records were delivered under #1169: an award gives a new recipient a
 member ID with their name and address, replacing the earlier rule that an award creates no member
 ([employee awards](business/issuing-shares.md#employee-awards-and-vesting))._
+
+On 20 October 2026 the owner also chose the destination's name
+([#1185](https://github.com/Ledova/ledova/issues/1185)): the short label ESS in the company menu, and Employee
+share scheme as the page title when it is opened. This replaces Employee awards as the destination's name; the
+award records and actions inside it keep their own names.
 
 On 20 October 2026 the owner approved the
 [design for issuing from Register](https://github.com/Ledova/ledova/issues/1168#issuecomment-6288493034):

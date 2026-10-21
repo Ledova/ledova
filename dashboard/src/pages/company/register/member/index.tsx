@@ -365,7 +365,7 @@ function OwnShareholder({
               <PageLink
                 to={`${DESTINATIONS.companyRegister.path}#awards`}
                 state={{ registerCompany: company }}
-                label="Open Employee awards"
+                label="Open Employee share scheme"
               />
             </Section>
           )}

@@ -35,6 +35,7 @@ interface NavItem {
   icon: Icon;
   view?: string;
   label?: string;
+  short?: string;
 }
 
 interface NavGroup {
@@ -47,7 +48,7 @@ const COMPANY: NavItem[] = [
   { destination: 'companyDashboard', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
   { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
-  { destination: 'companyRegister', view: 'awards', icon: UsersIcon },
+  { destination: 'companyRegister', view: 'awards', short: 'ESS', icon: UsersIcon },
   { destination: 'companyRegister', view: 'documents', icon: FilesIcon },
 ];
 
@@ -93,11 +94,12 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
     <Link
       to={itemPath(item)}
       onClick={onNavigate}
+      title={item.short ? title : undefined}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-      <span>{item.label ?? title}</span>
+      <span>{item.short ?? item.label ?? title}</span>
     </Link>
   );
 }
