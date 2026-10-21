@@ -124,9 +124,10 @@ is open, and Escape or a choice closes it. The first Tab on a signed-in page rea
 content", which moves focus to the page's heading.
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
-Register's views (Shareholders, Employee awards, Documents) and tasks, and Home's Documents view, and
-the sidebar and page titles read their names from it. On the web the company dashboard and Home are
-both titled Dashboard, so the company workspace lists Home as Your shares. `DESTINATION_PARENTS`
+Register's views (Shareholders, Employee share scheme, Documents) and tasks, and Home's Documents
+view, and the sidebar and page titles read their names from it. On the web the company dashboard and
+Home are both titled Dashboard, so the company workspace lists Home as Your shares. The sidebar shows
+Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
 beside it gives each page below a sidebar destination its parent, and `Page` puts one link back to it
 in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to Company on
 Representative authority, Back to Shareholders on a shareholder's page. Once a particulars change has

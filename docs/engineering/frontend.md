@@ -543,7 +543,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------- |
 | [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                      | everyone  |
 | [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                  | everyone  |
-| [Register, Shareholders, Employee awards, Documents](../business/register.md#the-register-page)          | `/company/register` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
+| [Register, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)    | `/company/register` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/register/members/:member?company=`                                         | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                              | `/company/register/:uuid`                                                            | everyone  |
 | [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`      | everyone  |
@@ -571,7 +571,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Personal dashboard: reads the person's own member projection; the first own class's history loads
   when a member record opens, and choosing another class reads that class's own entries.
 - Register on the web (`dashboard/src/pages/company/register/index.tsx`): one page renders the
-  Register, Shareholders (with member access), Employee awards and Documents views by hash and keeps every class's
+  Register, Shareholders (with member access), Employee share scheme (ESS) and Documents views by hash and keeps every class's
   controllers mounted, merely hidden, so changing view, task (`TASKS`) or class (the Task share
   class selector) keeps an unfinished request with its class, payload and retry key. Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming

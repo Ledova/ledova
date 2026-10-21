@@ -185,7 +185,7 @@ A non-paid grant records a company-authorised issue as an Issue entry, with no a
 wallet or chain transaction.
 
 1. On Register, choose Issue shares and the class, then Non-paid issue; or choose Issue vested
-   shares on an award under Employee awards.
+   shares on an award in Employee share scheme.
 2. Choose who receives the shares ([choosing a person](register.md#choosing-a-person)), or New person
    with their name and residential address; names never link an account.
 3. Give the shares, the company issue date, the separate date of the terms, the non-paid terms, the
@@ -221,7 +221,7 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 | Unvested remaining        | Promise less net vesting and ended unvested rights                             |
 | Remaining unissued        | Promise less issued shares and both ended pools                                |
 
-1. Choose Employee awards, then Record an employee award on the class. Choose the recipient
+1. Choose ESS in the sidebar, then Record an employee award on the class. Choose the recipient
    ([choosing a person](register.md#choosing-a-person)) and give the promised shares, the agreement date and terms, the recorded vesting
    schedule and the agreement document. An award creates no entry, holding, issued share or
    certificate entitlement. A new recipient gets a person record, a member ID with their name and
