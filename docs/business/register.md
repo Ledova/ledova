@@ -142,13 +142,11 @@ opening, touches it; a pre-opening transfer that emptied none of its wallets and
 cannot be seen. Unallotted applications, holdings without allotments and quantity mismatches leave
 it blank; a pending refund never inflates it, zero never stands for an unknown amount, and non-paid
 terms establish none. An imported amount paid holds while the holding is unchanged since the import,
-plus the consideration of later external investor allotments (blank stays blank; a member the import
-did not carry shows the consideration alone); any other later entry for the member, such as a
-non-paid grant or transfer, blanks it.
-
-Amounts paid and unpaid carry no currency. An import records them as the company enters them from
-its records, without one, and a member's amount paid can add the AUD consideration of later external
-allotments to an imported amount, so the register cannot name a single currency for them.
+plus the AUD consideration of later external investor allotments (blank stays blank; a member the
+import did not carry shows the consideration alone); any other later entry for the member, such as a
+non-paid grant or transfer, blanks it. An import records amounts paid and unpaid as the company
+enters them from its records, without a currency, so the register cannot name a single currency for
+them.
 
 Date entered is when the member went from no shares to some. The earliest completed allotment to one
 of its wallets replaces it only if earlier, with the holding continuous since; otherwise a member

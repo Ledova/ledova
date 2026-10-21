@@ -676,7 +676,8 @@ by a local helper or a browser `toLocale…` call:
   use the share and crypto formatters. Signing screens, technical transaction rows (hashes, data and
   transaction values) and the exact offering terms an eligibility request shares keep their exact
   values. A register's amounts paid and unpaid show as recorded, without `formatMoney`, because the
-  register records no currency for them ([amount paid](../business/register.md#amount-paid-and-date-entered)).
+  register cannot name a single currency for them
+  ([amount paid](../business/register.md#amount-paid-and-date-entered)).
   Mobile still shows some raw dates until
   [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
