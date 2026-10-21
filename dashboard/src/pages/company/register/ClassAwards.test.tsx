@@ -108,7 +108,23 @@ beforeEach(() => {
       return { data: reversals.find((event) => url === URLS.REGISTER_AWARD_VESTING_REVERSAL(event.uuid)) };
     if (events.some((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)))
       return { data: events.find((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)) };
-    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [], awardRecipients: [] } };
+    if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid))
+      return {
+        data: {
+          members: awards.map((award) => ({
+            member: award.member,
+            name: award.recipientName,
+            residentialAddress: award.recipientResidentialAddress,
+            currentShares: '0',
+            enteredOn: null,
+            lastCeasedOn: null,
+            walletless: true,
+            particularsRetained: true,
+            onRegister: false,
+          })),
+          awardRecipients: [],
+        },
+      };
     throw new Error(`Unexpected request: ${url}`);
   });
   api.post.mockReset().mockImplementation(async (url, body) => {
@@ -342,6 +358,8 @@ it('retains original award, vesting and linked issue preparations through interr
     if (url !== URLS.REGISTER_GRANTS) return post(url, body);
     retainedGrant = {
       ...body,
+      name: awards[0].recipientName,
+      residentialAddress: awards[0].recipientResidentialAddress,
       uuid: body.operationId,
       company: APPOINTMENT.company,
       token: body.tokenId,
@@ -440,7 +458,7 @@ it('retains original award, vesting and linked issue preparations through interr
       shares: '10',
       termsEvidence: awards[0].agreementEvidence,
       companyEventOn: '2026-10-06',
-      newMember: true,
+      newMember: false,
     }),
   );
   expect((screen.getByLabelText(GRANT.SHARES).closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true);

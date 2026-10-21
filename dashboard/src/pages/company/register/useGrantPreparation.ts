@@ -116,9 +116,11 @@ export function useGrantPreparation({
     ...(!award ? ['terms' as const] : []),
     ...(acceptanceRequired ? ['acceptance' as const] : []),
   ];
-  const newRecipient = award ? !awardMember : member === 'new';
-  const recipientName = award ? (awardMember?.name ?? award.name) : name.trim();
-  const recipientAddress = award ? (awardMember?.residentialAddress ?? award.residentialAddress) : address.trim();
+  const newRecipient = !award && member === 'new';
+  const recipientName = award ? (awardMember?.name ?? award.recipientName) : name.trim();
+  const recipientAddress = award
+    ? (awardMember?.residentialAddress ?? award.recipientResidentialAddress)
+    : address.trim();
   const retainedDate = award?.termsOn ?? termsOn;
   const retainedSummary = award?.terms ?? terms.trim();
   const past = (date: string) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today;
@@ -223,11 +225,7 @@ export function useGrantPreparation({
           appointment: appointment.uuid,
           tokenId: token,
           ...(award
-            ? {
-                member: award.member,
-                newMember: newRecipient,
-                ...(newRecipient ? { name: recipientName, residentialAddress: recipientAddress } : {}),
-              }
+            ? { member: award.member, newMember: false }
             : personRequest(member, people, newMemberId, name, address)),
           ...(award ? { award: award.uuid } : {}),
           shares,

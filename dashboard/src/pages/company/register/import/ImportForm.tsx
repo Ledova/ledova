@@ -39,7 +39,6 @@ export function ImportForm({
   classProblems = [],
   resolveRegister,
   companyMembers,
-  awardRecipients,
   emptyOpeningAllowed = false,
   visible = true,
   onHeldChange,
@@ -51,7 +50,6 @@ export function ImportForm({
     importDescription,
     today,
     knownMembers,
-    knownAwardRecipients,
     preserveParticulars,
     draft,
     proposal,
@@ -103,7 +101,6 @@ export function ImportForm({
     classProblems,
     resolveRegister,
     companyMembers,
-    awardRecipients,
     emptyOpeningAllowed,
     visible,
     onHeldChange,
@@ -194,7 +191,6 @@ export function ImportForm({
                     setMember={setMember}
                     setFormer={setFormer}
                     companyMembers={knownMembers}
-                    awardRecipients={knownAwardRecipients}
                     preserveParticulars={preserveParticulars}
                     step={phase === 'details' ? 'details' : 'shareholders'}
                     validateMember={holderProblems}
