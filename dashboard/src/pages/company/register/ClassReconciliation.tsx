@@ -24,6 +24,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 
 import { reconciliationKey, useLatestReconciliation } from './useLatestReconciliation';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
+import { registerInclusionMessage } from './shared/inclusionMessage';
 
 type Holders = TokenHoldersResponse['holders'];
 type Field = keyof typeof REGISTER_RECONCILIATION_COPY.FIELDS;
@@ -38,6 +39,7 @@ function fieldValue(row: RegisterDiscrepancy, field: Field, holders: Holders) {
   const value = String(row[field]);
   if (field === 'member') return holders.find((holder) => holder.member === value)?.name || shortReference(value);
   if (field === 'source') return shortReference(value);
+  if (field === 'detail') return registerInclusionMessage(value);
   return field === 'chain' || field === 'expected' ? formatShareCount(value) : value;
 }
 
