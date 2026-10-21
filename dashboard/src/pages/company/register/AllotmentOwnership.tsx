@@ -4,6 +4,7 @@ import {
   REGISTER_ALLOTMENT_COPY as COPY,
   type RegisterAllotmentDecisionPreview,
   shareCount,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';
 import { Table } from '@components/List';
@@ -27,7 +28,9 @@ export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDeci
             {row.name || 'Name not recorded'}
             {row.recipient && ' · Investor'}
             {impact.rows.some((other) => other.member !== row.member && other.name === row.name) && (
-              <span className="block text-xs font-normal text-text-muted">Record {row.member.slice(-8)}</span>
+              <span className="block text-xs font-normal text-text-muted">
+                Member reference {shortReference(row.member)}
+              </span>
             )}
           </th>
           <td className="px-4 py-3 text-right tabular-nums">

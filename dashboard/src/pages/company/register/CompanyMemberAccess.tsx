@@ -10,6 +10,7 @@ import {
   MEMBER_INVITATION_STATUS_LABELS,
   MEMBER_PARTICULARS_STATUS_LABELS,
   MEMBER_CERTIFICATE_STATUS_LABELS,
+  shortReference,
 } from '@ledova/shared';
 import { Outcome, Section, Loading, LoadError, Disclosure } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
@@ -152,7 +153,7 @@ export function CompanyMemberAccess({
           {member && (
             <Disclosure summary="Selected member record">
               <div className="text-sm text-text-muted">
-                <p className="break-all">{member.uuid}</p>
+                <p>Member reference {shortReference(member.uuid)}</p>
               </div>
             </Disclosure>
           )}
@@ -192,7 +193,7 @@ export function CompanyMemberAccess({
               <Disclosure summary="Invitation record">
                 <div className="text-text-muted">
                   <p className="break-all">
-                    Invitation {item.uuid} · Member {item.member}
+                    Invitation {shortReference(item.uuid)} · Member {shortReference(item.member)}
                   </p>
                 </div>
               </Disclosure>
@@ -215,7 +216,8 @@ export function CompanyMemberAccess({
               <Disclosure summary="Access record">
                 <div className="text-sm text-text-muted">
                   <p className="break-all">
-                    Member {association.member} · Account {association.userAccount} · Access {association.uuid}
+                    Member {shortReference(association.member)} · Account {shortReference(association.userAccount)} ·
+                    Access {shortReference(association.uuid)}
                   </p>
                 </div>
               </Disclosure>
@@ -248,8 +250,8 @@ export function CompanyMemberAccess({
               <Disclosure summary="Particulars request record">
                 <div className="text-sm text-text-muted">
                   <p className="break-all">
-                    Request {item.uuid} · Member {item.member}
-                    {item.change ? ` · Company instruction ${item.change}` : ''}
+                    Request {shortReference(item.uuid)} · Member {shortReference(item.member)}
+                    {item.change ? ` · Company instruction ${shortReference(item.change)}` : ''}
                   </p>
                 </div>
               </Disclosure>
@@ -350,11 +352,12 @@ export function CompanyMemberAccess({
               <Disclosure summary="Certificate request record">
                 <div className="text-sm text-text-muted">
                   <p className="break-all">
-                    Request {item.uuid} · Member {item.member} · Entry {item.entry}
+                    Request {shortReference(item.uuid)} · Member {shortReference(item.member)} · Entry{' '}
+                    {shortReference(item.entry)}
                   </p>
                   {item.fulfilment && (
                     <p className="break-all">
-                      Unsigned PDF {item.fulfilment.uuid} · SHA-256 {item.fulfilment.digest} ·{' '}
+                      Unsigned PDF {shortReference(item.fulfilment.uuid)} · SHA-256 {item.fulfilment.digest} ·{' '}
                       {item.fulfilment.fileSize} bytes
                     </p>
                   )}

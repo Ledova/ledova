@@ -10,6 +10,7 @@ import {
   COMPANY_WALLET_UNMET_COPY,
   type WalletNominationPreview,
   refusalSentences,
+  shortReference,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
@@ -18,9 +19,9 @@ import { WalletVerificationModal } from '@components/wallet/WalletVerificationMo
 function Facts({ preview }: { preview: WalletNominationPreview }) {
   return (
     <Rows>
-      <Row label="Exact company">{preview.company}</Row>
-      <Row label="Eligibility request">{preview.request}</Row>
-      <Row label="Accepted GENERAL decision">{preview.decision ?? 'Not ready'}</Row>
+      <Row label="Company">{shortReference(preview.company)}</Row>
+      <Row label="Eligibility request">{shortReference(preview.request)}</Row>
+      <Row label="Accepted GENERAL decision">{preview.decision ? shortReference(preview.decision) : 'Not ready'}</Row>
       <Row label="Selected address">{preview.address}</Row>
       <Row label="Chain">{preview.chain}</Row>
       <Row label="Possession proof completed">{formatDateTime(preview.proofCompletedAt)}</Row>
@@ -72,7 +73,7 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
           <p role="status">This original nomination is unconfirmed. Recover its receipt with the same body and key.</p>
           <Facts preview={data.original.preview} />
           <Rows>
-            <Row label="Original nomination key">{data.original.body.operationId}</Row>
+            <Row label="Original nomination key">{shortReference(data.original.body.operationId)}</Row>
           </Rows>
           <PageAction label="Recover original nomination" disabled={data.busy} onClick={() => void data.recover()} />
         </div>
@@ -176,15 +177,15 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
         </p>
         {data.receipt && !data.nominations.isSuccess && (
           <Rows>
-            <Row label="Retained nomination receipt">{data.receipt.uuid}</Row>
+            <Row label="Retained nomination receipt">{shortReference(data.receipt.uuid)}</Row>
             <Row label="Shared address">{data.receipt.address}</Row>
-            <Row label="Company">{data.receipt.company}</Row>
+            <Row label="Company">{shortReference(data.receipt.company)}</Row>
           </Rows>
         )}
         {(data.nominations.isSuccess ? data.nominations.data : []).map((record) => (
           <Rows key={record.uuid}>
-            <Row label="Retained nomination">{record.uuid}</Row>
-            <Row label="Company">{record.company}</Row>
+            <Row label="Retained nomination">{shortReference(record.uuid)}</Row>
+            <Row label="Company">{shortReference(record.company)}</Row>
             <Row label="Shared address">{record.address}</Row>
             <Row label="Chain">{record.chain}</Row>
             <Row label="Submitted">{formatDateTime(record.submittedAt)}</Row>

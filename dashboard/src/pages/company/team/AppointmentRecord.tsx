@@ -3,6 +3,7 @@ import {
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
   APPOINTMENT_STATUS_LABELS,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -41,7 +42,7 @@ export function AppointmentRecord({
         <div className="text-sm">
           <div className="space-y-3 pt-3">
             <Rows>
-              <Row label="Appointment">{appointment.uuid}</Row>
+              <Row label="Appointment">{shortReference(appointment.uuid)}</Row>
               <Row label="Source">
                 {appointment.source === 'initial'
                   ? 'Initial self-declaration'
@@ -59,7 +60,12 @@ export function AppointmentRecord({
         </div>
       </Disclosure>
       {appointment.status !== 'revoked' && (
-        <PageAction label="Revoke appointment" context={appointment.uuid} disabled={disabled} onClick={onRevoke} />
+        <PageAction
+          label="Revoke appointment"
+          context={shortReference(appointment.uuid)}
+          disabled={disabled}
+          onClick={onRevoke}
+        />
       )}
     </li>
   );

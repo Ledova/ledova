@@ -15,6 +15,7 @@ import {
   type RegisterPauseChange,
   refusalSentences,
   failureSentence,
+  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -60,18 +61,18 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
           <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} pause change</h3>
           <SnapshotRows record={record} />
           <Rows>
-            <Row label="Preparation ID">{record.uuid}</Row>
+            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
 
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
+            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
             <Row label="Execution">{registerPauseChangeExecutionState(record)}</Row>
             {execution && (
               <>
-                <Row label="Original submission">{execution.submissionId}</Row>
-                {execution.operationId && <Row label="Original operation">{execution.operationId}</Row>}
-                {execution.claimId && <Row label="Original claim">{execution.claimId}</Row>}
+                <Row label="Original submission">{shortReference(execution.submissionId)}</Row>
+                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
+                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
                 {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
                 {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
@@ -99,7 +100,7 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
           ))}
           <PageAction
             label="Download pause authority"
-            context={`pause ${record.uuid}`}
+            context={`pause ${shortReference(record.uuid)}`}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
@@ -122,7 +123,7 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`pause ${record.uuid}`}
+        context={`pause ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
@@ -279,9 +280,9 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original pause preparation response is unresolved. Recover its identical body and operation UUID.
+            The original pause preparation response is unresolved. Recover its identical body and operation reference.
           </p>
-          <p>{commands.recovery.body.operationId}</p>
+          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original pause preparation receipt"
             disabled={commands.busy}

@@ -1,5 +1,5 @@
 import { REGISTER_CORRECTION_COPY } from '../constants';
-import { shareChange } from './formatting';
+import { shareChange, shortReference } from './formatting';
 import type {
   RegisterCorrection,
   RegisterCorrectionChange,
@@ -45,6 +45,6 @@ export function isRegisterCorrectionDecisionReceipt(
 export function formatRegisterChanges(changes: RegisterChange[], named: RegisterChange[] = []) {
   const names = new Map(named.map((change) => [change.member, change.name]));
   return changes.map(({ member, shares, name }) => {
-    return `${name || names.get(member) || REGISTER_CORRECTION_COPY.UNNAMED_MEMBER(member)}: ${shareChange(shares)}`;
+    return `${name || names.get(member) || REGISTER_CORRECTION_COPY.UNNAMED_MEMBER(shortReference(member))}: ${shareChange(shares)}`;
   });
 }

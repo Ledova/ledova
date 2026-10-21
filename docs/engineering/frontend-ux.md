@@ -665,7 +665,8 @@ by a local helper or a browser `toLocale…` call:
   offering's opening and closing show their time, and Trading's quantities and wallet token balances
   use the share and crypto formatters. Signing screens, technical transaction rows (hashes, data and
   transaction values) and the exact offering terms an eligibility request shares keep their exact
-  values. Mobile still shows some raw dates until
+  values. A register's amounts paid and unpaid arrive without a currency, so they show as recorded.
+  Mobile still shows some raw dates until
   [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
@@ -675,6 +676,13 @@ by a local helper or a browser `toLocale…` call:
   and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
   for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
   register entry kinds). Mobile follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
+- **Identifiers.** Records show names. Where only an identifier tells records apart, the screen
+  shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight characters),
+  never the full UUID, including in choices and screen-reader context. Internal user numbers are
+  not shown. Fingerprints, transaction hashes and wallet addresses stay exact. The eligibility
+  request and the claim's issuer still take the exact UUID a company supplies, and
+  `useDirectoryNames` (`dashboard/src/hooks/`) names a directory-listed company or open offering
+  under the field, or says it is not listed.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile follows in

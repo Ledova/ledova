@@ -11,6 +11,7 @@ import {
   MEMBER_CERTIFICATE_STATUS_LABELS,
   type RegisterEntryKind,
   shareCount,
+  shortReference,
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -326,7 +327,7 @@ function MemberRecords({
                                   {award.vestingReversals.map((event) => (
                                     <p key={event.uuid}>
                                       {formatDate(event.companyEventOn)} · {formatShareCount(event.reversedShares)}{' '}
-                                      vesting reversed · original {event.vesting} · {event.reason}
+                                      vesting reversed · original {shortReference(event.vesting)} · {event.reason}
                                     </p>
                                   ))}
                                 </div>
@@ -479,8 +480,8 @@ function MemberRecords({
                           <p>Particulars update · {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}</p>
                           <Disclosure summary="Record details">
                             <p className="break-all">
-                              Request {request.uuid}
-                              {request.change ? ` · Company instruction ${request.change}` : ''}
+                              Request {shortReference(request.uuid)}
+                              {request.change ? ` · Company instruction ${shortReference(request.change)}` : ''}
                             </p>
                           </Disclosure>
                         </div>
@@ -501,7 +502,7 @@ function MemberRecords({
                           )}
                           <Disclosure summary="Record details">
                             <p className="break-all">
-                              Request {request.uuid} · Entry {request.entry}
+                              Request {shortReference(request.uuid)} · Entry {shortReference(request.entry)}
                             </p>
                           </Disclosure>
                         </div>

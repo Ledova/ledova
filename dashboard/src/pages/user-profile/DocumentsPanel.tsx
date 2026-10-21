@@ -12,6 +12,7 @@ import {
   uploadRefusal,
   formatCryptoBalance,
   formatMoney,
+  shortReference,
 } from '@ledova/shared';
 import { useRef, useState } from 'react';
 import {
@@ -160,7 +161,7 @@ function ClaimSelector({
         { value: '', label: 'Keep unattached' },
         ...claims
           .filter((claim) => claim.status === 'submitted')
-          .map((claim) => ({ value: claim.uuid, label: claimLabel(claim), reference: claim.uuid.slice(0, 8) })),
+          .map((claim) => ({ value: claim.uuid, label: claimLabel(claim), reference: shortReference(claim.uuid) })),
       ]}
       value={value}
       disabled={disabled}
@@ -176,9 +177,11 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const attached = claims.find((claim) => claim.uuid === doc.classification);
   const attachedLabel = attached
     ? claims.some((claim) => claim.uuid !== attached.uuid && claimLabel(claim) === claimLabel(attached))
-      ? `${claimLabel(attached)} · ${attached.uuid.slice(0, 8)}`
+      ? `${claimLabel(attached)} · ${shortReference(attached.uuid)}`
       : claimLabel(attached)
-    : doc.classification?.slice(0, 8);
+    : doc.classification
+      ? shortReference(doc.classification)
+      : undefined;
   const del = useDeleteDocument();
   const attach = useAttachDocument();
   const [classification, setClassification] = useState('');
