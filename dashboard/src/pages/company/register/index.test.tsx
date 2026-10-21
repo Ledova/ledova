@@ -1776,7 +1776,7 @@ it('shows an account without register access a calm empty state, reads no member
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   cleanup();
   show('investor', <SettingsPage />, 'Settings');
-  expect(await screen.findByRole('link', { name: 'Team and appointments' })).toBeTruthy();
+  expect(await screen.findByRole('link', { name: 'Company team' })).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, PROFILES]);
   expect(screen.queryByRole('link', { name: 'Register' })).toBeNull();

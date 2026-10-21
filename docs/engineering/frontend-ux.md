@@ -7,6 +7,7 @@ one standard way to make each common choice. How the clients are built is in [fr
 and [mobile](mobile.md); what each page does is in the business section.
 
 - [Signed-in page conventions](#signed-in-page-conventions)
+- [Navigation](#navigation)
 - [Actions](#actions)
 - [Feedback](#feedback)
 - [Copy](#copy)
@@ -52,8 +53,12 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   most one action besides Refresh; a state is never a title.
 - `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
-  after its destination, with optional detail lines and an aside. A title row never repeats a
-  sidebar destination; an underlined link belongs to a sentence or opens an external resource.
+  with its destination's title, with optional detail lines and an aside. A step in a checklist, such
+  as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid
+  transfer", are named for the step or the task; a record's row, such as a share class in Directory,
+  for the record; and a row that opens a section of a page, such as "Company documents", for that
+  section. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
+  or opens an external resource.
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
@@ -98,6 +103,36 @@ repeat titles or general explanations or show read and edit views together. Acti
 authority, privacy, incomplete-data and recovery guidance stays visible where relevant, and a
 presentation change must not reset pending work, hide uncertainty or change what a confirmation
 authorises.
+
+## Navigation
+
+The web sidebar (`dashboard/src/components/Sidebar.tsx`) is a `<nav>` labelled "Main" whose items
+are links, and the current page's item carries `aria-current="page"`; a page that isn't an item
+marks its nearest parent that is. Below 1024 pixels the header's menu button opens the same sidebar
+as a Headless UI `Dialog`: the button reports `aria-expanded`, focus stays inside the drawer while it
+is open, and Escape or a choice closes it. The first Tab on a signed-in page reaches "Skip to main
+content", which moves focus to the page's heading.
+
+`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
+Register's views (Shareholders, Employee awards, Documents) and tasks, and Home's Documents view, and
+the sidebar and page titles read their names from it. On the web the company dashboard and Home are
+both titled Dashboard, so the company workspace lists Home as Your shares. `DESTINATION_PARENTS` beside it gives each page below a sidebar
+destination its parent, and `Page` puts one link back to it in the title row, "Back to <parent's
+title>": Back to Settings on Company team, Back to Company on Representative authority, Back to
+Shareholders on a shareholder's page. Once a particulars change has found its member, its link goes
+back to that member by name. Register setup has none, on purpose
+([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
+
+Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`; a
+shareholder's page says "Shareholder" there, so their name stays out of the browser's history. After
+a route change, including a Register view, focus moves to the page's heading once any closing dialog
+has handed focus back, unless the page has already focused something of its own, such as the
+register class it opens at. Focus stays where it is when a dialog stays open, after a redirect such
+as from `/` to your dashboard, and after a change to the search, filter or page in the address.
+
+Focus outlines come in one style: two pixels in the focus colour (`--color-border-focus`), set once
+for `:focus-visible` in `dashboard/src/styles/index.css`. Text fields, and the sign-in and sign-up
+fields and action buttons, keep their own focus rings.
 
 ## Actions
 

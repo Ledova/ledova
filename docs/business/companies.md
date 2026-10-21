@@ -54,7 +54,7 @@ capabilities as delegatable so that you can build the team afterwards. It record
 the declaration version and text and the admission time.
 
 After signup, add optional supporting files at **Settings → Company documents** and invite users at
-**Settings → Team and appointments**; mobile reaches both from **Settings → Company settings**.
+**Settings → Company team**; mobile reaches both from **Settings → Company settings**.
 Later documents do not alter the retained signup request. The company remains Draft until
 activation passes the registry check: registration does not incorporate a company with ASIC,
 appoint a director, activate the company or issue shares. Until then, the **Getting started** list
@@ -109,7 +109,7 @@ An owner of a draft company can also request initial authority outside signup, f
 
 ## Team invitations and appointments
 
-Open the team from **Company → Company team** or **Settings → Team and appointments** (on mobile,
+Open the team from **Company → Company team** or **Settings → Company team** (on mobile,
 under **Settings → Company settings**). Investor-only accounts can open it too: accepting an
 invitation or reading your appointments needs no company workspace. The page has sections to
 accept an invitation, read your appointments, invite and manage the company team, and read the

@@ -14,7 +14,7 @@ import {
   formatDateTime,
 } from '@ledova/shared';
 import { Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
-import { Page, PageLink } from '@components/Page';
+import { Page } from '@components/Page';
 import { SubscribeForm } from './SubscribeForm';
 import { useCreateSubscription } from './useCreateSubscription';
 
@@ -80,13 +80,11 @@ export default function DirectoryTokenPage() {
     navigate(generatePath(DESTINATIONS.subscriptionDetail.path, { uuid: created })),
   );
 
-  const back = <PageLink to={DESTINATIONS.directory.path} label="Directory" />;
-
-  if (isLoading) return <Page narrow loading actions={back} />;
+  if (isLoading) return <Page narrow loading />;
 
   if (hasError) {
     return (
-      <Page narrow actions={back}>
+      <Page narrow>
         <LoadError retry={retry} busy={isRefreshing}>
           This share class could not be loaded.
         </LoadError>
@@ -96,7 +94,7 @@ export default function DirectoryTokenPage() {
 
   if (!token || notFound) {
     return (
-      <Page narrow actions={back}>
+      <Page narrow>
         <Section title="Share class not available">
           <p className="py-2 text-sm text-text-muted">
             This share class is not available to you in the directory. It may have closed or your investor status may
@@ -110,7 +108,7 @@ export default function DirectoryTokenPage() {
   const offering = token.openOffering;
 
   return (
-    <Page narrow actions={back} lede={token.company.displayName}>
+    <Page narrow lede={token.company.displayName}>
       <div className="min-w-0 break-words">
         <Section title={token.name}>
           <Rows>

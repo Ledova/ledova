@@ -241,7 +241,7 @@ function OwnTeam({
         )}
       </Section>
       <Section title="Company eligibility">
-        <LinkRow to={DESTINATIONS.companyEligibility.path} label="Read your company eligibility queue" />
+        <LinkRow to={DESTINATIONS.companyEligibility.path} label={DESTINATIONS.companyEligibility.title} />
       </Section>
       {error && (
         <p role="alert" className="text-sm text-error-light">

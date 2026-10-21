@@ -193,7 +193,7 @@ export function NotificationBell({ align }: NotificationBellProps) {
     <Popover>
       <PopoverButton
         aria-label={unreadCount > 0 ? `Notifications, ${badgeText} unread` : 'Notifications'}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-mid/30"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary"
       >
         <BellIcon size={ICON_MD} aria-hidden="true" />
         {unreadCount > 0 && (

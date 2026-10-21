@@ -52,13 +52,6 @@ export default function CompanyShareholderPage() {
   const company = params.get('company') ?? '';
   const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
-  const back = (
-    <PageLink
-      to={SHAREHOLDERS}
-      state={company ? { registerCompany: company } : undefined}
-      label="Back to Shareholders"
-    />
-  );
   if (owner)
     return (
       <OwnShareholder
@@ -67,11 +60,10 @@ export default function CompanyShareholderPage() {
         currentOwner={boundary.get}
         company={company}
         member={member}
-        back={back}
       />
     );
   return (
-    <Page narrow actions={back}>
+    <Page narrow back={{ state: company ? { registerCompany: company } : undefined }}>
       {preferences.isLoading ? (
         <Loading>Loading your account…</Loading>
       ) : (
@@ -88,13 +80,11 @@ function OwnShareholder({
   currentOwner,
   company,
   member,
-  back,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
   company: string;
   member: string;
-  back: ReactNode;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const data = useShareholder(owner, guard, company, member);
@@ -403,7 +393,12 @@ function OwnShareholder({
   }
   return (
     <PageTitle.Provider value={title}>
-      <Page narrow lede={data.company?.name} actions={back}>
+      <Page
+        narrow
+        lede={data.company?.name}
+        documentTitle={DESTINATIONS.companyShareholder.title}
+        back={{ state: company ? { registerCompany: company } : undefined }}
+      >
         {content}
       </Page>
     </PageTitle.Provider>
