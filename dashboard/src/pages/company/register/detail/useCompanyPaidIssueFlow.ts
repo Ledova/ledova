@@ -10,6 +10,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
+import type { Problems } from '@hooks/useErrorSummary';
 import { useEffect, useRef, useState } from 'react';
 
 export type Commands = ReturnType<typeof useCompanyPaidIssues>;
@@ -60,6 +61,13 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
     reference.trim().length <= 255 &&
     !!reason.trim() &&
     reason.trim().length <= 1000;
+  const problems: Problems<'source' | 'director' | 'reference' | 'reason' | 'file'> = {
+    source: !captured && 'Choose a recorded paid subscription.',
+    director: !director.trim() && 'Name the approving director.',
+    reference: !reference.trim() && 'Give the authority reference.',
+    reason: !reason.trim() && 'Give the paid issue reason.',
+    file: !file && 'Choose the paid issue authority document.',
+  };
   const waiting = busy || commands.busy;
   const check = () => {
     if (!mounted.current || !captured) throw new Error('Choose an exact recorded paid subscription.');
@@ -132,13 +140,13 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
     setReference,
     reason,
     setReason,
-    file,
     setFile,
     uploadRef,
     busy,
     error,
     setError,
     termsValid,
+    problems,
     waiting,
     check,
     select,

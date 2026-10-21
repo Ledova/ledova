@@ -10,6 +10,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
+import type { Problems } from '@hooks/useErrorSummary';
 import { useEffect, useRef, useState } from 'react';
 
 export type Commands = ReturnType<typeof useCompanyPauseChanges>;
@@ -58,6 +59,12 @@ export function usePausePreparation({ commands }: { commands: Commands }) {
     reason.trim().length <= 1000 &&
     !!reference.trim() &&
     reference.trim().length <= 255;
+  const problems: Problems<'paused' | 'reason' | 'reference' | 'file'> = {
+    paused: paused === null && 'Choose the requested state.',
+    reason: !reason.trim() && 'Give the pause reason.',
+    reference: !reference.trim() && 'Give the authority reference.',
+    file: !file && 'Choose the pause authority document.',
+  };
   const waiting = busy || commands.busy;
   const check = () => {
     if (!mounted.current) throw new Error('This pause form is closed.');
@@ -119,13 +126,13 @@ export function usePausePreparation({ commands }: { commands: Commands }) {
     setReason,
     reference,
     setReference,
-    file,
     setFile,
     uploadRef,
     busy,
     error,
     setError,
     termsValid,
+    problems,
     waiting,
     check,
     submit,

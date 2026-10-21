@@ -25,6 +25,8 @@ export { attachableDocuments, describeOfferDocument } from './offer-documents';
 export {
   isNumericOnly,
   validatePassword,
+  PASSWORD_PROBLEMS,
+  newPasswordProblem,
   formatVerificationToken,
   validateEmailConfirmation,
   isValidFullName,

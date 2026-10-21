@@ -51,7 +51,7 @@ export function UploadModal({
         className="space-y-4"
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
-          if (!(event.target instanceof HTMLInputElement)) event.preventDefault();
+          if (!(event.target instanceof HTMLInputElement) || event.target.disabled) event.preventDefault();
         }}
       >
         <CompanyReadNotice read={read} />

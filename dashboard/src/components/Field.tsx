@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode, type Ref } from 'react';
+import { createContext, useContext, useId, useState, type ComponentProps, type ReactNode, type Ref } from 'react';
 import {
   Description,
   Field as HeadlessField,
@@ -110,5 +110,36 @@ export function FileField({
         }}
       />
     </Field>
+  );
+}
+
+export function CheckboxField({
+  id,
+  error,
+  label,
+  ...props
+}: Omit<ComponentProps<'input'>, 'id' | 'type' | 'className'> & {
+  id?: string;
+  error?: string | null;
+  label: ReactNode;
+}) {
+  const errorId = useId();
+  return (
+    <div id={id}>
+      <label className="flex items-center gap-2 text-sm text-text-primary">
+        <input
+          type="checkbox"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+          {...props}
+        />
+        {label}
+      </label>
+      {error && (
+        <p id={errorId} className="mt-1 text-sm text-error-light">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
