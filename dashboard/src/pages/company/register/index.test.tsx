@@ -35,6 +35,7 @@ import CompanyRegisterPage from '.';
 import CompanyShareholderPage from './member';
 import CompanyDashboardPage from '../dashboard';
 import { ShareClass } from './detail/ShareClass';
+import { ClassReconciliation } from './ClassReconciliation';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
@@ -708,6 +709,76 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByRole('heading', { level: 1, name: 'Example Member' })).toBeTruthy();
   expect(api.post).toHaveBeenCalledTimes(2);
   expect(api.post.mock.calls.every(([url]) => url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary'))).toBe(true);
+
+  cleanup();
+  client.clear();
+  const issue = '12345678-1234-1234-1234-123456789abc';
+  const transfer = 'abcdefab-1234-1234-1234-123456789abc';
+  const transaction = `0x${'7'.repeat(64)}`;
+  const address = `0x${'8'.repeat(40)}`;
+  const attribution =
+    'has no verified final chain inclusion. It requires operator attribution ' +
+    'before a register boundary can represent or exclude it.';
+  const knownDetails = [
+    `The completed issue ${issue} ${attribution}`,
+    `The completed transfer ${transfer} ${attribution}`,
+    `The completed issue ${issue} was finally included in block 20, after the captured boundary block 10, ` +
+      'so this boundary does not represent it. Prepare a fresh opening.',
+    `The completed transfer ${transfer} is not in the captured boundary's canonical history at block 20, ` +
+      'so this boundary does not represent it. Prepare a fresh opening.',
+  ];
+  const unrelatedDetail = `The completed issue ${issue} needs another review. Transaction ${transaction}.`;
+  const retainedReconciliation = {
+    uuid: 'retained-reconciliation',
+    token: 'ordinary',
+    blockNumber: 20,
+    blockHash: transaction,
+    registerSequence: 1,
+    createdAt: '2026-10-20T00:00:00Z',
+    status: 'discrepant',
+    failure: '',
+    latest: true,
+    discrepancies: [...knownDetails, unrelatedDetail].map((detail) => ({
+      kind: 'attribution',
+      detail,
+      source: issue,
+      transaction,
+      address,
+      acknowledgeable: false,
+      acknowledgement: null,
+    })),
+  };
+  const retainedSnapshot = JSON.stringify(retainedReconciliation);
+  api.get.mockReset().mockImplementation(async (url: string) => ({
+    data: {
+      results: url === APPOINTMENTS ? [reader] : url === RECONCILIATIONS ? [retainedReconciliation] : [],
+      count: 1,
+      next: null,
+      previous: null,
+    },
+  }));
+  show(
+    'company',
+    <ClassReconciliation
+      owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
+      guard={() => {}}
+      token="ordinary"
+      company="harbour"
+      holders={[]}
+      status="deployed"
+    />,
+  );
+  for (const detail of knownDetails) {
+    expect(
+      await screen.findByText(detail.replace(issue, shortReference(issue)).replace(transfer, shortReference(transfer))),
+    ).toBeTruthy();
+    expect(screen.queryByText(detail)).toBeNull();
+  }
+  expect(screen.getByText(unrelatedDetail)).toBeTruthy();
+  expect(screen.getAllByText(transaction)).toHaveLength(5);
+  expect(screen.getAllByText(address)).toHaveLength(5);
+  expect(JSON.stringify(retainedReconciliation)).toBe(retainedSnapshot);
+  expect(api.post).toHaveBeenCalledTimes(2);
 });
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
