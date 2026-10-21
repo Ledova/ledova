@@ -551,7 +551,7 @@ company's share classes and current structure; who holds the shares is on Shareh
 The Ledger view shows:
 
 - a card for each class with **Class details**: Issued shares, Current shareholders, Ledger opened or Ledger not
-  opened, Authorised shares (or a Technical share limit for a class set up from existing records), a
+  opened, Authorised shares where applicable, a
   note when completed issues or transfers wait or cannot be checked;
 - **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.

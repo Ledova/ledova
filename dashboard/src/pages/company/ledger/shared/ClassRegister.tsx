@@ -44,19 +44,13 @@ export function ClassRegister({ register, former = true }: { register: TokenHold
           </Status>
         </p>
       </section>
-      {register.token.totalSupply !== TECHNICAL_SHARE_LIMIT ? (
+      {register.token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
         <p className="text-sm text-text-muted">
           Authorised shares ·{' '}
           <span className="break-all font-medium text-text-primary">
             {formatShareCount(register.token.totalSupply)}
           </span>
         </p>
-      ) : (
-        <Disclosure summary="Technical share limit">
-          <div className="text-xs text-text-muted">
-            <p className="mt-2 break-all">{formatShareCount(register.token.totalSupply)}</p>
-          </div>
-        </Disclosure>
       )}
       {!register.initialized ? (
         <p className="text-sm text-text-muted">{REGISTER_COPY.NOT_OPENED_NOTE}</p>

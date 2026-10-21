@@ -1320,6 +1320,8 @@ are outside this increment.
 The owner placed Add share class below the class cards, aligned right. The web standard for a
 collection's primary creation action is one content-width action row beneath its cards, including
 an empty collection card; record-specific actions stay with their records.
+The default technical share limit is omitted from Ledger summary cards; its internal quantity
+guard remains, along with any distinct finite class limit.
 
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
 a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse
