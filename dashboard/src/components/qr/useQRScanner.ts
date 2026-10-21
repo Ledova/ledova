@@ -5,6 +5,7 @@ interface UseQRScannerOptions {
   scannerId: string;
   onScanSuccess: (decodedText: string) => void;
   enabled?: boolean;
+  continuous?: boolean;
   fps?: number;
   qrboxSize?: number;
 }
@@ -17,10 +18,14 @@ interface UseQRScannerReturn {
 
 const scannerTeardowns = new Map<string, Promise<void>>();
 
+const CAMERA_UNAVAILABLE =
+  'The camera could not be started. Check that this device has a camera and that the browser may use it.';
+
 export function useQRScanner({
   scannerId,
   onScanSuccess,
   enabled = true,
+  continuous = false,
   fps = 10,
   qrboxSize = 250,
 }: UseQRScannerOptions): UseQRScannerReturn {
@@ -104,9 +109,11 @@ export function useQRScanner({
 
     const onSuccess = (decodedText: string) => {
       if (!current() || run.processed) return;
-      run.processed = true;
       const callback = onScanSuccessRef.current;
-      run.stop();
+      if (!continuous) {
+        run.processed = true;
+        run.stop();
+      }
       callback(decodedText);
     };
 
@@ -128,16 +135,16 @@ export function useQRScanner({
           });
           await run.starting;
           if (current()) setIsScanning(true);
-        } catch (err) {
+        } catch {
           if (!current()) return;
-          setError(err instanceof Error ? err.message : 'Failed to start camera');
+          setError(CAMERA_UNAVAILABLE);
           run.stop();
         }
       })();
     }, 100);
 
     return run.stop;
-  }, [enabled, scannerId, fps, qrboxSize, stopScanner]);
+  }, [enabled, scannerId, continuous, fps, qrboxSize, stopScanner]);
 
   return { isScanning, error, stopScanner };
 }

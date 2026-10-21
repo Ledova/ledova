@@ -1,15 +1,14 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { URDecoder, UREncoder } from '@ngraveio/bc-ur';
-import { Html5Qrcode } from 'html5-qrcode';
 import {
   detectChainFromAddress,
   validateWalletAddress,
   getActiveChains,
   getChainByShortName,
   getChainConfig,
-  describeFailure,
 } from '@ledova/shared';
 import type { CreateWallet, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
+import { useQRScanner } from '@components/qr';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 
 type FormStep = 'input' | 'selectAddresses';
@@ -35,11 +34,15 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
   const [showScanner, setShowScanner] = useState(false);
   const [scannedURString, setScannedURString] = useState<string | null>(null);
   const [scanProgress, setScanProgress] = useState<{ received: number; total: number } | null>(null);
-  const [scannerError, setScannerError] = useState<string | null>(null);
 
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const urDecoderRef = useRef<URDecoder | null>(null);
   const processedPartsRef = useRef<Set<string>>(new Set());
+
+  const clearScan = useCallback(() => {
+    setScanProgress(null);
+    urDecoderRef.current = null;
+    processedPartsRef.current.clear();
+  }, []);
 
   const reset = useCallback(() => {
     setStep('input');
@@ -47,13 +50,10 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     setAddress('');
     setShowScanner(false);
     setScannedURString(null);
-    setScanProgress(null);
-    setScannerError(null);
-    urDecoderRef.current = null;
-    processedPartsRef.current.clear();
+    clearScan();
     const activeChains = getActiveChains();
     setSelectedChain(activeChains[0]?.code || null);
-  }, []);
+  }, [clearScan]);
 
   const chain = selectedChain ? getChainConfig(selectedChain) : undefined;
   const problems: Problems<'address' | 'network'> = {
@@ -79,21 +79,6 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     },
     [selectedChain],
   );
-
-  const stopCamera = useCallback(() => {
-    if (html5QrCodeRef.current) {
-      html5QrCodeRef.current.stop().catch(() => {});
-      html5QrCodeRef.current = null;
-    }
-    urDecoderRef.current = null;
-    processedPartsRef.current.clear();
-  }, []);
-
-  const stopScanner = useCallback(() => {
-    stopCamera();
-    setScanProgress(null);
-    setScannerError(null);
-  }, [stopCamera]);
 
   const handleQRScanResult = useCallback(
     (data: string) => {
@@ -127,7 +112,7 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
             const encoder = new UREncoder(ur, 100000);
             const completeURString = encoder.nextPart();
 
-            stopScanner();
+            clearScan();
             setScannedURString(completeURString);
             setShowScanner(false);
             setStep('selectAddresses');
@@ -136,7 +121,7 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
         return;
       }
 
-      stopScanner();
+      clearScan();
       setAddress(data);
       setShowScanner(false);
 
@@ -148,49 +133,15 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
         }
       }
     },
-    [selectedChain],
+    [selectedChain, clearScan],
   );
 
-  const startScanner = useCallback(() => {
-    if (html5QrCodeRef.current) return;
-
-    const html5QrCode = new Html5Qrcode('wallet-qr-scanner');
-    html5QrCodeRef.current = html5QrCode;
-
-    const qrConfig = {
-      fps: 10,
-      qrbox: { width: 250, height: 250 },
-    };
-
-    Html5Qrcode.getCameras()
-      .then((cameras) => {
-        if (cameras && cameras.length > 0) {
-          const cameraId = cameras[0].id;
-          return html5QrCode.start(cameraId, qrConfig, handleQRScanResult, () => {});
-        } else {
-          throw new Error('No cameras found');
-        }
-      })
-      .catch((err) => {
-        console.error(`Failed to start QR scanner: ${describeFailure(err)}`);
-        setScannerError('Unable to access camera. Please check permissions.');
-      });
-  }, [handleQRScanResult]);
-
-  useEffect(() => {
-    if (showScanner) {
-      const timer = setTimeout(startScanner, 100);
-      return () => clearTimeout(timer);
-    } else {
-      stopCamera();
-    }
-  }, [showScanner, startScanner, stopCamera]);
-
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, [stopCamera]);
+  const { error: scannerError } = useQRScanner({
+    scannerId: 'wallet-qr-scanner',
+    onScanSuccess: handleQRScanResult,
+    enabled: showScanner,
+    continuous: true,
+  });
 
   const handleAddressSelection = useCallback(
     (addresses: DerivedAddress[], importData: HardwareWalletImport) => {
@@ -216,11 +167,8 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
 
   const toggleScanner = useCallback(() => {
     setShowScanner((prev) => !prev);
-    setScannerError(null);
-    setScanProgress(null);
-    urDecoderRef.current = null;
-    processedPartsRef.current.clear();
-  }, []);
+    clearScan();
+  }, [clearScan]);
 
   return {
     step,
@@ -243,6 +191,5 @@ export function useWalletForm({ onSubmit, onBatchSubmit, preselectedChain }: Use
     handleBackToInput,
     handleSubmit,
     toggleScanner,
-    stopScanner,
   };
 }

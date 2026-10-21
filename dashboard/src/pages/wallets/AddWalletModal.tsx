@@ -66,7 +66,6 @@ export function AddWalletModal({
 
   const handleClose = () => {
     if (isLoading) return;
-    form.stopScanner();
     form.reset();
     checks.reset();
     onClose();
