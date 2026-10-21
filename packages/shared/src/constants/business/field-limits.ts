@@ -51,7 +51,8 @@ export const UPLOAD_RULE = {
 } as const;
 
 export function uploadRefusal(file: { name: string; type: string; size: number }): string | null {
-  const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+  const dot = file.name.lastIndexOf('.');
+  const extension = /[^.]/.test(file.name.slice(0, dot)) ? file.name.slice(dot).toLowerCase() : '';
   const fits =
     Object.prototype.hasOwnProperty.call(UPLOAD_TYPES, extension) &&
     UPLOAD_TYPES[extension] === file.type &&

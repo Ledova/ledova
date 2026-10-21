@@ -46,7 +46,14 @@ export function UploadModal({
       }}
       onClose={onClose}
     >
-      <fieldset disabled={upload.isPending} className="space-y-4">
+      <fieldset
+        disabled={upload.isPending}
+        className="space-y-4"
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          if (!(event.target instanceof HTMLInputElement)) event.preventDefault();
+        }}
+      >
         <CompanyReadNotice read={read} />
         {!canUpload && !read.error && !read.isRefreshing && (
           <p role="alert" className="text-sm text-text-muted">

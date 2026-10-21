@@ -22,6 +22,7 @@ export function Field({
   optional = false,
   aside,
   className,
+  alert = false,
   children,
 }: {
   label: ReactNode;
@@ -30,6 +31,7 @@ export function Field({
   optional?: boolean;
   aside?: ReactNode;
   className?: string;
+  alert?: boolean;
   children: ReactNode;
 }) {
   const name = (
@@ -50,7 +52,11 @@ export function Field({
       )}
       <Invalid.Provider value={!!error}>{children}</Invalid.Provider>
       {hint && <Description className="mt-1 text-sm text-text-muted">{hint}</Description>}
-      {error && <Description className="mt-1 text-sm text-error-light">{error}</Description>}
+      {error && (
+        <Description role={alert ? 'alert' : undefined} className="mt-1 text-sm text-error-light">
+          {error}
+        </Description>
+      )}
     </HeadlessField>
   );
 }
@@ -81,6 +87,7 @@ export function FileField({
       label={label}
       hint={hint ? `${UPLOAD_RULE.HINT} ${hint}` : UPLOAD_RULE.HINT}
       error={refusal}
+      alert={!!refusal}
       optional={optional}
     >
       <TextInput
