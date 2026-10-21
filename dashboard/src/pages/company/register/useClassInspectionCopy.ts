@@ -9,6 +9,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { saveFile } from '@utils/saveFile';
 
 type Draft = { instruction: string; recipient: string; requestedOn: string };
@@ -40,13 +41,14 @@ export function useClassInspectionCopy({
       transport.current?.abort();
     };
   }, []);
-  const validDate = isCalendarDate(draft.requestedOn) && draft.requestedOn <= today;
-  const valid =
-    !!draft.instruction.trim() &&
-    draft.instruction.trim().length <= 255 &&
-    !!draft.recipient.trim() &&
-    draft.recipient.trim().length <= 255 &&
-    validDate;
+  const missing = (value: string) => !value.trim() || value.trim().length > 255;
+  const problems: Problems<keyof Draft> = {
+    instruction: missing(draft.instruction) && 'Give the written instruction reference.',
+    recipient: missing(draft.recipient) && 'Give the recipient.',
+    requestedOn:
+      (!isCalendarDate(draft.requestedOn) || draft.requestedOn > today) &&
+      'Enter a request date no later than today (Sydney).',
+  };
   const blocked = !!busy || !sourceReady || !register.initialized;
   const assertCurrent = (controller: AbortController) => {
     guard();
@@ -54,7 +56,7 @@ export function useClassInspectionCopy({
       throw new Error('The inspection source changed.');
   };
   const preview = async () => {
-    if (pending.current || blocked || !valid) return;
+    if (pending.current || blocked || hasProblems(problems)) return;
     pending.current = true;
     const controller = new AbortController();
     transport.current = controller;
@@ -126,5 +128,5 @@ export function useClassInspectionCopy({
       if (mounted.current) setBusy(null);
     }
   };
-  return { today, draft, setDraft, target, setTarget, busy, error, downloaded, valid, blocked, preview, download };
+  return { today, draft, setDraft, target, setTarget, busy, error, downloaded, problems, blocked, preview, download };
 }

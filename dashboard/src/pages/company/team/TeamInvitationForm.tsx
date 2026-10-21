@@ -1,4 +1,7 @@
+import { useId } from 'react';
 import { Field, TextInput } from '@components/Field';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { FormActions, PageAction } from '@components/Page';
 import { Outcome } from '@components/Ledger';
 import {
@@ -36,6 +39,7 @@ export function TeamInvitationForm({
     setExpiry,
     busy,
     error,
+    problems,
     recorded,
     setRecorded,
     keyRef,
@@ -50,6 +54,9 @@ export function TeamInvitationForm({
     onRecorded,
     onBusy,
   });
+  const checks = useErrorSummary(problems);
+  const actions = checks.field('actions');
+  const actionsError = useId();
   if (recorded)
     return (
       <div className="space-y-3 text-sm text-text-primary">
@@ -77,50 +84,66 @@ export function TeamInvitationForm({
             setDelegatable([]);
             setDeadline('');
             setExpiry('');
+            checks.reset();
           }}
         />
       </div>
     );
   return (
     <form
+      noValidate
       className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
-        void send();
+        if (checks.check()) void send();
       }}
     >
+      <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
         Personal actions and permission to delegate are separate. Choose only actions your selected appointment may
         delegate.
       </p>
-      <div className="grid gap-5 sm:grid-cols-2">
-        {(['personal', 'delegatable'] as const).map((scope) => {
-          const values = scope === 'personal' ? personal : delegatable;
-          const set = scope === 'personal' ? setPersonal : setDelegatable;
-          return (
-            <fieldset key={scope} disabled={disabled || busy} className="space-y-2">
-              <legend className="text-sm font-medium text-text-primary">
-                {scope === 'personal' ? 'Actions for the appointee' : 'Actions the appointee may delegate'}
-              </legend>
-              {COMPANY_AUTHORITY_CAPABILITIES.filter(({ value }) => available.includes(value)).map(
-                ({ value, label }) => (
-                  <label key={value} className="flex items-start gap-2 text-sm text-text-primary">
-                    <input
-                      type="checkbox"
-                      className="mt-1 shrink-0"
-                      checked={values.includes(value)}
-                      onChange={() => change(() => set(toggle(values, value)))}
-                    />
-                    {label}
-                  </label>
-                ),
-              )}
-            </fieldset>
-          );
-        })}
+      <div id={actions.id}>
+        <div className="grid gap-5 sm:grid-cols-2">
+          {(['personal', 'delegatable'] as const).map((scope) => {
+            const values = scope === 'personal' ? personal : delegatable;
+            const set = scope === 'personal' ? setPersonal : setDelegatable;
+            return (
+              <fieldset
+                key={scope}
+                disabled={disabled || busy}
+                aria-describedby={actions.error ? actionsError : undefined}
+                className="space-y-2"
+              >
+                <legend className="text-sm font-medium text-text-primary">
+                  {scope === 'personal' ? 'Actions for the appointee' : 'Actions the appointee may delegate'}
+                </legend>
+                {COMPANY_AUTHORITY_CAPABILITIES.filter(({ value }) => available.includes(value)).map(
+                  ({ value, label }) => (
+                    <label key={value} className="flex items-start gap-2 text-sm text-text-primary">
+                      <input
+                        type="checkbox"
+                        className="mt-1 shrink-0"
+                        aria-invalid={actions.error ? true : undefined}
+                        checked={values.includes(value)}
+                        onChange={() => change(() => set(toggle(values, value)))}
+                      />
+                      {label}
+                    </label>
+                  ),
+                )}
+              </fieldset>
+            );
+          })}
+        </div>
+        {actions.error && (
+          <p id={actionsError} className="mt-1 text-sm text-error-light">
+            {actions.error}
+          </p>
+        )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Invitation deadline (UTC, optional)">
+        <Field {...checks.field('deadline')} label="Invitation deadline (UTC, optional)">
           <TextInput
             type="date"
             min={utcToday()}
@@ -130,7 +153,7 @@ export function TeamInvitationForm({
             onChange={(event) => change(() => setDeadline(event.target.value))}
           />
         </Field>
-        <Field label="Appointment expiry (UTC, optional)">
+        <Field {...checks.field('expiry')} label="Appointment expiry (UTC, optional)">
           <TextInput
             type="date"
             min={utcToday()}
@@ -155,7 +178,7 @@ export function TeamInvitationForm({
           busy={busy}
           busyLabel="Creating invitation…"
           primary
-          disabled={disabled || (!personal.length && !delegatable.length)}
+          disabled={disabled}
         />
       </FormActions>
     </form>

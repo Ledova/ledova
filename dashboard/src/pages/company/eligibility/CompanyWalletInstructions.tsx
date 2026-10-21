@@ -3,6 +3,8 @@ import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
   useCompanyWalletInstructions,
   COMPANY_WALLET_COPY as COPY,
@@ -138,10 +140,14 @@ function Preparation({ data }: { data: Read }) {
     data.nominations.isFetching ||
     data.targets.isFetching;
   const moment = Date.parse(expires);
-  const valid = source && (action === 'remove' || Number.isFinite(moment));
+  const checks = useErrorSummary({
+    source: !source && (action === 'add' ? 'Choose the shared wallet nomination.' : 'Choose the retained ADD target.'),
+    expires: action === 'add' && !Number.isFinite(moment) && 'Enter the approval expiry date and time.',
+  });
   if (!data.canRead) return null;
   return (
     <div className="space-y-3">
+      <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
         ADD uses an explicitly shared nomination and finite expiry. REMOVE uses the exact retained successful ADD
         journal, including after wallet or eligibility loss.
@@ -151,9 +157,13 @@ function Preparation({ data }: { data: Read }) {
         options={ACTIONS}
         value={action}
         disabled={blocked}
-        onChange={(next) => setDraft({ owner: data.owner, action: next, source: '', expires: '' })}
+        onChange={(next) => {
+          checks.reset();
+          setDraft({ owner: data.owner, action: next, source: '', expires: '' });
+        }}
       />
       <SearchSelect
+        {...checks.field('source')}
         label={action === 'add' ? 'Explicitly shared wallet nomination' : 'Retained successful ADD target'}
         choices={
           action === 'add'
@@ -191,7 +201,7 @@ function Preparation({ data }: { data: Read }) {
         </Rows>
       )}
       {action === 'add' && (
-        <Field label="Finite approval expiry (local date and time)">
+        <Field {...checks.field('expires')} label="Finite approval expiry (local date and time)">
           <TextInput
             type="datetime-local"
             disabled={blocked}
@@ -204,17 +214,18 @@ function Preparation({ data }: { data: Read }) {
         label="Prepare wallet instruction"
         busy={running === 'prepare'}
         busyLabel="Preparing…"
-        disabled={blocked || !valid || (action === 'add' && !!selected?.unmetRequirements.length)}
-        onClick={() =>
-          track(
-            'prepare',
-            data.prepare(
-              action === 'add'
-                ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
-                : { action, targetChange: source },
-            ),
-          )
-        }
+        disabled={blocked || (action === 'add' && !!selected?.unmetRequirements.length)}
+        onClick={() => {
+          if (checks.check())
+            track(
+              'prepare',
+              data.prepare(
+                action === 'add'
+                  ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
+                  : { action, targetChange: source },
+              ),
+            );
+        }}
       />
     </div>
   );

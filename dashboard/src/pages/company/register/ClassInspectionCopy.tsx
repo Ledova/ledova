@@ -2,6 +2,8 @@ import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type TokenHoldersResponse } from '@ledova/shared';
 import { Outcome, Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useClassInspectionCopy } from './useClassInspectionCopy';
 
 export function ClassInspectionCopy({
@@ -32,8 +34,9 @@ function InspectionForm({
   guard: () => void;
   sourceReady: boolean;
 }) {
-  const { today, draft, setDraft, target, setTarget, busy, error, downloaded, valid, blocked, preview, download } =
+  const { today, draft, setDraft, target, setTarget, busy, error, downloaded, problems, blocked, preview, download } =
     useClassInspectionCopy({ register, guard, sourceReady });
+  const checks = useErrorSummary(problems);
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       <h3 className="text-sm font-medium text-text-primary">Inspection copy</h3>
@@ -41,22 +44,23 @@ function InspectionForm({
         Prepare an inspection CSV under your current company appointment. It includes residential addresses. The
         company&apos;s request and output provenance are retained.
       </p>
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={blocked || !!target} className="grid gap-4 sm:grid-cols-2">
-        <Field label="Written instruction reference">
+        <Field {...checks.field('instruction')} label="Written instruction reference">
           <TextInput
             maxLength={FIELD_LIMITS.REFERENCE}
             value={draft.instruction}
             onChange={(event) => setDraft({ ...draft, instruction: event.target.value })}
           />
         </Field>
-        <Field label="Recipient">
+        <Field {...checks.field('recipient')} label="Recipient">
           <TextInput
             maxLength={FIELD_LIMITS.NAME}
             value={draft.recipient}
             onChange={(event) => setDraft({ ...draft, recipient: event.target.value })}
           />
         </Field>
-        <Field label="Date of request (Sydney)">
+        <Field {...checks.field('requestedOn')} label="Date of request (Sydney)">
           <TextInput
             type="date"
             max={today}
@@ -71,8 +75,10 @@ function InspectionForm({
           label="Preview inspection copy"
           busy={busy === 'preview'}
           busyLabel="Preparing preview…"
-          disabled={blocked || !valid}
-          onClick={() => void preview()}
+          disabled={blocked}
+          onClick={() => {
+            if (checks.check()) void preview();
+          }}
         />
       ) : (
         <>

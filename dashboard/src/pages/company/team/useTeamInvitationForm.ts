@@ -1,9 +1,13 @@
 import {
+  addCalendarDays,
   createCompanyTeamInvitation,
   type CompanyCapability,
   type OwnCompanyAppointment,
   failureSentence,
+  isCalendarDate,
+  utcToday,
 } from '@ledova/shared';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { sameScope } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
@@ -50,8 +54,20 @@ export function useTeamInvitationForm({
   };
   const toggle = (values: CompanyCapability[], value: CompanyCapability) =>
     values.includes(value) ? values.filter((item) => item !== value) : [...values, value].sort();
+  const today = utcToday();
+  const problems: Problems<'actions' | 'deadline' | 'expiry'> = {
+    actions: !personal.length && !delegatable.length && 'Choose at least one action for the appointee or to delegate.',
+    deadline:
+      !!deadline &&
+      (!isCalendarDate(deadline) || deadline < today || deadline > addCalendarDays(today, 29)) &&
+      'Enter an invitation deadline from today to 29 days ahead (UTC).',
+    expiry:
+      !!expiry &&
+      (!isCalendarDate(expiry) || expiry < today) &&
+      'Enter an appointment expiry no earlier than today (UTC).',
+  };
   const send = async () => {
-    if (disabled || pending.current || recorded || (!personal.length && !delegatable.length)) return;
+    if (disabled || pending.current || recorded || hasProblems(problems)) return;
     pending.current = true;
     setBusy(true);
     onBusy(true);
@@ -122,6 +138,7 @@ export function useTeamInvitationForm({
     setExpiry,
     busy,
     error,
+    problems,
     recorded,
     setRecorded,
     keyRef,

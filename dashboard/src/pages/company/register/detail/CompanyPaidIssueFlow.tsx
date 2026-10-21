@@ -173,6 +173,7 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
 function Preparation({ commands }: { commands: Commands }) {
   const {
     captured,
+    selections,
     director,
     setDirector,
     reference,
@@ -263,7 +264,7 @@ function Preparation({ commands }: { commands: Commands }) {
         <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
       <FileField
-        key={captured?.source.subscription ?? 'none'}
+        key={selections}
         {...checks.field('file')}
         label="Paid issue authority document"
         hint={
