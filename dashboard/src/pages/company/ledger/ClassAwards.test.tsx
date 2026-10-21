@@ -247,12 +247,14 @@ it('retains original award, vesting and linked issue preparations through interr
   let retainedGrant: RegisterGrant | null = null;
   let slowReads = false;
   let grantsFailed = false;
+  let allotmentsFailed = false;
   const delay = () => (slowReads ? new Promise((resolve) => setTimeout(resolve, 40)) : undefined);
   let preferencesFailed = false;
   let listed = true;
   let effectCount = 0;
   const get = api.get.getMockImplementation()!;
   api.get.mockImplementation(async (url, config) => {
+    if (url === URLS.REGISTER_ALLOTMENTS && allotmentsFailed) throw new Error('Investor issues unavailable');
     if (url === '/api/user-preferences/') {
       if (preferencesFailed) throw new Error('Preferences unavailable');
       return { data: companyPreferences() };
@@ -579,7 +581,11 @@ it('retains original award, vesting and linked issue preparations through interr
   );
   expect(within(screen.getByText('Vested, awaiting issue').parentElement!).getByText('90 shares')).toBeTruthy();
   retainedGrant = { ...retainedGrant!, companyEventOn: null };
+  allotmentsFailed = true;
   await waitFor(() => expect(client.isFetching()).toBe(0));
+  const beforeChangedHoldingsRead = api.get.mock.calls.filter(
+    ([url]) => url === URLS.HOLDERS(REGISTER.token.uuid),
+  ).length;
   const beforeAutomaticRead = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
   const visibility = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
   fireEvent(document, new Event('visibilitychange'));
@@ -590,6 +596,13 @@ it('retains original award, vesting and linked issue preparations through interr
   await waitFor(() =>
     expect(within(screen.getByText(GRANT.COMPANY_EVENT_ON).parentElement!).getByText('Not recorded')).toBeTruthy(),
   );
+  await issues.findByText('External allotments could not be loaded.');
+  await waitFor(() =>
+    expect(api.get.mock.calls.filter(([url]) => url === URLS.HOLDERS(REGISTER.token.uuid)).length).toBeGreaterThan(
+      beforeChangedHoldingsRead,
+    ),
+  );
+  allotmentsFailed = false;
   const beforeVisiblePoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
   await waitFor(() =>
@@ -598,6 +611,7 @@ it('retains original award, vesting and linked issue preparations through interr
     ),
   );
   await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(issues.queryByText('External allotments could not be loaded.')).toBeNull();
   const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
   const beforeOfflinePoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
   await act(async () => vi.advanceTimersByTimeAsync(60_000));

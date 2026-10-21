@@ -84,7 +84,7 @@ export function ClassIssues({
     guard,
     visible,
     sourceReady,
-    refreshRecords: () => Promise.all([investor.refreshRecords(), nonPaid.refreshRecords()]),
+    refreshRecords: () => Promise.allSettled([investor.refreshRecords(), nonPaid.refreshRecords()]),
   });
   const held = investor.held || nonPaid.held;
   if (request && answered !== request.key && !held) {
