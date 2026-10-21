@@ -2,6 +2,8 @@ import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type OrderSubmissionOwner } from '@ledova/shared';
 import { Outcome, Section, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useCompanyPackAuthority, useCompanyPack } from './useCompanyPack';
 
 export function CompanyPack({
@@ -70,19 +72,21 @@ function PackForm({
   guard: () => void;
   sourceReady: boolean;
 }) {
-  const { instruction, setInstruction, recipient, setRecipient, busy, error, downloaded, valid, download } =
+  const { instruction, setInstruction, recipient, setRecipient, busy, error, downloaded, problems, download } =
     useCompanyPack({ company, appointment, guard, sourceReady });
+  const checks = useErrorSummary(problems);
   return (
     <div className="flex flex-col gap-3 pt-3">
+      <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || !sourceReady} className="grid gap-4 sm:grid-cols-2">
-        <Field label="Pack instruction reference">
+        <Field {...checks.field('instruction')} label="Pack instruction reference">
           <TextInput
             maxLength={FIELD_LIMITS.REFERENCE}
             value={instruction}
             onChange={(event) => setInstruction(event.target.value)}
           />
         </Field>
-        <Field label="Pack recipient">
+        <Field {...checks.field('recipient')} label="Pack recipient">
           <TextInput
             maxLength={FIELD_LIMITS.NAME}
             value={recipient}
@@ -95,8 +99,10 @@ function PackForm({
         label="Prepare and download company pack"
         busy={busy}
         busyLabel="Preparing company pack…"
-        disabled={!sourceReady || !valid}
-        onClick={() => void download()}
+        disabled={!sourceReady}
+        onClick={() => {
+          if (checks.check()) void download();
+        }}
       />
       {error && (
         <p role="alert" className="text-sm text-error-light">

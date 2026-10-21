@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import {
   FIELD_LIMITS,
   OFFER_DOCUMENT_COPY,
@@ -93,6 +94,7 @@ export function OfferingForm({
     datesValid &&
     hasARail &&
     unavailableAssets.length === 0;
+  const dates = useIncompleteDates<'closes'>();
   const checks = useErrorSummary({
     token: !tokens.some((each) => each.uuid === chosenToken) && 'Choose a share class.',
     price:
@@ -107,10 +109,11 @@ export function OfferingForm({
         ? 'Enter the cap as whole shares from 1 to 2,147,483,647.'
         : target !== null && cap < target && 'The cap must be at least the target.',
     opens: !Number.isFinite(opens) && 'Enter the opening date and time.',
-    closes:
-      closes !== null &&
-      (!Number.isFinite(closes) || closes <= opens) &&
-      'The closing time must be after the opening time.',
+    closes: dates.incomplete.closes
+      ? 'Enter a complete closing date and time, or clear it.'
+      : closes !== null &&
+        (!Number.isFinite(closes) || closes <= opens) &&
+        'The closing time must be after the opening time.',
     payment: !hasARail && 'Choose at least one way to be paid. An offering nobody can pay for cannot be submitted.',
     assets: unavailableAssets.length > 0 && 'Remove the settlement assets that are no longer available.',
   });
@@ -206,7 +209,12 @@ export function OfferingForm({
       </Field>
 
       <Field {...checks.field('closes')} label="Closes at (local date and time, optional)">
-        <TextInput type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
+        <TextInput
+          type="datetime-local"
+          value={closesAt}
+          {...dates.watch('closes')}
+          onChange={(e) => setClosesAt(e.target.value)}
+        />
       </Field>
 
       <div className="sm:col-span-2">

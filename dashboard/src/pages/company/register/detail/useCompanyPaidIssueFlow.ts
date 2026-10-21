@@ -41,6 +41,7 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
   const [reference, setReference] = useState('');
   const [reason, setReason] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [selections, setSelections] = useState(0);
   const uploadRef = useRef<{ file: File; appointment: string; key: string; receipt: RegisterEvidence | null } | null>(
     null,
   );
@@ -80,6 +81,7 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
       const next = { source: { ...source }, token: commands.source ? { ...commands.source } : undefined };
       commands.guardPaidIssue('prepare', next);
       setCaptured(next);
+      setSelections((count) => count + 1);
       uploadRef.current = null;
       setFile(null);
       setError('');
@@ -134,6 +136,7 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
   const candidates = commands.availableSubscriptions.data ?? [];
   return {
     captured,
+    selections,
     director,
     setDirector,
     reference,

@@ -12,7 +12,9 @@ import { Outcome, Section, Loading, LoadError } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
 import { PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
-import { useCompanyMemberRequests } from './useCompanyMemberRequests';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
+import { INVITATION_FIELDS, PARTICULARS_FIELDS, useCompanyMemberRequests } from './useCompanyMemberRequests';
 
 export function CompanyMemberAccess({
   company,
@@ -49,16 +51,17 @@ export function CompanyMemberAccess({
     setCertificateInstruction,
     asAt,
     setAsAt,
-    file,
     selectFile,
     uploading,
     uploadError,
     held,
+    problems,
     refresh,
     prepare,
   } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember, onHeldChange });
   const candidateOf = new Map(candidates.map((candidate) => [candidate.uuid, candidate]));
   const { running, track } = useRunningAction();
+  const checks = useErrorSummary(problems);
   const [revoking, setRevoking] = useState<{ uuid: string; name: string } | null>(null);
   const invite = useRef<HTMLHeadingElement>(null);
   const shown = !!inviteMember && member?.uuid === inviteMember;
@@ -71,6 +74,7 @@ export function CompanyMemberAccess({
         A current company administrator invites one exact member to their own records. This creates no company
         appointment, holding or wallet link. Share the code privately; Ledova does not email it.
       </p>
+      <ErrorSummary {...checks.summary} />
       <PageAction
         label="Refresh member access"
         busy={running === 'refresh'}
@@ -102,6 +106,7 @@ export function CompanyMemberAccess({
             Invite a member
           </h3>
           <PersonSelect
+            {...checks.field('member')}
             label="Member or award recipient"
             people={candidates.map((candidate) => ({
               member: candidate.uuid,
@@ -150,7 +155,7 @@ export function CompanyMemberAccess({
           <p className="text-sm text-text-muted">
             An award recipient can view their own award before any shares are issued.
           </p>
-          <Field label="Intended recipient email">
+          <Field {...checks.field('email')} label="Intended recipient email">
             <TextInput
               maxLength={FIELD_LIMITS.EMAIL}
               type="email"
@@ -164,9 +169,9 @@ export function CompanyMemberAccess({
             primary
             busy={running === 'invite'}
             busyLabel="Creating invitation…"
-            disabled={held || !recipientsReady || !member || !email.trim()}
+            disabled={held || !recipientsReady}
             onClick={() => {
-              if (member) track('invite', access.invite(member.uuid, email.trim()));
+              if (checks.check(INVITATION_FIELDS) && member) track('invite', access.invite(member.uuid, email.trim()));
             }}
           />
           {access.code && (
@@ -189,7 +194,7 @@ export function CompanyMemberAccess({
             </div>
           ))}
           <h3 className="border-t border-border-subtle pt-4 text-base font-medium">Current member access</h3>
-          <Field label="Company action reason">
+          <Field {...checks.field('reason')} label="Company action reason">
             <TextArea
               maxLength={FIELD_LIMITS.REASON}
               value={reason}
@@ -211,8 +216,11 @@ export function CompanyMemberAccess({
               {association.current && (
                 <PageAction
                   label={`Revoke access for ${memberName(association.member)}`}
-                  disabled={held || !reason.trim()}
-                  onClick={() => setRevoking({ uuid: association.uuid, name: memberName(association.member) })}
+                  disabled={held}
+                  onClick={() => {
+                    if (checks.check(['reason']))
+                      setRevoking({ uuid: association.uuid, name: memberName(association.member) });
+                  }}
                 />
               )}
             </div>
@@ -254,8 +262,13 @@ export function CompanyMemberAccess({
                   Prepare {access.requests.particulars.find((item) => item.uuid === request)?.name}&apos;s particulars
                   update
                 </p>
-                <FileField label="Company supporting document" disabled={held} onFile={selectFile} />
-                <Field label="As-at date (UTC)">
+                <FileField
+                  {...checks.field('file')}
+                  label="Company supporting document"
+                  disabled={held}
+                  onFile={selectFile}
+                />
+                <Field {...checks.field('asAt')} label="As-at date (UTC)">
                   <TextInput
                     type="date"
                     max={utcToday()}
@@ -265,7 +278,7 @@ export function CompanyMemberAccess({
                   />
                 </Field>
                 {!access.admin && (
-                  <Field label="Company action reason">
+                  <Field {...checks.field('reason')} label="Company action reason">
                     <TextArea
                       maxLength={FIELD_LIMITS.REASON}
                       value={reason}
@@ -284,8 +297,10 @@ export function CompanyMemberAccess({
                   primary
                   busy={running === 'particulars'}
                   busyLabel="Recording instruction…"
-                  disabled={held || !file || !reason.trim() || !asAt}
-                  onClick={() => track('particulars', prepare())}
+                  disabled={held}
+                  onClick={() => {
+                    if (checks.check(PARTICULARS_FIELDS)) track('particulars', prepare());
+                  }}
                 />
               </div>
             )}
@@ -294,7 +309,7 @@ export function CompanyMemberAccess({
             Fulfil a genuine receiving issue or transfer with an unsigned recipient-only PDF. The company remains
             responsible for execution and permitted use.
           </p>
-          <Field label="Certificate instruction reference">
+          <Field {...checks.field('instruction')} label="Certificate instruction reference">
             <TextInput
               value={certificateInstruction}
               maxLength={FIELD_LIMITS.REFERENCE}
@@ -342,10 +357,14 @@ export function CompanyMemberAccess({
                   label={`Preview certificate for ${memberName(item.member)}`}
                   busy={running === `preview:${item.uuid}`}
                   busyLabel="Previewing…"
-                  disabled={held || !!access.certificateTarget || !certificateInstruction.trim()}
-                  onClick={() =>
-                    track(`preview:${item.uuid}`, access.previewCertificate(item.uuid, certificateInstruction.trim()))
-                  }
+                  disabled={held || !!access.certificateTarget}
+                  onClick={() => {
+                    if (checks.check(['instruction']))
+                      track(
+                        `preview:${item.uuid}`,
+                        access.previewCertificate(item.uuid, certificateInstruction.trim()),
+                      );
+                  }}
                 />
               )}
             </div>

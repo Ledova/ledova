@@ -3,6 +3,8 @@ import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
   FIELD_LIMITS,
   DESTINATIONS,
@@ -49,6 +51,20 @@ export default function CompanyEligibilityPage() {
   const queue = read.queue;
   const [revocationReason, setRevocationReason] = useState('');
   const { running, track } = useRunningAction();
+  const accepting = read.draft.outcome === 'accepted';
+  const decisionChecks = useErrorSummary({
+    expiresAt:
+      accepting && !Number.isFinite(Date.parse(read.draft.expiresAt)) && 'Enter the acceptance expiry date and time.',
+    reason: !accepting && !read.draft.reason.trim() && 'Give the refusal reason.',
+  });
+  const revocationChecks = useErrorSummary({
+    reason: !revocationReason.trim() && 'Give the revocation reason.',
+  });
+  const forget = () => {
+    setRevocationReason('');
+    decisionChecks.reset();
+    revocationChecks.reset();
+  };
   const appointment = read.appointments.find(
     (item) => item.uuid === read.appointmentUuid && item.company === read.companyUuid,
   );
@@ -94,7 +110,7 @@ export default function CompanyEligibilityPage() {
               value={read.companyUuid}
               onChange={(uuid) => {
                 read.setCompany(uuid);
-                setRevocationReason('');
+                forget();
                 if (list.page > 1) list.setPage(1, true);
               }}
             />
@@ -144,7 +160,7 @@ export default function CompanyEligibilityPage() {
                     disabled={queue.busy}
                     select={(uuid) => {
                       read.selectRecord(uuid);
-                      setRevocationReason('');
+                      forget();
                     }}
                     selected={read.selectedRecord?.uuid}
                   />
@@ -164,14 +180,18 @@ export default function CompanyEligibilityPage() {
               <EligibilityHistory record={read.selectedRecord} />
               {read.selectedRecord.outcome === 'pending' && (
                 <Section title="Prepare the exact company decision">
+                  <ErrorSummary {...decisionChecks.summary} />
                   <Choices
                     legend="Decision outcome"
                     options={OUTCOMES}
                     value={read.draft.outcome}
-                    onChange={(outcome) => read.updateDraft({ outcome, reason: '', expiresAt: '' })}
+                    onChange={(outcome) => {
+                      decisionChecks.reset();
+                      read.updateDraft({ outcome, reason: '', expiresAt: '' });
+                    }}
                   />
-                  {read.draft.outcome === 'accepted' ? (
-                    <Field label="Acceptance expiry (local date and time)">
+                  {accepting ? (
+                    <Field {...decisionChecks.field('expiresAt')} label="Acceptance expiry (local date and time)">
                       <TextInput
                         type="datetime-local"
                         value={read.draft.expiresAt}
@@ -179,7 +199,7 @@ export default function CompanyEligibilityPage() {
                       />
                     </Field>
                   ) : (
-                    <Field label="Refusal reason">
+                    <Field {...decisionChecks.field('reason')} label="Refusal reason">
                       <TextInput
                         maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
                         value={read.draft.reason}
@@ -192,13 +212,16 @@ export default function CompanyEligibilityPage() {
                     busy={running === 'decision'}
                     busyLabel="Previewing…"
                     disabled={read.busy || read.refreshing || !appointment}
-                    onClick={() => track('decision', read.previewDecision())}
+                    onClick={() => {
+                      if (decisionChecks.check()) track('decision', read.previewDecision());
+                    }}
                   />
                 </Section>
               )}
               {read.selectedRecord.outcome === 'accepted' && (
                 <Section title="Revoke this acceptance">
-                  <Field label="Revocation reason">
+                  <ErrorSummary {...revocationChecks.summary} />
+                  <Field {...revocationChecks.field('reason')} label="Revocation reason">
                     <TextInput
                       maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
                       value={revocationReason}
@@ -212,8 +235,11 @@ export default function CompanyEligibilityPage() {
                     label="Prepare acceptance revocation"
                     busy={running === 'revocation'}
                     busyLabel="Preparing…"
-                    disabled={read.busy || read.refreshing || !canApprove || !revocationReason.trim()}
-                    onClick={() => track('revocation', read.prepareRevocation(read.selectedRecord!, revocationReason))}
+                    disabled={read.busy || read.refreshing || !canApprove}
+                    onClick={() => {
+                      if (revocationChecks.check())
+                        track('revocation', read.prepareRevocation(read.selectedRecord!, revocationReason));
+                    }}
                   />
                 </Section>
               )}

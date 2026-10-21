@@ -18,6 +18,8 @@ import {
 import { Row, Rows, Status, type Tone, LoadError, Loading } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 import { reconciliationKey, useLatestReconciliation } from './useLatestReconciliation';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
@@ -124,13 +126,15 @@ export function ClassReconciliation({
   }, [onHeldChange, token, heldUuid, held]);
   const row = open && record?.uuid === open.record ? record.discrepancies[open.index] : undefined;
   const current = !!open && !!row?.acknowledgeable && acknowledger?.uuid === open.appointment;
-  const ready = privateReady && current && !!reason.trim() && !acknowledgement.busy;
+  const ready = privateReady && current && !acknowledgement.busy;
+  const checks = useErrorSummary({ reason: !reason.trim() && 'Give the reason for acknowledging.' });
   const offered = (item: RegisterDiscrepancy) =>
     !!acknowledger && item.acknowledgeable && ACKNOWLEDGEABLE_DISCREPANCIES.includes(item.kind);
   const begin = (index: number) => {
     if (open || acknowledgement.busy || !record || !acknowledger) return;
     setReason('');
     setAttempted(false);
+    checks.reset();
     setOpen({ record: record.uuid, index, appointment: acknowledger.uuid });
   };
   const close = () => setOpen(null);
@@ -224,7 +228,7 @@ export function ClassReconciliation({
           busyLabel="Recording acknowledgement…"
           confirmDisabled={!ready}
           onConfirm={() => {
-            if (!ready || !open) return;
+            if (!ready || !open || !checks.check()) return;
             setAttempted(true);
             void acknowledgement.acknowledge(open.index, reason.trim());
           }}
@@ -232,9 +236,10 @@ export function ClassReconciliation({
         >
           {privateReady ? (
             <div className="flex flex-col gap-3">
+              <ErrorSummary {...checks.summary} />
               {row && <Discrepancy row={row} holders={holders} />}
               <p className="text-sm text-text-muted">{COPY.ACKNOWLEDGEMENT_NOTE}</p>
-              <Field label={COPY.ACKNOWLEDGE_REASON}>
+              <Field {...checks.field('reason')} label={COPY.ACKNOWLEDGE_REASON}>
                 <TextArea
                   rows={3}
                   maxLength={FIELD_LIMITS.REASON}
