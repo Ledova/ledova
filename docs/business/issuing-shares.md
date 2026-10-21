@@ -597,8 +597,9 @@ mapped holding against final chain evidence before claiming a mirror.
 Offerings, under More in the web sidebar and in the mobile app, lists every offering of the selected
 company the person owns, with its applications, followed by Investor directory and What happens
 next. Each offering shows its terms, status, any rejection, previous rejection or closing reason,
-and the actions its status allows. New offering needs a deployed class; without one the page says to
-deploy a class first.
+and the actions its status allows. On the web, an approved offering also shows its UUID in full, with
+**Copy offering UUID**, to give investors for their large-investment eligibility requests. New
+offering needs a deployed class; without one the page says to deploy a class first.
 
 The offering form checks the price, ordered bounds, dates and available settlement choices before
 sending, sets the window in the device's local time on mobile, requires a settlement asset that is

@@ -349,6 +349,8 @@ requirement is separate ([participants](participants.md#account-readiness)).
 
 Company shows the selected company's details as provided by the company: status, trading name,
 type, ACN, ABN, email (administrators only), phone and address. Administrators see **Edit company**.
+On the web it also shows the company's UUID in full, with **Copy company UUID**, to give investors
+for their eligibility requests and claims ([requesting a decision](participants.md#requesting-a-decision)).
 
 Its Company administration section links to:
 

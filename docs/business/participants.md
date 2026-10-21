@@ -143,7 +143,9 @@ lookup reveals nothing about the company. A submitted source can be withdrawn.
    Directory.
 2. Select your evidence source. Enter the exact company identifier the company gave you or, for a
    large-investment claim, the approved offering's identifier and a whole-share quantity. Set the
-   expiry you are asking for.
+   expiry you are asking for. On the web, a company finds its identifier on its
+   [Company page](companies.md#the-company-page), and each approved offering's on
+   [Offerings](issuing-shares.md#the-offerings-page).
 3. Choose **Preview company eligibility request**. The preview shows the company and, for a
    product-value claim, the share class, price, currency, amount and terms, with any unmet
    requirement.

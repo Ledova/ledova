@@ -238,9 +238,10 @@ identifier in their own details. It reports:
   the record you land on in Register.
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
-sign-up keep their boxed outcomes, and the payment instruction's copy buttons confirm with Copied
-beside them. Register's other forms don't use it. Mobile still reports success with native alerts
-and its success dialog.
+sign-up keep their boxed outcomes, and `CopyButton` (the payment instruction's values and the
+company's and an approved offering's UUIDs) confirms a copy with Copied beside the button.
+Register's other forms don't use `Outcome`. Mobile still reports success with native alerts and its
+success dialog.
 
 ## Copy
 
@@ -695,7 +696,9 @@ by a local helper or a browser `toLocale…` call:
   not shown. Fingerprints, transaction hashes and wallet addresses stay exact. The eligibility
   request and the claim's issuer still take the exact UUID a company supplies, and
   `useDirectoryNames` (`dashboard/src/hooks/`) names a directory-listed company or open offering
-  under the field, or says it is not listed.
+  under the field, or says it is not listed. The one exception shows those UUIDs in full, with
+  `CopyButton`, for a company to give investors: its own on Company, and each approved offering's
+  on Offerings.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile follows in
