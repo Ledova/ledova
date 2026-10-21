@@ -585,9 +585,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   and computes issued-share totals, holders deduplicated across classes and each class's shares with
   `BigInt` (`dashboard/src/pages/company/shared/summary.ts`); it draws each class's donut itself. The
   person's own appointments (`useOwnAppointments`) give the status line and Getting started, which
-  reads the register step from the selected company's opened registers. Mobile's Register tab
-  gives the same line and, for an administrator of the company shown, the same list, judging the
-  register step by that company's registers alone.
+  reads the register step from the selected company's opened registers. Web tasks render only while
+  incomplete; the existing parent condition hides the card when both tasks are complete. Mobile's
+  Register tab gives the corresponding status line and checklist to an administrator of the company
+  shown, retaining completed rows and judging the register step by that company's registers alone.
 - Personal dashboard: reads the person's own member projection; the first own class's history loads
   when a member record opens, and choosing another class reads that class's own entries.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the

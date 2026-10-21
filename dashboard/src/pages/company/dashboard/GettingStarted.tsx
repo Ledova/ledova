@@ -7,13 +7,15 @@ export function GettingStarted({ activated, registered }: { activated: boolean; 
   return (
     <Section title="Getting started">
       <div className="divide-y divide-border-subtle">
-        <ActivationStep done={activated} />
-        <SetupStep
-          to={DESTINATIONS.companyRegister.path}
-          label={pageTitle('companyRegisterSetup')}
-          note={REGISTER_IMPORT_COPY.SETUP_NOTE}
-          done={registered}
-        />
+        {!activated && <ActivationStep done={false} />}
+        {!registered && (
+          <SetupStep
+            to={DESTINATIONS.companyRegister.path}
+            label={pageTitle('companyRegisterSetup')}
+            note={REGISTER_IMPORT_COPY.SETUP_NOTE}
+            done={false}
+          />
+        )}
       </div>
     </Section>
   );
