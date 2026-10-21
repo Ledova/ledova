@@ -34,7 +34,6 @@ export function PlaceOrderPanel({
 }: PlaceOrderPanelProps) {
   const [orderType, setOrderType] = useState<OrderType | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFormValid, setIsFormValid] = useState(false);
   const formRef = useRef<OrderFormRef>(null);
   const [selectedAddress, setSelectedAddress] = useState('');
   const walletStatus = getWalletWhitelistStatus(selectedAddress);
@@ -56,7 +55,6 @@ export function PlaceOrderPanel({
     onNewOrder();
     setIsSubmitting(false);
     setOrderType(type);
-    setIsFormValid(false);
   };
 
   const handleClose = () => {
@@ -66,7 +64,6 @@ export function PlaceOrderPanel({
     onDismiss();
     setIsSubmitting(false);
     setOrderType(null);
-    setIsFormValid(false);
   };
 
   const handleSubmit = useCallback(
@@ -79,7 +76,6 @@ export function PlaceOrderPanel({
         const accepted = await onSubmit(data);
         if (accepted && transition.current.generation === generation) {
           setOrderType(null);
-          setIsFormValid(false);
         }
       } finally {
         if (transition.current.generation === generation) {
@@ -91,8 +87,7 @@ export function PlaceOrderPanel({
     [onSubmit, readsUnavailable, walletAllowed],
   );
 
-  const isConfirmDisabled =
-    !isFormValid || isSubmitting || isLoadingWhitelistStatus || !walletAllowed || readsUnavailable;
+  const isConfirmDisabled = isSubmitting || isLoadingWhitelistStatus || !walletAllowed || readsUnavailable;
 
   return (
     <>
@@ -157,7 +152,6 @@ export function PlaceOrderPanel({
               wallets={availableWallets}
               defaultWalletUuid={availableWallets[0]?.uuid}
               onSubmit={handleSubmit}
-              onValidationChange={setIsFormValid}
               onWalletChange={setSelectedAddress}
               disabled={isSubmitting}
               getWalletBalance={(address) =>
