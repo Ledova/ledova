@@ -3,7 +3,7 @@ export const REGISTER_AWARD_COPY = {
   NOTE: 'A promised award is separate from issued shares. Dates and the recorded schedule do not vest or issue shares automatically.',
   PREPARE: 'Record an employee award',
   SUBMIT: 'Record award',
-  EMPTY: 'No employee awards yet.',
+  EMPTY: 'No employee award has been recorded for this share class.',
   READ_ONLY_NOTE: 'Recording award changes needs current company administration or register preparation authority.',
   SHARES: 'Promised shares',
   TERMS_ON: 'Agreement dated on',

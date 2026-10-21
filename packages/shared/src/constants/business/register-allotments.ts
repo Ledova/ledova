@@ -4,7 +4,7 @@ export const REGISTER_ALLOTMENT_COPY = {
   TITLE: 'External investor allotments',
   PREPARE: 'Prepare an external allotment',
   SUBMIT: 'Prepare allotment',
-  EMPTY: 'No external allotments yet.',
+  EMPTY: 'No external allotment has been prepared for this share class.',
   NOTE: 'Record a fully paid external investment for a walletless member of an opened imported register. The agreement and company-recorded receipt do not approve or issue shares.',
   RECEIPT_NOTE: 'Receipt is attested by the company. Ledova has not verified or collected this money.',
   READ_ONLY_NOTE: 'Preparation, approval and application each require current company authority for that step.',

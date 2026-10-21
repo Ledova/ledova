@@ -455,7 +455,7 @@ keep a reason of their own. While a read fails they show the block, with any suc
 such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
 An empty list says it has none yet in one muted sentence, such as "No applications yet." or "No
-deployments yet.", sometimes followed by where to add or find them, and an empty section keeps at
+notices yet.", sometimes followed by where to add or find them, and an empty section keeps at
 most one action ([signed-in page conventions](#signed-in-page-conventions)). An empty class import
 instead invites bringing in the company's existing records. A list narrowed by a search or filter
 says what matched instead, such as "No applications match your search." or "No requests match."
@@ -468,7 +468,9 @@ register entries, wallet links or particulars changes is hidden instead, so thos
 show only on mobile. Other empty sentences are each client's own, and mobile's move to these words
 under [#1201](https://github.com/Ledova/ledova/issues/1201). A sentence that reports a state rather
 than an empty list keeps its own words, such as "No votes need your attention." or "No orders
-listed." for a market's live order book.
+listed." for a market's live order book. A class's awards, grants, allotments, non-paid transfers
+and deployments can't be made on every class, so theirs says none has been recorded or prepared
+for it, such as "No employee award has been recorded for this share class."
 
 Some messages keep their own form:
 

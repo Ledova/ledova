@@ -31,7 +31,7 @@ export const REGISTER_DEPLOYMENT_UNMET_COPY: Record<string, string> = {
 export const REGISTER_DEPLOYMENT_COPY = {
   TITLE: 'Empty-class deployment',
   PREPARE: 'Prepare deployment',
-  EMPTY: 'No deployments yet.',
+  EMPTY: 'No company deployment has been prepared for this class.',
   NOTE: 'Prepare the existing share class for an empty chain deployment. This creates no shares and does not mirror a populated register.',
   READ_ONLY_NOTE: 'Preparing, approving and applying needs current company administration or that step.',
   RECOVERY_NOTE:
