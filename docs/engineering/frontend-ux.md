@@ -548,11 +548,18 @@ This section covers how a form reports a problem: when it is submitted, and when
   - **The summary keeps the last press.** It lists the problems found when submit was last pressed
     that still fail, so it shrinks as they are fixed, and it clears when a check passes or the form
     is reset. It takes focus only on a new press.
-  - **Not yet:** sign-in and sign-up still show their own alerts. Several smaller forms still
-    disable submit until they are valid: the eligibility claim, representative authority requests,
-    subscriptions, adding a wallet, wallet nominations, pre-screening and company registration.
-    They move in the next [#1179](https://github.com/Ledova/ledova/issues/1179) change, and mobile
-    follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
+  - **Incomplete dates.** Without browser validation, a date or date-time typed only in part reads
+    as empty, so an optional one would be dropped silently. `useIncompleteDates`
+    (`dashboard/src/hooks/useIncompleteDates.ts`) notes the browser's `badInput` on each keystroke,
+    input and blur, and the form treats it as a problem: the team invitation's deadline and
+    appointment expiry, and an offering's closing time.
+  - **Not yet:** sign-in and sign-up still show their own alerts. These still disable their action
+    until it is valid: the eligibility claim, representative authority requests and the acceptance
+    that establishes the appointment, subscriptions, adding a wallet, wallet nominations, the
+    wallet's Send form, eligibility action confirmations, company activation's declaration, the
+    recovery phrase and Bitcoin signed transaction in signing steps, pre-screening and company
+    registration. They move in the next [#1179](https://github.com/Ledova/ledova/issues/1179)
+    changes, and mobile follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
 
 - **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
   (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code

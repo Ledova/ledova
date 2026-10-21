@@ -102,12 +102,15 @@ export function useCompanyMemberRequests({
     uploaded.current = null;
   };
   const held = access.busy || uploading || !!access.retry;
+  const preparing =
+    !!access.prepare &&
+    !!access.requests?.particulars.some((item) => item.uuid === request && item.status === 'submitted');
   const problems: Problems<MemberField> = {
     member: !member && 'Choose the member or award recipient.',
     email: !email.trim() && 'Give the intended recipient’s email.',
     reason: !reason.trim() && 'Give the company action reason.',
-    file: !file && 'Choose the company supporting document.',
-    asAt: (!isCalendarDate(asAt) || asAt > utcToday()) && 'Enter an as-at date no later than today (UTC).',
+    file: preparing && !file && 'Choose the company supporting document.',
+    asAt: preparing && (!isCalendarDate(asAt) || asAt > utcToday()) && 'Enter an as-at date no later than today (UTC).',
     instruction: !certificateInstruction.trim() && 'Give the certificate instruction reference.',
   };
   useEffect(() => {
@@ -119,7 +122,7 @@ export function useCompanyMemberRequests({
     await awards.refetch();
   };
   const prepare = async () => {
-    if (!file || !access.prepare || uploading || PARTICULARS_FIELDS.some((key) => problems[key])) return;
+    if (!file || !access.prepare || !preparing || uploading || PARTICULARS_FIELDS.some((key) => problems[key])) return;
     setUploading(true);
     setUploadError('');
     try {
