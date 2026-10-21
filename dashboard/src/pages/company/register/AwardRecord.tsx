@@ -11,11 +11,12 @@ import {
   type OwnCompanyAppointment,
   type RegisterAward,
   type RegisterGrant,
+  shareCount,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Status, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
-import { STAGE_TONES, shareCount } from '@pages/company/shared/proposals';
+import { STAGE_TONES } from '@pages/company/shared/proposals';
 import {
   awardVestingsKey,
   awardEndsKey,

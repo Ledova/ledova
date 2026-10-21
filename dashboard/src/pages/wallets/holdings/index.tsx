@@ -1,4 +1,4 @@
-import { formatShareCount, getChainConfig, useOpenRows, useShareHoldings } from '@ledova/shared';
+import { getChainConfig, shareCount, useOpenRows, useShareHoldings } from '@ledova/shared';
 import { Disclosure, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { HoldingWork } from './HoldingWork';
@@ -36,7 +36,7 @@ export default function HomePage() {
                         <span className="block text-base text-text-primary">{holding.name}</span>
                       </span>
                       <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
-                        {formatShareCount(holding.quantity)} {holding.quantity === '1' ? 'share' : 'shares'}
+                        {shareCount(holding.quantity)}
                       </span>
                     </span>
                   }
@@ -46,16 +46,14 @@ export default function HomePage() {
                       <div key={chain.chain}>
                         <p className="flex flex-wrap justify-between gap-2 text-sm text-text-muted">
                           <span>{getChainConfig(chain.chain)?.name ?? chain.chain}</span>
-                          <span className="tabular-nums">
-                            {formatShareCount(chain.quantity)} {chain.quantity === '1' ? 'share' : 'shares'}
-                          </span>
+                          <span className="tabular-nums">{shareCount(chain.quantity)}</span>
                         </p>
                         <dl className="mt-2 divide-y divide-border-subtle">
                           {chain.wallets.map((wallet) => (
                             <div key={wallet.uuid} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
                               <dt className="min-w-0 break-all text-text-muted">{wallet.name || wallet.address}</dt>
                               <dd className="ml-auto text-right tabular-nums text-text-primary">
-                                {formatShareCount(wallet.quantity)} {wallet.quantity === '1' ? 'share' : 'shares'}
+                                {shareCount(wallet.quantity)}
                               </dd>
                             </div>
                           ))}

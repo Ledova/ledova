@@ -5,9 +5,9 @@ import {
   PUBLICATION_KIND_LABELS,
   formatDate,
   formatDateTime,
-  formatShareCount,
   useResolutionStatus,
   type Publication,
+  shareCount,
 } from '@ledova/shared';
 import { Section, Status, LoadError, Loading } from '@components/Ledger';
 import { useHoldingWork } from './useHoldingWork';
@@ -23,9 +23,7 @@ function Applications({ rows }: { rows: ApplicationWork[] }) {
           <div className="min-w-0 flex-1 basis-48 break-words">
             <p className="text-sm text-text-muted">{application.companyName}</p>
             <p className="text-base text-text-primary">{application.tokenName}</p>
-            <p className="text-sm tabular-nums text-text-muted">
-              {formatShareCount(String(application.quantity))} {application.quantity === 1 ? 'share' : 'shares'}
-            </p>
+            <p className="text-sm tabular-nums text-text-muted">{shareCount(application.quantity)}</p>
           </div>
           <Link
             to={`${DESTINATIONS.subscriptions.path}/${application.uuid}`}

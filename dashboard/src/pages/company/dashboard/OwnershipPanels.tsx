@@ -170,7 +170,7 @@ export function ShareholderPanels({ registers }: { registers: TokenHoldersRespon
                             {formatShareCount(segment.shares)}
                           </td>
                           <td className="break-words py-2 text-right tabular-nums text-text-primary">
-                            {segment.percentage === 0 ? '<0.01' : segment.percentage.toFixed(2)}%
+                            {segment.percentage}
                           </td>
                         </tr>
                       ))}

@@ -1,10 +1,16 @@
 import { SelectField } from '@components/SelectField';
-import { HOLDER_TYPE_LABELS, formatShareCount, searchRows, type TokenHoldersResponse } from '@ledova/shared';
+import {
+  HOLDER_TYPE_LABELS,
+  formatShareCount,
+  searchRows,
+  type TokenHoldersResponse,
+  sharePercentage,
+} from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { PageAction, PageLink } from '@components/Page';
 import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
-import { percentage, shareholderPath } from './shareholders';
+import { shareholderPath } from './shareholders';
 
 type Holding = { register: TokenHoldersResponse; holder: TokenHoldersResponse['holders'][number] };
 type Shareholder = { member: string; name: string; holdings: Holding[] };
@@ -124,7 +130,7 @@ export function CompanyShareholders({
                           <>
                             {formatShareCount(holding.holder.balance)}
                             <span className="mt-1 block text-xs text-text-muted">
-                              {percentage(holding.holder.balance, register.issuedSupply)}
+                              {sharePercentage(holding.holder.balance, register.issuedSupply)}
                             </span>
                           </>
                         ) : (

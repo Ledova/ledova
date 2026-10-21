@@ -7,12 +7,13 @@ import {
   type RegisterDecisionKind,
   type RegisterGrant,
   type RegisterGrantDecisionPreview,
+  shareCount,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { STAGE_TONES, shareCount, type RegisterSteps } from '@pages/company/shared/proposals';
+import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useGrantRecordDownload } from './useRegisterRecordDownload';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
