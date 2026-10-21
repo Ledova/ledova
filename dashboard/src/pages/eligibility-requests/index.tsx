@@ -7,7 +7,7 @@ import {
   formatDate,
   useParticipantEligibilityRecords,
 } from '@ledova/shared';
-import { LinkRow, Section } from '@components/Ledger';
+import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
 import { Field, TextInput } from '@components/Field';
@@ -36,9 +36,14 @@ export default function ParticipantEligibilityPage() {
         <p>Your signed-in account must be checked before opening these records.</p>
       ) : (
         <>
-          {read.error && (
+          {read.readFailed && (
+            <LoadError retry={() => read.refresh()} busy={read.refreshing}>
+              Your company eligibility requests could not be loaded.
+            </LoadError>
+          )}
+          {(read.readFailed ? read.failure : read.error) && (
             <p role="alert" className="text-sm text-error-light">
-              {read.error}
+              {read.readFailed ? read.failure : read.error}
             </p>
           )}
           <Section title="Prepare a request for one company">
@@ -104,9 +109,11 @@ export default function ParticipantEligibilityPage() {
           {read.action && (
             <ActionConfirmation action={read.action} busy={read.busy} confirm={read.confirm} cancel={read.cancel} />
           )}
-          <Section title="Your company requests">
-            <RecordsList records={read.records} select={read.selectRecord} selected={read.selectedRecord?.uuid} />
-          </Section>
+          {!read.readFailed && (
+            <Section title="Your company requests">
+              <RecordsList records={read.records} select={read.selectRecord} selected={read.selectedRecord?.uuid} />
+            </Section>
+          )}
           {read.selectedRecord && (
             <>
               <EligibilityHistory record={read.selectedRecord} />

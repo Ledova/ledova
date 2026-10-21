@@ -389,6 +389,8 @@ export function useCompanyMemberAccess(
     retry,
     code: accessReady ? code : null,
     notice: readable ? notice : '',
+    readFailed: [appointments, queue, access].some((query) => query.isError),
+    failure: error,
     error:
       error ??
       ([appointments, queue, access].some((query) => query.isError)

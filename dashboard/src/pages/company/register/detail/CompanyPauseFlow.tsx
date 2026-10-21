@@ -1,6 +1,6 @@
 import { Field, TextArea, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
-import { Row, Rows, Section, Loading } from '@components/Ledger';
+import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import {
@@ -230,13 +230,15 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <PageAction
-        label="Refresh company pause records"
-        busy={commands.instructions.isFetching || commands.appointments.isFetching}
-        busyLabel="Refreshing…"
-        disabled={commands.busy}
-        onClick={() => void commands.refresh()}
-      />
+      {!(commands.visible && commands.instructions.isError) && (
+        <PageAction
+          label="Refresh company pause records"
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+          busyLabel="Refreshing…"
+          disabled={commands.busy}
+          onClick={() => void commands.refresh()}
+        />
+      )}
       {!commands.visible && (
         <p className="text-sm text-text-muted">
           Current personal register access for this company is required. Retained requests stay private until it is
@@ -250,7 +252,13 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       )}
       {commands.visible && commands.instructions.isPending && <Loading>Loading company pause records…</Loading>}
       {commands.visible && commands.instructions.isError && (
-        <p role="alert">The pause records could not be refreshed. Retained original receipts remain available.</p>
+        <LoadError
+          retry={() => commands.refresh()}
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+        >
+          The pause records could not be {commands.instructions.data ? 'refreshed' : 'loaded'}. Retained original
+          receipts remain available.
+        </LoadError>
       )}
       {!!commands.company && (
         <div hidden={!commands.visible || !commands.steps.prepare}>

@@ -440,19 +440,20 @@ opening.
 
 A failed read shows this block, not an empty state. The notification bell, profile documents,
 classification claims and a class's deployments, which used to show an empty state, now show the
-failure. On the company team page and in a class's employee awards and non-paid issues, the block
-takes the place of the section's Refresh action while its read has failed; deployments do the same
-while no records show.
+failure. A failed refresh shows the same block. A section that keeps what it showed before says
+what could not be refreshed and what remains, such as "Retained original receipts remain
+available."; one that hides its rows says they could not be loaded. The block takes the place of the
+section's Refresh action while its read has failed, on the company team page and in a class's
+employee awards, non-paid issues, deployments and capital, pause, paid issue and grant records, and
+the company's wallet instructions.
 
-A failed refresh and empty states are still to follow under
-[#1180](https://github.com/Ledova/ledova/issues/1180). Until then:
+Both eligibility pages, member access and Home's member records read through shared hooks that also
+keep a reason of their own. While a read fails they show the block, with any such reason under it,
+such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
-- The company's eligibility queue, your company eligibility requests, member access and Home's
-  member records report a failed read in their own sentence beside their Refresh action, and may
-  show their empty line under it.
-- A share class's capital, pause, paid issue and grant records, and the company's wallet
-  instructions, report any failed read, the first included, in their own "could not be refreshed"
-  sentence beside their Refresh action.
+Empty states are still to follow under [#1180](https://github.com/Ledova/ledova/issues/1180).
+Until then:
+
 - The route guard's checks, an unreadable profile or role, keep their own message and Try again
   ([routes, audiences and guards](frontend.md#routes-audiences-and-guards)).
 - Recoveries of an interrupted action, such as "Retry original member action", keep their own

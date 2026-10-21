@@ -346,6 +346,8 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
     busy,
     retry,
     loading: list.isPending,
+    readFailed: [list, detail, requests, entries].some((read) => read.isError),
+    failure: error,
     error:
       error ??
       ([list, detail, requests, entries].some((read) => read.isError)

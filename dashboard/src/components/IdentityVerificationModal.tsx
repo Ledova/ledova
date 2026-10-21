@@ -199,7 +199,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
           )}
           {showRetryBanner && (
             <PageAction
-              label="Retry verification"
+              label="Try again"
               primary
               busy={isLaunching}
               busyLabel="Preparing…"

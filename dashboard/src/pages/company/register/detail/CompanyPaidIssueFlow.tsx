@@ -1,5 +1,5 @@
 import { Field, TextArea, TextInput } from '@components/Field';
-import { Row, Rows, Section, Loading } from '@components/Ledger';
+import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import { SearchSelect } from '@components/SearchSelect';
@@ -196,10 +196,14 @@ function Preparation({ commands }: { commands: Commands }) {
       <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
       {commands.availableSubscriptions.isPending && <Loading>Loading recorded paid sources…</Loading>}
       {commands.availableSubscriptions.isError && (
-        <p role="alert">
-          Available paid subscription sources could not be refreshed. The captured draft remains, and fresh evidence is
-          blocked.
-        </p>
+        <LoadError
+          retry={() => commands.availableSubscriptions.refetch()}
+          busy={commands.availableSubscriptions.isFetching}
+        >
+          Available paid subscription sources could not be{' '}
+          {commands.availableSubscriptions.data ? 'refreshed' : 'loaded'}. The captured draft remains, and fresh
+          evidence is blocked.
+        </LoadError>
       )}
       {commands.availableSubscriptions.isSuccess &&
         !commands.availableSubscriptions.isFetching &&
@@ -310,13 +314,15 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <PageAction
-        label="Refresh company paid issue records"
-        busy={commands.instructions.isFetching || commands.appointments.isFetching}
-        busyLabel="Refreshing…"
-        disabled={commands.busy}
-        onClick={() => void commands.refresh()}
-      />
+      {!(commands.visible && commands.instructions.isError) && (
+        <PageAction
+          label="Refresh company paid issue records"
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+          busyLabel="Refreshing…"
+          disabled={commands.busy}
+          onClick={() => void commands.refresh()}
+        />
+      )}
       {!commands.visible && (
         <p className="text-sm text-text-muted">
           Current personal register access for this company is required. Retained requests stay private until it is
@@ -331,7 +337,13 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
       )}
       {commands.visible && commands.instructions.isPending && <Loading>Loading company paid issue records…</Loading>}
       {commands.visible && commands.instructions.isError && (
-        <p role="alert">The paid issue records could not be refreshed. Retained original receipts remain available.</p>
+        <LoadError
+          retry={() => commands.refresh()}
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+        >
+          The paid issue records could not be {commands.instructions.data ? 'refreshed' : 'loaded'}. Retained original
+          receipts remain available.
+        </LoadError>
       )}
       {!!commands.company && (
         <div hidden={!commands.visible || !commands.steps.prepare}>

@@ -1,5 +1,5 @@
 import { Field, TextArea, TextInput } from '@components/Field';
-import { Row, Rows, Section, Loading } from '@components/Ledger';
+import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { FIELD_CLASS } from '@components/fieldClass';
 import {
@@ -235,13 +235,15 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <PageAction
-        label="Refresh company capital records"
-        busy={commands.instructions.isFetching || commands.appointments.isFetching}
-        busyLabel="Refreshing…"
-        disabled={commands.busy}
-        onClick={() => void commands.refresh()}
-      />
+      {!(commands.visible && commands.instructions.isError) && (
+        <PageAction
+          label="Refresh company capital records"
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+          busyLabel="Refreshing…"
+          disabled={commands.busy}
+          onClick={() => void commands.refresh()}
+        />
+      )}
       {!commands.visible && (
         <p className="text-sm text-text-muted">
           Current personal register access for this company is required. Retained requests stay private until it is
@@ -256,7 +258,13 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
       )}
       {commands.visible && commands.instructions.isPending && <Loading>Loading company capital records…</Loading>}
       {commands.visible && commands.instructions.isError && (
-        <p role="alert">The capital records could not be refreshed. Retained original receipts remain available.</p>
+        <LoadError
+          retry={() => commands.refresh()}
+          busy={commands.instructions.isFetching || commands.appointments.isFetching}
+        >
+          The capital records could not be {commands.instructions.data ? 'refreshed' : 'loaded'}. Retained original
+          receipts remain available.
+        </LoadError>
       )}
       {!!commands.company && (
         <div hidden={!commands.visible || !commands.steps.prepare}>

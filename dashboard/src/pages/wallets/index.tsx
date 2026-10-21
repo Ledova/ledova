@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DESTINATIONS, WALLET_VERIFICATION_STATUS, getActiveChains, sortWallets, useWalletSort } from '@ledova/shared';
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
-import { LinkRow, Section, LoadError } from '@components/Ledger';
+import { LinkRow, Section, LoadError, Loading } from '@components/Ledger';
 import { WalletItem } from './WalletItem';
 import { useWallets } from './useWallets';
 import { WalletActions } from './WalletActions';
@@ -54,15 +54,12 @@ function WalletsPage() {
   const sort = useWalletSort();
 
   const readBlocked = hasError || isRefreshing;
-  const readNotice = readBlocked ? (
-    <div role={hasError ? 'alert' : 'status'} className="space-y-2 text-sm text-text-muted">
-      <p>
-        {hasError
-          ? 'Wallets could not be refreshed. Your draft is kept; retry before continuing.'
-          : 'Refreshing wallets before continuing…'}
-      </p>
-      {hasError && <PageAction label="Retry wallets" disabled={isRefreshing} onClick={() => void retry()} />}
-    </div>
+  const readNotice = hasError ? (
+    <LoadError retry={retry} busy={isRefreshing}>
+      Wallets could not be refreshed. Your draft is kept.
+    </LoadError>
+  ) : isRefreshing ? (
+    <Loading>Refreshing wallets before continuing…</Loading>
   ) : null;
   const openAdd = () => {
     resetCreate();
