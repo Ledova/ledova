@@ -606,7 +606,9 @@ Some messages keep their own form:
   `inputMode`, including Trading's order fields.
 - **Files.** A web upload is `FileField`, a `Field` around a file input. It applies `UPLOAD_RULE`
   (`field-limits.ts`), the server's rule: a PDF, PNG or JPEG whose type matches its extension, up to
-  10 MB. By default its hint starts with "PDF, PNG or JPEG, up to 10 MB." Compact forms such as
+  10 MB. Its empty control reads **Choose file**, showing the filename after selection while keeping
+  the native picker, keyboard focus and accessible label. By default its hint starts with
+  "PDF, PNG or JPEG, up to 10 MB." Compact forms such as
   Agreement and receipt may omit this routine hint with `showUploadHint={false}`. Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
   of up to 10 MB." on the field. The payslip upload on Profile and the evidence in an eligibility claim keep their dashed

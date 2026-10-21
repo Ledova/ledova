@@ -90,6 +90,7 @@ export function FileField({
   onFile: (file: File | null) => void;
 }) {
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [filename, setFilename] = useState('');
   return (
     <Field
       id={id}
@@ -99,18 +100,28 @@ export function FileField({
       alert={!!refusal}
       optional={optional}
     >
-      <TextInput
-        {...props}
-        type="file"
-        accept={UPLOAD_RULE.ACCEPT}
-        onChange={(event) => {
-          const file = event.target.files?.[0] ?? null;
-          const problem = file && uploadRefusal(file);
-          setRefusal(problem);
-          if (problem) event.target.value = '';
-          onFile(problem ? null : file);
-        }}
-      />
+      <div
+        className={`${FIELD_CLASS} relative focus-within:border-brand-mid focus-within:ring-1 focus-within:ring-brand-mid has-[:disabled]:opacity-50`}
+      >
+        <TextInput
+          {...props}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+          type="file"
+          accept={UPLOAD_RULE.ACCEPT}
+          onChange={(event) => {
+            const file = event.target.files?.[0] ?? null;
+            const problem = file && uploadRefusal(file);
+            setRefusal(problem);
+            setFilename(problem ? '' : (file?.name ?? ''));
+            if (problem) event.target.value = '';
+            onFile(problem ? null : file);
+          }}
+        />
+        <div aria-hidden="true" className="pointer-events-none flex min-w-0 items-center gap-3">
+          <span className="shrink-0">Choose file</span>
+          {filename && <span className="truncate text-text-muted">{filename}</span>}
+        </div>
+      </div>
     </Field>
   );
 }
