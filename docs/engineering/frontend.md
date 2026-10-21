@@ -309,7 +309,8 @@ glance](../business/README.md#the-app-at-a-glance)). Settings opens `/settings` 
 active on `/company`, `/company/listing` (Activation), `/company/team` and `/company/authority`;
 Shareholders stays marked active on a shareholder's page. The register hashes switch the visible view without
 unmounting register forms or their recovery ([page mechanics](#page-mechanics)). The sidebar and
-phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a bounded grid.
+phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a bounded grid. Its
+items are links, and below `lg` the drawer is a dialog ([navigation](frontend-ux.md#navigation)).
 Native navigation is declared separately ([navigation](mobile.md#navigation)).
 
 ### Sign-up routes

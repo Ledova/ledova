@@ -1,4 +1,4 @@
-import { useContext, useId, type MouseEvent, type ReactNode } from 'react';
+import { useContext, useEffect, useId, type MouseEvent, type ReactNode } from 'react';
 import { Link, type To } from 'react-router-dom';
 import { PageTitle } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
@@ -15,6 +15,13 @@ export function Page({ actions, lede, loading = false, narrow = false, children 
   const title = useContext(PageTitle);
   const inFrame = useContext(InSignedInFrame);
   const ledeId = useId();
+  useEffect(() => {
+    if (!title) return;
+    document.title = `${title} · Ledova`;
+    return () => {
+      document.title = 'Ledova';
+    };
+  }, [title]);
 
   return (
     <div
@@ -23,8 +30,9 @@ export function Page({ actions, lede, loading = false, narrow = false, children 
       <header>
         <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
           <h1
+            tabIndex={-1}
             aria-describedby={lede ? ledeId : undefined}
-            className="font-display text-3xl tracking-[-0.01em] text-text-primary"
+            className="font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none"
           >
             {title}
           </h1>
