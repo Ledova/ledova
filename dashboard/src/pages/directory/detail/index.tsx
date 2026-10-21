@@ -5,13 +5,13 @@ import {
   DESTINATIONS,
   OFFER_DOCUMENT_COPY,
   describeOfferDocument,
-  formatDate,
   formatMoney,
   formatShareCount,
   useDirectoryDocuments,
   useDirectoryToken,
   useSubscribableWallets,
   type DirectoryDocument,
+  formatDateTime,
 } from '@ledova/shared';
 import { Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
@@ -141,8 +141,8 @@ export default function DirectoryTokenPage() {
             <Row label="Price per share">
               <span className="break-all">{formatMoney(offering.pricePerShare, offering.priceCurrency)}</span>
             </Row>
-            <Row label="Opened">{formatDate(offering.opensAt)}</Row>
-            <Row label="Closes">{offering.closesAt ? formatDate(offering.closesAt) : 'No closing date'}</Row>
+            <Row label="Opened">{formatDateTime(offering.opensAt)}</Row>
+            <Row label="Closes">{offering.closesAt ? formatDateTime(offering.closesAt) : 'No closing date'}</Row>
           </Rows>
         ) : (
           <p className="text-sm text-text-muted">

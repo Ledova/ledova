@@ -9,6 +9,7 @@ import {
   apiErrorSentence,
   appointmentForRegisterStep,
   failureStatus,
+  formatDate,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
@@ -106,7 +107,7 @@ function OwnOpening({
           </p>
           <Rows>
             <Row label="Holdings read at">
-              {COPY.BOUNDARY_BLOCK(holders.data.block.number, holders.data.block.date)}
+              {COPY.BOUNDARY_BLOCK(holders.data.block.number, formatDate(holders.data.block.date))}
             </Row>
           </Rows>
           <p className="text-sm text-text-muted">{COPY.BOUNDARY_NOTE}</p>

@@ -9,6 +9,7 @@ import {
   useSubmissionOwner,
   useUserPreferences,
   type OrderSubmissionOwner,
+  formatDateTime,
 } from '@ledova/shared';
 import { scopeLabels } from '@pages/company/shared/appointments';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
@@ -226,9 +227,9 @@ function OwnTeam({
                   <Row label="Company (provided by the company)">{item.companyName}</Row>
                   <Row label="Personal actions">{scopeLabels(item.capabilities)}</Row>
                   <Row label="May delegate">{scopeLabels(item.delegatableCapabilities)}</Row>
-                  <Row label="Acceptance deadline">{item.acceptanceDeadline}</Row>
-                  <Row label="Accepted">{item.acceptedAt || 'Not yet accepted'}</Row>
-                  <Row label="Appointment expiry">{item.appointmentExpiresAt || 'No expiry'}</Row>
+                  <Row label="Acceptance deadline">{formatDateTime(item.acceptanceDeadline)}</Row>
+                  <Row label="Accepted">{formatDateTime(item.acceptedAt, 'Not yet accepted')}</Row>
+                  <Row label="Appointment expiry">{formatDateTime(item.appointmentExpiresAt, 'No expiry')}</Row>
                 </Rows>
                 <details className="pt-2 text-sm">
                   <summary className="cursor-pointer text-text-muted">Invitation record</summary>

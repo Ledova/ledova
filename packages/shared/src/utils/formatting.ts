@@ -25,6 +25,9 @@ export function formatCurrency(value?: number, options: FormatCurrencyOptions = 
 
 export const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
+export const shareChange = (shares: string) =>
+  shares.startsWith('-') ? formatShareCount(shares) : `+${formatShareCount(shares)}`;
+
 export function shareCount(shares: string | number) {
   const count = String(shares);
   return `${formatShareCount(count)} ${count === '1' ? 'share' : 'shares'}`;

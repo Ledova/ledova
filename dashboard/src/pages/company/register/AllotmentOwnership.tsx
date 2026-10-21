@@ -3,6 +3,7 @@ import {
   formatShareCount,
   REGISTER_ALLOTMENT_COPY as COPY,
   type RegisterAllotmentDecisionPreview,
+  shareCount,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { Table } from '@components/List';
@@ -30,11 +31,11 @@ export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDeci
             )}
           </th>
           <td className="px-4 py-3 text-right tabular-nums">
-            <span className="block whitespace-nowrap">{formatShareCount(row.beforeShares)} shares</span>
+            <span className="block whitespace-nowrap">{shareCount(row.beforeShares)}</span>
             <span className="text-text-muted">{row.beforePercentage}</span>
           </td>
           <td className="px-4 py-3 text-right tabular-nums">
-            <span className="block whitespace-nowrap">{formatShareCount(row.afterShares)} shares</span>
+            <span className="block whitespace-nowrap">{shareCount(row.afterShares)}</span>
             <span className="text-text-muted">{row.afterPercentage}</span>
           </td>
         </tr>
