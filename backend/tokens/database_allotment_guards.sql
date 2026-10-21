@@ -136,7 +136,8 @@ AS $function$
         'register', to_jsonb(register), 'authorised_supply', token.total_supply,
         'token_status', token.status, 'deployment', token.deployment_id, 'contract', token.contract_address,
         'legacy_hash', token.deployment_tx_hash, 'deployed_at', token.deployed_at, 'chain', token.chain,
-        'particulars', (SELECT to_jsonb(held) FROM tokens_registermemberparticulars held
+        'particulars', (SELECT to_jsonb(held) - CASE WHEN to_jsonb(held)->>'source_award_id' IS NULL THEN 'source_award_id' ELSE '' END
+            FROM tokens_registermemberparticulars held
             WHERE held.member_id = proposal.member))::text, 'UTF8')), 'hex')
     FROM tokens_registerallotment proposal JOIN tokens_sharetoken token ON token.uuid = proposal.token_id
         LEFT JOIN tokens_shareregister register ON register.token_id = token.uuid
@@ -401,6 +402,7 @@ BEGIN
             RAISE EXCEPTION 'Only the retention purge removes member particulars' USING ERRCODE = '23514';
         END IF;
         IF EXISTS (SELECT 1 FROM tokens_registerposition position WHERE position.member_id = OLD.member_id AND position.shares > 0)
+            OR EXISTS (SELECT 1 FROM tokens_registeraward award WHERE award.member = OLD.member_id)
             OR tokens_register_member_left_on(OLD.member_id) IS NULL
             OR tokens_register_member_left_on(OLD.member_id) >= (clock_timestamp() AT TIME ZONE 'UTC')::date - 2557 THEN
             RAISE EXCEPTION 'Member particulars retain the actual exit clock and continued membership' USING ERRCODE = '23514';
@@ -412,6 +414,21 @@ BEGIN
             USING ERRCODE = '23514';
     END IF;
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
+    IF NEW.source_award_id IS NOT NULL THEN
+        IF TG_OP <> 'INSERT' OR NOT EXISTS (
+            SELECT 1 FROM tokens_registeraward award JOIN tokens_registermember member ON member.uuid = award.member
+            WHERE award.uuid = NEW.source_award_id AND award.new_member AND award.member = NEW.member_id
+                AND member.company_id = award.company_id
+                AND award.name = NEW.name AND award.residential_address = NEW.residential_address
+                AND ((principal IS NOT NULL AND award.submitted_by_id = principal
+                        AND current_setting('app.company_operation', true) = 'register_award_record'
+                        AND current_setting('app.company_id', true) = award.company_id::text
+                        AND NEW.as_at = (clock_timestamp() AT TIME ZONE 'UTC')::date)
+                    OR (current_user = __MIGRATE__ AND COALESCE(current_setting('app.company_operation', true), '') = ''
+                        AND NEW.as_at = (award.created_at AT TIME ZONE 'UTC')::date)))
+        THEN RAISE EXCEPTION 'Award particulars come only from the company''s award to a new recipient' USING ERRCODE = '23514'; END IF;
+        RETURN NEW;
+    END IF;
     IF NEW.source_transfer_id IS NOT NULL THEN
         IF TG_OP <> 'INSERT' OR principal IS NULL OR NOT EXISTS (
             SELECT 1 FROM tokens_registertransfer transfer_record JOIN tokens_registertransferdecision decision ON decision.register_transfer_id = transfer_record.uuid
@@ -498,7 +515,9 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
         'register', to_jsonb(register), 'authorised_supply', token.total_supply,
         'token_status', token.status, 'deployment', token.deployment_id, 'contract', token.contract_address,
         'legacy_hash', token.deployment_tx_hash, 'deployed_at', token.deployed_at, 'chain', token.chain,
-        'particulars', (SELECT CASE WHEN held.source_allotment_id IS NULL THEN to_jsonb(held) - 'source_allotment_id' ELSE to_jsonb(held) END FROM tokens_registermemberparticulars held
+        'particulars', (SELECT CASE WHEN held.source_allotment_id IS NULL THEN to_jsonb(held) - 'source_allotment_id' ELSE to_jsonb(held) END
+                - CASE WHEN to_jsonb(held)->>'source_award_id' IS NULL THEN 'source_award_id' ELSE '' END
+            FROM tokens_registermemberparticulars held
             WHERE held.member_id = proposal.member)) || CASE WHEN proposal.award_id IS NULL THEN '{}'::jsonb
         ELSE jsonb_build_object('award', (SELECT to_jsonb(promised) FROM tokens_registeraward promised WHERE promised.uuid = proposal.award_id),
             'vesting_events', (SELECT coalesce(jsonb_agg(to_jsonb(event) ORDER BY event.uuid), '[]'::jsonb)
@@ -686,6 +705,8 @@ AS $function$
         'source_change', held.source_change_id, 'source_grant', held.source_grant_id, 'source_transfer', held.source_transfer_id)
         || CASE WHEN held.source_allotment_id IS NULL THEN '{}'::jsonb
             ELSE jsonb_build_object('source_allotment', held.source_allotment_id) END
+        || CASE WHEN to_jsonb(held)->>'source_award_id' IS NULL THEN '{}'::jsonb
+            ELSE jsonb_build_object('source_award', to_jsonb(held)->'source_award_id') END
     FROM tokens_registermemberparticulars held WHERE held.member_id = member_uuid;
 $function$;
 

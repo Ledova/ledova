@@ -105,8 +105,8 @@ failed refresh hides cached private records, and an uncertain reply is recovered
 
 ### Particulars requests
 
-A member with issued shares (not an award-only recipient) asks the company to change their
-recorded name and residential address: **Request a particulars update** on **Dashboard**
+A member, including an award recipient before any shares are issued, asks the company to change
+their recorded name and residential address: **Request a particulars update** on **Dashboard**
 (**Request a particulars change** on **My shares**), then **Send particulars request**. Sending
 changes nothing on the register.
 

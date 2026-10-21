@@ -210,9 +210,23 @@ adoption path.
 `shared/0007_register_award_identity_guards` extends the mirror guards: first copied holdings keep
 the exact company, name and address of a selected award-only recipient through commit. Earlier
 same-company ledger entries establish existing membership independently of the current snapshot,
-so registered members keep their normal particulars and correction flows. The members response exposes
-award-only choices separately from real register members, only to current company register
-appointees; private award evidence is not returned and the RLS policies and grants are unchanged.
+so registered members keep their normal particulars and correction flows.
+
+`shared/0014_award_person_records` gives award recipients person records.
+
+- An award for a new recipient creates their member and award-sourced particulars, and the member
+  and particulars guards accept only that award as the source.
+- The copied first holdings are now compared with the person's current particulars.
+- The member identity behind member access holds while the person has an award.
+- Grant and allotment digests omit an empty award source, so digests for other members are unchanged.
+- The migration gives each existing award recipient without a member a person record from their
+  earliest award.
+
+The members response lists award-only people, award recipients who have never been on the company's
+register, as members with `on_register` false, and only to readers of the company's awards (current register
+appointees). Every other member is listed with `on_register` true, including one with no shares yet,
+such as a member created by a wallet link. Its `award_recipients` list stays empty until the mobile app
+stops reading it. Private award evidence is not returned, and the RLS policies and grants are unchanged.
 
 ## Company workflow API
 

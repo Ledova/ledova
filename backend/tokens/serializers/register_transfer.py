@@ -143,6 +143,9 @@ class RegisterMemberSelectionSerializer(serializers.Serializer):
     last_ceased_on = serializers.DateField(allow_null=True)
     walletless = serializers.BooleanField()
     particulars_retained = serializers.BooleanField()
+    on_register = serializers.BooleanField(
+        required=False, help_text="False only for an award recipient who has never been on the company's register."
+    )
 
 
 class RegisterAwardRecipientSerializer(serializers.Serializer):

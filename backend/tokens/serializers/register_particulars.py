@@ -38,6 +38,7 @@ class RegisterParticularsHeldSerializer(serializers.Serializer):
     source_grant = serializers.UUIDField(allow_null=True)
     source_transfer = serializers.UUIDField(allow_null=True)
     source_allotment = serializers.UUIDField(allow_null=True)
+    source_award = serializers.UUIDField(allow_null=True)
 
 
 class RegisterParticularsChangeDecisionPreviewSerializer(serializers.Serializer):
