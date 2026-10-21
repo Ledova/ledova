@@ -3,6 +3,8 @@ import { SelectField } from '@components/SelectField';
 import { Choices } from '@components/Choices';
 import { useState } from 'react';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
   FIELD_LIMITS,
   OFFER_DOCUMENT_COPY,
@@ -91,6 +93,28 @@ export function OfferingForm({
     datesValid &&
     hasARail &&
     unavailableAssets.length === 0;
+  const checks = useErrorSummary({
+    token: !tokens.some((each) => each.uuid === chosenToken) && 'Choose a share class.',
+    price:
+      !priceValid && 'Enter a positive AUD price with at most 16 digits before the decimal point and two after it.',
+    minimum: minimum === null && 'Enter the minimum as whole shares from 1 to 2,147,483,647.',
+    target:
+      target === null
+        ? 'Enter the target as whole shares from 1 to 2,147,483,647.'
+        : minimum !== null && target < minimum && 'The target must be at least the minimum.',
+    cap:
+      cap === null
+        ? 'Enter the cap as whole shares from 1 to 2,147,483,647.'
+        : target !== null && cap < target && 'The cap must be at least the target.',
+    opens: !Number.isFinite(opens) && 'Enter the opening date and time.',
+    closes:
+      closes !== null &&
+      (!Number.isFinite(closes) || closes <= opens) &&
+      'The closing time must be after the opening time.',
+    payment: !hasARail && 'Choose at least one way to be paid. An offering nobody can pay for cannot be submitted.',
+    assets: unavailableAssets.length > 0 && 'Remove the settlement assets that are no longer available.',
+  });
+  const { id: paymentId, error: paymentError } = checks.field('payment');
 
   const toggleAsset = (uuid: string) =>
     setChosenAssets((chosen) => (chosen.includes(uuid) ? chosen.filter((each) => each !== uuid) : [...chosen, uuid]));
@@ -125,7 +149,9 @@ export function OfferingForm({
 
   return (
     <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
+      <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <SelectField
+        {...checks.field('token')}
         label="Share class"
         options={tokens.map((item) => ({ value: item.uuid, label: `${item.name} (${item.symbol})` }))}
         value={chosenToken}
@@ -135,7 +161,7 @@ export function OfferingForm({
 
       <Choices legend="Exemption relied on" options={EXEMPTIONS} value={exemption} onChange={setExemption} />
 
-      <Field label="Price per share (AUD)">
+      <Field {...checks.field('price')} label="Price per share (AUD)">
         <TextInput
           maxLength={FIELD_LIMITS.PRICE}
           value={pricePerShare}
@@ -145,7 +171,7 @@ export function OfferingForm({
         />
       </Field>
 
-      <Field label="Minimum shares">
+      <Field {...checks.field('minimum')} label="Minimum shares">
         <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
           value={minimumShares}
@@ -155,7 +181,7 @@ export function OfferingForm({
         />
       </Field>
 
-      <Field label="Target shares">
+      <Field {...checks.field('target')} label="Target shares">
         <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
           value={targetShares}
@@ -165,7 +191,7 @@ export function OfferingForm({
         />
       </Field>
 
-      <Field label="Cap shares">
+      <Field {...checks.field('cap')} label="Cap shares">
         <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
           value={capShares}
@@ -175,11 +201,11 @@ export function OfferingForm({
         />
       </Field>
 
-      <Field label="Opens at (local date and time)">
+      <Field {...checks.field('opens')} label="Opens at (local date and time)">
         <TextInput type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
       </Field>
 
-      <Field label="Closes at (local date and time, optional)">
+      <Field {...checks.field('closes')} label="Closes at (local date and time, optional)">
         <TextInput type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
       </Field>
 
@@ -205,7 +231,7 @@ export function OfferingForm({
         </Field>
       </div>
 
-      <div className="sm:col-span-2 space-y-2">
+      <div id={paymentId} className="sm:col-span-2 space-y-2">
         <span className="text-sm font-medium text-text-primary">How investors may pay</span>
 
         <label className="flex items-center gap-3">
@@ -213,6 +239,8 @@ export function OfferingForm({
             type="checkbox"
             checked={acceptsBankTransfer}
             onChange={(e) => setAcceptsBankTransfer(e.target.checked)}
+            aria-invalid={paymentError ? true : undefined}
+            aria-describedby={paymentError ? `${paymentId}-error` : undefined}
             className="h-4 w-4 rounded border-border"
           />
           <span className="text-sm text-text-primary">Accept bank transfer</span>
@@ -229,6 +257,8 @@ export function OfferingForm({
                 type="checkbox"
                 checked={chosenAssets.includes(asset.uuid)}
                 onChange={() => toggleAsset(asset.uuid)}
+                aria-invalid={paymentError ? true : undefined}
+                aria-describedby={paymentError ? `${paymentId}-error` : undefined}
                 className="h-4 w-4 rounded border-border"
               />
               <span className="text-sm text-text-primary">{asset.symbol}</span>
@@ -236,9 +266,9 @@ export function OfferingForm({
           ))
         )}
 
-        {!hasARail && (
-          <p className="text-sm text-error-light">
-            Choose at least one way to be paid. An offering nobody can pay for cannot be submitted.
+        {paymentError && (
+          <p id={`${paymentId}-error`} className="text-sm text-error-light">
+            {paymentError}
           </p>
         )}
       </div>
@@ -254,7 +284,7 @@ export function OfferingForm({
       </div>
 
       {unavailableAssets.length > 0 && (
-        <div role="alert" className="sm:col-span-2 space-y-2 text-sm text-text-muted">
+        <div id={checks.field('assets').id} role="alert" className="sm:col-span-2 space-y-2 text-sm text-text-muted">
           <p>A previously selected settlement asset is no longer available. Remove it before saving.</p>
           <PageAction
             label="Remove unavailable settlement assets"
@@ -262,21 +292,6 @@ export function OfferingForm({
             disabled={busy}
           />
         </div>
-      )}
-      {!quantitiesValid && (minimumShares || targetShares || capShares) && (
-        <p role="alert" className="sm:col-span-2 text-sm text-error-light">
-          Enter whole share quantities from 1 to 2,147,483,647, with minimum ≤ target ≤ cap.
-        </p>
-      )}
-      {pricePerShare && !priceValid && (
-        <p role="alert" className="sm:col-span-2 text-sm text-error-light">
-          Enter a positive AUD price with at most 16 digits before the decimal point and two after it.
-        </p>
-      )}
-      {closesAt && !datesValid && (
-        <p role="alert" className="sm:col-span-2 text-sm text-error-light">
-          The closing time must be after the opening time.
-        </p>
       )}
       <div className="sm:col-span-2 flex flex-wrap items-center justify-end gap-4">
         {editing && (
@@ -294,8 +309,10 @@ export function OfferingForm({
           primary
           busy={busy}
           busyLabel={editing ? 'Saving changes…' : 'Creating draft offering…'}
-          onClick={handleSubmit}
-          disabled={!isComplete || busy || blocked}
+          onClick={() => {
+            if (checks.check()) handleSubmit();
+          }}
+          disabled={busy || blocked}
         />
       </div>
     </fieldset>

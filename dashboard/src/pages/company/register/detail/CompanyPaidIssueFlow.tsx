@@ -1,6 +1,8 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { SearchSelect } from '@components/SearchSelect';
 import {
   FIELD_LIMITS,
@@ -138,7 +140,11 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
             busyLabel="Downloading…"
             onClick={() => void download()}
           />
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -174,25 +180,27 @@ function Preparation({ commands }: { commands: Commands }) {
     setReference,
     reason,
     setReason,
-    file,
     setFile,
     uploadRef,
     busy,
     error,
     setError,
     termsValid,
+    problems,
     waiting,
     check,
     select,
     submit,
     candidates,
   } = usePaidIssuePreparation({ commands });
+  const checks = useErrorSummary(problems);
   return (
     <fieldset
       disabled={waiting}
       className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company paid issue</h3>
+      <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
       {commands.availableSubscriptions.isPending && <Loading>Loading recorded paid sources…</Loading>}
       {commands.availableSubscriptions.isError && (
@@ -209,6 +217,7 @@ function Preparation({ commands }: { commands: Commands }) {
           </p>
         )}
       <SearchSelect
+        {...checks.field('source')}
         label="Recorded paid subscription"
         choices={[
           ...(captured && !candidates.some((row) => row.subscription === captured.source.subscription)
@@ -234,6 +243,7 @@ function Preparation({ commands }: { commands: Commands }) {
         }}
       />
       <Field
+        {...checks.field('director')}
         label="Approving director"
         hint="The company names a director other than the recipient. No director account is required."
       >
@@ -243,18 +253,25 @@ function Preparation({ commands }: { commands: Commands }) {
           onChange={(event) => setDirector(event.target.value)}
         />
       </Field>
-      <Field label="Authority reference">
+      <Field {...checks.field('reference')} label="Authority reference">
         <TextInput
           maxLength={FIELD_LIMITS.REFERENCE}
           value={reference}
           onChange={(event) => setReference(event.target.value)}
         />
       </Field>
-      <Field label="Paid issue reason">
+      <Field {...checks.field('reason')} label="Paid issue reason">
         <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
       <FileField
+        key={captured?.source.subscription ?? 'none'}
+        {...checks.field('file')}
         label="Paid issue authority document"
+        hint={
+          termsValid
+            ? undefined
+            : 'Available once the paid subscription, approving director, authority reference and reason are given.'
+        }
         disabled={!commands.canPrepare || !termsValid}
         onClick={(event) => {
           try {
@@ -275,13 +292,19 @@ function Preparation({ commands }: { commands: Commands }) {
           }
         }}
       />
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
       <PageAction
         label="Prepare paid issue"
         busy={busy}
         busyLabel="Preparing…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery || !termsValid || !file}
-        onClick={() => void submit()}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check()) void submit();
+        }}
       />
     </fieldset>
   );

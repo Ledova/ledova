@@ -1,7 +1,7 @@
-import { Field, TextArea, TextInput } from '@components/Field';
+import { CheckboxField, Field, TextArea, TextInput } from '@components/Field';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { FIELD_LIMITS, DESTINATIONS } from '@ledova/shared';
+import { FIELD_LIMITS, DESTINATIONS, INVITATION_CODE_PROBLEM, isInvitationCode } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
@@ -15,6 +15,8 @@ import { LinkRow, Row, Rows, Section, Loading } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { AwardStatus } from '@components/AwardStatus';
 import { useMemberCertificateDownload } from './useMemberCertificateDownload';
 
@@ -61,6 +63,19 @@ function MemberRecords({
   const held = read.busy || !!read.retry;
   const [withdrawing, setWithdrawing] = useState<{ uuid: string; createdAt: string } | null>(null);
   const { running, track } = useRunningAction();
+  const invitationChecks = useErrorSummary({
+    code: !isInvitationCode(code) && INVITATION_CODE_PROBLEM,
+    accepted: !accepted && 'Accept access to the invited member record.',
+  });
+  const particularsChecks = useErrorSummary({
+    name: !name.trim() && 'Give the requested name.',
+    address: !address.trim() && 'Give the requested residential address.',
+    confirmed: !confirmed && 'Confirm sharing these particulars with the company.',
+  });
+  const changeCode = (value: string) => {
+    setCode(value);
+    setAccepted(false);
+  };
   useEffect(() => {
     if (read.record && read.record.uuid !== initialHistory.current && !held) {
       initialHistory.current = read.record.uuid;
@@ -75,6 +90,7 @@ function MemberRecords({
   const records = read.record ? [read.record] : read.records.length === 1 ? read.records : [];
   const choose = (uuid: string) => {
     if (uuid !== read.record?.uuid) select(uuid);
+    particularsChecks.reset();
     setName('');
     setAddress('');
     setConfirmed(false);
@@ -130,34 +146,36 @@ function MemberRecords({
         Use the one-time code privately supplied by the company for your confirmed email. It grants access to your
         member record, not company administration.
       </p>
-      <Field label="Member invitation code">
+      <ErrorSummary {...invitationChecks.summary} />
+      <Field {...invitationChecks.field('code')} label="Member invitation code">
         <TextInput
           maxLength={FIELD_LIMITS.INVITATION_CODE}
           autoComplete="off"
           value={code}
           disabled={held}
-          onChange={(event) => {
-            setCode(event.target.value);
-            setAccepted(false);
+          onChange={(event) => changeCode(event.target.value.trim())}
+          onPaste={(event) => {
+            event.preventDefault();
+            changeCode(event.clipboardData.getData('text').trim().slice(0, FIELD_LIMITS.INVITATION_CODE));
           }}
         />
       </Field>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={accepted}
-          disabled={held}
-          onChange={(event) => setAccepted(event.target.checked)}
-        />
-        I accept access to the company&apos;s invited member record using my signed-in account.
-      </label>
+      <CheckboxField
+        {...invitationChecks.field('accepted')}
+        label="I accept access to the company's invited member record using my signed-in account."
+        checked={accepted}
+        disabled={held}
+        onChange={(event) => setAccepted(event.target.checked)}
+      />
       <PageAction
         label="Accept member invitation"
         primary
         busy={running === 'accept'}
         busyLabel="Accepting invitation…"
-        disabled={held || !accepted || !/^[A-Za-z0-9_-]{43}$/.test(code)}
-        onClick={() => track('accept', read.accept(code))}
+        disabled={held}
+        onClick={() => {
+          if (invitationChecks.check()) track('accept', read.accept(code));
+        }}
       />
     </div>
   );
@@ -378,7 +396,8 @@ function MemberRecords({
                         <p className="text-sm text-text-muted">
                           The company reviews your request. Sending it changes no holding or register particulars.
                         </p>
-                        <Field label="Requested name">
+                        <ErrorSummary {...particularsChecks.summary} />
+                        <Field {...particularsChecks.field('name')} label="Requested name">
                           <TextInput
                             maxLength={FIELD_LIMITS.NAME}
                             value={name}
@@ -389,7 +408,7 @@ function MemberRecords({
                             }}
                           />
                         </Field>
-                        <Field label="Requested residential address">
+                        <Field {...particularsChecks.field('address')} label="Requested residential address">
                           <TextArea
                             maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
                             value={address}
@@ -400,22 +419,23 @@ function MemberRecords({
                             }}
                           />
                         </Field>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={confirmed}
-                            disabled={held}
-                            onChange={(event) => setConfirmed(event.target.checked)}
-                          />
-                          Share these requested particulars with this company for review.
-                        </label>
+                        <CheckboxField
+                          {...particularsChecks.field('confirmed')}
+                          label="Share these requested particulars with this company for review."
+                          checked={confirmed}
+                          disabled={held}
+                          onChange={(event) => setConfirmed(event.target.checked)}
+                        />
                         <PageAction
                           label="Send particulars request"
                           primary
                           busy={running === 'particulars'}
                           busyLabel="Sending request…"
-                          disabled={held || !confirmed || !name.trim() || !address.trim()}
-                          onClick={() => track('particulars', read.requestParticulars(name.trim(), address.trim()))}
+                          disabled={held}
+                          onClick={() => {
+                            if (particularsChecks.check())
+                              track('particulars', read.requestParticulars(name.trim(), address.trim()));
+                          }}
                         />
                       </div>
                     </details>

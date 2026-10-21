@@ -12,6 +12,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { useEffect, useRef, useState } from 'react';
 
 export type Commands = ReturnType<typeof useCompanyCapitalIncreases>;
@@ -62,17 +63,17 @@ export function useCapitalPreparation({ commands }: { commands: Commands }) {
   const additionalShares = requestShares(additional);
   const total = raisedSupply(before, additional);
   const newAuthorizedTotal = total === null ? null : requestShares(total);
-  const valid =
-    additionalShares !== null &&
-    newAuthorizedTotal !== null &&
-    !!purpose.trim() &&
-    !!board.trim() &&
-    board.trim().length <= 255 &&
-    shareholder.trim().length <= 255 &&
-    !!file;
+  const problems: Problems<'additional' | 'purpose' | 'board' | 'file'> = {
+    additional:
+      (additionalShares === null || newAuthorizedTotal === null) &&
+      'Enter positive whole shares with an exact new cap no greater than 2,147,483,647.',
+    purpose: !purpose.trim() && 'Give the purpose.',
+    board: !board.trim() && 'Give the board resolution reference.',
+    file: !file && 'Choose the capital authority document.',
+  };
   const waiting = busy || commands.busy;
   const submit = async () => {
-    if (waiting || !commands.canPrepare || commands.recovery || !valid) return;
+    if (waiting || !commands.canPrepare || commands.recovery || hasProblems(problems)) return;
     setBusy(true);
     setError('');
     const check = () => {
@@ -140,10 +141,8 @@ export function useCapitalPreparation({ commands }: { commands: Commands }) {
     busy,
     error,
     setError,
-    additionalShares,
     total,
-    newAuthorizedTotal,
-    valid,
+    problems,
     waiting,
     submit,
   };

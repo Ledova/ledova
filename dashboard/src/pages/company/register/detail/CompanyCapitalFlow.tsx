@@ -1,6 +1,8 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
   FIELD_LIMITS,
   REGISTER_CAPITAL_INCREASE_COPY as COPY,
@@ -91,7 +93,11 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
             busyLabel="Downloading…"
             onClick={() => void download()}
           />
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -135,19 +141,19 @@ function Preparation({ commands }: { commands: Commands }) {
     busy,
     error,
     setError,
-    additionalShares,
     total,
-    newAuthorizedTotal,
-    valid,
+    problems,
     waiting,
     submit,
   } = useCapitalPreparation({ commands });
+  const checks = useErrorSummary(problems);
   return (
     <fieldset
       disabled={waiting}
       className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company capital increase</h3>
+      <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       <p className="text-sm">Captured authorised cap: {formatShareCount(before)}</p>
       {commands.source?.totalSupply !== before && (
@@ -160,7 +166,7 @@ function Preparation({ commands }: { commands: Commands }) {
           }}
         />
       )}
-      <Field label="Additional authorised shares">
+      <Field {...checks.field('additional')} label="Additional authorised shares">
         <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
           inputMode="numeric"
@@ -169,13 +175,10 @@ function Preparation({ commands }: { commands: Commands }) {
         />
       </Field>
       {total !== null && <p className="text-sm">New authorised cap: {formatShareCount(total)}</p>}
-      {additional !== '' && (additionalShares === null || newAuthorizedTotal === null) && (
-        <p role="alert">Enter positive whole shares with an exact new cap no greater than 2,147,483,647.</p>
-      )}
-      <Field label="Purpose">
+      <Field {...checks.field('purpose')} label="Purpose">
         <TextArea value={purpose} onChange={(event) => setPurpose(event.target.value)} />
       </Field>
-      <Field label="Board resolution reference">
+      <Field {...checks.field('board')} label="Board resolution reference">
         <TextInput
           maxLength={FIELD_LIMITS.REFERENCE}
           value={board}
@@ -190,6 +193,7 @@ function Preparation({ commands }: { commands: Commands }) {
         />
       </Field>
       <FileField
+        {...checks.field('file')}
         label="Capital authority document"
         onFile={(chosen) => {
           uploadRef.current = null;
@@ -197,13 +201,19 @@ function Preparation({ commands }: { commands: Commands }) {
           setError('');
         }}
       />
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
       <PageAction
         label="Prepare capital increase"
         busy={busy}
         busyLabel="Preparing…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery || !valid}
-        onClick={() => void submit()}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check()) void submit();
+        }}
       />
     </fieldset>
   );

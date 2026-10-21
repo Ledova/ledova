@@ -1,12 +1,34 @@
 import { Field, TextInput } from '@components/Field';
 import { Modal } from '@components/Modal';
-import { apiErrorSentence } from '@ledova/shared';
+import { readApiError } from '@ledova/shared';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { EDIT_FIELDS, useEditCompanyForm, type FormProps } from './useCompanyForms';
 
 export function EditCompanyForm(props: FormProps) {
-  const { company, target, read, onClose, draft, setDraft, pendingRef, canChangeName, valid, save } =
-    useEditCompanyForm(props);
+  const {
+    company,
+    target,
+    read,
+    onClose,
+    draft,
+    setDraft,
+    pendingRef,
+    canChangeName,
+    changed,
+    available,
+    problems,
+    save,
+  } = useEditCompanyForm(props);
+  const checks = useErrorSummary(problems);
+  const reading = save.isError
+    ? readApiError(save.error, {
+        fallback: 'Company changes could not be saved. Try again.',
+        unanswered: 'The company changes could not be confirmed. Refresh before retrying.',
+        displayedFields: EDIT_FIELDS.map(([key]) => key),
+      })
+    : null;
   return (
     <Modal
       isOpen
@@ -16,9 +38,9 @@ export function EditCompanyForm(props: FormProps) {
       confirmLabel="Save changes"
       busy={save.isPending}
       busyLabel="Saving changes…"
-      confirmDisabled={!valid}
+      confirmDisabled={!available}
       onConfirm={() => {
-        if (valid && !pendingRef.current) {
+        if (available && checks.check() && !pendingRef.current) {
           pendingRef.current = true;
           save.mutate();
         }
@@ -26,6 +48,7 @@ export function EditCompanyForm(props: FormProps) {
       onClose={onClose}
     >
       <fieldset disabled={save.isPending} className="space-y-4">
+        <ErrorSummary {...checks.summary} />
         <CompanyReadNotice read={read} />
         {company?.uuid !== target.uuid && (
           <p role="alert" className="text-sm text-text-muted">
@@ -37,19 +60,17 @@ export function EditCompanyForm(props: FormProps) {
             The registered name can change only while the application is a draft or information has been requested.
           </p>
         )}
-        {save.isError && (
+        {reading && (
           <p role="alert" className="text-sm text-error-light">
-            {apiErrorSentence(
-              save.error,
-              'Company changes could not be saved. Try again.',
-              'The company changes could not be confirmed. Refresh before retrying.',
-            )}
+            {reading.generalError ?? 'The company changes were not saved. Check the fields below.'}
           </p>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           {EDIT_FIELDS.map(([key, label, maxLength]) => (
             <Field
               key={key}
+              id={checks.field(key).id}
+              error={checks.field(key).error ?? reading?.fieldErrors?.[key]?.join(' ') ?? null}
               label={label}
               className={['name', 'addressLine1', 'addressLine2'].includes(key) ? 'sm:col-span-2' : undefined}
             >
@@ -62,6 +83,7 @@ export function EditCompanyForm(props: FormProps) {
             </Field>
           ))}
         </div>
+        {!changed && <p className="text-sm text-text-muted">Change a detail to save.</p>}
       </fieldset>
     </Modal>
   );

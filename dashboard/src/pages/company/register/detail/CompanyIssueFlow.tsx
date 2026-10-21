@@ -2,6 +2,8 @@ import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { Row, Rows, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 import { SearchSelect } from '@components/SearchSelect';
 import {
   FIELD_LIMITS,
@@ -29,6 +31,7 @@ import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { useMemo, useState } from 'react';
 import {
+  LINK_FIELDS,
   useIssueLinkRecord,
   useIssuePreparation,
   useIssueRecord,
@@ -131,7 +134,11 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
               ),
             )}
           </div>
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -203,7 +210,11 @@ function LinkRecord({ record, commands }: { record: RegisterLink; commands: Comm
             busyLabel="Downloading…"
             onClick={() => void download()}
           />
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-error-light">
+              {error}
+            </p>
+          )}
         </>
       )}
       <RegisterDecisions
@@ -267,10 +278,10 @@ function Preparation({ commands }: { commands: Commands }) {
     displayedMember,
     waiting,
     preparing,
-    commonProblem,
-    issueProblem,
+    problems,
     submit,
   } = useIssuePreparation({ commands });
+  const checks = useErrorSummary(problems);
   const memberChoices = useMemo(
     () =>
       personChoices(
@@ -285,7 +296,9 @@ function Preparation({ commands }: { commands: Commands }) {
       disabled={waiting}
       className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
+      <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <SearchSelect
+        {...checks.field('nomination')}
         label="Nominated wallet"
         choices={(commands.nominations.data ?? []).map((row) => ({
           value: row.uuid,
@@ -308,6 +321,7 @@ function Preparation({ commands }: { commands: Commands }) {
         </Rows>
       )}
       <SearchSelect
+        {...checks.field('member')}
         label="Member"
         choices={memberChoices}
         first={NEW_MEMBER}
@@ -316,24 +330,28 @@ function Preparation({ commands }: { commands: Commands }) {
         noun={MEMBERS}
       />
       {member === 'new' && <p className="text-sm text-text-muted">New stable member: {newMember}</p>}
-      <Field label="Approving director">
+      <Field {...checks.field('director')} label="Approving director">
         <TextInput
           maxLength={FIELD_LIMITS.DIRECTOR}
           value={director}
           onChange={(event) => setDirector(event.target.value)}
         />
       </Field>
-      <Field label="Authority reference">
+      <Field {...checks.field('reference')} label="Authority reference">
         <TextInput
           maxLength={FIELD_LIMITS.REFERENCE}
           value={reference}
           onChange={(event) => setReference(event.target.value)}
         />
       </Field>
-      <Field label="Reason">
+      <Field {...checks.field('reason')} label="Reason">
         <TextInput maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
-      <FileField label="Authority document" onFile={(file) => setFiles({ ...files, authority: file ?? undefined })} />
+      <FileField
+        {...checks.field('authorityDocument')}
+        label="Authority document"
+        onFile={(file) => setFiles({ ...files, authority: file ?? undefined })}
+      />
       <p className="text-sm text-text-muted">
         Apply the company documentary link before preparing the grant. It records this nominated address against the
         chosen stable member.
@@ -342,10 +360,13 @@ function Preparation({ commands }: { commands: Commands }) {
         label="Prepare nominated wallet link"
         busy={preparing === 'link'}
         busyLabel="Preparing wallet link…"
-        disabled={waiting || !commands.canPrepare || !!commonProblem || !!commands.recovery}
-        onClick={() => void submit('link')}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check(LINK_FIELDS)) void submit('link');
+        }}
       />
       <SelectField
+        {...checks.field('approval')}
         label="Company ADD"
         options={[
           { value: '', label: 'Select the genuine successful ADD for this nomination' },
@@ -360,7 +381,7 @@ function Preparation({ commands }: { commands: Commands }) {
         value={approval}
         onChange={setApproval}
       />
-      <Field label="Shares to grant" hint="Enter whole shares from 1 to 2,147,483,647.">
+      <Field {...checks.field('shares')} label="Shares to grant" hint="Enter whole shares from 1 to 2,147,483,647.">
         <TextInput
           maxLength={FIELD_LIMITS.WHOLE_SHARES}
           inputMode="numeric"
@@ -368,13 +389,17 @@ function Preparation({ commands }: { commands: Commands }) {
           onChange={(event) => setShares(event.target.value)}
         />
       </Field>
-      <Field label="Terms date (UTC)">
+      <Field {...checks.field('termsOn')} label="Terms date (UTC)">
         <TextInput type="date" max={utcToday()} value={termsOn} onChange={(event) => setTermsOn(event.target.value)} />
       </Field>
-      <Field label="Non-paid terms">
+      <Field {...checks.field('terms')} label="Non-paid terms">
         <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
       </Field>
-      <FileField label="Terms document" onFile={(file) => setFiles({ ...files, terms: file ?? undefined })} />
+      <FileField
+        {...checks.field('termsDocument')}
+        label="Terms document"
+        onFile={(file) => setFiles({ ...files, terms: file ?? undefined })}
+      />
       <label className="flex gap-2 text-sm">
         <input
           type="checkbox"
@@ -385,6 +410,7 @@ function Preparation({ commands }: { commands: Commands }) {
       </label>
       {acceptanceRequired && (
         <FileField
+          {...checks.field('acceptanceDocument')}
           label="Acceptance document"
           onFile={(file) => setFiles({ ...files, acceptance: file ?? undefined })}
         />
@@ -394,10 +420,16 @@ function Preparation({ commands }: { commands: Commands }) {
         label={COPY.PREPARE}
         busy={preparing === 'issue'}
         busyLabel="Preparing non-paid grant…"
-        disabled={waiting || !commands.canPrepare || !!issueProblem || !!commands.recovery}
-        onClick={() => void submit('issue')}
+        disabled={waiting || !commands.canPrepare || !!commands.recovery}
+        onClick={() => {
+          if (checks.check()) void submit('issue');
+        }}
       />
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
     </fieldset>
   );
 }
