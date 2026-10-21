@@ -26,6 +26,8 @@ import {
   utcToday,
   formatDate,
   shareCount,
+  shortReference,
+  IDENTITY_SOURCE_LABELS,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -55,18 +57,16 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
       <Row label="Share class">
         {snapshot.token.name} · {snapshot.token.symbol}
       </Row>
-      <Row label="Member">
-        {snapshot.member.name} · {snapshot.member.uuid}
-      </Row>
+      <Row label="Member">{snapshot.member.name}</Row>
       <Row label="Residential address">{snapshot.member.residentialAddress}</Row>
-      <Row label="Identity source">{snapshot.member.identitySource}</Row>
+      <Row label="Identity source">{IDENTITY_SOURCE_LABELS[snapshot.member.identitySource] ?? 'Not identified'}</Row>
       <Row label="Nominated wallet">{snapshot.wallet.address}</Row>
-      <Row label="Nomination">{snapshot.wallet.nomination}</Row>
-      <Row label="Company ADD">{snapshot.wallet.approval}</Row>
+      <Row label="Nomination">{shortReference(snapshot.wallet.nomination)}</Row>
+      <Row label="Company ADD">{shortReference(snapshot.wallet.approval)}</Row>
       <Row label="Approval expiry">{formatDateTime(snapshot.wallet.expiresAt)}</Row>
       <Row label="Proof completed">{formatDateTime(snapshot.wallet.proofCompletedAt)}</Row>
       <Row label="Eligibility expiry">{formatDateTime(snapshot.wallet.eligibilityExpiresAt)}</Row>
-      <Row label="Register opening">{snapshot.register.opening}</Row>
+      <Row label="Register opening">{shortReference(snapshot.register.opening)}</Row>
       <Row label="Register sequence">{snapshot.register.sequence}</Row>
       <Row label="Register head">{snapshot.register.headHash}</Row>
       <Row label="Contract">{snapshot.token.contractAddress}</Row>
@@ -93,18 +93,22 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
             <Row label="Recipient acceptance">
               {record.acceptanceRequired ? 'Required; evidence retained' : 'Not required by these terms'}
             </Row>
-            <Row label="Preparation ID">{record.uuid}</Row>
-            <Row label="Original request">{record.request}</Row>
+            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
+            <Row label="Original request">{record.request ? shortReference(record.request) : 'Not recorded'}</Row>
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
+            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
             <Row label="Execution">{registerIssueExecutionState(record)}</Row>
             {record.execution && (
               <>
                 <Row label="Original execution">{record.execution.execution}</Row>
                 <Row label="Dispatch">{record.execution.dispatchId}</Row>
-                {record.execution.operationId && <Row label="Execution operation">{record.execution.operationId}</Row>}
+                {record.execution.operationId && (
+                  <Row label="Execution operation">{shortReference(record.execution.operationId)}</Row>
+                )}
                 {record.execution.txHash && <Row label="Transaction hash">{record.execution.txHash}</Row>}
-                {record.execution.registerEntry && <Row label="Register entry">{record.execution.registerEntry}</Row>}
+                {record.execution.registerEntry && (
+                  <Row label="Register entry">{shortReference(record.execution.registerEntry)}</Row>
+                )}
                 {record.execution.effectiveOn && (
                   <Row label="Register entry date">{formatDate(record.execution.effectiveOn)}</Row>
                 )}
@@ -125,7 +129,7 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
                 <PageAction
                   key={kind}
                   label={`Download ${kind} document`}
-                  context={`grant ${record.uuid}`}
+                  context={`grant ${shortReference(record.uuid)}`}
                   disabled={!!downloading}
                   busy={downloading === kind}
                   busyLabel="Downloading…"
@@ -152,7 +156,7 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`grant ${record.uuid}`}
+        context={`grant ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
@@ -194,18 +198,18 @@ function LinkRecord({ record, commands }: { record: RegisterLink; commands: Comm
           <Rows>
             {record.mapping.map((row) => (
               <Row key={row.address} label="Documented link">
-                {row.address} → {row.member}
+                {row.address} → member {shortReference(row.member)}
               </Row>
             ))}
             <Row label="Authority reference">{record.authorityReference}</Row>
             <Row label="Approving director">{record.approvingDirector}</Row>
             <Row label="Reason">{record.reason}</Row>
-            <Row label="Link preparation">{record.uuid}</Row>
+            <Row label="Link preparation">{shortReference(record.uuid)}</Row>
           </Rows>
           <DecisionTrail proposal={record} labels={REGISTER_LINK_COPY.DECISIONS} />
           <PageAction
             label="Download link authority"
-            context={`link ${record.uuid}`}
+            context={`link ${shortReference(record.uuid)}`}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
@@ -228,14 +232,14 @@ function LinkRecord({ record, commands }: { record: RegisterLink; commands: Comm
         onDecided={commands.acceptLink}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`link ${record.uuid}`}
+        context={`link ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
             <Rows>
               {preview.links.map((row) => (
                 <Row key={row.address} label="Documented link">
-                  {row.address} → {row.member} · {row.holderName ?? 'Identity unavailable'}
+                  {row.address} → {row.holderName ?? `member ${shortReference(row.member)}`}
                 </Row>
               ))}
             </Rows>
@@ -315,7 +319,7 @@ function Preparation({ commands }: { commands: Commands }) {
       />
       {chosen && (
         <Rows>
-          <Row label="Nomination">{chosen.uuid}</Row>
+          <Row label="Nomination">{shortReference(chosen.uuid)}</Row>
           <Row label="Proof completed">{formatDateTime(chosen.proofCompletedAt)}</Row>
           <Row label="Eligibility expiry">{formatDateTime(chosen.eligibilityExpiresAt)}</Row>
         </Rows>
@@ -375,7 +379,7 @@ function Preparation({ commands }: { commands: Commands }) {
             label: `Admitted ${formatDateTime(row.reviewedAt)} · ${
               row.expiresAt ? `until ${formatDateTime(row.expiresAt)}` : 'without an expiry'
             }`,
-            reference: row.changeId!.slice(0, 8),
+            reference: shortReference(row.changeId!),
           })),
         ]}
         value={approval}
@@ -493,7 +497,7 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
         <>
           <p className="text-sm text-text-muted">
             The original {commands.recovery.kind === 'link' ? 'wallet link' : 'share issue'} preparation is uncertain.
-            Recover its identical body and operation UUID: {commands.recovery.body.operationId}
+            Recover its identical body and operation (reference {shortReference(commands.recovery.body.operationId)}).
           </p>
           <PageAction
             label="Recover original preparation receipt"

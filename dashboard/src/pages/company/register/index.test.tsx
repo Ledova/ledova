@@ -21,6 +21,7 @@ import {
   type RegisterTransferMember,
   type RegisterAwardRecipient,
   type CompanyShareToken,
+  shortReference,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
@@ -354,7 +355,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   fireEvent.click(formerHistory.querySelector('summary')!);
   expect(formerHistory.open).toBe(true);
   expect(within(formerHistory).getByText(former.name)).toBeTruthy();
-  expect(within(formerHistory).getByText(former.member!)).toBeTruthy();
+  expect(within(formerHistory).getByText(shortReference(former.member!))).toBeTruthy();
   expect(within(formerHistory).getByText(former.walletAddress!)).toBeTruthy();
   expect(within(classNamesakes[0]).getByRole('link', { name: 'Details (Example Member)' }).getAttribute('href')).toBe(
     '/company/register/members/member-one?company=harbour',

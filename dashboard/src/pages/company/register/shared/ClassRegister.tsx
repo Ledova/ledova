@@ -5,6 +5,7 @@ import {
   formatShareCount,
   type TokenHoldersResponse,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
 import { LoadMore } from '@components/List';
 import { PAGE_SIZE } from '@hooks/useListParams';
@@ -117,7 +118,7 @@ export function FormerMembers({
               />
             )}
             <Rows>
-              {former.member && <Row label="Member ID">{former.member}</Row>}
+              {former.member && <Row label="Member reference">{shortReference(former.member)}</Row>}
               <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
               <Row label="Ceased on">{formatDate(former.ceasedOn)}</Row>
               <Row label="Identity source">{former.identitySourceDisplay}</Row>

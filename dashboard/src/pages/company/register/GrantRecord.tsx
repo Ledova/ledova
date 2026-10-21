@@ -9,6 +9,7 @@ import {
   type RegisterGrantDecisionPreview,
   shareCount,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -105,7 +106,7 @@ export function GrantRecord({
               <Row label={COPY.AUTHORITY_REFERENCE}>{grant.authorityReference}</Row>
               <Row label={COPY.REASON}>{grant.reason}</Row>
               <DecisionTrail proposal={grant} labels={DECISION_COPY.DECISIONS} />
-              {!!grant.registerEntry && <Row label="Register entry">{grant.registerEntry}</Row>}
+              {!!grant.registerEntry && <Row label="Register entry">{shortReference(grant.registerEntry)}</Row>}
             </Rows>
             <GrantRows grant={grant} />
             <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
@@ -124,8 +125,8 @@ export function GrantRecord({
             </div>
             {download.isError && <RecordDownloadFailure error={download.error} />}
             <Rows>
-              <Row label="Issue record">{grant.uuid}</Row>
-              <Row label="Member record ID">{grant.member}</Row>
+              <Row label="Issue record">{shortReference(grant.uuid)}</Row>
+              <Row label="Member record">{shortReference(grant.member)}</Row>
             </Rows>
           </details>
         </>

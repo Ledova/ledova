@@ -633,6 +633,13 @@ by a local helper or a browser `toLocale…` call:
   member invitations and requests, appointments, company wallet actions, company states, order
   states and changed order fields, and swap approval outcomes; investor categories, certifier
   bodies and register entry kinds keep their existing maps).
+- **Identifiers.** Records show names. Where only an identifier tells records apart, the screen
+  shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight characters),
+  never the full UUID, including in choices and screen-reader context. Internal user numbers are
+  not shown. Fingerprints, transaction hashes and wallet addresses stay exact. The eligibility
+  request and the claim's issuer still take the exact UUID a company supplies, and
+  `useDirectoryNames` (`dashboard/src/hooks/`) names a directory-listed company or open offering
+  under the field, or says it is not listed.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile follows in

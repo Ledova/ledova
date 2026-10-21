@@ -7,9 +7,11 @@ import {
   formatDate,
   isUuid,
   useParticipantEligibilityRecords,
+  shortReference,
 } from '@ledova/shared';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useDirectoryNames } from '@hooks/useDirectoryNames';
 import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
@@ -20,6 +22,7 @@ export default function ParticipantEligibilityPage() {
   const read = useParticipantEligibilityRecords(() => crypto.randomUUID());
   const { running, track } = useRunningAction();
   const source = read.sources.find((item) => item.uuid === read.draft.source);
+  const directory = useDirectoryNames();
   const productValue = source?.category === 'product_value';
   const quantity = read.draft.quantity;
   const request = useErrorSummary({
@@ -78,7 +81,7 @@ export default function ParticipantEligibilityPage() {
                 ...read.sources.map((item) => ({
                   value: item.uuid,
                   label: `${item.categoryDisplay} · ${item.statusDisplay} · ${formatDate(item.createdAt)}`,
-                  reference: item.uuid.slice(0, 8),
+                  reference: shortReference(item.uuid),
                 })),
               ]}
               value={read.draft.source}
@@ -89,7 +92,11 @@ export default function ParticipantEligibilityPage() {
             />
             {productValue ? (
               <>
-                <Field {...request.field('offering')} label="Approved offering UUID">
+                <Field
+                  {...request.field('offering')}
+                  label="Approved offering UUID"
+                  hint={directory.offering(read.draft.offering)}
+                >
                   <TextInput
                     value={read.draft.offering}
                     onChange={(event) => read.updateDraft({ offering: event.target.value })}
@@ -105,7 +112,11 @@ export default function ParticipantEligibilityPage() {
                 </Field>
               </>
             ) : (
-              <Field {...request.field('company')} label="Exact company UUID">
+              <Field
+                {...request.field('company')}
+                label="Exact company UUID"
+                hint={directory.company(read.draft.company)}
+              >
                 <TextInput
                   value={read.draft.company}
                   onChange={(event) => read.updateDraft({ company: event.target.value })}
@@ -134,7 +145,12 @@ export default function ParticipantEligibilityPage() {
           )}
           {!read.readFailed && (
             <Section title="Your company requests">
-              <RecordsList records={read.records} select={read.selectRecord} selected={read.selectedRecord?.uuid} />
+              <RecordsList
+                records={read.records}
+                select={read.selectRecord}
+                selected={read.selectedRecord?.uuid}
+                companyName={(uuid) => directory.companies.get(uuid)}
+              />
             </Section>
           )}
           {read.selectedRecord && (

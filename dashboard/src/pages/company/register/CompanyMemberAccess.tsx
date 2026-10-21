@@ -10,6 +10,7 @@ import {
   MEMBER_INVITATION_STATUS_LABELS,
   MEMBER_PARTICULARS_STATUS_LABELS,
   MEMBER_CERTIFICATE_STATUS_LABELS,
+  shortReference,
 } from '@ledova/shared';
 import { Outcome, Section, Loading, LoadError } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/register/shared/PersonPicker';
@@ -152,7 +153,7 @@ export function CompanyMemberAccess({
           {member && (
             <details className="text-sm text-text-muted">
               <summary>Selected member record</summary>
-              <p className="break-all">{member.uuid}</p>
+              <p>Member reference {shortReference(member.uuid)}</p>
             </details>
           )}
           <p className="text-sm text-text-muted">
@@ -191,7 +192,7 @@ export function CompanyMemberAccess({
               <details className="text-text-muted">
                 <summary>Invitation record</summary>
                 <p className="break-all">
-                  Invitation {item.uuid} · Member {item.member}
+                  Invitation {shortReference(item.uuid)} · Member {shortReference(item.member)}
                 </p>
               </details>
             </div>
@@ -213,7 +214,8 @@ export function CompanyMemberAccess({
               <details className="text-sm text-text-muted">
                 <summary>Access record</summary>
                 <p className="break-all">
-                  Member {association.member} · Account {association.userAccount} · Access {association.uuid}
+                  Member {shortReference(association.member)} · Account {shortReference(association.userAccount)} ·
+                  Access {shortReference(association.uuid)}
                 </p>
               </details>
               {association.current && (
@@ -245,8 +247,8 @@ export function CompanyMemberAccess({
               <details className="text-sm text-text-muted">
                 <summary>Particulars request record</summary>
                 <p className="break-all">
-                  Request {item.uuid} · Member {item.member}
-                  {item.change ? ` · Company instruction ${item.change}` : ''}
+                  Request {shortReference(item.uuid)} · Member {shortReference(item.member)}
+                  {item.change ? ` · Company instruction ${shortReference(item.change)}` : ''}
                 </p>
               </details>
               {item.status === 'submitted' && access.prepare && (
@@ -346,12 +348,13 @@ export function CompanyMemberAccess({
               <details className="text-sm text-text-muted">
                 <summary>Certificate request record</summary>
                 <p className="break-all">
-                  Request {item.uuid} · Member {item.member} · Entry {item.entry}
+                  Request {shortReference(item.uuid)} · Member {shortReference(item.member)} · Entry{' '}
+                  {shortReference(item.entry)}
                 </p>
                 {item.fulfilment && (
                   <p className="break-all">
-                    Unsigned PDF {item.fulfilment.uuid} · SHA-256 {item.fulfilment.digest} · {item.fulfilment.fileSize}{' '}
-                    bytes
+                    Unsigned PDF {shortReference(item.fulfilment.uuid)} · SHA-256 {item.fulfilment.digest} ·{' '}
+                    {item.fulfilment.fileSize} bytes
                   </p>
                 )}
               </details>

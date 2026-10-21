@@ -6,6 +6,7 @@ import {
   formatMoney,
   formatShareCount,
   type CompanyEligibilitySharedSummary,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 
@@ -38,6 +39,8 @@ function shown(key: string, value: unknown, summary: CompanyEligibilitySharedSum
   if (key === 'pricePerShare' && summary.priceCurrency) return formatMoney(text, summary.priceCurrency);
   if (key === 'amountAud') return formatMoney(text, 'AUD');
   if (key === 'category') return INVESTOR_CATEGORY_LABELS[summary.category];
+  if (['source', 'userAccount', 'company', 'associatedCompany', 'offering', 'token'].includes(key))
+    return shortReference(text);
   if (key === 'certifierBody' && summary.certifierBody) return CERTIFIER_BODY_LABELS[summary.certifierBody];
   return text;
 }

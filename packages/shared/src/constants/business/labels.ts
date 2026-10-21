@@ -11,6 +11,18 @@ import type {
   TransferOrder,
 } from '../../types';
 
+export const IDENTITY_SOURCE_LABELS: Record<string, string> = {
+  profile: 'Current profile',
+  stamped: 'Stamped at the time',
+  recorded: 'Name recorded at allotment, identity never resolved',
+  particulars: 'Recorded register particulars',
+  treasury_label: 'Whitelist entry label, no profile exists',
+  unresolvable: 'Not resolvable, two wallets share this address',
+  none: 'Not identified',
+  unknown: 'Never identified while it held shares',
+  company_recorded: 'Recorded by the company',
+};
+
 export const ELIGIBILITY_OUTCOME_LABELS: Record<CompanyEligibilityRequest['outcome'], string> = {
   pending: 'Pending',
   accepted: 'Accepted',

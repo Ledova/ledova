@@ -11,6 +11,7 @@ import {
   MEMBER_CERTIFICATE_STATUS_LABELS,
   type RegisterEntryKind,
   shareCount,
+  shortReference,
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -483,8 +484,8 @@ function MemberRecords({
                           <details>
                             <summary className={SUMMARY}>Record details</summary>
                             <p className="break-all">
-                              Request {request.uuid}
-                              {request.change ? ` · Company instruction ${request.change}` : ''}
+                              Request {shortReference(request.uuid)}
+                              {request.change ? ` · Company instruction ${shortReference(request.change)}` : ''}
                             </p>
                           </details>
                         </div>
@@ -506,7 +507,7 @@ function MemberRecords({
                           <details>
                             <summary className={SUMMARY}>Record details</summary>
                             <p className="break-all">
-                              Request {request.uuid} · Entry {request.entry}
+                              Request {shortReference(request.uuid)} · Entry {shortReference(request.entry)}
                             </p>
                           </details>
                         </div>

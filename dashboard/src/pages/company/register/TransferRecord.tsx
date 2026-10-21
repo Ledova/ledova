@@ -8,6 +8,7 @@ import {
   type RegisterTransferDecisionPreview,
   shareCount,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -76,7 +77,7 @@ export function TransferRecord({
             <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
             <Row label={COPY.REASON}>{transfer.reason}</Row>
             <DecisionTrail proposal={transfer} labels={COPY.DECISIONS} />
-            {!!transfer.registerEntry && <Row label="Register entry">{transfer.registerEntry}</Row>}
+            {!!transfer.registerEntry && <Row label="Register entry">{shortReference(transfer.registerEntry)}</Row>}
           </Rows>
           <TransferRows transfer={transfer} />
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>

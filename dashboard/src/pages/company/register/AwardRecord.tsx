@@ -13,6 +13,7 @@ import {
   type RegisterGrant,
   shareCount,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Status, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -331,8 +332,8 @@ export function AwardRecord({
           <details>
             <summary className={SUMMARY}>Record details</summary>
             <Rows>
-              <Row label="Member ID">{award.member}</Row>
-              <Row label="Award ID">{award.uuid}</Row>
+              <Row label="Member reference">{shortReference(award.member)}</Row>
+              <Row label="Award reference">{shortReference(award.uuid)}</Row>
               <Row label="Recorded on">{formatDateTime(award.createdAt)}</Row>
               <Row label="Recorded by">{award.preparedByName || 'Name not recorded'}</Row>
             </Rows>

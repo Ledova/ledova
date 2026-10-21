@@ -15,6 +15,7 @@ import {
   type RegisterCapitalIncrease,
   type RegisterCapitalIncreaseSnapshot,
   refusalSentences,
+  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -55,19 +56,19 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
           <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} capital increase</h3>
           <SnapshotRows snapshot={record.snapshot} />
           <Rows>
-            <Row label="Preparation ID">{record.uuid}</Row>
+            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
-            <Row label="Original request">{record.request}</Row>
+            <Row label="Original request">{shortReference(record.request)}</Row>
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
+            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
             <Row label="Execution">{registerCapitalIncreaseExecutionState(record)}</Row>
             {execution && (
               <>
                 <Row label="Original execution">{execution.execution}</Row>
                 <Row label="Dispatch">{execution.dispatchId}</Row>
-                {execution.operationId && <Row label="Original operation">{execution.operationId}</Row>}
-                {execution.claimId && <Row label="Original claim">{execution.claimId}</Row>}
+                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
+                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
                 {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
                 {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
@@ -88,7 +89,7 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
           ))}
           <PageAction
             label="Download capital authority"
-            context={`capital ${record.uuid}`}
+            context={`capital ${shortReference(record.uuid)}`}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
@@ -111,7 +112,7 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`capital ${record.uuid}`}
+        context={`capital ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
@@ -278,7 +279,7 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
           <p className="text-sm text-text-muted">
             The original capital preparation response is unresolved. Recover its identical body and operation UUID.
           </p>
-          <p>{commands.recovery.body.operationId}</p>
+          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original capital preparation receipt"
             disabled={commands.busy}

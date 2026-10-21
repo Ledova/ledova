@@ -20,6 +20,7 @@ import {
   refusalSentences,
   failureSentence,
   shareCount,
+  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/register/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -33,7 +34,7 @@ function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
   return (
     <Rows>
       <Row label="Subscription">{source.subscription}</Row>
-      <Row label="Offering">{source.offering}</Row>
+      <Row label="Offering">{shortReference(source.offering)}</Row>
       <Row label="Recipient">
         {source.recipientName || 'Name not recorded'} · {source.recipientAddress}
       </Row>
@@ -96,12 +97,12 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
           <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} paid issue</h3>
           <SnapshotRows record={record} />
           <Rows>
-            <Row label="Preparation ID">{record.uuid}</Row>
+            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
 
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
+            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
             <Row label="Execution">{registerPaidIssueExecutionState(record)}</Row>
             <Row label="Original subscription status">{record.subscriptionStatus}</Row>
             <Row label="Actual allotment recorded">
@@ -112,8 +113,8 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
               <>
                 <Row label="Original execution">{execution.execution}</Row>
                 <Row label="Original dispatch">{execution.dispatchId}</Row>
-                {execution.operationId && <Row label="Original operation">{execution.operationId}</Row>}
-                {execution.claimId && <Row label="Original claim">{execution.claimId}</Row>}
+                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
+                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
                 {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
                 {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
                 {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
@@ -136,7 +137,7 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
           ))}
           <PageAction
             label="Download paid issue authority"
-            context={`paid issue ${record.uuid}`}
+            context={`paid issue ${shortReference(record.uuid)}`}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
@@ -159,7 +160,7 @@ function PaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; comm
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
-        context={`paid issue ${record.uuid}`}
+        context={`paid issue ${shortReference(record.uuid)}`}
       >
         {(preview) => (
           <>
@@ -375,7 +376,7 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
           <p className="text-sm text-text-muted">
             The original paid issue preparation response is unresolved. Recover its identical body and operation UUID.
           </p>
-          <p>{commands.recovery.body.operationId}</p>
+          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original paid issue preparation receipt"
             disabled={commands.busy}

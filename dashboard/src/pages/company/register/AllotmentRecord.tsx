@@ -9,6 +9,7 @@ import {
   shareCount,
   formatMoney,
   formatDate,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -31,14 +32,10 @@ function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterA
       <Row label={COPY.AGREEMENT_REFERENCE}>{allotment.agreement.reference}</Row>
       <Row label={COPY.AGREEMENT_ON}>{formatDate(allotment.agreement.agreedOn)}</Row>
       <Row label={COPY.TERMS}>{allotment.agreement.terms}</Row>
-      <Row label="Agreement recorded">
-        {allotment.agreement.recordedBy} · {formatDateTime(allotment.agreement.recordedAt)}
-      </Row>
+      <Row label="Agreement recorded">{formatDateTime(allotment.agreement.recordedAt)}</Row>
       <Row label={COPY.RECEIVED_AMOUNT}>{formatMoney(allotment.contribution.amount, allotment.currency)}</Row>
       <Row label={COPY.RECEIVED_ON}>{formatDate(allotment.contribution.receivedOn)}</Row>
-      <Row label="Receipt attested">
-        {allotment.contribution.recordedBy} · {formatDateTime(allotment.contribution.recordedAt)}
-      </Row>
+      <Row label="Receipt attested">{formatDateTime(allotment.contribution.recordedAt)}</Row>
       <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(allotment.companyEventOn, 'Not recorded')}</Row>
       {'registerEntry' in allotment &&
         allotment.registerEntry &&
@@ -105,11 +102,11 @@ export function AllotmentRecord({
               <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
               <Row label={COPY.REASON}>{allotment.reason}</Row>
               <DecisionTrail proposal={allotment} labels={DECISION_COPY.DECISIONS} />
-              {!!allotment.registerEntry && <Row label="Register entry">{allotment.registerEntry}</Row>}
-              <Row label="Allotment record">{allotment.uuid}</Row>
-              <Row label="Member record ID">{allotment.member}</Row>
-              <Row label="External agreement record">{allotment.agreement.uuid}</Row>
-              <Row label="Company contribution record">{allotment.contribution.uuid}</Row>
+              {!!allotment.registerEntry && <Row label="Register entry">{shortReference(allotment.registerEntry)}</Row>}
+              <Row label="Allotment record">{shortReference(allotment.uuid)}</Row>
+              <Row label="Member record">{shortReference(allotment.member)}</Row>
+              <Row label="External agreement record">{shortReference(allotment.agreement.uuid)}</Row>
+              <Row label="Company contribution record">{shortReference(allotment.contribution.uuid)}</Row>
               <Row label="Authority evidence SHA-256">{allotment.evidenceFingerprint}</Row>
               <Row label="Agreement evidence SHA-256">{allotment.agreement.evidenceFingerprint}</Row>
               <Row label="Receipt evidence SHA-256">{allotment.contribution.evidenceFingerprint}</Row>

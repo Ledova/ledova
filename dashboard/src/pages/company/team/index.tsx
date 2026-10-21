@@ -10,6 +10,7 @@ import {
   useUserPreferences,
   type OrderSubmissionOwner,
   formatDateTime,
+  shortReference,
 } from '@ledova/shared';
 import { scopeLabels } from '@pages/company/shared/appointments';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
@@ -140,7 +141,7 @@ function OwnTeam({
                 ...sources.map((item) => ({
                   value: item.uuid,
                   label: `${scopeLabels(item.delegatableCapabilities)} · appointed ${formatDate(item.createdAt)}`,
-                  reference: item.uuid.slice(0, 8),
+                  reference: shortReference(item.uuid),
                 })),
               ]}
               value={sourceId}
@@ -233,7 +234,7 @@ function OwnTeam({
                 </Rows>
                 <details className="pt-2 text-sm">
                   <summary className="cursor-pointer text-text-muted">Invitation record</summary>
-                  <p className="break-all pt-2">{item.uuid}</p>
+                  <p className="pt-2">Invitation reference {shortReference(item.uuid)}</p>
                 </details>
               </li>
             ))}
@@ -270,8 +271,8 @@ function OwnTeam({
         }}
       >
         <p className="text-sm text-text-primary">
-          Permanently remove appointment {confirmation?.appointment.uuid} for {confirmation?.companyName}? This
-          appointment loses its company authority. Its history remains retained.
+          Permanently remove appointment {confirmation ? shortReference(confirmation.appointment.uuid) : ''} for{' '}
+          {confirmation?.companyName}? This appointment loses its company authority. Its history remains retained.
           {confirmation?.appointment.source !== 'invitation' &&
             ' Another initial self-declaration cannot restore it; revoking an initial or legacy-owner appointment does not reopen admission.'}
         </p>

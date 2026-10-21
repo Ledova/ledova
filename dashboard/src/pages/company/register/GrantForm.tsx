@@ -1,7 +1,7 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './useGrantPreparation';
 
-import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, shareCount } from '@ledova/shared';
+import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, shareCount, shortReference } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -103,7 +103,7 @@ export function GrantForm({
             <details>
               <summary className="cursor-pointer py-2 text-sm">Award record details</summary>
               <p className="text-sm text-text-muted">
-                Award {award.uuid} · Member {award.member}
+                Award {shortReference(award.uuid)} · Member {shortReference(award.member)}
               </p>
             </details>
           </div>

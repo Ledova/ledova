@@ -16,6 +16,7 @@ import {
   type CompanyWalletDecisionPreview,
   refusalSentences,
   COMPANY_WALLET_ACTION_LABELS,
+  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -33,9 +34,7 @@ const ACTIONS = [
 function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot'] }) {
   return (
     <Rows>
-      <Row label="Company">
-        {snapshot.company.name} · {snapshot.company.uuid}
-      </Row>
+      <Row label="Company">{snapshot.company.name}</Row>
       <Row label="Company ACN">{snapshot.company.acn}</Row>
       <Row label="Address">{snapshot.target.address}</Row>
       <Row label="Chain">
@@ -43,10 +42,18 @@ function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot']
       </Row>
       <Row label="Registry">{snapshot.target.registryAddress}</Row>
       <Row label="Approval expiry">{formatDateTime(snapshot.target.expiresAt)}</Row>
-      <Row label="Shared nomination">{snapshot.source.nomination ?? 'Removal of a retained target'}</Row>
-      <Row label="Original ADD target">{snapshot.source.targetChange ?? 'Not applicable'}</Row>
-      <Row label="Eligibility request">{snapshot.source.request ?? 'Not applicable'}</Row>
-      <Row label="Accepted GENERAL decision">{snapshot.source.decision ?? 'Not applicable'}</Row>
+      <Row label="Shared nomination">
+        {snapshot.source.nomination ? shortReference(snapshot.source.nomination) : 'Removal of a retained target'}
+      </Row>
+      <Row label="Original ADD target">
+        {snapshot.source.targetChange ? shortReference(snapshot.source.targetChange) : 'Not applicable'}
+      </Row>
+      <Row label="Eligibility request">
+        {snapshot.source.request ? shortReference(snapshot.source.request) : 'Not applicable'}
+      </Row>
+      <Row label="Accepted GENERAL decision">
+        {snapshot.source.decision ? shortReference(snapshot.source.decision) : 'Not applicable'}
+      </Row>
       <Row label="Possession proof completed">{formatDateTime(snapshot.source.proofCompletedAt)}</Row>
       <Row label="Eligibility expiry">{formatDateTime(snapshot.source.eligibilityExpiresAt)}</Row>
       <Row label="Technical sender">{snapshot.transaction.sender}</Row>
@@ -66,7 +73,7 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
           </p>
           <Snapshot snapshot={record.snapshot} />
           <Rows>
-            <Row label="Instruction">{record.uuid}</Row>
+            <Row label="Instruction">{shortReference(record.uuid)}</Row>
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
             <Row label="Intent fingerprint">{record.intentDigest}</Row>
@@ -76,11 +83,17 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
                 {decision.reason ? ` · ${decision.reason}` : ''}
               </Row>
             ))}
-            {!!record.approvalDecision && <Row label="Consumed approval">{record.approvalDecision}</Row>}
-            {!!record.changeId && <Row label="Original wallet change">{record.changeId}</Row>}
+            {!!record.approvalDecision && (
+              <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>
+            )}
+            {!!record.changeId && <Row label="Original wallet change">{shortReference(record.changeId)}</Row>}
             <Row label="Execution">{companyWalletExecutionState(record)}</Row>
-            {!!record.execution?.operationId && <Row label="Execution operation">{record.execution.operationId}</Row>}
-            {!!record.execution?.claimId && <Row label="Original claim">{record.execution.claimId}</Row>}
+            {!!record.execution?.operationId && (
+              <Row label="Execution operation">{shortReference(record.execution.operationId)}</Row>
+            )}
+            {!!record.execution?.claimId && (
+              <Row label="Original claim">{shortReference(record.execution.claimId)}</Row>
+            )}
             {!!record.execution?.txHash && <Row label="Transaction">{record.execution.txHash}</Row>}
             {!!record.execution?.failureCode && <Row label="Failure">{record.execution.failureCode}</Row>}
           </Rows>
@@ -281,11 +294,11 @@ export function CompanyWalletInstructions() {
             <div className="space-y-2">
               <p role="status">The preparation outcome is unconfirmed. Recover the identical original request.</p>
               <Rows>
-                <Row label="Original instruction key">{data.original.body.operationId}</Row>
-                <Row label="Company">{data.original.body.company}</Row>
+                <Row label="Original instruction key">{shortReference(data.original.body.operationId)}</Row>
+                <Row label="Company">{shortReference(data.original.body.company)}</Row>
                 <Row label="Action">{COMPANY_WALLET_ACTION_LABELS[data.original.body.action]}</Row>
                 <Row label="Nomination or retained ADD">
-                  {data.original.body.nomination ?? data.original.body.targetChange}
+                  {shortReference(data.original.body.nomination ?? data.original.body.targetChange ?? '')}
                 </Row>
               </Rows>
               <PageAction
