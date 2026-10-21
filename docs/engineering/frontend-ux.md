@@ -48,10 +48,15 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 
 - `Section`: a raised card on the page ground (`bg-surface-raised`, a `border-border` hairline,
   `rounded-2xl` in the frame, `rounded-xl` outside it) with its Newsreader title inside. Forms and
-  things to act on are cards too; a group inside a card gets a rule or a small heading, never a
-  nested card. An empty section keeps its real title, one muted sentence ("No activity yet.") and at
-  most one action besides Refresh; a state is never a title.
-- `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals.
+  things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
+  rule above it or a small heading, never a nested card. An empty section keeps its real title, one
+  muted sentence ("No activity yet.") and at most one action besides Refresh; a state is never a
+  title. A card without a heading of its own, such as a class's summary on Register, is named by its
+  title.
+- `Rows` and `Row`: ruled label and value pairs, figures right-aligned in tabular numerals, for a
+  record's labelled facts, such as a shareholder's holding or an import's supporting records.
+  Breakdowns of figures (company ownership, a class's totals, register setup's summary, a holding's
+  wallets) and an award's chart legend keep their own layout, without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such
   as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid

@@ -136,9 +136,7 @@ export function BringRecords({
               </div>
             )}
             {!draft.members.some(started) && !editorOpen && (
-              <div className="rounded-xl border border-dashed border-border-subtle px-4 py-10 text-center">
-                <p className="text-sm text-text-muted">No shareholders added yet.</p>
-              </div>
+              <p className="text-sm text-text-muted">No shareholders added yet.</p>
             )}
             {draft.members.some((row) => started(row) && row.member !== editor?.member) && (
               <Table
@@ -194,7 +192,7 @@ export function BringRecords({
               </Table>
             )}
             {editing && (
-              <div className="space-y-5 rounded-xl bg-surface-tertiary p-4 sm:p-5">
+              <div className="space-y-5 border-t border-border-subtle pt-5">
                 <h3 className="text-base font-medium text-text-primary">
                   {editor?.original ? 'Edit shareholder' : 'Add shareholder'}
                 </h3>

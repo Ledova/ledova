@@ -103,7 +103,7 @@ export function AllotmentForm({
   if (!visible) return null;
   return (
     <form
-      className="space-y-5 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:p-5"
+      className="space-y-5 border-t border-border-subtle pt-5"
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
@@ -112,7 +112,7 @@ export function AllotmentForm({
     >
       <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked || held} className="space-y-4">
-        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
           <legend className="px-1 text-sm font-medium">1. Person and shares</legend>
           <PersonSelect
             label="Issue to"
@@ -135,7 +135,7 @@ export function AllotmentForm({
           {field('shares')}
           {field('consideration')}
         </fieldset>
-        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
           <legend className="px-1 text-sm font-medium">2. Agreement and company receipt</legend>
           {field('agreementReference')}
           {field('agreementOn')}
@@ -146,7 +146,7 @@ export function AllotmentForm({
           {document('receipt')}
           <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
         </fieldset>
-        <fieldset className="grid gap-4 rounded-xl border border-border-subtle bg-surface-raised p-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
           <legend className="px-1 text-sm font-medium">3. Company authority and review</legend>
           {field('companyEventOn')}
           {field('approvingDirector')}

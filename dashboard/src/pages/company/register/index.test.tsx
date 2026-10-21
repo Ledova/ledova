@@ -252,7 +252,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(namesakes[0]).getAllByText('9,007,199,254,740,993')).toHaveLength(2);
   expect(within(namesakes[1]).getByText('1')).toBeTruthy();
   expect(within(namesakes[1]).getByText('<0.01%')).toBeTruthy();
-  expect(within(namesakes[1]).getByLabelText('No PREFERENCE holding')).toBeTruthy();
+  expect(within(namesakes[1]).getByText('No PREFERENCE holding')).toBeTruthy();
   expect(within(namesakes[1]).getByText('Identity needs review')).toBeTruthy();
   expect(screen.getByText(/1 shareholder needs identity review/)).toBeTruthy();
   expect(screen.getByText('1–25 of 26 shareholders')).toBeTruthy();

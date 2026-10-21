@@ -28,7 +28,7 @@ import { peopleKey, usePeople } from '@pages/company/register/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';
-import { LoadError, Loading } from '@components/Ledger';
+import { LoadError, Loading, Row, Rows } from '@components/Ledger';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
@@ -216,7 +216,7 @@ function OwnImport({
         canOpenEmptyRegister(register.data, listed)
       }
       classFields={
-        <dl className="grid gap-4 sm:grid-cols-2">
+        <Rows>
           {[
             ['Class name', retained.listed.name],
             ['Class code', retained.listed.symbol],
@@ -228,12 +228,11 @@ function OwnImport({
                 : formatShareCount(retained.listed.totalSupply),
             ],
           ].map(([label, value]) => (
-            <div key={label}>
-              <dt className="text-sm text-text-muted">{label}</dt>
-              <dd className="mt-1 text-sm font-medium text-text-primary">{value}</dd>
-            </div>
+            <Row key={label} label={label}>
+              {value}
+            </Row>
           ))}
-        </dl>
+        </Rows>
       }
       appointment={canPrepare ? steps?.prepare : undefined}
       steps={steps ?? retained.steps}

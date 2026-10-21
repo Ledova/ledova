@@ -295,7 +295,7 @@ function Preparation({ commands }: { commands: Commands }) {
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 rounded-xl border border-border-subtle bg-surface-tertiary p-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <SearchSelect

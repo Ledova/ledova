@@ -53,7 +53,7 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
   } = useClassCertificate({ register, entry, guard, sourceReady });
   const checks = useErrorSummary(problems);
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border-subtle p-3">
+    <div className="flex flex-col gap-3 border-t border-border-subtle pt-3">
       <h4 className="text-sm font-medium text-text-primary">Unsigned certificate · Entry {entry.sequence}</h4>
       <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">

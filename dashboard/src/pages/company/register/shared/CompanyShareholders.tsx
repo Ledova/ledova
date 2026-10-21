@@ -134,7 +134,10 @@ export function CompanyShareholders({
                             </span>
                           </>
                         ) : (
-                          <span aria-label={`No ${register.token.symbol} holding`}>—</span>
+                          <>
+                            <span aria-hidden="true">—</span>
+                            <span className="sr-only">No {register.token.symbol} holding</span>
+                          </>
                         )}
                       </td>
                     );

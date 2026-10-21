@@ -9,6 +9,7 @@ import {
 import { Table } from '@components/List';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
+import { Row, Rows } from '@components/Ledger';
 
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -55,24 +56,23 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
       >
         {selected && (
           <div className="space-y-6">
-            <dl className="grid gap-4 sm:grid-cols-2">
+            <Rows>
               {[
                 ['Address', selected.residentialAddress],
                 ['Date first added to register', formatDate(selected.enteredOn, '—')],
                 ['Shares held', formatShareCount(selected.shares)],
               ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-xs text-text-muted">{label}</dt>
-                  <dd className="mt-1 break-words text-sm text-text-primary">{value}</dd>
-                </div>
+                <Row key={label} label={label}>
+                  {value}
+                </Row>
               ))}
-            </dl>
+            </Rows>
             {selected.allotments ? (
               <div className="space-y-4">
                 {selected.allotments.map((allotment, index) => (
-                  <section key={index} className="space-y-3 rounded-xl border border-border-subtle p-4">
+                  <section key={index} className="space-y-3 border-t border-border-subtle pt-4">
                     <h3 className="text-sm font-medium text-text-primary">Allotment {index + 1}</h3>
-                    <dl className="grid gap-4 sm:grid-cols-2">
+                    <Rows>
                       {[
                         ['Allotment date', formatDate(allotment.allottedOn, '—')],
                         ['Shares in allotment', formatShareCount(allotment.shares)],
@@ -85,12 +85,11 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                           ? [['Certificate reference', allotment.certificateReference]]
                           : []),
                       ].map(([label, value]) => (
-                        <div key={label}>
-                          <dt className="text-xs text-text-muted">{label}</dt>
-                          <dd className="mt-1 break-words text-sm text-text-primary">{value}</dd>
-                        </div>
+                        <Row key={label} label={label}>
+                          {value}
+                        </Row>
                       ))}
-                    </dl>
+                    </Rows>
                   </section>
                 ))}
               </div>
