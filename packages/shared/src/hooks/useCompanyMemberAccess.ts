@@ -373,6 +373,7 @@ export function useCompanyMemberAccess(
   };
   const queueReady = readable && queue.isSuccess && queue.fetchStatus === 'idle' && !access.isError;
   const accessReady = readable && !!admin && access.isSuccess && access.fetchStatus === 'idle';
+  const readFailed = [appointments, queue, access].some((query) => query.isError);
   return {
     readable,
     certificateTarget: queueReady ? certificateTarget : null,
@@ -389,11 +390,10 @@ export function useCompanyMemberAccess(
     retry,
     code: accessReady ? code : null,
     notice: readable ? notice : '',
+    readFailed,
+    failure: error,
     error:
-      error ??
-      ([appointments, queue, access].some((query) => query.isError)
-        ? 'Current member access or requests could not be read. Refresh before continuing.'
-        : null),
+      error ?? (readFailed ? 'Current member access or requests could not be read. Refresh before continuing.' : null),
     refresh: () =>
       refresh().catch((failure) => {
         if (live.current && boundary.get() === owner)

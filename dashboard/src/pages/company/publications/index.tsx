@@ -29,12 +29,14 @@ function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof u
         <>
           <PageLink to={DESTINATIONS.company.path} label="Back to Company" />
           <PageAction
-            label="Refresh"
+            label="Refresh publications"
             onClick={() => {
               void companyRead.refetch();
               if (company) void listing.refetch();
             }}
-            disabled={companyRead.isRefreshing || listing.isFetching}
+            busy={companyRead.isRefreshing || (listing.isFetching && !listing.isFetchingNextPage)}
+            busyLabel="Refreshing…"
+            disabled={listing.isFetchingNextPage}
           />
         </>
       }

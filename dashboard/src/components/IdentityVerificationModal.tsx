@@ -94,7 +94,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
           <div role="status" className="flex flex-col items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-light"></div>
             <p className="text-sm text-text-muted mt-4">
-              {isLaunching ? 'Preparing verification…' : 'Loading status…'}
+              {isLaunching ? 'Preparing verification…' : 'Loading your verification status…'}
             </p>
           </div>
         )}
@@ -199,7 +199,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
           )}
           {showRetryBanner && (
             <PageAction
-              label="Retry verification"
+              label="Try again"
               primary
               busy={isLaunching}
               busyLabel="Preparing…"

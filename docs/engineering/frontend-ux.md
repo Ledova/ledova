@@ -125,7 +125,8 @@ request, on pages and in dialogs, including:
 - the wallet import and verification steps, and identity verification;
 - establishing an appointment;
 - member, particulars and certificate requests;
-- register setup's review step (editing the records, loading and confirming the decision).
+- register setup's review step (editing the records, loading and confirming the decision);
+- every action that refreshes a read, which says "Refreshing…" while it runs.
 
 Where a shared hook only reports that some command is running, `useRunningAction`
 (`dashboard/src/hooks`) names the action that was clicked. A few actions show their work another
@@ -136,8 +137,8 @@ way:
 - Submitting a wallet nomination replaces the form with its saved request.
 - Signing flows, in Trading and wallet transfers, move to their own submitting step.
 
-Refresh, retry and recovery actions keep their label while they run; a form's submit button that
-also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
+A load error's Try again and recovery actions keep their label while they run; a form's submit
+button that also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
 placeholder, the payslip upload area and Trading keep their own controls, and dialog footers use the
 same order as `FormActions`. Mobile's `Action` has no busy or pressed form yet.
 
@@ -422,11 +423,11 @@ record's own page.
 
 ## Loading, empty and error states
 
-A page's first read renders `<Page loading>`. A section that is still loading shows `Loading`
-(`dashboard/src/components/Ledger.tsx`): one muted `role="status"` line that names what it loads,
-such as "Loading your wallets…" or "Loading the register…". A spinner that stands for a whole step
-carries a status role with its words, such as the session check, sign-up's steps and the transfer
-flow.
+A page that shows nothing until its first read renders `<Page loading>`. A section that is still
+loading shows `Loading` (`dashboard/src/components/Ledger.tsx`): one muted `role="status"` line
+that names what it loads, such as "Loading your wallets…" or "Loading the register…". A spinner
+that stands for a whole step carries a status role with its words, such as the session check,
+sign-up's steps and the transfer flow.
 
 A read that fails shows `LoadError` (`dashboard/src/components/Ledger.tsx`): one `role="alert"`
 block with a sentence in the primary text colour and a Try again action. The sentence names what
@@ -440,19 +441,23 @@ opening.
 
 A failed read shows this block, not an empty state. The notification bell, profile documents,
 classification claims and a class's deployments, which used to show an empty state, now show the
-failure. On the company team page and in a class's employee awards and non-paid issues, the block
-takes the place of the section's Refresh action while its read has failed; deployments do the same
-while no records show.
+failure. A failed refresh shows the same block. Its sentence says what could not be loaded or
+refreshed, and several also say what remains, such as "Retained original receipts remain
+available." The block takes the place of the section's Refresh action while its read has failed: on
+the company team page, in a class's employee awards, non-paid issues, deployments and capital,
+pause, paid issue and grant records, and in the company's wallet instructions, the company pack and
+the wallet nomination.
 
-Refresh actions, a failed refresh and empty states are still to follow under
-[#1180](https://github.com/Ledova/ledova/issues/1180). Until then:
+Both eligibility pages, member access and Home's member records read through shared hooks that also
+keep a reason of their own. While a read fails they show the block, with any such reason under it,
+such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
-- The company's eligibility queue, your company eligibility requests, member access and Home's
-  member records report a failed read in their own sentence beside their Refresh action, and may
-  show their empty line under it.
-- A share class's capital, pause, paid issue and grant records, and the company's wallet
-  instructions, report any failed read, the first included, in their own "could not be refreshed"
-  sentence beside their Refresh action.
+Empty states are still to follow under [#1180](https://github.com/Ledova/ledova/issues/1180).
+
+Some messages keep their own form:
+
+- Sign-up keeps its own presentation, including its error blocks with Try again and its actions'
+  labels; these standards cover signed-in pages.
 - The route guard's checks, an unreadable profile or role, keep their own message and Try again
   ([routes, audiences and guards](frontend.md#routes-audiences-and-guards)).
 - Recoveries of an interrupted action, such as "Retry original member action", keep their own

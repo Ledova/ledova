@@ -794,6 +794,8 @@ function useEligibilityRecords(
     owner: available ? owner : null,
     loading: !!owner && relevantReads.some((read) => read.isPending),
     refreshing: relevantReads.some((read) => read.isFetching) || detail.isFetching,
+    readFailed: readError,
+    failure: error,
     error:
       error ??
       (readError

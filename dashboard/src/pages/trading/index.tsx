@@ -346,7 +346,8 @@ function TradingPage() {
           )}
           <PageAction
             label="Refresh saved work"
-            disabled={submissions.isLoading || actions.isLoading || settlements.isLoading}
+            busy={submissions.isLoading || actions.isLoading || settlements.isLoading}
+            busyLabel="Refreshing…"
             onClick={() => {
               void submissions.refresh();
               void actions.refresh();

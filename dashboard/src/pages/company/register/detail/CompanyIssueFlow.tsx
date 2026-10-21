@@ -1,6 +1,6 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
-import { Row, Rows, Section } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -450,13 +450,43 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
     }
   };
   if (!commands.owner) return null;
+  const readFailed =
+    commands.visible &&
+    (commands.instructions.isError ||
+      commands.members.isError ||
+      commands.nominations.isError ||
+      commands.walletApprovals.isError ||
+      commands.links.isError);
+  const reading =
+    commands.instructions.isFetching ||
+    commands.appointments.isFetching ||
+    commands.members.isFetching ||
+    commands.nominations.isFetching ||
+    commands.walletApprovals.isFetching ||
+    commands.links.isFetching;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <PageAction label="Refresh company grant records" disabled={commands.busy} onClick={() => void refresh()} />
+      {!readFailed && !commands.appointments.isError && (
+        <PageAction
+          label="Refresh company grant records"
+          busy={reading}
+          busyLabel="Refreshing…"
+          disabled={commands.busy}
+          onClick={() => void refresh()}
+        />
+      )}
       {refreshError && <p role="alert">{refreshError}</p>}
-      {!commands.visible && (
-        <p className="text-sm text-text-muted">Current personal register read access is required.</p>
+      {commands.appointments.isError ? (
+        <LoadError retry={refresh} busy={reading}>
+          Your appointments could not be loaded.
+        </LoadError>
+      ) : !commands.appointments.isSuccess || commands.appointments.isFetching ? (
+        <Loading>Loading your appointments…</Loading>
+      ) : (
+        !commands.visible && (
+          <p className="text-sm text-text-muted">Current personal register read access is required.</p>
+        )
       )}
       <Preparation key={commands.scopeKey} commands={commands} />
       {commands.visible && commands.recovery && (
@@ -479,16 +509,12 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       {commands.records.map((record) => (
         <IssueRecord key={record.uuid} record={record} commands={commands} />
       ))}
-      {commands.visible &&
-        (commands.instructions.isError ||
-          commands.members.isError ||
-          commands.nominations.isError ||
-          commands.walletApprovals.isError ||
-          commands.links.isError) && (
-          <p role="alert">
-            Current grant sources or history could not be refreshed. Retained original receipts are kept.
-          </p>
-        )}
+      {readFailed && (
+        <LoadError retry={refresh} busy={reading}>
+          Current grant sources or history could not be {commands.instructions.data ? 'refreshed' : 'loaded'}. Retained
+          original receipts are kept.
+        </LoadError>
+      )}
     </Section>
   );
 }

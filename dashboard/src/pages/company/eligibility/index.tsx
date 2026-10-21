@@ -11,7 +11,7 @@ import {
   useCompanyEligibilityRecords,
   formatDate,
 } from '@ledova/shared';
-import { LinkRow, Section } from '@components/Ledger';
+import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { Pager } from '@components/List';
 import { PAGE_SIZE, useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { Page, PageAction } from '@components/Page';
@@ -62,7 +62,9 @@ export default function CompanyEligibilityPage() {
       actions={
         <PageAction
           label="Refresh records"
-          disabled={read.busy || read.refreshing}
+          busy={read.refreshing}
+          busyLabel="Refreshing…"
+          disabled={read.busy}
           onClick={() => void read.refresh()}
         />
       }
@@ -71,9 +73,14 @@ export default function CompanyEligibilityPage() {
         <p>Your signed-in account must be checked before opening these records.</p>
       ) : (
         <>
-          {read.error && !gone && (
+          {read.readFailed && !gone && (
+            <LoadError retry={() => read.refresh()} busy={read.refreshing || read.busy}>
+              The company&apos;s eligibility records could not be loaded.
+            </LoadError>
+          )}
+          {(read.readFailed ? read.failure : read.error) && !gone && (
             <p role="alert" className="text-sm text-error-light">
-              {read.error}
+              {read.readFailed ? read.failure : read.error}
             </p>
           )}
           <Section title="Your personal company authority">
@@ -91,7 +98,9 @@ export default function CompanyEligibilityPage() {
                 if (list.page > 1) list.setPage(1, true);
               }}
             />
-            {read.companies.length === 0 && <p>No current personal prepare or approve appointments are available.</p>}
+            {!read.readFailed && read.companies.length === 0 && (
+              <p>No current personal prepare or approve appointments are available.</p>
+            )}
             {read.companyUuid && (
               <SelectField
                 label="Your exact decision appointment"

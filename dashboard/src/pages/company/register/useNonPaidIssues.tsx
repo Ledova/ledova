@@ -237,7 +237,8 @@ export function useNonPaidIssues({
       {!grants.isError && (
         <PageAction
           label="Refresh grants"
-          disabled={grants.isFetching || appointments.isFetching}
+          busy={grants.isFetching || appointments.isFetching}
+          busyLabel="Refreshing…"
           onClick={() => void refresh().catch(() => {})}
         />
       )}
