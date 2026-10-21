@@ -11,6 +11,8 @@ import { Field, Label, Description } from '@headlessui/react';
 import { KeyIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import type { FormErrors } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useFieldErrorSummary } from '@hooks/useErrorSummary';
 
 interface EmailConfirmationFormProps {
   verificationCode: string;
@@ -20,7 +22,7 @@ interface EmailConfirmationFormProps {
   isLoading: boolean;
   isResending: boolean;
   setVerificationCode: (code: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent) => Promise<void>;
   onResendCode: () => void;
   onBack: () => void;
 }
@@ -37,6 +39,8 @@ export function EmailConfirmationForm({
   onResendCode,
   onBack,
 }: EmailConfirmationFormProps) {
+  const reported = useFieldErrorSummary(generalError ? {} : errors, ['token']);
+  const token = reported.field('token');
   return (
     <>
       <AuthCard>
