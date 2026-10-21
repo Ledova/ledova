@@ -894,7 +894,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   );
   vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:synthetic-document'), revokeObjectURL: vi.fn() });
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-  fireEvent.click(screen.getByRole('button', { name: 'Download (subscription.pdf)' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Download (subscription.pdf)' }));
   await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledOnce());
   readDocuments = false;
   await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
