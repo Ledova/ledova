@@ -387,7 +387,10 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).value).toBe(''),
   );
   expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
-  expect(screen.getByRole('button', { name: 'Create member invitation' }).matches(':disabled')).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
+  expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
+  expect(screen.getByRole('combobox', { name: 'Member or award recipient' }).getAttribute('aria-invalid')).toBe('true');
+  expect(api.post).toHaveBeenCalledTimes(1);
 
   await choose('Member or award recipient', 'Company Recorded Member', 'recorded member');
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });

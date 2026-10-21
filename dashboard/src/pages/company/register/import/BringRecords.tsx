@@ -10,6 +10,7 @@ import {
 } from '@ledova/shared';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
+import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberFields } from './MemberFields';
 import { blankMember, blankFormer, type PreparationDraft, type MemberDraft, type FormerDraft } from './preparation';
 
@@ -47,10 +48,12 @@ export function BringRecords({
   onEditorChange: (open: boolean) => void;
 }) {
   const [editor, setEditor] = useState<{ member: string; original: MemberDraft | null } | null>(null);
-  const [memberErrors, setMemberErrors] = useState<string[]>([]);
+  const [memberCheck, setMemberCheck] = useState<{ attempt: number; problems: string[] }>({ attempt: 0, problems: [] });
   const editingIndex = draft.members.findIndex((row) => row.member === editor?.member);
   const editing = draft.members[editingIndex];
   const editorOpen = !!editing;
+  const failing = editing ? validateMember(editingIndex) : [];
+  const forget = () => setMemberCheck((current) => ({ ...current, problems: [] }));
   useLayoutEffect(() => {
     onEditorChange(editorOpen);
     return () => onEditorChange(false);
@@ -78,7 +81,7 @@ export function BringRecords({
     const blank = draft.members.find((row) => !started(row));
     const row = blank ?? blankMember();
     if (!blank) update((current) => ({ ...current, members: [...current.members, row] }));
-    setMemberErrors([]);
+    forget();
     setEditor({ member: row.member, original: null });
   };
   return (
@@ -167,7 +170,7 @@ export function BringRecords({
                             context={`shareholder ${index + 1}`}
                             disabled={busy || editorOpen}
                             onClick={() => {
-                              setMemberErrors([]);
+                              forget();
                               setEditor({ member: row.member, original: row });
                             }}
                           />
@@ -194,6 +197,12 @@ export function BringRecords({
                 <h3 className="text-base font-medium text-text-primary">
                   {editor?.original ? 'Edit shareholder' : 'Add shareholder'}
                 </h3>
+                <ErrorSummary
+                  attempt={memberCheck.attempt}
+                  problems={memberCheck.problems
+                    .filter((problem) => failing.includes(problem))
+                    .map((message) => ({ message }))}
+                />
                 <MemberFields
                   key={editing.member}
                   row={editing}
@@ -208,13 +217,6 @@ export function BringRecords({
                     if (patch.member) setEditor((current) => (current ? { ...current, member: patch.member! } : null));
                   }}
                 />
-                {memberErrors.length > 0 && (
-                  <ul role="alert" className="space-y-1 text-sm text-error-light">
-                    {memberErrors.map((problem) => (
-                      <li key={problem}>{problem}</li>
-                    ))}
-                  </ul>
-                )}
                 <FormActions>
                   <PageAction
                     label="Cancel"
@@ -229,7 +231,7 @@ export function BringRecords({
                           : current.members.filter((_, index) => index !== editingIndex),
                       }));
                       setEditor(null);
-                      setMemberErrors([]);
+                      forget();
                     }}
                   />
                   <PageAction
@@ -237,9 +239,8 @@ export function BringRecords({
                     primary
                     disabled={busy}
                     onClick={() => {
-                      const errors = validateMember(editingIndex);
-                      setMemberErrors(errors);
-                      if (!errors.length) setEditor(null);
+                      setMemberCheck((current) => ({ attempt: current.attempt + 1, problems: failing }));
+                      if (!failing.length) setEditor(null);
                     }}
                   />
                 </FormActions>

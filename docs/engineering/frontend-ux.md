@@ -527,10 +527,8 @@ Some messages keep their own form:
 
 This section covers how a form reports a problem: when it is submitted, and when its request fails.
 
-- **Checking on submit.** Web forms check their fields when submitted: the register preparation
-  forms, the share-class issue, capital, pause and paid issue flows, register import, company
-  details, the offering form, Trading's order form, change password, and the member and team
-  invitations and particulars request.
+- **Checking on submit.** Web forms check their fields when submitted, except those listed under
+  **Not yet** below.
   - **Summary and fields.** A problem shows twice. `ErrorSummary` (`dashboard/src/components/`)
     lists each problem at the top of the form as `role="alert"` and takes focus, each item linking
     to its field. The field shows the same sentence as its error and turns `aria-invalid`.
@@ -538,7 +536,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     by field, and a form with two actions, such as the share-class issue's wallet link and grant,
     checks only the fields its action needs. A box that must be ticked is a `CheckboxField`.
     Register import names each shareholder and allotment in its summary instead of linking to a
-    field, and lists the problems current at the time.
+    field, and lists the problems current at the time. Its shareholder editor lists the problems
+    with the shareholder being edited.
   - **In these forms submit stays enabled** unless the form is busy or the action is unavailable,
     such as without company authority or with nothing changed, and the page says why. An unchanged
     retry of an interrupted request is not checked again.
@@ -549,14 +548,21 @@ This section covers how a form reports a problem: when it is submitted, and when
   - **The summary keeps the last press.** It lists the problems found when submit was last pressed
     that still fail, so it shrinks as they are fixed, and it clears when a check passes or the form
     is reset. It takes focus only on a new press.
-  - **Not yet:** import's shareholder editor and sign-in and sign-up still show their own alerts.
-    Several smaller forms still disable submit until they are valid: member access requests,
-    certificates, the company pack, inspection copies, the document upload dialog, the eligibility
-    claim, representative authority requests, team invitations, subscriptions, adding a wallet,
-    company wallet instructions, company eligibility decisions, wallet nominations, pre-screening
-    and company registration. They move in the next
-    [#1179](https://github.com/Ledova/ledova/issues/1179) change, and mobile follows in
-    [#1201](https://github.com/Ledova/ledova/issues/1201).
+  - **Incomplete dates.** Without browser validation, a date or date-time typed only in part reads
+    as empty, so an optional one would be dropped silently. `useIncompleteDates`
+    (`dashboard/src/hooks/useIncompleteDates.ts`) notes the browser's `badInput` on each keystroke,
+    input and blur, and the form treats it as a problem: the team invitation's deadline and
+    appointment expiry, and an offering's closing time.
+  - **Not yet:** sign-in and sign-up still show their own alerts, and the investor's company
+    eligibility request reports its rules from the shared hook as one sentence at the top of the
+    page. These still disable their action until it is valid: the eligibility claim,
+    representative authority requests and the acceptance that establishes the appointment,
+    subscriptions, adding a wallet, wallet nominations, the wallet's Send form, eligibility action
+    confirmations, company activation's declaration, Profile's payslip attachment, the recovery
+    phrase and Bitcoin signed transaction in signing steps, pre-screening and company registration.
+    They move in the next [#1179](https://github.com/Ledova/ledova/issues/1179) changes, and mobile
+    follows in [#1201](https://github.com/Ledova/ledova/issues/1201). Filters that only narrow a
+    list, such as Activity's dates, keep their own rules.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
   (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code

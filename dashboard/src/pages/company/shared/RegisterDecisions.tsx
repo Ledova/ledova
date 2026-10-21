@@ -11,6 +11,8 @@ import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { STEP_CHANGED, type RegisterSteps } from './proposals';
 import { Loading } from '@components/Ledger';
+import { ErrorSummary } from '@components/ErrorSummary';
+import { useErrorSummary } from '@hooks/useErrorSummary';
 
 type Proposal = { uuid: string; providedBy: string; status: string };
 type Preview = { previewDigest: string; canDecide: boolean; unmetRequirements: string[] };
@@ -56,6 +58,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
 }) {
   const [active, setActive] = useState<RegisterDecisionKind | null>(null);
   const [reason, setReason] = useState('');
+  const checks = useErrorSummary({ reason: !reason.trim() && 'Give the reason for rejection.' });
   const options = (kind: RegisterDecisionKind) => ({
     appointment: steps[kind]?.uuid,
     newKey: () => crypto.randomUUID(),
@@ -95,6 +98,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   const begin = (kind: RegisterDecisionKind) => {
     if (active || busy) return;
     setReason(decisions[kind].recovery?.request.reason ?? '');
+    checks.reset();
     setActive(kind);
     void decisions[kind].open(kind);
   };
@@ -170,7 +174,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
             )}
             {active === 'reject' && (
               <>
-                <Field label={copy.REJECTION_REASON}>
+                <ErrorSummary {...checks.summary} />
+                <Field {...checks.field('reason')} label={copy.REJECTION_REASON}>
                   <TextArea
                     rows={3}
                     maxLength={FIELD_LIMITS.REASON}
@@ -181,10 +186,10 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
                 </Field>
                 <PageAction
                   label="Preview the rejection"
-                  disabled={
-                    decision.busy || !!decision.recovery || !reason.trim() || target?.request.reason === reason.trim()
-                  }
-                  onClick={() => void reject.open('reject', reason.trim())}
+                  disabled={decision.busy || !!decision.recovery || target?.request.reason === reason.trim()}
+                  onClick={() => {
+                    if (checks.check()) void reject.open('reject', reason.trim());
+                  }}
                 />
               </>
             )}

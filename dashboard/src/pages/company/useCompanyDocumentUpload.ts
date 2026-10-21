@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { createUserFriendlyError, uploadCompanyDocument, type DocumentType } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
+import type { Problems } from '@hooks/useErrorSummary';
 
 export function useCompanyDocumentUpload({
   companyUuid,
@@ -34,7 +35,8 @@ export function useCompanyDocumentUpload({
     assertCurrent(uuid);
   };
   const [config] = useState(() => read.requestConfig(companyUuid));
-  const valid = !!file && canUpload && !read.error && !read.isRefreshing;
+  const available = canUpload && !read.error && !read.isRefreshing;
+  const problems: Problems<'file'> = { file: !file && 'Choose the document file.' };
   const upload = useMutation({
     mutationFn: async () => {
       guard(companyUuid);
@@ -71,6 +73,7 @@ export function useCompanyDocumentUpload({
     setFile,
     pendingRef,
     upload,
-    valid,
+    available,
+    problems,
   };
 }

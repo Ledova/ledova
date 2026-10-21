@@ -10,6 +10,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
+import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { saveFile } from '@utils/saveFile';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -94,9 +95,13 @@ export function useCompanyPack({
       transport.current?.abort();
     };
   }, []);
-  const valid = [instruction, recipient].every((value) => !!value.trim() && value.trim().length <= 255);
+  const missing = (value: string) => !value.trim() || value.trim().length > 255;
+  const problems: Problems<'instruction' | 'recipient'> = {
+    instruction: missing(instruction) && 'Give the pack instruction reference.',
+    recipient: missing(recipient) && 'Give the pack recipient.',
+  };
   const download = async () => {
-    if (pending.current || !sourceReady || !valid) return;
+    if (pending.current || !sourceReady || hasProblems(problems)) return;
     pending.current = true;
     const controller = new AbortController();
     transport.current = controller;
@@ -137,5 +142,5 @@ export function useCompanyPack({
       if (mounted.current) setBusy(false);
     }
   };
-  return { instruction, setInstruction, recipient, setRecipient, busy, error, downloaded, valid, download };
+  return { instruction, setInstruction, recipient, setRecipient, busy, error, downloaded, problems, download };
 }
