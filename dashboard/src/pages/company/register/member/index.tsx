@@ -242,7 +242,10 @@ function OwnShareholder({
           <Section title="Holdings">
             {!holdings.length && <p className="text-sm text-text-muted">No current holding.</p>}
             {holdings.map(({ register, holder }) => (
-              <section key={register.token.uuid} className="space-y-3 border-t border-border-subtle pt-4">
+              <section
+                key={register.token.uuid}
+                className="space-y-3 border-t border-border-subtle pt-4 first-of-type:border-t-0 first-of-type:pt-0"
+              >
                 <h3 className="break-words text-base font-medium text-text-primary">
                   {register.token.name} · {register.token.symbol}
                 </h3>

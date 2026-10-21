@@ -171,7 +171,9 @@ export function ImportForm({
                 />
                 <fieldset
                   disabled={busy || uncertain || blocked}
-                  className={phase === 'details' ? 'grid items-start gap-6 md:grid-cols-2' : 'space-y-5'}
+                  className={
+                    phase === 'details' ? 'grid min-w-0 items-start gap-6 md:grid-cols-2' : 'min-w-0 space-y-5'
+                  }
                 >
                   {phase === 'details' &&
                     (classFields ??

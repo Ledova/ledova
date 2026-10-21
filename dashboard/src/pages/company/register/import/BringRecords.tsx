@@ -77,6 +77,7 @@ export function BringRecords({
           allotment.beneficiallyHeld !== null,
       )
     );
+  const listed = draft.members.some((row) => started(row) && row.member !== editor?.member);
   const add = () => {
     if (busy || editorOpen) return;
     const blank = draft.members.find((row) => !started(row));
@@ -138,7 +139,7 @@ export function BringRecords({
             {!draft.members.some(started) && !editorOpen && (
               <p className="text-sm text-text-muted">No shareholders added yet.</p>
             )}
-            {draft.members.some((row) => started(row) && row.member !== editor?.member) && (
+            {listed && (
               <Table
                 caption="Draft shareholders"
                 columns={[
@@ -192,7 +193,7 @@ export function BringRecords({
               </Table>
             )}
             {editing && (
-              <div className="space-y-5 border-t border-border-subtle pt-5">
+              <div className={listed ? 'space-y-5 border-t border-border-subtle pt-5' : 'space-y-5'}>
                 <h3 className="text-base font-medium text-text-primary">
                   {editor?.original ? 'Edit shareholder' : 'Add shareholder'}
                 </h3>

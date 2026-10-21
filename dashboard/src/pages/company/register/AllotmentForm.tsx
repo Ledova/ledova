@@ -112,8 +112,8 @@ export function AllotmentForm({
     >
       <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked || held} className="space-y-4">
-        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
-          <legend className="px-1 text-sm font-medium">1. Person and shares</legend>
+        <fieldset className="grid gap-4 pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
+          <legend className="text-sm font-medium">1. Person and shares</legend>
           <PersonSelect
             label="Issue to"
             people={people.filter((row) => row.walletless && row.particularsRetained)}
@@ -136,7 +136,7 @@ export function AllotmentForm({
           {field('consideration')}
         </fieldset>
         <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
-          <legend className="px-1 text-sm font-medium">2. Agreement and company receipt</legend>
+          <legend className="text-sm font-medium">2. Agreement and company receipt</legend>
           {field('agreementReference')}
           {field('agreementOn')}
           {field('terms')}
@@ -147,7 +147,7 @@ export function AllotmentForm({
           <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
         </fieldset>
         <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2">
-          <legend className="px-1 text-sm font-medium">3. Company authority and review</legend>
+          <legend className="text-sm font-medium">3. Company authority and review</legend>
           {field('companyEventOn')}
           {field('approvingDirector')}
           {field('authorityReference')}

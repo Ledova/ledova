@@ -439,15 +439,11 @@ function OwnRegister({
               {scope.registers.map((register) => (
                 <section
                   key={register.token.uuid}
-                  aria-labelledby={`summary-${register.token.uuid}`}
                   className="min-w-0 space-y-4 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
                 >
-                  <p
-                    id={`summary-${register.token.uuid}`}
-                    className="break-words text-base font-medium text-text-primary"
-                  >
+                  <h2 className="break-words text-base font-medium text-text-primary">
                     {register.token.name} · {register.token.symbol}
-                  </p>
+                  </h2>
                   <ClassRegister register={register} former={false} />
                 </section>
               ))}
