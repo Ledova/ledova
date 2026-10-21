@@ -1,4 +1,4 @@
-import { useContext, useEffect, useId, type MouseEvent, type ReactNode } from 'react';
+import { useContext, useEffect, useId, type MouseEvent, type ReactNode, type Ref } from 'react';
 import { Link, type To } from 'react-router-dom';
 import { PageBack, PageTitle, type PageBackLink } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
@@ -73,6 +73,7 @@ interface ActionContent {
 }
 
 type PageActionProps = ActionContent & {
+  ref?: Ref<HTMLButtonElement>;
   describedBy?: string;
   destructive?: boolean;
   pressed?: boolean;
@@ -107,6 +108,7 @@ function ActionText({ icon, label, context }: Omit<ActionContent, 'primary'>) {
 }
 
 export function PageAction({
+  ref,
   icon,
   label,
   context,
@@ -130,6 +132,7 @@ export function PageAction({
         : ACTION_LOOKS.plain;
   return (
     <button
+      ref={ref}
       type={type}
       form={form}
       onClick={onClick}

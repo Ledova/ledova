@@ -1,10 +1,9 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { FIELD_LIMITS, formatDateTime, type ClassRightsRevision } from '@ledova/shared';
 import { Field, TextArea, TextInput } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { Disclosure, LoadError, Loading, Outcome, Row, Rows, Section } from '@components/Ledger';
 import { LoadMore } from '@components/List';
-import { Modal } from '@components/Modal';
 import { FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useClassRights } from './useClassRights';
@@ -33,6 +32,10 @@ function RightsSummary({ revision }: { revision: ClassRightsRevision }) {
 
 function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> }) {
   const id = useId();
+  const summary = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    summary.current?.focus();
+  }, []);
   const editor = rights.editor!;
   const validation = useErrorSummary({
     summary:
@@ -44,65 +47,75 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
   });
   const locked = rights.busy || rights.pending || rights.stale;
   return (
-    <Modal isOpen onClose={rights.close} title="Edit class rights" size="lg" busy={rights.busy || rights.pending}>
-      <form
-        className="space-y-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (validation.check()) void rights.save();
-        }}
+    <form
+      aria-label="Edit class rights"
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (validation.check()) void rights.save();
+      }}
+    >
+      <ErrorSummary {...validation.summary} />
+      <Field label="Summary" optional {...validation.field('summary')}>
+        <TextArea
+          ref={summary}
+          value={editor.summary}
+          rows={6}
+          maxLength={FIELD_LIMITS.CLASS_RIGHTS}
+          disabled={locked}
+          onChange={(event) => rights.setEditor({ ...editor, summary: event.target.value })}
+        />
+      </Field>
+      <Field
+        label="Document reference"
+        optional
+        hint="For example, the company constitution and its date. This is a reference, not an upload."
+        {...validation.field('documentReference')}
       >
-        <ErrorSummary {...validation.summary} />
-        <Field label="Summary" optional {...validation.field('summary')}>
-          <TextArea
-            value={editor.summary}
-            rows={6}
-            maxLength={FIELD_LIMITS.CLASS_RIGHTS}
-            disabled={locked}
-            onChange={(event) => rights.setEditor({ ...editor, summary: event.target.value })}
-          />
-        </Field>
-        <Field
-          label="Document reference"
-          optional
-          hint="For example, the company constitution and its date. This is a reference, not an upload."
-          {...validation.field('documentReference')}
-        >
-          <TextInput
-            value={editor.documentReference}
-            maxLength={FIELD_LIMITS.REFERENCE}
-            disabled={locked}
-            onChange={(event) => rights.setEditor({ ...editor, documentReference: event.target.value })}
-          />
-        </Field>
-        {rights.stale && !rights.pending && (
-          <p role="alert" className="text-sm text-error-light">
-            The class rights or your administrator access changed. Close this form and reopen the current details.
-          </p>
-        )}
-        {rights.error && (
-          <p id={id} role="alert" className="text-sm text-error-light">
-            {rights.error}
-          </p>
-        )}
-        <FormActions>
-          <PageAction label="Cancel" onClick={rights.close} disabled={rights.busy || rights.pending} />
-          <PageAction
-            type="submit"
-            label={rights.pending ? 'Retry original save' : 'Save'}
-            primary
-            busy={rights.busy}
-            busyLabel="Saving…"
-            disabled={rights.stale && !rights.pending}
-            describedBy={rights.error ? id : undefined}
-          />
-        </FormActions>
-      </form>
-    </Modal>
+        <TextInput
+          value={editor.documentReference}
+          maxLength={FIELD_LIMITS.REFERENCE}
+          disabled={locked}
+          onChange={(event) => rights.setEditor({ ...editor, documentReference: event.target.value })}
+        />
+      </Field>
+      {rights.stale && !rights.pending && (
+        <p role="alert" className="text-sm text-error-light">
+          The class rights or your administrator access changed. Close this form and reopen the current details.
+        </p>
+      )}
+      {rights.error && (
+        <p id={id} role="alert" className="text-sm text-error-light">
+          {rights.error}
+        </p>
+      )}
+      <FormActions>
+        <PageAction label="Cancel" onClick={rights.close} disabled={rights.busy || rights.pending} />
+        <PageAction
+          type="submit"
+          label={rights.pending ? 'Retry original save' : 'Save'}
+          primary
+          busy={rights.busy}
+          busyLabel="Saving…"
+          disabled={rights.stale && !rights.pending}
+          describedBy={rights.error ? id : undefined}
+        />
+      </FormActions>
+    </form>
   );
 }
 
 export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRights> }) {
+  const editAction = useRef<HTMLButtonElement>(null);
+  const wasEditing = useRef(false);
+  useEffect(() => {
+    if (rights.editor) {
+      wasEditing.current = true;
+    } else if (rights.ready) {
+      if (wasEditing.current) editAction.current?.focus();
+      wasEditing.current = false;
+    }
+  }, [rights.editor, rights.ready]);
   if (!rights.tokenReady) return null;
   return (
     <Section title="Class rights">
@@ -117,16 +130,18 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
           <p className="text-sm text-text-muted">
             Company-supplied summary. The governing documents determine the rights.
           </p>
-          {rights.current ? (
+          {rights.editor ? (
+            <RightsEditor rights={rights} />
+          ) : rights.current ? (
             <RightsSummary revision={rights.current} />
           ) : (
             <p className="text-sm text-text-muted">No summary recorded.</p>
           )}
           {(rights.appointment || rights.pending) && !rights.editor && (
-            <PageAction label="Edit" context="Class rights" onClick={rights.open} />
+            <PageAction ref={editAction} label="Edit" context="Class rights" onClick={rights.open} />
           )}
           <Outcome>{rights.outcome}</Outcome>
-          {rights.count > 1 && (
+          {!rights.editor && rights.count > 1 && (
             <Disclosure summary="Previous versions">
               <ul className="divide-y divide-border-subtle">
                 {rights.revisions
@@ -148,7 +163,6 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
               />
             </Disclosure>
           )}
-          {rights.editor && <RightsEditor rights={rights} />}
         </>
       )}
     </Section>

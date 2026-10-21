@@ -1323,6 +1323,13 @@ an empty collection card; record-specific actions stay with their records.
 The default technical share limit is omitted from Ledger summary cards; its internal quantity
 guard remains, along with any distinct finite class limit.
 
+The same walkthrough replaced the Class rights dialog with inline editing in its existing card:
+one heading, fields in place of the saved summary and previous versions, and Cancel and Save
+together at the bottom right. Focus moves to Summary on opening and returns to Edit after closing
+when that action is still available. This refines the web design standard for contextual record
+edits; separate tasks, signing and confirmations may still use dialogs. Class-rights authority,
+validation, retained revisions and original-save recovery stay the same.
+
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
 a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse
 the same people and register records, without changing company authority,

@@ -61,6 +61,9 @@ A current company register reader can read the latest record and its history;
 a current personal company administrator can add or edit it. Ownership or platform staff status
 alone grants no editing authority. Existing classes have no record until the company adds one.
 
+Choose **Edit** to replace the saved summary with fields in the same Class rights card. **Cancel**
+leaves the saved record unchanged; **Save** restores the summary after recording the revision.
+
 Both fields are optional. The reference can name a constitution, clause or issue terms; it is text,
 not a file link, an upload requirement or proof that Ledova holds or verifies the source. Existing
 [company-document and offering access](companies.md#company-information-and-documents) stays separate.

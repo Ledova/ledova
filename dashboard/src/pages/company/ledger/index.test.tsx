@@ -374,12 +374,13 @@ it('reads every class page and groups exact holdings by member identity with sea
   show('investor', <ShareClass uuid="ordinary" />, 'Share class');
   await screen.findByText('No summary recorded.');
   fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
-  let rightsDialog = within(await screen.findByRole('dialog', { name: 'Edit class rights' }));
-  expect(rightsDialog.queryByLabelText(/upload/i)).toBeNull();
-  fireEvent.change(rightsDialog.getByLabelText('Summary (optional)'), {
+  let rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
+  expect(document.activeElement).toBe(rightsForm.getByLabelText('Summary (optional)'));
+  expect(rightsForm.queryByLabelText(/upload/i)).toBeNull();
+  fireEvent.change(rightsForm.getByLabelText('Summary (optional)'), {
     target: { value: '  Each share has one vote.  ' },
   });
-  fireEvent.change(rightsDialog.getByLabelText('Document reference (optional)'), {
+  fireEvent.change(rightsForm.getByLabelText('Document reference (optional)'), {
     target: { value: '  Company constitution, 1 October 2026  ' },
   });
   api.post.mockImplementation(async (url: string, request: ClassRightsRequest) => {
@@ -400,28 +401,28 @@ it('reads every class page and groups exact holdings by member identity with sea
     if (rights.length === 1) throw new Error('Synthetic interrupted class rights response');
     return { data: revision };
   });
-  fireEvent.click(rightsDialog.getByRole('button', { name: 'Save' }));
-  await rightsDialog.findByRole('button', { name: 'Retry original save' });
-  expect((rightsDialog.getByLabelText('Summary (optional)') as HTMLTextAreaElement).disabled).toBe(true);
-  expect((rightsDialog.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
+  await rightsForm.findByRole('button', { name: 'Retry original save' });
+  expect((rightsForm.getByLabelText('Summary (optional)') as HTMLTextAreaElement).disabled).toBe(true);
+  expect((rightsForm.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
   pauseRights = true;
   let refreshingRights!: Promise<void>;
   act(() => {
     refreshingRights = client.refetchQueries({ queryKey: ['class-rights'] });
   });
   await waitFor(() => expect(releaseRights).toBeTypeOf('function'));
-  expect(screen.queryByRole('dialog', { name: 'Edit class rights' })).toBeNull();
+  expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull();
   expect(document.body.textContent).not.toContain('Each share has one vote.');
   pauseRights = false;
   await act(async () => {
     releaseRights();
     await refreshingRights;
   });
-  rightsDialog = within(await screen.findByRole('dialog', { name: 'Edit class rights' }));
+  rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   rightsAppointment = null;
-  fireEvent.click(rightsDialog.getByRole('button', { name: 'Retry original save' }));
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Retry original save' }));
   await screen.findByText('Class rights saved.');
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
   expect(api.post).toHaveBeenCalledTimes(1);
   expect(rights[0].summary).toBe('Each share has one vote.');
   expect(rights[0].documentReference).toBe('Company constitution, 1 October 2026');
@@ -438,17 +439,18 @@ it('reads every class page and groups exact holdings by member identity with sea
   await act(async () => {
     await client.refetchQueries({ queryKey: ['class-rights'] });
   });
-  rightsDialog = within(await screen.findByRole('dialog', { name: 'Edit class rights' }));
-  expect((rightsDialog.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
-  await rightsDialog.findByText(/The class rights or your administrator access changed/);
-  fireEvent.click(rightsDialog.getByRole('button', { name: 'Cancel' }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
+  expect((rightsForm.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
+  await rightsForm.findByText(/The class rights or your administrator access changed/);
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Edit (Class rights)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
-  rightsDialog = within(await screen.findByRole('dialog', { name: 'Edit class rights' }));
+  rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   for (const label of ['Summary (optional)', 'Document reference (optional)'])
-    fireEvent.change(rightsDialog.getByLabelText(label), { target: { value: '' } });
-  fireEvent.click(rightsDialog.getByRole('button', { name: 'Save' }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    fireEvent.change(rightsForm.getByLabelText(label), { target: { value: '' } });
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
+  await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
   expect(rights[0].summary).toBe('');
   expect(rights[0].documentReference).toBe('');
   fireEvent.click(screen.getByRole('button', { name: 'Previous versions' }));

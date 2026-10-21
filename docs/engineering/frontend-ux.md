@@ -82,8 +82,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   sidebar's Ledger caret is a separate navigation-group button; More keeps its native toggle.
   Activity's filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
   naming what it applies; applying or clearing closes it and every open entry and returns focus to
-  its button. Dialogs are for work that sets the page aside: a form that creates or changes
-  something, a signing step or a confirmation.
+  its button. Dialogs are for work that sets the page aside, such as a separate task, a signing
+  step or a confirmation.
 - `SwitchRow`: a setting that takes effect at once (Transaction alerts; Dark theme; Show this
   company to eligible investors), as an On/Off pill or native switch (`role="switch"`,
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
@@ -93,6 +93,14 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   tone map; shared subscription and resolution-result tones live in
   `dashboard/src/components/statusTones.ts`. Personal applications retain their moving fallback,
   company applications their waiting fallback, and an open offering retains its override.
+
+On the web, prefer editing a record's details in its existing card: replace the read view with the
+fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
+field when editing opens and return focus to Edit when it ends, if that action is still available.
+Class rights follows this pattern: Edit replaces its current summary and Previous versions with
+Summary and Document reference, focuses Summary and keeps one Class rights heading. Validation,
+pending-request holds, stale-record handling and original-save recovery still apply. Other existing
+dialogs keep their own workflow until separately refined.
 
 A dialog (`Modal` in `dashboard/src/components/Modal.tsx`; `CustomModal` in
 `mobile/src/components/modal`) is the same card over the dimmed page, labelled by its Newsreader
