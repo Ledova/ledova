@@ -5,11 +5,15 @@ type Listed = { id?: string; message: string };
 function focusField(id: string) {
   const field = document.getElementById(id);
   field?.scrollIntoView({ block: 'center' });
-  field
-    ?.querySelector<HTMLElement>(
-      'input:not([type="hidden"]):not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)',
-    )
-    ?.focus({ preventScroll: true });
+  const label = field?.querySelector('label[for]');
+  const labelled = label instanceof HTMLLabelElement ? label.control : null;
+  const control =
+    labelled && !(labelled as HTMLInputElement).disabled
+      ? labelled
+      : field?.querySelector<HTMLElement>(
+          'input:not([type="hidden"]):not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)',
+        );
+  control?.focus({ preventScroll: true });
 }
 
 export function ErrorSummary({
