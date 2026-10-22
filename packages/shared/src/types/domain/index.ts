@@ -50,3 +50,4 @@ export * from './member-access';
 
 export * from './user-document';
 export * from './register-member-document';
+export * from './register-person';

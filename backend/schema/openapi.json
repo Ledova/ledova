@@ -17757,6 +17757,9 @@
             "nullable": true,
             "type": "string"
           },
+          "hasAwards": {
+            "type": "boolean"
+          },
           "lastCeasedOn": {
             "format": "date",
             "nullable": true,
@@ -17771,7 +17774,7 @@
             "type": "string"
           },
           "onRegister": {
-            "description": "False only for an award recipient who has never been on the company's register.",
+            "description": "Whether the person has ever held shares on a company register.",
             "type": "boolean"
           },
           "particularsRetained": {
@@ -19310,6 +19313,11 @@
             "nullable": true,
             "type": "string"
           },
+          "sourceRegistration": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "sourceTransfer": {
             "format": "uuid",
             "nullable": true,
@@ -19325,6 +19333,7 @@
           "sourceChange",
           "sourceGrant",
           "sourceImport",
+          "sourceRegistration",
           "sourceTransfer"
         ],
         "type": "object"
@@ -19821,6 +19830,120 @@
           "blockHash",
           "blockNumber",
           "observedAt"
+        ],
+        "type": "object"
+      },
+      "RegisterPeople": {
+        "properties": {
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterMemberSelection"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "company",
+          "members"
+        ],
+        "type": "object"
+      },
+      "RegisterPersonCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "residentialAddress": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "company",
+          "member",
+          "name",
+          "operationId",
+          "residentialAddress"
+        ],
+        "type": "object"
+      },
+      "RegisterPersonRegistration": {
+        "properties": {
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "member": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "residentialAddress": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "company",
+          "createdAt",
+          "member",
+          "name",
+          "preparingAppointment",
+          "residentialAddress",
+          "submittedBy",
+          "uuid"
         ],
         "type": "object"
       },
@@ -38536,6 +38659,130 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-people/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_people_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPeople"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_people_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPersonCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPersonCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPersonCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPersonRegistration"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPersonRegistration"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

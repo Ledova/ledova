@@ -36,7 +36,8 @@ export function isRegisterImportMembers(value: unknown): value is RegisterTransf
         /^\d+$/.test(member.currentShares) &&
         typeof member.particularsRetained === 'boolean' &&
         typeof member.walletless === 'boolean' &&
-        (member.onRegister === undefined || typeof member.onRegister === 'boolean'),
+        (member.onRegister === undefined || typeof member.onRegister === 'boolean') &&
+        (member.hasAwards === undefined || typeof member.hasAwards === 'boolean'),
     ) &&
     data.awardRecipients.every(
       (recipient) => !!recipient.member.trim() && !!recipient.name.trim() && !!recipient.residentialAddress.trim(),

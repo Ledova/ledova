@@ -263,7 +263,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(namesakes[1]).getByText('No PREFERENCE holding')).toBeTruthy();
   expect(within(namesakes[1]).getByText('Identity needs review')).toBeTruthy();
   expect(screen.getByText(/1 shareholder needs identity review/)).toBeTruthy();
-  expect(screen.getByText('1–25 of 26 shareholders')).toBeTruthy();
+  expect(screen.getByText('1–25 of 26 people')).toBeTruthy();
   expect(within(table).queryByText('Zed Member24')).toBeNull();
   expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
 
@@ -284,37 +284,37 @@ it('reads every class page and groups exact holdings by member identity with sea
   fireEvent.click(within(pages).getByRole('button', { name: /^Next/ }));
   expect(within(table).getByText('Zed Member24')).toBeTruthy();
   expect(within(table).queryByText('Example Member')).toBeNull();
-  expect(screen.getByText('26–26 of 26 shareholders')).toBeTruthy();
+  expect(screen.getByText('26–26 of 26 people')).toBeTruthy();
   expect(within(pages).getByRole('button', { name: /^Next/ }).matches(':disabled')).toBe(true);
 
-  const search = screen.getByLabelText('Search shareholders');
+  const search = screen.getByLabelText('Search people');
   const filter = screen.getByLabelText('Share class');
   fireEvent.change(search, { target: { value: ' eXaMpLe MeMbEr ' } });
-  expect(await screen.findByText('1–2 of 2 shareholders')).toBeTruthy();
-  expect(screen.getByText('2 shareholders match your search.')).toBeTruthy();
+  expect(await screen.findByText('1–2 of 2 people')).toBeTruthy();
+  expect(screen.getByText('2 people match your search.')).toBeTruthy();
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(2);
   fireEvent.change(filter, { target: { value: 'preference' } });
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(1);
   expect(within(table).queryByText('<0.01%')).toBeNull();
-  expect(screen.getByText('1–1 of 1 shareholder')).toBeTruthy();
+  expect(screen.getByText('1–1 of 1 person')).toBeTruthy();
   expect(screen.getByText(/1 shareholder needs identity review/)).toBeTruthy();
   fireEvent.change(filter, { target: { value: 'ordinary' } });
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(2);
   fireEvent.change(filter, { target: { value: '' } });
   fireEvent.change(search, { target: { value: ' preference member NAME ' } });
-  expect(await screen.findByText('1–1 of 1 shareholder')).toBeTruthy();
+  expect(await screen.findByText('1–1 of 1 person')).toBeTruthy();
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(2);
   fireEvent.change(filter, { target: { value: 'preference' } });
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(1);
   fireEvent.change(search, { target: { value: 'No such shareholder' } });
-  expect(await screen.findByText('No shareholders match your search.')).toBeTruthy();
+  expect(await screen.findByText('No people match your search.')).toBeTruthy();
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   fireEvent.change(filter, { target: { value: '' } });
-  fireEvent.change(screen.getByLabelText('Search shareholders'), { target: { value: '' } });
-  expect(await screen.findByText('1–25 of 26 shareholders')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('Search people'), { target: { value: '' } });
+  expect(await screen.findByText('1–25 of 26 people')).toBeTruthy();
   expect(within(screen.getByRole('table', { name: 'Company shareholders' })).getAllByRole('row')).toHaveLength(26);
   expect(api.post).not.toHaveBeenCalled();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
@@ -323,6 +323,92 @@ it('reads every class page and groups exact holdings by member identity with sea
 
   cleanup();
   client.clear();
+  const personCompany = companyRecord({ uuid: 'harbour' });
+  const personAppointment = { ...CURRENT_APPOINTMENT, company: 'harbour', capabilities: ['prepare'] };
+  let savedPerson: RegisterTransferMember | undefined;
+  let lostPersonReply = true;
+  api.get.mockImplementation(async (url: string) => {
+    if (url === REGISTER) return page([]);
+    if (url === COMPANY_ENDPOINTS.BASE)
+      return { data: { results: [personCompany], count: 1, next: null, previous: null } };
+    if (url === APPOINTMENTS) return { data: { results: [personAppointment], count: 1, next: null, previous: null } };
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_PEOPLE)
+      return { data: { company: 'harbour', members: savedPerson ? [savedPerson] : [] } };
+    return noCommands(url) ?? page([]);
+  });
+  api.post.mockImplementation(async (url, request) => {
+    expect(url).toBe(COMPANY_TOKEN_ENDPOINTS.REGISTER_PEOPLE);
+    savedPerson = {
+      member: request.member,
+      name: request.name,
+      residentialAddress: request.residentialAddress,
+      currentShares: '0',
+      enteredOn: null,
+      lastCeasedOn: null,
+      walletless: true,
+      particularsRetained: true,
+      onRegister: false,
+      hasAwards: false,
+    };
+    if (lostPersonReply) {
+      lostPersonReply = false;
+      throw new Error('Synthetic lost person response');
+    }
+    return {
+      data: {
+        uuid: request.operationId,
+        company: request.company,
+        member: request.member,
+        name: request.name,
+        residentialAddress: request.residentialAddress,
+        preparingAppointment: request.appointment,
+        submittedBy: 1,
+        createdAt: '2026-10-22T00:00:00Z',
+      },
+    };
+  });
+  show(
+    'company',
+    <>
+      <CompanyRegisterPage />
+      <Link to="/#awards">Open ESS during recovery</Link>
+      <Link to="/#shareholders">Return to people recovery</Link>
+    </>,
+    'Shareholders',
+    { entry: '/#shareholders' },
+  );
+  const addPerson = await screen.findByRole('button', { name: 'Add person' });
+  await waitFor(() => expect(addPerson.matches(':disabled')).toBe(false));
+  fireEvent.click(addPerson);
+  const personForm = () => within(screen.getByRole('form', { name: 'Add person' }));
+  fireEvent.click(personForm().getByRole('button', { name: 'Add person' }));
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.change(personForm().getByLabelText('Name'), { target: { value: 'Taylor Demo' } });
+  fireEvent.change(personForm().getByLabelText('Residential address'), {
+    target: { value: '3 Fictional Lane, Sydney NSW 2000' },
+  });
+  fireEvent.click(personForm().getByRole('button', { name: 'Add person' }));
+  await personForm().findByRole('alert');
+  expect(personForm().getByLabelText('Name').matches(':disabled')).toBe(true);
+  expect(personForm().getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(true);
+  fireEvent.click(screen.getByRole('link', { name: 'Open ESS during recovery' }));
+  expect(screen.queryByRole('form', { name: 'Add person' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Return to people recovery' }));
+  expect(await screen.findByRole('button', { name: 'Retry original save' })).toBeTruthy();
+  fireEvent.click(personForm().getByRole('button', { name: 'Retry original save' }));
+  expect(await screen.findByText('Taylor Demo added.')).toBeTruthy();
+  const personRequests = api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_PEOPLE);
+  expect(personRequests).toHaveLength(2);
+  expect(personRequests[1][1]).toEqual(personRequests[0][1]);
+  expect(screen.getByRole('heading', { name: 'People without shares' })).toBeTruthy();
+  expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
+  expect(screen.getByText('No current shareholders yet.')).toBeTruthy();
+  expect(screen.queryByText('Award recipient without shares')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Taylor Demo' }));
+  expect(await screen.findByText('3 Fictional Lane, Sydney NSW 2000')).toBeTruthy();
+  cleanup();
+  client.clear();
+  api.post.mockReset();
   let pauseHolders = false;
   let releaseHolders!: () => void;
   let rights: ClassRightsRevision[] = [];
@@ -2146,6 +2232,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     walletless: true,
     particularsRetained: true,
     onRegister: false,
+    hasAwards: true,
   };
   companyMembers = [trustedRecipient];
   const prepareAwardOpening = async (url: string, request: RegisterImportPreparation) => {
@@ -2198,12 +2285,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   companyMembers = [{ ...trustedRecipient, name: 'Changed recipient name' }];
   await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
   fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
-  expect(await screen.findByText(/keep the award recipient’s recorded name and address/)).toBeTruthy();
+  expect(await screen.findByText(/keep the company person’s recorded name and address/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   companyMembers = [];
   await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
   fireEvent.click(await screen.findByRole('button', { name: 'Save draft and review' }));
-  expect((await screen.findAllByText(/award recipient is no longer available/)).length).toBeGreaterThan(0);
+  expect((await screen.findAllByText(/company person is no longer available/)).length).toBeGreaterThan(0);
   expect(api.post).not.toHaveBeenCalled();
   companyMembers = [trustedRecipient];
   await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
@@ -2261,7 +2348,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add shareholder' }));
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
-  expect((await screen.findAllByText(/award recipient is no longer available/)).length).toBeGreaterThan(0);
+  expect((await screen.findAllByText(/company person is no longer available/)).length).toBeGreaterThan(0);
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
   expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(0);
@@ -2563,7 +2650,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
   await screen.findByText('Inland Example Pty Ltd', { selector: 'p' });
   await choose('Company', 'Harbour Example Pty Ltd', 'harbour');
   await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
-  fireEvent.change(await screen.findByLabelText('Search shareholders'), { target: { value: 'Example' } });
+  fireEvent.change(await screen.findByLabelText('Search people'), { target: { value: 'Example' } });
   expect(await screen.findByText(/match(es)? your search\./)).toBeTruthy();
   await act(async () => {});
   expect(screen.getByText('Harbour Example Pty Ltd', { selector: 'p' })).toBeTruthy();

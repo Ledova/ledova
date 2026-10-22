@@ -3343,6 +3343,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-people/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_people_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_people_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-reconciliations/': {
     parameters: {
       query?: never;
@@ -7755,6 +7771,7 @@ export interface ApiComponents {
     RegisterMemberSelection: {
       currentShares: string;
       enteredOn: string | null;
+      hasAwards?: boolean;
       lastCeasedOn: string | null;
       member: string;
       name: string | null;
@@ -8056,6 +8073,7 @@ export interface ApiComponents {
       sourceChange: string | null;
       sourceGrant: string | null;
       sourceImport: string | null;
+      sourceRegistration: string | null;
       sourceTransfer: string | null;
     };
     RegisterPauseChange: {
@@ -8153,6 +8171,28 @@ export interface ApiComponents {
       blockHash: string;
       blockNumber: number;
       observedAt: string;
+    };
+    RegisterPeople: {
+      company: string;
+      members: ApiComponents['schemas']['RegisterMemberSelection'][];
+    };
+    RegisterPersonCreateRequest: {
+      appointment: string;
+      company: string;
+      member: string;
+      name: string;
+      operationId: string;
+      residentialAddress: string;
+    };
+    RegisterPersonRegistration: {
+      company: string;
+      createdAt: string;
+      member: string;
+      name: string;
+      preparingAppointment: string;
+      residentialAddress: string;
+      submittedBy: number;
+      uuid: string;
     };
     RegisterReconciliation: {
       blockHash: string;
@@ -15477,6 +15517,63 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_people_list: {
+    parameters: {
+      query: {
+        company: string;
+        ordering?: string;
+        page?: number;
+        page_size?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPeople'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_people_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterPersonCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterPersonCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterPersonCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPersonRegistration'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPersonRegistration'];
         };
       };
     };

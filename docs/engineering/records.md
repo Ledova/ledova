@@ -43,6 +43,16 @@ and `RegisterMemberCessation` an exit from an imported register. `FormerHolder` 
 `ImportedFormerMember` hold former members, and `RegisterReconciliation`, `RegisterAcknowledgement`
 and `RegisterExport` reconciliations, acknowledgements and output fingerprints.
 
+`RegisterPersonRegistration` is the attributable source for a person added before holding shares.
+The company-scoped `register-people/` read requires a current register-reader appointment; its
+write requires current preparation or administration authority under the locked company command.
+An exact operation retry returns the same registration; changed data conflicts. It creates only
+the company member ID and particulars with `source_registration`, never a position, register
+entry, award, account or invitation. PostgreSQL checks the company, actor, appointment and matching
+particulars at commit and preserves the registration. People choices report `on_register` and
+`has_awards` separately, so a person without shares is not labelled an award recipient. Existing
+null registration sources stay absent from older snapshots and decision digests.
+
 PostgreSQL enforces the ledger, not Python.
 [database_guards.py](../../backend/tokens/database_guards.py) installs
 [database_guards.sql](../../backend/tokens/database_guards.sql) with the family files

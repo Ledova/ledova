@@ -544,6 +544,9 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "tokens_registerpersonregistration": "Append-only company-person registration provenance, with no share effect. "
+    "Exact-company reader and prepare commands retain current personal authority, actor and initial particulars; "
+    "the app role receives no direct table grant.",
     "tokens_registermemberdocument": "Append-only company-private shareholder and share-class document links. "
     "Current exact-company register readers list and download them through register_member_document views on the "
     "operator connection. Bounded prepare commands add links, and exact applied opening records retain their links; "

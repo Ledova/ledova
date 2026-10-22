@@ -318,6 +318,21 @@ copies until #1201.
 No web flow lists people in a native select, because a dropdown of every person does not scale to a
 large register. Each one uses a searchable list built on Headless UI's `Combobox`:
 
+Selecting an existing record and creating one are separate choices. The shared search control
+keeps the same appearance and keyboard behaviour; each workflow explicitly decides whether it
+offers **New person**. Typing a name never creates or identifies a record by itself: a selection
+keeps the company's stored member ID. Company scope, current authority and eligibility remain
+server checks. A person need not have a login or shares in the selected class.
+
+On the web, both transfer parties are existing company people. A transferor holds shares in the
+class; a recipient may hold another class, be a former holder, have an award or have no shares yet.
+**Add person** on Shareholders records only a name and residential address, before or after the first
+class is added. It uses the existing inline form and right-aligned collection action. People without
+shares are distinguished from current shareholders, with no invented holding or award. Initial
+ledger setup, investor and non-paid issues and employee awards keep their explicit new-person
+paths; invitations select existing records. A named director in external authority evidence is
+not automatically a shareholder or a Ledova user and remains a documentary field.
+
 - **`PersonSelect`** (`dashboard/src/pages/company/ledger/shared/PersonPicker.tsx`) is used where a
   flow names one person:
   - register setup's shareholder, an investor or non-paid issue under Issue shares, a transfer's
@@ -345,7 +360,7 @@ How the list behaves:
     address, award marker and record reference, and the flow's own detail.
   - Focusing or clicking the field selects its text, so typing replaces it.
 - **What each person shows:** the name, then a muted line with the address, "Award recipient without
-  shares" and the flow's own detail, such as the shares held. A short record reference appears only
+  shares" or "No shares yet" where applicable, and the flow's own detail, such as the shares held. A short record reference appears only
   when two people share a name and address. Assistive technology reads the option as one name
   joined by " · ".
 - **The first entry:** **New person**, or the share-class issue's "Create a new member through the
@@ -370,6 +385,14 @@ How the list behaves:
   `packages/shared/src/utils/people.ts`, and the matching is `searchEntries` and `searchMatches` in
   `packages/shared/src/utils/search.ts`, so both clients build, label and search the list the same
   way.
+
+The 50-match rendering limit bounds the displayed list, not the download. Search currently runs
+over the people already read. The owner's recorded switch to server search is at about 2,000
+company people, or earlier if measured loading or typing costs warrant it. Keep the same selector
+when switching: delay requests while typing, cap results, discard replies for superseded queries
+or account/company scopes, retain the selected record, and show loading, no-match and failure
+states distinctly. Do not present a failed search as an empty result or create a duplicate person
+after an uncertain save. Follow the same owner and original-request guards as other register writes.
 
 These rules are checked in review. The dashboard suite drives the list in register setup (typing a
 name and pressing Enter), a transfer and member invitations.

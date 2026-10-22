@@ -5,8 +5,9 @@ import {
   searchRows,
   type TokenHoldersResponse,
   sharePercentage,
+  type Person,
 } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Disclosure, Row, Rows, Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { PageAction, PageLink } from '@components/Page';
 import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
@@ -15,7 +16,7 @@ import { shareholderPath } from './shareholders';
 type Holding = { register: TokenHoldersResponse; holder: TokenHoldersResponse['holders'][number] };
 type Shareholder = { member: string; name: string; holdings: Holding[] };
 
-const NOUN: Noun = ['shareholder', 'shareholders'];
+const NOUN: Noun = ['person', 'people'];
 
 function needsIdentityReview({ holder }: Pick<Holding, 'holder'>) {
   return holder.holderType === 'ambiguous' || holder.holderType === 'unidentified';
@@ -25,10 +26,12 @@ export function CompanyShareholders({
   registers,
   company,
   blocked = false,
+  people = [],
 }: {
   registers: TokenHoldersResponse[];
   company: string;
   blocked?: boolean;
+  people?: Person[];
 }) {
   const list = useListParams(['class']);
   const grouped = new Map<string, Shareholder>();
@@ -56,8 +59,19 @@ export function CompanyShareholders({
     (member) => [member.name, ...member.holdings.map(({ holder }) => holder.name ?? '')].join(' '),
     list.search,
   );
+  const withoutShares = classFilter
+    ? []
+    : searchRows(
+        people.filter((person) => person.onRegister === false && !person.hasAwards && !person.awardOnly),
+        (person) => `${person.name} ${person.residentialAddress}`,
+        list.search,
+      );
+  const count = found.length + withoutShares.length;
   const visibleClasses = classFilter ? registers.filter(({ token }) => token.uuid === classFilter) : registers;
-  const page = Math.min(list.page, Math.max(1, Math.ceil(found.length / PAGE_SIZE)));
+  const page = Math.min(list.page, Math.max(1, Math.ceil(count / PAGE_SIZE)));
+  const start = (page - 1) * PAGE_SIZE;
+  const end = page * PAGE_SIZE;
+  const shownPeople = withoutShares.slice(Math.max(0, start - found.length), Math.max(0, end - found.length));
   const unresolved = shareholders.filter(({ holdings }) => holdings.some(needsIdentityReview)).length;
   return (
     <Section title="Current shareholders">
@@ -66,18 +80,11 @@ export function CompanyShareholders({
           Unopened classes have no recorded holdings. This list includes only the opened registers.
         </p>
       )}
-      {shareholders.length === 0 ? (
+      {shareholders.length === 0 && people.length === 0 ? (
         <p className="text-sm text-text-muted">No current shareholders yet.</p>
       ) : (
         <>
-          <ListSearch
-            label="Search shareholders"
-            hint="Shareholder name"
-            list={list}
-            noun={NOUN}
-            count={found.length}
-            filtered={!!classFilter}
-          >
+          <ListSearch label="Search people" list={list} noun={NOUN} count={count} filtered={!!classFilter}>
             <SelectField
               label="Share class"
               options={[
@@ -94,7 +101,7 @@ export function CompanyShareholders({
               details before relying on these records.
             </p>
           )}
-          {found.length > 0 && (
+          {found.slice(start, end).length > 0 && (
             <Table
               caption="Company shareholders"
               columns={[
@@ -107,7 +114,7 @@ export function CompanyShareholders({
                 { label: 'Details', align: 'right', hidden: true },
               ]}
             >
-              {found.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((member) => (
+              {found.slice(start, end).map((member) => (
                 <tr key={member.member}>
                   <th scope="row" className="break-words px-4 py-3 text-left font-normal">
                     <p className="font-medium text-text-primary">{member.name}</p>
@@ -153,7 +160,24 @@ export function CompanyShareholders({
               ))}
             </Table>
           )}
-          <Pager label="Shareholder pages" list={list} noun={NOUN} count={found.length} />
+          {shareholders.length === 0 && <p className="text-sm text-text-muted">No current shareholders yet.</p>}
+          {shownPeople.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-base font-medium text-text-primary">People without shares</h3>
+              <ul className="divide-y divide-border-subtle">
+                {shownPeople.map((person) => (
+                  <li key={person.member}>
+                    <Disclosure summary={person.name}>
+                      <Rows>
+                        <Row label="Residential address">{person.residentialAddress}</Row>
+                      </Rows>
+                    </Disclosure>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <Pager label="Shareholder pages" list={list} noun={['person', 'people']} count={count} />
         </>
       )}
     </Section>

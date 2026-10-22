@@ -38,6 +38,7 @@ from tokens.models import (
     RegisterExport,
     RegisterGrant,
     RegisterGrantDecision,
+    RegisterPersonRegistration,
     RegisterPosition,
     RegisterTransfer,
     RegisterTransferDecision,
@@ -477,6 +478,48 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
     def test_walletless_transfer_preserves_issued_shares_and_records_the_recipient(self):
         evidence = self.grant_payload()
         recipient = str(uuid4())
+        people_endpoint = "/api/v1/tokens/register-people/"
+        person_payload = {
+            "operation_id": str(uuid4()),
+            "company": str(self.foreign_company.pk),
+            "appointment": str(self.foreign_appointment.pk),
+            "member": str(uuid4()),
+            "name": "Synthetic Prospective Person",
+            "residential_address": "4 Example Street, Sydney NSW 2000",
+        }
+        self.client.force_authenticate(self.foreign)
+        first = self.client.post(people_endpoint, person_payload, format="json")
+        self.assertEqual(first.status_code, 201, first.content)
+        self.assertFalse(ShareToken.objects.filter(company=self.foreign_company).exists())
+        self.assertFalse(RegisterPosition.objects.filter(member_id=person_payload["member"]).exists())
+        self.client.force_authenticate(self.owner)
+        hidden = self.client.get(people_endpoint, {"company": str(self.foreign_company.pk)})
+        self.assertEqual(hidden.status_code, 404, hidden.content)
+        refused = self.client.post(people_endpoint, person_payload, format="json")
+        self.assertEqual(refused.status_code, 404, refused.content)
+        person_payload.update(
+            operation_id=str(uuid4()),
+            company=str(self.company.pk),
+            appointment=str(self.appointment.pk),
+            member=recipient,
+            name="Synthetic Recipient",
+            residential_address="3 Example Street, Sydney NSW 2000",
+        )
+        registered = self.client.post(people_endpoint, person_payload, format="json")
+        self.assertEqual(registered.status_code, 201, registered.content)
+        repeated = self.client.post(people_endpoint, person_payload, format="json")
+        self.assertEqual(repeated.status_code, 200, repeated.content)
+        changed_person = self.client.post(people_endpoint, {**person_payload, "name": "Changed"}, format="json")
+        self.assertEqual(changed_person.status_code, 409, changed_person.content)
+        listed = self.client.get(people_endpoint, {"company": str(self.company.pk)})
+        self.assertEqual(listed.status_code, 200, listed.content)
+        new_person = next(row for row in listed.json()["members"] if row["member"] == recipient)
+        self.assertEqual(
+            (new_person["currentShares"], new_person["onRegister"], new_person["hasAwards"]), ("0", False, False)
+        )
+        self.assertFalse(RegisterPosition.objects.filter(member_id=recipient).exists())
+        with use_operator(), self.assertRaises(DatabaseError), atomic():
+            RegisterPersonRegistration.objects.filter(pk=registered.json()["uuid"]).update(name="Forged")
         endpoint = "/api/v1/tokens/register-transfers/"
         payload = {
             "operation_id": str(uuid4()),
@@ -484,7 +527,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             "token_id": str(self.token.pk),
             "from_member": str(self.member.pk),
             "to_member": recipient,
-            "new_member": True,
+            "new_member": False,
             "name": "Synthetic Recipient",
             "residential_address": "3 Example Street, Sydney NSW 2000",
             "shares": "25",

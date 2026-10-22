@@ -27,8 +27,8 @@ import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
 import { ClassReconciliation } from './ClassReconciliation';
-import { ClassRegister, FormerShareholders } from '@pages/company/ledger/shared/ClassRegister';
-import { CompanyShareholders } from '@pages/company/ledger/shared/CompanyShareholders';
+import { ClassRegister } from '@pages/company/ledger/shared/ClassRegister';
+import { CompanyPeople } from './CompanyPeople';
 import { ClassInspectionCopy } from './ClassInspectionCopy';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyPack } from './CompanyPack';
@@ -136,6 +136,10 @@ function OwnRegister({
 }) {
   const { setState: setLedgerNavigation } = useLedgerNavigation();
   const [memberHeld, setMemberHeld] = useState(false);
+  const [personHeld, setPersonHeld] = useState(false);
+  const location = useLocation();
+  const { hash } = location;
+  const includeEmptyCompanies = hash === '#shareholders';
   const [heldClasses, setHeldClasses] = useState<ReadonlySet<string>>(() => new Set());
   const [taskSelection, setTaskSelection] = useState<{
     company: string;
@@ -147,13 +151,22 @@ function OwnRegister({
     company: { uuid: string; name: string };
     registers: TokenHoldersResponse[];
   } | null>(null);
-  const held = memberHeld || heldClasses.size > 0;
+  const held = memberHeld || personHeld || heldClasses.size > 0;
   const retained =
     held && retainedScope
       ? { company: retainedScope.company, tokens: retainedScope.registers.map(({ token }) => token.uuid) }
       : undefined;
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner, guard, retained);
+  const { classes, companies, company, selectCompany, registers, companyAppointments } = useCompanyRegister(
+    owner,
+    guard,
+    retained,
+    includeEmptyCompanies,
+  );
+  const companiesReady =
+    !includeEmptyCompanies ||
+    classes.data?.some((item) => item.companyUuid === company?.uuid) ||
+    companyAppointments.isSuccess;
   const preferenceRead = useUserPreferences();
   const client = useQueryClient();
   const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
@@ -166,6 +179,7 @@ function OwnRegister({
   const appointments = useOwnAppointments(owner, guard, { enabled: !!scope });
   const readable =
     preferences?.status === 'success' &&
+    companiesReady &&
     classes.isSuccess &&
     registers.isSuccess &&
     !!scope &&
@@ -224,8 +238,6 @@ function OwnRegister({
     (uuid: string, held: boolean) => classHeld(`history/company/${uuid}`, held),
     [classHeld],
   );
-  const location = useLocation();
-  const { hash } = location;
   const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
   const registerCompany =
     typeof location.state?.registerCompany === 'string'
@@ -249,12 +261,14 @@ function OwnRegister({
   const enteredIssue = useRef('');
   const entered = `${registerCompany}/${registerToken}`;
   useEffect(() => {
-    if (enteredIssue.current === entered || !classes.isSuccess || classes.isFetching || held) return;
+    if (enteredIssue.current === entered || !classes.isSuccess || classes.isFetching || held || !companiesReady) return;
     if (
       registerCompany &&
-      classes.data.some(
-        (item) => item.companyUuid === registerCompany && (!registerToken || item.uuid === registerToken),
-      )
+      (includeEmptyCompanies && !registerToken
+        ? companies.some((item) => item.uuid === registerCompany)
+        : classes.data.some(
+            (item) => item.companyUuid === registerCompany && (!registerToken || item.uuid === registerToken),
+          ))
     )
       selectCompany(registerCompany);
     enteredIssue.current = entered;
@@ -268,6 +282,9 @@ function OwnRegister({
     registerToken,
     registerCompany,
     selectCompany,
+    companiesReady,
+    includeEmptyCompanies,
+    companies,
   ]);
   const view =
     hash === '#awards'
@@ -415,7 +432,11 @@ function OwnRegister({
         <LoadError retry={() => preferenceRead.refetch()} busy={preferenceRead.isFetching}>
           Your account could not be loaded.
         </LoadError>
-      ) : preferenceRead.isFetching || classes.isPending ? (
+      ) : includeEmptyCompanies && companyAppointments.isError && !companiesReady ? (
+        <LoadError retry={() => companyAppointments.refetch()} busy={companyAppointments.isFetching}>
+          The companies could not be loaded.
+        </LoadError>
+      ) : preferenceRead.isFetching || classes.isPending || !companiesReady ? (
         <Loading>Loading the register…</Loading>
       ) : classes.isError || registers.isError || (held && !sourceReady) ? (
         <LoadError
@@ -445,16 +466,31 @@ function OwnRegister({
           The register could not be loaded.
         </LoadError>
       )}
-      {scope && view === 'shareholders' && ownershipReady && (
-        <>
-          <CompanyShareholders
+      {scope && personHeld && view !== 'shareholders' && (
+        <div className="space-y-3">
+          <p role="status" className="text-sm text-text-muted">
+            A person save is unfinished. Return to its original form to finish it.
+          </p>
+          <PageLink
+            to={`${DESTINATIONS.companyRegister.path}#shareholders`}
+            state={{ registerCompany: scope.company.uuid }}
+            label="Return to person form"
+          />
+        </div>
+      )}
+      {scope && ((view === 'shareholders' && ownershipReady) || personHeld) && (
+        <div hidden={view !== 'shareholders'}>
+          <CompanyPeople
             key={scope.company.uuid}
+            owner={owner}
+            guard={guard}
             registers={scope.registers}
             company={scope.company.uuid}
             blocked={held}
+            sourceReady={sourceReady}
+            onHeldChange={setPersonHeld}
           />
-          <FormerShareholders registers={scope.registers} company={scope.company.uuid} blocked={held} />
-        </>
+        </div>
       )}
       {scope && view === 'register' && (
         <>

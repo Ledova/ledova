@@ -188,3 +188,4 @@ export {
   type PersonChoice,
 } from './people';
 export { searchEntries, searchMatches, searchRows, type SearchChoice } from './search';
+export { isRegisterPersonRegistrationReceipt } from './register-people';

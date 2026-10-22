@@ -588,6 +588,18 @@ it('preserves original preparation and combined approval recovery through refres
           particularsRetained: true,
           awardOnly: false,
         },
+        {
+          member: 'recipient',
+          name: 'Synthetic Recipient',
+          residentialAddress: '2 Example Street',
+          currentShares: '0',
+          lastCeasedOn: null,
+          walletless: true,
+          particularsRetained: true,
+          awardOnly: false,
+          onRegister: false,
+          hasAwards: false,
+        },
       ]}
       appointment={APPOINTMENT}
       blocked={false}
@@ -598,12 +610,11 @@ it('preserves original preparation and combined approval recovery through refres
   const requestsBeforeTransfer = api.post.mock.calls.length;
   expect((screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   await choose(TRANSFER_COPY.FROM, 'Synthetic Transferor', 'synthetic');
-  for (const [label, value] of [
-    ['Name', 'Synthetic Recipient'],
-    ['Residential address', '2 Example Street'],
-    [TRANSFER_COPY.SHARES, '10'],
-  ])
-    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  fireEvent.focus(screen.getByRole('combobox', { name: TRANSFER_COPY.TO }));
+  expect(screen.queryByRole('option', { name: 'New person' })).toBeNull();
+  expect(screen.queryByLabelText('Name')).toBeNull();
+  await choose(TRANSFER_COPY.TO, 'Synthetic Recipient', 'recipient');
+  fireEvent.change(screen.getByLabelText(TRANSFER_COPY.SHARES), { target: { value: '10' } });
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
   expect(screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON).getAttribute('aria-invalid')).toBe('true');
@@ -621,7 +632,9 @@ it('preserves original preparation and combined approval recovery through refres
   });
   fireEvent.click(screen.getByRole('button', { name: 'Back' }));
   expect((screen.getByLabelText(TRANSFER_COPY.SHARES) as HTMLInputElement).value).toBe('10');
-  expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Synthetic Recipient');
+  expect((screen.getByRole('combobox', { name: TRANSFER_COPY.TO }) as HTMLInputElement).value).toBe(
+    'Synthetic Recipient',
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect((transferDocuments().getByLabelText('Document') as HTMLInputElement).files).toHaveLength(1);
   expect((transferDocuments().getByLabelText('Terms') as HTMLInputElement).value).toBe('Non-paid transfer');
@@ -655,6 +668,8 @@ it('preserves original preparation and combined approval recovery through refres
   const transfers = api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFERS);
   expect(transfers[1][1]).toEqual(transfers[0][1]);
   expect(transfers[0][1]).toMatchObject({
+    toMember: 'recipient',
+    newMember: false,
     companyEventOn: '2026-10-03',
     signedOn: '2026-10-01',
     lodgedOn: '2026-10-02',

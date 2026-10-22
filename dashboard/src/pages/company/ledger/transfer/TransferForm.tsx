@@ -162,6 +162,7 @@ export function TransferForm({
                 people={eligible.filter((member) => member.member !== draft.fromMember)}
                 value={draft.toMember}
                 onChange={(value) => change('toMember', value)}
+                allowNew={false}
                 context={inClass}
               />
             </div>
@@ -183,7 +184,7 @@ export function TransferForm({
                 return.
               </p>
             )}
-            {fresh && draft.toMember !== 'new' && (
+            {fresh && (
               <p className="text-sm text-text-muted">
                 This member’s particulars passed the retention period. Supply their current particulars from the signed
                 instrument, keeping their existing member ID.

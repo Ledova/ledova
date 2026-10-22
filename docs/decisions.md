@@ -1480,6 +1480,13 @@ proposal are in #1174, and the owner approved it as recommended:
   today." So Company shows the company's UUID in full with Copy, and Offerings each approved
   offering's: the one exception to short references.
 
+On 22 October 2026, the owner accepted a further web refinement under #1165: **Add person** on
+Shareholders records a company person's particulars without shares or a login; transfers select
+existing company people only. Recipients need not hold that class. Keep the shared searchable
+control and the existing new-person paths for setup, issues and awards. The company person list
+distinguishes people without shares from current shareholders, and registration keeps company
+authority, an attributable source and the original request on retry. Mobile stays deferred.
+
 ## The signed-in app
 
 The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).

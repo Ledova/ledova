@@ -60,31 +60,34 @@ def particulars_snapshot(held):
         },
         **({"source_allotment": str(held.source_allotment_id)} if held.source_allotment_id else {}),
         **({"source_award": str(held.source_award_id)} if held.source_award_id else {}),
+        **({"source_registration": str(held.source_registration_id)} if held.source_registration_id else {}),
     }
 
 
 def register_members(token, actor):
+    return register_people(token.company_id, actor, token)
+
+
+def register_people(company_id, actor, token=None):
     with _snapshot():
-        members = list(RegisterMember.objects.filter(company_id=token.company_id).order_by("uuid"))
-        held = {
-            row.member_id: row for row in RegisterMemberParticulars.objects.filter(member__company_id=token.company_id)
-        }
-        positions = {row.member_id: row for row in RegisterPosition.objects.filter(register__token=token)}
-        imported_dates = imported_membership_dates(token)
-        linked = set(
-            RegisterMemberWallet.objects.filter(company_id=token.company_id).values_list("member_id", flat=True)
-        )
+        members = list(RegisterMember.objects.filter(company_id=company_id).order_by("uuid"))
+        held = {row.member_id: row for row in RegisterMemberParticulars.objects.filter(member__company_id=company_id)}
+        company_positions = RegisterPosition.objects.filter(register__company_id=company_id)
+        positions = {row.member_id: row for row in company_positions.filter(register__token=token)} if token else {}
+        totals = {}
+        for row in company_positions:
+            totals[row.member_id] = totals.get(row.member_id, 0) + row.shares
+        imported_dates = imported_membership_dates(token) if token else {}
+        linked = set(RegisterMemberWallet.objects.filter(company_id=company_id).values_list("member_id", flat=True))
         cessations = {}
         for row in RegisterMemberCessation.objects.filter(register__token=token).order_by("entry__sequence"):
             cessations[row.member_id] = row.ceased_on
         registered = set(
-            RegisterPosition.objects.filter(register__company_id=token.company_id).values_list("member_id", flat=True)
+            RegisterPosition.objects.filter(register__company_id=company_id).values_list("member_id", flat=True)
         )
-        awarded = set(RegisterAward.objects.filter(company_id=token.company_id).values_list("member", flat=True))
+        awarded = set(RegisterAward.objects.filter(company_id=company_id).values_list("member", flat=True))
         recipients = set(
-            RegisterAward.objects.readable_by(actor)
-            .filter(company_id=token.company_id)
-            .values_list("member", flat=True)
+            RegisterAward.objects.readable_by(actor).filter(company_id=company_id).values_list("member", flat=True)
         )
         return {
             "award_recipients": [],
@@ -93,7 +96,11 @@ def register_members(token, actor):
                     "member": member.pk,
                     "name": held[member.pk].name if member.pk in held else None,
                     "residential_address": held[member.pk].residential_address if member.pk in held else None,
-                    "current_shares": str(positions[member.pk].shares) if member.pk in positions else "0",
+                    "current_shares": (
+                        (str(positions[member.pk].shares) if member.pk in positions else "0")
+                        if token
+                        else str(totals.get(member.pk, 0))
+                    ),
                     "entered_on": (
                         imported_dates.get(str(member.pk), positions[member.pk].entered_on)
                         if member.pk in positions and positions[member.pk].shares > 0
@@ -102,7 +109,8 @@ def register_members(token, actor):
                     "last_ceased_on": cessations.get(member.pk),
                     "walletless": member.pk not in linked,
                     "particulars_retained": member.pk in held,
-                    "on_register": member.pk in registered or member.pk not in awarded,
+                    "on_register": member.pk in registered,
+                    "has_awards": member.pk in recipients,
                 }
                 for member in members
                 if member.pk in registered or member.pk not in awarded or member.pk in recipients

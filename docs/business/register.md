@@ -398,10 +398,12 @@ account, payment, application or chain transaction.
    tokenised class the task says its transfers use wallet and chain controls.
 2. In **People and shares**, choose the transferor, recipient and shares
    ([choosing a person](#choosing-a-person)), and give the company transfer date. An
-   existing recipient, including a former member
-   returning from zero, keeps their member ID; a new one gets a new member ID with the name and
-   residential address the instrument gives. If a returning member's particulars were lawfully
-   purged, the company supplies new ones.
+   existing company recipient keeps their member ID, including someone holding only another class,
+   a former member returning from zero, or someone without shares. Register a first-time recipient
+   through **Add person** on Shareholders before preparing the transfer. This creates particulars,
+   not shares or member access. If a returning member's particulars were lawfully purged, the
+   company supplies current ones against the same existing identity. The API and mobile retain
+   their existing new-recipient path; mobile changes remain deferred.
 3. In **Transfer documents**, give the separate dates the instrument was signed and lodged,
    the non-paid terms and the signed transfer instrument.
 4. In **Company authority and review**, check the transfer summary, choose the approving director,
@@ -642,9 +644,18 @@ Each flow keeps its own rule for who can be chosen:
 
 - issues and awards: people without a linked wallet whose particulars are retained;
 - a transfer: a transferor holding shares in the class, and a recipient without a linked wallet;
+  on the web both must already be recorded by the company;
 - register setup: everyone on the list on the web; in the mobile app, award recipients and the
   members without a linked wallet whose name and address are retained;
 - invitations: current and former members and award recipients.
+
+**Add person** on web Shareholders records a company person's name and residential address without
+a class, shares, an award, a login or an invitation. People without shares remain separate from
+current shareholders and can be found with the same search. Recording a person does not add them
+to the legal register; a later confirmed opening, share issue or transfer records their holding.
+The company's current preparation or administration appointment is required. A retry retrieves
+the original person registration instead of creating another identity. Names and addresses can
+coincide between different people; the stored member ID distinguishes them.
 
 An award recipient without shares has a person record from their first award. Every flow uses
 their member ID and current particulars, so an issue, a transfer or another award reaches the same

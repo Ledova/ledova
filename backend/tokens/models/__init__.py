@@ -94,6 +94,7 @@ from .register_particulars import (
     RegisterParticularsChangeDecision,
 )
 from .register_pause_change import RegisterPauseChange, RegisterPauseChangeDecision
+from .register_person import RegisterPersonRegistration
 from .register_transfer import (
     RegisterMemberCessation,
     RegisterTransfer,
@@ -175,6 +176,7 @@ __all__ = [
     "RegisterInstructionDecision",
     "RegisterInstructionKind",
     "RegisterMemberParticulars",
+    "RegisterPersonRegistration",
     "RegisterMemberDocument",
     "RegisterMemberDocumentCategory",
     "RegisterExport",

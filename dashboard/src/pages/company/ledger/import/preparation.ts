@@ -189,14 +189,14 @@ export function memberIdentityProblems(
         `Shareholder ${index + 1}: the existing company member is no longer available. Refresh before continuing.`,
       );
     if (row.identityChoice === 'award' && !member)
-      problems.push(`Shareholder ${index + 1}: the award recipient is no longer available. Refresh before continuing.`);
+      problems.push(`Shareholder ${index + 1}: the company person is no longer available. Refresh before continuing.`);
     if (known.length && !member && row.identityChoice !== 'new')
       problems.push(
         `Shareholder ${index + 1}: choose an existing company shareholder or explicitly choose a new shareholder.`,
       );
     if (recipient && (row.name !== recipient.name || row.residentialAddress !== recipient.residentialAddress))
       problems.push(
-        `Shareholder ${index + 1}: keep the award recipient’s recorded name and address when recording their first shares.`,
+        `Shareholder ${index + 1}: keep the company person’s recorded name and address when recording their first shares.`,
       );
     if (
       preserveParticulars &&

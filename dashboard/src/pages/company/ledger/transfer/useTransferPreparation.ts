@@ -73,7 +73,6 @@ export function useTransferPreparation({
   const client = useQueryClient();
   const navigate = useNavigate();
   const today = utcToday();
-  const [newMemberId] = useState(() => crypto.randomUUID());
   const [draft, setDraft] = useState<Draft>({
     fromMember: people.some(
       (person) =>
@@ -84,7 +83,7 @@ export function useTransferPreparation({
     )
       ? initialFrom
       : '',
-    toMember: 'new',
+    toMember: '',
     name: '',
     residentialAddress: '',
     shares: '',
@@ -125,15 +124,11 @@ export function useTransferPreparation({
     (member) => member.member === draft.fromMember && member.particularsRetained && BigInt(member.currentShares) > 0n,
   );
   const recipient = eligible.find((member) => member.member === draft.toMember);
-  const fresh =
-    operation?.newParticulars ?? (draft.toMember === 'new' || (!!recipient && !recipient.particularsRetained));
+  const fresh = operation?.newParticulars ?? (!!recipient && !recipient.particularsRetained);
   const past = (date: string) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today;
   const problems: Problems<keyof Draft | 'authorityDocument' | 'instrumentDocument'> = {
     fromMember: !from && 'Select an identified transferor holding shares in this class.',
-    toMember:
-      draft.toMember !== 'new' &&
-      (!recipient || draft.toMember === draft.fromMember) &&
-      'Select a different recipient.',
+    toMember: (!recipient || draft.toMember === draft.fromMember) && 'Select a different existing company person.',
     name: fresh && !draft.name.trim() && 'Give the recipient’s name from the signed instrument.',
     residentialAddress:
       fresh &&
@@ -202,8 +197,8 @@ export function useTransferPreparation({
           appointment: appointment.uuid,
           tokenId: token,
           fromMember: draft.fromMember,
-          toMember: draft.toMember === 'new' ? newMemberId : draft.toMember,
-          newMember: draft.toMember === 'new',
+          toMember: draft.toMember,
+          newMember: false,
           ...(fresh ? { name: draft.name.trim(), residentialAddress: draft.residentialAddress.trim() } : {}),
           shares: draft.shares,
           companyEventOn: draft.companyEventOn,

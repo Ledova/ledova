@@ -127,6 +127,7 @@ export const COMPANY_TOKEN_ENDPOINTS = {
     `/api/v1/tokens/register-deployments/${uuid}/decision-preview/` as const,
   REGISTER_DEPLOYMENT_DECIDE: (uuid: string) => `/api/v1/tokens/register-deployments/${uuid}/decide/` as const,
   REGISTER_MEMBERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/members/` as const,
+  REGISTER_PEOPLE: '/api/v1/tokens/register-people/',
   REGISTER_TRANSFERS: '/api/v1/tokens/register-transfers/',
   REGISTER_TRANSFER_FILE: (uuid: string) => `/api/v1/tokens/register-transfers/${uuid}/file/` as const,
   REGISTER_TRANSFER_INSTRUMENT_FILE: (uuid: string) =>

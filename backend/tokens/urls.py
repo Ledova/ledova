@@ -31,6 +31,7 @@ from tokens.views.register_opening import (
 from tokens.views.register_paid_issue import RegisterPaidIssueViewSet
 from tokens.views.register_particulars import RegisterParticularsChangeViewSet
 from tokens.views.register_pause_change import RegisterPauseChangeViewSet
+from tokens.views.register_person import RegisterPersonViewSet
 from tokens.views.register_reconciliation import RegisterReconciliationViewSet
 from tokens.views.register_transfer import RegisterTransferViewSet
 
@@ -42,6 +43,7 @@ router.register(r"member-associations", MemberAssociationViewSet, basename="memb
 router.register(r"member-records", MemberRecordViewSet, basename="member-records")
 router.register(r"member-particulars-requests", MemberParticularsRequestViewSet, basename="member-particulars-requests")
 router.register(r"member-certificate-requests", MemberCertificateRequestViewSet, basename="member-certificate-requests")
+router.register(r"register-people", RegisterPersonViewSet, basename="register-people")
 router.register(r"register-paid-issues", RegisterPaidIssueViewSet, basename="register-paid-issues")
 router.register(r"register-pause-changes", RegisterPauseChangeViewSet, basename="register-pause-changes")
 router.register(r"register-capital-increases", RegisterCapitalIncreaseViewSet, basename="register-capital-increases")

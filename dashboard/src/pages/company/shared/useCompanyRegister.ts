@@ -4,6 +4,7 @@ import {
   downloadTokenRegister,
   getCompanyTokenHolders,
   getRegisterClasses,
+  hasCurrentRegisterReadAuthority,
   readEveryPage,
   useSubmissionOwner,
   type OrderSubmissionOwner,
@@ -11,6 +12,7 @@ import {
 import apiClient from '@services/apiClient';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { saveFile } from '@utils/saveFile';
+import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 export function registerClassesKey(owner: OrderSubmissionOwner) {
   return [...registerKey(owner), 'classes'];
@@ -63,18 +65,46 @@ export function useCompanyRegister(
   owner: OrderSubmissionOwner,
   guard: () => void,
   retained?: { company: { uuid: string; name: string }; tokens: string[] },
+  includeEmptyCompanies = false,
 ) {
   const [selected, setSelected] = useState('');
   const classes = useRegisterClasses(owner, guard);
   const listed = classes.data ?? [];
-  const companies = [...new Map(listed.map((item) => [item.companyUuid, item.companyName])).entries()].map(
-    ([uuid, name]) => ({ uuid, name }),
-  );
+  const appointments = useOwnAppointments(owner, guard, { enabled: includeEmptyCompanies });
+  const extra =
+    includeEmptyCompanies && appointments.isSuccess
+      ? appointments.data
+          .filter((item) => hasCurrentRegisterReadAuthority([item], item.company))
+          .map((item) => [item.company, item.companyName] as const)
+      : [];
+  const companies = [
+    ...new Map([...listed.map((item) => [item.companyUuid, item.companyName] as const), ...extra]).entries(),
+  ].map(([uuid, name]) => ({ uuid, name }));
   const company =
     retained?.company ?? (companies.length === 1 ? companies[0] : companies.find(({ uuid }) => uuid === selected));
   const uuids = retained?.tokens ?? listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
-  const registers = useQuery(registersQuery(owner, uuids, guard));
-  return { classes, companies, company, selectCompany: setSelected, registers };
+  const empty = includeEmptyCompanies && !!company && uuids.length === 0;
+  const registers = useQuery({
+    ...registersQuery(owner, uuids, guard),
+    ...(empty
+      ? {
+          queryKey: [...registerHoldersKey(owner), 'empty', company.uuid],
+          enabled: true,
+          queryFn: async () => {
+            guard();
+            return [];
+          },
+        }
+      : {}),
+  });
+  return {
+    classes,
+    companies,
+    company,
+    selectCompany: setSelected,
+    registers,
+    companyAppointments: appointments,
+  };
 }
 
 export function useRegisterDownload(uuid: string, symbol: string | undefined) {

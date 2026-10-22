@@ -21,6 +21,7 @@ from tokens.models import (
     RegisterMemberParticulars,
     RegisterParticularsChange,
     RegisterParticularsChangeDecision,
+    RegisterPersonRegistration,
     RegisterPosition,
 )
 from tokens.services.former_holders import member_left_on, retention_cutoff
@@ -66,6 +67,8 @@ def _company_of(actor, member_id):
 def _beyond_retention(member_id):
     positions = RegisterPosition.objects.filter(member_id=member_id)
     if positions.filter(shares__gt=0).exists() or RegisterAward.objects.filter(member=member_id).exists():
+        return False
+    if not positions.exists() and RegisterPersonRegistration.objects.filter(member_id=member_id).exists():
         return False
     left_on = member_left_on(member_id)
     return left_on is None or left_on < retention_cutoff()
@@ -234,6 +237,7 @@ def _details(change):
                 "source_transfer": held.source_transfer_id,
                 "source_allotment": held.source_allotment_id,
                 "source_award": held.source_award_id,
+                "source_registration": held.source_registration_id,
             }
         ),
     }
@@ -263,6 +267,7 @@ def _apply(change, actor, decision):
             "source_allotment": None,
             "source_transfer": None,
             "source_award": None,
+            "source_registration": None,
             "source_change": change,
         },
     )

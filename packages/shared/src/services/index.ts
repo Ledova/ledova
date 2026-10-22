@@ -196,6 +196,7 @@ export * from './register-paid-issues';
 export * from './register-allotments';
 
 export * from './member-access';
+export * from './register-people';
 
 export {
   listDocuments,
