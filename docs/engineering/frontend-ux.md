@@ -79,7 +79,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
   independently through `useOpenRows` from `@ledova/shared`), Activity's filter and Wallets' sort
   hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
-  so unfinished input survives, and may start open, as a prepared register record does. The
+  so unfinished input survives. Saved issue and transfer records start with their details closed. The
   sidebar's Ledger caret is a separate navigation-group button; More keeps its native toggle.
   Activity's filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
   naming what it applies; applying or clearing closes it and every open entry and returns focus to
@@ -101,7 +101,10 @@ in a right-aligned footer after secondary actions. Name a preview-opening action
 such as **Review and approve**; opening it is not approval. The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
-Issue shares follows this pattern. Hide a successfully read empty family when another has records,
+Issue shares and Transfer shares follow this pattern. Transfer records keep the two people, share
+count, company date and stage visible; full particulars, terms, history and downloads open under
+Details and documents. Emphasise the review for the current stage; transfer approval and application
+remain separate decisions. Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 
 For a substantial record review, replace the collection and its creation action with a focused review

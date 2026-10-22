@@ -410,7 +410,10 @@ account, payment, application or chain transaction.
    give the authority reference and reason, and attach the authority document. **Prepare transfer**
    saves the proposal; it moves no shares. Back and Continue keep the draft fields and selected
    files without saving or uploading.
-5. Approve, then Apply; these remain separate transfer decisions.
+5. The saved record shows the people, shares, company date and stage, with **Details and documents**
+   available on demand. **Review and approve** opens the approval preview; then Apply records the
+   approved transfer. Approval and application remain separate transfer decisions. The preparation
+   action sits below the saved records.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the

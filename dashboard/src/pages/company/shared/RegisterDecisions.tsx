@@ -42,6 +42,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   visible = true,
   onHeldChange,
   recordActions = false,
+  primaryAction,
   approveLabel,
   pageReview,
   formatError = (message) => message,
@@ -61,6 +62,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   recordActions?: boolean;
+  primaryAction?: RegisterDecisionKind;
   approveLabel?: string;
   pageReview?: {
     target: HTMLElement | null;
@@ -157,10 +159,14 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   }, [onHeldChange, proposal.uuid, held]);
   const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? KINDS : ['reject'];
   const available = proposal.status === 'submitted' ? kinds.filter((kind) => steps[kind]) : [];
+  const primaryKind = primaryAction ?? (available.includes('apply') ? 'apply' : 'approve');
   const actionKinds = recordActions
-    ? [...available.filter((kind) => kind === 'reject'), ...available.filter((kind) => kind !== 'reject')]
+    ? [
+        ...available.filter((kind) => kind === 'reject' && kind !== primaryKind),
+        ...available.filter((kind) => kind !== 'reject' && kind !== primaryKind),
+        ...available.filter((kind) => kind === primaryKind),
+      ]
     : available;
-  const primaryKind = available.includes('apply') ? 'apply' : 'approve';
   const target = decision?.target;
   const preview = target?.preview;
   const current = !!active && !!target && steps[active]?.uuid === target.request.appointment;

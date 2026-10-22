@@ -11,6 +11,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
+import { PageLink } from '@components/Page';
 
 import { TransferRecord } from './TransferRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -89,9 +90,6 @@ export function ClassTransfers({
           label={pageTitle(register.token.status === 'draft' ? 'companyRegisterImport' : 'companyClass')}
         />
       )}
-      {privateReady && steps?.prepare && supported && (
-        <LinkRow to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })} label={COPY.PREPARE} />
-      )}
       {appointments.isError && (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.
@@ -124,6 +122,14 @@ export function ClassTransfers({
           />
         ))}
       </ul>
+      {privateReady && steps?.prepare && supported && (
+        <div className="flex flex-wrap justify-end gap-2">
+          <PageLink
+            to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })}
+            label={COPY.PREPARE}
+          />
+        </div>
+      )}
     </div>
   );
 }
