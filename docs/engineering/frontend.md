@@ -309,7 +309,8 @@ refused row.
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
 `companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
 `#documents`, `/home#documents`). Ledger's label opens its overview; a separate caret expands
-Issue shares (`#issue`), Transfer shares (`#transfer`) and History (`#history`), marking the active
+Issue shares (`#issue`), Transfer shares (`#transfer`), History (`#history`) and Corrections
+(`#corrections`), marking the active
 child and opening the group on Ledger routes. Shareholders, ESS and Documents stay siblings. Its
 company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
