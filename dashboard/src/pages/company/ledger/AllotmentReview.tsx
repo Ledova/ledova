@@ -56,7 +56,7 @@ export function AllotmentReview({
               </Row>
             </Rows>
           )}
-          <AllotmentOwnership preview={preview} heading={false} summary={false} />
+          <AllotmentOwnership preview={preview} />
         </Section>
       )}
       <Section title="Company records">

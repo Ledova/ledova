@@ -1,23 +1,14 @@
 import {
   allotmentOwnershipImpact,
-  formatShareCount,
   REGISTER_ALLOTMENT_COPY as COPY,
   type RegisterAllotmentDecisionPreview,
   shareCount,
   shortReference,
 } from '@ledova/shared';
-import { Row, Rows, Disclosure } from '@components/Ledger';
+import { Disclosure } from '@components/Ledger';
 import { Table } from '@components/List';
 
-export function AllotmentOwnership({
-  preview,
-  heading = true,
-  summary = true,
-}: {
-  preview: RegisterAllotmentDecisionPreview;
-  heading?: boolean;
-  summary?: boolean;
-}) {
+export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDecisionPreview }) {
   const impact = allotmentOwnershipImpact(preview);
   if (!impact)
     return (
@@ -55,18 +46,6 @@ export function AllotmentOwnership({
   );
   return (
     <section className="space-y-3" aria-label={COPY.OWNERSHIP_TITLE}>
-      {heading && <h3 className="text-base font-medium">{COPY.OWNERSHIP_TITLE}</h3>}
-      {summary && (
-        <Rows>
-          <Row label="Share class">
-            {preview.className} ({preview.classCode})
-          </Row>
-          <Row label={COPY.UNIT_PRICE}>{impact.unitPrice}</Row>
-          <Row label="Issued shares">
-            {formatShareCount(impact.beforeIssuedSupply)} → {formatShareCount(impact.afterIssuedSupply)}
-          </Row>
-        </Rows>
-      )}
       {table(impact.rows.length > 5 ? impact.rows.slice(0, 1) : impact.rows, 'Share class ownership forecast')}
       {impact.rows.length > 5 && (
         <Disclosure summary={`Other shareholders (${impact.rows.length - 1})`}>

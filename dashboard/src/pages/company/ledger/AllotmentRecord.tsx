@@ -6,7 +6,6 @@ import {
   formatDateTime,
   type RegisterDecisionKind,
   type RegisterAllotment,
-  type RegisterAllotmentDecisionPreview,
   shareCount,
   formatMoney,
   formatDate,
@@ -18,12 +17,11 @@ import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
-import { AllotmentOwnership } from './AllotmentOwnership';
 import { AllotmentReview } from './AllotmentReview';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
 
-function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterAllotmentDecisionPreview }) {
+function AllotmentRows({ allotment }: { allotment: RegisterAllotment }) {
   return (
     <Rows>
       <Row label="Investor/member">{allotment.name}</Row>
@@ -70,15 +68,15 @@ export function AllotmentRecord({
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   focusKey?: string;
-  reviewTarget?: HTMLElement | null;
-  onReviewChange?: (uuid: string, open: boolean) => void;
+  reviewTarget: HTMLElement | null;
+  onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const download = useAllotmentRecordDownload(allotment, guard);
   const context = `allotment for ${allotment.name} prepared ${formatDateTime(allotment.createdAt)}`;
   const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
   const decisionSteps = allotment.stage === 'submitted' ? { ...steps, apply: undefined } : steps;
   const reviewChanged = useCallback(
-    (open: boolean) => onReviewChange?.(allotment.uuid, open),
+    (open: boolean) => onReviewChange(allotment.uuid, open),
     [allotment.uuid, onReviewChange],
   );
   const documentsView = (
@@ -161,40 +159,20 @@ export function AllotmentRecord({
         onRefused={onSettled}
         visible={visible}
         onHeldChange={onHeldChange}
-        pageReview={
-          onReviewChange
-            ? {
-                target: reviewTarget ?? null,
-                onChange: reviewChanged,
-                title: 'Review share issue',
-                labels: { approve: 'Approve allotment', apply: 'Record issue', reject: 'Reject allotment' },
-              }
-            : undefined
-        }
-        note={(kind, preview) =>
-          !onReviewChange && kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry ? (
-            <AllotmentOwnership preview={preview} />
-          ) : null
-        }
+        pageReview={{
+          target: reviewTarget,
+          onChange: reviewChanged,
+          title: 'Review share issue',
+          labels: { approve: 'Approve allotment', apply: 'Record issue', reject: 'Reject allotment' },
+        }}
       >
-        {(preview, kind) =>
-          onReviewChange ? (
-            <AllotmentReview
-              preview={preview}
-              documents={documentsView}
-              showOwnership={kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry}
-            />
-          ) : (
-            <>
-              <AllotmentRows allotment={preview} />
-              <p className="text-sm text-text-muted">{COPY.EFFECTIVE_NOTE}</p>
-              <Rows>
-                <Row label="Register sequence">{preview.registerSequence}</Row>
-                <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
-              </Rows>
-            </>
-          )
-        }
+        {(preview, kind) => (
+          <AllotmentReview
+            preview={preview}
+            documents={documentsView}
+            showOwnership={kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry}
+          />
+        )}
       </RegisterDecisions>
     </RecordShell>
   );
