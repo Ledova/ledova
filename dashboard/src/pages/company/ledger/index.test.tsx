@@ -8,6 +8,7 @@ import {
   type RegisterImport,
   type RegisterImportPreparation,
   type RegisterEntry,
+  type RegisterCorrection,
   type RegisterDecideRequest,
   REGISTER_COPY,
   REGISTER_PARTICULARS_COPY,
@@ -245,7 +246,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByRole('heading', { level: 1, name: 'Shareholders' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Current shareholders' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Member access and requests' })).toBeTruthy();
-  for (const name of ['Issue shares', 'Transfer shares', 'History'])
+  for (const name of ['Issue shares', 'Transfer shares', 'History', 'Corrections'])
     expect(screen.queryByRole('button', { name })).toBeNull();
   const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;
   expect(within(formerSection).getByRole('heading', { name: /^Ordinary shares ·/ })).toBeTruthy();
@@ -1307,6 +1308,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let interruptNextApply = false;
   let proposal: RegisterImport | undefined;
   let historyEntries: RegisterEntry[] = [];
+  let historyCorrections: RegisterCorrection[] = [];
   let pauseHistory = false;
   let releaseHistory!: () => void;
   const attachment = new File(['%PDF-1.4 synthetic certificate'], 'share-certificate.pdf', { type: 'application/pdf' });
@@ -1382,6 +1384,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       return { data: { members: companyMembers, awardRecipients: [] } };
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
+    if (url === CORRECTIONS) return dataPage(historyCorrections);
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)) {
       if (pauseHistory)
         return new Promise((resolve) => {
@@ -1864,7 +1867,40 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       ],
       corrects: null,
       correctedBy: null,
-      correctable: false,
+      correctable: true,
+    },
+  ];
+  appointment = { ...appointment, capabilities: ['prepare', 'approve', 'apply'] };
+  historyCorrections = [
+    {
+      uuid: 'retained-correction',
+      company: company.uuid,
+      register: token.uuid,
+      corrects: 'transfer-entry',
+      effectiveOn: '2026-10-22',
+      createdAt: '2026-10-22T01:00:00Z',
+      changes: historyEntries[0].changes.map(({ member, shares }) => ({ member, shares: String(-BigInt(shares)) })),
+      authority: 'director_resolution',
+      approvingDirector: 'Example Director',
+      authorityReference: 'Correction instruction',
+      authorityEvidence: 'retained-authority',
+      reason: 'Retained correction reason',
+      preparingAppointment: appointment.uuid,
+      preparedByName: 'Example Director',
+      providedBy: 'company',
+      status: 'submitted',
+      stage: 'submitted',
+      decisions: [],
+      baseHash: 'a'.repeat(64),
+      baseSequence: 3,
+      appliedEntry: null,
+      evidenceFingerprint: 'b'.repeat(64),
+      evidenceSnapshot: {},
+      sourceDocument: null,
+      rejectionReason: '',
+      reviewedAt: null,
+      reviewedBy: null,
+      submittedBy: 1,
     },
   ];
   cleanup();
@@ -1874,6 +1910,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     <>
       <CompanyRegisterPage />
       <Link to="/#transfer">Transfer shares</Link>
+      <Link to="/#documents">Open Documents</Link>
+      <Link to="/#history">Open History</Link>
+      <Link to="/#corrections">Open Corrections</Link>
     </>,
     'Ledger',
     { entry: '/#history' },
@@ -1891,17 +1930,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(entryDetails);
   expect(within(transferEntry).getByText('Ledger date')).toBeTruthy();
   expect(within(transferEntry).getByText(formatDate('2026-10-21'))).toBeTruthy();
-  fireEvent.click(within(transferEntry).getByRole('button', { name: 'Prepare unsigned certificate (entry 3)' }));
-  fireEvent.change(within(transferEntry).getByLabelText('Instruction reference'), {
-    target: { value: 'Retained certificate draft' },
-  });
-  fireEvent.click(entryDetails);
-  expect(entryDetails.getAttribute('aria-expanded')).toBe('false');
-  fireEvent.click(entryDetails);
-  expect((within(transferEntry).getByLabelText('Instruction reference') as HTMLInputElement).value).toBe(
-    'Retained certificate draft',
-  );
-  fireEvent.click(entryDetails);
+  expect(screen.queryByRole('button', { name: /Prepare unsigned certificate/ })).toBeNull();
+  expect(screen.queryByRole('link', { name: /^Correct this entry/ })).toBeNull();
+  expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Approve|Apply|Acknowledge/ })).toBeNull();
+  fireEvent.click(await screen.findByRole('button', { name: /^Correction of entry 3/ }));
+  expect(screen.getByText('Retained correction reason')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
   const beforeHistoryRead = api.post.mock.calls.length;
   pauseHistory = true;
   let refreshingHistory!: Promise<void>;
@@ -1909,14 +1944,39 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     refreshingHistory = client.refetchQueries({ predicate: (query) => query.queryKey.includes('entries') });
   });
   await waitFor(() => expect(releaseHistory).toBeTypeOf('function'));
-  expect(screen.queryByText('Taylor Demo: +100')).toBeNull();
   expect(screen.queryByRole('button', { name: /^Details for entry 3:/ })).toBeNull();
   await act(async () => {
     pauseHistory = false;
     releaseHistory();
     await refreshingHistory;
   });
-  expect(await screen.findByText('Taylor Demo: +100')).toBeTruthy();
+  expect(await screen.findByRole('button', { name: /^Details for entry 3:/ })).toBeTruthy();
+  expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
+  fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
+  const certificateDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
+  const certificateEntry = certificateDetails.closest('li')!;
+  fireEvent.click(certificateDetails);
+  expect(within(certificateEntry).queryByRole('link', { name: /^Correct this entry/ })).toBeNull();
+  fireEvent.click(within(certificateEntry).getByRole('button', { name: 'Prepare unsigned certificate (entry 3)' }));
+  fireEvent.change(within(certificateEntry).getByLabelText('Instruction reference'), {
+    target: { value: 'Retained certificate draft' },
+  });
+  fireEvent.click(certificateDetails);
+  expect(certificateDetails.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(certificateDetails);
+  expect((within(certificateEntry).getByLabelText('Instruction reference') as HTMLInputElement).value).toBe(
+    'Retained certificate draft',
+  );
+  fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
+  const correctionDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
+  fireEvent.click(correctionDetails);
+  expect(within(correctionDetails.closest('li')!).getByRole('link', { name: /^Correct this entry/ })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Prepare unsigned certificate/ })).toBeNull();
+  expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Approve (correction of entry 3)' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: 'Open History' }));
+  expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
+  expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   const copiedSummary = await screen.findByRole('button', { name: /^Copied opening ·/ });
   expect(copiedSummary.getAttribute('aria-expanded')).toBe('false');

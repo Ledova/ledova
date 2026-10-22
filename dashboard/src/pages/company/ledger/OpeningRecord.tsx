@@ -30,6 +30,7 @@ export function OpeningRecord({
   onDecided,
   onRefused,
   visible = true,
+  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -39,9 +40,11 @@ export function OpeningRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
+  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
+  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useOpeningRecordDownload(proposal, check);
   const summary = proposal.boundarySummary;
   const holdings = summary ? largestHoldingsFirst(summary.holdings) : [];
@@ -52,7 +55,7 @@ export function OpeningRecord({
       {visible && (
         <Disclosure
           summary={`Chain opening · ${formatDateTime(proposal.createdAt)} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}
-          defaultOpen={proposal.status === 'submitted'}
+          defaultOpen={!readOnly && proposal.status === 'submitted'}
         >
           <Rows>
             <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
@@ -117,8 +120,8 @@ export function OpeningRecord({
         proposal={proposal}
         steps={steps}
         guard={guard}
-        newEffectGuard={check}
-        visible={visible}
+        newEffectGuard={decide}
+        visible={visible && !readOnly}
         onHeldChange={onHeldChange}
         context={context}
         onDecided={onDecided}

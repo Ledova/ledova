@@ -51,7 +51,7 @@ expansion tickets were [closed as not planned on 18 October](../../decisions.md#
 | [#1169](https://github.com/Ledova/ledova/issues/1169)                                                                                                               | Award recipients as person records from their first award, chosen and corrected like any member before shares are issued (web)                     |
 | [#1185](https://github.com/Ledova/ledova/issues/1185)                                                                                                               | ESS in the web sidebar, Employee share scheme as the page title                                                                                   |
 | [#1215](https://github.com/Ledova/ledova/issues/1215)                                                                                                               | Initial Class rights text records and document references, with retained revisions and company-administrator editing (web); refined under #1165    |
-| [#1165](https://github.com/Ledova/ledova/issues/1165)                                                                                                               | Ledger routes and class details with structured Class rights, additional terms and class-linked documents; simpler manual setup; technical workflows on demand (web) |
+| [#1165](https://github.com/Ledova/ledova/issues/1165)                                                                                                               | Ledger routes and Class rights; simpler setup; read-only History, maintenance in Corrections and certificate preparation in Documents (web) |
 
 ## Remaining scope
 

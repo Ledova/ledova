@@ -194,7 +194,7 @@ contract it is the opening, creating the members, the Opening state entry and th
 together; for a class opened from the chain it adds particulars and former members from before
 Ledova, and its holdings must match the stored register. On the web:
 
-1. On Ledger, choose **Add share class**; or choose History, the class, then Bring records
+1. On Ledger, choose **Add share class**; or choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
    class not yet set up. Share classes are created only through register setup, in Ledger on the
    web and Register on mobile.
@@ -293,8 +293,8 @@ agreement or receipt evidence. Mobile attachment entry is deferred.
 
 ### Correcting the copied opening
 
-In History, under Opening records, choose Correct copied opening to replace the latest applied
-import's shareholder rows in full, in the same forms and keeping each member ID, with a current
+In Ledger's Corrections view, under Opening records, choose Correct copied opening to replace the
+latest applied import's shareholder rows in full, in the same forms and keeping each member ID, with a current
 source and a reason. Applying keeps the earlier snapshot, decisions and opening entry, adds a Copied
 opening correction entry for the exact difference (none when only particulars change) and records
 the new particulars. It is refused once the class has later share activity, a deployment, or
@@ -307,8 +307,8 @@ A deployed or paused class whose register has no entry is opened from the chain 
 wallet holding shares at one block, the boundary, to a company member. Nothing is typed and no
 particulars are stored; a later import adds them.
 
-1. In History, under Openings, choose Open this ledger. The page reads the holdings on
-   chain, largest first, or says the chain cannot be read.
+1. In Ledger's Corrections view, under Openings, choose Open this ledger. The page reads the
+   holdings on chain, largest first, or says the chain cannot be read.
 2. Assign each address to a member: a linked address keeps its member, others go to an existing or
    new member, and several can share one.
 3. Upload the authority document, choose Director resolution (naming the director) or Court order,
@@ -334,7 +334,7 @@ A correction exactly reverses one entry, which stays and is named by it. An entr
 once, and a correction can itself be corrected; partial corrections and replacement transactions are
 not built.
 
-1. In History, expand the entry under Changes and choose Correct this entry,
+1. In Ledger's Corrections view, expand the entry and choose Correct this entry,
    which shows the exact inverse.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
@@ -373,8 +373,8 @@ which member owns it: a new subscriber's, a first-time buyer's or another of an 
 wallets. A [chain grant](issuing-shares.md#non-paid-chain-grants) links its nominated wallet the
 same way before minting.
 
-1. Choose Link waiting wallets under Wallet links in History. Only waiting wallets are listed, each
-   with the number of issues or transfers waiting for it.
+1. Choose Link waiting wallets under Wallet links in Ledger's Corrections view. Only waiting
+   wallets are listed, each with the number of issues or transfers waiting for it.
 2. Each wallet starts as its own new member; choose the existing or new member who owns it, the same
    one for one person's wallets. For a whitelisted wallet the page shows, for information only,
    whether its holder proved control on Ledova and their name. A choice resets, with a notice, only
@@ -538,8 +538,9 @@ acknowledged once the cause is understood.
 ### Acknowledging a discrepancy
 
 Once the company has investigated and accepted a discrepancy, someone whose appointment holds
-administration or approve chooses Acknowledge on its row in the class's latest reconciliation, with
-a reason of up to 1,000 characters; there is no staff step or second person. Only the latest
+administration or approve opens Ledger's Corrections view and chooses Acknowledge on its row in
+the class's latest reconciliation, with a reason of up to 1,000 characters; there is no staff step
+or second person. Only the latest
 reconciliation can be acknowledged (for an older one, wait for the next run); attribution and
 missing-transfer rows cannot be, and a row is acknowledged once.
 
@@ -557,8 +558,8 @@ mobile destination remains Register. Ledger is open to every signed-in account a
 registers of companies the person owns or where their appointment includes register access. With
 none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
 selector appears when several companies are readable. Ledger's sidebar label opens the share-class
-overview; its separate caret expands Issue shares, Transfer shares and History. Shareholders, ESS
-and Documents remain beside Ledger. These are views of one page, so switching between them keeps
+overview; its separate caret expands Issue shares, Transfer shares, History and Corrections.
+Shareholders, ESS and Documents remain beside Ledger. These are views of one page, so switching between them keeps
 unfinished forms and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
 company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
@@ -571,26 +572,28 @@ The Ledger view shows:
 - **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-Ledger's three sidebar sub-items each open their own focused view, with a shared share-class
+Ledger's four sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the overview cards: Issue shares
 ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
-([non-paid transfers](#non-paid-transfers-between-members)) and History.
+([non-paid transfers](#non-paid-transfers-between-members)), History and Corrections.
 
 History starts with a full-width Changes card, newest entries first, with compact rows aligned under
 Change, Date and Share movements. On smaller screens, the kind and date sit above the movements.
 Each entry shows its company date for an issue or transfer (ledger effective date for other kinds),
 and its first two signed shareholder movements plus a count of the rest. Select the row to expand
 its initially closed details: the full movement list, entry number, separate company, ledger and
-recording dates, correction or reversal references, and permitted correction and unsigned-certificate
-actions.
-An older issue or transfer with no company date says Date not recorded in its summary and Not
-recorded in its details. Source imports follow under Opening records, distinct from the changes they
-produced; chain Openings, Corrections, Reconciliation with the chain, the company's Particulars
-changes and Wallet links remain available separately.
+recording dates, and correction or reversal references. An older issue or transfer with no company
+date says Date not recorded in its summary and Not
+recorded in its details. Retained source imports, chain openings, corrections, reconciliation,
+particulars and wallet-link records remain available on demand, with permitted evidence downloads.
+History has no preparation, approval, correction or acknowledgement forms. Certificates are prepared
+in [Documents](member-records.md#preparing-a-certificate).
 
-These supporting records open on demand to their snapshot, documents and decision trail; a prepared
-record starts open. Stages read Prepared,
-Approved, Applied or Rejected (for an import, Reviewed and Confirmed), and evidence reads as
+Corrections holds the existing append-only correction and maintenance workflows: source opening
+corrections, chain openings, reconciliation acknowledgements, particulars and wallet links. Their
+supporting records open on demand to their snapshot, documents and decision trail; a prepared record
+starts open. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
+Confirmed), and evidence reads as
 provided by the company or, before the work became company-run, "Verified by Ledova staff". A
 section that read successfully with nothing to show is left out, but a class on chain without a
 reconciliation says so. An unfinished request keeps its class and exact request, and while one is
@@ -613,7 +616,7 @@ Details is unavailable, so the work and its recovery stay on the page.
 The Employee share scheme view, ESS in the sidebar, holds each class's
 [awards](issuing-shares.md#employee-awards-and-vesting),
 each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
-inspection copy and the company pack.
+inspection copy, unsigned certificate preparation and the company pack.
 
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.

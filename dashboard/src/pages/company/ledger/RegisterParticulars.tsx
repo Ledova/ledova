@@ -27,6 +27,7 @@ export function RegisterParticulars({
   company,
   registers,
   visible = true,
+  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -35,6 +36,7 @@ export function RegisterParticulars({
   company: string;
   registers: TokenHoldersResponse[];
   visible?: boolean;
+  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
@@ -101,6 +103,7 @@ export function RegisterParticulars({
             landed={landed?.record === change.uuid ? landed : undefined}
             change={change}
             visible={privateReady}
+            readOnly={readOnly}
             onHeldChange={onHeldChange}
             member={nameOf(change.member)}
             steps={steps ?? {}}

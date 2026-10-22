@@ -212,7 +212,7 @@ export function useLinkPreparation({
       check();
       await client.invalidateQueries({ queryKey: linksKey(owner, company) });
       check();
-      const place = registerPlace({ company, task: 'history', record: prepared, outcome: 'Wallet link prepared.' });
+      const place = registerPlace({ company, task: 'corrections', record: prepared, outcome: 'Wallet link prepared.' });
       navigate(place.to, { state: place.state });
     } catch (failure) {
       try {

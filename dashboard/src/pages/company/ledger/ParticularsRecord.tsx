@@ -45,6 +45,7 @@ export function ParticularsRecord({
   onDecided,
   onRefused,
   visible = true,
+  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -55,9 +56,11 @@ export function ParticularsRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
+  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
+  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useParticularsRecordDownload(change, check);
   const context = `change for ${member} prepared ${formatDateTime(change.createdAt)}`;
   return (
@@ -65,7 +68,7 @@ export function ParticularsRecord({
       {visible && (
         <Disclosure
           summary={`${member} · ${COPY.STAGES[change.stage] ?? change.stage}`}
-          defaultOpen={change.status === 'submitted'}
+          defaultOpen={!readOnly && change.status === 'submitted'}
         >
           <Rows>
             <Row label={COPY.MEMBER}>{member}</Row>
@@ -98,8 +101,8 @@ export function ParticularsRecord({
         proposal={change}
         steps={steps}
         guard={guard}
-        newEffectGuard={check}
-        visible={visible}
+        newEffectGuard={decide}
+        visible={visible && !readOnly}
         onHeldChange={onHeldChange}
         context={context}
         onDecided={onDecided}

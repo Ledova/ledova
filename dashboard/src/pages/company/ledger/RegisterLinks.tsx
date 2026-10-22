@@ -32,6 +32,7 @@ export function RegisterLinks({
   company,
   registers,
   visible = true,
+  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -40,6 +41,7 @@ export function RegisterLinks({
   company: string;
   registers: TokenHoldersResponse[];
   visible?: boolean;
+  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
@@ -54,7 +56,7 @@ export function RegisterLinks({
     appointments.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
   const waiting = useWaitingWallets(owner, company, guard, {
-    enabled: !!steps?.prepare,
+    enabled: !readOnly && !!steps?.prepare,
     onMissing: () => void appointments.refetch(),
   });
   const holders = registers.flatMap((register) => register.holders);
@@ -78,7 +80,7 @@ export function RegisterLinks({
   if (
     links.isSuccess &&
     links.data.length === 0 &&
-    (!steps?.prepare || (waiting.isSuccess && waiting.data.length === 0))
+    (readOnly || !steps?.prepare || (waiting.isSuccess && waiting.data.length === 0))
   )
     return null;
   return (
@@ -90,7 +92,8 @@ export function RegisterLinks({
       ) : (
         steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
-      {visible &&
+      {!readOnly &&
+        visible &&
         appointments.fetchStatus === 'idle' &&
         steps?.prepare &&
         (waiting.isError ? (
@@ -122,6 +125,7 @@ export function RegisterLinks({
             landed={landed?.record === link.uuid ? landed : undefined}
             link={link}
             visible={privateReady}
+            readOnly={readOnly}
             onHeldChange={onHeldChange}
             holders={holders}
             steps={steps ?? {}}

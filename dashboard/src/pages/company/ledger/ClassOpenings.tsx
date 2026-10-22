@@ -27,6 +27,7 @@ export function ClassOpenings({
   register,
   company,
   visible = true,
+  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -35,6 +36,7 @@ export function ClassOpenings({
   register: TokenHoldersResponse;
   company: string;
   visible?: boolean;
+  readOnly?: boolean;
   onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
@@ -75,7 +77,7 @@ export function ClassOpenings({
       ) : (
         steps && !Object.values(steps).some(Boolean) && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
-      {privateReady && steps?.prepare && !register.initialized && (
+      {!readOnly && privateReady && steps?.prepare && !register.initialized && (
         <div className="border-b border-border-subtle">
           <LinkRow
             to={generatePath(DESTINATIONS.companyRegisterOpening.path, { uuid: token })}
@@ -99,6 +101,7 @@ export function ClassOpenings({
             landed={landed?.record === proposal.uuid ? landed : undefined}
             proposal={proposal}
             visible={privateReady}
+            readOnly={readOnly}
             onHeldChange={recordHeld}
             steps={steps ?? {}}
             guard={guard}

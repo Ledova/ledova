@@ -205,6 +205,7 @@ it('preserves original preparation and combined approval recovery through refres
   const investorTask = await screen.findByRole('link', { name: 'Issue shares' });
   const transferTask = screen.getByRole('link', { name: 'Transfer shares' });
   const historyTask = screen.getByRole('link', { name: 'History' });
+  const correctionsTask = screen.getByRole('link', { name: 'Corrections' });
   await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
   fireEvent.click(investorTask);
   expect(await screen.findByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
@@ -335,6 +336,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(investorTask.getAttribute('aria-disabled')).toBe('true');
   expect(transferTask.getAttribute('aria-disabled')).toBe('true');
   expect(historyTask.getAttribute('aria-disabled')).toBe('true');
+  expect(correctionsTask.getAttribute('aria-disabled')).toBe('true');
   const preparedAllotment = rows[0];
   rows = [{ ...preparedAllotment, companyEventOn: null }];
   const originalReads = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT(rows[0].uuid)).length;
@@ -442,6 +444,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(taskClass().disabled).toBe(true);
   expect(transferTask.getAttribute('aria-disabled')).toBe('true');
   expect(historyTask.getAttribute('aria-disabled')).toBe('true');
+  expect(correctionsTask.getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(transferTask);
   expect(taskClass().value).toBe(REGISTER.token.uuid);
   expect(allotments.getByRole('button', { name: /^Recover approve receipt/ })).toBeTruthy();
@@ -550,6 +553,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(rows[0].decisions).toHaveLength(2);
   await waitFor(() => expect(taskClass().disabled).toBe(false));
   await waitFor(() => expect(historyTask.getAttribute('aria-disabled')).toBeNull());
+  expect(correctionsTask.getAttribute('aria-disabled')).toBeNull();
   fireEvent.click(historyTask);
   fireEvent.change(taskClass(), { target: { value: preference.token.uuid } });
   expect(

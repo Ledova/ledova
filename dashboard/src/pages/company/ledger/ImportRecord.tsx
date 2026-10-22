@@ -73,6 +73,7 @@ export function ImportRecord({
   onDecided,
   onRefused,
   visible = true,
+  readOnly = false,
   onHeldChange,
 }: {
   proposal: RegisterImport;
@@ -81,9 +82,11 @@ export function ImportRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
+  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
+  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useImportRecordDownload(proposal, check);
   const totals = registerImportTotals(proposal.members);
   return (
@@ -91,7 +94,7 @@ export function ImportRecord({
       {visible && (
         <Disclosure
           summary={`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}
-          defaultOpen={proposal.status === 'submitted'}
+          defaultOpen={!readOnly && proposal.status === 'submitted'}
         >
           <Rows>
             <RecordStage stage={proposal.stage}>
@@ -160,8 +163,8 @@ export function ImportRecord({
         proposal={proposal}
         steps={steps}
         guard={guard}
-        newEffectGuard={check}
-        visible={visible}
+        newEffectGuard={decide}
+        visible={visible && !readOnly}
         onHeldChange={onHeldChange}
         onDecided={onDecided}
         onRefused={onRefused}

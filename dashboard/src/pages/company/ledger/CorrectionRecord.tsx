@@ -21,6 +21,7 @@ export function CorrectionRecord({
   onDecided,
   onRefused,
   visible = true,
+  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -30,9 +31,11 @@ export function CorrectionRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
+  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
+  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useCorrectionRecordDownload(proposal, check);
   const context = `correction of entry ${entry.sequence}`;
   return (
@@ -40,7 +43,7 @@ export function CorrectionRecord({
       {visible && (
         <Disclosure
           summary={`Correction of entry ${entry.sequence} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}
-          defaultOpen={proposal.status === 'submitted'}
+          defaultOpen={!readOnly && proposal.status === 'submitted'}
         >
           <Rows>
             <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
@@ -84,8 +87,8 @@ export function CorrectionRecord({
         proposal={proposal}
         steps={steps}
         guard={guard}
-        newEffectGuard={check}
-        visible={visible}
+        newEffectGuard={decide}
+        visible={visible && !readOnly}
         onHeldChange={onHeldChange}
         context={context}
         onDecided={onDecided}

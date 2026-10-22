@@ -229,7 +229,7 @@ export function useOpeningPreparation({
       const place = registerPlace({
         company,
         token,
-        task: 'history',
+        task: 'corrections',
         record: prepared,
         outcome: 'Ledger opening prepared.',
       });

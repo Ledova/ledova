@@ -629,7 +629,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Personal dashboard: reads the person's own member projection; the first own class's history loads
   when a member record opens, and choosing another class reads that class's own entries.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
-  Ledger overview, Issue shares, Transfer shares, History, Shareholders (with member access),
+  Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders (with member access),
   Employee share scheme (ESS) and Documents views by hash.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
@@ -639,7 +639,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   controllers mounted, merely hidden, so changing view, task or class (the Share class selector)
   keeps an unfinished request with its class, payload and retry key. Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
-  their task, class and any record (`allotments/`, `transfer/`, `history/`, `awards/`, `grants/`;
+  their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
   scope, disables the company and class selectors and other sidebar tasks, and pins held task
   work to its task and class. The held task's sidebar link remains available from a sibling view
@@ -650,8 +650,9 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   (or the class's company), class and task hash and focuses that class; with a record it focuses that
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
   Shareholders.
-  History records are disclosures with a one-line summary, their detail and certificate control
-  shown on demand; a section whose read succeeded empty is omitted, while a failed read keeps its
+  History shows recorded entries and retained supporting records with read-only detail and permitted
+  downloads on demand. Corrections holds their maintenance actions; Documents holds certificate
+  preparation. A section whose read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.

@@ -131,7 +131,7 @@ function OwnOpening({
       </>
     );
   return (
-    <Page narrow lede={LEDE} back={registerPlace({ token: uuid, task: 'history' })}>
+    <Page narrow lede={LEDE} back={registerPlace({ token: uuid, task: 'corrections' })}>
       {content}
     </Page>
   );

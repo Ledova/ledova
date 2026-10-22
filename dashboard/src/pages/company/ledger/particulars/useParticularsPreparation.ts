@@ -157,7 +157,7 @@ export function useParticularsPreparation({
       check();
       const place = registerPlace({
         company,
-        task: 'history',
+        task: 'corrections',
         record: prepared,
         outcome: 'Particulars change prepared.',
       });

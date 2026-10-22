@@ -38,7 +38,7 @@ company owner may download the register CSV.
 | -------------------- | ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
 | Register CSV         | The company owner or a register reader     | **Documents**: **Download CSV**                         | Who took it, the class, the entry it runs to, row counts |
 | Inspection copy      | A register reader                          | **Documents**: **Inspection copy**                      | SHA-256, instruction, request date, recipient, late flag |
-| Certificate          | A register reader                          | **Ledger**, **History** (web); **Documents** (mobile)   | SHA-256 and instruction                                  |
+| Certificate          | A register reader                          | **Documents**                                          | SHA-256 and instruction                                  |
 | Member's certificate | A register reader, on the member's request | **Member access and requests**                          | The PDF itself, as a certificate record                  |
 | Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**                             | SHA-256, period and instruction                          |
 | Core company pack    | A company administrator                    | **Documents**: **Company pack**                         | Manifest SHA-256, instruction, recipient, per class      |
@@ -182,9 +182,9 @@ register, or a correction has since reversed the entry (the refusal names the co
 ### Preparing a certificate
 
 1. Keep the company's written instruction and note its reference.
-2. On web, in **Ledger** choose **History** and the share class, open an issue or transfer entry
-   and choose **Prepare unsigned certificate**. On mobile, open the class's entries in
-   **Documents**.
+2. On web, in **Documents**, find the share class and open an issue or transfer entry under
+   **Certificates**, then choose **Prepare unsigned certificate**. On mobile, open the class's
+   entries in **Documents**.
 3. On web, enter **Instruction reference** and choose **Preview**. Check the share class and PDF
    page count; **Record details** holds the entry and register sequence. Choose **Edit** to change
    the reference, **Download PDF** to generate the unsigned file, or **Cancel** to close the form.

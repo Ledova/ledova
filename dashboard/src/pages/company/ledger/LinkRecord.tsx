@@ -28,6 +28,7 @@ export function LinkRecord({
   onDecided,
   onRefused,
   visible = true,
+  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -38,9 +39,11 @@ export function LinkRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
+  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
+  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useLinkRecordDownload(link, check);
   const labels = registerLinkMemberLabels(link.mappingSummary, holders);
   const context = `wallet link prepared ${formatDateTime(link.createdAt)}`;
@@ -49,7 +52,7 @@ export function LinkRecord({
       {visible && (
         <Disclosure
           summary={`Wallet link · ${formatDateTime(link.createdAt)} · ${COPY.STAGES[link.stage] ?? link.stage}`}
-          defaultOpen={link.status === 'submitted'}
+          defaultOpen={!readOnly && link.status === 'submitted'}
         >
           <Rows>
             <RecordStage stage={link.stage}>{COPY.STAGES[link.stage] ?? link.stage}</RecordStage>
@@ -96,8 +99,8 @@ export function LinkRecord({
         proposal={link}
         steps={steps}
         guard={guard}
-        newEffectGuard={check}
-        visible={visible}
+        newEffectGuard={decide}
+        visible={visible && !readOnly}
         onHeldChange={onHeldChange}
         context={context}
         onDecided={onDecided}

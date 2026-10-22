@@ -1317,6 +1317,13 @@ Add share class, Class details and contextual issue or transfer actions. This re
 task switches and ownership overview from task views; Settings restructuring, signup and mobile
 are outside this increment.
 
+On 22 October 2026, during [#1165](https://github.com/Ledova/ledova/issues/1165), the owner separated
+web History from operational work. History reads recorded changes and retained supporting facts,
+with permitted downloads. Documents owns certificate preparation; a separate Ledger **Corrections**
+sidebar view owns the existing correction and maintenance workflows. This changes placement, not
+company authority, append-only records, instruction-bound output generation or original-request
+recovery. Mobile stays unchanged.
+
 The owner placed Add share class below the class cards, aligned right. The web standard for a
 collection's primary creation action is one content-width action row beneath its cards, including
 an empty collection card; record-specific actions stay with their records.

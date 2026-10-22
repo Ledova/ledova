@@ -29,7 +29,7 @@ import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useRegisterEntry } from '@hooks/useRegisterAccess';
 import { COMPANY_DASHBOARD_PATH, SITE_PATHS } from '@utils/paths';
-import { destinationAt, pageTitle, placesAt } from '@utils/destinations';
+import { WEB_LEDGER_TASKS, destinationAt, pageTitle, placesAt, type WebLedgerTask } from '@utils/destinations';
 import { useLedgerNavigation } from './LedgerNavigation';
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
@@ -79,11 +79,12 @@ const YOURS: NavItem[] = [{ destination: 'settings', icon: GearIcon }];
 
 const ITEM_CLASS = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors';
 const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary';
-const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, keyof typeof DESTINATIONS.companyRegister.tasks>> = {
+const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, WebLedgerTask>> = {
   companyRegisterTransfer: 'transfer',
-  companyRegisterCorrection: 'history',
-  companyRegisterOpening: 'history',
-  companyRegisterLinks: 'history',
+  companyRegisterCorrection: 'corrections',
+  companyRegisterOpening: 'corrections',
+  companyRegisterLinks: 'corrections',
+  companyRegisterParticulars: 'corrections',
 };
 
 function itemPath(item: NavItem) {
@@ -123,7 +124,7 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const [shownPlace, setShownPlace] = useState(place);
   const [expanded, setExpanded] = useState(current);
   const id = useId();
-  const tasks = Object.entries(DESTINATIONS.companyRegister.tasks);
+  const tasks = Object.entries(WEB_LEDGER_TASKS);
   const hashTask = location.pathname === path ? location.hash.slice(1) : '';
   const routedTask = tasks.some(([key]) => key === hashTask) ? hashTask : undefined;
   const destination = destinationAt(location.pathname);

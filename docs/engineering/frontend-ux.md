@@ -115,10 +115,12 @@ Web History uses one full-width `Section` titled **Changes**, with compact ruled
 kind and date sit above the movements. Show the company date for an issue or transfer (ledger
 effective date for other kinds), and the first two signed movements plus a count of the rest.
 Details start closed and hold the full list, entry number, separate company, ledger and recording
-dates, correction or reversal references, and permitted correction and unsigned-certificate actions.
-Keep their contents mounted so unfinished work survives closing them. Certificate forms use compact
-inline fields and one right-aligned action row, with technical metadata under **Record details**.
-Source imports follow under **Opening records**; chain Openings, Corrections and Reconciliation remain separate.
+dates, and correction or reversal references. History is read-only, including retained supporting
+records and permitted file downloads. Certificate preparation belongs in Documents; correction,
+opening, reconciliation acknowledgement, particulars and wallet-link workflows belong in Ledger's
+Corrections view. Keep their controllers mounted so unfinished work and original-request recovery
+survive navigation. Certificate forms use compact inline fields and one right-aligned action row,
+with technical metadata under **Record details**.
 
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep company and class context once, then the issue or transfer summary, ownership
@@ -190,33 +192,36 @@ content", which moves focus to the page's heading.
 
 The sidebar owns navigation between sections. A related group has one level of children: its label
 opens the overview and a separate caret expands the children, without an extra Overview item.
-Ledger groups **Issue shares**, **Transfer shares** and **History** this way, opens on a Ledger
-route and marks the current destination. Shareholders, ESS and Documents remain sibling items.
+Ledger groups **Issue shares**, **Transfer shares**, **History** and **Corrections** this way, opens
+on a Ledger route and marks the current destination. Shareholders, ESS and Documents remain sibling items.
 The same group appears in the small-screen drawer. Page controls start or complete work for that
 page or record: Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
 actions remain beside their records. Do not repeat section navigation in page headers.
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
-register views (Shareholders, Employee share scheme, Documents) and tasks, and Home's Documents
-view. The web sidebar, page titles and parent links use `pageTitle`
+register views (Shareholders, Employee share scheme, Documents) and shared tasks, and Home's Documents
+view. `WEB_LEDGER_TASKS` in `dashboard/src/utils/destinations.ts` adds the web-only Corrections task.
+The web sidebar, page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which overrides Home as Dashboard, Register as Ledger,
 setup and import as Set up your ledger, and the chain-opening page as Ledger opening; mobile keeps
 its existing names. The company dashboard is also Dashboard, so the company workspace
 lists Home as Your shares. The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
-beside it gives each page below a sidebar destination its parent, and `Page` puts one link back to it
-in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to Company on
-Representative authority, Back to Shareholders on a shareholder's page. Once a particulars change has
-found its member, its link goes back to that member by name. Register setup has none, on purpose
+and the web parent overrides give each page below a sidebar destination its parent. `Page` puts one
+link back to it in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to
+Company on Representative authority, Back to Shareholders on a shareholder's page, and Back to
+Corrections for ledger maintenance. Once a particulars change has found its shareholder, its
+contextual link goes back to that shareholder by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
 
 A way back to a Ledger class or task carries the place it means, built by `registerPlace`
 (`dashboard/src/pages/company/ledger/shared/registerPlace.ts`): a correction and an opening return
-to that class's History, a class's own page to Ledger, a non-paid transfer to that class's Transfer shares,
-and wallet links to the company's History. A shareholder's page links back to Shareholders with its
-company through `Page`'s parent link, and a transfer started there links back to them by name. Preparing a
-correction, opening, non-paid transfer, wallet link or particulars change lands on the new record in
-Ledger, at its class and task, focused and with one line naming what was prepared
+to that class's Corrections view, a class's own page to Ledger, a non-paid transfer to that class's
+Transfer shares, and wallet links to the company's Corrections view. A
+shareholder's page links back to Shareholders with its company through `Page`'s parent link, and a
+transfer started there links back to them by name. Preparing a correction, opening, wallet link or
+particulars change lands on its new record under Corrections; a non-paid transfer lands under
+Transfer shares. Each keeps its class and task, with focus and one line naming what was prepared
 ([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
 Ledger, since a shareholder's page doesn't list prepared records.
 

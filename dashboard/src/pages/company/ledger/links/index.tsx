@@ -122,7 +122,7 @@ function OwnLinks({
       </>
     );
   return (
-    <Page narrow lede={LEDE} back={registerPlace({ company, task: 'history' })}>
+    <Page narrow lede={LEDE} back={registerPlace({ company, task: 'corrections' })}>
       {content}
     </Page>
   );

@@ -184,7 +184,7 @@ export function useCorrectionPreparation({
       const place = registerPlace({
         company,
         token,
-        task: 'history',
+        task: 'corrections',
         record: prepared,
         outcome: 'Correction prepared.',
       });
