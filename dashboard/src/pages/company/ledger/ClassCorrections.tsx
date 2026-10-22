@@ -138,25 +138,27 @@ function EntryHistory({
                         {reversal === undefined ? COPY.CORRECTED_NOTE : `Reversed by entry ${reversal}.`}
                       </p>
                     )}
-                    {prepare && entry.correctable && (
-                      <PageLink
-                        to={generatePath(DESTINATIONS.companyRegisterCorrection.path, {
-                          uuid: token,
-                          entry: entry.uuid,
-                        })}
-                        label={COPY.PREPARE}
-                        context={`entry ${entry.sequence}`}
-                      />
-                    )}
                   </>
                 )}
-                <ClassCertificate
-                  sourceKey={`${owner.userUuid}/${owner.ownerAccountUuid}`}
-                  register={register}
-                  entry={entry}
-                  guard={certificateGuard}
-                  sourceReady={visible && sourceReady && !history.isFetching && !history.moreFailed}
-                />
+                <div className="flex flex-wrap justify-end gap-2">
+                  {privateReady && prepare && entry.correctable && (
+                    <PageLink
+                      to={generatePath(DESTINATIONS.companyRegisterCorrection.path, {
+                        uuid: token,
+                        entry: entry.uuid,
+                      })}
+                      label={COPY.PREPARE}
+                      context={`entry ${entry.sequence}`}
+                    />
+                  )}
+                  <ClassCertificate
+                    sourceKey={`${owner.userUuid}/${owner.ownerAccountUuid}`}
+                    register={register}
+                    entry={entry}
+                    guard={certificateGuard}
+                    sourceReady={visible && sourceReady && !history.isFetching && !history.moreFailed}
+                  />
+                </div>
               </Disclosure>
             </li>
           );
