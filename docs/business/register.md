@@ -195,7 +195,7 @@ together; for a class opened from the chain it adds particulars and former membe
 Ledova, and its holdings must match the stored register. On the web:
 
 1. On Ledger, choose **Add share class**; or choose History, the class, then Bring records
-   under Ledger records. Issue shares and Transfer shares also offer **Set up your ledger** for a
+   under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
    class not yet set up. Share classes are created only through register setup, in Ledger on the
    web and Register on mobile.
 2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
@@ -293,7 +293,7 @@ agreement or receipt evidence. Mobile attachment entry is deferred.
 
 ### Correcting the copied opening
 
-In History, Correct copied opening under the class's Ledger records replaces the latest applied
+In History, under Opening records, choose Correct copied opening to replace the latest applied
 import's shareholder rows in full, in the same forms and keeping each member ID, with a current
 source and a reason. Applying keeps the earlier snapshot, decisions and opening entry, adds a Copied
 opening correction entry for the exact difference (none when only particulars change) and records
@@ -307,7 +307,7 @@ A deployed or paused class whose register has no entry is opened from the chain 
 wallet holding shares at one block, the boundary, to a company member. Nothing is typed and no
 particulars are stored; a later import adds them.
 
-1. In History, under the class's Openings, choose Open this register. The page reads the holdings on
+1. In History, under Openings, choose Open this ledger. The page reads the holdings on
    chain, largest first, or says the chain cannot be read.
 2. Assign each address to a member: a linked address keeps its member, others go to an existing or
    new member, and several can share one.
@@ -334,7 +334,7 @@ A correction exactly reverses one entry, which stays and is named by it. An entr
 once, and a correction can itself be corrected; partial corrections and replacement transactions are
 not built.
 
-1. In History, open the entry under the class's Ledger entries and choose Correct this entry,
+1. In History, open Details for the entry under Changes and choose Correct this entry,
    which shows the exact inverse.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
@@ -576,12 +576,18 @@ selector and without the overview cards: Issue shares
 ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
 ([non-paid transfers](#non-paid-transfers-between-members)) and History.
 
-History holds, under Recorded changes, a link to the class's Share class page, Openings (for a class
-on chain), Ledger records, Ledger entries (newest first, with certificate controls), Corrections
-and Reconciliation with the chain, then the company's Particulars changes and Wallet links.
+History starts with a full-width Changes card, newest entries first. Each entry shows its kind,
+company date for an issue or transfer (ledger effective date for other kinds), and signed shareholder
+movements. A larger change shows its first two movements and a count of the rest. Details starts
+closed and holds the full movement list, entry number, separate company, ledger and recording dates,
+correction or reversal references, and permitted correction and unsigned-certificate actions.
+An older issue or transfer with no company date says Date not recorded in its summary and Not
+recorded in Details. Source imports follow under Opening records, distinct from the changes they
+produced; chain Openings, Corrections, Reconciliation with the chain, the company's Particulars
+changes and Wallet links remain available separately.
 
-History shows each record as one line (its kind, date and stage) that opens on demand to its
-snapshot, documents and decision trail; a prepared record starts open. Stages read Prepared,
+These supporting records open on demand to their snapshot, documents and decision trail; a prepared
+record starts open. Stages read Prepared,
 Approved, Applied or Rejected (for an import, Reviewed and Confirmed), and evidence reads as
 provided by the company or, before the work became company-run, "Verified by Ledova staff". A
 section that read successfully with nothing to show is left out, but a class on chain without a

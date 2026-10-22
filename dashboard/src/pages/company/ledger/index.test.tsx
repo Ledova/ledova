@@ -7,6 +7,7 @@ import {
   DESTINATIONS,
   type RegisterImport,
   type RegisterImportPreparation,
+  type RegisterEntry,
   type RegisterDecideRequest,
   REGISTER_COPY,
   REGISTER_PARTICULARS_COPY,
@@ -1305,6 +1306,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let failNextPreview = false;
   let interruptNextApply = false;
   let proposal: RegisterImport | undefined;
+  let historyEntries: RegisterEntry[] = [];
+  let pauseHistory = false;
+  let releaseHistory!: () => void;
   const attachment = new File(['%PDF-1.4 synthetic certificate'], 'share-certificate.pdf', { type: 'application/pdf' });
   const agreement = new File(['%PDF-1.4 synthetic agreement'], 'shareholder-agreement.pdf', {
     type: 'application/pdf',
@@ -1378,6 +1382,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       return { data: { members: companyMembers, awardRecipients: [] } };
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)) {
+      if (pauseHistory)
+        return new Promise((resolve) => {
+          releaseHistory = () => resolve(dataPage(historyEntries));
+        });
+      return dataPage(historyEntries);
+    }
     return dataPage([]);
   });
   api.post.mockImplementation(async (url: string, body: RegisterImportPreparation | RegisterDecideRequest, config) => {
@@ -1839,6 +1850,23 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       })),
     })),
   };
+  historyEntries = [
+    {
+      uuid: 'transfer-entry',
+      sequence: 3,
+      kind: 'transfer',
+      effectiveOn: '2026-10-21',
+      companyEventOn: '2026-10-20',
+      recordedAt: '2026-10-21T12:00:00Z',
+      changes: [
+        { member: proposal!.members[0].member, name: 'Example Shareholder', shares: '-100' },
+        { member: 'taylor-demo', name: 'Taylor Demo', shares: '100' },
+      ],
+      corrects: null,
+      correctedBy: null,
+      correctable: false,
+    },
+  ];
   cleanup();
   client.clear();
   show(
@@ -1850,6 +1878,46 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     'Ledger',
     { entry: '/#history' },
   );
+  expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Transfer' })).toBeTruthy();
+  const entryDetails = screen.getByRole('button', { name: 'Details for entry 3' });
+  const transferEntry = entryDetails.closest('li')!;
+  expect(entryDetails.getAttribute('aria-expanded')).toBe('false');
+  expect(within(transferEntry).getByText('Example Shareholder: -100')).toBeTruthy();
+  expect(within(transferEntry).getByText('Taylor Demo: +100')).toBeTruthy();
+  expect(within(transferEntry).getByText(formatDate('2026-10-20'), { selector: 'p' })).toBeTruthy();
+  expect(document.getElementById(entryDetails.getAttribute('aria-controls')!)!.hidden).toBe(true);
+  expect(within(transferEntry).queryByRole('button', { name: 'Prepare unsigned certificate (entry 3)' })).toBeNull();
+  fireEvent.click(entryDetails);
+  expect(within(transferEntry).getByText('Ledger date')).toBeTruthy();
+  expect(within(transferEntry).getByText(formatDate('2026-10-21'))).toBeTruthy();
+  fireEvent.click(within(transferEntry).getByRole('button', { name: 'Prepare unsigned certificate (entry 3)' }));
+  fireEvent.change(within(transferEntry).getByLabelText('Certificate instruction reference'), {
+    target: { value: 'Retained certificate draft' },
+  });
+  fireEvent.click(entryDetails);
+  expect(entryDetails.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(entryDetails);
+  expect((within(transferEntry).getByLabelText('Certificate instruction reference') as HTMLInputElement).value).toBe(
+    'Retained certificate draft',
+  );
+  fireEvent.click(entryDetails);
+  const beforeHistoryRead = api.post.mock.calls.length;
+  pauseHistory = true;
+  let refreshingHistory!: Promise<void>;
+  act(() => {
+    refreshingHistory = client.refetchQueries({ predicate: (query) => query.queryKey.includes('entries') });
+  });
+  await waitFor(() => expect(releaseHistory).toBeTypeOf('function'));
+  expect(screen.queryByText('Taylor Demo: +100')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Details for entry 3' })).toBeNull();
+  await act(async () => {
+    pauseHistory = false;
+    releaseHistory();
+    await refreshingHistory;
+  });
+  expect(await screen.findByText('Taylor Demo: +100')).toBeTruthy();
+  expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   const copiedSummary = await screen.findByRole('button', { name: /^Copied opening ·/ });
   expect(copiedSummary.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(copiedSummary);
@@ -2618,9 +2686,9 @@ it("retains a dashboard's validated company/class context and reads only the cho
     heading.closest('li'),
   )!;
   await waitFor(() => expect(document.activeElement).toBe(preference.closest('li')));
-  expect(within(preference.closest('li')!).getByRole('heading', { name: 'Recorded changes' })).toBeTruthy();
+  expect(within(preference.closest('li')!).getByRole('heading', { name: 'Changes' })).toBeTruthy();
   expect(screen.getByText('Inland Example Pty Ltd', { selector: 'p' })).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Share class' }).getAttribute('href')).toBe('/company/ledger/preference');
+  expect(screen.queryByRole('link', { name: 'Share class' })).toBeNull();
   expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));

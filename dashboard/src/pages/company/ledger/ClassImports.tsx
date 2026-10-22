@@ -60,8 +60,8 @@ export function ClassImports({
   const decided = () => refresh(changed);
   const refused = () => refresh([...changed, ownAppointmentsKey(owner)]);
   return (
-    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">Ledger records</h3>
+    <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
+      <h3 className="text-sm font-medium text-text-primary">Opening records</h3>
       {appointments.isError ? (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.

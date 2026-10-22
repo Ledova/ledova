@@ -110,6 +110,14 @@ collection keeps its own preparation row.
 Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 
+Web History uses one full-width `Section` titled **Changes**. Each entry shows its kind, company
+date for an issue or transfer (ledger effective date for other kinds), and signed shareholder
+movements up front. Show the first two movements and a count of the rest for larger changes.
+**Details** starts closed and holds the full list, entry number, separate company, ledger and
+recording dates, correction or reversal references, and permitted correction and unsigned-certificate
+actions. Keep its contents mounted so unfinished work survives closing it. Source imports follow
+under **Opening records**; chain Openings, Corrections and Reconciliation remain separate.
+
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep company and class context once, then the issue or transfer summary, ownership
 impact and supporting facts. Agreement and receipt, or the transfer instrument, sit beside company

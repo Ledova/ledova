@@ -14,8 +14,9 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { LinkRow, LoadError, Loading, Disclosure } from '@components/Ledger';
+import { LoadError, Loading, Disclosure, Row, Rows, Status } from '@components/Ledger';
 import { LoadMore } from '@components/List';
+import { PageLink } from '@components/Page';
 
 import { CorrectionRecord } from './CorrectionRecord';
 import { ClassCertificate } from './ClassCertificate';
@@ -59,44 +60,70 @@ function EntryHistory({
     [...corrections.map(({ entry }) => entry), ...history.entries].map((entry) => [entry.uuid, entry.sequence]),
   );
   return (
-    <div
-      hidden={!visible || (!history.isPending && !history.hasError && history.entries.length === 0)}
-      className="flex flex-col gap-3"
-    >
-      <h3 className="text-sm font-medium text-text-primary">Ledger entries</h3>
+    <div hidden={!visible} className="flex flex-col gap-3">
       {history.isPending ? (
         <Loading>Loading register entries…</Loading>
       ) : history.hasError ? (
         <LoadError retry={history.retry} busy={history.isFetching}>
           Register entries could not be loaded.
         </LoadError>
+      ) : privateReady && history.entries.length === 0 ? (
+        <p className="text-sm text-text-muted">No changes recorded yet.</p>
       ) : null}
       <ul className="divide-y divide-border-subtle">
         {history.entries.map((entry) => {
           const corrected = entry.corrects ? sequences.get(entry.corrects) : undefined;
           const reversal = entry.correctedBy ? sequences.get(entry.correctedBy) : undefined;
+          const companyDated = ['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase());
           return (
-            <li key={entry.uuid} hidden={!privateReady} className="flex flex-col gap-2 py-4">
+            <li key={entry.uuid} hidden={!privateReady} className="py-4">
+              {privateReady && (
+                <>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h3 className="text-sm font-medium text-text-primary">{COPY.ENTRY_KINDS[entry.kind]}</h3>
+                    <p className="text-sm tabular-nums text-text-muted">
+                      {formatDate(companyDated ? entry.companyEventOn : entry.effectiveOn, 'Date not recorded')}
+                    </p>
+                  </div>
+                  <div className="mt-2 text-sm tabular-nums text-text-primary">
+                    <RegisterChanges changes={entry.changes.slice(0, 2)} />
+                    {entry.changes.length > 2 && (
+                      <p className="text-text-muted">{entry.changes.length - 2} more share changes</p>
+                    )}
+                  </div>
+                  {entry.correctedBy && (
+                    <div className="mt-2 text-sm">
+                      <Status tone="closed">Reversed</Status>
+                    </div>
+                  )}
+                </>
+              )}
               <Disclosure
                 summary={
-                  privateReady
-                    ? `${COPY.ENTRY_KINDS[entry.kind]} · Entry ${entry.sequence} · ${formatDate(entry.effectiveOn)}`
-                    : ''
+                  privateReady ? (
+                    <span className="text-sm font-medium text-text-primary">
+                      Details <span className="sr-only">for entry {entry.sequence}</span>
+                    </span>
+                  ) : (
+                    ''
+                  )
                 }
               >
                 {privateReady && (
                   <>
-                    <p className="text-xs text-text-muted">
-                      Ledger date {formatDate(entry.effectiveOn)} · Recorded {formatDateTime(entry.recordedAt)}
-                    </p>
-                    {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && (
-                      <p className="text-xs text-text-muted">
-                        Company date {entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}
-                      </p>
-                    )}
-                    <div className="text-sm text-text-primary">
-                      <RegisterChanges changes={entry.changes} />
-                    </div>
+                    <Rows>
+                      <Row label="Entry">{entry.sequence}</Row>
+                      {companyDated && (
+                        <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
+                      )}
+                      <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
+                      <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
+                      {entry.changes.length > 2 && (
+                        <Row label="Share changes">
+                          <RegisterChanges changes={entry.changes} />
+                        </Row>
+                      )}
+                    </Rows>
                     {entry.corrects && (
                       <p className="text-sm text-text-muted">
                         {corrected === undefined ? 'Corrects an earlier entry.' : `Corrects entry ${corrected}.`}
@@ -108,7 +135,7 @@ function EntryHistory({
                       </p>
                     )}
                     {prepare && entry.correctable && (
-                      <LinkRow
+                      <PageLink
                         to={generatePath(DESTINATIONS.companyRegisterCorrection.path, {
                           uuid: token,
                           entry: entry.uuid,

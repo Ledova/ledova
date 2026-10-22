@@ -12,7 +12,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
+import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { pageTitle } from '@utils/destinations';
 import { isRegisterTask, type Landed, type RegisterTask } from '@pages/company/ledger/shared/registerPlace';
@@ -520,13 +520,11 @@ function OwnRegister({
             </div>
           )}
           <section aria-label="Ledger tasks" className="space-y-4">
-            {(selectedTask === 'issue' || selectedTask === 'transfer') &&
-              sourceReady &&
-              scope.registers.length === 1 && (
-                <p className="text-sm text-text-muted">
-                  {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
-                </p>
-              )}
+            {selectedTask && sourceReady && scope.registers.length === 1 && (
+              <p className="text-sm text-text-muted">
+                {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
+              </p>
+            )}
             {selectedTask && sourceReady && scope.registers.length > 1 && (
               <div className="max-w-sm">
                 <SelectField
@@ -568,7 +566,7 @@ function OwnRegister({
                 data-register-tasks
                 hidden={view === 'register' && (!selectedTask || selectedToken !== register.token.uuid)}
                 className={
-                  view === 'register' && (selectedTask === 'issue' || selectedTask === 'transfer')
+                  view === 'register' && selectedTask
                     ? 'space-y-5'
                     : 'space-y-5 rounded-xl border border-border bg-surface-raised p-4 sm:p-5'
                 }
@@ -577,7 +575,11 @@ function OwnRegister({
                   hidden={
                     sourceReady && view === 'register' && (selectedTask === 'issue' || selectedTask === 'transfer')
                   }
-                  className="break-words font-display text-xl tracking-[-0.01em] text-text-primary"
+                  className={
+                    sourceReady && view === 'register' && selectedTask === 'history'
+                      ? 'sr-only'
+                      : 'break-words font-display text-xl tracking-[-0.01em] text-text-primary'
+                  }
                 >
                   {sourceReady ? `${register.token.name} · ${register.token.symbol}` : 'Ledger task recovery'}
                 </h2>
@@ -617,43 +619,7 @@ function OwnRegister({
                     />
                   </div>
                   <div hidden={view !== 'register' || selectedTask !== 'history'}>
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-medium">Recorded changes</h3>
-                      {sourceReady && (
-                        <LinkRow
-                          to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
-                          label={DESTINATIONS.companyClass.title}
-                        />
-                      )}
-                      {ON_CHAIN.includes(register.token.status) && (
-                        <ClassOpenings
-                          landed={landed}
-                          owner={owner}
-                          guard={guard}
-                          register={register}
-                          company={scope.company.uuid}
-                          visible={
-                            view === 'register' &&
-                            selectedTask === 'history' &&
-                            selectedToken === register.token.uuid &&
-                            sourceReady
-                          }
-                          onHeldChange={historyHeld}
-                        />
-                      )}
-                      <ClassImports
-                        owner={owner}
-                        guard={guard}
-                        register={register}
-                        company={scope.company.uuid}
-                        visible={
-                          view === 'register' &&
-                          selectedTask === 'history' &&
-                          selectedToken === register.token.uuid &&
-                          sourceReady
-                        }
-                        onHeldChange={historyHeld}
-                      />
+                    <Section title="Changes">
                       <ClassCorrections
                         landed={landed}
                         owner={owner}
@@ -670,6 +636,35 @@ function OwnRegister({
                         }
                         onHeldChange={historyHeld}
                       />
+                      <ClassImports
+                        owner={owner}
+                        guard={guard}
+                        register={register}
+                        company={scope.company.uuid}
+                        visible={
+                          view === 'register' &&
+                          selectedTask === 'history' &&
+                          selectedToken === register.token.uuid &&
+                          sourceReady
+                        }
+                        onHeldChange={historyHeld}
+                      />
+                      {ON_CHAIN.includes(register.token.status) && (
+                        <ClassOpenings
+                          landed={landed}
+                          owner={owner}
+                          guard={guard}
+                          register={register}
+                          company={scope.company.uuid}
+                          visible={
+                            view === 'register' &&
+                            selectedTask === 'history' &&
+                            selectedToken === register.token.uuid &&
+                            sourceReady
+                          }
+                          onHeldChange={historyHeld}
+                        />
+                      )}
                       <ClassReconciliation
                         owner={owner}
                         guard={guard}
@@ -685,7 +680,7 @@ function OwnRegister({
                         }
                         onHeldChange={historyHeld}
                       />
-                    </div>
+                    </Section>
                   </div>
                   <div hidden={view !== 'awards'} className="space-y-5">
                     <ClassAwards
