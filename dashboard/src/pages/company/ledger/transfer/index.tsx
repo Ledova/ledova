@@ -1,11 +1,10 @@
-import { PreparationNotice, PreparationShell } from '@pages/company/ledger/shared/PreparationShell';
+import { PreparationNotice, PreparationPreferences } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useTransferRegister } from './useTransferRegister';
 import { useMemo, type ReactNode } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import {
-  DESTINATIONS,
   REGISTER_TRANSFER_COPY as COPY,
   appointmentForRegisterStep,
   type OrderSubmissionOwner,
@@ -13,30 +12,33 @@ import {
 } from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
+import { PageTitle } from '@components/PageTitle';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { usePeople } from '@pages/company/ledger/shared/usePeople';
 import { TransferForm } from './TransferForm';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
-import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
-
-const LEDE =
-  'Prepare a non-paid transfer with the company’s director authority and a genuine signed transfer instrument.';
 
 export default function CompanyRegisterTransferPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  if (owner && !preferences.isError)
-    return (
-      <OwnTransfer
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
-        uuid={uuid}
-        owner={owner}
-        currentOwner={boundary.get}
-      />
-    );
-  return <PreparationShell lede={LEDE} preferences={preferences} />;
+  return (
+    <PageTitle.Provider value="Transfer shares">
+      {owner && !preferences.isError ? (
+        <OwnTransfer
+          key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
+          uuid={uuid}
+          owner={owner}
+          currentOwner={boundary.get}
+        />
+      ) : (
+        <Page back={{ to: undefined }}>
+          <PreparationPreferences preferences={preferences} />
+        </Page>
+      )}
+    </PageTitle.Provider>
+  );
 }
 
 function OwnTransfer({
@@ -49,6 +51,7 @@ function OwnTransfer({
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
   const { state } = useLocation();
+  const navigate = useNavigate();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
@@ -62,14 +65,6 @@ function OwnTransfer({
   const members = usePeople(owner, uuid, guard, !!appointment);
   const busy = classes.isFetching || appointments.isFetching || registers.isFetching || members.isFetching;
   const fromMember = typeof state?.fromMember === 'string' ? state.fromMember : '';
-  const fromName = peopleFrom(members.data).find((person) => person.member === fromMember)?.name;
-  const back =
-    fromMember && listed
-      ? {
-          to: shareholderPath(fromMember, listed.companyUuid),
-          label: `Back to ${fromName || DESTINATIONS.companyShareholder.title}`,
-        }
-      : registerPlace({ company: listed?.companyUuid, token: uuid, task: 'transfer' });
   const stale = classes.isError || appointments.isError || registers.isError || members.isError;
   const retry = () => {
     void classes.refetch();
@@ -104,35 +99,35 @@ function OwnTransfer({
     );
   else
     content = (
-      <>
-        <Section title={listed.name}>
-          <p className="text-sm text-text-muted">
-            {listed.companyName} · {listed.symbol}
-          </p>
-          <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-        </Section>
-        <Section title={COPY.PREPARE}>
-          {stale && (
-            <LoadError retry={retry} busy={busy}>
-              The register or your appointments could not be loaded.
-            </LoadError>
-          )}
-          <TransferForm
-            owner={owner}
-            guard={guard}
-            company={listed.companyUuid}
-            token={uuid}
-            people={peopleFrom(members.data)}
-            appointment={appointment}
-            blocked={stale || busy}
-            onRefused={retry}
-            initialFrom={fromMember}
-          />
-        </Section>
-      </>
+      <Section title="Non-paid transfer">
+        {stale && (
+          <LoadError retry={retry} busy={busy}>
+            The register or your appointments could not be loaded.
+          </LoadError>
+        )}
+        <TransferForm
+          owner={owner}
+          guard={guard}
+          company={listed.companyUuid}
+          token={uuid}
+          classLabel={`${listed.name} (${listed.symbol})`}
+          people={peopleFrom(members.data)}
+          appointment={appointment}
+          blocked={stale || busy}
+          onRefused={retry}
+          initialFrom={fromMember}
+          onCancel={() => {
+            const place = registerPlace({ company: listed.companyUuid, token: uuid, task: 'transfer' });
+            navigate(place.to, { state: place.state });
+          }}
+        />
+      </Section>
     );
   return (
-    <Page narrow lede={LEDE} back={back}>
+    <Page
+      lede={listed && appointment ? `${listed.companyName} · ${listed.name} (${listed.symbol})` : undefined}
+      back={{ to: undefined }}
+    >
       {content}
     </Page>
   );

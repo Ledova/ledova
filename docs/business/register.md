@@ -396,15 +396,19 @@ account, payment, application or chain transaction.
 
 1. On the web, in Ledger choose Transfer shares, the class, then Prepare a non-paid transfer. For a
    tokenised class the task says its transfers use wallet and chain controls.
-2. Choose the transferor, recipient and shares ([choosing a person](#choosing-a-person)). An
+2. In **People and shares**, choose the transferor, recipient and shares
+   ([choosing a person](#choosing-a-person)), and give the company transfer date. An
    existing recipient, including a former member
    returning from zero, keeps their member ID; a new one gets a new member ID with the name and
    residential address the instrument gives. If a returning member's particulars were lawfully
    purged, the company supplies new ones.
-3. Give the company transfer date, the separate dates the instrument was signed and lodged, the
-   non-paid terms, the approving director, the authority reference and the reason, and upload the
-   authority document and the signed transfer instrument.
-4. Approve, then Apply.
+3. In **Transfer documents**, give the separate dates the instrument was signed and lodged,
+   the non-paid terms and the signed transfer instrument.
+4. In **Company authority and review**, check the transfer summary, choose the approving director,
+   give the authority reference and reason, and attach the authority document. **Prepare transfer**
+   saves the proposal; it moves no shares. Back and Continue keep the draft fields and selected
+   files without saving or uploading.
+5. Approve, then Apply; these remain separate transfer decisions.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the

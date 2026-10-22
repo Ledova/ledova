@@ -28,8 +28,9 @@ and [mobile](mobile.md); what each page does is in the business section.
 Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 `mobile/src/components/Page.tsx`) under the page's title. Web form fields use `Field`
 ([forms](#forms)). `Page narrow` bounds
-task forms, settings and detailed records, including compact tables; ownership dashboards and wide
-tables take the standard workspace width, and tables scroll within their card on small screens.
+simple task forms, settings and detailed records, including compact tables; ownership dashboards,
+stepped Ledger preparation pages and wide tables take the standard workspace width, and tables
+scroll within their card on small screens.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Section spacing is scoped to the frame; sign-up keeps its
 own presentation.
@@ -639,6 +640,9 @@ Some messages keep their own form:
   has a rule, and its label or message names the time zone where it matters.
 - **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
   `FormSteps` (`dashboard/src/components/FormSteps.tsx`), with one step visible at a time.
+  Show company and class context once above the form, without a duplicate information card or
+  routine technical and upload descriptions. Transfer preparation follows the investor pattern:
+  People and shares, Transfer documents, then Company authority and review.
   Keep the same fields, card, typography and `FormActions`: Back and Continue for local
   navigation, with the actual save or preparation action on the final step. Continue checks only
   the current step and performs no upload or write. Keep inactive fields mounted so values and

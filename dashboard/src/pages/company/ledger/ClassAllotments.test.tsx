@@ -576,6 +576,7 @@ it('preserves original preparation and combined approval recovery through refres
       guard={() => {}}
       company={APPOINTMENT.company}
       token={REGISTER.token.uuid}
+      classLabel="Ordinary shares (ORD)"
       people={[
         {
           member: 'transferor',
@@ -594,30 +595,61 @@ it('preserves original preparation and combined approval recovery through refres
     />,
     'Transfer shares',
   );
+  const requestsBeforeTransfer = api.post.mock.calls.length;
   expect((screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   await choose(TRANSFER_COPY.FROM, 'Synthetic Transferor', 'synthetic');
   for (const [label, value] of [
     ['Name', 'Synthetic Recipient'],
     ['Residential address', '2 Example Street'],
     [TRANSFER_COPY.SHARES, '10'],
-    [TRANSFER_COPY.SIGNED_ON, '2026-10-01'],
-    [TRANSFER_COPY.LODGED_ON, '2026-10-02'],
-    [TRANSFER_COPY.TERMS, 'Non-paid transfer'],
-    [TRANSFER_COPY.DIRECTOR, 'Synthetic Director'],
-    [TRANSFER_COPY.AUTHORITY_REFERENCE, 'Synthetic resolution'],
-    [TRANSFER_COPY.REASON, 'Record company transfer'],
   ])
     fireEvent.change(screen.getByLabelText(label), { target: { value } });
-  for (const label of [TRANSFER_COPY.AUTHORITY_DOCUMENT, TRANSFER_COPY.INSTRUMENT_DOCUMENT])
-    fireEvent.change(screen.getByLabelText(label), {
-      target: { files: [new File(['synthetic'], 'evidence.pdf', { type: 'application/pdf' })] },
-    });
-  fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
   expect(screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON).getAttribute('aria-invalid')).toBe('true');
   fireEvent.change(screen.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON), { target: { value: '2026-10-03' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  const transferDocuments = () => within(screen.getByRole('group', { name: 'Transfer documents' }));
+  for (const [label, value] of [
+    ['Signed on', '2026-10-01'],
+    ['Lodged with company on', '2026-10-02'],
+    ['Terms', 'Non-paid transfer'],
+  ])
+    fireEvent.change(transferDocuments().getByLabelText(label), { target: { value } });
+  fireEvent.change(transferDocuments().getByLabelText('Document'), {
+    target: { files: [new File(['synthetic'], 'instrument.pdf', { type: 'application/pdf' })] },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+  expect((screen.getByLabelText(TRANSFER_COPY.SHARES) as HTMLInputElement).value).toBe('10');
+  expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Synthetic Recipient');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect((transferDocuments().getByLabelText('Document') as HTMLInputElement).files).toHaveLength(1);
+  expect((transferDocuments().getByLabelText('Terms') as HTMLInputElement).value).toBe('Non-paid transfer');
+  expect((transferDocuments().getByLabelText('Signed on') as HTMLInputElement).value).toBe('2026-10-01');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  const companyAuthority = () => within(screen.getByRole('group', { name: 'Company authority' }));
+  for (const [label, value] of [
+    ['Approving director', 'Synthetic Director'],
+    ['Authority reference', 'Synthetic resolution'],
+    ['Reason', 'Record company transfer'],
+  ])
+    fireEvent.change(companyAuthority().getByLabelText(label), { target: { value } });
+  expect(api.post.mock.calls).toHaveLength(requestsBeforeTransfer);
+  expect(screen.getByText('Synthetic Recipient')).toBeTruthy();
+  expect(screen.getByText('Ordinary shares (ORD)')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
+  expect(companyAuthority().getByLabelText('Document').getAttribute('aria-invalid')).toBe('true');
+  fireEvent.change(companyAuthority().getByLabelText('Document'), {
+    target: { files: [new File(['synthetic'], 'authority.pdf', { type: 'application/pdf' })] },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+  expect((transferDocuments().getByLabelText('Document') as HTMLInputElement).files).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect((companyAuthority().getByLabelText('Document') as HTMLInputElement).files).toHaveLength(1);
+  expect(api.post.mock.calls).toHaveLength(requestsBeforeTransfer);
   fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
   await screen.findByRole('alert');
+  expect(screen.getByRole('button', { name: 'Back' }).matches(':disabled')).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
   await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFERS)).toHaveLength(2));
   const transfers = api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFERS);

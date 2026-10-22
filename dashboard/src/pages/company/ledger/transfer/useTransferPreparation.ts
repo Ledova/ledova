@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  FIELD_LIMITS,
   REGISTER_TRANSFER_COPY as COPY,
   apiErrorSentence,
   createUserFriendlyError,
@@ -57,6 +56,7 @@ export type TransferFormProps = {
   blocked: boolean;
   onRefused: () => void;
   initialFrom?: string;
+  onCancel?: () => void;
 };
 
 export function useTransferPreparation({
@@ -251,19 +251,10 @@ export function useTransferPreparation({
       if (mounted.current) setBusy(false);
     }
   };
-  const fields: [keyof Draft, string, number | undefined][] = [
-    ['shares', COPY.SHARES, FIELD_LIMITS.REGISTER_SHARES],
-    ['companyEventOn', COPY.COMPANY_EVENT_ON, undefined],
-    ['signedOn', COPY.SIGNED_ON, undefined],
-    ['lodgedOn', COPY.LODGED_ON, undefined],
-    ['terms', COPY.TERMS, FIELD_LIMITS.TERMS],
-    ['approvingDirector', COPY.DIRECTOR, FIELD_LIMITS.DIRECTOR],
-    ['authorityReference', COPY.AUTHORITY_REFERENCE, FIELD_LIMITS.REFERENCE],
-    ['reason', COPY.REASON, FIELD_LIMITS.REASON],
-  ];
   return {
     today,
     draft,
+    files,
     setFiles,
     busy,
     error,
@@ -271,10 +262,10 @@ export function useTransferPreparation({
     setOperation,
     change,
     eligible,
+    from,
     recipient,
     fresh,
     problems,
     submit,
-    fields,
   } as const;
 }
