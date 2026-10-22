@@ -60,9 +60,6 @@ export function ClassIssues({
   useEffect(() => {
     if (visible && preparing) preparation.current?.focus();
   }, [visible, preparing]);
-  useEffect(() => {
-    if (!preparing && returnToAction) prepareAction.current?.focus();
-  }, [preparing, returnToAction]);
   const investor = useInvestorIssues({
     owner,
     company,
@@ -100,6 +97,12 @@ export function ClassIssues({
     refreshRecords: () => Promise.allSettled([investor.refreshRecords(), nonPaid.refreshRecords()]),
   });
   const held = investor.held || nonPaid.held;
+  useEffect(() => {
+    if (visible && !preparing && returnToAction && sourceReady && prepareAction.current) {
+      prepareAction.current.focus();
+      setReturnToAction(false);
+    }
+  }, [visible, preparing, returnToAction, sourceReady, investor.prepare]);
   if (request && answered !== request.key && !held) {
     setAnswered(request.key);
     if (request.award || request.member) {
