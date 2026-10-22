@@ -14,7 +14,7 @@ def preview_company_certificate(*, actor, token, sequence):
         return preview
 
 
-def prepare_company_certificate(*, actor, token, appointment, sequence, source_digest, instruction):
+def prepare_company_certificate(*, actor, token, appointment, sequence, source_digest, instruction=""):
     with register_output_access(actor, token, "register_certificate") as (company, actor, profile, operator, token):
         register_reader_appointment(company, actor, profile, operator, appointment)
         content = prepare_certificate(

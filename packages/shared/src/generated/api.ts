@@ -7055,7 +7055,7 @@ export interface ApiComponents {
     };
     RegisterCertificateRequestRequest: {
       appointment: string;
-      instruction: string;
+      instruction?: string;
       sequence: number;
       sourceDigest: string;
     };

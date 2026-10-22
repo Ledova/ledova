@@ -157,8 +157,8 @@ retire a prepared request, and a failed preview delivers no file.
 ## Certificates
 
 A company must have a certificate ready within 2 months after an issue and 1 month after a transfer
-is lodged (s1071H). A register reader prepares it, unsigned, on the company's written
-instruction; the company executes and delivers it, and platform staff do not prepare certificates
+is lodged (s1071H). A register reader requests the unsigned file for the company;
+the company executes and delivers it, and platform staff do not prepare certificates
 ([decision](../decisions.md#the-stored-register)).
 
 ### What a certificate shows
@@ -181,16 +181,17 @@ register, or a correction has since reversed the entry (the refusal names the co
 
 ### Preparing a certificate
 
-1. Keep the company's written instruction and note its reference.
-2. On web, in **Documents**, find the share class and choose the issue or transfer under
+1. On web, in **Documents**, find the share class and choose the issue or transfer under
    **Certificates**, identified by its date and share movements, then **Prepare unsigned certificate**.
    On mobile, open the class's entries in **Documents**.
-3. On web, enter **Instruction reference** and choose **Preview**. Check the share class and PDF
-   page count; **Record details** holds the entry and register sequence. Choose **Edit** to change
-   the reference, **Download PDF** to generate the unsigned file, or **Cancel** to close the form.
+2. On web, choose **Preview**. Check the share class, share movements and PDF page count;
+   **Record details** holds the entry and register sequence. Choose **Download PDF** to generate
+   the unsigned file, or **Cancel** to close the form. The download action records the requester
+   and an instruction linked to the exact ledger entry automatically; no reference needs typing.
    The form keeps the privacy and signing reminder visible; the company arranges execution and
    delivery.
-4. On mobile, enter the reference and choose **Preview unsigned certificate**. Check the entry,
+3. On mobile, keep the company's written instruction, enter its reference and choose
+   **Preview unsigned certificate**. Check the entry,
    register sequence and page count, then choose **Confirm and share unsigned certificate**.
 
 A register change after the preview invalidates it, and the appointment is rechecked before the

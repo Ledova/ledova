@@ -18,7 +18,7 @@ class RegisterCertificatePreviewSerializer(serializers.Serializer):
 class RegisterCertificateRequestSerializer(RegisterCertificateSelectionSerializer):
     appointment = serializers.UUIDField()
     source_digest = serializers.RegexField(regex=r"^[0-9a-f]{64}$")
-    instruction = serializers.CharField(max_length=255)
+    instruction = serializers.CharField(max_length=255, required=False)
 
 
 class MemberCertificateFulfilmentPreviewSerializer(RegisterCertificatePreviewSerializer):

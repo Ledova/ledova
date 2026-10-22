@@ -73,9 +73,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     name: `Unsigned certificate for entry ${OUTPUT_ENTRY.sequence}`,
   });
   const certificateControls = within(certificateForm);
-  fireEvent.change(certificateControls.getByLabelText('Instruction reference'), {
-    target: { value: 'Synthetic certificate instruction' },
-  });
+  expect(certificateControls.queryByRole('textbox')).toBeNull();
   fireEvent.submit(certificateForm);
   await certificateControls.findByRole('button', { name: `Download PDF (${certificateContext})` });
   expect(api.post).not.toHaveBeenCalled();
@@ -83,8 +81,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     fireEvent.submit(certificateForm);
   });
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(certificateControls.getByRole('button', { name: `Edit (${certificateContext})` }));
-  fireEvent.click(certificateControls.getByRole('button', { name: `Preview (${certificateContext})` }));
+  expect(certificateControls.queryByRole('button', { name: `Edit (${certificateContext})` })).toBeNull();
   const download = await certificateControls.findByRole('button', { name: `Download PDF (${certificateContext})` });
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(download);
@@ -95,7 +92,6 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
       sequence: OUTPUT_ENTRY.sequence,
       appointment: OUTPUT_APPOINTMENT.uuid,
       sourceDigest: OUTPUT_PREVIEW.sourceDigest,
-      instruction: 'Synthetic certificate instruction',
     },
     expect.objectContaining({ responseType: 'blob', ledovaSubmissionGuard: expect.any(Function) }),
   );
