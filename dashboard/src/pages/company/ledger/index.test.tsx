@@ -1879,13 +1879,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     { entry: '/#history' },
   );
   expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
-  expect(await screen.findByRole('heading', { name: 'Transfer' })).toBeTruthy();
-  const entryDetails = screen.getByRole('button', { name: 'Details for entry 3' });
+  const entryDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
+  expect(within(entryDetails).getByText('Transfer')).toBeTruthy();
   const transferEntry = entryDetails.closest('li')!;
   expect(entryDetails.getAttribute('aria-expanded')).toBe('false');
-  expect(within(transferEntry).getByText('Example Shareholder: -100')).toBeTruthy();
-  expect(within(transferEntry).getByText('Taylor Demo: +100')).toBeTruthy();
-  expect(within(transferEntry).getByText(formatDate('2026-10-20'), { selector: 'p' })).toBeTruthy();
+  expect(within(entryDetails).getByText('Example Shareholder: -100')).toBeTruthy();
+  expect(within(entryDetails).getByText('Taylor Demo: +100')).toBeTruthy();
+  expect(within(entryDetails).getByText(formatDate('2026-10-20'))).toBeTruthy();
   expect(document.getElementById(entryDetails.getAttribute('aria-controls')!)!.hidden).toBe(true);
   expect(within(transferEntry).queryByRole('button', { name: 'Prepare unsigned certificate (entry 3)' })).toBeNull();
   fireEvent.click(entryDetails);
@@ -1910,7 +1910,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   });
   await waitFor(() => expect(releaseHistory).toBeTypeOf('function'));
   expect(screen.queryByText('Taylor Demo: +100')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Details for entry 3' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Details for entry 3:/ })).toBeNull();
   await act(async () => {
     pauseHistory = false;
     releaseHistory();

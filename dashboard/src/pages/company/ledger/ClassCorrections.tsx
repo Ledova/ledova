@@ -70,39 +70,43 @@ function EntryHistory({
       ) : privateReady && history.entries.length === 0 ? (
         <p className="text-sm text-text-muted">No changes recorded yet.</p>
       ) : null}
-      <ul className="divide-y divide-border-subtle">
+      {privateReady && history.entries.length > 0 && (
+        <div
+          aria-hidden="true"
+          className="hidden grid-cols-[12rem_10rem_minmax(0,1fr)] gap-6 pl-7 text-xs font-medium text-text-muted md:grid"
+        >
+          <span>Change</span>
+          <span>Date</span>
+          <span>Share movements</span>
+        </div>
+      )}
+      <ul aria-label="Ledger changes" className="divide-y divide-border-subtle">
         {history.entries.map((entry) => {
           const corrected = entry.corrects ? sequences.get(entry.corrects) : undefined;
           const reversal = entry.correctedBy ? sequences.get(entry.correctedBy) : undefined;
           const companyDated = ['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase());
           return (
-            <li key={entry.uuid} hidden={!privateReady} className="py-4">
-              {privateReady && (
-                <>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <h3 className="text-sm font-medium text-text-primary">{COPY.ENTRY_KINDS[entry.kind]}</h3>
-                    <p className="text-sm tabular-nums text-text-muted">
-                      {formatDate(companyDated ? entry.companyEventOn : entry.effectiveOn, 'Date not recorded')}
-                    </p>
-                  </div>
-                  <div className="mt-2 text-sm tabular-nums text-text-primary">
-                    <RegisterChanges changes={entry.changes.slice(0, 2)} />
-                    {entry.changes.length > 2 && (
-                      <p className="text-text-muted">{entry.changes.length - 2} more share changes</p>
-                    )}
-                  </div>
-                  {entry.correctedBy && (
-                    <div className="mt-2 text-sm">
-                      <Status tone="closed">Reversed</Status>
-                    </div>
-                  )}
-                </>
-              )}
+            <li key={entry.uuid} hidden={!privateReady}>
               <Disclosure
                 summary={
                   privateReady ? (
-                    <span className="text-sm font-medium text-text-primary">
-                      Details <span className="sr-only">for entry {entry.sequence}</span>
+                    <span className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm md:grid-cols-[12rem_10rem_minmax(0,1fr)] md:gap-6">
+                      <span className="sr-only">Details for entry {entry.sequence}: </span>
+                      <span className="min-w-0 space-y-1 break-words font-medium text-text-primary">
+                        <span className="block">{COPY.ENTRY_KINDS[entry.kind]}</span>
+                        {entry.correctedBy && <Status tone="closed">Reversed</Status>}
+                      </span>
+                      <span className="tabular-nums text-text-muted">
+                        <span className="sr-only">Date: </span>
+                        {formatDate(companyDated ? entry.companyEventOn : entry.effectiveOn, 'Date not recorded')}
+                      </span>
+                      <span className="col-span-2 min-w-0 tabular-nums text-text-primary md:col-span-1">
+                        <span className="sr-only">Share movements: </span>
+                        <RegisterChanges changes={entry.changes.slice(0, 2)} />
+                        {entry.changes.length > 2 && (
+                          <span className="block text-text-muted">{entry.changes.length - 2} more share changes</span>
+                        )}
+                      </span>
                     </span>
                   ) : (
                     ''

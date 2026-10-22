@@ -334,7 +334,7 @@ A correction exactly reverses one entry, which stays and is named by it. An entr
 once, and a correction can itself be corrected; partial corrections and replacement transactions are
 not built.
 
-1. In History, open Details for the entry under Changes and choose Correct this entry,
+1. In History, expand the entry under Changes and choose Correct this entry,
    which shows the exact inverse.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
@@ -576,13 +576,15 @@ selector and without the overview cards: Issue shares
 ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
 ([non-paid transfers](#non-paid-transfers-between-members)) and History.
 
-History starts with a full-width Changes card, newest entries first. Each entry shows its kind,
-company date for an issue or transfer (ledger effective date for other kinds), and signed shareholder
-movements. A larger change shows its first two movements and a count of the rest. Details starts
-closed and holds the full movement list, entry number, separate company, ledger and recording dates,
-correction or reversal references, and permitted correction and unsigned-certificate actions.
+History starts with a full-width Changes card, newest entries first, with compact rows aligned under
+Change, Date and Share movements. On smaller screens, the kind and date sit above the movements.
+Each entry shows its company date for an issue or transfer (ledger effective date for other kinds),
+and its first two signed shareholder movements plus a count of the rest. Select the row to expand
+its initially closed details: the full movement list, entry number, separate company, ledger and
+recording dates, correction or reversal references, and permitted correction and unsigned-certificate
+actions.
 An older issue or transfer with no company date says Date not recorded in its summary and Not
-recorded in Details. Source imports follow under Opening records, distinct from the changes they
+recorded in its details. Source imports follow under Opening records, distinct from the changes they
 produced; chain Openings, Corrections, Reconciliation with the chain, the company's Particulars
 changes and Wallet links remain available separately.
 
