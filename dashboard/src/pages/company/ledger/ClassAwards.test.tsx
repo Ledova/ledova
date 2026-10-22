@@ -433,7 +433,7 @@ it('retains original award, vesting and linked issue preparations through interr
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
   expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeHiddenTaskPoll);
   fireEvent.click(issueVested);
-  const issues = within((await screen.findByRole('group', { name: 'What kind of issue?' })).parentElement!);
+  const issues = within(await screen.findByRole('region', { name: 'Share issue workflow' }));
   expect(screen.queryByRole('button', { name: 'Refresh grants' })).toBeNull();
   expect((issues.getByRole('radio', { name: 'Non-paid issue' }) as HTMLInputElement).checked).toBe(true);
   expect(await issues.findByText(AWARD_REQUEST.name!)).toBeTruthy();
@@ -494,7 +494,7 @@ it('retains original award, vesting and linked issue preparations through interr
   retainedGrant = retainedReceipt;
   slowReads = true;
   fireEvent.click(recover);
-  await issues.findByText('Next: review and approve the exact share issue.');
+  await issues.findByText('Ready for approval. No shares issued.');
   await waitFor(() => expect(issues.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull());
   slowReads = false;
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
@@ -507,13 +507,15 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(screen.getByText('Non-paid issues from this award · 1')).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: /^10 shares, prepared/, hidden: true }));
   await waitFor(() =>
-    expect(document.activeElement).toBe(
-      issues.getByText('Next: review and approve the exact share issue.').closest('li'),
-    ),
+    expect(document.activeElement).toBe(issues.getByText('Ready for approval. No shares issued.').closest('li')),
   );
   expect(screen.queryByRole('button', { name: /^Record issue [(]grant/ })).toBeNull();
   for (const label of ['Approve', 'Record issue']) {
-    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label} [(]grant`) }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(`^${label === 'Approve' ? 'Review and approve' : label} [(]grant`),
+      }),
+    );
     const confirm = await screen.findByRole('button', { name: `${label} non-paid grant` });
     expect(within(screen.getByRole('dialog')).getByText(formatDate('2026-10-06'))).toBeTruthy();
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));

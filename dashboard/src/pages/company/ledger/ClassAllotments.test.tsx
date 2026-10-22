@@ -203,7 +203,19 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(screen.queryByRole('link', { name: /Class details/ })).toBeNull();
   const taskClass = () => screen.getByLabelText('Share class') as HTMLSelectElement;
   fireEvent.change(await screen.findByLabelText('Share class'), { target: { value: REGISTER.token.uuid } });
-  const allotments = within((await screen.findByRole('group', { name: 'What kind of issue?' })).parentElement!);
+  const workflow = await screen.findByRole('region', { name: 'Share issue workflow' });
+  const allotments = within(workflow);
+  expect(await allotments.findByText('No share issues recorded yet.')).toBeTruthy();
+  expect(allotments.queryByRole('radio', { name: 'Investor issue' })).toBeNull();
+  const prepareIssue = allotments.getByRole('button', { name: 'Prepare issue' });
+  await waitFor(() => expect(prepareIssue.matches(':disabled')).toBe(false));
+  fireEvent.click(prepareIssue);
+  expect(document.activeElement).toBe(
+    allotments.getByRole('heading', { name: 'Prepare share issue' }).parentElement?.parentElement,
+  );
+  fireEvent.click(allotments.getByRole('button', { name: 'Cancel' }));
+  expect(document.activeElement).toBe(allotments.getByRole('button', { name: 'Prepare issue' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Prepare issue' }));
   const investorIssue = await allotments.findByRole('radio', { name: 'Investor issue' });
   await waitFor(() => expect(investorIssue.matches(':disabled')).toBe(false));
   fireEvent.click(investorIssue);
@@ -331,7 +343,12 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   await allotments.findByLabelText('Name');
   slowRegister = true;
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
-  await allotments.findByRole('button', { name: /^Approve [(]allotment/ });
+  await allotments.findByRole('button', { name: /^Review and approve [(]allotment/ });
+  expect(allotments.queryByRole('radio', { name: 'Investor issue' })).toBeNull();
+  expect(allotments.queryByRole('heading', { name: 'Non-paid issues' })).toBeNull();
+  await waitFor(() =>
+    expect(document.activeElement).toBe(allotments.getByText('Ready for approval. No shares issued.').closest('li')),
+  );
   await waitFor(() => expect(taskClass().disabled).toBe(false));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   slowRegister = false;
@@ -339,7 +356,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   expect(allotments.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
   incompleteImpact = true;
-  fireEvent.click(allotments.getByRole('button', { name: /^Approve [(]allotment/ }));
+  fireEvent.click(allotments.getByRole('button', { name: /^Review and approve [(]allotment/ }));
   const incomplete = await screen.findByRole('dialog', { name: 'Approve external allotment' });
   await within(incomplete).findByText(COPY.OWNERSHIP_UNAVAILABLE);
   expect(
@@ -361,7 +378,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(within(rejection).queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
   fireEvent.click(within(rejection).getByRole('button', { name: 'Cancel' }));
   incompleteImpact = false;
-  fireEvent.click(allotments.getByRole('button', { name: /^Approve [(]allotment/ }));
+  fireEvent.click(allotments.getByRole('button', { name: /^Review and approve [(]allotment/ }));
   const stale = await screen.findByRole('dialog', { name: 'Approve external allotment' });
   const staleConfirm = within(stale).getByRole('button', { name: 'Approve external allotment' });
   await waitFor(() => expect((staleConfirm as HTMLButtonElement).disabled).toBe(false));
@@ -372,7 +389,11 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   fireEvent.click(within(stale).getByRole('button', { name: 'Cancel' }));
   for (const kind of ['approve', 'apply'] as const) {
     const label = kind === 'apply' ? 'Record issue' : COPY.DECISIONS[kind];
-    fireEvent.click(allotments.getByRole('button', { name: new RegExp(`^${label} \\(allotment`) }));
+    fireEvent.click(
+      allotments.getByRole('button', {
+        name: new RegExp(`^${kind === 'approve' ? 'Review and approve' : label} \\(allotment`),
+      }),
+    );
     const dialog = await screen.findByRole('dialog', { name: `${label} external allotment` });
     expect(
       within(within(dialog).getByText(COPY.COMPANY_EVENT_ON).parentElement!).getByText(
@@ -445,7 +466,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     ),
   ).toHaveLength(1);
   expect(rows[0].decisions).toHaveLength(2);
-  fireEvent.click(allotments.getByText('Record details and documents'));
+  fireEvent.click(allotments.getByText('Details and documents'));
   await allotments.findByText('entry-a');
   expect(rows[0].registerEntry).toBe('entry-a');
   fireEvent.click(allotments.getByRole('button', { name: /^Download receipt/ }));
@@ -472,6 +493,9 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   interruptedAbsentPreparation = true;
   appointments = [APPOINTMENT];
   await refreshAllotments();
+  const prepareAnother = await allotments.findByRole('button', { name: 'Prepare issue' });
+  await waitFor(() => expect(prepareAnother.matches(':disabled')).toBe(false));
+  fireEvent.click(prepareAnother);
   fireEvent.click(await allotments.findByRole('radio', { name: 'Investor issue' }));
   await allotments.findByLabelText('Name');
   fillForm('250');

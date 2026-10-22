@@ -484,6 +484,11 @@ function OwnRegister({
             </div>
           )}
           <section aria-label="Ledger tasks" className="space-y-4">
+            {selectedTask === 'issue' && sourceReady && scope.registers.length === 1 && (
+              <p className="text-sm text-text-muted">
+                {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
+              </p>
+            )}
             {selectedTask && sourceReady && scope.registers.length > 1 && (
               <div className="max-w-sm">
                 <SelectField
@@ -524,9 +529,16 @@ function OwnRegister({
               <section
                 data-register-tasks
                 hidden={view === 'register' && (!selectedTask || selectedToken !== register.token.uuid)}
-                className="space-y-5 rounded-xl border border-border bg-surface-raised p-4 sm:p-5"
+                className={
+                  view === 'register' && selectedTask === 'issue'
+                    ? 'space-y-5'
+                    : 'space-y-5 rounded-xl border border-border bg-surface-raised p-4 sm:p-5'
+                }
               >
-                <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">
+                <h2
+                  hidden={sourceReady && view === 'register' && selectedTask === 'issue'}
+                  className="break-words font-display text-xl tracking-[-0.01em] text-text-primary"
+                >
                   {sourceReady ? `${register.token.name} · ${register.token.symbol}` : 'Ledger task recovery'}
                 </h2>
                 <div className="space-y-5">

@@ -94,6 +94,15 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   `dashboard/src/components/statusTones.ts`. Personal applications retain their moving fallback,
   company applications their waiting fallback, and an open offering retains its override.
 
+On workflow collections, show the saved records first, with company and class context once above
+them. Keep each recipient, status and key facts together, its details on demand, and its next action
+in a right-aligned footer after secondary actions. Name a preview-opening action for that review,
+such as **Review and approve**; opening it is not approval. The collection's creation action opens
+a focused preparation form in place of the list. Closing the form or successful preparation returns
+to the records; keep their controllers mounted so pending requests and original-request recovery survive.
+Issue shares follows this pattern. Hide a successfully read empty family when another has records,
+and use one empty state when both are confirmed empty; loading or failure is never an empty state.
+
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
 field when editing opens and return focus to Edit when it ends, if that action is still available.

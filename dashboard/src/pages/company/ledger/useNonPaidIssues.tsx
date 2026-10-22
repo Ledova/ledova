@@ -50,7 +50,7 @@ export function useNonPaidIssues({
   focusRecord?: { key: string; uuid: string };
   open: boolean;
   kept: boolean;
-  onClosed: () => void;
+  onClosed: (recorded?: boolean) => void;
 }) {
   const client = useQueryClient();
   const token = register.token.uuid;
@@ -95,6 +95,7 @@ export function useNonPaidIssues({
   }, []);
   const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
+  const [prepared, setPrepared] = useState('');
   const held = formHeld || heldRecords.size > 0;
   useEffect(() => {
     onHeldChange?.(token, held);
@@ -192,9 +193,11 @@ export function useNonPaidIssues({
               )
             }
             onRefused={retry}
-            onRecorded={() => {
+            onCancel={onClosed}
+            onRecorded={(uuid) => {
+              setPrepared(uuid);
               setFormAppointment(null);
-              onClosed();
+              onClosed(true);
             }}
             award={awardUuid ? award.data : undefined}
             awardMember={awardMember}
@@ -203,9 +206,8 @@ export function useNonPaidIssues({
       )}
     </div>
   );
-  const records = (
-    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">Non-paid issues</h3>
+  const status = (
+    <>
       {appointments.isError && (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.
@@ -214,7 +216,10 @@ export function useNonPaidIssues({
       {readable && !Object.values(steps).some(Boolean) && (
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
-      {appointments.isError ? null : !appointments.isSuccess || !sourceReady || (readable && grants.isPending) ? (
+      {appointments.isError ? null : !appointments.isSuccess ||
+        appointments.isFetching ||
+        !sourceReady ||
+        (readable && (grants.isPending || grants.isFetching)) ? (
         <Loading>Loading non-paid issues…</Loading>
       ) : !readable ? (
         <p className="text-sm text-text-muted">
@@ -224,29 +229,31 @@ export function useNonPaidIssues({
         <LoadError retry={() => refresh().catch(() => {})} busy={grants.isFetching || appointments.isFetching}>
           Non-paid issues could not be loaded.
         </LoadError>
-      ) : privateReady && grants.data.length === 0 ? (
-        <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
-      <ul className="divide-y divide-border-subtle">
-        {grants.data?.map((grant) => (
-          <GrantRecord
-            key={grant.uuid}
-            grant={grant}
-            steps={steps}
-            guard={privateGuard}
-            newEffectGuard={newEffectGuard}
-            visible={visible && privateReady}
-            focusKey={focusRecord?.uuid === grant.uuid ? focusRecord.key : undefined}
-            onHeldChange={recordHeld}
-            onSettled={refresh}
-          />
-        ))}
-      </ul>
-    </div>
+    </>
+  );
+  const records = (
+    <ul className="divide-y divide-border-subtle">
+      {grants.data?.map((grant) => (
+        <GrantRecord
+          key={grant.uuid}
+          grant={grant}
+          steps={steps}
+          guard={privateGuard}
+          newEffectGuard={newEffectGuard}
+          visible={visible && privateReady && !kept}
+          focusKey={focusRecord?.uuid === grant.uuid ? focusRecord.key : prepared === grant.uuid ? prepared : undefined}
+          onHeldChange={recordHeld}
+          onSettled={refresh}
+        />
+      ))}
+    </ul>
   );
   return {
     form,
-    records: kept && privateReady && grants.data?.length === 0 ? null : records,
+    status,
+    records,
+    empty: privateReady && grants.data?.length === 0,
     held,
     refreshRecords: () => grants.refetch({ cancelRefetch: false, throwOnError: true }),
   };

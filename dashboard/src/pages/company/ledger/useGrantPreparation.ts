@@ -44,7 +44,8 @@ export type GrantFormProps = {
   appointment: OwnCompanyAppointment;
   blocked: boolean;
   onRefused: () => void;
-  onRecorded: () => void;
+  onRecorded: (uuid: string) => void;
+  onCancel?: () => void;
   award?: RegisterAward;
   awardMember?: RegisterTransferMember | null;
   visible?: boolean;
@@ -276,7 +277,7 @@ export function useGrantPreparation({
       operation.current = null;
       setHeld(false);
       onHeldChange?.(false);
-      onRecorded();
+      onRecorded(command.request.operationId);
     } catch (failure) {
       const status = failureStatus(failure);
       if (operation.current && !operation.current.confirmed) {

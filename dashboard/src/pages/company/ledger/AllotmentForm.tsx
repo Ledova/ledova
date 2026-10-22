@@ -83,7 +83,7 @@ export function AllotmentForm({
   guard: () => void;
   newEffectGuard: () => void;
   blocked: boolean;
-  onRecorded: () => Promise<unknown>;
+  onRecorded: (uuid: string) => Promise<unknown>;
   onHeldChange: (held: boolean) => void;
   onCancel: () => void;
   visible?: boolean;

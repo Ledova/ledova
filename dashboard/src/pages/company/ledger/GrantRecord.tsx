@@ -79,14 +79,14 @@ export function GrantRecord({
     <RecordShell hidden={!visible} focusKey={focusKey}>
       {visible && (
         <>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h4 className="text-base font-medium">{grant.name}</h4>
-              <p className="text-sm text-text-muted">{shareCount(grant.shares)} · Non-paid share issue</p>
+              <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>
+                {grant.stage === 'applied' ? 'Shares issued' : (COPY.STAGES[grant.stage] ?? grant.stage)}
+              </Status>
             </div>
-            <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>
-              {grant.stage === 'applied' ? 'Shares issued' : (COPY.STAGES[grant.stage] ?? grant.stage)}
-            </Status>
+            <p className="text-sm text-text-muted">{shareCount(grant.shares)} · Non-paid share issue</p>
           </div>
           <p className="text-sm text-text-muted">
             {grant.stage === 'applied'
@@ -95,9 +95,9 @@ export function GrantRecord({
                 ? 'Next: record the approved issue. Approval has not changed ownership.'
                 : grant.stage === 'rejected'
                   ? 'This rejected instruction issued no shares.'
-                  : 'Next: review and approve the exact share issue.'}
+                  : 'Ready for approval. No shares issued.'}
           </p>
-          <Disclosure summary="Issue details and documents">
+          <Disclosure summary="Details and documents">
             <Rows>
               <RecordStage stage={grant.stage}>{COPY.STAGES[grant.stage] ?? grant.stage}</RecordStage>
               <Row label="Prepared by">{grant.preparedByName || 'Name not recorded'}</Row>
@@ -131,6 +131,8 @@ export function GrantRecord({
         </>
       )}
       <RegisterDecisions
+        recordActions
+        approveLabel="Review and approve"
         family={REGISTER_GRANT_DECISIONS}
         copy={DECISION_COPY}
         noun="non-paid grant"

@@ -24,6 +24,7 @@ export function GrantForm({
   blocked,
   onRefused,
   onRecorded,
+  onCancel,
   award,
   awardMember,
   visible = true,
@@ -217,6 +218,7 @@ export function GrantForm({
         issued shares.
       </p>
       <FormActions>
+        {onCancel && <PageAction label="Cancel" disabled={busy || held} onClick={onCancel} />}
         <PageAction
           type="submit"
           primary

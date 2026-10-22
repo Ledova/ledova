@@ -8,7 +8,7 @@ import {
   refusalSentences,
 } from '@ledova/shared';
 import { Modal } from '@components/Modal';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { STEP_CHANGED, type RegisterSteps } from './proposals';
 import { Loading } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
@@ -40,6 +40,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   children,
   visible = true,
   onHeldChange,
+  recordActions = false,
+  approveLabel,
   formatError = (message) => message,
 }: {
   family: RegisterDecisionFamily<Shown, Previewed>;
@@ -56,6 +58,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   children: (preview: Previewed) => ReactNode;
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
+  recordActions?: boolean;
+  approveLabel?: string;
   formatError?: (message: string) => string;
 }) {
   const [active, setActive] = useState<RegisterDecisionKind | null>(null);
@@ -86,6 +90,10 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   }, [onHeldChange, proposal.uuid, held]);
   const kinds: RegisterDecisionKind[] = proposal.providedBy === 'company' ? KINDS : ['reject'];
   const available = proposal.status === 'submitted' ? kinds.filter((kind) => steps[kind]) : [];
+  const actionKinds = recordActions
+    ? [...available.filter((kind) => kind === 'reject'), ...available.filter((kind) => kind !== 'reject')]
+    : available;
+  const primaryKind = available.includes('apply') ? 'apply' : 'approve';
   const target = decision?.target;
   const preview = target?.preview;
   const current = !!active && !!target && steps[active]?.uuid === target.request.appointment;
@@ -108,22 +116,25 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     decision?.cancel();
     setActive(null);
   };
+  const actionButtons = actionKinds.map((kind) => (
+    <PageAction
+      key={kind}
+      label={kind === 'approve' ? (approveLabel ?? copy.DECISIONS[kind]) : copy.DECISIONS[kind]}
+      context={context}
+      primary={recordActions && kind === primaryKind}
+      disabled={busy}
+      onClick={() => begin(kind)}
+    />
+  ));
   if (!visible) return null;
   return (
     <>
-      {available.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {available.map((kind) => (
-            <PageAction
-              key={kind}
-              label={copy.DECISIONS[kind]}
-              context={context}
-              disabled={busy}
-              onClick={() => begin(kind)}
-            />
-          ))}
-        </div>
-      )}
+      {available.length > 0 &&
+        (recordActions ? (
+          <FormActions>{actionButtons}</FormActions>
+        ) : (
+          <div className="flex flex-wrap gap-2">{actionButtons}</div>
+        ))}
       {KINDS.map(
         (kind) =>
           decisions[kind].recovery && (

@@ -45,11 +45,12 @@ export function useInvestorIssues({
   issueMember?: string;
   open: boolean;
   kept: boolean;
-  onClosed: () => void;
+  onClosed: (recorded?: boolean) => void;
 }) {
   const client = useQueryClient();
   const [editing, setEditing] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
+  const [prepared, setPrepared] = useState('');
   const [decisionHolds, setDecisionHolds] = useState<Record<string, boolean>>({});
   const live = useRef(true);
   const writeReady = useRef(false);
@@ -202,19 +203,19 @@ export function useInvestorIssues({
         visible={visible && privateReady && members.isSuccess && !members.isFetching}
         onHeldChange={setFormHeld}
         onCancel={onClosed}
-        onRecorded={async () => {
+        onRecorded={async (uuid) => {
           check();
           await refresh(true);
           authority();
+          setPrepared(uuid);
           setEditing(null);
-          onClosed();
+          onClosed(true);
         }}
       />
     </div>
   );
-  const records = (
-    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">Investor issues</h3>
+  const status = (
+    <>
       {appointments.isError && (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.
@@ -234,38 +235,42 @@ export function useInvestorIssues({
           External allotments could not be loaded.
         </LoadError>
       ) : null}
-      {privateReady && allotments.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
-      <ul className="divide-y divide-border-subtle">
-        {allotments.data?.map((allotment) => (
-          <AllotmentRecord
-            key={allotment.uuid}
-            allotment={allotment}
-            steps={registerSteps(appointments.isSuccess ? appointments.data : [], company)}
-            guard={financialGuard}
-            visible={visible && privateReady}
-            onHeldChange={recordHeld}
-            newEffectGuard={(kind) => {
-              check();
-              if (
-                !writeReady.current ||
-                !appointmentForRegisterStep(
-                  client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
-                  company,
-                  kind,
-                )
+    </>
+  );
+  const records = (
+    <ul className="divide-y divide-border-subtle">
+      {allotments.data?.map((allotment) => (
+        <AllotmentRecord
+          key={allotment.uuid}
+          allotment={allotment}
+          steps={registerSteps(appointments.isSuccess ? appointments.data : [], company)}
+          guard={financialGuard}
+          visible={visible && privateReady && !kept}
+          focusKey={prepared === allotment.uuid ? prepared : undefined}
+          onHeldChange={recordHeld}
+          newEffectGuard={(kind) => {
+            check();
+            if (
+              !writeReady.current ||
+              !appointmentForRegisterStep(
+                client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
+                company,
+                kind,
               )
-                throw new Error('Refresh the register and your appointment before a new decision.');
-            }}
-            onSettled={() => refresh(true)}
-          />
-        ))}
-      </ul>
-    </div>
+            )
+              throw new Error('Refresh the register and your appointment before a new decision.');
+          }}
+          onSettled={() => refresh(true)}
+        />
+      ))}
+    </ul>
   );
   return {
     setup,
     form,
-    records: kept && privateReady && allotments.data?.length === 0 ? null : records,
+    status,
+    records,
+    empty: privateReady && allotments.data?.length === 0,
     held,
     prepare: !!appointment && supported,
     refreshRecords: () => allotments.refetch({ cancelRefetch: false, throwOnError: true }),

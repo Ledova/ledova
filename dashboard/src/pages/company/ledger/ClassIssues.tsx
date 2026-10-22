@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { OrderSubmissionOwner, TokenHoldersResponse } from '@ledova/shared';
 import { Choices } from '@components/Choices';
-import { PageAction } from '@components/Page';
+import { Section } from '@components/Ledger';
+import { FormActions, PageAction } from '@components/Page';
 import { useInvestorIssues } from './useInvestorIssues';
 import { useNonPaidIssues } from './useNonPaidIssues';
 import { useIssueFreshness } from './useIssueFreshness';
@@ -41,15 +42,27 @@ export function ClassIssues({
   onGrantHeld: (token: string, held: boolean) => void;
   request?: IssueRequest;
 }) {
+  const [preparing, setPreparing] = useState(false);
+  const [returnToAction, setReturnToAction] = useState(false);
+  const prepareAction = useRef<HTMLButtonElement>(null);
+  const preparation = useRef<HTMLDivElement>(null);
   const [kind, setKind] = useState<IssueKind | ''>('');
   const [award, setAward] = useState<string | undefined>();
   const [member, setMember] = useState<string | undefined>();
   const [answered, setAnswered] = useState('');
-  const close = () => {
+  const close = (recorded = false) => {
+    setPreparing(false);
+    setReturnToAction(!recorded);
     setKind('');
     setAward(undefined);
     setMember(undefined);
   };
+  useEffect(() => {
+    if (visible && preparing) preparation.current?.focus();
+  }, [visible, preparing]);
+  useEffect(() => {
+    if (!preparing && returnToAction) prepareAction.current?.focus();
+  }, [preparing, returnToAction]);
   const investor = useInvestorIssues({
     owner,
     company,
@@ -59,8 +72,8 @@ export function ClassIssues({
     visible,
     onHeldChange: onAllotmentHeld,
     issueMember: member,
-    open: kind === 'investor',
-    kept: !!kind,
+    open: preparing && kind === 'investor',
+    kept: preparing,
     onClosed: close,
   });
   const nonPaid = useNonPaidIssues({
@@ -73,8 +86,8 @@ export function ClassIssues({
     onHeldChange: onGrantHeld,
     award,
     focusRecord: request?.record ? { key: request.key, uuid: request.record } : undefined,
-    open: kind === 'nonpaid',
-    kept: !!kind,
+    open: preparing && kind === 'nonpaid',
+    kept: preparing,
     onClosed: close,
   });
   useIssueFreshness({
@@ -90,32 +103,64 @@ export function ClassIssues({
   if (request && answered !== request.key && !held) {
     setAnswered(request.key);
     if (request.award || request.member) {
+      setPreparing(true);
+      setReturnToAction(false);
       setKind(request.award ? 'nonpaid' : 'investor');
       setAward(request.award);
       setMember(request.member);
     }
   }
+  const grouped = !investor.empty && !nonPaid.empty;
+  const status = (
+    <>
+      {investor.status}
+      {nonPaid.status}
+    </>
+  );
   return (
-    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
+    <div role="region" aria-label="Share issue workflow" className="space-y-5">
       {investor.setup}
-      {investor.prepare && (
-        <>
+      <div hidden={preparing}>
+        <Section title="Share issues">
+          {!preparing && status}
+          {investor.empty && nonPaid.empty && <p className="text-sm text-text-muted">No share issues recorded yet.</p>}
+          <div hidden={investor.empty}>
+            {grouped && <h3 className="text-sm font-medium text-text-primary">Investor issues</h3>}
+            {investor.records}
+          </div>
+          <div hidden={nonPaid.empty}>
+            {grouped && <h3 className="text-sm font-medium text-text-primary">Non-paid issues</h3>}
+            {nonPaid.records}
+          </div>
+        </Section>
+      </div>
+      {investor.prepare && !preparing && (
+        <div className="flex flex-wrap justify-end gap-2">
+          <PageAction
+            ref={prepareAction}
+            label="Prepare issue"
+            primary
+            disabled={held || !sourceReady}
+            onClick={() => {
+              setReturnToAction(false);
+              setPreparing(true);
+            }}
+          />
+        </div>
+      )}
+      <div ref={preparation} tabIndex={-1} hidden={!preparing} className="focus:outline-none">
+        <Section title="Prepare share issue">
+          {preparing && status}
           <Choices legend="What kind of issue?" options={KINDS} value={kind} disabled={held} onChange={setKind} />
+          {investor.form}
+          {nonPaid.form}
           {!kind && (
-            <p className="text-sm text-text-muted">
-              An investor issue is paid in money, with the agreement and the company’s receipt. A non-paid issue has no
-              payment and follows the company’s terms, such as vested award shares.
-            </p>
+            <FormActions>
+              <PageAction label="Cancel" disabled={held} onClick={() => close()} />
+            </FormActions>
           )}
-        </>
-      )}
-      {kind === 'nonpaid' && (investor.prepare || !!nonPaid.form) && (
-        <PageAction label="Close issue form" disabled={held} onClick={close} />
-      )}
-      {investor.form}
-      {nonPaid.form}
-      {investor.records}
-      {nonPaid.records}
+        </Section>
+      </div>
     </div>
   );
 }

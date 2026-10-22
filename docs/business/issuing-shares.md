@@ -162,16 +162,17 @@ members, and publications still reach them.
 A grant on a class with no contract is a register entry only; a chain grant mints shares, and the
 register records the issue once the mint is final.
 
-On the web, the first three paths start from Ledger's **Issue shares** task, which asks **What
-kind of issue?**:
+On the web, the first three paths start from Ledger's **Issue shares** task. Choose the class to
+read its issues, each with its recipient, stage, key figures and next action. Details and documents
+open on demand. **Prepare issue**, beneath the records, asks **What kind of issue?**:
 
 - **Investor issue** opens the external allotment form.
 - **Non-paid issue** opens the non-paid grant form, in place.
 
-Switching between the two keeps what was entered in each form until the issue form is closed or an
-issue is prepared. The class's Investor issues and Non-paid issues are listed under the form, each
-with its stage and next action. For a deployed class the task links to Share class, where chain
-grants and paid issues stay.
+Preparation replaces the record list with the chosen form. Switching between the two keeps what
+was entered in each form until it is closed or an issue is prepared, when the records return.
+Investor and non-paid group headings appear only when both have records. For a deployed class the
+task links to Share class, where chain grants and paid issues stay.
 
 ### What each record changes
 
@@ -213,8 +214,8 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
 A non-paid grant records a company-authorised issue as an Issue entry, with no application, payment,
 wallet or chain transaction.
 
-1. On the web, in Ledger choose Issue shares and the class, then Non-paid issue; or choose Issue vested
-   shares on an award in Employee share scheme.
+1. On the web, in Ledger choose Issue shares and the class, then Prepare issue and Non-paid issue;
+   or choose Issue vested shares on an award in Employee share scheme.
 2. Choose who receives the shares ([choosing a person](register.md#choosing-a-person)), or New person
    with their name and residential address; names never link an account.
 3. Give the shares, the company issue date, the separate date of the terms, the non-paid terms, the
@@ -264,7 +265,7 @@ remaining quantities. The web chart keeps the original promise as its total, inc
    Non-paid issue chosen. The grant form shows the recipient and available quantity, and is bound to
    the award's class, recipient and retained agreement. Upload the authority document, name the
    approving director and add any required acceptance. Preparing keeps you on Issue shares, with the
-   new issue in the Non-paid issues list; approve, then choose Record issue. The award lists the
+   new issue among the class's records; approve, then choose Record issue. The award lists the
    non-paid issues prepared from it, each with its stage and a link to its record on Ledger.
 4. To reduce or end an entitlement, choose End unissued rights. Enter exactly how many unvested and/or
    vested-but-unissued rights the company ends, its event date, reason and evidence. Zero is allowed
@@ -305,7 +306,7 @@ award fulfilment.
 A company records an investment it arranged outside Ledova and the fully paid allotment it approves.
 No deployment, application, payment or chain receipt is involved.
 
-1. On the web, in Ledger choose Issue shares and the class, then Investor issue.
+1. On the web, in Ledger choose Issue shares and the class, then Prepare issue and Investor issue.
 2. Person and shares: choose who receives the shares, or New person with their particulars
    ([choosing a person](register.md#choosing-a-person)), then give the shares
    and the full consideration in AUD.
@@ -314,9 +315,9 @@ No deployment, application, payment or chain receipt is involved.
 4. Company authority and review: check the recipient, class, quantity and AUD total, then give the
    company issue date, approving director, authority reference, reason and authority document.
    Choose Prepare allotment.
-5. Review the class, agreed shares and AUD total, the derived price per share, and each shareholder's
-   shares and class percentage before and after the proposed issue. Approve the exact allotment,
-   then choose Record issue.
+5. On the prepared record, choose Review and approve. Review the class, agreed shares and AUD total,
+   the derived price per share, and each shareholder's shares and class percentage before and after
+   the proposed issue. Approve the exact allotment, then choose Record issue.
 
 The web form shows one step at a time using the same step indicator and fields as Ledger setup.
 Back preserves entries and selected files; Continue validates that step without uploading or saving.

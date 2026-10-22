@@ -43,7 +43,7 @@ export function useAllotmentForm({
   guard: () => void;
   newEffectGuard: () => void;
   blocked: boolean;
-  onRecorded: () => Promise<unknown>;
+  onRecorded: (uuid: string) => Promise<unknown>;
   onHeldChange: (held: boolean) => void;
   visible?: boolean;
 }) {
@@ -243,7 +243,7 @@ export function useAllotmentForm({
           }
         }
       }
-      await onRecorded();
+      await onRecorded(command.request.operationId);
       operation.current = null;
       if (live.current) {
         setHeld(false);

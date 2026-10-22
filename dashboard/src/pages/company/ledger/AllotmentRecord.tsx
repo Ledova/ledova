@@ -56,6 +56,7 @@ export function AllotmentRecord({
   newEffectGuard,
   visible = true,
   onHeldChange,
+  focusKey,
 }: {
   allotment: RegisterAllotment;
   steps: RegisterSteps;
@@ -64,25 +65,26 @@ export function AllotmentRecord({
   newEffectGuard: (kind: RegisterDecisionKind) => void;
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
+  focusKey?: string;
 }) {
   const download = useAllotmentRecordDownload(allotment, guard);
   const context = `allotment for ${allotment.name} prepared ${formatDateTime(allotment.createdAt)}`;
   const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
   const decisionSteps = allotment.stage === 'submitted' ? { ...steps, apply: undefined } : steps;
   return (
-    <RecordShell hidden={!visible} className="flex flex-col gap-4 py-4">
+    <RecordShell hidden={!visible} focusKey={focusKey}>
       {visible && (
         <>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h4 className="text-base font-medium">{allotment.name}</h4>
-              <p className="text-sm text-text-muted">
-                {shareCount(allotment.shares)} · {formatMoney(allotment.consideration, allotment.currency)}
-              </p>
+              <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
+                {allotment.stage === 'applied' ? 'Shares issued' : (COPY.STAGES[allotment.stage] ?? allotment.stage)}
+              </Status>
             </div>
-            <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
-              {allotment.stage === 'applied' ? 'Shares issued' : (COPY.STAGES[allotment.stage] ?? allotment.stage)}
-            </Status>
+            <p className="text-sm text-text-muted">
+              {shareCount(allotment.shares)} · {formatMoney(allotment.consideration, allotment.currency)}
+            </p>
           </div>
           <p className="text-sm text-text-muted">
             {allotment.stage === 'applied'
@@ -91,9 +93,9 @@ export function AllotmentRecord({
                 ? 'Next: record the approved share issue. Approval has not changed ownership.'
                 : allotment.stage === 'rejected'
                   ? 'No shares were issued by this rejected allotment. The agreement and company receipt remain recorded.'
-                  : 'Next: review and approve the company instruction. This allotment has not issued any shares.'}
+                  : 'Ready for approval. No shares issued.'}
           </p>
-          <Disclosure summary="Record details and documents">
+          <Disclosure summary="Details and documents">
             <Rows>
               <RecordStage stage={allotment.stage}>{COPY.STAGES[allotment.stage] ?? allotment.stage}</RecordStage>
               <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>
@@ -130,6 +132,8 @@ export function AllotmentRecord({
         </>
       )}
       <RegisterDecisions
+        recordActions
+        approveLabel="Review and approve"
         family={REGISTER_ALLOTMENT_DECISIONS}
         copy={DECISION_COPY}
         noun="external allotment"
