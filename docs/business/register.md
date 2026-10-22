@@ -413,10 +413,13 @@ account, payment, application or chain transaction.
 5. The saved record aligns From, To, Shares, Transfer date and Status, with **Details and documents**
    available on demand. **Review and approve** opens a main-page preview of the parties, ownership
    effect, transfer instrument and company authority, with long terms, particulars and documents
-   on demand. Cancel returns to the record and its opener. **Approve transfer** records the approval;
-   Apply subsequently opens its own main-page review before recording the approved transfer.
-   Rejection also uses page review. Approval and application remain separate decisions. The preparation
-   action shares the final record's action row, or stands alone when no transfers exist.
+   on demand. Cancel returns to the record and its opener. **Approve** records the company approval
+   and ledger transfer together, requiring current approval and application authority. A current
+   earlier approval is reused; an approved transfer awaiting its entry shows **Ready to complete**.
+   Success shows **Approved** and the recorded entry, without a separate Apply action. A failed
+   transaction records no new approval or movement; retrying the same request cannot move the shares
+   twice. Rejection also uses page review. The preparation action shares the final record's action
+   row, or stands alone when no transfers exist. The API and mobile keep their separate decision steps.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the

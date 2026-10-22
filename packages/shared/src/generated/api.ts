@@ -8273,7 +8273,9 @@ export interface ApiComponents {
       toMember: string;
     };
     RegisterTransferDecideRequest: {
+      applyAppointment?: string;
       appointment: string;
+      completeTransfer?: boolean;
       confirmation: boolean;
       idempotencyKey: string;
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
@@ -8282,6 +8284,8 @@ export interface ApiComponents {
     };
     RegisterTransferDecision: {
       appointment: string;
+      approvalAppointment: string | null;
+      completeTransfer: boolean;
       decidedAt: string;
       decidedBy: number;
       decidedByName: string;
@@ -8293,23 +8297,32 @@ export interface ApiComponents {
     };
     RegisterTransferDecisionPreview: {
       afterIssuedSupply: string;
+      applyAppointment?: string | null;
       approvingDirector: string;
       authorisedSupply: string;
       authority: string;
+      authorityEvidence: string;
+      authorityReference: string;
       canDecide: boolean;
+      company: string;
       companyEventOn: string | null;
+      completeTransfer?: boolean;
       effectiveOn: string | null;
+      evidenceFingerprint: string;
       fromAfterShares: string;
       fromCurrentShares: string;
       fromMember: string;
       fromName: string;
       fromResidentialAddress: string;
+      instrumentEvidence: string;
+      instrumentFingerprint: string;
       issuedSupply: string;
       lodgedOn: string;
       name: string;
       newMember: boolean;
       newParticulars: boolean;
       previewDigest: string;
+      reason: string;
       registerSequence: number;
       residentialAddress: string;
       shares: string;
@@ -8317,11 +8330,14 @@ export interface ApiComponents {
       terms: string;
       toAfterShares: string;
       toCurrentShares: string;
+      token: string;
       toMember: string;
       unmetRequirements: string[];
     };
     RegisterTransferDecisionRequestRequest: {
+      applyAppointment?: string;
       appointment: string;
+      completeTransfer?: boolean;
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason?: string;
     };

@@ -1,5 +1,7 @@
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { COMPANY_TOKEN_ENDPOINTS } from '../constants/api';
+import { REGISTER_TRANSFER_COPY } from '../constants/business/register-transfers';
+import { createUserFriendlyError } from '../utils/errors';
 import type {
   PaginatedResponse,
   RegisterTransfer,
@@ -27,17 +29,25 @@ export const prepareRegisterTransfer = (
   config: AxiosRequestConfig = {},
 ) => apiClient.post<RegisterTransfer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFERS, data, config);
 
-export const previewRegisterTransferDecision = (
+export const previewRegisterTransferDecision = async (
   apiClient: AxiosInstance,
   uuid: string,
   data: RegisterTransferDecisionRequest,
   config: AxiosRequestConfig = {},
-) =>
-  apiClient.post<RegisterTransferDecisionPreview>(
+) => {
+  const response = await apiClient.post<RegisterTransferDecisionPreview>(
     COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_PREVIEW(uuid),
     data,
     config,
   );
+  if (
+    (response.data.completeTransfer === true) !== (data.completeTransfer === true) ||
+    (data.completeTransfer === true &&
+      (data.kind !== 'approve' || response.data.applyAppointment !== (data.applyAppointment ?? data.appointment)))
+  )
+    throw createUserFriendlyError(REGISTER_TRANSFER_COPY.PREVIEW_FAILED);
+  return response;
+};
 
 export const decideRegisterTransfer = (
   apiClient: AxiosInstance,

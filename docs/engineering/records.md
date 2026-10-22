@@ -468,6 +468,15 @@ decision guards, so changing it after preview or before commit cannot authorise 
 vested quantity. A transfer that empties a holding writes a `RegisterMemberCessation`. `GET
 {uuid}/register/members/` lists a class's company members for these forms.
 
+Web transfer review sends `kind: approve`, `complete_transfer: true` and `apply_appointment` to
+`register-transfers/{uuid}/decision-preview/` and `decide/`, alongside the normal approval
+appointment and decision bindings. The preview binds both current appointments and the exact
+transfer effect. The combined command reuses a still-current approval or records one, then records
+the application decision and one TRANSFER entry in the same transaction. A failure rolls back every
+new decision and movement. Its application receipt retains `complete_transfer: true` and
+`approval_appointment`; an identical request recovers that exact receipt without duplicating the
+transfer. Omitting the combined flag keeps the separate API and mobile decisions.
+
 ### Company event dates
 
 New non-tokenised grants, allotments and direct transfers require an explicit `company_event_on`.

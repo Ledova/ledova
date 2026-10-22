@@ -1372,6 +1372,18 @@ summary, ownership impact and company-record cards with details and documents on
 review makes no decision; Cancel returns to its record. Transfer approval and application remain
 separate, with current authority, exact previews and original-request recovery preserved.
 
+Later on 22 October 2026 the owner combined the final web transfer action, following investor
+allotments: **Review and approve** still opens the main-page review without changing records, and
+its green **Approve** records company approval and the ledger transfer in one idempotent
+transaction. Remove the separate web Apply control. Require current approval and application
+capabilities and both appointments; bind the exact ownership, class, company date and evidence, and
+retain director-conflict, transferability and unchanged-total guards. Reuse a still-current earlier
+approval without rewriting its history. An earlier approved transfer awaiting its entry shows
+**Ready to complete**; success shows **Approved** with the recorded entry. Failure creates no new
+partial approval or movement, and the original request can be recovered without moving shares twice.
+Approval and entry stay distinct retained facts. This supersedes the separate web actions above;
+separate API decisions and mobile remain unchanged, with mobile deferred under #1201.
+
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
 a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse
 the same people and register records, without changing company authority,

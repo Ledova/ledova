@@ -6,6 +6,7 @@ import {
   REGISTER_TRANSFER_DECISIONS,
   formatDateTime,
   type RegisterTransfer,
+  type RegisterTransferDecisionRequest,
   shareCount,
   formatDate,
   shortReference,
@@ -18,6 +19,8 @@ import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals
 import { useTransferRecordDownload } from './useRegisterRecordDownload';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { TransferReview } from './TransferReview';
+
+const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, approve: 'Approve', apply: 'Transfer recorded' } };
 
 function TransferRows({ transfer }: { transfer: RegisterTransfer }) {
   return (
@@ -71,6 +74,14 @@ export function TransferRecord({
   const check = useRegisterTaskGuard(visible, guard);
   const download = useTransferRecordDownload(transfer, check);
   const context = `transfer from ${transfer.fromName} to ${transfer.name} prepared ${formatDateTime(transfer.createdAt)}`;
+  const decisionSteps = { ...steps, apply: undefined };
+  const family = {
+    ...REGISTER_TRANSFER_DECISIONS,
+    request: (request: RegisterTransferDecisionRequest): RegisterTransferDecisionRequest =>
+      request.kind === 'approve'
+        ? { ...request, completeTransfer: true, applyAppointment: steps.apply?.uuid ?? request.appointment }
+        : request,
+  };
   const reviewChanged = useCallback(
     (open: boolean) => onReviewChange(transfer.uuid, open),
     [transfer.uuid, onReviewChange],
@@ -94,7 +105,7 @@ export function TransferRecord({
     </>
   );
   return (
-    <RecordShell hidden={!visible} landed={landed}>
+    <RecordShell hidden={!visible} focusKey={landed?.key} landed={transfer.stage === 'submitted' ? landed : undefined}>
       {visible && (
         <>
           <h3 className="sr-only">
@@ -124,7 +135,11 @@ export function TransferRecord({
               <dt className="text-text-muted">Status</dt>
               <dd>
                 <Status tone={STAGE_TONES[transfer.stage] ?? 'waiting'}>
-                  {COPY.STAGES[transfer.stage] ?? transfer.stage}
+                  {transfer.stage === 'applied'
+                    ? 'Approved'
+                    : transfer.stage === 'approved'
+                      ? 'Ready to complete'
+                      : (COPY.STAGES[transfer.stage] ?? transfer.stage)}
                 </Status>
               </dd>
             </div>
@@ -136,7 +151,7 @@ export function TransferRecord({
               <Row label="Prepared on">{formatDateTime(transfer.createdAt)}</Row>
               <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
               <Row label={COPY.REASON}>{transfer.reason}</Row>
-              <DecisionTrail proposal={transfer} labels={COPY.DECISIONS} />
+              <DecisionTrail proposal={transfer} labels={DECISION_COPY.DECISIONS} />
               {!!transfer.registerEntry && <Row label="Register entry">{shortReference(transfer.registerEntry)}</Row>}
             </Rows>
             <TransferRows transfer={transfer} />
@@ -148,15 +163,18 @@ export function TransferRecord({
       <RegisterDecisions
         recordActions
         leadingAction={prepareAction}
-        primaryAction={transfer.stage === 'approved' ? 'apply' : 'approve'}
         approveLabel="Review and approve"
-        family={REGISTER_TRANSFER_DECISIONS}
-        copy={COPY}
+        family={family}
+        copy={DECISION_COPY}
         noun="non-paid transfer"
         proposal={transfer}
-        steps={steps}
+        steps={decisionSteps}
         guard={guard}
-        newEffectGuard={check}
+        newEffectGuard={(kind) => {
+          check();
+          if (kind === 'approve' && !steps.apply)
+            throw new Error('Company authority to record share transfers is required.');
+        }}
         visible={visible}
         onHeldChange={onHeldChange}
         context={context}
@@ -166,7 +184,7 @@ export function TransferRecord({
           target: reviewTarget,
           onChange: reviewChanged,
           title: 'Review share transfer',
-          labels: { approve: 'Approve transfer', apply: 'Apply transfer', reject: 'Reject transfer' },
+          labels: { approve: 'Approve', apply: 'Approve', reject: 'Reject transfer' },
         }}
       >
         {(preview, kind) => (

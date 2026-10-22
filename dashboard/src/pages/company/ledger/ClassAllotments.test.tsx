@@ -677,7 +677,11 @@ it('preserves original preparation and combined approval recovery through refres
   });
   cleanup();
   client.clear();
-  appointments = [APPOINTMENT];
+  appointments = [
+    { ...APPOINTMENT, capabilities: ['prepare', 'approve', 'read_register'] },
+    { ...APPOINTMENT, uuid: 'transfer-apply', capabilities: ['apply'] },
+  ];
+  let transferMovements = 0;
   let transfer: RegisterTransfer = {
     ...rows[0],
     uuid: 'transfer-a',
@@ -719,6 +723,9 @@ it('preserves original preparation and combined approval recovery through refres
       return {
         data: {
           ...transfer,
+          completeTransfer: body.completeTransfer === true,
+          applyAppointment: body.applyAppointment,
+          effectiveOn: transfer.companyEventOn,
           previewDigest: 'c'.repeat(64),
           canDecide: true,
           unmetRequirements: [],
@@ -734,20 +741,41 @@ it('preserves original preparation and combined approval recovery through refres
       };
     if (url === URLS.REGISTER_TRANSFER_DECIDE(transfer.uuid)) {
       if (!transfer.decisions.some((decision) => decision.idempotencyKey === body.idempotencyKey)) {
+        transferMovements += 1;
         transfer = {
           ...transfer,
-          stage: 'approved',
+          stage: 'applied',
+          status: 'applied',
+          registerEntry: 'transfer-entry-a',
+          effectiveOn: transfer.companyEventOn,
+          reviewedAt: '2026-10-22T00:00:00Z',
+          reviewedBy: 1,
           decisions: [
             {
-              uuid: body.idempotencyKey,
+              uuid: `approval-${body.idempotencyKey}`,
               appointment: body.appointment,
-              kind: body.kind,
+              kind: 'approve',
+              digest: body.previewDigest,
+              idempotencyKey: `approval-${body.idempotencyKey}`,
+              reason: '',
+              decidedAt: '2026-10-22T00:00:00Z',
+              decidedBy: 1,
+              decidedByName: 'Synthetic Appointee',
+              completeTransfer: false,
+              approvalAppointment: null,
+            },
+            {
+              uuid: body.idempotencyKey,
+              appointment: body.applyAppointment,
+              kind: 'apply',
               digest: body.previewDigest,
               idempotencyKey: body.idempotencyKey,
               reason: body.reason || '',
               decidedAt: '2026-10-22T00:00:00Z',
               decidedBy: 1,
               decidedByName: 'Synthetic Appointee',
+              completeTransfer: true,
+              approvalAppointment: body.appointment,
             },
           ],
         };
@@ -772,8 +800,9 @@ it('preserves original preparation and combined approval recovery through refres
   const historyLink = screen.getByRole('link', { name: 'History' });
   const openTransfer = () => screen.getByRole('button', { name: /^Review and approve [(]transfer/ });
   await screen.findByRole('button', { name: /^Review and approve [(]transfer/ });
-  const transferDecisionCalls = () =>
-    api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFER_DECIDE(transfer.uuid));
+  expect(screen.queryByRole('button', { name: /^Apply [(]transfer/ })).toBeNull();
+  const transferDecisionUrl = URLS.REGISTER_TRANSFER_DECIDE(transfer.uuid);
+  const transferDecisionCalls = () => api.post.mock.calls.filter(([url]) => url === transferDecisionUrl);
   fireEvent.click(openTransfer());
   const transferReview = await screen.findByRole('region', { name: 'Review share transfer' });
   expect(screen.queryByRole('dialog')).toBeNull();
@@ -796,13 +825,15 @@ it('preserves original preparation and combined approval recovery through refres
   expect(transferDecisionCalls()).toHaveLength(0);
   fireEvent.click(openTransfer());
   const confirmationReview = await screen.findByRole('region', { name: 'Review share transfer' });
-  const transferConfirm = within(confirmationReview).getByRole('button', { name: 'Approve transfer' });
+  const transferConfirm = within(confirmationReview).getByRole('button', { name: 'Approve' });
   await waitFor(() => expect(transferConfirm.matches(':disabled')).toBe(false));
   fireEvent.click(transferConfirm);
   await within(confirmationReview).findByRole('button', { name: 'Recover original decision receipt' });
-  expect(transfer.decisions).toHaveLength(1);
-  expect(transfer.registerEntry).toBeNull();
-  expect(transfer.stage).toBe('approved');
+  expect(transfer.decisions).toHaveLength(2);
+  expect(transfer.registerEntry).toBe('transfer-entry-a');
+  expect(transfer.effectiveOn).toBe(transfer.companyEventOn);
+  expect(transfer.stage).toBe('applied');
+  expect(transferMovements).toBe(1);
   const cancelTransferReview = within(confirmationReview).getByRole('button', { name: 'Cancel' });
   await waitFor(() => expect(cancelTransferReview.matches(':disabled')).toBe(false));
   fireEvent.click(cancelTransferReview);
@@ -820,12 +851,37 @@ it('preserves original preparation and combined approval recovery through refres
   );
   expect(transferDecisionCalls()).toHaveLength(2);
   expect(transferDecisionCalls()[1][1]).toEqual(transferDecisionCalls()[0][1]);
-  expect(transferDecisionCalls()[0][1]).toMatchObject({ kind: 'approve', appointment: APPOINTMENT.uuid });
-  expect(transfer.decisions).toHaveLength(1);
-  expect(transfer.registerEntry).toBeNull();
+  expect(transferDecisionCalls()[0][1]).toMatchObject({
+    kind: 'approve',
+    appointment: APPOINTMENT.uuid,
+    completeTransfer: true,
+    applyAppointment: 'transfer-apply',
+  });
+  expect(transferDecisionCalls().every(([, body]) => body.kind === 'approve')).toBe(true);
+  expect(transfer.decisions).toHaveLength(2);
+  expect(transfer.registerEntry).toBe('transfer-entry-a');
+  expect(transferMovements).toBe(1);
+  expect(screen.queryByRole('button', { name: /^Apply [(]transfer/ })).toBeNull();
   await waitFor(() => expect(transferClass().disabled).toBe(false));
   cleanup();
   client.clear();
+  transfer = {
+    ...transfer,
+    uuid: 'transfer-b',
+    stage: 'approved',
+    status: 'submitted',
+    registerEntry: null,
+    effectiveOn: null,
+    reviewedAt: null,
+    reviewedBy: null,
+    decisions: [
+      {
+        ...transfer.decisions[0],
+        uuid: 'prior-approval-b',
+        idempotencyKey: 'prior-approval-b',
+      },
+    ],
+  };
   const transferGet = api.get.getMockImplementation()!;
   api.get.mockImplementation(async (url, config?: { params?: { token?: string } }) => {
     if (url === URLS.REGISTER)
@@ -848,6 +904,7 @@ it('preserves original preparation and combined approval recovery through refres
     'Ledger',
     { entry: '/company/ledger#transfer', path: '/company/ledger' },
   );
+  await screen.findByText('Ready to complete');
   fireEvent.click(await screen.findByRole('button', { name: /^Review and approve [(]transfer/ }));
   await screen.findByRole('region', { name: 'Review share transfer' });
   expect(screen.queryByLabelText('Share class')).toBeNull();
@@ -859,4 +916,6 @@ it('preserves original preparation and combined approval recovery through refres
     }),
   ).toBeNull();
   expect(transferDecisionCalls()).toHaveLength(2);
+  expect(transferMovements).toBe(1);
+  expect(transfer.registerEntry).toBeNull();
 });

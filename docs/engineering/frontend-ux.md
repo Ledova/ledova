@@ -104,9 +104,9 @@ to the records; keep their controllers mounted so pending requests and original-
 Issue shares and Transfer shares follow this pattern. Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
-Details and documents. Emphasise the review for the current stage; transfer approval and application
-remain separate decisions. Keep transfer preparation beside the final record's decision actions in
-one right-aligned row, wrapping only when needed; an empty collection keeps its own preparation row.
+Details and documents. Emphasise the review for the current stage. Keep transfer preparation beside
+the final record's decision actions in one right-aligned row, wrapping only when needed; an empty
+collection keeps its own preparation row.
 Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 
@@ -118,11 +118,15 @@ smaller screens; long terms, documents and audit references open on demand. Keep
 confirming action together at the bottom right, without another confirmation dialog. Opening the
 review focuses its heading; cancelling returns to its record's opener. Keep the record controllers
 mounted, and preserve current authority, exact preview binding, loading, errors and original-request
-recovery. For web investor allotments, a green **Review and approve** action opens this read-only
-review; its green **Approve** confirmation records approval and the issue together. Show **Approved**
-and the recorded outcome afterwards, without a separate Record issue action. Rejection also uses
-page review. Web transfer approval, application and rejection use the same main-page review,
-preserving their separate decisions. Other decision families and mobile keep their existing workflow.
+recovery. For web investor allotments and non-paid transfers, a green **Review and approve** action
+opens this read-only review; its green **Approve** confirmation records approval and the ledger
+effect together. Require current approval and application capabilities and their appointments, bind
+the reviewed ownership, class, dates and evidence, and reuse a current earlier approval. A transfer
+already approved but awaiting its entry shows **Ready to complete**. Success shows **Approved** and
+the recorded outcome, without a separate Record issue or Apply action. Keep approval and entry as
+distinct retained facts, with atomic failure and same-request recovery that cannot duplicate the
+effect. Rejection also uses page review. Other decision families, separate API decisions and mobile
+keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first

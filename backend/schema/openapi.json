@@ -20391,9 +20391,17 @@
       },
       "RegisterTransferDecideRequest": {
         "properties": {
+          "applyAppointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "appointment": {
             "format": "uuid",
             "type": "string"
+          },
+          "completeTransfer": {
+            "default": false,
+            "type": "boolean"
           },
           "confirmation": {
             "type": "boolean"
@@ -20432,6 +20440,16 @@
             "format": "uuid",
             "readOnly": true,
             "type": "string"
+          },
+          "approvalAppointment": {
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "completeTransfer": {
+            "readOnly": true,
+            "type": "boolean"
           },
           "decidedAt": {
             "format": "date-time",
@@ -20476,6 +20494,8 @@
         },
         "required": [
           "appointment",
+          "approvalAppointment",
+          "completeTransfer",
           "decidedAt",
           "decidedBy",
           "decidedByName",
@@ -20492,6 +20512,11 @@
           "afterIssuedSupply": {
             "type": "string"
           },
+          "applyAppointment": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "approvingDirector": {
             "type": "string"
           },
@@ -20501,17 +20526,35 @@
           "authority": {
             "type": "string"
           },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorityReference": {
+            "type": "string"
+          },
           "canDecide": {
             "type": "boolean"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
           },
           "companyEventOn": {
             "format": "date",
             "nullable": true,
             "type": "string"
           },
+          "completeTransfer": {
+            "default": false,
+            "type": "boolean"
+          },
           "effectiveOn": {
             "format": "date",
             "nullable": true,
+            "type": "string"
+          },
+          "evidenceFingerprint": {
             "type": "string"
           },
           "fromAfterShares": {
@@ -20528,6 +20571,13 @@
             "type": "string"
           },
           "fromResidentialAddress": {
+            "type": "string"
+          },
+          "instrumentEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "instrumentFingerprint": {
             "type": "string"
           },
           "issuedSupply": {
@@ -20547,6 +20597,9 @@
             "type": "boolean"
           },
           "previewDigest": {
+            "type": "string"
+          },
+          "reason": {
             "type": "string"
           },
           "registerSequence": {
@@ -20575,6 +20628,10 @@
             "format": "uuid",
             "type": "string"
           },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          },
           "unmetRequirements": {
             "items": {
               "type": "string"
@@ -20587,20 +20644,27 @@
           "approvingDirector",
           "authorisedSupply",
           "authority",
+          "authorityEvidence",
+          "authorityReference",
           "canDecide",
+          "company",
           "companyEventOn",
           "effectiveOn",
+          "evidenceFingerprint",
           "fromAfterShares",
           "fromCurrentShares",
           "fromMember",
           "fromName",
           "fromResidentialAddress",
+          "instrumentEvidence",
+          "instrumentFingerprint",
           "issuedSupply",
           "lodgedOn",
           "name",
           "newMember",
           "newParticulars",
           "previewDigest",
+          "reason",
           "registerSequence",
           "residentialAddress",
           "shares",
@@ -20609,15 +20673,24 @@
           "toAfterShares",
           "toCurrentShares",
           "toMember",
+          "token",
           "unmetRequirements"
         ],
         "type": "object"
       },
       "RegisterTransferDecisionRequestRequest": {
         "properties": {
+          "applyAppointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "appointment": {
             "format": "uuid",
             "type": "string"
+          },
+          "completeTransfer": {
+            "default": false,
+            "type": "boolean"
           },
           "kind": {
             "$ref": "#/components/schemas/RegisterDecisionKindEnum"

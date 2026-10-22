@@ -25,7 +25,11 @@ from companies.services.authority import (
     SIGNUP_DECLARATION_VERSION,
 )
 from companies.services.authority_requests import submit_authority_request
-from companies.services.team import revoke_company_appointment
+from companies.services.team import (
+    accept_team_invitation,
+    issue_team_invitation,
+    revoke_company_appointment,
+)
 from shared.db import atomic, use_migrate, use_operator
 from shared.tests.core_fixtures import (
     PASSWORD,
@@ -48,6 +52,7 @@ from tokens.services.creation import create_share_token
 from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.register import MEMBER_AMBIGUOUS, _member_identity
 from tokens.services.register_events import record_entry
+from tokens.services.register_transfers import _apply as apply_register_transfer
 from users.models import FinancialProfile, UserAccount
 from users.services.setup import ensure_defaults
 from wallets.models import Wallet
@@ -552,16 +557,41 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         response = self.client.post(endpoint, payload, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         identifier = response.json()["uuid"]
-        self.decision(endpoint, identifier, "approve")
-        fields = {"appointment": str(self.appointment.pk), "kind": "apply"}
+        _, code, _ = issue_team_invitation(
+            requester=self.owner,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.appointment.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.APPROVE],
+        )
+        approver = accept_team_invitation(
+            requester=self.foreign, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+        )
+        self.client.force_authenticate(self.foreign)
+        self.decision(endpoint, identifier, "approve", appointment=approver)
+        self.client.force_authenticate(self.owner)
+        approval = RegisterTransferDecision.objects.get(register_transfer_id=identifier, kind="approve")
+        fields = {"appointment": str(self.appointment.pk), "kind": "approve", "complete_transfer": True}
         preview = self.client.post(f"{endpoint}{identifier}/decision-preview/", fields, format="json")
         self.assertEqual(preview.status_code, 200, preview.content)
+        self.assertTrue(preview.json()["completeTransfer"])
+        self.assertEqual(preview.json()["applyAppointment"], str(self.appointment.pk))
+        self.assertEqual(
+            (preview.json()["company"], preview.json()["token"]), (str(self.company.pk), str(self.token.pk))
+        )
+        self.assertEqual(preview.json()["instrumentFingerprint"], response.json()["instrumentFingerprint"])
         decision = {
             **fields,
             "idempotency_key": str(uuid4()),
             "preview_digest": preview.json()["previewDigest"],
             "confirmation": True,
         }
+        self.assertEqual(
+            self.client.post(
+                f"{endpoint}{identifier}/decide/", {**decision, "complete_transfer": False}, format="json"
+            ).status_code,
+            409,
+        )
         with use_operator():
             ShareToken.objects.filter(pk=self.token.pk).update(is_transferable=False)
         restricted = self.client.post(f"{endpoint}{identifier}/decision-preview/", fields, format="json")
@@ -600,11 +630,120 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(retry.status_code, 200, retry.content)
         self.assertEqual(prepared_retry.status_code, 200, prepared_retry.content)
         self.assertEqual(RegisterTransferDecision.objects.filter(register_transfer_id=identifier).count(), 2)
+        approval.refresh_from_db()
+        self.assertEqual(approval.appointment_id, approver.pk)
+        completion = next(row for row in retry.json()["decisions"] if row["kind"] == "apply")
+        self.assertTrue(completion["completeTransfer"])
+        self.assertEqual(completion["approvalAppointment"], str(self.appointment.pk))
+        self.assertEqual(completion["idempotencyKey"], decision["idempotency_key"])
+        self.assertEqual(completion["digest"], decision["preview_digest"])
+        self.assertEqual(
+            self.client.post(
+                f"{endpoint}{identifier}/decide/",
+                {**decision, "complete_transfer": False, "kind": "apply"},
+                format="json",
+            ).status_code,
+            409,
+        )
         positions = RegisterPosition.objects.filter(register=self.token.stored_register)
         self.assertEqual(positions.get(member=self.member).shares, 75)
         self.assertEqual(positions.get(member_id=recipient).shares, 25)
         self.token.stored_register.refresh_from_db()
         self.assertEqual(int(self.token.stored_register.issued_supply), 100)
+
+        with use_operator():
+            ShareToken.objects.filter(pk=self.token.pk).update(is_transferable=True)
+        fresh = self.client.post(
+            endpoint,
+            {
+                **payload,
+                "operation_id": str(uuid4()),
+                "from_member": recipient,
+                "to_member": str(self.member.pk),
+                "name": "",
+                "residential_address": "",
+            },
+            format="json",
+        )
+        self.assertEqual(fresh.status_code, 201, fresh.content)
+        fresh_id = fresh.json()["uuid"]
+        self.client.force_authenticate(self.foreign)
+        split = {**fields, "appointment": str(approver.pk)}
+        blocked = self.client.post(f"{endpoint}{fresh_id}/decision-preview/", split, format="json")
+        self.assertEqual(blocked.status_code, 200, blocked.content)
+        self.assertFalse(blocked.json()["canDecide"])
+        self.assertEqual(blocked.json()["unmetRequirements"], ["appointment_capability_required"])
+        refused = self.client.post(
+            f"{endpoint}{fresh_id}/decide/",
+            {
+                **split,
+                "idempotency_key": str(uuid4()),
+                "preview_digest": blocked.json()["previewDigest"],
+                "confirmation": True,
+            },
+            format="json",
+        )
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertFalse(RegisterTransferDecision.objects.filter(register_transfer_id=fresh_id).exists())
+        wrong_actor = self.client.post(
+            f"{endpoint}{fresh_id}/decision-preview/",
+            {**split, "apply_appointment": str(self.appointment.pk)},
+            format="json",
+        )
+        self.assertEqual(wrong_actor.status_code, 404, wrong_actor.content)
+        revoke_company_appointment(requester=self.owner, appointment_id=approver.pk)
+        _, code, _ = issue_team_invitation(
+            requester=self.owner,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.appointment.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.APPROVE, CompanyCapability.APPLY],
+        )
+        application = accept_team_invitation(
+            requester=self.foreign, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+        )
+        split.update(appointment=str(application.pk), apply_appointment=str(application.pk))
+        ready = self.client.post(f"{endpoint}{fresh_id}/decision-preview/", split, format="json")
+        self.assertTrue(ready.json()["canDecide"], ready.content)
+        exact = {
+            **split,
+            "idempotency_key": str(uuid4()),
+            "preview_digest": ready.json()["previewDigest"],
+            "confirmation": True,
+        }
+
+        def revoke_after_entry(**values):
+            entry = record_entry(**values)
+            revoke_company_appointment(requester=self.owner, appointment_id=application.pk)
+            return entry
+
+        def revoke_after_apply(*args):
+            apply_register_transfer(*args)
+            revoke_company_appointment(requester=self.owner, appointment_id=application.pk)
+
+        for target, effect in (("record_entry", revoke_after_entry), ("_apply", revoke_after_apply)):
+            with patch(f"tokens.services.register_transfers.{target}", side_effect=effect):
+                refused = self.client.post(f"{endpoint}{fresh_id}/decide/", exact, format="json")
+            self.assertEqual(refused.status_code, 409, refused.content)
+            self.assertFalse(RegisterTransferDecision.objects.filter(register_transfer_id=fresh_id).exists())
+            self.assertIsNone(RegisterTransfer.objects.get(pk=fresh_id).register_entry_id)
+            self.assertEqual(RegisterPosition.objects.get(member=self.member).shares, 75)
+        completed = self.client.post(f"{endpoint}{fresh_id}/decide/", exact, format="json")
+        self.assertEqual(completed.status_code, 200, completed.content)
+        self.assertEqual(completed.json()["stage"], "applied")
+        self.assertEqual(len(completed.json()["decisions"]), 2)
+        self.assertEqual(
+            self.client.post(f"{endpoint}{fresh_id}/decide/", exact, format="json").json()["registerEntry"],
+            completed.json()["registerEntry"],
+        )
+        changed = self.client.post(
+            f"{endpoint}{fresh_id}/decide/", {**exact, "apply_appointment": str(approver.pk)}, format="json"
+        )
+        self.assertEqual(changed.status_code, 409, changed.content)
+        self.assertEqual(RegisterPosition.objects.get(member=self.member).shares, 100)
+        self.assertEqual(RegisterPosition.objects.get(member_id=recipient).shares, 0)
+        self.token.stored_register.refresh_from_db()
+        self.assertEqual((int(self.token.stored_register.issued_supply), self.token.stored_register.sequence), (100, 3))
 
     def test_company_inspection_copy_serves_and_retains_the_real_register_bytes(self):
         endpoint = f"/api/v1/tokens/{self.token.pk}/register/inspection-copy/"

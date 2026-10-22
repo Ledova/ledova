@@ -143,11 +143,12 @@ rule, and company policy decides whether a separate approver is needed. Applicat
 approval whose approver still holds a current appointment; otherwise someone approves again.
 Rejection stays available until the change is applied or rejected.
 
-The web investor-allotment review combines approval and application in one **Approve** action,
-requiring both capabilities (or administration) and recording both effects atomically. It retains
-any existing current approval and creates at most one Issue entry. Mobile and other decision
-families keep the separate steps above
-([external allotments](issuing-shares.md#external-investor-allotments)).
+Web investor-allotment and non-paid transfer reviews combine approval and application in one
+**Approve** action, requiring both capabilities (or administration) and recording the approval and
+ledger effect atomically. They retain any existing current approval and create at most one entry.
+Mobile and other decision families keep the separate steps above
+([external allotments](issuing-shares.md#external-investor-allotments),
+[transfers](register.md#non-paid-transfers-between-members)).
 
 Each step confirms an exact preview. If anything the step depends on changes before you confirm,
 such as the proposal, your appointment or the register, the step is refused and you review it
