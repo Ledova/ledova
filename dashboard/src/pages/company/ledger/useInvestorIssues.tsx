@@ -202,7 +202,7 @@ export function useInvestorIssues({
         blocked={blocked || members.isFetching}
         visible={visible && privateReady && members.isSuccess && !members.isFetching}
         onHeldChange={setFormHeld}
-        onCancel={onClosed}
+        onCancel={() => onClosed()}
         onRecorded={async (uuid) => {
           check();
           await refresh(true);

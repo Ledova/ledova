@@ -171,8 +171,9 @@ open on demand. **Prepare issue**, beneath the records, asks **What kind of issu
 
 Preparation replaces the record list with the chosen form. Switching between the two keeps what
 was entered in each form until it is closed or an issue is prepared, when the records return.
-Investor and non-paid group headings appear only when both have records. For a deployed class the
-task links to Share class, where chain grants and paid issues stay.
+A sibling group is hidden only after a current successful read proves it empty; loading and failed
+reads remain visible. For a deployed class the task links to Share class, where chain grants and
+paid issues stay.
 
 ### What each record changes
 

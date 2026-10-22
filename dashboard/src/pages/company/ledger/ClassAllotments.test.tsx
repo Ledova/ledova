@@ -220,6 +220,15 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   await waitFor(() => expect(investorIssue.matches(':disabled')).toBe(false));
   fireEvent.click(investorIssue);
   expect(await allotments.findByRole('group', { name: 'Person and shares' })).toBeTruthy();
+  fireEvent.click(allotments.getByRole('button', { name: 'Cancel' }));
+  expect(document.activeElement).toBe(allotments.getByRole('button', { name: 'Prepare issue' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Prepare issue' }));
+  fireEvent.click(allotments.getByRole('radio', { name: 'Non-paid issue' }));
+  fireEvent.click(await allotments.findByRole('button', { name: 'Cancel' }));
+  expect(document.activeElement).toBe(allotments.getByRole('button', { name: 'Prepare issue' }));
+  fireEvent.click(allotments.getByRole('button', { name: 'Prepare issue' }));
+  fireEvent.click(allotments.getByRole('radio', { name: 'Investor issue' }));
+  await allotments.findByRole('group', { name: 'Person and shares' });
   expect(allotments.queryByRole('group', { name: 'Agreement and receipt' })).toBeNull();
   expect(allotments.queryByRole('group', { name: 'Company authority and review' })).toBeNull();
   fireEvent.click(allotments.getByRole('button', { name: 'Continue' }));

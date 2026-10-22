@@ -193,7 +193,7 @@ export function useNonPaidIssues({
               )
             }
             onRefused={retry}
-            onCancel={onClosed}
+            onCancel={() => onClosed()}
             onRecorded={(uuid) => {
               setPrepared(uuid);
               setFormAppointment(null);
