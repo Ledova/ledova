@@ -602,7 +602,8 @@ another view to resume the same request. A failed read withholds the class cards
 shareholder list rather than implying holdings are zero.
 
 The focused views reuse the existing controllers, authority checks and original-request recovery.
-Further workflow refinements remain under [#1165](https://github.com/Ledova/ledova/issues/1165).
+The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165);
+mobile refinements remain deferred under [#1201](https://github.com/Ledova/ledova/issues/1201).
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage

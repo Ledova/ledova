@@ -51,13 +51,12 @@ expansion tickets were [closed as not planned on 18 October](../../decisions.md#
 | [#1169](https://github.com/Ledova/ledova/issues/1169)                                                                                                               | Award recipients as person records from their first award, chosen and corrected like any member before shares are issued (web)                     |
 | [#1185](https://github.com/Ledova/ledova/issues/1185)                                                                                                               | ESS in the web sidebar, Employee share scheme as the page title                                                                                   |
 | [#1215](https://github.com/Ledova/ledova/issues/1215)                                                                                                               | Initial Class rights text records and document references, with retained revisions and company-administrator editing (web); refined under #1165    |
-| [#1165](https://github.com/Ledova/ledova/issues/1165)                                                                                                               | Ledger routes and Class rights; simpler setup; read-only History, maintenance in Corrections and certificate preparation in Documents (web) |
+| [#1165](https://github.com/Ledova/ledova/issues/1165)                                                                                                               | Ledger routes and Class rights, simpler setup, focused issue/transfer reviews, read-only History, Corrections and aligned Documents preparation (web), [#1259](https://github.com/Ledova/ledova/pull/1259) |
 
 ## Remaining scope
 
 | Issue                                               | Remaining                                         | Current prerequisites                              |
 | --------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
-| [#1165](https://github.com/Ledova/ledova/issues/1165) | Web Ledger and workflow walkthrough and refinements | Sidebar task views and class details in draft #1259; preserve authority and original-request recovery |
 | [#1201](https://github.com/Ledova/ledova/issues/1201) | Mobile people, issue placement and UX refinements | Deferred until the owner resumes mobile work |
 | [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance | Genuine device/human and configured-chain evidence |
 

@@ -1326,6 +1326,10 @@ recovery. Documents presents compact output choices, opening one preparation at 
 instruction entry, source/privacy guidance and explicit generation in the opened workflow. Mobile
 stays unchanged.
 
+On 23 October 2026 the owner asked to finish the web refinements under #1165, reuse the existing
+summary grids and aligned form actions in Documents, and merge the completed work after review
+and checks. Mobile remains deferred under #1201.
+
 The owner placed Add share class below the class cards, aligned right. The web standard for a
 collection's primary creation action is one content-width action row beneath its cards, including
 an empty collection card; record-specific actions stay with their records.

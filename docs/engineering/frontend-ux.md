@@ -121,8 +121,10 @@ opening, reconciliation acknowledgement, particulars and wallet-link workflows b
 Corrections view. Keep their controllers mounted so unfinished work and original-request recovery
 survive navigation. Documents starts with compact output choices and opens one focused inline
 preparation at a time. Certificate choices show the issue or transfer's date and share movements;
-the form foregrounds **Instruction reference**, with technical metadata under **Record details**
-and one right-aligned Cancel/Preview or Cancel/Edit/Download PDF row. Inspection copy and Company
+the form pairs a labelled share-movement/date summary with **Instruction reference** in the existing
+two-column grid, stacking on smaller screens. Keep the field and its right-aligned action footer
+on the same alignment, with technical metadata under **Record details** and PDF page count visible
+after preview. Use one Cancel/Preview or Cancel/Edit/Download PDF row. Inspection copy and Company
 pack open from their preparation actions; privacy and source guidance stays with the opened form
 or download. Keep current source and appointment validation and error retries, without routine
 refresh controls.

@@ -88,37 +88,44 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
       }}
     >
       <h3 className="text-sm font-medium text-text-primary">Unsigned certificate</h3>
-      <div className="text-sm text-text-primary">
-        <RegisterChanges changes={entry.changes} />
-      </div>
       <ErrorSummary {...checks.summary} />
-      <p className="text-sm text-text-muted">Includes names and residential addresses. The company arranges signing.</p>
-      <div className="max-w-xl">
-        <Field {...checks.field('instruction')} label="Instruction reference">
-          <TextInput
-            ref={instructionField}
-            maxLength={FIELD_LIMITS.REFERENCE}
-            value={instruction}
-            disabled={blocked || !!target}
-            onChange={(event) => setInstruction(event.target.value)}
-          />
-        </Field>
-      </div>
-      <Disclosure summary="Record details">
-        <Rows>
-          <Row label="Entry">{entry.sequence}</Row>
-          <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
-          <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
-          <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
+      <div className="grid items-start gap-6 md:grid-cols-2">
+        <div className="space-y-2">
+          <Rows>
+            <Row label="Share movements">
+              <RegisterChanges changes={entry.changes} />
+            </Row>
+            <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
+          </Rows>
+          <Disclosure summary="Record details">
+            <Rows>
+              <Row label="Entry">{entry.sequence}</Row>
+              <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
+              <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
+              {target && <Row label="Register sequence">{target.preview.registerSequence}</Row>}
+            </Rows>
+          </Disclosure>
+        </div>
+        <div className="space-y-3">
+          <Field {...checks.field('instruction')} label="Instruction reference">
+            <TextInput
+              ref={instructionField}
+              maxLength={FIELD_LIMITS.REFERENCE}
+              value={instruction}
+              disabled={blocked || !!target}
+              onChange={(event) => setInstruction(event.target.value)}
+            />
+          </Field>
+          <p className="text-sm text-text-muted">
+            Includes names and residential addresses. The company arranges signing.
+          </p>
           {target && (
-            <>
-              <Row label="Share class">{register.token.name}</Row>
+            <Rows>
               <Row label="PDF pages">{target.preview.pageCount}</Row>
-              <Row label="Register sequence">{target.preview.registerSequence}</Row>
-            </>
+            </Rows>
           )}
-        </Rows>
-      </Disclosure>
+        </div>
+      </div>
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
