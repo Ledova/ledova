@@ -78,7 +78,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   const opener = useRef<HTMLElement | null>(null);
   const openerKind = useRef<RegisterDecisionKind | null>(null);
   const record = useRef<HTMLElement | null>(null);
-  const [focusRequest, setFocusRequest] = useState(0);
+  const [focusRequest, setFocusRequest] = useState({ key: 0, completed: false });
   const focused = useRef(0);
   const pageOpen = useRef(false);
   const onPageChange = useRef(pageReview?.onChange);
@@ -101,14 +101,18 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     }
   }, [active, visible, pageReview?.target]);
   useEffect(() => {
-    if (focused.current === focusRequest || active || !visible) return;
+    if (focused.current === focusRequest.key || active || !visible) return;
     const available = (element: HTMLElement | null) =>
       element?.isConnected &&
       !(element instanceof HTMLButtonElement && element.disabled) &&
       !element.closest('[hidden], [aria-hidden="true"]') &&
       getComputedStyle(element).display !== 'none' &&
       getComputedStyle(element).visibility !== 'hidden';
-    const currentOpener = openerKind.current ? (openers.current[openerKind.current] ?? opener.current) : opener.current;
+    const currentOpener = focusRequest.completed
+      ? null
+      : openerKind.current
+        ? (openers.current[openerKind.current] ?? opener.current)
+        : opener.current;
     const destination = available(currentOpener ?? null)
       ? currentOpener
       : available(record.current)
@@ -118,16 +122,12 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     if (destination === record.current) destination.tabIndex = -1;
     destination.focus({ preventScroll: true });
     destination.scrollIntoView?.({ block: 'nearest' });
-    focused.current = focusRequest;
+    focused.current = focusRequest.key;
   });
   const finish = (completed = false) => {
     setActive(null);
     if (pageReview) {
-      if (completed) {
-        openerKind.current = null;
-        opener.current = null;
-      }
-      setFocusRequest((request) => request + 1);
+      setFocusRequest((request) => ({ key: request.key + 1, completed }));
       pageReview.onChange(false);
     }
   };
