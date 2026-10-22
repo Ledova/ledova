@@ -122,7 +122,7 @@ export function ClassTransfers({
   return (
     <div role="region" aria-label="Share transfer workflow" className="space-y-5">
       <div hidden={!!reviewing}>
-        <Section title={visible ? `${register.token.name} · ${register.token.symbol}` : 'Transfers'}>
+        <Section title="Share transfers">
           {!reviewing && status}
           <ul className="divide-y divide-border-subtle">
             {records.map((transfer, index) => (

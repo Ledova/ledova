@@ -824,4 +824,39 @@ it('preserves original preparation and combined approval recovery through refres
   expect(transfer.decisions).toHaveLength(1);
   expect(transfer.registerEntry).toBeNull();
   await waitFor(() => expect(transferClass().disabled).toBe(false));
+  cleanup();
+  client.clear();
+  const transferGet = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url, config?: { params?: { token?: string } }) => {
+    if (url === URLS.REGISTER)
+      return {
+        data: {
+          results: [
+            { uuid: REGISTER.token.uuid, companyUuid: APPOINTMENT.company, companyName: APPOINTMENT.companyName },
+          ],
+          next: null,
+        },
+      };
+    return transferGet(url, config);
+  });
+  renderCompanyPage(
+    client,
+    <LedgerNavigationProvider>
+      <Sidebar />
+      <CompanyRegisterPage />
+    </LedgerNavigationProvider>,
+    'Ledger',
+    { entry: '/company/ledger#transfer', path: '/company/ledger' },
+  );
+  fireEvent.click(await screen.findByRole('button', { name: /^Review and approve [(]transfer/ }));
+  await screen.findByRole('region', { name: 'Review share transfer' });
+  expect(screen.queryByLabelText('Share class')).toBeNull();
+  const soleClassLabel = `${REGISTER.token.name} · ${REGISTER.token.symbol}`;
+  expect(screen.getAllByText(soleClassLabel).filter((element) => !element.closest('[hidden]'))).toHaveLength(1);
+  expect(
+    within(screen.getByRole('region', { name: 'Share transfer workflow' })).queryByRole('heading', {
+      name: 'Share transfers',
+    }),
+  ).toBeNull();
+  expect(transferDecisionCalls()).toHaveLength(2);
 });

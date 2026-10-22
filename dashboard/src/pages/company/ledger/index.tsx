@@ -520,11 +520,13 @@ function OwnRegister({
             </div>
           )}
           <section aria-label="Ledger tasks" className="space-y-4">
-            {selectedTask === 'issue' && sourceReady && scope.registers.length === 1 && (
-              <p className="text-sm text-text-muted">
-                {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
-              </p>
-            )}
+            {(selectedTask === 'issue' || selectedTask === 'transfer') &&
+              sourceReady &&
+              scope.registers.length === 1 && (
+                <p className="text-sm text-text-muted">
+                  {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
+                </p>
+              )}
             {selectedTask && sourceReady && scope.registers.length > 1 && (
               <div className="max-w-sm">
                 <SelectField
