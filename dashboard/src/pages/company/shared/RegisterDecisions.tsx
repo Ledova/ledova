@@ -289,7 +289,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
               label={pageReview.labels[active]}
               primary
               busy={!!decision?.busy}
-              busyLabel="Recording decision…"
+              busyLabel={preview || decision?.recovery ? 'Recording decision…' : 'Loading preview…'}
               disabled={!ready}
               onClick={confirm}
             />

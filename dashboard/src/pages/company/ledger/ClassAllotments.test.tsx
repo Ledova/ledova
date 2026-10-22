@@ -426,7 +426,6 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     expect(within(dialog).getByText('AUD 2.5000')).toBeTruthy();
     expect(within(dialog).getByText('100.00%')).toBeTruthy();
     expect(within(dialog).getByRole('table', { name: 'Share class ownership forecast' })).toBeTruthy();
-    expect(within(dialog).getByText(COPY.OWNERSHIP_NOTE)).toBeTruthy();
     fireEvent.click(confirm);
     await waitFor(() => expect(rows[0].decisions).toHaveLength(kind === 'approve' ? 1 : 2));
     if (kind === 'approve') {

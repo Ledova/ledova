@@ -52,7 +52,6 @@ export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDeci
           {table(impact.rows.slice(1), 'Other shareholder ownership forecast')}
         </Disclosure>
       )}
-      <p className="text-sm text-text-muted">{COPY.OWNERSHIP_NOTE}</p>
     </section>
   );
 }
