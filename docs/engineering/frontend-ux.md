@@ -116,8 +116,9 @@ kind and date sit above the movements. Show the company date for an issue or tra
 effective date for other kinds), and the first two signed movements plus a count of the rest.
 Details start closed and hold the full list, entry number, separate company, ledger and recording
 dates, correction or reversal references, and permitted correction and unsigned-certificate actions.
-Keep their contents mounted so unfinished work survives closing them. Source imports follow under
-**Opening records**; chain Openings, Corrections and Reconciliation remain separate.
+Keep their contents mounted so unfinished work survives closing them. Certificate forms use compact
+inline fields and one right-aligned action row, with technical metadata under **Record details**.
+Source imports follow under **Opening records**; chain Openings, Corrections and Reconciliation remain separate.
 
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep company and class context once, then the issue or transfer summary, ownership

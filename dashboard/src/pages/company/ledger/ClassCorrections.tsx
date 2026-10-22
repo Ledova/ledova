@@ -141,22 +141,24 @@ function EntryHistory({
                   </>
                 )}
                 <div className="flex flex-wrap justify-end gap-2">
-                  {privateReady && prepare && entry.correctable && (
-                    <PageLink
-                      to={generatePath(DESTINATIONS.companyRegisterCorrection.path, {
-                        uuid: token,
-                        entry: entry.uuid,
-                      })}
-                      label={COPY.PREPARE}
-                      context={`entry ${entry.sequence}`}
-                    />
-                  )}
                   <ClassCertificate
                     sourceKey={`${owner.userUuid}/${owner.ownerAccountUuid}`}
                     register={register}
                     entry={entry}
                     guard={certificateGuard}
                     sourceReady={visible && sourceReady && !history.isFetching && !history.moreFailed}
+                    secondaryAction={
+                      privateReady && prepare && entry.correctable ? (
+                        <PageLink
+                          to={generatePath(DESTINATIONS.companyRegisterCorrection.path, {
+                            uuid: token,
+                            entry: entry.uuid,
+                          })}
+                          label={COPY.PREPARE}
+                          context={`entry ${entry.sequence}`}
+                        />
+                      ) : undefined
+                    }
                   />
                 </div>
               </Disclosure>

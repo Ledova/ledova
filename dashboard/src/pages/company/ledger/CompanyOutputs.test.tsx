@@ -2,7 +2,7 @@
 
 import { COMPANY_ENDPOINTS, COMPANY_TOKEN_ENDPOINTS, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { OUTPUT_APPOINTMENT, OUTPUT_ENTRY, OUTPUT_PREVIEW, OUTPUT_REGISTER } from '../../../testSupport/company';
@@ -63,12 +63,31 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     );
   }
   renderCompanyPage(client, <Outputs />, 'Register outputs');
+  const certificateContext = `unsigned certificate for entry ${OUTPUT_ENTRY.sequence}`;
   fireEvent.click(screen.getByRole('button', { name: /Prepare unsigned certificate/ }));
-  fireEvent.change(screen.getByLabelText('Certificate instruction reference'), {
+  fireEvent.click(screen.getByRole('button', { name: `Cancel (${certificateContext})` }));
+  expect(screen.queryByRole('form', { name: `Unsigned certificate for entry ${OUTPUT_ENTRY.sequence}` })).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: /Prepare unsigned certificate/ }));
+  const certificateForm = screen.getByRole('form', {
+    name: `Unsigned certificate for entry ${OUTPUT_ENTRY.sequence}`,
+  });
+  const certificateControls = within(certificateForm);
+  fireEvent.change(certificateControls.getByLabelText('Instruction reference'), {
     target: { value: 'Synthetic certificate instruction' },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Preview unsigned certificate' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Confirm and download unsigned PDF' }));
+  fireEvent.submit(certificateForm);
+  await certificateControls.findByRole('button', { name: `Download PDF (${certificateContext})` });
+  expect(api.post).not.toHaveBeenCalled();
+  await act(async () => {
+    fireEvent.submit(certificateForm);
+  });
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(certificateControls.getByRole('button', { name: `Edit (${certificateContext})` }));
+  fireEvent.click(certificateControls.getByRole('button', { name: `Preview (${certificateContext})` }));
+  const download = await certificateControls.findByRole('button', { name: `Download PDF (${certificateContext})` });
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(download);
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
   expect(api.post).toHaveBeenCalledWith(
     certificate,
@@ -86,13 +105,13 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
         release = () => resolve({ data: pdf });
       }),
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Preview unsigned certificate' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Confirm and download unsigned PDF' }));
+  fireEvent.click(certificateControls.getByRole('button', { name: `Preview (${certificateContext})` }));
+  fireEvent.click(await certificateControls.findByRole('button', { name: `Download PDF (${certificateContext})` }));
   await waitFor(() => expect(release).toBeTypeOf('function'));
   const certificateSignal = api.post.mock.calls.at(-1)![2].signal as AbortSignal;
   fireEvent.click(screen.getByRole('button', { name: 'Hide certificate task' }));
   expect(certificateSignal.aborted).toBe(true);
-  expect(screen.queryByLabelText('Certificate instruction reference')).toBeNull();
+  expect(screen.queryByLabelText('Instruction reference')).toBeNull();
   expect(screen.getByRole('button', { name: /Prepare unsigned certificate/ }).matches(':disabled')).toBe(true);
   await act(async () => release!());
   release = undefined;

@@ -1892,13 +1892,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(transferEntry).getByText('Ledger date')).toBeTruthy();
   expect(within(transferEntry).getByText(formatDate('2026-10-21'))).toBeTruthy();
   fireEvent.click(within(transferEntry).getByRole('button', { name: 'Prepare unsigned certificate (entry 3)' }));
-  fireEvent.change(within(transferEntry).getByLabelText('Certificate instruction reference'), {
+  fireEvent.change(within(transferEntry).getByLabelText('Instruction reference'), {
     target: { value: 'Retained certificate draft' },
   });
   fireEvent.click(entryDetails);
   expect(entryDetails.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(entryDetails);
-  expect((within(transferEntry).getByLabelText('Certificate instruction reference') as HTMLInputElement).value).toBe(
+  expect((within(transferEntry).getByLabelText('Instruction reference') as HTMLInputElement).value).toBe(
     'Retained certificate draft',
   );
   fireEvent.click(entryDetails);

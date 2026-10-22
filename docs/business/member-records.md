@@ -179,15 +179,19 @@ The whole certificate is refused when a member's wallets resolve to different pe
 no name or residential address on record, the entry is not an issue or transfer in the class's
 register, or a correction has since reversed the entry (the refusal names the correction).
 
-### Preparing a certificate in the Register
+### Preparing a certificate
 
 1. Keep the company's written instruction and note its reference.
 2. On web, in **Ledger** choose **History** and the share class, open an issue or transfer entry
    and choose **Prepare unsigned certificate**. On mobile, open the class's entries in
    **Documents**.
-3. Enter the reference and choose **Preview unsigned certificate**. Check the entry, register
-   sequence and page count, then choose **Confirm and download unsigned PDF** (web) or **Confirm
-   and share unsigned certificate** (mobile).
+3. On web, enter **Instruction reference** and choose **Preview**. Check the share class and PDF
+   page count; **Record details** holds the entry and register sequence. Choose **Edit** to change
+   the reference, **Download PDF** to generate the unsigned file, or **Cancel** to close the form.
+   The form keeps the privacy and signing reminder visible; the company arranges execution and
+   delivery.
+4. On mobile, enter the reference and choose **Preview unsigned certificate**. Check the entry,
+   register sequence and page count, then choose **Confirm and share unsigned certificate**.
 
 A register change after the preview invalidates it, and the appointment is rechecked before the
 fingerprint is recorded.
