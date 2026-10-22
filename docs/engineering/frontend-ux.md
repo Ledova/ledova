@@ -82,8 +82,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   sidebar's Ledger caret is a separate navigation-group button; More keeps its native toggle.
   Activity's filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
   naming what it applies; applying or clearing closes it and every open entry and returns focus to
-  its button. Dialogs are for work that sets the page aside, such as a separate task, a signing
-  step or a confirmation.
+  its button. Substantial record reviews use the main page; brief confirmations and signing steps
+  can use dialogs.
 - `SwitchRow`: a setting that takes effect at once (Transaction alerts; Dark theme; Show this
   company to eligible investors), as an On/Off pill or native switch (`role="switch"`,
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
@@ -102,6 +102,16 @@ a focused preparation form in place of the list. Closing the form or successful 
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
 Issue shares follows this pattern. Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
+
+For a substantial record review, replace the collection and its creation action with a focused review
+on the same page. Keep company and class context once, then the issue summary, ownership impact and
+supporting facts. Agreement and receipt sit beside company authority on wider screens and stack on
+smaller screens; long terms, documents and audit references open on demand. Keep Cancel and the
+confirming action together at the bottom right, without another confirmation dialog. Opening the
+review focuses its heading; cancelling returns to its record's opener. Keep the record controllers
+mounted, and preserve current authority, exact preview binding, loading, errors and original-request
+recovery. Investor allotment approval, rejection and recording the issue use this page review;
+approval still issues no shares. Other decision dialogs keep their existing workflow until refined.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
@@ -255,7 +265,7 @@ confirming tick before its destructive action; Trading's order cancellation is c
 signing steps. Reversible actions, such as signing out, turning a switch off or removing a row from
 an unsaved form, aren't confirmed. Dismissing a notification archives it at once. Register
 decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are
-confirmed by their own decision dialog or form. The dashboard uses no browser `confirm` or `alert`
+confirmed by their own review, dialog or form. The dashboard uses no browser `confirm` or `alert`
 (ESLint's `no-alert`). Mobile doesn't follow this yet: some of these actions run at once there, and others
 confirm with native alerts.
 

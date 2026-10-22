@@ -366,30 +366,39 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(allotments.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
   incompleteImpact = true;
   fireEvent.click(allotments.getByRole('button', { name: /^Review and approve [(]allotment/ }));
-  const incomplete = await screen.findByRole('dialog', { name: 'Approve external allotment' });
+  const incomplete = await screen.findByRole('region', { name: 'Review share issue' });
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(allotments.queryByRole('button', { name: 'Prepare issue' })).toBeNull();
+  expect(taskClass().disabled).toBe(true);
+  expect(transferTask.getAttribute('aria-disabled')).toBe('true');
+  expect(document.activeElement).toBe(within(incomplete).getByRole('heading', { name: 'Review share issue' }));
   await within(incomplete).findByText(COPY.OWNERSHIP_UNAVAILABLE);
-  expect(
-    (within(incomplete).getByRole('button', { name: 'Approve external allotment' }) as HTMLButtonElement).disabled,
-  ).toBe(true);
+  expect((within(incomplete).getByRole('button', { name: 'Approve allotment' }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
   expect(rows[0].decisions).toHaveLength(0);
   fireEvent.click(within(incomplete).getByRole('button', { name: 'Cancel' }));
+  await waitFor(() =>
+    expect(document.activeElement).toBe(allotments.getByRole('button', { name: /^Review and approve [(]allotment/ })),
+  );
+  expect(rows[0].decisions).toHaveLength(0);
   fireEvent.click(allotments.getByRole('button', { name: /^Reject [(]allotment/ }));
-  const rejection = await screen.findByRole('dialog', { name: 'Reject external allotment' });
+  const rejection = await screen.findByRole('region', { name: 'Review share issue' });
   fireEvent.change(within(rejection).getByLabelText(COPY.REJECTION_REASON), {
     target: { value: 'Withdraw instruction' },
   });
   fireEvent.click(within(rejection).getByRole('button', { name: 'Preview the rejection' }));
   await waitFor(() =>
-    expect(
-      (within(rejection).getByRole('button', { name: 'Reject external allotment' }) as HTMLButtonElement).disabled,
-    ).toBe(false),
+    expect((within(rejection).getByRole('button', { name: 'Reject allotment' }) as HTMLButtonElement).disabled).toBe(
+      false,
+    ),
   );
   expect(within(rejection).queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
   fireEvent.click(within(rejection).getByRole('button', { name: 'Cancel' }));
   incompleteImpact = false;
   fireEvent.click(allotments.getByRole('button', { name: /^Review and approve [(]allotment/ }));
-  const stale = await screen.findByRole('dialog', { name: 'Approve external allotment' });
-  const staleConfirm = within(stale).getByRole('button', { name: 'Approve external allotment' });
+  const stale = await screen.findByRole('region', { name: 'Review share issue' });
+  const staleConfirm = within(stale).getByRole('button', { name: 'Approve allotment' });
   await waitFor(() => expect((staleConfirm as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(staleConfirm);
   await within(stale).findByText('The ownership snapshot changed. Preview again.');
@@ -403,13 +412,15 @@ it('preserves original preparation and issue recovery through refresh, keeps app
         name: new RegExp(`^${kind === 'approve' ? 'Review and approve' : label} \\(allotment`),
       }),
     );
-    const dialog = await screen.findByRole('dialog', { name: `${label} external allotment` });
+    const dialog = await screen.findByRole('region', { name: 'Review share issue' });
     expect(
-      within(within(dialog).getByText(COPY.COMPANY_EVENT_ON).parentElement!).getByText(
+      within(within(dialog).getByText('Company issue date').parentElement!).getByText(
         formatDate(ALLOTMENT_REQUEST.companyEventOn),
       ),
     ).toBeTruthy();
-    const confirm = within(dialog).getByRole('button', { name: `${label} external allotment` });
+    const confirm = within(dialog).getByRole('button', {
+      name: kind === 'approve' ? 'Approve allotment' : 'Record issue',
+    });
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
     expect(within(dialog).getByText('Ordinary shares (ORD)')).toBeTruthy();
     expect(within(dialog).getByText('AUD 2.5000')).toBeTruthy();
@@ -419,11 +430,16 @@ it('preserves original preparation and issue recovery through refresh, keeps app
     fireEvent.click(confirm);
     await waitFor(() => expect(rows[0].decisions).toHaveLength(kind === 'approve' ? 1 : 2));
     if (kind === 'approve') {
-      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await waitFor(() => expect(screen.queryByRole('region', { name: 'Review share issue' })).toBeNull());
       expect(rows[0].registerEntry).toBeNull();
       await allotments.findByText('Next: record the approved share issue. Approval has not changed ownership.');
     }
   }
+  const uncertainReview = await allotments.findByRole('region', { name: 'Review share issue' });
+  await within(uncertainReview).findByRole('button', { name: 'Recover original decision receipt' });
+  const cancelUncertain = within(uncertainReview).getByRole('button', { name: 'Cancel' });
+  await waitFor(() => expect(cancelUncertain.matches(':disabled')).toBe(false));
+  fireEvent.click(cancelUncertain);
   await allotments.findByRole('button', { name: /^Recover record issue receipt/ });
   expect(taskClass().disabled).toBe(true);
   expect(transferTask.getAttribute('aria-disabled')).toBe('true');
@@ -442,7 +458,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   failedRead = true;
   await refreshAllotments();
   await waitFor(() => expect(releaseRead).toBeTypeOf('function'));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'Review share issue' })).toBeNull());
   expect(document.body.textContent).not.toContain(ALLOTMENT_REQUEST.name);
   expect(document.body.textContent).not.toContain(ALLOTMENT_REQUEST.residentialAddress);
   expect(document.body.textContent).not.toContain(ALLOTMENT_REQUEST.agreementReference);
@@ -461,7 +477,7 @@ it('preserves original preparation and issue recovery through refresh, keeps app
   expect(allotments.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
   expect(recover).toBeTruthy();
   fireEvent.click(await allotments.findByRole('button', { name: /^Recover record issue receipt/ }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'Review share issue' })).toBeNull());
   await allotments.findByText('Shares issued');
   expect(allotments.queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
   const originalIssues = api.post.mock.calls.filter(

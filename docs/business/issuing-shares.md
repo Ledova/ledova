@@ -316,9 +316,13 @@ No deployment, application, payment or chain receipt is involved.
 4. Company authority and review: check the recipient, class, quantity and AUD total, then give the
    company issue date, approving director, authority reference, reason and authority document.
    Choose Prepare allotment.
-5. On the prepared record, choose Review and approve. Review the class, agreed shares and AUD total,
-   the derived price per share, and each shareholder's shares and class percentage before and after
-   the proposed issue. Approve the exact allotment, then choose Record issue.
+5. On the prepared record, choose Review and approve. The web opens Review share issue in place of
+   the list. Check the recipient, class, agreed shares, AUD total and derived price per share, then
+   each shareholder's shares and class percentage before and after the proposed issue. Agreement
+   and receipt sit beside company authority, with long terms, documents and audit references on
+   demand. Cancel returns to the record; Approve allotment approves the exact preview without
+   another popup. Recording the issue remains a separate action through Record issue. Rejection
+   and recording also use a focused page review; mobile keeps its existing decision screens.
 
 The web form shows one step at a time using the same step indicator and fields as Ledger setup.
 Back preserves entries and selected files; Continue validates that step without uploading or saving.
@@ -335,7 +339,7 @@ recovery of the original receipt remain available.
 
 The amount received must equal the consideration, because only fully paid allotments are supported.
 Approval is separate from the receipt, and applying records one Issue; the agreement, receipt,
-decision and resulting ownership stay separate records, shown under Record details and documents.
+decision and resulting ownership stay separate records, shown under Details and documents on web.
 Rejecting an allotment keeps its agreement and receipt and performs no refund. A receipt is shown as
 attested by the company, not verified by Ledova. The register's amount paid then includes the
 consideration ([amount paid](register.md#amount-paid-and-date-entered)).

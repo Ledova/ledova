@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { OrderSubmissionOwner, TokenHoldersResponse } from '@ledova/shared';
 import { Choices } from '@components/Choices';
 import { Section } from '@components/Ledger';
@@ -43,6 +43,11 @@ export function ClassIssues({
   request?: IssueRequest;
 }) {
   const [preparing, setPreparing] = useState(false);
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<HTMLDivElement | null>(null);
+  const reviewChanged = useCallback((uuid: string, open: boolean) => {
+    setReviewing((current) => (open ? uuid : current === uuid ? null : current));
+  }, []);
   const [returnToAction, setReturnToAction] = useState(false);
   const prepareAction = useRef<HTMLButtonElement>(null);
   const preparation = useRef<HTMLDivElement>(null);
@@ -72,6 +77,8 @@ export function ClassIssues({
     open: preparing && kind === 'investor',
     kept: preparing,
     onClosed: close,
+    reviewTarget,
+    onReviewChange: reviewChanged,
   });
   const nonPaid = useNonPaidIssues({
     owner,
@@ -120,12 +127,13 @@ export function ClassIssues({
       {nonPaid.status}
     </>
   );
+  const browsing = !preparing && !reviewing;
   return (
     <div role="region" aria-label="Share issue workflow" className="space-y-5">
       {investor.setup}
-      <div hidden={preparing}>
+      <div hidden={!browsing}>
         <Section title="Share issues">
-          {!preparing && status}
+          {browsing && status}
           {investor.empty && nonPaid.empty && <p className="text-sm text-text-muted">No share issues recorded yet.</p>}
           <div hidden={investor.empty}>
             {grouped && <h3 className="text-sm font-medium text-text-primary">Investor issues</h3>}
@@ -137,7 +145,7 @@ export function ClassIssues({
           </div>
         </Section>
       </div>
-      {investor.prepare && !preparing && (
+      {investor.prepare && browsing && (
         <div className="flex flex-wrap justify-end gap-2">
           <PageAction
             ref={prepareAction}
@@ -151,6 +159,10 @@ export function ClassIssues({
           />
         </div>
       )}
+      <div hidden={!reviewing} className="space-y-5">
+        {reviewing && status}
+        <div ref={setReviewTarget} />
+      </div>
       <div ref={preparation} tabIndex={-1} hidden={!preparing} className="focus:outline-none">
         <Section title="Prepare share issue">
           {preparing && status}

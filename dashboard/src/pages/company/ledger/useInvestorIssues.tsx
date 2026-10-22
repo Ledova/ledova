@@ -34,6 +34,8 @@ export function useInvestorIssues({
   open,
   kept,
   onClosed,
+  reviewTarget,
+  onReviewChange,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
@@ -46,6 +48,8 @@ export function useInvestorIssues({
   open: boolean;
   kept: boolean;
   onClosed: (recorded?: boolean) => void;
+  reviewTarget: HTMLElement | null;
+  onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const client = useQueryClient();
   const [editing, setEditing] = useState<OwnCompanyAppointment | null>(null);
@@ -247,6 +251,8 @@ export function useInvestorIssues({
           guard={financialGuard}
           visible={visible && privateReady && !kept}
           focusKey={prepared === allotment.uuid ? prepared : undefined}
+          reviewTarget={reviewTarget}
+          onReviewChange={onReviewChange}
           onHeldChange={recordHeld}
           newEffectGuard={(kind) => {
             check();

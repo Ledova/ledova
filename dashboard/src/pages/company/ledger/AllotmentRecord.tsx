@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
 import {
   REGISTER_ALLOTMENT_COPY as COPY,
@@ -18,6 +19,7 @@ import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
 import { AllotmentOwnership } from './AllotmentOwnership';
+import { AllotmentReview } from './AllotmentReview';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
 
@@ -57,6 +59,8 @@ export function AllotmentRecord({
   visible = true,
   onHeldChange,
   focusKey,
+  reviewTarget,
+  onReviewChange,
 }: {
   allotment: RegisterAllotment;
   steps: RegisterSteps;
@@ -66,11 +70,35 @@ export function AllotmentRecord({
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   focusKey?: string;
+  reviewTarget?: HTMLElement | null;
+  onReviewChange?: (uuid: string, open: boolean) => void;
 }) {
   const download = useAllotmentRecordDownload(allotment, guard);
   const context = `allotment for ${allotment.name} prepared ${formatDateTime(allotment.createdAt)}`;
   const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
   const decisionSteps = allotment.stage === 'submitted' ? { ...steps, apply: undefined } : steps;
+  const reviewChanged = useCallback(
+    (open: boolean) => onReviewChange?.(allotment.uuid, open),
+    [allotment.uuid, onReviewChange],
+  );
+  const documentsView = (
+    <>
+      <div className="flex flex-wrap gap-2">
+        {documents.map((kind) => (
+          <PageAction
+            key={kind}
+            label={`Download ${kind} document`}
+            busy={download.isPending && download.variables === kind}
+            busyLabel="Downloading…"
+            context={context}
+            disabled={download.isPending}
+            onClick={() => download.mutate(kind)}
+          />
+        ))}
+      </div>
+      {download.isError && <RecordDownloadFailure error={download.error} />}
+    </>
+  );
   return (
     <RecordShell hidden={!visible} focusKey={focusKey}>
       {visible && (
@@ -114,20 +142,7 @@ export function AllotmentRecord({
             </Rows>
             <AllotmentRows allotment={allotment} />
             <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
-            <div className="flex flex-wrap gap-2">
-              {documents.map((kind) => (
-                <PageAction
-                  key={kind}
-                  label={`Download ${kind} document`}
-                  busy={download.isPending && download.variables === kind}
-                  busyLabel="Downloading…"
-                  context={context}
-                  disabled={download.isPending}
-                  onClick={() => download.mutate(kind)}
-                />
-              ))}
-            </div>
-            {download.isError && <RecordDownloadFailure error={download.error} />}
+            {documentsView}
           </Disclosure>
         </>
       )}
@@ -146,22 +161,40 @@ export function AllotmentRecord({
         onRefused={onSettled}
         visible={visible}
         onHeldChange={onHeldChange}
+        pageReview={
+          onReviewChange
+            ? {
+                target: reviewTarget ?? null,
+                onChange: reviewChanged,
+                title: 'Review share issue',
+                labels: { approve: 'Approve allotment', apply: 'Record issue', reject: 'Reject allotment' },
+              }
+            : undefined
+        }
         note={(kind, preview) =>
-          kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry ? (
+          !onReviewChange && kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry ? (
             <AllotmentOwnership preview={preview} />
           ) : null
         }
       >
-        {(preview) => (
-          <>
-            <AllotmentRows allotment={preview} />
-            <p className="text-sm text-text-muted">{COPY.EFFECTIVE_NOTE}</p>
-            <Rows>
-              <Row label="Register sequence">{preview.registerSequence}</Row>
-              <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
-            </Rows>
-          </>
-        )}
+        {(preview, kind) =>
+          onReviewChange ? (
+            <AllotmentReview
+              preview={preview}
+              documents={documentsView}
+              showOwnership={kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry}
+            />
+          ) : (
+            <>
+              <AllotmentRows allotment={preview} />
+              <p className="text-sm text-text-muted">{COPY.EFFECTIVE_NOTE}</p>
+              <Rows>
+                <Row label="Register sequence">{preview.registerSequence}</Row>
+                <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
+              </Rows>
+            </>
+          )
+        }
       </RegisterDecisions>
     </RecordShell>
   );
