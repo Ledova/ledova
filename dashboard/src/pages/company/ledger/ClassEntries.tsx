@@ -24,8 +24,6 @@ export function ClassEntries({
   sourceReady = true,
   visible = true,
   renderAction,
-  entryFilter,
-  emptyText = 'No changes recorded yet.',
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
@@ -34,8 +32,6 @@ export function ClassEntries({
   sourceReady?: boolean;
   visible?: boolean;
   renderAction?: (entry: RegisterEntry, ready: boolean) => ReactNode;
-  entryFilter?: (entry: RegisterEntry) => boolean;
-  emptyText?: string;
 }) {
   const history = useRegisterEntries(owner, register.token.uuid, guard);
   const appointments = useOwnAppointments(owner, guard);
@@ -49,7 +45,6 @@ export function ClassEntries({
     appointments.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
   const actionReady = privateReady && !history.moreFailed;
-  const listed = entryFilter ? history.entries.filter(entryFilter) : history.entries;
   const sequences = new Map(history.entries.map((entry) => [entry.uuid, entry.sequence]));
   return (
     <div hidden={!visible} className="flex flex-col gap-3">
@@ -64,10 +59,10 @@ export function ClassEntries({
         <LoadError retry={history.retry} busy={history.isFetching}>
           Register entries could not be loaded.
         </LoadError>
-      ) : privateReady && listed.length === 0 ? (
-        <p className="text-sm text-text-muted">{emptyText}</p>
+      ) : privateReady && history.entries.length === 0 ? (
+        <p className="text-sm text-text-muted">No changes recorded yet.</p>
       ) : null}
-      {privateReady && listed.length > 0 && (
+      {privateReady && history.entries.length > 0 && (
         <div
           aria-hidden="true"
           className="hidden grid-cols-[12rem_10rem_minmax(0,1fr)] gap-6 pl-7 text-xs font-medium text-text-muted md:grid"
@@ -78,7 +73,7 @@ export function ClassEntries({
         </div>
       )}
       <ul aria-label="Ledger changes" className="divide-y divide-border-subtle">
-        {listed.map((entry) => {
+        {history.entries.map((entry) => {
           const corrected = entry.corrects ? sequences.get(entry.corrects) : undefined;
           const reversal = entry.correctedBy ? sequences.get(entry.correctedBy) : undefined;
           const companyDated = ['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase());

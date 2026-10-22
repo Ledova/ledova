@@ -94,19 +94,21 @@ export function ClassCertificates({
           return (
             <li key={entry.uuid} hidden={!privateReady || (!!activeTask && !focused)}>
               <div className={`flex flex-wrap items-start justify-between gap-4${focused ? '' : ' py-4'}`}>
-                <div hidden={focused} className="min-w-0 flex-1 space-y-1 text-sm">
-                  <div className="font-medium text-text-primary">
-                    <RegisterChanges changes={entry.changes.slice(0, 2)} />
+                {privateReady && !focused && (
+                  <div className="min-w-0 flex-1 space-y-1 text-sm">
+                    <div className="font-medium text-text-primary">
+                      <RegisterChanges changes={entry.changes.slice(0, 2)} />
+                    </div>
+                    <p className="text-text-muted">
+                      {REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]} ·{' '}
+                      {formatDate(entry.companyEventOn, 'Date not recorded')}
+                    </p>
+                    {entry.changes.length > 2 && (
+                      <p className="text-text-muted">{entry.changes.length - 2} more share changes</p>
+                    )}
+                    {entry.correctedBy && <Status tone="closed">Reversed</Status>}
                   </div>
-                  <p className="text-text-muted">
-                    {REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]} ·{' '}
-                    {formatDate(entry.companyEventOn, 'Date not recorded')}
-                  </p>
-                  {entry.changes.length > 2 && (
-                    <p className="text-text-muted">{entry.changes.length - 2} more share changes</p>
-                  )}
-                  {entry.correctedBy && <Status tone="closed">Reversed</Status>}
-                </div>
+                )}
                 <ClassCertificate
                   sourceKey={`${owner.userUuid}/${owner.ownerAccountUuid}`}
                   register={register}

@@ -1953,6 +1953,21 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByRole('button', { name: /^Details for entry 3:/ })).toBeTruthy();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
+  const certificateRecords = await screen.findByRole('list', { name: 'Certificate records' });
+  expect(within(certificateRecords).getByText('Taylor Demo: +100')).toBeTruthy();
+  pauseHistory = true;
+  const previousHistoryRelease = releaseHistory;
+  act(() => {
+    refreshingHistory = client.refetchQueries({ predicate: (query) => query.queryKey.includes('entries') });
+  });
+  await waitFor(() => expect(releaseHistory).not.toBe(previousHistoryRelease));
+  expect(certificateRecords.textContent).not.toContain('Taylor Demo');
+  expect(certificateRecords.textContent).not.toContain('Example Shareholder');
+  await act(async () => {
+    pauseHistory = false;
+    releaseHistory();
+    await refreshingHistory;
+  });
   const certificatePreparation = await screen.findByRole('button', {
     name: 'Prepare unsigned certificate (entry 3)',
   });
