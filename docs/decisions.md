@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 22 October 2026                          | Current; web destination named Ledger and revised workflows under #1165; mobile deferred under #1201           |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 22 October 2026                          | Current; web destination named Ledger and revised workflows under #1165; mobile deferred under #1201            |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
@@ -1366,6 +1366,11 @@ transaction records neither new effect. The completed result shows **Approved** 
 shares. Remove the separate Record issue action from this web workflow. Agreement, company-attested
 receipt, approval and ledger entry remain distinct retained records. This settles no money and
 changes neither non-paid/chain workflows nor mobile's separate steps.
+
+The owner also moved web transfer review onto the main page under #1165, using the existing
+summary, ownership impact and company-record cards with details and documents on demand. Opening
+review makes no decision; Cancel returns to its record. Transfer approval and application remain
+separate, with current authority, exact previews and original-request recovery preserved.
 
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
 a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse

@@ -11,6 +11,7 @@ import {
   UPLOAD_RULE,
   formatDate,
   type RegisterAllotment,
+  type RegisterTransfer,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
@@ -674,4 +675,153 @@ it('preserves original preparation and combined approval recovery through refres
     signedOn: '2026-10-01',
     lodgedOn: '2026-10-02',
   });
+  cleanup();
+  client.clear();
+  appointments = [APPOINTMENT];
+  let transfer: RegisterTransfer = {
+    ...rows[0],
+    uuid: 'transfer-a',
+    fromMember: 'transferor',
+    fromName: 'Synthetic Transferor',
+    fromResidentialAddress: '1 Example Street',
+    fromParticulars: {},
+    toMember: 'recipient',
+    name: 'Synthetic Recipient',
+    residentialAddress: '2 Example Street',
+    toParticulars: {},
+    newMember: false,
+    newParticulars: false,
+    shares: '10',
+    companyEventOn: '2026-10-03',
+    signedOn: '2026-10-01',
+    lodgedOn: '2026-10-02',
+    terms: 'Non-paid transfer',
+    authority: 'director_resolution',
+    instrumentEvidence: 'instrument-a',
+    instrumentFingerprint: 'a'.repeat(64),
+    instrumentSnapshot: {},
+    status: 'submitted',
+    stage: 'submitted',
+    decisions: [],
+    registerEntry: null,
+    effectiveOn: null,
+    reviewedAt: null,
+    reviewedBy: null,
+  };
+  const earlierGet = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url, config?: { params?: { token?: string } }) => {
+    if (url === URLS.REGISTER_TRANSFERS)
+      return { data: { results: config?.params?.token === preference.token.uuid ? [] : [transfer], next: null } };
+    return earlierGet(url, config);
+  });
+  api.post.mockImplementation(async (url, body) => {
+    if (url === URLS.REGISTER_TRANSFER_PREVIEW(transfer.uuid))
+      return {
+        data: {
+          ...transfer,
+          previewDigest: 'c'.repeat(64),
+          canDecide: true,
+          unmetRequirements: [],
+          registerSequence: 2,
+          fromCurrentShares: '100',
+          fromAfterShares: '90',
+          toCurrentShares: '0',
+          toAfterShares: '10',
+          issuedSupply: '100',
+          afterIssuedSupply: '100',
+          authorisedSupply: '1000',
+        },
+      };
+    if (url === URLS.REGISTER_TRANSFER_DECIDE(transfer.uuid)) {
+      if (!transfer.decisions.some((decision) => decision.idempotencyKey === body.idempotencyKey)) {
+        transfer = {
+          ...transfer,
+          stage: 'approved',
+          decisions: [
+            {
+              uuid: body.idempotencyKey,
+              appointment: body.appointment,
+              kind: body.kind,
+              digest: body.previewDigest,
+              idempotencyKey: body.idempotencyKey,
+              reason: body.reason || '',
+              decidedAt: '2026-10-22T00:00:00Z',
+              decidedBy: 1,
+              decidedByName: 'Synthetic Appointee',
+            },
+          ],
+        };
+        throw new Error('Synthetic interrupted transfer approval response');
+      }
+      return { data: transfer };
+    }
+    return earlierPost(url, body);
+  });
+  renderCompanyPage(
+    client,
+    <LedgerNavigationProvider>
+      <Sidebar />
+      <CompanyRegisterPage />
+    </LedgerNavigationProvider>,
+    'Ledger',
+    { entry: '/company/ledger#transfer', path: '/company/ledger' },
+  );
+  const transferClass = () => screen.getByLabelText('Share class') as HTMLSelectElement;
+  const transferLink = await screen.findByRole('link', { name: 'Transfer shares' });
+  const issueLink = screen.getByRole('link', { name: 'Issue shares' });
+  const historyLink = screen.getByRole('link', { name: 'History' });
+  const openTransfer = () => screen.getByRole('button', { name: /^Review and approve [(]transfer/ });
+  await screen.findByRole('button', { name: /^Review and approve [(]transfer/ });
+  const transferDecisionCalls = () =>
+    api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFER_DECIDE(transfer.uuid));
+  fireEvent.click(openTransfer());
+  const transferReview = await screen.findByRole('region', { name: 'Review share transfer' });
+  expect(screen.queryByRole('dialog')).toBeNull();
+  const transferImpact = await within(transferReview).findByRole('table', { name: 'Transfer ownership impact' });
+  expect(
+    within(within(transferImpact).getByRole('row', { name: /Synthetic Transferor/ })).getByText('90 shares'),
+  ).toBeTruthy();
+  expect(
+    within(within(transferImpact).getByRole('row', { name: /Synthetic Recipient/ })).getByText('10 shares'),
+  ).toBeTruthy();
+  expect(document.activeElement).toBe(within(transferReview).getByRole('heading', { name: 'Review share transfer' }));
+  expect(transferClass().disabled).toBe(true);
+  expect(issueLink.getAttribute('aria-disabled')).toBe('true');
+  expect(historyLink.getAttribute('aria-disabled')).toBe('true');
+  expect(transferDecisionCalls()).toHaveLength(0);
+  expect(transfer.registerEntry).toBeNull();
+  fireEvent.click(within(transferReview).getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(document.activeElement).toBe(openTransfer()));
+  expect(screen.queryByRole('region', { name: 'Review share transfer' })).toBeNull();
+  expect(transferDecisionCalls()).toHaveLength(0);
+  fireEvent.click(openTransfer());
+  const confirmationReview = await screen.findByRole('region', { name: 'Review share transfer' });
+  const transferConfirm = within(confirmationReview).getByRole('button', { name: 'Approve transfer' });
+  await waitFor(() => expect(transferConfirm.matches(':disabled')).toBe(false));
+  fireEvent.click(transferConfirm);
+  await within(confirmationReview).findByRole('button', { name: 'Recover original decision receipt' });
+  expect(transfer.decisions).toHaveLength(1);
+  expect(transfer.registerEntry).toBeNull();
+  expect(transfer.stage).toBe('approved');
+  const cancelTransferReview = within(confirmationReview).getByRole('button', { name: 'Cancel' });
+  await waitFor(() => expect(cancelTransferReview.matches(':disabled')).toBe(false));
+  fireEvent.click(cancelTransferReview);
+  await screen.findByRole('button', { name: /^Recover approve receipt [(]transfer/ });
+  expect(transferClass().disabled).toBe(true);
+  expect(issueLink.getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(screen.getByRole('link', { name: /^Documents$/ }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeTruthy();
+  expect(transferLink.getAttribute('aria-disabled')).toBeNull();
+  fireEvent.click(transferLink);
+  expect(await screen.findByRole('heading', { level: 1, name: 'Transfer shares' })).toBeTruthy();
+  fireEvent.click(await screen.findByRole('button', { name: /^Recover approve receipt [(]transfer/ }));
+  await waitFor(() =>
+    expect(screen.queryByRole('button', { name: /^Recover approve receipt [(]transfer/ })).toBeNull(),
+  );
+  expect(transferDecisionCalls()).toHaveLength(2);
+  expect(transferDecisionCalls()[1][1]).toEqual(transferDecisionCalls()[0][1]);
+  expect(transferDecisionCalls()[0][1]).toMatchObject({ kind: 'approve', appointment: APPOINTMENT.uuid });
+  expect(transfer.decisions).toHaveLength(1);
+  expect(transfer.registerEntry).toBeNull();
+  await waitFor(() => expect(transferClass().disabled).toBe(false));
 });

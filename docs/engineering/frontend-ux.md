@@ -111,8 +111,9 @@ Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 
 For a substantial record review, replace the collection and its creation action with a focused review
-on the same page. Keep company and class context once, then the issue summary, ownership impact and
-supporting facts. Agreement and receipt sit beside company authority on wider screens and stack on
+on the same page. Keep company and class context once, then the issue or transfer summary, ownership
+impact and supporting facts. Agreement and receipt, or the transfer instrument, sit beside company
+authority on wider screens and stack on
 smaller screens; long terms, documents and audit references open on demand. Keep Cancel and the
 confirming action together at the bottom right, without another confirmation dialog. Opening the
 review focuses its heading; cancelling returns to its record's opener. Keep the record controllers
@@ -120,7 +121,8 @@ mounted, and preserve current authority, exact preview binding, loading, errors 
 recovery. For web investor allotments, a green **Review and approve** action opens this read-only
 review; its green **Approve** confirmation records approval and the issue together. Show **Approved**
 and the recorded outcome afterwards, without a separate Record issue action. Rejection also uses
-page review. Other decision families and mobile keep their existing workflow.
+page review. Web transfer approval, application and rejection use the same main-page review,
+preserving their separate decisions. Other decision families and mobile keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first

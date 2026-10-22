@@ -566,13 +566,15 @@ function OwnRegister({
                 data-register-tasks
                 hidden={view === 'register' && (!selectedTask || selectedToken !== register.token.uuid)}
                 className={
-                  view === 'register' && selectedTask === 'issue'
+                  view === 'register' && (selectedTask === 'issue' || selectedTask === 'transfer')
                     ? 'space-y-5'
                     : 'space-y-5 rounded-xl border border-border bg-surface-raised p-4 sm:p-5'
                 }
               >
                 <h2
-                  hidden={sourceReady && view === 'register' && selectedTask === 'issue'}
+                  hidden={
+                    sourceReady && view === 'register' && (selectedTask === 'issue' || selectedTask === 'transfer')
+                  }
                   className="break-words font-display text-xl tracking-[-0.01em] text-text-primary"
                 >
                   {sourceReady ? `${register.token.name} · ${register.token.symbol}` : 'Ledger task recovery'}

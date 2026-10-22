@@ -411,8 +411,11 @@ account, payment, application or chain transaction.
    saves the proposal; it moves no shares. Back and Continue keep the draft fields and selected
    files without saving or uploading.
 5. The saved record aligns From, To, Shares, Transfer date and Status, with **Details and documents**
-   available on demand. **Review and approve** opens the approval preview; then Apply records the
-   approved transfer. Approval and application remain separate transfer decisions. The preparation
+   available on demand. **Review and approve** opens a main-page preview of the parties, ownership
+   effect, transfer instrument and company authority, with long terms, particulars and documents
+   on demand. Cancel returns to the record and its opener. **Approve transfer** records the approval;
+   Apply subsequently opens its own main-page review before recording the approved transfer.
+   Rejection also uses page review. Approval and application remain separate decisions. The preparation
    action shares the final record's action row, or stands alone when no transfers exist.
 
 The transferor must hold enough shares, and the director cannot be either party

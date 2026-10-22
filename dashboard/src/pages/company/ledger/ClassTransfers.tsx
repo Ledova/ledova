@@ -1,5 +1,5 @@
 import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import { pageTitle } from '@utils/destinations';
 import { useQueryClient } from '@tanstack/react-query';
@@ -10,7 +10,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LinkRow, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 
 import { TransferRecord } from './TransferRecord';
@@ -38,6 +38,11 @@ export function ClassTransfers({
   visible?: boolean;
   onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<HTMLDivElement | null>(null);
+  const reviewChanged = useCallback((uuid: string, open: boolean) => {
+    setReviewing((current) => (open ? uuid : current === uuid ? null : current));
+  }, []);
   const client = useQueryClient();
   const token = register.token.uuid;
   const transfers = useRegisterTransfers(owner, company, token, guard);
@@ -76,8 +81,8 @@ export function ClassTransfers({
     privateReady && steps?.prepare && supported ? (
       <PageLink to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })} label={COPY.PREPARE} />
     ) : null;
-  return (
-    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
+  const status = (
+    <>
       {!supported && visible && (
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
@@ -112,22 +117,39 @@ export function ClassTransfers({
       ) : privateReady && transfers.data.length === 0 ? (
         <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
-      <ul className="divide-y divide-border-subtle">
-        {records.map((transfer, index) => (
-          <TransferRecord
-            key={transfer.uuid}
-            landed={landed?.record === transfer.uuid ? landed : undefined}
-            transfer={transfer}
-            visible={privateReady}
-            onHeldChange={recordHeld}
-            steps={steps ?? {}}
-            guard={guard}
-            onSettled={refresh}
-            prepareAction={index === records.length - 1 ? prepareAction : undefined}
-          />
-        ))}
-      </ul>
-      {records.length === 0 && prepareAction && <div className="flex flex-wrap justify-end gap-2">{prepareAction}</div>}
+    </>
+  );
+  return (
+    <div role="region" aria-label="Share transfer workflow" className="space-y-5">
+      <div hidden={!!reviewing}>
+        <Section title={visible ? `${register.token.name} · ${register.token.symbol}` : 'Transfers'}>
+          {!reviewing && status}
+          <ul className="divide-y divide-border-subtle">
+            {records.map((transfer, index) => (
+              <TransferRecord
+                key={transfer.uuid}
+                landed={landed?.record === transfer.uuid ? landed : undefined}
+                transfer={transfer}
+                visible={privateReady}
+                onHeldChange={recordHeld}
+                steps={steps ?? {}}
+                guard={guard}
+                onSettled={refresh}
+                prepareAction={index === records.length - 1 ? prepareAction : undefined}
+                reviewTarget={reviewTarget}
+                onReviewChange={reviewChanged}
+              />
+            ))}
+          </ul>
+          {records.length === 0 && prepareAction && (
+            <div className="flex flex-wrap justify-end gap-2">{prepareAction}</div>
+          )}
+        </Section>
+      </div>
+      <div hidden={!reviewing} className="space-y-5">
+        {reviewing && status}
+        <div ref={setReviewTarget} />
+      </div>
     </div>
   );
 }
