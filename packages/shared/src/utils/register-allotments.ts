@@ -2,7 +2,7 @@ import type {
   RegisterAllotment,
   RegisterAllotmentPreparation,
   RegisterAllotmentDecisionPreview,
-  RegisterDecideRequest,
+  RegisterAllotmentDecideRequest,
 } from '../types';
 import { isRegisterDecisionReceipt } from './register-commands';
 
@@ -169,11 +169,27 @@ export function isPreparedRegisterAllotment(
 export function isRegisterAllotmentDecisionReceipt(
   allotment: RegisterAllotment,
   uuid: string,
-  request: RegisterDecideRequest,
+  request: RegisterAllotmentDecideRequest,
   preview?: RegisterAllotmentDecisionPreview,
 ) {
+  const completed = request.completeIssue === true;
+  const decision = allotment.decisions.find((row) => row.idempotencyKey === request.idempotencyKey);
+  if (!completed && decision?.completeIssue) return false;
+  if (
+    completed &&
+    (request.kind !== 'approve' ||
+      preview?.completeIssue !== true ||
+      preview.applyAppointment !== (request.applyAppointment ?? request.appointment) ||
+      decision?.completeIssue !== true ||
+      decision.approvalAppointment !== request.appointment)
+  )
+    return false;
   return (
-    isRegisterDecisionReceipt(allotment, uuid, request) &&
+    isRegisterDecisionReceipt(
+      allotment,
+      uuid,
+      completed ? { ...request, kind: 'apply', appointment: request.applyAppointment ?? request.appointment } : request,
+    ) &&
     (!preview ||
       (allotment.member === preview.member &&
         allotment.companyEventOn === preview.companyEventOn &&
@@ -196,6 +212,7 @@ export function isRegisterAllotmentDecisionReceipt(
         allotment.contribution.amount === preview.contribution.amount &&
         allotment.contribution.receivedOn === preview.contribution.receivedOn &&
         allotment.contribution.evidenceFingerprint === preview.contribution.evidenceFingerprint)) &&
-    (request.kind !== 'apply' || (!!allotment.registerEntry && allotment.effectiveOn === preview?.effectiveOn))
+    ((!completed && request.kind !== 'apply') ||
+      (!!allotment.registerEntry && allotment.effectiveOn === preview?.effectiveOn))
   );
 }

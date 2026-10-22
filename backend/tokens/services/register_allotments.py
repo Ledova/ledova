@@ -1,7 +1,7 @@
 import re
 from datetime import date
 from decimal import Decimal
-from uuid import UUID
+from uuid import UUID, uuid5
 
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
 from companies.models import CompanyCapability
+from companies.services.administration import company_operation
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -16,6 +17,7 @@ from tokens.models import (
     RegisterAllotment,
     RegisterAllotmentDecision,
     RegisterContribution,
+    RegisterDecisionKind,
     RegisterEvidence,
     RegisterEvidenceKind,
     RegisterMemberParticulars,
@@ -23,10 +25,17 @@ from tokens.models import (
     ShareRegister,
     ShareToken,
 )
-from tokens.services.register_authority import register_appointment, register_command
+from tokens.services.register_authority import (
+    holds,
+    register_appointment,
+    register_command,
+)
 from tokens.services.register_decisions import (
     DecisionFamily,
+    _approved,
     _readable,
+    _requirements,
+    _scalar,
     decide,
     preview,
 )
@@ -314,10 +323,48 @@ ALLOTMENTS = DecisionFamily(
 )
 
 
-def preview_allotment_decision(*, actor, allotment_id, appointment, kind, reason=""):
+def _completion_digest(proposal, actor, approval, application):
+    return _scalar(
+        "SELECT tokens_register_allotment_completion_digest(%s, %s, %s, %s)",
+        [proposal.pk, actor.pk, approval.pk, application.pk],
+    )
+
+
+def _completion_requirements(proposal, approval, application):
+    unmet = set(_requirements(ALLOTMENTS, proposal, RegisterDecisionKind.APPROVE, approval, "", []))
+    unmet.discard("already_approved")
+    if not holds(application, CompanyCapability.APPLY):
+        unmet.add("appointment_capability_required")
+    return sorted(unmet)
+
+
+def preview_allotment_decision(
+    *, actor, allotment_id, appointment, kind, reason="", complete_issue=False, apply_appointment=None
+):
     initial = _readable(ALLOTMENTS, actor, allotment_id)
-    with register_command(actor, initial.company_id, "register_allotment_preview"):
-        _lock(initial)
+    with register_command(actor, initial.company_id, "register_allotment_preview") as (
+        company,
+        current_actor,
+        profile,
+        operator,
+    ):
+        proposal = _lock(initial)
+        if complete_issue:
+            if kind != RegisterDecisionKind.APPROVE or reason:
+                raise ValidationError("Completion requires approval without a rejection reason.")
+            approval = register_appointment(company, current_actor, profile, operator, appointment)
+            application = register_appointment(
+                company, current_actor, profile, operator, apply_appointment or appointment
+            )
+            unmet = _completion_requirements(proposal, approval, application)
+            return proposal, {
+                "complete_issue": True,
+                "apply_appointment": application.pk,
+                "preview_digest": _completion_digest(proposal, current_actor, approval, application),
+                "unmet_requirements": unmet,
+                "can_decide": not unmet,
+                **_details(proposal),
+            }
         return preview(
             ALLOTMENTS,
             _details,
@@ -330,9 +377,31 @@ def preview_allotment_decision(*, actor, allotment_id, appointment, kind, reason
 
 
 def decide_allotment(
-    *, actor, allotment_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""
+    *,
+    actor,
+    allotment_id,
+    appointment,
+    kind,
+    idempotency_key,
+    preview_digest,
+    confirmation,
+    reason="",
+    complete_issue=False,
+    apply_appointment=None,
 ):
     try:
+        if complete_issue:
+            return _complete_allotment(
+                actor=actor,
+                allotment_id=allotment_id,
+                appointment=appointment,
+                apply_appointment=apply_appointment or appointment,
+                kind=kind,
+                idempotency_key=idempotency_key,
+                preview_digest=preview_digest,
+                confirmation=confirmation,
+                reason=reason,
+            )
         return decide(
             ALLOTMENTS,
             actor=actor,
@@ -346,3 +415,78 @@ def decide_allotment(
         )
     except IntegrityError:
         raise RegisterChangeConflict() from None
+
+
+def _complete_allotment(
+    *, actor, allotment_id, appointment, apply_appointment, kind, idempotency_key, preview_digest, confirmation, reason
+):
+    if confirmation is not True or kind != RegisterDecisionKind.APPROVE or reason:
+        raise ValidationError("Confirm the exact approval and share issue.")
+    initial = _readable(ALLOTMENTS, actor, allotment_id)
+    with register_command(actor, initial.company_id, "register_allotment_complete") as (
+        company,
+        current_actor,
+        profile,
+        operator,
+    ):
+        prior = RegisterAllotmentDecision.objects.filter(
+            decided_by=current_actor, idempotency_key=idempotency_key
+        ).first()
+        if prior is not None:
+            if (
+                prior.register_allotment_id,
+                prior.kind,
+                prior.completion_approval_appointment_id,
+                prior.appointment_id,
+                prior.reason,
+                prior.digest,
+            ) != (
+                initial.pk,
+                RegisterDecisionKind.APPLY,
+                UUID(str(appointment)),
+                UUID(str(apply_appointment)),
+                "",
+                preview_digest,
+            ):
+                raise RegisterChangeConflict()
+            if not RegisterAllotment.objects.register_readable_by(current_actor).filter(pk=initial.pk).exists():
+                raise NotFound("Register allotment not found.")
+            return RegisterAllotment.objects.get(pk=initial.pk)
+        approval = register_appointment(company, current_actor, profile, operator, appointment)
+        application = register_appointment(company, current_actor, profile, operator, apply_appointment)
+        proposal = _lock(initial)
+        if _completion_digest(proposal, current_actor, approval, application) != preview_digest:
+            raise RegisterChangeConflict()
+        unmet = _completion_requirements(proposal, approval, application)
+        if unmet:
+            raise ValidationError({"unmet_requirements": unmet})
+        if not _approved(ALLOTMENTS, proposal):
+            with company_operation(current_actor, company.pk, "register_allotment_approve"):
+                RegisterAllotmentDecision.objects.create(
+                    register_allotment=proposal,
+                    kind=RegisterDecisionKind.APPROVE,
+                    decided_by=current_actor,
+                    appointment=approval,
+                    idempotency_key=uuid5(UUID(str(idempotency_key)), "allotment-completion-approval"),
+                    digest=_scalar(
+                        "SELECT tokens_register_allotment_decision_digest(%s, %s, %s, %s, %s)",
+                        [proposal.pk, RegisterDecisionKind.APPROVE, current_actor.pk, approval.pk, ""],
+                    ),
+                    reason="",
+                    decided_at=timezone.now(),
+                )
+        with company_operation(current_actor, company.pk, "register_allotment_apply"):
+            decision = RegisterAllotmentDecision.objects.create(
+                register_allotment=proposal,
+                kind=RegisterDecisionKind.APPLY,
+                decided_by=current_actor,
+                appointment=application,
+                completion_approval_appointment=approval,
+                idempotency_key=idempotency_key,
+                digest=preview_digest,
+                reason="",
+                decided_at=timezone.now(),
+            )
+            decision.refresh_from_db(fields=["decided_at"])
+            _apply(proposal, current_actor, decision)
+        return proposal

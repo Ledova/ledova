@@ -5,13 +5,17 @@ import {
   isPreparedRegisterAllotment,
   isRegisterAllotmentDecisionReceipt,
   previewRegisterAllotmentDecision,
+  previewRegisterTransferDecision,
   REGISTER_ALLOTMENT_COPY,
+  REGISTER_TRANSFER_COPY,
   type RegisterAllotmentDecisionPreview,
 } from '../../src';
+import { isRegisterTransferDecisionReceipt } from '../../src/utils/register-transfers';
 import { APPOINTMENT } from '../fixtures/employee-awards';
 import { ALLOTMENT_REQUEST, allotmentFrom, allotmentDecision, allotmentPreview } from '../fixtures/external-allotments';
+import { TRANSFER, TRANSFER_PREVIEW, transferDecision } from '../fixtures/register-transfers';
 
-it('requires exact fully paid AUD sources and the actual applied ISSUE receipt', async () => {
+it('requires exact paid sources, reviewed transfers and actual applied receipts', async () => {
   const row = allotmentFrom(ALLOTMENT_REQUEST);
   expect(allotmentAud('250')).toBe('250.00');
   expect(allotmentAud('0.001')).toBeNull();
@@ -62,6 +66,32 @@ it('requires exact fully paid AUD sources and the actual applied ISSUE receipt',
   expect(isRegisterAllotmentDecisionReceipt({ ...applied, registerEntry: null }, row.uuid, request, preview)).toBe(
     false,
   );
+  const completion = {
+    ...request,
+    kind: 'approve' as const,
+    completeIssue: true,
+    applyAppointment: 'application-appointment',
+    idempotencyKey: 'completion-a',
+  };
+  const completionPreview = { ...preview, completeIssue: true, applyAppointment: completion.applyAppointment };
+  const completed = allotmentDecision(row, completion);
+  expect(completed.decisions).toHaveLength(2);
+  expect(isRegisterAllotmentDecisionReceipt(completed, row.uuid, completion, completionPreview)).toBe(true);
+  expect(isRegisterAllotmentDecisionReceipt(completed, row.uuid, completion, preview)).toBe(false);
+  expect(isRegisterAllotmentDecisionReceipt(applied, row.uuid, completion, completionPreview)).toBe(false);
+  expect(
+    isRegisterAllotmentDecisionReceipt({ ...completed, registerEntry: null }, row.uuid, completion, completionPreview),
+  ).toBe(false);
+  expect(
+    isRegisterAllotmentDecisionReceipt(
+      completed,
+      row.uuid,
+      { ...completion, appointment: 'another-approver' },
+      completionPreview,
+    ),
+  ).toBe(false);
+  const approved = allotmentDecision(row, { ...request, kind: 'approve', idempotencyKey: 'prior-approval' });
+  expect(allotmentDecision(approved, completion).decisions).toHaveLength(2);
   const investment: RegisterAllotmentDecisionPreview = {
     ...preview,
     shares: '2500',
@@ -246,4 +276,119 @@ it('requires exact fully paid AUD sources and the actual applied ISSUE receipt',
   await expect(previewRegisterAllotmentDecision(api, row.uuid, decision)).resolves.toBe(response);
   response.data = investment;
   await expect(previewRegisterAllotmentDecision(api, row.uuid, decision)).resolves.toBe(response);
+  const completionRequest = { ...decision, kind: 'approve' as const, completeIssue: true };
+  await expect(previewRegisterAllotmentDecision(api, row.uuid, completionRequest)).rejects.toThrow(
+    REGISTER_ALLOTMENT_COPY.PREVIEW_FAILED,
+  );
+  response.data = { ...investment, completeIssue: true, applyAppointment: decision.appointment };
+  await expect(previewRegisterAllotmentDecision(api, row.uuid, completionRequest)).resolves.toBe(response);
+  response.data = { ...investment, completeIssue: true, applyAppointment: 'different-appointment' };
+  await expect(previewRegisterAllotmentDecision(api, row.uuid, completionRequest)).rejects.toThrow(
+    REGISTER_ALLOTMENT_COPY.PREVIEW_FAILED,
+  );
+  const transferRequest = {
+    appointment: APPOINTMENT.uuid,
+    kind: 'approve' as const,
+    completeTransfer: true,
+    applyAppointment: 'transfer-application-appointment',
+    previewDigest: TRANSFER_PREVIEW.previewDigest,
+    idempotencyKey: 'transfer-completion-a',
+    confirmation: true,
+  };
+  const transferPreview = {
+    ...TRANSFER_PREVIEW,
+    completeTransfer: true,
+    applyAppointment: transferRequest.applyAppointment,
+  };
+  const transferred = transferDecision(transferRequest);
+  expect(isRegisterTransferDecisionReceipt(transferred, TRANSFER.uuid, transferRequest, transferPreview)).toBe(true);
+  expect(isRegisterTransferDecisionReceipt(transferred, TRANSFER.uuid, transferRequest, TRANSFER_PREVIEW)).toBe(false);
+  expect(isRegisterTransferDecisionReceipt(transferred, TRANSFER.uuid, transferRequest)).toBe(false);
+  const separateRequest = { ...transferRequest, kind: 'apply' as const, completeTransfer: false };
+  expect(isRegisterTransferDecisionReceipt(transferred, TRANSFER.uuid, separateRequest, TRANSFER_PREVIEW)).toBe(false);
+  const separatelyApplied = transferDecision(separateRequest);
+  expect(isRegisterTransferDecisionReceipt(separatelyApplied, TRANSFER.uuid, separateRequest, TRANSFER_PREVIEW)).toBe(
+    true,
+  );
+  expect(isRegisterTransferDecisionReceipt(separatelyApplied, TRANSFER.uuid, transferRequest, transferPreview)).toBe(
+    false,
+  );
+  expect(isRegisterTransferDecisionReceipt(separatelyApplied, TRANSFER.uuid, separateRequest, transferPreview)).toBe(
+    false,
+  );
+  const separateApproval = { ...transferRequest, completeTransfer: false };
+  expect(
+    isRegisterTransferDecisionReceipt(
+      transferDecision(separateApproval),
+      TRANSFER.uuid,
+      separateApproval,
+      TRANSFER_PREVIEW,
+    ),
+  ).toBe(true);
+  for (const changed of [
+    { registerEntry: null },
+    { effectiveOn: '2026-10-21' },
+    { companyEventOn: '2026-10-21' },
+    { company: 'other-company' },
+    { token: 'other-class' },
+    { fromMember: 'other-transferor' },
+    { toMember: 'other-recipient' },
+    { fromName: 'Changed Transferor' },
+    { fromResidentialAddress: 'Changed transferor address' },
+    { name: 'Changed Recipient' },
+    { residentialAddress: 'Changed recipient address' },
+    { newMember: true },
+    { newParticulars: true },
+    { shares: '101' },
+    { signedOn: '2026-10-20' },
+    { lodgedOn: '2026-10-21' },
+    { terms: 'Changed terms' },
+    { authority: 'other-authority' },
+    { approvingDirector: 'Other Director' },
+    { authorityReference: 'Changed authority' },
+    { reason: 'Changed reason' },
+    { authorityEvidence: 'other-authority-file' },
+    { evidenceFingerprint: 'd'.repeat(64) },
+    { instrumentEvidence: 'other-instrument-file' },
+    { instrumentFingerprint: 'e'.repeat(64) },
+  ])
+    expect(
+      isRegisterTransferDecisionReceipt(
+        { ...transferred, ...changed },
+        TRANSFER.uuid,
+        transferRequest,
+        transferPreview,
+      ),
+    ).toBe(false);
+  expect(
+    isRegisterTransferDecisionReceipt(
+      transferred,
+      TRANSFER.uuid,
+      { ...transferRequest, appointment: 'other-approver' },
+      transferPreview,
+    ),
+  ).toBe(false);
+  const transferResponse = { data: TRANSFER_PREVIEW };
+  const transferApi = { post: jest.fn().mockResolvedValue(transferResponse) } as unknown as AxiosInstance;
+  await expect(previewRegisterTransferDecision(transferApi, TRANSFER.uuid, transferRequest)).rejects.toThrow(
+    REGISTER_TRANSFER_COPY.PREVIEW_FAILED,
+  );
+  transferResponse.data = transferPreview;
+  await expect(previewRegisterTransferDecision(transferApi, TRANSFER.uuid, transferRequest)).resolves.toBe(
+    transferResponse,
+  );
+  await expect(
+    previewRegisterTransferDecision(transferApi, TRANSFER.uuid, { ...transferRequest, kind: 'apply' }),
+  ).rejects.toThrow(REGISTER_TRANSFER_COPY.PREVIEW_FAILED);
+  await expect(previewRegisterTransferDecision(transferApi, TRANSFER.uuid, separateRequest)).rejects.toThrow(
+    REGISTER_TRANSFER_COPY.PREVIEW_FAILED,
+  );
+  transferResponse.data = { ...transferPreview, applyAppointment: 'other-applier' };
+  await expect(previewRegisterTransferDecision(transferApi, TRANSFER.uuid, transferRequest)).rejects.toThrow(
+    REGISTER_TRANSFER_COPY.PREVIEW_FAILED,
+  );
+  transferResponse.data = TRANSFER_PREVIEW;
+  await expect(previewRegisterTransferDecision(transferApi, TRANSFER.uuid, separateRequest)).resolves.toBe(
+    transferResponse,
+  );
 });

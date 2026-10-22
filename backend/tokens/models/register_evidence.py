@@ -16,6 +16,7 @@ class RegisterEvidenceKind(models.TextChoices):
     ASIC_EXTRACT = "asic_extract", "ASIC extract"
     AUTHORITY = "authority", "Authority document"
     SUPPORTING = "supporting", "Supporting document"
+    CLASS_RIGHTS = "class_rights", "Class document"
 
 
 class RegisterEvidence(BaseModel):

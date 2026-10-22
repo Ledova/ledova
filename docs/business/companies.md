@@ -58,8 +58,9 @@ After signup, add optional supporting files at **Settings → Company documents*
 Later documents do not alter the retained signup request. The company remains Draft until
 activation passes the registry check: registration does not incorporate a company with ASIC,
 appoint a director, activate the company or issue shares. Until then, the **Getting started** list
-on the company Dashboard (the Register tab on mobile) links its personal administrators to
-Activation and to register setup ([the Dashboard](README.md#the-app-at-a-glance)).
+on the web company Dashboard links its personal administrators to unfinished activation and register
+setup tasks; completed tasks disappear. Mobile keeps its Register tab checklist
+([the Dashboard](README.md#the-app-at-a-glance)).
 
 Resuming an unfinished signup:
 
@@ -361,7 +362,8 @@ Its Company administration section links to:
   ([the Published page](publications.md#the-published-page)).
 
 Activation is at the top of Settings, and share classes are listed and added only in
-[Register](register.md#bringing-in-existing-records). Company documents follow for administrators.
+[Ledger](register.md#bringing-in-existing-records) on the web (Register on mobile). Company documents
+follow for administrators.
 
 Next: [participants and eligibility](participants.md) ·
 [register of members](register.md) ·

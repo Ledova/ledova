@@ -94,6 +94,8 @@ export function allotmentPreview(row: RegisterAllotment): RegisterAllotmentDecis
     ...row,
     effectiveOn: row.companyEventOn,
     previewDigest: 'b'.repeat(64),
+    completeIssue: false,
+    applyAppointment: null,
     canDecide: true,
     unmetRequirements: [],
     registerSequence: 1,
@@ -109,6 +111,26 @@ export function allotmentPreview(row: RegisterAllotment): RegisterAllotmentDecis
 }
 
 export function allotmentDecision(row: RegisterAllotment, body: RegisterAllotmentDecideRequest): RegisterAllotment {
+  if (body.kind === 'approve' && body.completeIssue) {
+    const approved =
+      row.stage === 'approved'
+        ? row
+        : allotmentDecision(row, { ...body, completeIssue: false, idempotencyKey: `approval-${body.idempotencyKey}` });
+    const applied = allotmentDecision(approved, {
+      ...body,
+      kind: 'apply',
+      completeIssue: false,
+      appointment: body.applyAppointment ?? body.appointment,
+    });
+    return {
+      ...applied,
+      decisions: applied.decisions.map((decision) =>
+        decision.idempotencyKey === body.idempotencyKey
+          ? { ...decision, completeIssue: true, approvalAppointment: body.appointment }
+          : decision,
+      ),
+    };
+  }
   const decidedAt = '2026-10-11T00:00:00Z';
   return {
     ...row,
@@ -124,6 +146,8 @@ export function allotmentDecision(row: RegisterAllotment, body: RegisterAllotmen
         decidedAt,
         decidedBy: 1,
         decidedByName: 'Synthetic Appointee',
+        completeIssue: false,
+        approvalAppointment: null,
       },
     ],
     ...(body.kind === 'apply'

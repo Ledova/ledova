@@ -71,6 +71,9 @@ class RegisterTransfer(BaseModel):
 
 class RegisterTransferDecision(RegisterDecision):
     register_transfer = models.ForeignKey(RegisterTransfer, on_delete=models.PROTECT, related_name="decisions")
+    completion_approval_appointment = models.ForeignKey(
+        "companies.CompanyAppointment", on_delete=models.PROTECT, related_name="+", null=True, editable=False
+    )
 
     class Meta(RegisterDecision.Meta):
         constraints = [

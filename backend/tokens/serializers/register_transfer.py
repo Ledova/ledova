@@ -37,14 +37,32 @@ class RegisterTransferCreateSerializer(serializers.Serializer):
 
 
 class RegisterTransferDecisionRequestSerializer(RegisterDecisionRequestSerializer):
-    pass
+    complete_transfer = serializers.BooleanField(required=False, default=False)
+    apply_appointment = serializers.UUIDField(required=False)
+
+    def validate(self, attrs):
+        if attrs["complete_transfer"] and (attrs["kind"] != "approve" or attrs["reason"]):
+            raise serializers.ValidationError("Completion requires approval without a rejection reason.")
+        if "apply_appointment" in attrs and not attrs["complete_transfer"]:
+            raise serializers.ValidationError("An application appointment requires completion.")
+        return attrs
 
 
-class RegisterTransferDecideSerializer(RegisterDecideSerializer):
+class RegisterTransferDecideSerializer(RegisterTransferDecisionRequestSerializer, RegisterDecideSerializer):
     pass
 
 
 class RegisterTransferDecisionPreviewSerializer(serializers.Serializer):
+    complete_transfer = serializers.BooleanField(default=False)
+    apply_appointment = serializers.UUIDField(allow_null=True, default=None)
+    company = serializers.UUIDField()
+    token = serializers.UUIDField()
+    authority_reference = serializers.CharField()
+    reason = serializers.CharField()
+    authority_evidence = serializers.UUIDField()
+    evidence_fingerprint = serializers.CharField()
+    instrument_evidence = serializers.UUIDField()
+    instrument_fingerprint = serializers.CharField()
     preview_digest = serializers.CharField()
     unmet_requirements = serializers.ListField(child=serializers.CharField())
     can_decide = serializers.BooleanField()
@@ -75,8 +93,18 @@ class RegisterTransferDecisionPreviewSerializer(serializers.Serializer):
 
 
 class RegisterTransferDecisionSerializer(RegisterDecisionSerializer):
+    complete_transfer = serializers.SerializerMethodField()
+    approval_appointment = serializers.UUIDField(
+        source="completion_approval_appointment_id", read_only=True, allow_null=True
+    )
+
+    def get_complete_transfer(self, obj) -> bool:
+        return obj.completion_approval_appointment_id is not None
+
     class Meta(RegisterDecisionSerializer.Meta):
         model = RegisterTransferDecision
+        fields = [*RegisterDecisionSerializer.Meta.fields, "complete_transfer", "approval_appointment"]
+        read_only_fields = fields
 
 
 class RegisterTransferSerializer(RegisterDecidedSerializer):
@@ -144,8 +172,10 @@ class RegisterMemberSelectionSerializer(serializers.Serializer):
     walletless = serializers.BooleanField()
     particulars_retained = serializers.BooleanField()
     on_register = serializers.BooleanField(
-        required=False, help_text="False only for an award recipient who has never been on the company's register."
+        required=False, help_text="Whether the person has ever held shares on a company register."
     )
+
+    has_awards = serializers.BooleanField(required=False)
 
 
 class RegisterAwardRecipientSerializer(serializers.Serializer):

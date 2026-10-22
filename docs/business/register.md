@@ -2,7 +2,7 @@
 
 [Business processes](README.md) · [Documentation](../README.md)
 
-How a company keeps the register of members of each share class in Ledova, and what the Register
+How a company keeps the register of members of each share class in Ledova, and what the web Ledger
 page shows. It is for company representatives, product owners, support staff and engineers learning
 the domain. Issuing shares is in [share classes and issuing shares](issuing-shares.md); copies,
 certificates and member access are in [member records and register outputs](member-records.md).
@@ -17,7 +17,7 @@ Contents:
 - [Completed chain effects and waiting entries](#completed-chain-effects-and-waiting-entries)
 - [Retained director instructions](#retained-director-instructions)
 - [Reconciliation with the chain](#reconciliation-with-the-chain)
-- [The Register page](#the-register-page)
+- [The Ledger page](#the-register-page)
 
 ## The register and the company's records
 
@@ -102,9 +102,9 @@ shares; a member can have no linked wallet or several. Holder types:
 - Member: resolves to one person, as below.
 - Treasury: held at a labelled company treasury address, such as an employee share trust.
 - Ambiguous: its wallets point to more than one person, or two wallet records share its address, so
-  no name is shown and the Register says the identity needs review.
+  no name is shown and the shareholder view says the identity needs review.
 - Unidentified: no wallet resolves to a named person and no particulars are recorded, so the
-  Register suggests asking the participant to add their full name in Profile, or to verify and
+  shareholder view suggests asking the participant to add their full name in Profile, or to verify and
   nominate the wallet for approval.
 
 A member's name and residential address come from the first available of: the live verified identity
@@ -141,7 +141,9 @@ naming the member, or a recorded cessation of one of its wallets between its fir
 opening, touches it; a pre-opening transfer that emptied none of its wallets and kept its quantity
 cannot be seen. Unallotted applications, holdings without allotments and quantity mismatches leave
 it blank; a pending refund never inflates it, zero never stands for an unknown amount, and non-paid
-terms establish none. An imported amount paid holds while the holding is unchanged since the import,
+terms establish none. New opening snapshots leave the current holding's amount paid unknown:
+optional historical allotments do not establish it. Earlier recorded imported amounts remain
+unchanged. An imported amount paid holds while the holding is unchanged since the import,
 plus the AUD consideration of later external investor allotments (blank stays blank; a member the
 import did not carry shows the consideration alone); any other later entry for the member, such as a
 non-paid grant or transfer, blanks it. An import records amounts paid and unpaid as the company
@@ -178,8 +180,8 @@ opened from the chain) and within the retention period, and
 are listed without a wallet address and purged on the same clock from the date they ceased.
 
 Only the company owner, current register appointees and the operator read former members, in the CSV
-(with residential addresses), under Former shareholders on Shareholders, on the Share class page and
-on a former member's own page. Particulars are
+(with residential addresses), under Former shareholders on Shareholders and on a former member's
+own page. Particulars are
 kept while a person is a member and for the retention period after they last held shares, at least
 seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)).
 
@@ -192,27 +194,39 @@ contract it is the opening, creating the members, the Opening state entry and th
 together; for a class opened from the chain it adds particulars and former members from before
 Ledova, and its holdings must match the stored register. On the web:
 
-1. On Register, choose **Set up your share register** (shown while no share class is readable) or,
-   once a register exists, **Add share class**; or choose History, the class, then Bring records
-   under Register mirror. Issue shares and Transfer shares also offer Set up your share register for a
-   class not yet set up. Register is the only place where share classes are created, on the web
-   and on mobile.
+1. On Ledger, choose **Add share class**; or choose Corrections, the class, then Bring records
+   under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
+   class not yet set up. Share classes are created only through register setup, in Ledger on the
+   web and Register on mobile.
 2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
    ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
    type. The company choices come from current personal administrator or preparer appointments,
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
-   With no classes yet, a preparer uses the company sidebar's Register and its setup action.
+   With no classes yet, a preparer uses the company sidebar's Ledger and its setup action.
    Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: choose a recorded person or New person
    ([choosing a person](#choosing-a-person); names never link records, and existing names and
    addresses are kept), then enter from this
-   class's records the name, residential address, original date entered, whole-share holding and
-   each allotment (date, quantity, paid and unpaid amounts, and Held for someone else?, where Yes
-   means held non-beneficially), with optional share and certificate references. Allotments must add
-   up to the holding, a fully paid allotment has nothing unpaid, and a blank amount stays unknown
-   rather than zero. Former shareholders can be added. For a genuinely unopened non-tokenised class
+   class's records the name, residential address, original date entered and **Current shares held**.
+   **Allocation history** optionally copies available dates, quantities and paid/unpaid amounts;
+   these historical quantities need not equal today's holding after transfers or cancellations.
+   New web records leave beneficial
+   ownership **Not recorded**, with no ownership question or reference inputs; existing answers and
+   references stay with saved records and corrections. **Documents** optionally attaches one or more
+   files to this shareholder and share class, each with **Category** and **File** fields
+   ([supporting documents](#shareholder-documents)).
+   **Add allocation** and **Add document** sit beside their respective section headings. One allocation is open
+   for editing at a time. Adding another checks the current entry,
+   folds it into a date, shares, paid and unpaid summary, and opens any unfinished entry or a new one.
+   **Edit** and **Remove** sit beside a collapsed summary; an open entry has **Remove** below its
+   full-width fields. Unfinished input is kept when switching entries. Entries do not collapse while typing.
+   **Add shareholder**, or **Save changes** when editing, finishes the shareholder and any history
+   entered. Removing the final entry leaves no copied history. History never sets
+   or limits current holdings. New paid/unpaid fields start at zero; clearing either records zero,
+   and fully paid means nothing remains unpaid. Existing unknown amounts remain unknown.
+   For a genuinely unopened non-tokenised class
    with no issued shares or earlier members, leave the draft empty to record its empty opening.
 4. Review the shares, shareholders and record date in one table, with particulars under Details.
    Confirm loads a fresh preview and records approval and application together; an appointee who may
@@ -238,18 +252,22 @@ preparation for editing and needs preparation and rejection authority.
 
 Award recipients without shares appear in the same list as members, marked as such. Select the
 exact company recipient to keep their ID, current particulars and any accepted member access; enter
-their source membership date, holdings and allotments yourself. Changed, unavailable, conflicting or
+their source membership date, current holdings and any optional allotment history yourself.
+Changed, unavailable, conflicting or
 foreign identities block preparation, review or application; names alone never join people. A first
 copied holding records an opening balance, not an award-linked issue.
 
 Web imports are attributed to "Company-provided share records", with a snapshot naming the company,
 record date and preparer; the mobile app asks for a source reference and keeps separate Review and
 Confirm mirror screens. Confirming is the company's confirmation that the records are its own, not a
-new director resolution. Copies of its register and an ASIC extract are optional and kept without
-being read; stated ASIC totals are an optional cross-check, and an extract may list only some
-shareholders. The Import button is marked Coming soon: document extraction will later fill these
-forms for review. Earlier imports keep their evidence and authority, and fields their snapshots lack
-stay unknown.
+new director resolution. On the web, **Company source copies** optionally holds a register copy and ASIC
+extract, kept without being read. Fresh setup asks for neither former shareholders nor ASIC
+comparison figures. Earlier former-member records remain in saved snapshots, review and history;
+an inherited **Earlier ASIC comparison** is read-only, with **Leave out ASIC comparison** available
+when revising it. Mobile keeps its optional ASIC comparison fields;
+an extract may list only some shareholders. The Import button is marked Coming soon: document
+extraction will later fill these forms for review. Earlier imports keep their evidence and
+authority, and fields their snapshots lack stay unknown.
 
 An import is refused when the class already has an applied import; once an issue was approved or an
 instruction applied for the class (open it from the chain, then import particulars); when its
@@ -257,10 +275,26 @@ holdings differ from the stored register of a class opened from the chain; when 
 ceased after the register date, on or after an existing opening, or before the retention period; and while a deployment of the class
 is pending.
 
+### Shareholder documents
+
+On the web, each shareholder can have optional Share certificate, Shareholder agreement,
+Subscription agreement or Other supporting document attachments. Add them in the shareholder form
+during setup, or afterwards from the shareholder's page or the relevant class's details. Each
+attachment belongs to the company, person and share class; a setup attachment also keeps its source
+opening record. Recording existing holdings creates no historical share issue. Company source
+copies belong to the whole opening and remain separate.
+
+Files and their record links are retained, with the uploader, appointment, category and file
+fingerprint. One stored file can support several linked people without duplicating its bytes.
+Current company register readers can download them; they are not shared automatically with members
+or published. A category describes the company's attachment: uploading a Share certificate neither
+generates nor verifies one, and an attachment does not replace an issue's required approval,
+agreement or receipt evidence. Mobile attachment entry is deferred.
+
 ### Correcting the copied opening
 
-In History, Correct copied opening under the class's Register mirror replaces the latest applied
-import's shareholder rows in full, in the same forms and keeping each member ID, with a current
+In Ledger's Corrections view, under Opening records, choose Correct copied opening to replace the
+latest applied import's shareholder rows in full, in the same forms and keeping each member ID, with a current
 source and a reason. Applying keeps the earlier snapshot, decisions and opening entry, adds a Copied
 opening correction entry for the exact difference (none when only particulars change) and records
 the new particulars. It is refused once the class has later share activity, a deployment, or
@@ -273,8 +307,8 @@ A deployed or paused class whose register has no entry is opened from the chain 
 wallet holding shares at one block, the boundary, to a company member. Nothing is typed and no
 particulars are stored; a later import adds them.
 
-1. In History, under the class's Openings, choose Open this register. The page reads the holdings on
-   chain, largest first, or says the chain cannot be read.
+1. In Ledger's Corrections view, under Openings, choose Open this ledger. The page reads the
+   holdings on chain, largest first, or says the chain cannot be read.
 2. Assign each address to a member: a linked address keeps its member, others go to an existing or
    new member, and several can share one.
 3. Upload the authority document, choose Director resolution (naming the director) or Court order,
@@ -300,7 +334,7 @@ A correction exactly reverses one entry, which stays and is named by it. An entr
 once, and a correction can itself be corrected; partial corrections and replacement transactions are
 not built.
 
-1. In History, open the entry under the class's Register entries and choose Correct this entry,
+1. In Ledger's Corrections view, expand the entry and choose Correct this entry,
    which shows the exact inverse.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
@@ -339,8 +373,8 @@ which member owns it: a new subscriber's, a first-time buyer's or another of an 
 wallets. A [chain grant](issuing-shares.md#non-paid-chain-grants) links its nominated wallet the
 same way before minting.
 
-1. Choose Link waiting wallets under Wallet links in History. Only waiting wallets are listed, each
-   with the number of issues or transfers waiting for it.
+1. Choose Link waiting wallets under Wallet links in Ledger's Corrections view. Only waiting
+   wallets are listed, each with the number of issues or transfers waiting for it.
 2. Each wallet starts as its own new member; choose the existing or new member who owns it, the same
    one for one person's wallets. For a whitelisted wallet the page shows, for information only,
    whether its holder proved control on Ledova and their name. A choice resets, with a notice, only
@@ -360,17 +394,32 @@ A company can record a genuine non-paid transfer between members of an imported 
 has no contract, when neither has a linked wallet anywhere in the company. It creates no wallet,
 account, payment, application or chain transaction.
 
-1. On Register, choose Transfer shares, the class, then Prepare a non-paid transfer. For a tokenised
-   class the task says its transfers use wallet and chain controls.
-2. Choose the transferor, recipient and shares ([choosing a person](#choosing-a-person)). An
-   existing recipient, including a former member
-   returning from zero, keeps their member ID; a new one gets a new member ID with the name and
-   residential address the instrument gives. If a returning member's particulars were lawfully
-   purged, the company supplies new ones.
-3. Give the company transfer date, the separate dates the instrument was signed and lodged, the
-   non-paid terms, the approving director, the authority reference and the reason, and upload the
-   authority document and the signed transfer instrument.
-4. Approve, then Apply.
+1. On the web, in Ledger choose Transfer shares, the class, then Prepare a non-paid transfer. For a
+   tokenised class the task says its transfers use wallet and chain controls.
+2. In **People and shares**, choose the transferor, recipient and shares
+   ([choosing a person](#choosing-a-person)), and give the company transfer date. An
+   existing company recipient keeps their member ID, including someone holding only another class,
+   a former member returning from zero, or someone without shares. Register a first-time recipient
+   through **Add person** on Shareholders before preparing the transfer. This creates particulars,
+   not shares or member access. If a returning member's particulars were lawfully purged, the
+   company supplies current ones against the same existing identity. The API and mobile retain
+   their existing new-recipient path; mobile changes remain deferred.
+3. In **Transfer documents**, give the separate dates the instrument was signed and lodged,
+   the non-paid terms and the signed transfer instrument.
+4. In **Company authority and review**, check the transfer summary, choose the approving director,
+   give the authority reference and reason, and attach the authority document. **Prepare transfer**
+   saves the proposal; it moves no shares. Back and Continue keep the draft fields and selected
+   files without saving or uploading.
+5. The saved record aligns From, To, Shares, Transfer date and Status, with **Details and documents**
+   available on demand. **Review and approve** opens a main-page preview of the parties, ownership
+   effect, transfer instrument and company authority, with long terms, particulars and documents
+   on demand. Cancel returns to the record and its opener. **Approve** records the company approval
+   and ledger transfer together, requiring current approval and application authority. A current
+   earlier approval is reused; an approved transfer awaiting its entry shows **Ready to complete**.
+   Success shows **Approved** and the recorded entry, without a separate Apply action. A failed
+   transaction records no new approval or movement; retrying the same request cannot move the shares
+   twice. Rejection also uses page review. The preparation action shares the final record's action
+   row, or stands alone when no transfers exist. The API and mobile keep their separate decision steps.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the
@@ -398,7 +447,7 @@ opening already holds records nothing, nor does a settlement between two wallets
 Recording stops at the first effect it cannot record, so the register never skips ahead of the
 chain, though the issue or settlement itself still completes; it resumes at the next completion in
 the class, applied wallet link or applied instruction. A waiting effect is in no holding until it is
-recorded, and the Register shows how many wait.
+recorded, and the class summary shows how many wait.
 
 ### Why a completed effect waits
 
@@ -468,7 +517,7 @@ of zero shares, which anyone can send, are ignored.
 
 Each run is kept as Matched, Discrepant or Failed, with the block and register entry compared. An
 unreadable chain fails the reconciliation, never the register, and reconciliation never writes a
-register entry. The company cannot start a run; it sees the latest on the Register and in the CSV
+register entry. The company cannot start a run; it sees the latest in the register view and the CSV
 summary. The register cannot follow a divergence it did not cause: no entry records an outside
 transfer, and a correction only reverses an existing entry.
 
@@ -489,8 +538,9 @@ acknowledged once the cause is understood.
 ### Acknowledging a discrepancy
 
 Once the company has investigated and accepted a discrepancy, someone whose appointment holds
-administration or approve chooses Acknowledge on its row in the class's latest reconciliation, with
-a reason of up to 1,000 characters; there is no staff step or second person. Only the latest
+administration or approve opens Ledger's Corrections view and chooses Acknowledge on its row in
+the class's latest reconciliation, with a reason of up to 1,000 characters; there is no staff step
+or second person. Only the latest
 reconciliation can be acknowledged (for an older one, wait for the next run); attribution and
 missing-transfer rows cannot be, and a row is acknowledged once.
 
@@ -503,37 +553,57 @@ reason, the person, their appointment and the time, and the
 
 ## The Register page
 
-On the web Register is open to every signed-in account and shows the registers of companies the
-person owns or where their appointment includes register access. With none, it offers **Set up your
-share register** to someone who can prepare one and otherwise says there are none. A company
-selector appears when several companies are readable. Register, Shareholders, ESS and Documents in
-the web sidebar are views of one page, so switching between them keeps unfinished forms
-and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Register holds the share
-classes and their changes; who holds the shares is on Shareholders
+The web destination is **Ledger**, with the subtitle **Share classes and current ownership.** The
+mobile destination remains Register. Ledger is open to every signed-in account and shows the
+registers of companies the person owns or where their appointment includes register access. With
+none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
+selector appears when several companies are readable. Ledger's sidebar label opens the share-class
+overview; its separate caret expands Issue shares, Transfer shares, History and Corrections.
+Shareholders, ESS and Documents remain beside Ledger. These are views of one page, so switching between them keeps
+unfinished forms and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
+company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
 
-The Register view shows:
+The Ledger view shows:
 
-- a card for each class: Issued shares, Current shareholders, Register opened or Register not
-  opened, Authorised shares (or a Technical share limit for a class set up from existing records), a
+- a card for each class with **Class details**: Issued shares, Current shareholders, Ledger opened or Ledger not
+  opened, Authorised shares where applicable, a
   note when completed issues or transfers wait or cannot be checked;
-- three tasks sharing one share-class selector, only the selected one shown: Issue shares
-  ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
-  ([non-paid transfers](#non-paid-transfers-between-members)) and History. History holds,
-  under Recorded changes, a link to the class's Share class page, Openings (for a class on chain),
-  Register mirror, Register entries (newest first, with certificate controls), Corrections and
-  Reconciliation with the chain, then the company's Particulars changes and Wallet links;
-- **Add share class** beside the tasks, for someone who can prepare the register, opening
+- **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-History shows each record as one line (its kind, date and stage) that opens on demand to its
-snapshot, documents and decision trail; a prepared record starts open. Stages read Prepared,
-Approved, Applied or Rejected (for an import, Reviewed and Confirmed), and evidence reads as
+Ledger's four sidebar sub-items each open their own focused view, with a shared share-class
+selector and without the overview cards: Issue shares
+([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
+([non-paid transfers](#non-paid-transfers-between-members)), History and Corrections.
+
+History starts with a full-width Changes card, newest entries first, with compact rows aligned under
+Change, Date and Share movements. On smaller screens, the kind and date sit above the movements.
+Each entry shows its company date for an issue or transfer (ledger effective date for other kinds),
+and its first two signed shareholder movements plus a count of the rest. Select the row to expand
+its initially closed details: the full movement list, entry number, separate company, ledger and
+recording dates, and correction or reversal references. An older issue or transfer with no company
+date says Date not recorded in its summary and Not
+recorded in its details. Retained source imports, chain openings, corrections, reconciliation,
+particulars and wallet-link records remain available on demand, with permitted evidence downloads.
+History has no preparation, approval, correction or acknowledgement forms. Certificates are prepared
+in [Documents](member-records.md#preparing-a-certificate).
+
+Corrections holds the existing append-only correction and maintenance workflows: source opening
+corrections, chain openings, reconciliation acknowledgements, particulars and wallet links. Their
+supporting records open on demand to their snapshot, documents and decision trail; a prepared record
+starts open. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
+Confirmed), and evidence reads as
 provided by the company or, before the work became company-run, "Verified by Ledova staff". A
 section that read successfully with nothing to show is left out, but a class on chain without a
 reconciliation says so. An unfinished request keeps its class and exact request, and while one is
-held the company, task and class cannot be changed. A failed read withholds the class cards and the
+held the company, task and class cannot be changed; its sidebar link lets the person return from
+another view to resume the same request. A failed read withholds the class cards and the
 shareholder list rather than implying holdings are zero.
+
+The focused views reuse the existing controllers, authority checks and original-request recovery.
+The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165);
+mobile refinements remain deferred under [#1201](https://github.com/Ledova/ledova/issues/1201).
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
@@ -547,7 +617,8 @@ Details is unavailable, so the work and its recovery stay on the page.
 The Employee share scheme view, ESS in the sidebar, holds each class's
 [awards](issuing-shares.md#employee-awards-and-vesting),
 each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
-inspection copy and the company pack.
+inspection copy, unsigned certificate preparation and the company pack as compact choices, opening
+one preparation form at a time.
 
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.
@@ -571,13 +642,15 @@ reached from Recipient details on their award. It shows:
   and their change in shares;
 - Employee awards, when they have any: per award, the shares promised, vested and issued, with a link
   to Employee share scheme;
+- Documents: the shareholder's retained supporting files, with their category and share class;
+  someone who can prepare the register can add more for a recorded holding;
 - requests from them waiting for the company, with a link to Member access and requests;
 - for an administrator, whether they can see their own records, with **Invite to their records**
   when they cannot.
 
 Details show only while the account, the classes and the holdings read are current; a refresh
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
-current company register appointment and settled reads, as on Register.
+current company register appointment and settled reads, as on Ledger.
 
 ### Choosing a person
 
@@ -593,9 +666,18 @@ Each flow keeps its own rule for who can be chosen:
 
 - issues and awards: people without a linked wallet whose particulars are retained;
 - a transfer: a transferor holding shares in the class, and a recipient without a linked wallet;
+  on the web both must already be recorded by the company;
 - register setup: everyone on the list on the web; in the mobile app, award recipients and the
   members without a linked wallet whose name and address are retained;
 - invitations: current and former members and award recipients.
+
+**Add person** on web Shareholders records a company person's name and residential address without
+a class, shares, an award, a login or an invitation. People without shares remain separate from
+current shareholders and can be found with the same search. Recording a person does not add them
+to the legal register; a later confirmed opening, share issue or transfer records their holding.
+The company's current preparation or administration appointment is required. A retry retrieves
+the original person registration instead of creating another identity. Names and addresses can
+coincide between different people; the stored member ID distinguishes them.
 
 An award recipient without shares has a person record from their first award. Every flow uses
 their member ID and current particulars, so an issue, a transfer or another award reaches the same
@@ -605,10 +687,13 @@ person chosen.
 
 ### The Share class page
 
-Share class, reached from History or, for a tokenised class, from the Share class link in Record
-investor share issue and Transfer shares, shows the class's state, issued shares and register
-members, and the history and actions of its company-authorised deployment, chain grants, paid
-issues, capital increases and pause changes ([share classes](issuing-shares.md#share-classes)).
+Each class opens directly from **Class details** on its Ledger card. Its details show the class's
+name, code, type, state and current register summary, followed by the company's optional
+[Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
+and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and
+register downloads on Documents. **Technical details and chain workflows** opens the retained
+technical metadata, request history and company-authorised deployment, chain issue, capital and
+pause workflows ([share classes](issuing-shares.md#share-classes)).
 
 Next: [share classes and issuing shares](issuing-shares.md),
 [member records and register outputs](member-records.md),

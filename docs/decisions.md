@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 October 2026                                | Current; #1166–#1168 and award recipients (#1169) on the web; mobile (#1170); ESS (#1185)                       |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 22 October 2026                          | Current; web destination named Ledger and revised workflows under #1165; mobile deferred under #1201            |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
@@ -1298,6 +1298,142 @@ which kind of issue, shows that form in place, and lists the class's investor an
 under it. Each award lists the non-paid issues prepared from it. Tokenised classes keep their chain
 issues in Share class settings.
 
+On 21 October 2026 the owner approved the revised structure under
+[#1165](https://github.com/Ledova/ledova/issues/1165). The register view starts with the company's current
+share classes and structure, with direct class details showing the current position and optional
+Class rights. Shareholder management and downloads keep their own destinations. Existing technical
+controls and retained history stay available on demand rather than dominating the class page.
+During the localhost walkthrough the owner named the web destination **Ledger**, with the subtitle
+**Share classes and current ownership.** The owner also aligned the web routes and page folder
+under `company/ledger`, with **Set up your ledger** and **Ledger opening** as the web task titles.
+The legal term share register, stored records, API paths and native labels stay unchanged. Mobile
+keeps Register until its later pass.
+
+The owner then approved the sidebar as the primary navigation between web sections. Ledger's label
+opens the share-class overview, with a separate caret for Issue shares, Transfer shares and History;
+Shareholders, ESS and Documents stay siblings. Each task has a focused addressable view, reusing
+the existing controllers and records. Page controls remain for the current page or record, including
+Add share class, Class details and contextual issue or transfer actions. This removes the header
+task switches and ownership overview from task views; Settings restructuring, signup and mobile
+are outside this increment.
+
+On 22 October 2026, during [#1165](https://github.com/Ledova/ledova/issues/1165), the owner separated
+web History from operational work. History reads recorded changes and retained supporting facts,
+with permitted downloads. Documents owns certificate preparation; a separate Ledger **Corrections**
+sidebar view owns the existing correction and maintenance workflows. This changes placement, not
+company authority, append-only records, instruction-bound output generation or original-request
+recovery. Documents presents compact output choices, opening one preparation at a time, with
+instruction entry, source/privacy guidance and explicit generation in the opened workflow. Mobile
+stays unchanged.
+
+On 23 October 2026 the owner asked to finish the web refinements under #1165, reuse the existing
+summary grids and aligned form actions in Documents, and merge the completed work after review
+and checks. Mobile remains deferred under #1201.
+
+The owner placed Add share class below the class cards, aligned right. The web standard for a
+collection's primary creation action is one content-width action row beneath its cards, including
+an empty collection card; record-specific actions stay with their records.
+The default technical share limit is omitted from Ledger summary cards; its internal quantity
+guard remains, along with any distinct finite class limit.
+
+The same walkthrough replaced the Class rights dialog with inline editing in its existing card:
+one heading, fields in place of the saved summary and previous versions, and Cancel and Save
+together at the bottom right. Focus moves to Summary on opening and returns to Edit after closing
+when that action is still available. This refines the web design standard for contextual record
+edits; separate tasks, signing and confirmations may still use dialogs. Class-rights authority,
+validation, retained revisions and original-save recovery stay the same.
+
+The owner then replaced the fresh Document reference input with **Rights summary** and optional
+class documents in the same inline form. The company records existing terms, with prompts for
+voting, dividends, repayment of capital and other relevant restrictions; Ledova does not assume
+rights from ORD or PRF, draft legal terms or calculate their effects. Documents belong to the
+class and its retained rights revision, separate from shareholder attachments and company-wide
+document access. Current company register readers can read linked files; current personal company
+administrators record changes. Earlier text references and file versions remain in retained
+history and exports. Member/public disclosure and mobile entry are outside this increment.
+
+On 22 October 2026 the owner approved structured Class rights under #1165: voting, dividends,
+capital on winding-up, transfers, conversion and redemption, with details revealed only where
+relevant. Each group starts Not recorded, distinct from an explicit absence of a right; class names
+and broad types supply no defaults. Additional rights retains custom terms, Documents retains
+supporting files, and a known effective date stays separate from the actual recording time.
+Existing summaries, references, documents and immutable revisions remain readable. The first web
+scope records and displays existing class terms; it does not establish or vary rights, verify
+documents or implement voting, payout, transfer, conversion, redemption or approval rules.
+Holder-specific and award conditions stay with their own records. Member disclosure, broader
+filtering and comparison interfaces, and mobile entry remain separate work.
+
+The owner then simplified this layout to six compact choices with relevant structured details
+beside each right, followed by one full-width **Additional terms** field. This replaces the separate
+Conditions fields and Additional rights label. The shared field retains conditions, exceptions and
+custom rights. Earlier group conditions are combined with category labels and existing text when
+editing; a new save records the combined text without duplicate group conditions, leaving earlier
+versions unchanged. The effective date, Documents, authority checks and save workflow stay the same.
+
+On 22 October 2026 the owner also combined web investor-allotment approval and issuance under
+#1165. A green **Review and approve** opens the main-page review without deciding anything; its
+green **Approve** action records approval and the share issue in one idempotent transaction,
+requiring current approval and application authority. Keep a current existing approval and the original-request
+recovery, exact preview, evidence, identity, director and duplicate-issuance guards. A failed
+transaction records neither new effect. The completed result shows **Approved** and its recorded
+shares. Remove the separate Record issue action from this web workflow. Agreement, company-attested
+receipt, approval and ledger entry remain distinct retained records. This settles no money and
+changes neither non-paid/chain workflows nor mobile's separate steps.
+
+The owner also moved web transfer review onto the main page under #1165, using the existing
+summary, ownership impact and company-record cards with details and documents on demand. Opening
+review makes no decision; Cancel returns to its record. Transfer approval and application remain
+separate, with current authority, exact previews and original-request recovery preserved.
+
+Later on 22 October 2026 the owner combined the final web transfer action, following investor
+allotments: **Review and approve** still opens the main-page review without changing records, and
+its green **Approve** records company approval and the ledger transfer in one idempotent
+transaction. Remove the separate web Apply control. Require current approval and application
+capabilities and both appointments; bind the exact ownership, class, company date and evidence, and
+retain director-conflict, transferability and unchanged-total guards. Reuse a still-current earlier
+approval without rewriting its history. An earlier approved transfer awaiting its entry shows
+**Ready to complete**; success shows **Approved** with the recorded entry. Failure creates no new
+partial approval or movement, and the original request can be recovered without moving shares twice.
+Approval and entry stay distinct retained facts. This supersedes the separate web actions above;
+separate API decisions and mobile remain unchanged, with mobile deferred under #1201.
+
+Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
+a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse
+the same people and register records, without changing company authority,
+exact-request recovery or retained history. Implement Ledger and class details first and show each
+step in Chrome on localhost. Mobile remains deferred under
+[#1201](https://github.com/Ledova/ledova/issues/1201).
+
+The same walkthrough simplified the web Shareholders step: **Add documents (optional)** retains
+just the register copy and ASIC extract. Fresh setup no longer asks for former shareholders or
+ASIC comparison figures. Saved and historical records keep their existing values; an inherited
+ASIC comparison is read-only and may be explicitly left out when revising. The company's legal
+historical records and responsibilities remain unchanged.
+
+The owner also removed the web shareholder form's ownership question and reference inputs.
+New mirror allotments record beneficial ownership as **Not recorded**, never an assumed Yes or No.
+Existing answers and references remain with retained records and corrections. Optional documents
+use the same attachment control. The company continues to keep its complete legal register;
+Ledova's mirror does not replace it. Mobile workflow changes remain deferred, with a read-only
+compatibility label for unknown values.
+
+The owner then separated the opening balance from optional allotment history. **Current shares
+held** comes from the company's current records; copied historical allotments may be absent or
+total a different quantity after transfers or cancellations. They neither issue shares nor impose
+an allowance on future issues. Remove the remaining-share counter and the forced equality in web,
+API and PostgreSQL validation. New opening snapshots do not infer the current holding's amount paid
+from optional history. New web paid/unpaid fields default to zero, including when cleared; retain
+earlier unknown amounts, calculated values and exact retries. The company's legal historical
+records and the separate new-issue safeguards remain unchanged.
+
+For the same form, the owner approved **Allocation history** and **Documents** without optional
+markers. Keep optional sections empty until **Add allocation** or **Add document** beside their
+heading is used. The owner then chose descriptive text buttons throughout this form, replacing the
+icon controls and their tooltip helper. **Edit** and **Remove** sit together beside collapsed
+summaries; **Remove** sits below full-width open entry fields. Buttons share typography and spacing,
+and the main footer keeps Cancel and the emphasised **Add shareholder** or **Save changes** action.
+This changes presentation, not whether history or documents are required.
+
 ## Paper and Dark themes
 
 On 14 October 2026 the owner directed under
@@ -1373,6 +1509,13 @@ proposal are in #1174, and the owner approved it as recommended:
   approved offering's) on its own pages with a Copy button; investors paste it into the request as
   today." So Company shows the company's UUID in full with Copy, and Offerings each approved
   offering's: the one exception to short references.
+
+On 22 October 2026, the owner accepted a further web refinement under #1165: **Add person** on
+Shareholders records a company person's particulars without shares or a login; transfers select
+existing company people only. Recipients need not hold that class. Keep the shared searchable
+control and the existing new-person paths for setup, issues and awards. The company person list
+distinguishes people without shares from current shareholders, and registration keeps company
+authority, an attributable source and the original request on retry. Mobile stays deferred.
 
 ## The signed-in app
 

@@ -26,12 +26,16 @@ from tokens.services.former_holders import purge_register_exports
 class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
     def test_unsigned_company_own_transfer_certificate_and_complete_core_pack_retain_real_sources(self):
         rights_endpoint = f"/api/v1/tokens/{self.token.pk}/class-rights/"
+        class_document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.CLASS_RIGHTS)
         rights = {
             "appointment": str(self.appointment.pk),
             "idempotency_key": str(uuid4()),
             "previous_revision": 0,
             "summary": "Company-supplied ordinary share rights.",
             "document_reference": "Synthetic constitution, clause 4",
+            "documents": [str(class_document.pk)],
+            "attributes": {"voting": {"type": "general", "votes_per_share": "1"}},
+            "effective_date": "2020-01-01",
         }
         first_rights = self.client.post(rights_endpoint, rights, format="json")
         self.assertEqual(first_rights.status_code, 201, first_rights.content)
@@ -208,6 +212,22 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(ending.status_code, 201, ending.content)
+        shareholder_document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        for member in (str(self.member.pk), award["member"]):
+            linked = self.client.post(
+                "/api/v1/tokens/register-member-documents/",
+                {
+                    "company_id": str(self.company.pk),
+                    "member": member,
+                    "token": str(self.token.pk),
+                    "evidence": str(shareholder_document.pk),
+                    "category": "shareholder_agreement",
+                    "appointment": str(self.appointment.pk),
+                    "idempotency_key": str(uuid4()),
+                },
+                format="json",
+            )
+            self.assertEqual(linked.status_code, 201, linked.content)
         packed = self.client.post(
             f"/api/v1/companies/{self.company.pk}/pack/",
             {
@@ -232,10 +252,29 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(exported_rights[0]["summary"], rights["summary"])
             self.assertEqual(exported_rights[1]["summary"], "Clarified company summary.")
             self.assertEqual(exported_rights[0]["document_reference"], rights["document_reference"])
+            self.assertEqual(exported_rights[0]["attributes"], rights["attributes"])
+            self.assertEqual(exported_rights[0]["effective_date"], "2020-01-01")
             self.assertEqual(exported_rights[0]["recorded_by_id"], self.owner.pk)
             self.assertEqual(exported_rights[0]["appointment_id"], str(self.appointment.pk))
             self.assertEqual(exported_rights[0]["idempotency_key"], rights["idempotency_key"])
             self.assertTrue(exported_rights[0]["created_at"])
+            self.assertEqual(exported_rights[0]["documents"][0]["evidence"], str(class_document.pk))
+            class_documents = json.loads(bundle.read("class_documents.json"))
+            self.assertEqual(len(class_documents), 2)
+            self.assertEqual(
+                {row["revision"] for row in class_documents},
+                {first_rights.json()["uuid"], latest_rights.json()["uuid"]},
+            )
+            class_path = class_documents[0]["path"]
+            self.assertEqual(bundle.namelist().count(class_path), 1)
+            self.assertEqual(hashlib.sha256(bundle.read(class_path)).hexdigest(), class_document.sha256)
+            shareholder_documents = json.loads(bundle.read("member_documents.json"))["links"]
+            self.assertEqual(len(shareholder_documents), 2)
+            self.assertEqual({row["member"] for row in shareholder_documents}, {str(self.member.pk), award["member"]})
+            self.assertEqual(len({row["path"] for row in shareholder_documents}), 1)
+            document_path = shareholder_documents[0]["path"]
+            self.assertEqual(bundle.namelist().count(document_path), 1)
+            self.assertEqual(bundle.read(document_path), shareholder_document.file.open("rb").read())
             sources = json.loads(bundle.read("company_mandates.json"))
             self.assertEqual(sources["awards"][0]["data"]["is_entitlement"], True)
             self.assertEqual(sources["vestings"][0]["data"]["shares"], "25")

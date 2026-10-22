@@ -28,12 +28,18 @@ and [mobile](mobile.md); what each page does is in the business section.
 Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 `mobile/src/components/Page.tsx`) under the page's title. Web form fields use `Field`
 ([forms](#forms)). `Page narrow` bounds
-task forms, settings and detailed records, including compact tables; ownership dashboards and wide
-tables take the standard workspace width, and tables scroll within their card on small screens.
-Section spacing is scoped to the frame; sign-up keeps its own presentation.
+simple task forms, settings and detailed records, including compact tables; ownership dashboards,
+stepped Ledger preparation pages and wide tables take the standard workspace width, and tables
+scroll within their card on small screens.
+Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
+and the shared card heading and padding. Section spacing is scoped to the frame; sign-up keeps its
+own presentation.
 
-The title row holds the title and the page's actions, with a one-sentence muted lede under it only
-where it adds to the titles. The first section follows at the same gap as between sections (`Page`
+The title row holds the title and contextual page actions, with a one-sentence muted lede under it
+only where it adds to the titles. On web card collections, the primary creation action follows the
+last card in one right-aligned, wrapping row, rather than the title row; keep its content width.
+Ledger's Add share class follows this pattern for both empty and populated collections. The first
+section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground: the title (Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions
 as one wrapping row, since a phone's large title leaves no room beside it; the stack header holds
@@ -50,8 +56,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   `rounded-2xl` in the frame, `rounded-xl` outside it) with its Newsreader title inside. Forms and
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
-  muted sentence ("No activity yet.") and at most one action besides Refresh; a state is never a
-  title. A card's title is a heading, such as each class's summary on Register.
+  muted sentence ("No activity yet.") and at most one action; a state is never a
+  title. A card's title is a heading, such as each class's summary on Ledger on the web.
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
   mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals, register
@@ -66,18 +72,19 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   or opens an external resource.
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
-  a row for that row's record alone. Nothing is selected before acting, and no toolbar waits under a list.
+  a row for that row's record alone. A web collection's primary creation action sits beneath its
+  cards, aligned right. Actions do not wait for a row to be selected.
 - `Disclosure`: every expandable section on a web page, a button with `aria-expanded` (expanded or
   collapsed on mobile) and a leading caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
   independently through `useOpenRows` from `@ledova/shared`), Activity's filter and Wallets' sort
   hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
-  so unfinished input survives, and may start open, as a prepared register record does. The
-  sidebar's More group is the one native toggle, styled as a navigation item. Activity's
-  filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
+  so unfinished input survives. Saved issue and transfer records start with their details closed. The
+  sidebar's Ledger caret is a separate navigation-group button; More keeps its native toggle.
+  Activity's filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
   naming what it applies; applying or clearing closes it and every open entry and returns focus to
-  its button. Dialogs are for work that sets the page aside: a form that creates or changes
-  something, a signing step or a confirmation.
+  its button. Substantial record reviews use the main page; brief confirmations and signing steps
+  can use dialogs.
 - `SwitchRow`: a setting that takes effect at once (Transaction alerts; Dark theme; Show this
   company to eligible investors), as an On/Off pill or native switch (`role="switch"`,
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
@@ -87,6 +94,73 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   tone map; shared subscription and resolution-result tones live in
   `dashboard/src/components/statusTones.ts`. Personal applications retain their moving fallback,
   company applications their waiting fallback, and an open offering retains its override.
+
+On workflow collections, show the saved records first, with company and class context once above
+them. Keep each recipient, status and key facts together, its details on demand, and its next action
+in a right-aligned footer after secondary actions. Name a preview-opening action for that review,
+such as **Review and approve**; opening it is not approval. The collection's creation action opens
+a focused preparation form in place of the list. Closing the form or successful preparation returns
+to the records; keep their controllers mounted so pending requests and original-request recovery survive.
+Issue shares and Transfer shares follow this pattern. Transfer records align From, To, Shares,
+Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
+subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
+Details and documents. Emphasise the review for the current stage. Keep transfer preparation beside
+the final record's decision actions in one right-aligned row, wrapping only when needed; an empty
+collection keeps its own preparation row.
+Hide a successfully read empty family when another has records,
+and use one empty state when both are confirmed empty; loading or failure is never an empty state.
+
+Web History uses one full-width `Section` titled **Changes**, with compact ruled rows aligned under
+**Change**, **Date** and **Share movements**. Each whole row opens its details; on smaller screens,
+kind and date sit above the movements. Show the company date for an issue or transfer (ledger
+effective date for other kinds), and the first two signed movements plus a count of the rest.
+Details start closed and hold the full list, entry number, separate company, ledger and recording
+dates, and correction or reversal references. History is read-only, including retained supporting
+records and permitted file downloads. Certificate preparation belongs in Documents; correction,
+opening, reconciliation acknowledgement, particulars and wallet-link workflows belong in Ledger's
+Corrections view. Keep their controllers mounted so unfinished work and original-request recovery
+survive navigation. Documents starts with compact output choices and opens one focused inline
+preparation at a time. Certificate choices show the issue or transfer's date and share movements;
+the form pairs a labelled share-movement/date summary with **Instruction reference** in the existing
+two-column grid, stacking on smaller screens. Keep the field and its right-aligned action footer
+on the same alignment, with technical metadata under **Record details** and PDF page count visible
+after preview. Use one Cancel/Preview or Cancel/Edit/Download PDF row. Inspection copy and Company
+pack open from their preparation actions; privacy and source guidance stays with the opened form
+or download. Keep current source and appointment validation and error retries, without routine
+refresh controls.
+
+For a substantial record review, replace the collection and its creation action with a focused review
+on the same page. Keep company and class context once, then the issue or transfer summary, ownership
+impact and supporting facts. Agreement and receipt, or the transfer instrument, sit beside company
+authority on wider screens and stack on
+smaller screens; long terms, documents and audit references open on demand. Keep Cancel and the
+confirming action together at the bottom right, without another confirmation dialog. Opening the
+review focuses its heading; cancelling returns to its record's opener. Keep the record controllers
+mounted, and preserve current authority, exact preview binding, loading, errors and original-request
+recovery. For web investor allotments and non-paid transfers, a green **Review and approve** action
+opens this read-only review; its green **Approve** confirmation records approval and the ledger
+effect together. Require current approval and application capabilities and their appointments, bind
+the reviewed ownership, class, dates and evidence, and reuse a current earlier approval. A transfer
+already approved but awaiting its entry shows **Ready to complete**. Success shows **Approved** and
+the recorded outcome, without a separate Record issue or Apply action. Keep approval and entry as
+distinct retained facts, with atomic failure and same-request recovery that cannot duplicate the
+effect. Rejection also uses page review. Other decision families, separate API decisions and mobile
+keep their existing workflow.
+
+On the web, prefer editing a record's details in its existing card: replace the read view with the
+fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
+field when editing opens and return focus to Edit when it ends, if that action is still available.
+Class rights follows this pattern: Edit replaces its read view and Previous versions with six
+compact rights groups, one full-width Additional terms field, the known effective date and Documents
+in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
+details beside their choice; combine conditions, exceptions and custom rights in Additional terms
+rather than repeating a Conditions field in each group. Groups start Not recorded; show further
+fields only for the selected terms. Do not infer values from a class label or treat an unanswered
+choice as No.
+Attachments use the existing document controls with concise labels; they do not open another editor
+or repeat optional markers. Validation, pending-request holds,
+stale-record handling and original-save recovery still apply. Other existing dialogs keep their
+own workflow until separately refined.
 
 A dialog (`Modal` in `dashboard/src/components/Modal.tsx`; `CustomModal` in
 `mobile/src/components/modal`) is the same card over the dimmed page, labelled by its Newsreader
@@ -123,30 +197,44 @@ as a Headless UI `Dialog`: the button reports `aria-expanded`, focus stays insid
 is open, and Escape or a choice closes it. The first Tab on a signed-in page reaches "Skip to main
 content", which moves focus to the page's heading.
 
+The sidebar owns navigation between sections. A related group has one level of children: its label
+opens the overview and a separate caret expands the children, without an extra Overview item.
+Ledger groups **Issue shares**, **Transfer shares**, **History** and **Corrections** this way, opens
+on a Ledger route and marks the current destination. Shareholders, ESS and Documents remain sibling items.
+The same group appears in the small-screen drawer. Page controls start or complete work for that
+page or record: Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
+actions remain beside their records. Do not repeat section navigation in page headers.
+
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
-Register's views (Shareholders, Employee share scheme, Documents) and tasks, and Home's Documents
-view, and the sidebar and page titles read their names from it. On the web the company dashboard and
-Home are both titled Dashboard, so the company workspace lists Home as Your shares. The sidebar shows
+register views (Shareholders, Employee share scheme, Documents) and shared tasks, and Home's Documents
+view. `WEB_LEDGER_TASKS` in `dashboard/src/utils/destinations.ts` adds the web-only Corrections task.
+The web sidebar, page titles and parent links use `pageTitle`
+(`dashboard/src/utils/destinations.ts`), which overrides Home as Dashboard, Register as Ledger,
+setup and import as Set up your ledger, and the chain-opening page as Ledger opening; mobile keeps
+its existing names. The company dashboard is also Dashboard, so the company workspace
+lists Home as Your shares. The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
-beside it gives each page below a sidebar destination its parent, and `Page` puts one link back to it
-in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to Company on
-Representative authority, Back to Shareholders on a shareholder's page. Once a particulars change has
-found its member, its link goes back to that member by name. Register setup has none, on purpose
+and the web parent overrides give each page below a sidebar destination its parent. `Page` puts one
+link back to it in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to
+Company on Representative authority, Back to Shareholders on a shareholder's page, and Back to
+Corrections for ledger maintenance. Once a particulars change has found its shareholder, its
+contextual link goes back to that shareholder by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
 
-A way back to a Register class or task carries the place it means, built by `registerPlace`
-(`dashboard/src/pages/company/register/shared/registerPlace.ts`): a correction, an opening and a
-class's own page return to that class's History, a non-paid transfer to that class's Transfer shares,
-and wallet links to the company's History. A shareholder's page links back to Shareholders with its
-company through `Page`'s parent link, and a transfer started there links back to them by name. Preparing a
-correction, opening, non-paid transfer, wallet link or particulars change lands on the new record in
-Register, at its class and task, focused and with one line naming what was prepared
+A way back to a Ledger class or task carries the place it means, built by `registerPlace`
+(`dashboard/src/pages/company/ledger/shared/registerPlace.ts`): a correction and an opening return
+to that class's Corrections view, a class's own page to Ledger, a non-paid transfer to that class's
+Transfer shares, and wallet links to the company's Corrections view. A
+shareholder's page links back to Shareholders with its company through `Page`'s parent link, and a
+transfer started there links back to them by name. Preparing a correction, opening, wallet link or
+particulars change lands on its new record under Corrections; a non-paid transfer lands under
+Transfer shares. Each keeps its class and task, with focus and one line naming what was prepared
 ([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
-Register, since a shareholder's page doesn't list prepared records.
+Ledger, since a shareholder's page doesn't list prepared records.
 
 Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`; a
 shareholder's page says "Shareholder" there, so their name stays out of the browser's history. After
-a route change, including a Register view, focus moves to the page's heading once any closing dialog
+a route change, including a Ledger view, focus moves to the page's heading once any closing dialog
 has handed focus back, unless the page has already focused something of its own, such as the
 register class it opens at. Focus stays where it is when a dialog stays open, after a redirect such
 as from `/` to your dashboard, and after a change to the search, filter or page in the address.
@@ -168,7 +256,7 @@ confirmation) or pressed, and comes in four forms:
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
   the title row's way back, Add share class, a shareholder's Details, Issue shares to them.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
-  it at once: the open Register task, the shown eligibility request and Wallets' sort.
+  it at once: the shown eligibility request and Wallets' sort.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a
@@ -181,8 +269,10 @@ request, on pages and in dialogs, including:
 - the wallet import and verification steps, and identity verification;
 - establishing an appointment;
 - member, particulars and certificate requests;
-- register setup's review step (editing the records, loading and confirming the decision);
-- every action that refreshes a read, which says "Refreshing…" while it runs.
+- register setup's review step (editing the records, loading and confirming the decision).
+
+Data stays current automatically under the [freshness standard](frontend.md#automatic-data-freshness).
+Do not add a routine Refresh action; Try again belongs to a failed read.
 
 Where a shared hook only reports that some command is running, `useRunningAction`
 (`dashboard/src/hooks`) names the action that was clicked. A few actions show their work another
@@ -212,7 +302,7 @@ confirming tick before its destructive action; Trading's order cancellation is c
 signing steps. Reversible actions, such as signing out, turning a switch off or removing a row from
 an unsaved form, aren't confirmed. Dismissing a notification archives it at once. Register
 decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are
-confirmed by their own decision dialog or form. The dashboard uses no browser `confirm` or `alert`
+confirmed by their own review, dialog or form. The dashboard uses no browser `confirm` or `alert`
 (ESLint's `no-alert`). Mobile doesn't follow this yet: some of these actions run at once there, and others
 confirm with native alerts.
 
@@ -235,12 +325,12 @@ identifier in their own details. It reports:
 - a placed or recovered order with its share class, above Trading's orders, until another order
   action or a class change starts;
 - a prepared correction, register opening, non-paid transfer, wallet link or particulars change, on
-  the record you land on in Register.
+  the record you land on in Ledger.
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and `CopyButton` (the payment instruction's values and the
 company's and an approved offering's UUIDs) confirms a copy with Copied beside the button.
-Register's other forms don't use `Outcome`. Mobile still reports success with native alerts and its
+Ledger's other forms don't use `Outcome`. Mobile still reports success with native alerts and its
 success dialog.
 
 ## Copy
@@ -262,7 +352,22 @@ copies until #1201.
 No web flow lists people in a native select, because a dropdown of every person does not scale to a
 large register. Each one uses a searchable list built on Headless UI's `Combobox`:
 
-- **`PersonSelect`** (`dashboard/src/pages/company/register/shared/PersonPicker.tsx`) is used where a
+Selecting an existing record and creating one are separate choices. The shared search control
+keeps the same appearance and keyboard behaviour; each workflow explicitly decides whether it
+offers **New person**. Typing a name never creates or identifies a record by itself: a selection
+keeps the company's stored member ID. Company scope, current authority and eligibility remain
+server checks. A person need not have a login or shares in the selected class.
+
+On the web, both transfer parties are existing company people. A transferor holds shares in the
+class; a recipient may hold another class, be a former holder, have an award or have no shares yet.
+**Add person** on Shareholders records only a name and residential address, before or after the first
+class is added. It uses the existing inline form and right-aligned collection action. People without
+shares are distinguished from current shareholders, with no invented holding or award. Initial
+ledger setup, investor and non-paid issues and employee awards keep their explicit new-person
+paths; invitations select existing records. A named director in external authority evidence is
+not automatically a shareholder or a Ledova user and remains a documentary field.
+
+- **`PersonSelect`** (`dashboard/src/pages/company/ledger/shared/PersonPicker.tsx`) is used where a
   flow names one person:
   - register setup's shareholder, an investor or non-paid issue under Issue shares, a transfer's
     transferor and recipient, and an employee award's recipient. These read one validated list of
@@ -274,7 +379,7 @@ large register. Each one uses a searchable list built on Headless UI's `Combobox
 - **Wallet links** offer, for each waiting wallet, the holders of every class in the company
   (`registerLinkMemberLabels`), then "A member not on the current register" and "New member N" where
   they apply.
-- **Register opening** offers, for each unlinked holding, the members already linked in the class,
+- **Ledger opening** (Register opening on mobile) offers, for each unlinked holding, the members already linked in the class,
   by name or numbered (`openingMemberLabels`), and a "New member N" for each address.
 
 Wallet links and register opening show one-line labels.
@@ -289,7 +394,7 @@ How the list behaves:
     address, award marker and record reference, and the flow's own detail.
   - Focusing or clicking the field selects its text, so typing replaces it.
 - **What each person shows:** the name, then a muted line with the address, "Award recipient without
-  shares" and the flow's own detail, such as the shares held. A short record reference appears only
+  shares" or "No shares yet" where applicable, and the flow's own detail, such as the shares held. A short record reference appears only
   when two people share a name and address. Assistive technology reads the option as one name
   joined by " · ".
 - **The first entry:** **New person**, or the share-class issue's "Create a new member through the
@@ -314,6 +419,14 @@ How the list behaves:
   `packages/shared/src/utils/people.ts`, and the matching is `searchEntries` and `searchMatches` in
   `packages/shared/src/utils/search.ts`, so both clients build, label and search the list the same
   way.
+
+The 50-match rendering limit bounds the displayed list, not the download. Search currently runs
+over the people already read. The owner's recorded switch to server search is at about 2,000
+company people, or earlier if measured loading or typing costs warrant it. Keep the same selector
+when switching: delay requests while typing, cap results, discard replies for superseded queries
+or account/company scopes, retain the selected record, and show loading, no-match and failure
+states distinctly. Do not present a failed search as an empty result or create a duplicate person
+after an uncertain save. Follow the same owner and original-request guards as other register writes.
 
 These rules are checked in review. The dashboard suite drives the list in register setup (typing a
 name and pressing Enter), a transfer and member invitations.
@@ -354,7 +467,7 @@ Every web page that asks which company to work on uses `CompanyPicker`
 [choosing a person](#choosing-a-person), labelled **Company**, showing each company's name and, where
 it helps, a muted detail such as a draft company's ACN, never an internal identifier.
 
-- **Pages that keep their own choice:** Register, Dashboard, Company, Activation, Offerings, Published to
+- **Pages that keep their own choice:** Ledger, Dashboard, Company, Activation, Offerings, Published to
   your members and register setup each keep their own choice through `CompanySelection`. It hides the
   list when the account has one company and it is already chosen.
 - **Your shares** shows it when the person holds records in more than one company.
@@ -362,7 +475,7 @@ it helps, a muted detail such as a draft company's ACN, never an internal identi
   companies), Company eligibility and its wallet approvals show it whenever they ask for a company.
   Wallet approvals label theirs **Wallet approval company**, since the page has two.
 
-These rules are checked in review. The dashboard suite drives the picker on Register and in the award
+These rules are checked in review. The dashboard suite drives the picker on Ledger and in the award
 recovery case.
 
 ## Choosing a wallet or a paid subscription
@@ -388,7 +501,7 @@ answers. It asks for:
 - the authority for a correction, wallet link or register opening;
 - whether a mirrored allotment is held for someone else;
 - a new share class's type;
-- the kind of issue on Register's Issue shares task, which opens that kind's form in place;
+- the kind of issue on Ledger's Issue shares task, which opens that kind's form in place;
 - the requested state of a pause change;
 - the exemption an offering relies on;
 - a company eligibility decision's outcome and a wallet instruction's action;
@@ -510,10 +623,9 @@ A failed read shows this block, not an empty state. The notification bell, profi
 classification claims and a class's deployments, which used to show an empty state, now show the
 failure. A failed refresh shows the same block. Its sentence says what could not be loaded or
 refreshed, and several also say what remains, such as "Retained original receipts remain
-available." The block takes the place of the section's Refresh action while its read has failed: on
-the company team page, in a class's employee awards, non-paid issues, deployments and capital,
-pause, paid issue and grant records, and in the company's wallet instructions, the company pack and
-the wallet nomination.
+available." The block provides the retry where the affected records would appear; a separate
+Refresh action is unnecessary. Automatic reads and their recovery follow the
+[freshness standard](frontend.md#automatic-data-freshness).
 
 Both eligibility pages, member access and Home's member records read through shared hooks that also
 keep a reason of their own. While a read fails they show the block, with any such reason under it,
@@ -521,7 +633,7 @@ such as "Your award records could not be confirmed. Refresh before continuing.",
 
 An empty list says it has none yet in one muted sentence, such as "No applications yet." or "No
 notices yet.", sometimes followed by where to add or find them, and an empty section keeps at
-most one action besides Refresh ([signed-in page conventions](#signed-in-page-conventions)). An
+most one action ([signed-in page conventions](#signed-in-page-conventions)). An
 empty class import instead invites bringing in the company's existing records. A list narrowed by
 a search or filter says what matched instead, such as "No applications match your search." or "No
 requests match."
@@ -555,8 +667,13 @@ Some messages keep their own form:
 - **Fields.** A web form field is `Field` (`dashboard/src/components/Field.tsx`): Headless UI's
   `Field`, `Label` and `Description` around a `TextInput` or `TextArea` with the `FIELD_CLASS` look,
   or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
-  to the control and an error sets `aria-invalid`. The label sits above the control, an optional
-  field ends with "(optional)", a sentence about one field is that field's hint, and an action
+  to the control and an error sets `aria-invalid`. The label sits above the control. A standalone optional
+  field ends with "(optional)"; an optional group declares this once in its heading, without repeating it
+  on each field. Repeatable sections added on demand use plain headings, such as
+  **Allocation history** and **Documents** in ledger setup; an empty section requires no entry.
+  Labels use the group's context instead of repeating its name: **Documents** contains **Category**
+  and **File**, with a numbered accessible group name distinguishing each attachment.
+  Omitting a repeated optional marker does not make the field required. A sentence about one field is that field's hint, and an action
   beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, the list search
   and checkboxes that need no check keep their own controls, and sign-in and sign-up keep their own
   look on the same Headless parts.
@@ -568,13 +685,46 @@ Some messages keep their own form:
   `inputMode`, including Trading's order fields.
 - **Files.** A web upload is `FileField`, a `Field` around a file input. It applies `UPLOAD_RULE`
   (`field-limits.ts`), the server's rule: a PDF, PNG or JPEG whose type matches its extension, up to
-  10 MB. Its hint starts with the rule's sentence, "PDF, PNG or JPEG, up to 10 MB.", and `uploadRefusal`
-  turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG of up to 10 MB." on the
-  field. The payslip upload on Profile and the evidence in an eligibility claim keep their dashed
+  10 MB. Its empty control reads **Choose file**, showing the filename after selection while keeping
+  the native picker, keyboard focus and accessible label. By default its hint starts with
+  "PDF, PNG or JPEG, up to 10 MB." Compact forms such as
+  Investor issue may omit this routine hint with `showUploadHint={false}`. Validation stays
+  visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
+  of up to 10 MB." on the field. The payslip upload on Profile and the evidence in an eligibility claim keep their dashed
   areas but apply the same rule. Mobile's pickers keep their own wording until
   [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
+- **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
+  `FormSteps` (`dashboard/src/components/FormSteps.tsx`), with one step visible at a time.
+  Show company and class context once above the form, without a duplicate information card or
+  routine technical and upload descriptions. Transfer preparation follows the investor pattern:
+  People and shares, Transfer documents, then Company authority and review.
+  Keep the same fields, card, typography and `FormActions`: Back and Continue for local
+  navigation, with the actual save or preparation action on the final step. Continue checks only
+  the current step and performs no upload or write. Keep inactive fields mounted so values and
+  selected files survive Back; final validation opens the first step needing attention. A short
+  review uses the existing `Rows` and `Row`, not another card style. A submitted request stays
+  held for its original recovery rather than allowing edits or backward navigation.
+  Related groups within a step use named fieldsets and the existing responsive grid, side by side
+  when there is room and stacked in reading order otherwise. Use short contextual labels instead
+  of repeating each group's name; keep their validation messages specific to the affected record.
+  Keep the issue summary beside its company-authority fields in the review step, using `Rows` and
+  the same grid without nested cards or a visible heading that repeats the step indicator.
+- **Repeated allocations.** Web ledger setup separates **Current shares held** from **Allocation
+  history**, which starts empty. **Add allocation** beside the section heading opens its first entry. It keeps
+  one editor expanded. Adding another
+  validates the current entry, folds it into a compact date, shares, paid and unpaid summary with
+  **Edit** and **Remove**, then opens an unfinished entry or a new blank one. Actions use descriptive
+  text buttons with contextual accessible names. Open allocation and document fields share the full-width
+  grid, with **Remove** beneath the entry, aligned right; section add actions sit beside their headings.
+  Fields never collapse on
+  blur or simply because they look complete. Editing or switching entries preserves unfinished input;
+  validation opens the entry needing attention. **Add shareholder**, or **Save changes** when editing,
+  completes the shareholder and their optional history, with Cancel beside it. These main actions
+  share the same button typography and spacing, with the main action alone emphasised. Historical quantities never set or limit current
+  holdings; there is no remaining-share counter or equality requirement. New paid/unpaid fields
+  default to zero, including when cleared; stored unknown amounts are not rewritten.
 - **UTC dates.** Register and company dates are UTC calendar dates: `utcToday`
   (`packages/shared/src/utils/date.ts`) is their default and their `max`, so a date the server
   would refuse as in the future can't be picked. A team invitation's deadline and appointment

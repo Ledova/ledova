@@ -49,7 +49,8 @@ Signup requires an emailed six-digit code. The local debug stack prints the veri
 another. Dashboard cookie-authenticated writes require its origin in `DJANGO_CSRF_TRUSTED_ORIGINS`;
 the template includes `http://localhost:5174`.
 
-Beyond the demo data, use the Register for the company-authorised chain actions listed in the
+Beyond the demo data, use Ledger on the web (Register on mobile) for the company-authorised chain
+actions listed in the
 [implementation index](plans/company-managed-registers/README.md); the
 [issuance data flow](engineering/chain.md#issuance-data-flow) explains how the company's decision,
 technical execution and chain confirmation stay distinct.

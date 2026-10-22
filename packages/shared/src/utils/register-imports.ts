@@ -11,6 +11,8 @@ import type {
   RegisterAwardRecipient,
 } from '../types';
 import { rowsOf } from './register-commands';
+import { isRegisterImportMemberDocuments } from './register-member-documents';
+import { isCalendarDate } from './date';
 
 const MEMBER_TEXT = ['member', 'name', 'residentialAddress', 'shares', 'enteredOn'];
 const FORMER_TEXT = ['name', 'residentialAddress', 'shares', 'ceasedOn'];
@@ -34,7 +36,8 @@ export function isRegisterImportMembers(value: unknown): value is RegisterTransf
         /^\d+$/.test(member.currentShares) &&
         typeof member.particularsRetained === 'boolean' &&
         typeof member.walletless === 'boolean' &&
-        (member.onRegister === undefined || typeof member.onRegister === 'boolean'),
+        (member.onRegister === undefined || typeof member.onRegister === 'boolean') &&
+        (member.hasAwards === undefined || typeof member.hasAwards === 'boolean'),
     ) &&
     data.awardRecipients.every(
       (recipient) => !!recipient.member.trim() && !!recipient.name.trim() && !!recipient.residentialAddress.trim(),
@@ -49,6 +52,10 @@ export function registerImportMoney(value: string) {
   return match ? `${match[1]}.${(match[2] ?? '').padEnd(2, '0')}` : null;
 }
 
+function positiveShares(value: string) {
+  return /^[1-9]\d{0,77}$/.test(value) && BigInt(value) < 2n ** 256n;
+}
+
 function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
   return (
     rowsOf<RegisterImportAllotment>(
@@ -56,12 +63,13 @@ function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
       ['allottedOn', 'shares', 'amountPaid', 'amountUnpaid'],
       ['shareReference', 'certificateReference'],
     ) &&
-    value.length > 0 &&
+    value.length <= 10000 &&
     value.every(
       (row) =>
+        isCalendarDate(row.allottedOn) &&
         typeof row.fullyPaid === 'boolean' &&
-        typeof row.beneficiallyHeld === 'boolean' &&
-        /^[1-9]\d*$/.test(row.shares) &&
+        (row.beneficiallyHeld === null || typeof row.beneficiallyHeld === 'boolean') &&
+        positiveShares(row.shares) &&
         registerImportMoney(row.amountPaid) !== null &&
         registerImportMoney(row.amountUnpaid) !== null &&
         row.fullyPaid === (registerImportMoney(row.amountUnpaid) === '0.00'),
@@ -70,7 +78,8 @@ function allotmentsOf(value: unknown): value is RegisterImportAllotment[] {
 }
 
 function currentRowOf(row: RegisterImportMemberRow) {
-  if (!allotmentsOf(row.allotments)) return false;
+  if (!positiveShares(row.shares) || !isCalendarDate(row.enteredOn) || !allotmentsOf(row.allotments)) return false;
+  if (row.amountPaid === null) return true;
   const shares = row.allotments.reduce((sum, allotment) => sum + BigInt(allotment.shares), 0n);
   const paid = row.allotments.reduce(
     (sum, allotment) => sum + BigInt(registerImportMoney(allotment.amountPaid)!.replace('.', '')),
@@ -89,6 +98,7 @@ export function registerImportOf(record: RegisterImportRecord): RegisterImport {
     members.some(
       (row) =>
         (row.allotments !== undefined && !currentRowOf(row)) ||
+        (row.documents !== undefined && !isRegisterImportMemberDocuments(row.documents, record.company)) ||
         (record.sourceConfirmed === true && row.allotments === undefined),
     )
   )
@@ -129,6 +139,7 @@ function memberRows(rows: (RegisterImportMemberRow | RegisterImportCurrentMember
         row.shares,
         row.enteredOn,
         allotmentRows(row.allotments),
+        row.documents?.map((document) => JSON.stringify([document.evidence, document.category])).sort(),
       ]),
   );
 }
@@ -159,6 +170,9 @@ export function isPreparedRegisterImport(proposal: RegisterImport, request: Regi
     proposal.asAt === request.asAt &&
     proposal.providedBy === 'company' &&
     proposal.members.every(currentRowOf) &&
+    proposal.members.every(
+      (row) => row.documents === undefined || isRegisterImportMemberDocuments(row.documents, proposal.company),
+    ) &&
     memberRows(proposal.members) === memberRows(request.members) &&
     formerRows(proposal.formerMembers) === formerRows(request.formerMembers)
   );

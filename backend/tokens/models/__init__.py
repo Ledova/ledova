@@ -78,6 +78,10 @@ from .register_instruction import (
     RegisterInstructionDecision,
     RegisterInstructionKind,
 )
+from .register_member_document import (
+    RegisterMemberDocument,
+    RegisterMemberDocumentCategory,
+)
 from .register_opening import (
     RegisterMemberWallet,
     RegisterOpening,
@@ -90,6 +94,7 @@ from .register_particulars import (
     RegisterParticularsChangeDecision,
 )
 from .register_pause_change import RegisterPauseChange, RegisterPauseChangeDecision
+from .register_person import RegisterPersonRegistration
 from .register_transfer import (
     RegisterMemberCessation,
     RegisterTransfer,
@@ -171,6 +176,9 @@ __all__ = [
     "RegisterInstructionDecision",
     "RegisterInstructionKind",
     "RegisterMemberParticulars",
+    "RegisterPersonRegistration",
+    "RegisterMemberDocument",
+    "RegisterMemberDocumentCategory",
     "RegisterExport",
     "RegisterExportKind",
     "RegisterMember",

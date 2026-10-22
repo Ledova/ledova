@@ -1455,6 +1455,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/class-rights-file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_class_rights_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/class-rights/': {
     parameters: {
       query?: never;
@@ -2943,6 +2959,54 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-member-documents/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_member_documents_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_member_documents_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-member-documents/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_member_documents_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-member-documents/{uuid}/file/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_member_documents_file_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-openings/': {
     parameters: {
       query?: never;
@@ -3273,6 +3337,22 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_pause_changes_file_retrieve'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/register-people/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_people_list'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_people_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -4403,6 +4483,87 @@ export interface ApiComponents {
       newPassword: string;
       newPasswordConfirm: string;
     };
+    ClassRightsAttributes: {
+      capital?: ApiComponents['schemas']['ClassRightsCapital'];
+      conversion?: ApiComponents['schemas']['ClassRightsConversion'];
+      dividends?: ApiComponents['schemas']['ClassRightsDividends'];
+      redemption?: ApiComponents['schemas']['ClassRightsRedemption'];
+      transfers?: ApiComponents['schemas']['ClassRightsTransfers'];
+      voting?: ApiComponents['schemas']['ClassRightsVoting'];
+    };
+    ClassRightsAttributesRequest: {
+      capital?: ApiComponents['schemas']['ClassRightsCapitalRequest'];
+      conversion?: ApiComponents['schemas']['ClassRightsConversionRequest'];
+      dividends?: ApiComponents['schemas']['ClassRightsDividendsRequest'];
+      redemption?: ApiComponents['schemas']['ClassRightsRedemptionRequest'];
+      transfers?: ApiComponents['schemas']['ClassRightsTransfersRequest'];
+      voting?: ApiComponents['schemas']['ClassRightsVotingRequest'];
+    };
+    ClassRightsCapital: {
+      amount?: string;
+      basis?: string;
+      cap?: string;
+      conditions?: string;
+      currency?: string;
+      multiple?: string;
+      participation?: ApiComponents['schemas']['ParticipationEnum'];
+      ranking?: string;
+      type: ApiComponents['schemas']['ClassRightsCapitalTypeEnum'];
+    };
+    ClassRightsCapitalRequest: {
+      amount?: string;
+      basis?: string;
+      cap?: string;
+      conditions?: string;
+      currency?: string;
+      multiple?: string;
+      participation?: ApiComponents['schemas']['ParticipationEnum'];
+      ranking?: string;
+      type: ApiComponents['schemas']['ClassRightsCapitalTypeEnum'];
+    };
+    ClassRightsCapitalTypeEnum: 'not_recorded' | 'residual' | 'preferential' | 'custom';
+    ClassRightsConversion: {
+      conditions?: string;
+      ratio?: string;
+      targetClass?: string;
+      type: ApiComponents['schemas']['ClassRightsConversionTypeEnum'];
+    };
+    ClassRightsConversionRequest: {
+      conditions?: string;
+      ratio?: string;
+      targetClass?: string;
+      type: ApiComponents['schemas']['ClassRightsConversionTypeEnum'];
+    };
+    ClassRightsConversionTypeEnum: 'not_recorded' | 'convertible' | 'none' | 'custom';
+    ClassRightsDividends: {
+      amount?: string;
+      basis?: string;
+      conditions?: string;
+      cumulative?: ApiComponents['schemas']['CumulativeEnum'];
+      currency?: string;
+      rate?: string;
+      type: ApiComponents['schemas']['ClassRightsDividendsTypeEnum'];
+    };
+    ClassRightsDividendsRequest: {
+      amount?: string;
+      basis?: string;
+      conditions?: string;
+      cumulative?: ApiComponents['schemas']['CumulativeEnum'];
+      currency?: string;
+      rate?: string;
+      type: ApiComponents['schemas']['ClassRightsDividendsTypeEnum'];
+    };
+    ClassRightsDividendsTypeEnum: 'not_recorded' | 'participating' | 'preferential' | 'none' | 'custom';
+    ClassRightsDocument: {
+      company: string;
+      documentType: string;
+      evidence: string;
+      fileSize: number;
+      mimeType: string;
+      name: string;
+      providedBy: string;
+      sha256: string;
+    };
     ClassRightsPage: {
       administrationAppointment: string | null;
       count: number;
@@ -4411,10 +4572,24 @@ export interface ApiComponents {
       previous: string | null;
       results: ApiComponents['schemas']['ClassRightsRevision'][];
     };
+    ClassRightsRedemption: {
+      conditions?: string;
+      trigger?: ApiComponents['schemas']['TriggerEnum'];
+      type: ApiComponents['schemas']['ClassRightsRedemptionTypeEnum'];
+    };
+    ClassRightsRedemptionRequest: {
+      conditions?: string;
+      trigger?: ApiComponents['schemas']['TriggerEnum'];
+      type: ApiComponents['schemas']['ClassRightsRedemptionTypeEnum'];
+    };
+    ClassRightsRedemptionTypeEnum: 'not_recorded' | 'redeemable' | 'not_redeemable' | 'custom';
     ClassRightsRevision: {
       appointment: string;
+      attributes: ApiComponents['schemas']['ClassRightsAttributes'];
       createdAt: string;
       documentReference: string;
+      documents: ApiComponents['schemas']['ClassRightsDocument'][];
+      effectiveDate: string | null;
       idempotencyKey: string;
       recordedBy: number;
       recordedByName: string;
@@ -4423,9 +4598,36 @@ export interface ApiComponents {
       token: string;
       uuid: string;
     };
+    ClassRightsTransfers: {
+      boardConsent?: boolean;
+      conditions?: string;
+      preEmption?: boolean;
+      type: ApiComponents['schemas']['ClassRightsTransfersTypeEnum'];
+    };
+    ClassRightsTransfersRequest: {
+      boardConsent?: boolean;
+      conditions?: string;
+      preEmption?: boolean;
+      type: ApiComponents['schemas']['ClassRightsTransfersTypeEnum'];
+    };
+    ClassRightsTransfersTypeEnum: 'not_recorded' | 'restricted' | 'no_class_restrictions' | 'custom';
+    ClassRightsVoting: {
+      conditions?: string;
+      type: ApiComponents['schemas']['ClassRightsVotingTypeEnum'];
+      votesPerShare?: string;
+    };
+    ClassRightsVotingRequest: {
+      conditions?: string;
+      type: ApiComponents['schemas']['ClassRightsVotingTypeEnum'];
+      votesPerShare?: string;
+    };
+    ClassRightsVotingTypeEnum: 'not_recorded' | 'general' | 'conditional' | 'no_general_vote' | 'custom';
     ClassRightsWriteRequest: {
       appointment: string;
-      documentReference: string;
+      attributes?: ApiComponents['schemas']['ClassRightsAttributesRequest'];
+      documentReference?: string;
+      documents?: string[];
+      effectiveDate?: string | null;
       idempotencyKey: string;
       previousRevision: number;
       summary: string;
@@ -4987,6 +5189,7 @@ export interface ApiComponents {
       to: string;
       value: string;
     };
+    CumulativeEnum: 'not_recorded' | 'cumulative' | 'non_cumulative';
     CurrencyEnum: 'AUD';
     DeletedAccountResponse: {
       message: string;
@@ -6100,6 +6303,12 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterIssue'][];
     };
+    PaginatedRegisterMemberDocumentList: {
+      count: number;
+      next?: string | null;
+      previous?: string | null;
+      results: ApiComponents['schemas']['RegisterMemberDocument'][];
+    };
     PaginatedRegisterOpeningList: {
       count: number;
       next?: string | null;
@@ -6214,6 +6423,7 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['WhitelistEntry'][];
     };
+    ParticipationEnum: 'not_recorded' | 'non_participating' | 'participating' | 'capped';
     PatchedCompanyUpdateRequest: {
       abn?: string;
       acn?: string;
@@ -6529,7 +6739,9 @@ export interface ApiComponents {
       tokenId: string;
     };
     RegisterAllotmentDecideRequest: {
+      applyAppointment?: string;
       appointment: string;
+      completeIssue?: boolean;
       confirmation: boolean;
       idempotencyKey: string;
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
@@ -6538,6 +6750,8 @@ export interface ApiComponents {
     };
     RegisterAllotmentDecision: {
       appointment: string;
+      approvalAppointment: string | null;
+      completeIssue: boolean;
       decidedAt: string;
       decidedBy: number;
       decidedByName: string;
@@ -6551,6 +6765,7 @@ export interface ApiComponents {
       afterIssuedSupply: string;
       afterShares: string;
       agreement: ApiComponents['schemas']['RegisterAgreement'];
+      applyAppointment?: string | null;
       approvingDirector: string;
       authorisedSupply: string;
       authorityReference: string;
@@ -6558,6 +6773,7 @@ export interface ApiComponents {
       classCode: string;
       className: string;
       companyEventOn: string | null;
+      completeIssue?: boolean;
       consideration: string;
       contribution: ApiComponents['schemas']['RegisterContribution'];
       currency: string;
@@ -6576,7 +6792,9 @@ export interface ApiComponents {
       unmetRequirements: string[];
     };
     RegisterAllotmentDecisionRequestRequest: {
+      applyAppointment?: string;
       appointment: string;
+      completeIssue?: boolean;
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason?: string;
     };
@@ -7077,7 +7295,7 @@ export interface ApiComponents {
       sha256: string;
       uuid: string;
     };
-    RegisterEvidenceKindEnum: 'share_register' | 'asic_extract' | 'authority' | 'supporting';
+    RegisterEvidenceKindEnum: 'share_register' | 'asic_extract' | 'authority' | 'supporting' | 'class_rights';
     RegisterEvidenceUploadRequest: {
       appointment: string;
       companyId: string;
@@ -7522,6 +7740,30 @@ export interface ApiComponents {
       proofCompletedAt: string;
       registryAddress: string;
     };
+    RegisterMemberDocument: {
+      appointment: string;
+      category: ApiComponents['schemas']['RegisterMemberDocumentCategoryEnum'];
+      company: string;
+      createdAt: string;
+      evidence: string;
+      idempotencyKey: string;
+      member: string;
+      snapshot: unknown;
+      sourceImport: string | null;
+      token: string;
+      uuid: string;
+    };
+    RegisterMemberDocumentCategoryEnum:
+      'share_certificate' | 'shareholder_agreement' | 'subscription_agreement' | 'other';
+    RegisterMemberDocumentCreateRequest: {
+      appointment: string;
+      category: ApiComponents['schemas']['RegisterMemberDocumentCategoryEnum'];
+      companyId: string;
+      evidence: string;
+      idempotencyKey: string;
+      member: string;
+      token: string;
+    };
     RegisterMembers: {
       awardRecipients: ApiComponents['schemas']['RegisterAwardRecipient'][];
       members: ApiComponents['schemas']['RegisterMemberSelection'][];
@@ -7529,6 +7771,7 @@ export interface ApiComponents {
     RegisterMemberSelection: {
       currentShares: string;
       enteredOn: string | null;
+      hasAwards?: boolean;
       lastCeasedOn: string | null;
       member: string;
       name: string | null;
@@ -7830,6 +8073,7 @@ export interface ApiComponents {
       sourceChange: string | null;
       sourceGrant: string | null;
       sourceImport: string | null;
+      sourceRegistration: string | null;
       sourceTransfer: string | null;
     };
     RegisterPauseChange: {
@@ -7928,6 +8172,28 @@ export interface ApiComponents {
       blockNumber: number;
       observedAt: string;
     };
+    RegisterPeople: {
+      company: string;
+      members: ApiComponents['schemas']['RegisterMemberSelection'][];
+    };
+    RegisterPersonCreateRequest: {
+      appointment: string;
+      company: string;
+      member: string;
+      name: string;
+      operationId: string;
+      residentialAddress: string;
+    };
+    RegisterPersonRegistration: {
+      company: string;
+      createdAt: string;
+      member: string;
+      name: string;
+      preparingAppointment: string;
+      residentialAddress: string;
+      submittedBy: number;
+      uuid: string;
+    };
     RegisterReconciliation: {
       blockHash: string;
       blockNumber: number | null;
@@ -8007,7 +8273,9 @@ export interface ApiComponents {
       toMember: string;
     };
     RegisterTransferDecideRequest: {
+      applyAppointment?: string;
       appointment: string;
+      completeTransfer?: boolean;
       confirmation: boolean;
       idempotencyKey: string;
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
@@ -8016,6 +8284,8 @@ export interface ApiComponents {
     };
     RegisterTransferDecision: {
       appointment: string;
+      approvalAppointment: string | null;
+      completeTransfer: boolean;
       decidedAt: string;
       decidedBy: number;
       decidedByName: string;
@@ -8027,23 +8297,32 @@ export interface ApiComponents {
     };
     RegisterTransferDecisionPreview: {
       afterIssuedSupply: string;
+      applyAppointment?: string | null;
       approvingDirector: string;
       authorisedSupply: string;
       authority: string;
+      authorityEvidence: string;
+      authorityReference: string;
       canDecide: boolean;
+      company: string;
       companyEventOn: string | null;
+      completeTransfer?: boolean;
       effectiveOn: string | null;
+      evidenceFingerprint: string;
       fromAfterShares: string;
       fromCurrentShares: string;
       fromMember: string;
       fromName: string;
       fromResidentialAddress: string;
+      instrumentEvidence: string;
+      instrumentFingerprint: string;
       issuedSupply: string;
       lodgedOn: string;
       name: string;
       newMember: boolean;
       newParticulars: boolean;
       previewDigest: string;
+      reason: string;
       registerSequence: number;
       residentialAddress: string;
       shares: string;
@@ -8051,11 +8330,14 @@ export interface ApiComponents {
       terms: string;
       toAfterShares: string;
       toCurrentShares: string;
+      token: string;
       toMember: string;
       unmetRequirements: string[];
     };
     RegisterTransferDecisionRequestRequest: {
+      applyAppointment?: string;
       appointment: string;
+      completeTransfer?: boolean;
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason?: string;
     };
@@ -8710,8 +8992,9 @@ export interface ApiComponents {
       name: string;
       symbol: string;
       token: string;
-      type: ApiComponents['schemas']['TypeEnum'];
+      type: ApiComponents['schemas']['TradingWalletTokenBalanceTypeEnum'];
     };
+    TradingWalletTokenBalanceTypeEnum: 'share_token' | 'stablecoin';
     Transaction: {
       amount: string;
       asset: string;
@@ -8768,7 +9051,7 @@ export interface ApiComponents {
     TransferOrderStatusEnum:
       'open' | 'partially_filled' | 'held' | 'matched' | 'pending_signature' | 'completed' | 'cancelled';
     TransferOrderTypeEnum: 'buy' | 'sell';
-    TypeEnum: 'share_token' | 'stablecoin';
+    TriggerEnum: 'company' | 'holder' | 'event' | 'custom';
     UnreadCountResponse: {
       unreadCount: number;
     };
@@ -11703,6 +11986,30 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_class_rights_file_retrieve: {
+    parameters: {
+      query: {
+        evidence: string;
+        revision: string;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
   api_v1_tokens_class_rights_retrieve: {
     parameters: {
       query?: {
@@ -14502,6 +14809,108 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_member_documents_list: {
+    parameters: {
+      query?: {
+        company?: string;
+        idempotency_key?: string;
+        member?: string;
+        ordering?: string;
+        page?: number;
+        page_size?: number;
+        token?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PaginatedRegisterMemberDocumentList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_member_documents_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterMemberDocumentCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterMemberDocumentCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterMemberDocumentCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterMemberDocument'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterMemberDocument'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_member_documents_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterMemberDocument'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_member_documents_file_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': Blob;
+        };
+      };
+    };
+  };
   api_v1_tokens_register_openings_list: {
     parameters: {
       query?: {
@@ -15124,6 +15533,63 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_people_list: {
+    parameters: {
+      query: {
+        company: string;
+        ordering?: string;
+        page?: number;
+        page_size?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPeople'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_people_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterPersonCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterPersonCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterPersonCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPersonRegistration'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterPersonRegistration'];
         };
       };
     };

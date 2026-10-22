@@ -143,6 +143,13 @@ rule, and company policy decides whether a separate approver is needed. Applicat
 approval whose approver still holds a current appointment; otherwise someone approves again.
 Rejection stays available until the change is applied or rejected.
 
+Web investor-allotment and non-paid transfer reviews combine approval and application in one
+**Approve** action, requiring both capabilities (or administration) and recording the approval and
+ledger effect atomically. They retain any existing current approval and create at most one entry.
+Mobile and other decision families keep the separate steps above
+([external allotments](issuing-shares.md#external-investor-allotments),
+[transfers](register.md#non-paid-transfers-between-members)).
+
 Each step confirms an exact preview. If anything the step depends on changes before you confirm,
 such as the proposal, your appointment or the register, the step is refused and you review it
 again. Every step rechecks your appointment, including the identity requirement, at the moment it
@@ -224,8 +231,9 @@ reply never acts for the new one
 
 On the web, the sidebar shows:
 
-- Company, for a person who can read a company's register: Dashboard, Register, Shareholders, ESS
-  (Employee share scheme) and Documents. Personal holds Your shares.
+- Company, for a person who can read a company's register: Dashboard, Ledger, Shareholders, ESS
+  (Employee share scheme) and Documents. Ledger opens the share-class overview; its separate caret
+  expands Issue shares, Transfer shares, History and Corrections. Personal holds Your shares.
 - For everyone else: Dashboard and Documents, both personal.
 - Configuration: Settings ([Profile and Settings](participants.md#profile-and-settings)).
 - More: Notices and Activity; for investing accounts an Invest group with Directory, Applications,
@@ -238,13 +246,15 @@ access check fails, the page offers a retry rather than guessing.
 
 The company Dashboard opens with one line naming the company and its status. Until setup is
 complete, a personal administrator also sees **Getting started**: **Verify and activate your
-company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your share
-register** ([register setup](register.md#bringing-in-existing-records)), each marked To do or Done.
-Register setup reads Done once the register of the company shown is opened, not when a class is
-merely created, and it does not wait for activation. Someone who can prepare the register but is
-not an administrator is pointed to Register instead. On mobile, the Register tab opens with the
-same line and shows Getting started to an administrator of the company shown, judging register
-setup by that company's register.
+company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your ledger**
+([register setup](register.md#bringing-in-existing-records)). Completed tasks disappear; once both
+are complete, the whole card disappears. Register setup completes once the register of the company
+shown is opened, not when a class is merely created, and it does not wait for activation. Someone
+who can prepare the register but is
+not an administrator is pointed to Ledger instead. On mobile, the Register tab opens with the
+same line and shows Getting started to an administrator of the company shown, keeping **Set up your
+share register** as its setup label and judging completion by that company's register. Its existing
+checklist still marks tasks To do or Done.
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share
@@ -252,7 +262,7 @@ classes, then one ownership donut per class with its five largest shareholders a
 exact share counts and percentages of that class's issued shares. A class without an opened
 register makes the company totals incomplete, and a failed or inconsistent read withholds totals
 and charts rather than showing zero. Detailed history and every action are on the
-[Register page](register.md#the-register-page).
+[Ledger page](register.md#the-register-page).
 
 The personal Dashboard (My shares on mobile) shows the person's own register records, with no
 wallet needed and never company totals or other shareholders; personal Documents holds their

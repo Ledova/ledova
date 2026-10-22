@@ -137,6 +137,7 @@ AS $function$
         'token_status', token.status, 'deployment', token.deployment_id, 'contract', token.contract_address,
         'legacy_hash', token.deployment_tx_hash, 'deployed_at', token.deployed_at, 'chain', token.chain,
         'particulars', (SELECT to_jsonb(held) - CASE WHEN to_jsonb(held)->>'source_award_id' IS NULL THEN 'source_award_id' ELSE '' END
+                - CASE WHEN to_jsonb(held)->>'source_registration_id' IS NULL THEN 'source_registration_id' ELSE '' END
             FROM tokens_registermemberparticulars held
             WHERE held.member_id = proposal.member))::text, 'UTF8')), 'hex')
     FROM tokens_registerallotment proposal JOIN tokens_sharetoken token ON token.uuid = proposal.token_id
@@ -414,6 +415,22 @@ BEGIN
             USING ERRCODE = '23514';
     END IF;
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
+    IF to_jsonb(NEW)->>'source_registration_id' IS NOT NULL THEN
+        IF TG_OP <> 'INSERT' OR principal IS NULL OR NOT EXISTS (
+            SELECT 1 FROM tokens_registerpersonregistration registration
+                JOIN tokens_registermember member ON member.uuid = registration.member_id
+            WHERE registration.uuid::text = to_jsonb(NEW)->>'source_registration_id'
+                AND registration.member_id = NEW.member_id AND member.company_id = registration.company_id
+                AND registration.name = NEW.name AND registration.residential_address = NEW.residential_address
+                AND registration.submitted_by_id = principal
+                AND current_setting('app.company_operation', true) = 'register_person_add'
+                AND current_setting('app.company_id', true) = registration.company_id::text
+                AND NEW.as_at = (clock_timestamp() AT TIME ZONE 'UTC')::date
+                AND tokens_register_appointment_current(registration.preparing_appointment_id,
+                    registration.company_id, principal, 'prepare', clock_timestamp()))
+        THEN RAISE EXCEPTION 'Person particulars require their exact authorised company registration' USING ERRCODE = '23514'; END IF;
+        RETURN NEW;
+    END IF;
     IF NEW.source_award_id IS NOT NULL THEN
         IF TG_OP <> 'INSERT' OR NOT EXISTS (
             SELECT 1 FROM tokens_registeraward award JOIN tokens_registermember member ON member.uuid = award.member
@@ -517,6 +534,7 @@ LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_te
         'legacy_hash', token.deployment_tx_hash, 'deployed_at', token.deployed_at, 'chain', token.chain,
         'particulars', (SELECT CASE WHEN held.source_allotment_id IS NULL THEN to_jsonb(held) - 'source_allotment_id' ELSE to_jsonb(held) END
                 - CASE WHEN to_jsonb(held)->>'source_award_id' IS NULL THEN 'source_award_id' ELSE '' END
+                - CASE WHEN to_jsonb(held)->>'source_registration_id' IS NULL THEN 'source_registration_id' ELSE '' END
             FROM tokens_registermemberparticulars held
             WHERE held.member_id = proposal.member)) || CASE WHEN proposal.award_id IS NULL THEN '{}'::jsonb
         ELSE jsonb_build_object('award', (SELECT to_jsonb(promised) FROM tokens_registeraward promised WHERE promised.uuid = proposal.award_id),
@@ -707,6 +725,8 @@ AS $function$
             ELSE jsonb_build_object('source_allotment', held.source_allotment_id) END
         || CASE WHEN to_jsonb(held)->>'source_award_id' IS NULL THEN '{}'::jsonb
             ELSE jsonb_build_object('source_award', to_jsonb(held)->'source_award_id') END
+        || CASE WHEN to_jsonb(held)->>'source_registration_id' IS NULL THEN '{}'::jsonb
+            ELSE jsonb_build_object('source_registration', to_jsonb(held)->'source_registration_id') END
     FROM tokens_registermemberparticulars held WHERE held.member_id = member_uuid;
 $function$;
 

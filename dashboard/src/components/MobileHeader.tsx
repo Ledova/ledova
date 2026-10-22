@@ -11,10 +11,11 @@ import { ICON_MD } from './iconSizes';
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const [shownPath, setShownPath] = useState(location.pathname);
+  const place = `${location.pathname}${location.hash}`;
+  const [shownPlace, setShownPlace] = useState(place);
 
-  if (shownPath !== location.pathname) {
-    setShownPath(location.pathname);
+  if (shownPlace !== place) {
+    setShownPlace(place);
     setIsOpen(false);
   }
 

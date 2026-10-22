@@ -85,6 +85,7 @@ import { useApiClient } from './useApiClient';
 type DecisionPreview = { previewDigest: string; canDecide: boolean };
 
 export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = {
+  request?: (data: RegisterDecisionRequest) => RegisterDecisionRequest;
   preview: (
     apiClient: AxiosInstance,
     uuid: string,
@@ -297,7 +298,8 @@ export function useRegisterDecision<Proposal, Preview extends DecisionPreview>(
     let refused = false;
     try {
       guardNewEffect();
-      const request = { appointment: options.appointment, kind, reason };
+      const base = { appointment: options.appointment, kind, reason };
+      const request = family.request?.(base) ?? base;
       const response = await family.preview(apiClient, proposal.uuid, request, {
         ...(options.requestConfig?.() ?? {}),
         ledovaSubmissionGuard: guardNewEffect,

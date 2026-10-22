@@ -16,14 +16,16 @@ import { useDocumentUpload } from './useDocumentUpload';
 import { apiClient } from '../services/apiClient';
 import { uploadSize, type UploadFile } from '../services/documentCopies';
 
-const EVIDENCE: Record<RegisterEvidenceKind, { noun: string; unconfirmed: string }> = {
+type MobileEvidenceKind = Exclude<RegisterEvidenceKind, 'class_rights'>;
+
+const EVIDENCE: Record<MobileEvidenceKind, { noun: string; unconfirmed: string }> = {
   share_register: { noun: 'share register', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },
   asic_extract: { noun: 'ASIC extract', unconfirmed: REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED },
   authority: { noun: 'authority document', unconfirmed: REGISTER_CORRECTION_COPY.UPLOAD_RECEIPT_FAILED },
   supporting: { noun: 'supporting document', unconfirmed: REGISTER_PARTICULARS_COPY.UPLOAD_RECEIPT_FAILED },
 };
 
-export function useRegisterEvidence(company: string, kind: RegisterEvidenceKind) {
+export function useRegisterEvidence(company: string, kind: MobileEvidenceKind) {
   const document = useDocumentUpload(company);
   const [receipt, setReceipt] = useState<RegisterEvidence | null>(null);
   const retry = useRef<{ file: UploadFile; appointment: string; key: string } | null>(null);

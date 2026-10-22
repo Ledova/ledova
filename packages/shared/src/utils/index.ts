@@ -176,6 +176,7 @@ export {
 
 export { invitationMembers } from './invitationMembers';
 export { applicationAmount } from './applicationAmount';
+export { isRegisterMemberDocument, isRegisterMemberDocumentReceipt } from './register-member-documents';
 export { applicationHistory } from './applicationHistory';
 export {
   NEW_PERSON,
@@ -187,3 +188,4 @@ export {
   type PersonChoice,
 } from './people';
 export { searchEntries, searchMatches, searchRows, type SearchChoice } from './search';
+export { isRegisterPersonRegistrationReceipt } from './register-people';

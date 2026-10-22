@@ -35,7 +35,7 @@ The class-creation API requires a current personal company administrator or prep
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
 [Register setup](register.md#bringing-in-existing-records) on web and mobile lists companies from those
 appointments, including a preparer who is not the owner. Classes are created only through that
-setup in Register: on the web **Set up your share register**, then **Add share class**; on mobile
+setup: on the web **Ledger**, **Add share class**; on mobile
 **Set up your share register** in Getting started or **Create share class** on the Register tab.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
@@ -50,22 +50,51 @@ ISSUE; a subsequent approved grant or investor allotment records the first share
 this empty-opening choice through the same draft, review and confirmation as copied holdings
 ([register setup](register.md#bringing-in-existing-records)).
 
+On the web, the chain actions described below are under **Technical details and chain workflows**
+on the Share class page, separate from its current register summary and Class rights.
+
 ### Class rights
 
-On the web, the Share class page shows the company's optional **Class rights** summary and plain
-**Document reference**. A current company register reader can read the latest record and its history;
-a current personal company administrator can add or edit it. Ownership or platform staff status
-alone grants no editing authority. Existing classes have no record until the company adds one.
+On the web, choose **Class details** on a class's Ledger card. **Class rights** records the company's
+description of existing terms below the current register summary. Choose **Edit** to record:
 
-Both fields are optional. The reference can name a constitution, clause or issue terms; it is text,
-not a file link, an upload requirement or proof that Ledova holds or verifies the source. Existing
-[company-document and offering access](companies.md#company-information-and-documents) stays separate.
+- **Voting:** general or conditional voting, including a recorded weight on a poll.
+- **Dividends:** participation or a preference, with its basis and conditions.
+- **Capital on winding-up:** participation or a preference, including ranking and participation terms.
+- **Transfers:** consent, first-offer or other restrictions and exceptions.
+- **Conversion:** whether terms exist and their target, ratio and conditions.
+- **Redemption:** whether terms exist and who can trigger them, when and on what basis.
 
-Saving appends a revision with the administrator, appointment and actual recording time. Clearing
-both fields records a clear without erasing earlier text. A stale editor must reload before saving;
-an interrupted save recovers its original request rather than recording it twice. The company pack
-includes all revisions. These descriptions do not vary legal rights or change holdings, approvals,
-charts or calculations. Member disclosure and mobile editing are outside this first increment.
+Each group starts **Not recorded**, distinct from recording that a right does not exist. The six
+choices share a compact layout, with relevant structured details beside each choice. One
+**Additional terms** field holds conditions, exceptions and custom rights, identifying the relevant
+right where useful. Earlier group conditions appear there with their category labels when editing;
+saving retains the combined text without rewriting earlier versions. Ledova supplies no assumed
+rights from a class name or type. Record a known effective date separately from the actual recording
+time; leave it blank when unknown.
+
+**Documents** uses actual supporting files; no upload is required. The file's name identifies the
+document, with no category to choose. Each document is linked to the class and the rights
+revision that retained it, without assigning it to a shareholder. These files stay separate from
+[shareholder documents](register.md#shareholder-documents) and the company-wide
+[company-document and offering access](companies.md#company-information-and-documents).
+
+A current company register reader can read the latest record, earlier versions and their linked
+files. A current personal company administrator can edit; ownership or platform staff status alone
+grants no editing authority. **Cancel** leaves the saved record unchanged. **Save** records a new
+revision with its structured terms, additional text, effective date, documents, administrator,
+appointment and actual recording time. Removing a file
+from the current description does not erase it from earlier versions. Earlier plain-text document
+references remain readable in those versions and exports; new edits use actual attachments.
+
+A stale editor must reload before saving; an interrupted save recovers its original request rather
+than recording it twice. The company pack includes the revisions and their retained evidence.
+The company's governing documents and valid company decisions determine its rights. These fields
+describe those terms; saving does not draft, establish or vary them, verify documents or change
+holdings, approvals, charts or calculations. Holder-specific agreements and employee-award
+conditions stay with their own records. Current rights display and exports are descriptive; a
+calculation or execution workflow needs its own reviewed rules. Member disclosure and mobile editing
+remain outside this increment.
 
 ### Deploying an empty class
 
@@ -133,16 +162,18 @@ members, and publications still reach them.
 A grant on a class with no contract is a register entry only; a chain grant mints shares, and the
 register records the issue once the mint is final.
 
-On the web, the first three paths start from Register's **Issue shares** task, which asks **What
-kind of issue?**:
+On the web, the first three paths start from Ledger's **Issue shares** task. Choose the class to
+read its issues, each with its recipient, stage, key figures and next action. Details and documents
+open on demand. **Prepare issue**, beneath the records, asks **What kind of issue?**:
 
 - **Investor issue** opens the external allotment form.
 - **Non-paid issue** opens the non-paid grant form, in place.
 
-Switching between the two keeps what was entered in each form until the issue form is closed or an
-issue is prepared. The class's Investor issues and Non-paid issues are listed under the form, each
-with its stage and next action. For a deployed class the task links to Share class, where chain
-grants and paid issues stay.
+Preparation replaces the record list with the chosen form. Switching between the two keeps what
+was entered in each form until it is closed or an issue is prepared, when the records return.
+A sibling group is hidden only after a current successful read proves it empty; loading and failed
+reads remain visible. For a deployed class the task links to Share class, where chain grants and
+paid issues stay.
 
 ### What each record changes
 
@@ -150,7 +181,7 @@ grants and paid issues stay.
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Copying existing records (the opening)                               | Sets the opening balance; it is never an issue                                                                                      |
 | Employee award and vesting                                           | None: an award is a promised entitlement and vesting a company record                                                               |
-| Investor agreement and receipt                                       | None on their own; applying the allotment makes the issue                                                                           |
+| Investor agreement and receipt                                       | None on their own; completing the approved allotment makes the issue                                                                           |
 | Any issue: grant, award-linked grant, allotment, chain or paid issue | Increases the issued shares and the recipient's holding once                                                                        |
 | Transfer                                                             | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
 | Correction                                                           | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections))   |
@@ -184,8 +215,8 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
 A non-paid grant records a company-authorised issue as an Issue entry, with no application, payment,
 wallet or chain transaction.
 
-1. On Register, choose Issue shares and the class, then Non-paid issue; or choose Issue vested
-   shares on an award in Employee share scheme.
+1. On the web, in Ledger choose Issue shares and the class, then Prepare issue and Non-paid issue;
+   or choose Issue vested shares on an award in Employee share scheme.
 2. Choose who receives the shares ([choosing a person](register.md#choosing-a-person)), or New person
    with their name and residential address; names never link an account.
 3. Give the shares, the company issue date, the separate date of the terms, the non-paid terms, the
@@ -231,12 +262,12 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 2. Choose Record vesting on the award for a company-confirmed event with its shares, date and
    evidence. Dates are no later than today (UTC), an event cannot predate the agreement, and total
    vesting cannot exceed the remaining unvested entitlement.
-3. When vested shares are available, choose Issue vested shares. Register opens Issue shares with
+3. When vested shares are available, choose Issue vested shares. Ledger opens Issue shares with
    Non-paid issue chosen. The grant form shows the recipient and available quantity, and is bound to
    the award's class, recipient and retained agreement. Upload the authority document, name the
    approving director and add any required acceptance. Preparing keeps you on Issue shares, with the
-   new issue in the Non-paid issues list; approve, then choose Record issue. The award lists the
-   non-paid issues prepared from it, each with its stage and a link to its record on Register.
+   new issue among the class's records; approve, then choose Record issue. The award lists the
+   non-paid issues prepared from it, each with its stage and a link to its record on Ledger.
 4. To reduce or end an entitlement, choose End unissued rights. Enter exactly how many unvested and/or
    vested-but-unissued rights the company ends, its event date, reason and evidence. Zero is allowed
    for either pool, but the total must be positive. Ledova applies no automatic leaver policy.
@@ -276,30 +307,47 @@ award fulfilment.
 A company records an investment it arranged outside Ledova and the fully paid allotment it approves.
 No deployment, application, payment or chain receipt is involved.
 
-1. On Register, choose Issue shares and the class, then Investor issue.
+1. On the web, in Ledger choose Issue shares and the class, then Prepare issue and Investor issue.
 2. Person and shares: choose who receives the shares, or New person with their particulars
    ([choosing a person](register.md#choosing-a-person)), then give the shares
    and the full consideration in AUD.
 3. Agreement and company receipt: give the external agreement reference, date, terms and document,
    and separately the amount received, the date and the receipt evidence.
-4. Company authority and review: give the company issue date, name the approving director and give
-   the authority reference, the reason and the authority document.
-5. Review the class, agreed shares and AUD total, the derived price per share, and each shareholder's
-   shares and class percentage before and after the proposed issue. Approve the exact allotment,
-   then choose Record issue.
+4. Company authority and review: check the recipient, class, quantity and AUD total, then give the
+   company issue date, approving director, authority reference, reason and authority document.
+   Choose Prepare allotment.
+5. On the prepared record, choose Review and approve. The web opens Review share issue in place of
+   the list. Check the recipient, class, agreed shares, AUD total and derived price per share, then
+   each shareholder's shares and class percentage before and after the proposed issue. Agreement
+   and receipt sit beside company authority, with long terms, documents and audit references on
+   demand. Cancel returns to the record. The green Approve action confirms that exact preview and
+   records both the company approval and the share issue together, without another popup or a
+   separate Record issue action. It requires current approval and application authority; opening
+   the review changes nothing. An older approval without an issue shows Ready to complete; the
+   completed record shows Approved and the recorded shares. Rejection also uses a focused page
+   review. Mobile keeps its separate approval and application steps.
+
+The web form shows one step at a time using the same step indicator and fields as Ledger setup.
+Back preserves entries and selected files; Continue validates that step without uploading or saving.
+Preparation saves the proposal without approving or issuing shares. The final web Approve is one
+idempotent transaction: if any authority, evidence, identity or ownership check fails, neither a
+new approval nor an issue is recorded. Retrying the same command returns its original outcome
+without issuing twice. An earlier current approval is retained and reused; its history is not
+rewritten.
 
 On web and mobile, this forecast comes from one current class snapshot in the decision preview.
 The recipient is visible first, with other shareholders available on demand for a longer list.
 Price is rounded half-up to four decimal places and percentages to two; the agreed total and whole
 share quantity stay exact. Percentages count shares in this class, not voting or economic rights,
-and Ledova chooses no valuation. Approval, rejection and a displayed forecast issue no shares; an
-applied record shows its recorded outcome rather than forecasting a second issue. Missing or
-inconsistent ownership data blocks a new approval or issue, while retained records, rejection and
-recovery of the original receipt remain available.
+and Ledova chooses no valuation. A displayed forecast and rejection issue no shares; the completed
+record shows its recorded outcome rather than forecasting a second issue. Missing or inconsistent
+ownership data blocks completion, while retained records, rejection and recovery of the original
+command remain available.
 
 The amount received must equal the consideration, because only fully paid allotments are supported.
-Approval is separate from the receipt, and applying records one Issue; the agreement, receipt,
-decision and resulting ownership stay separate records, shown under Record details and documents.
+The receipt does not authorise issuance. The completed allotment records one Issue; the agreement,
+receipt, approval and resulting ownership stay separate retained records, shown under Details and
+documents on web. Combining the web confirmation neither collects nor settles money.
 Rejecting an allotment keeps its agreement and receipt and performs no refund. A receipt is shown as
 attested by the company, not verified by Ledova. The register's amount paid then includes the
 consideration ([amount paid](register.md#amount-paid-and-date-entered)).
@@ -533,18 +581,19 @@ to future shares; vesting alone does not tell which
 ([Moneysmart](https://moneysmart.gov.au/shares/employee-share-schemes)). Ledova's awards support the
 latter promise-and-separate-issue workflow only.
 
-Capability map under [#1215](https://github.com/Ledova/ledova/issues/1215), reviewed 21 October 2026
+Capability map under [#1215](https://github.com/Ledova/ledova/issues/1215), refined under
+[#1165](https://github.com/Ledova/ledova/issues/1165) on 22 October 2026
 (the original dated source audit is retained on the issue):
 
-| Arrangement | What Ledova records now | Limit |
-| ----------- | ----------------------- | ----- |
-| Ordinary or custom-named classes/series | Name, code, broad type, holdings and history | A label does not establish rights; code length and uniqueness rules still apply |
-| Different voting, preference, redemption or conversion terms | A custom name and optional rights summary/reference describe the class; company documents can retain terms | Descriptive class-rights records only; no weighted voting, preference waterfall, conversion or redemption workflow |
-| Partly-paid existing shares | Paid/unpaid and beneficial-status facts in copied opening allotments | New external allotments are fully paid in AUD; no calls on unpaid capital |
-| Employee promises | Agreement, company-recorded vesting, unissued-right endings/reversals and a separate approved issue | No options/exercise, employee purchases, RSU settlement engine or upfront-issued restricted-share lifecycle |
-| Convertible notes, SAFEs and other future-equity instruments | No dedicated workflow | Do not count them as issued holdings or disguise them as a class |
-| Buy-backs, cancellations, capital reductions, class conversions/rights variations and transmission | No current workflow | A cessation entry kind or ending an award is not a delivered share-cancellation process; splits/consolidations are also deferred |
-| Corporate, joint and trustee holdings | One recorded name/address and beneficial status; account access is separately invited | No explicit entity, joint-holder or trustee representation model |
+| Arrangement                                                                                        | What Ledova records now                                                                                 | Limit                                                                                                                            |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Ordinary or custom-named classes/series                                                            | Name, code, broad type, holdings and history                                                            | A label does not establish rights; code length and uniqueness rules still apply                                                  |
+| Different voting, preference, redemption or conversion terms                                       | Structured Class rights, additional terms, a known effective date and class-linked supporting documents | Descriptive records only; no weighted voting, preference waterfall, conversion or redemption workflow                            |
+| Partly-paid existing shares                                                                        | Paid/unpaid and beneficial-status facts in copied opening allotments                                    | New external allotments are fully paid in AUD; no calls on unpaid capital                                                        |
+| Employee promises                                                                                  | Agreement, company-recorded vesting, unissued-right endings/reversals and a separate approved issue     | No options/exercise, employee purchases, RSU settlement engine or upfront-issued restricted-share lifecycle                      |
+| Convertible notes, SAFEs and other future-equity instruments                                       | No dedicated workflow                                                                                   | Do not count them as issued holdings or disguise them as a class                                                                 |
+| Buy-backs, cancellations, capital reductions, class conversions/rights variations and transmission | No current workflow                                                                                     | A cessation entry kind or ending an award is not a delivered share-cancellation process; splits/consolidations are also deferred |
+| Corporate, joint and trustee holdings                                                              | One recorded name/address and beneficial status; account access is separately invited                   | No explicit entity, joint-holder or trustee representation model                                                                 |
 
 The audited implementation is in [class fields](../../backend/tokens/models/share_token.py),
 [opening facts](../../backend/tokens/services/register_imports.py),

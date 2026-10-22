@@ -1,6 +1,6 @@
 import re
 from datetime import date
-from uuid import UUID
+from uuid import UUID, uuid5
 
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
@@ -8,10 +8,13 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
 from companies.models import CompanyCapability
+from companies.services.administration import company_operation
+from shared.db import atomic
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterAward,
+    RegisterDecisionKind,
     RegisterEntryKind,
     RegisterEvidence,
     RegisterEvidenceKind,
@@ -28,8 +31,20 @@ from tokens.models import (
     ShareTokenStatus,
 )
 from tokens.services.register import _snapshot, imported_membership_dates
-from tokens.services.register_authority import register_appointment, register_command
-from tokens.services.register_decisions import DecisionFamily, decide, preview
+from tokens.services.register_authority import (
+    holds,
+    register_appointment,
+    register_command,
+)
+from tokens.services.register_decisions import (
+    DecisionFamily,
+    _approved,
+    _readable,
+    _requirements,
+    _scalar,
+    decide,
+    preview,
+)
 from tokens.services.register_events import (
     company_event_requirements,
     create_member,
@@ -60,31 +75,34 @@ def particulars_snapshot(held):
         },
         **({"source_allotment": str(held.source_allotment_id)} if held.source_allotment_id else {}),
         **({"source_award": str(held.source_award_id)} if held.source_award_id else {}),
+        **({"source_registration": str(held.source_registration_id)} if held.source_registration_id else {}),
     }
 
 
 def register_members(token, actor):
+    return register_people(token.company_id, actor, token)
+
+
+def register_people(company_id, actor, token=None):
     with _snapshot():
-        members = list(RegisterMember.objects.filter(company_id=token.company_id).order_by("uuid"))
-        held = {
-            row.member_id: row for row in RegisterMemberParticulars.objects.filter(member__company_id=token.company_id)
-        }
-        positions = {row.member_id: row for row in RegisterPosition.objects.filter(register__token=token)}
-        imported_dates = imported_membership_dates(token)
-        linked = set(
-            RegisterMemberWallet.objects.filter(company_id=token.company_id).values_list("member_id", flat=True)
-        )
+        members = list(RegisterMember.objects.filter(company_id=company_id).order_by("uuid"))
+        held = {row.member_id: row for row in RegisterMemberParticulars.objects.filter(member__company_id=company_id)}
+        company_positions = RegisterPosition.objects.filter(register__company_id=company_id)
+        positions = {row.member_id: row for row in company_positions.filter(register__token=token)} if token else {}
+        totals = {}
+        for row in company_positions:
+            totals[row.member_id] = totals.get(row.member_id, 0) + row.shares
+        imported_dates = imported_membership_dates(token) if token else {}
+        linked = set(RegisterMemberWallet.objects.filter(company_id=company_id).values_list("member_id", flat=True))
         cessations = {}
         for row in RegisterMemberCessation.objects.filter(register__token=token).order_by("entry__sequence"):
             cessations[row.member_id] = row.ceased_on
         registered = set(
-            RegisterPosition.objects.filter(register__company_id=token.company_id).values_list("member_id", flat=True)
+            RegisterPosition.objects.filter(register__company_id=company_id).values_list("member_id", flat=True)
         )
-        awarded = set(RegisterAward.objects.filter(company_id=token.company_id).values_list("member", flat=True))
+        awarded = set(RegisterAward.objects.filter(company_id=company_id).values_list("member", flat=True))
         recipients = set(
-            RegisterAward.objects.readable_by(actor)
-            .filter(company_id=token.company_id)
-            .values_list("member", flat=True)
+            RegisterAward.objects.readable_by(actor).filter(company_id=company_id).values_list("member", flat=True)
         )
         return {
             "award_recipients": [],
@@ -93,7 +111,11 @@ def register_members(token, actor):
                     "member": member.pk,
                     "name": held[member.pk].name if member.pk in held else None,
                     "residential_address": held[member.pk].residential_address if member.pk in held else None,
-                    "current_shares": str(positions[member.pk].shares) if member.pk in positions else "0",
+                    "current_shares": (
+                        (str(positions[member.pk].shares) if member.pk in positions else "0")
+                        if token
+                        else str(totals.get(member.pk, 0))
+                    ),
                     "entered_on": (
                         imported_dates.get(str(member.pk), positions[member.pk].entered_on)
                         if member.pk in positions and positions[member.pk].shares > 0
@@ -102,7 +124,8 @@ def register_members(token, actor):
                     "last_ceased_on": cessations.get(member.pk),
                     "walletless": member.pk not in linked,
                     "particulars_retained": member.pk in held,
-                    "on_register": member.pk in registered or member.pk not in awarded,
+                    "on_register": member.pk in registered,
+                    "has_awards": member.pk in recipients,
                 }
                 for member in members
                 if member.pk in registered or member.pk not in awarded or member.pk in recipients
@@ -354,9 +377,17 @@ def _details(proposal):
     sender, recipient = int(positions.get(proposal.from_member, 0)), int(positions.get(proposal.to_member, 0))
     issued = str(register.issued_supply) if register else "0"
     return {
+        "company": proposal.company_id,
+        "token": proposal.token_id,
+        "authority_evidence": proposal.authority_evidence_id,
+        "instrument_evidence": proposal.instrument_evidence_id,
         **{
             key: getattr(proposal, key)
             for key in (
+                "authority_reference",
+                "reason",
+                "evidence_fingerprint",
+                "instrument_fingerprint",
                 "from_member",
                 "to_member",
                 "new_member",
@@ -441,14 +472,85 @@ TRANSFERS = DecisionFamily(
 )
 
 
-def preview_transfer_decision(*, actor, transfer_id, appointment, kind, reason=""):
-    return preview(
-        TRANSFERS, _details, actor=actor, proposal_id=transfer_id, appointment=appointment, kind=kind, reason=reason
+def _completion_digest(proposal, actor, approval, application):
+    return _scalar(
+        "SELECT tokens_register_transfer_completion_digest(%s, %s, %s, %s)",
+        [proposal.pk, actor.pk, approval.pk, application.pk],
     )
 
 
-def decide_transfer(*, actor, transfer_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""):
+def _completion_requirements(proposal, approval, application):
+    unmet = set(_requirements(TRANSFERS, proposal, RegisterDecisionKind.APPROVE, approval, "", []))
+    unmet.discard("already_approved")
+    if not holds(application, CompanyCapability.APPLY):
+        unmet.add("appointment_capability_required")
+    return sorted(unmet)
+
+
+def preview_transfer_decision(
+    *, actor, transfer_id, appointment, kind, reason="", complete_transfer=False, apply_appointment=None
+):
+    initial = _readable(TRANSFERS, actor, transfer_id)
+    with register_command(actor, initial.company_id, "register_transfer_preview") as (
+        company,
+        current_actor,
+        profile,
+        operator,
+    ):
+        proposal = _lock(initial)
+        if complete_transfer:
+            if kind != RegisterDecisionKind.APPROVE or reason:
+                raise ValidationError("Completion requires approval without a rejection reason.")
+            approval = register_appointment(company, current_actor, profile, operator, appointment)
+            application = register_appointment(
+                company, current_actor, profile, operator, apply_appointment or appointment
+            )
+            unmet = _completion_requirements(proposal, approval, application)
+            return proposal, {
+                "complete_transfer": True,
+                "apply_appointment": application.pk,
+                "preview_digest": _completion_digest(proposal, current_actor, approval, application),
+                "unmet_requirements": unmet,
+                "can_decide": not unmet,
+                **_details(proposal),
+            }
+        return preview(
+            TRANSFERS,
+            _details,
+            actor=actor,
+            proposal_id=transfer_id,
+            appointment=appointment,
+            kind=kind,
+            reason=reason,
+        )
+
+
+def decide_transfer(
+    *,
+    actor,
+    transfer_id,
+    appointment,
+    kind,
+    idempotency_key,
+    preview_digest,
+    confirmation,
+    reason="",
+    complete_transfer=False,
+    apply_appointment=None,
+):
     try:
+        if complete_transfer:
+            return _complete_transfer(
+                actor=actor,
+                transfer_id=transfer_id,
+                appointment=appointment,
+                apply_appointment=apply_appointment or appointment,
+                kind=kind,
+                idempotency_key=idempotency_key,
+                preview_digest=preview_digest,
+                confirmation=confirmation,
+                reason=reason,
+            )
         return decide(
             TRANSFERS,
             actor=actor,
@@ -462,3 +564,78 @@ def decide_transfer(*, actor, transfer_id, appointment, kind, idempotency_key, p
         )
     except IntegrityError:
         raise RegisterChangeConflict() from None
+
+
+def _complete_transfer(
+    *, actor, transfer_id, appointment, apply_appointment, kind, idempotency_key, preview_digest, confirmation, reason
+):
+    if confirmation is not True or kind != RegisterDecisionKind.APPROVE or reason:
+        raise ValidationError("Confirm the exact approval and share transfer.")
+    initial = _readable(TRANSFERS, actor, transfer_id)
+    with register_command(actor, initial.company_id, "register_transfer_complete") as (
+        company,
+        current_actor,
+        profile,
+        operator,
+    ):
+        prior = RegisterTransferDecision.objects.filter(
+            decided_by=current_actor, idempotency_key=idempotency_key
+        ).first()
+        if prior is not None:
+            if (
+                prior.register_transfer_id,
+                prior.kind,
+                prior.completion_approval_appointment_id,
+                prior.appointment_id,
+                prior.reason,
+                prior.digest,
+            ) != (
+                initial.pk,
+                RegisterDecisionKind.APPLY,
+                UUID(str(appointment)),
+                UUID(str(apply_appointment)),
+                "",
+                preview_digest,
+            ):
+                raise RegisterChangeConflict()
+            if not RegisterTransfer.objects.register_readable_by(current_actor).filter(pk=initial.pk).exists():
+                raise NotFound("Register transfer not found.")
+            return RegisterTransfer.objects.get(pk=initial.pk)
+        approval = register_appointment(company, current_actor, profile, operator, appointment)
+        application = register_appointment(company, current_actor, profile, operator, apply_appointment)
+        proposal = _lock(initial)
+        if _completion_digest(proposal, current_actor, approval, application) != preview_digest:
+            raise RegisterChangeConflict()
+        unmet = _completion_requirements(proposal, approval, application)
+        if unmet:
+            raise ValidationError({"unmet_requirements": unmet})
+        if not _approved(TRANSFERS, proposal):
+            with company_operation(current_actor, company.pk, "register_transfer_approve"), atomic():
+                RegisterTransferDecision.objects.create(
+                    register_transfer=proposal,
+                    kind=RegisterDecisionKind.APPROVE,
+                    decided_by=current_actor,
+                    appointment=approval,
+                    idempotency_key=uuid5(UUID(str(idempotency_key)), "transfer-completion-approval"),
+                    digest=_scalar(
+                        "SELECT tokens_register_transfer_decision_digest(%s, %s, %s, %s, %s)",
+                        [proposal.pk, RegisterDecisionKind.APPROVE, current_actor.pk, approval.pk, ""],
+                    ),
+                    reason="",
+                    decided_at=timezone.now(),
+                )
+        with company_operation(current_actor, company.pk, "register_transfer_apply"), atomic():
+            decision = RegisterTransferDecision.objects.create(
+                register_transfer=proposal,
+                kind=RegisterDecisionKind.APPLY,
+                decided_by=current_actor,
+                appointment=application,
+                completion_approval_appointment=approval,
+                idempotency_key=idempotency_key,
+                digest=preview_digest,
+                reason="",
+                decided_at=timezone.now(),
+            )
+            decision.refresh_from_db(fields=["decided_at"])
+            _apply(proposal, current_actor, decision)
+        return proposal

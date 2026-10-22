@@ -1,7 +1,7 @@
 import type {
   RegisterTransfer,
   RegisterTransferPreparation,
-  RegisterDecideRequest,
+  RegisterTransferDecideRequest,
   RegisterTransferDecisionPreview,
 } from '../types';
 import { isRegisterDecisionReceipt } from './register-commands';
@@ -45,13 +45,55 @@ export function isPreparedRegisterTransfer(
 export function isRegisterTransferDecisionReceipt(
   transfer: RegisterTransfer,
   uuid: string,
-  request: RegisterDecideRequest,
+  request: RegisterTransferDecideRequest,
   preview?: RegisterTransferDecisionPreview,
 ) {
+  const completed = request.completeTransfer === true;
+  const decision = transfer.decisions.find((row) => row.idempotencyKey === request.idempotencyKey);
+  if (!completed && (decision?.completeTransfer || preview?.completeTransfer)) return false;
+  if (
+    completed &&
+    (request.kind !== 'approve' ||
+      preview?.completeTransfer !== true ||
+      preview.applyAppointment !== (request.applyAppointment ?? request.appointment) ||
+      decision?.completeTransfer !== true ||
+      decision.approvalAppointment !== request.appointment)
+  )
+    return false;
   return (
-    isRegisterDecisionReceipt(transfer, uuid, request) &&
-    (!preview || transfer.companyEventOn === preview.companyEventOn) &&
-    (request.kind !== 'apply' ||
-      (!!transfer.registerEntry && !!transfer.companyEventOn && transfer.effectiveOn === transfer.companyEventOn))
+    isRegisterDecisionReceipt(
+      transfer,
+      uuid,
+      completed ? { ...request, kind: 'apply', appointment: request.applyAppointment ?? request.appointment } : request,
+    ) &&
+    (!preview ||
+      (transfer.company === preview.company &&
+        transfer.token === preview.token &&
+        transfer.fromMember === preview.fromMember &&
+        transfer.fromName === preview.fromName &&
+        transfer.fromResidentialAddress === preview.fromResidentialAddress &&
+        transfer.toMember === preview.toMember &&
+        transfer.newMember === preview.newMember &&
+        transfer.newParticulars === preview.newParticulars &&
+        transfer.name === preview.name &&
+        transfer.residentialAddress === preview.residentialAddress &&
+        transfer.shares === preview.shares &&
+        transfer.companyEventOn === preview.companyEventOn &&
+        transfer.signedOn === preview.signedOn &&
+        transfer.lodgedOn === preview.lodgedOn &&
+        transfer.terms === preview.terms &&
+        transfer.authority === preview.authority &&
+        transfer.approvingDirector === preview.approvingDirector &&
+        transfer.authorityReference === preview.authorityReference &&
+        transfer.reason === preview.reason &&
+        transfer.authorityEvidence === preview.authorityEvidence &&
+        transfer.evidenceFingerprint === preview.evidenceFingerprint &&
+        transfer.instrumentEvidence === preview.instrumentEvidence &&
+        transfer.instrumentFingerprint === preview.instrumentFingerprint)) &&
+    ((!completed && request.kind !== 'apply') ||
+      (!!transfer.registerEntry &&
+        !!transfer.companyEventOn &&
+        transfer.effectiveOn === transfer.companyEventOn &&
+        (!preview || transfer.effectiveOn === preview.effectiveOn)))
   );
 }

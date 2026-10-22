@@ -97,7 +97,8 @@ export {
   getShareIssuanceRequests,
 } from './company-tokens';
 export { uploadRegisterEvidence } from './register-commands';
-export { getClassRights, recordClassRights } from './class-rights';
+export * from './register-member-documents';
+export { downloadClassRightsFile, getClassRights, recordClassRights } from './class-rights';
 export * from './register-grants';
 export * from './register-awards';
 export * from './register-deployments';
@@ -195,6 +196,7 @@ export * from './register-paid-issues';
 export * from './register-allotments';
 
 export * from './member-access';
+export * from './register-people';
 
 export {
   listDocuments,

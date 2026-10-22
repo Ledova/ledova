@@ -1,4 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useId, useState } from 'react';
+import { Link, matchPath, useLocation } from 'react-router-dom';
 import {
   HouseIcon,
   WalletIcon,
@@ -14,6 +15,8 @@ import {
   FilesIcon,
   UsersIcon,
   UsersThreeIcon,
+  CaretDownIcon,
+  CaretRightIcon,
 } from '@phosphor-icons/react';
 import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
@@ -26,7 +29,8 @@ import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useRegisterEntry } from '@hooks/useRegisterAccess';
 import { COMPANY_DASHBOARD_PATH, SITE_PATHS } from '@utils/paths';
-import { pageTitle, placesAt } from '@utils/destinations';
+import { WEB_LEDGER_TASKS, destinationAt, pageTitle, placesAt, type WebLedgerTask } from '@utils/destinations';
+import { useLedgerNavigation } from './LedgerNavigation';
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
 
@@ -75,6 +79,13 @@ const YOURS: NavItem[] = [{ destination: 'settings', icon: GearIcon }];
 
 const ITEM_CLASS = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors';
 const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary';
+const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, WebLedgerTask>> = {
+  companyRegisterTransfer: 'transfer',
+  companyRegisterCorrection: 'corrections',
+  companyRegisterOpening: 'corrections',
+  companyRegisterLinks: 'corrections',
+  companyRegisterParticulars: 'corrections',
+};
 
 function itemPath(item: NavItem) {
   const path = item.destination === 'companyDashboard' ? COMPANY_DASHBOARD_PATH : DESTINATIONS[item.destination].path;
@@ -101,6 +112,102 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
       <span>{item.short ?? item.label ?? title}</span>
     </Link>
+  );
+}
+
+function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
+  const location = useLocation();
+  const { state } = useLedgerNavigation();
+  const path = DESTINATIONS.companyRegister.path;
+  const current = active;
+  const place = `${location.pathname}${location.hash}`;
+  const [shownPlace, setShownPlace] = useState(place);
+  const [expanded, setExpanded] = useState(current);
+  const id = useId();
+  const tasks = Object.entries(WEB_LEDGER_TASKS);
+  const hashTask = location.pathname === path ? location.hash.slice(1) : '';
+  const routedTask = tasks.some(([key]) => key === hashTask) ? hashTask : undefined;
+  const destination = destinationAt(location.pathname);
+  const task =
+    active && location.pathname === path
+      ? state?.blocked && state.task
+        ? state.task
+        : (routedTask ?? state?.task)
+      : destination && LEDGER_TASK_PARENTS[destination];
+  const selectedTask = tasks.some(([key]) => key === task);
+  const blocked = location.pathname === path && (!state || state.blocked);
+  const blocks = (task?: string) => blocked && !(task && state?.task === task && !routedTask);
+  const classPath =
+    destination &&
+    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
+      ? DESTINATIONS[destination].path
+      : undefined;
+  const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
+  const context =
+    location.pathname === path
+      ? { registerCompany: state?.company, registerToken: state?.token }
+      : classParams
+        ? { registerCompany: classParams.company, registerToken: classParams.uuid }
+        : undefined;
+  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+
+  if (shownPlace !== place) {
+    setShownPlace(place);
+    if (current) setExpanded(true);
+  }
+
+  const navigate = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (blocks(event.currentTarget.hash.slice(1) || undefined)) event.preventDefault();
+    else onNavigate?.();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <Link
+          to={path}
+          state={context}
+          onClick={navigate}
+          onAuxClick={(event) => {
+            if (blocks()) event.preventDefault();
+          }}
+          aria-current={active && !selectedTask ? 'page' : undefined}
+          aria-disabled={blocked || undefined}
+          className={`${ITEM_CLASS} min-w-0 flex-1 ${active && !selectedTask ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocked ? 'cursor-not-allowed opacity-50' : ''}`}
+        >
+          <BookOpenIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
+          <span>{pageTitle('companyRegister')}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} Ledger navigation`}
+          aria-expanded={expanded}
+          aria-controls={id}
+          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
+        >
+          <Caret size={16} />
+        </button>
+      </div>
+      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
+        {tasks.map(([key, label]) => (
+          <Link
+            key={key}
+            to={`${path}#${key}`}
+            state={context}
+            onClick={navigate}
+            onAuxClick={(event) => {
+              if (blocks(key)) event.preventDefault();
+            }}
+            aria-current={task === key ? 'page' : undefined}
+            aria-disabled={blocks(key) || undefined}
+            className={`${ITEM_CLASS} ${task === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocks(key) ? 'cursor-not-allowed opacity-50' : ''}`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -170,14 +277,18 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
           {groups.map((group) => (
             <div key={group.id} className="space-y-1">
               {group.label && <GroupLabel>{group.label}</GroupLabel>}
-              {group.items.map((item) => (
-                <NavLink
-                  key={itemPath(item)}
-                  item={item}
-                  active={itemPath(item) === activePath}
-                  onNavigate={onNavigate}
-                />
-              ))}
+              {group.items.map((item) =>
+                item.destination === 'companyRegister' && !item.view ? (
+                  <LedgerGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
+                ) : (
+                  <NavLink
+                    key={itemPath(item)}
+                    item={item}
+                    active={itemPath(item) === activePath}
+                    onNavigate={onNavigate}
+                  />
+                ),
+              )}
             </div>
           ))}
           <details open={secondaryGroups.some((group) => group.items.some((item) => itemPath(item) === activePath))}>

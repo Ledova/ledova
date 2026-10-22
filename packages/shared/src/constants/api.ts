@@ -84,6 +84,7 @@ export const COMPANY_ENDPOINTS = {
 
 export const COMPANY_TOKEN_ENDPOINTS = {
   CLASS_RIGHTS: (uuid: string) => `/api/v1/tokens/${uuid}/class-rights/` as const,
+  CLASS_RIGHTS_FILE: (uuid: string) => `/api/v1/tokens/${uuid}/class-rights-file/` as const,
   REGISTER_CERTIFICATE: (uuid: string) => `/api/v1/tokens/${uuid}/register/certificate/` as const,
   MEMBER_CERTIFICATE_PREVIEW: (uuid: string) =>
     `/api/v1/tokens/member-certificate-requests/${uuid}/fulfilment-preview/` as const,
@@ -118,12 +119,15 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_ENTRIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/entries/` as const,
   REGISTER_OPENING_HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/opening-holders/` as const,
   REGISTER_EVIDENCE: '/api/v1/tokens/register-evidence/',
+  REGISTER_MEMBER_DOCUMENTS: '/api/v1/tokens/register-member-documents/',
+  REGISTER_MEMBER_DOCUMENT_FILE: (uuid: string) => `/api/v1/tokens/register-member-documents/${uuid}/file/` as const,
   REGISTER_DEPLOYMENTS: '/api/v1/tokens/register-deployments/',
   REGISTER_DEPLOYMENT_DETAIL: (uuid: string) => `/api/v1/tokens/register-deployments/${uuid}/` as const,
   REGISTER_DEPLOYMENT_PREVIEW: (uuid: string) =>
     `/api/v1/tokens/register-deployments/${uuid}/decision-preview/` as const,
   REGISTER_DEPLOYMENT_DECIDE: (uuid: string) => `/api/v1/tokens/register-deployments/${uuid}/decide/` as const,
   REGISTER_MEMBERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/members/` as const,
+  REGISTER_PEOPLE: '/api/v1/tokens/register-people/',
   REGISTER_TRANSFERS: '/api/v1/tokens/register-transfers/',
   REGISTER_TRANSFER_FILE: (uuid: string) => `/api/v1/tokens/register-transfers/${uuid}/file/` as const,
   REGISTER_TRANSFER_INSTRUMENT_FILE: (uuid: string) =>

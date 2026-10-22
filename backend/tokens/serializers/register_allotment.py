@@ -88,10 +88,18 @@ class RegisterContributionSerializer(serializers.ModelSerializer):
 
 
 class RegisterAllotmentDecisionRequestSerializer(RegisterDecisionRequestSerializer):
-    pass
+    complete_issue = serializers.BooleanField(required=False, default=False)
+    apply_appointment = serializers.UUIDField(required=False)
+
+    def validate(self, attrs):
+        if attrs["complete_issue"] and (attrs["kind"] != "approve" or attrs["reason"]):
+            raise serializers.ValidationError("Completion requires approval without a rejection reason.")
+        if "apply_appointment" in attrs and not attrs["complete_issue"]:
+            raise serializers.ValidationError("An application appointment requires completion.")
+        return attrs
 
 
-class RegisterAllotmentDecideSerializer(RegisterDecideSerializer):
+class RegisterAllotmentDecideSerializer(RegisterAllotmentDecisionRequestSerializer, RegisterDecideSerializer):
     pass
 
 
@@ -102,6 +110,8 @@ class RegisterAllotmentHolderSerializer(serializers.Serializer):
 
 
 class RegisterAllotmentDecisionPreviewSerializer(serializers.Serializer):
+    complete_issue = serializers.BooleanField(default=False)
+    apply_appointment = serializers.UUIDField(allow_null=True, default=None)
     class_name = serializers.CharField()
     class_code = serializers.CharField()
     current_holders = RegisterAllotmentHolderSerializer(many=True)
@@ -131,8 +141,18 @@ class RegisterAllotmentDecisionPreviewSerializer(serializers.Serializer):
 
 
 class RegisterAllotmentDecisionSerializer(RegisterDecisionSerializer):
+    complete_issue = serializers.SerializerMethodField()
+    approval_appointment = serializers.UUIDField(
+        source="completion_approval_appointment_id", read_only=True, allow_null=True
+    )
+
+    def get_complete_issue(self, obj) -> bool:
+        return obj.completion_approval_appointment_id is not None
+
     class Meta(RegisterDecisionSerializer.Meta):
         model = RegisterAllotmentDecision
+        fields = [*RegisterDecisionSerializer.Meta.fields, "complete_issue", "approval_appointment"]
+        read_only_fields = fields
 
 
 class RegisterAllotmentSerializer(RegisterDecidedSerializer):

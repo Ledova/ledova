@@ -1,10 +1,14 @@
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.db import DatabaseError, IntegrityError
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
+from companies.models import CompanyCapability
+from companies.services.authority import DECLARATION_VERSION
+from companies.services.team import accept_team_invitation, issue_team_invitation
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import CoreFixtures, import_payload
 from tokens.models import (
@@ -65,12 +69,70 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual((preview.json()["currentShares"], preview.json()["afterShares"]), ("0", "25"))
         with use_operator(), self.assertRaises(DatabaseError), atomic():
             RegisterAllotment.objects.filter(pk=identifier).update(status="applied", reviewed_by=self.owner)
-        self.decision(endpoint, identifier, "approve")
+        complete = {"appointment": str(self.appointment.pk), "kind": "approve", "complete_issue": True}
+        preview = self.client.post(f"{endpoint}{identifier}/decision-preview/", complete, format="json")
+        self.assertTrue(preview.json()["canDecide"], preview.content)
+        self.assertTrue(preview.json()["completeIssue"])
+        self.assertEqual(preview.json()["applyAppointment"], str(self.appointment.pk))
+        receipt = {
+            **complete,
+            "idempotency_key": str(uuid4()),
+            "preview_digest": preview.json()["previewDigest"],
+            "confirmation": True,
+        }
+        self.assertEqual(
+            self.client.post(
+                f"{endpoint}{identifier}/decide/", {**receipt, "complete_issue": False}, format="json"
+            ).status_code,
+            409,
+        )
+        _, code, _ = issue_team_invitation(
+            requester=self.owner,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.appointment.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.APPROVE],
+        )
+        approver = accept_team_invitation(
+            requester=self.foreign, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+        )
+        self.client.force_authenticate(self.foreign)
+        restricted = {**complete, "appointment": str(approver.pk)}
+        blocked = self.client.post(f"{endpoint}{identifier}/decision-preview/", restricted, format="json")
+        self.assertFalse(blocked.json()["canDecide"], blocked.content)
+        self.assertIn("appointment_capability_required", blocked.json()["unmetRequirements"])
+        self.assertEqual(
+            self.client.post(
+                f"{endpoint}{identifier}/decide/",
+                {**receipt, **restricted, "preview_digest": blocked.json()["previewDigest"]},
+                format="json",
+            ).status_code,
+            400,
+        )
+        self.client.force_authenticate(self.owner)
+        with patch("tokens.services.register_allotments._apply", side_effect=IntegrityError("Synthetic issue failure")):
+            failed = self.client.post(f"{endpoint}{identifier}/decide/", receipt, format="json")
+        self.assertEqual(failed.status_code, 409, failed.content)
+        self.assertFalse(RegisterAllotment.objects.get(pk=identifier).decisions.exists())
         self.assertEqual(int(self.token.stored_register.issued_supply), 100)
-        applied, receipt = self.decision(endpoint, identifier, "apply")
+        applied = self.client.post(f"{endpoint}{identifier}/decide/", receipt, format="json")
+        self.assertEqual(applied.status_code, 200, applied.content)
+        self.assertEqual(applied.json()["stage"], "applied")
+        completion = next(row for row in applied.json()["decisions"] if row["kind"] == "apply")
+        self.assertTrue(completion["completeIssue"])
+        self.assertEqual(completion["approvalAppointment"], str(self.appointment.pk))
+        self.assertEqual(completion["idempotencyKey"], receipt["idempotency_key"])
+        self.assertEqual(completion["digest"], receipt["preview_digest"])
+        self.assertEqual(len(applied.json()["decisions"]), 2)
         self.assertEqual(
             self.client.post(f"{endpoint}{identifier}/decide/", receipt, format="json").json()["registerEntry"],
             applied.json()["registerEntry"],
+        )
+        self.assertEqual(
+            self.client.post(
+                f"{endpoint}{identifier}/decide/", {**receipt, "complete_issue": False, "kind": "apply"}, format="json"
+            ).status_code,
+            409,
         )
         with use_operator():
             proposal = RegisterAllotment.objects.get(pk=identifier)
@@ -123,7 +185,14 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
         shared = self.client.post(endpoint, shared_member, format="json")
         self.assertEqual(shared.status_code, 201, shared.content)
         self.decision(endpoint, shared.json()["uuid"], "approve")
-        self.decision(endpoint, shared.json()["uuid"], "apply")
+        preview = self.client.post(f"{endpoint}{shared.json()['uuid']}/decision-preview/", complete, format="json")
+        completed = self.client.post(
+            f"{endpoint}{shared.json()['uuid']}/decide/",
+            {**receipt, "idempotency_key": str(uuid4()), "preview_digest": preview.json()["previewDigest"]},
+            format="json",
+        )
+        self.assertEqual(completed.status_code, 200, completed.content)
+        self.assertEqual(sum(row["kind"] == "approve" for row in completed.json()["decisions"]), 1)
         for symbol, days_before in (("OLDER", 1), ("CURRENT", 0)):
             with use_operator():
                 imported_class = ShareToken.objects.create(
@@ -167,9 +236,8 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
         self.decision(endpoint, existing_id, "apply")
         with use_operator():
             projected = _stored_register(self.token)
-            self.assertEqual(
-                str(next(row for row in projected["rows"] if row["member"] == str(self.member.pk))["amount_paid"]),
-                "350.00",
+            self.assertIsNone(
+                next(row for row in projected["rows"] if row["member"] == str(self.member.pk))["amount_paid"]
             )
         grant = self.client.post(
             "/api/v1/tokens/register-grants/",

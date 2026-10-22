@@ -1000,6 +1000,339 @@
         ],
         "type": "object"
       },
+      "ClassRightsAttributes": {
+        "properties": {
+          "capital": {
+            "$ref": "#/components/schemas/ClassRightsCapital"
+          },
+          "conversion": {
+            "$ref": "#/components/schemas/ClassRightsConversion"
+          },
+          "dividends": {
+            "$ref": "#/components/schemas/ClassRightsDividends"
+          },
+          "redemption": {
+            "$ref": "#/components/schemas/ClassRightsRedemption"
+          },
+          "transfers": {
+            "$ref": "#/components/schemas/ClassRightsTransfers"
+          },
+          "voting": {
+            "$ref": "#/components/schemas/ClassRightsVoting"
+          }
+        },
+        "type": "object"
+      },
+      "ClassRightsAttributesRequest": {
+        "properties": {
+          "capital": {
+            "$ref": "#/components/schemas/ClassRightsCapitalRequest"
+          },
+          "conversion": {
+            "$ref": "#/components/schemas/ClassRightsConversionRequest"
+          },
+          "dividends": {
+            "$ref": "#/components/schemas/ClassRightsDividendsRequest"
+          },
+          "redemption": {
+            "$ref": "#/components/schemas/ClassRightsRedemptionRequest"
+          },
+          "transfers": {
+            "$ref": "#/components/schemas/ClassRightsTransfersRequest"
+          },
+          "voting": {
+            "$ref": "#/components/schemas/ClassRightsVotingRequest"
+          }
+        },
+        "type": "object"
+      },
+      "ClassRightsCapital": {
+        "properties": {
+          "amount": {
+            "maxLength": 25,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "basis": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "cap": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          "multiple": {
+            "maxLength": 25,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "participation": {
+            "$ref": "#/components/schemas/ParticipationEnum"
+          },
+          "ranking": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsCapitalTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsCapitalRequest": {
+        "properties": {
+          "amount": {
+            "maxLength": 25,
+            "minLength": 1,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "basis": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "cap": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "currency": {
+            "minLength": 1,
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          "multiple": {
+            "maxLength": 25,
+            "minLength": 1,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "participation": {
+            "$ref": "#/components/schemas/ParticipationEnum"
+          },
+          "ranking": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsCapitalTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsCapitalTypeEnum": {
+        "description": "* `not_recorded` - not_recorded\n* `residual` - residual\n* `preferential` - preferential\n* `custom` - custom",
+        "enum": [
+          "not_recorded",
+          "residual",
+          "preferential",
+          "custom"
+        ],
+        "type": "string"
+      },
+      "ClassRightsConversion": {
+        "properties": {
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "ratio": {
+            "maxLength": 25,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "targetClass": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsConversionTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsConversionRequest": {
+        "properties": {
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "ratio": {
+            "maxLength": 25,
+            "minLength": 1,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "targetClass": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsConversionTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsConversionTypeEnum": {
+        "description": "* `not_recorded` - not_recorded\n* `convertible` - convertible\n* `none` - none\n* `custom` - custom",
+        "enum": [
+          "not_recorded",
+          "convertible",
+          "none",
+          "custom"
+        ],
+        "type": "string"
+      },
+      "ClassRightsDividends": {
+        "properties": {
+          "amount": {
+            "maxLength": 25,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "basis": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "cumulative": {
+            "$ref": "#/components/schemas/CumulativeEnum"
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          "rate": {
+            "maxLength": 25,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsDividendsTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsDividendsRequest": {
+        "properties": {
+          "amount": {
+            "maxLength": 25,
+            "minLength": 1,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "basis": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "cumulative": {
+            "$ref": "#/components/schemas/CumulativeEnum"
+          },
+          "currency": {
+            "minLength": 1,
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          "rate": {
+            "maxLength": 25,
+            "minLength": 1,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsDividendsTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsDividendsTypeEnum": {
+        "description": "* `not_recorded` - not_recorded\n* `participating` - participating\n* `preferential` - preferential\n* `none` - none\n* `custom` - custom",
+        "enum": [
+          "not_recorded",
+          "participating",
+          "preferential",
+          "none",
+          "custom"
+        ],
+        "type": "string"
+      },
+      "ClassRightsDocument": {
+        "properties": {
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "documentType": {
+            "type": "string"
+          },
+          "evidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "providedBy": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "company",
+          "documentType",
+          "evidence",
+          "fileSize",
+          "mimeType",
+          "name",
+          "providedBy",
+          "sha256"
+        ],
+        "type": "object"
+      },
       "ClassRightsPage": {
         "properties": {
           "administrationAppointment": {
@@ -1045,6 +1378,52 @@
         ],
         "type": "object"
       },
+      "ClassRightsRedemption": {
+        "properties": {
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/TriggerEnum"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsRedemptionTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsRedemptionRequest": {
+        "properties": {
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/TriggerEnum"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsRedemptionTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsRedemptionTypeEnum": {
+        "description": "* `not_recorded` - not_recorded\n* `redeemable` - redeemable\n* `not_redeemable` - not_redeemable\n* `custom` - custom",
+        "enum": [
+          "not_recorded",
+          "redeemable",
+          "not_redeemable",
+          "custom"
+        ],
+        "type": "string"
+      },
       "ClassRightsRevision": {
         "properties": {
           "appointment": {
@@ -1053,12 +1432,33 @@
             "readOnly": true,
             "type": "string"
           },
+          "attributes": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClassRightsAttributes"
+              }
+            ],
+            "readOnly": true
+          },
           "createdAt": {
             "format": "date-time",
             "readOnly": true,
             "type": "string"
           },
           "documentReference": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/ClassRightsDocument"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "effectiveDate": {
+            "format": "date",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -1098,8 +1498,11 @@
         },
         "required": [
           "appointment",
+          "attributes",
           "createdAt",
           "documentReference",
+          "documents",
+          "effectiveDate",
           "idempotencyKey",
           "recordedBy",
           "recordedByName",
@@ -1110,14 +1513,135 @@
         ],
         "type": "object"
       },
+      "ClassRightsTransfers": {
+        "properties": {
+          "boardConsent": {
+            "type": "boolean"
+          },
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "preEmption": {
+            "type": "boolean"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsTransfersTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsTransfersRequest": {
+        "properties": {
+          "boardConsent": {
+            "type": "boolean"
+          },
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "preEmption": {
+            "type": "boolean"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsTransfersTypeEnum"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsTransfersTypeEnum": {
+        "description": "* `not_recorded` - not_recorded\n* `restricted` - restricted\n* `no_class_restrictions` - no_class_restrictions\n* `custom` - custom",
+        "enum": [
+          "not_recorded",
+          "restricted",
+          "no_class_restrictions",
+          "custom"
+        ],
+        "type": "string"
+      },
+      "ClassRightsVoting": {
+        "properties": {
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsVotingTypeEnum"
+          },
+          "votesPerShare": {
+            "maxLength": 25,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsVotingRequest": {
+        "properties": {
+          "conditions": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ClassRightsVotingTypeEnum"
+          },
+          "votesPerShare": {
+            "maxLength": 25,
+            "minLength": 1,
+            "pattern": "^(?:0|[1-9][0-9]{0,15})(?:\\.[0-9]{1,8})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "ClassRightsVotingTypeEnum": {
+        "description": "* `not_recorded` - not_recorded\n* `general` - general\n* `conditional` - conditional\n* `no_general_vote` - no_general_vote\n* `custom` - custom",
+        "enum": [
+          "not_recorded",
+          "general",
+          "conditional",
+          "no_general_vote",
+          "custom"
+        ],
+        "type": "string"
+      },
       "ClassRightsWriteRequest": {
         "properties": {
           "appointment": {
             "format": "uuid",
             "type": "string"
           },
+          "attributes": {
+            "$ref": "#/components/schemas/ClassRightsAttributesRequest"
+          },
           "documentReference": {
+            "default": "",
             "maxLength": 255,
+            "type": "string"
+          },
+          "documents": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "effectiveDate": {
+            "format": "date",
+            "nullable": true,
             "type": "string"
           },
           "idempotencyKey": {
@@ -1130,13 +1654,12 @@
             "type": "integer"
           },
           "summary": {
-            "maxLength": 4000,
+            "maxLength": 20000,
             "type": "string"
           }
         },
         "required": [
           "appointment",
-          "documentReference",
           "idempotencyKey",
           "previousRevision",
           "summary"
@@ -4036,6 +4559,15 @@
           "value"
         ],
         "type": "object"
+      },
+      "CumulativeEnum": {
+        "description": "* `not_recorded` - not_recorded\n* `cumulative` - cumulative\n* `non_cumulative` - non_cumulative",
+        "enum": [
+          "not_recorded",
+          "cumulative",
+          "non_cumulative"
+        ],
+        "type": "string"
       },
       "CurrencyEnum": {
         "description": "* `AUD` - AUD",
@@ -9864,6 +10396,37 @@
         ],
         "type": "object"
       },
+      "PaginatedRegisterMemberDocumentList": {
+        "properties": {
+          "count": {
+            "example": 123,
+            "type": "integer"
+          },
+          "next": {
+            "example": "http://api.example.org/accounts/?page=4",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "example": "http://api.example.org/accounts/?page=2",
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterMemberDocument"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "results"
+        ],
+        "type": "object"
+      },
       "PaginatedRegisterOpeningList": {
         "properties": {
           "count": {
@@ -10452,6 +11015,16 @@
           "results"
         ],
         "type": "object"
+      },
+      "ParticipationEnum": {
+        "description": "* `not_recorded` - not_recorded\n* `non_participating` - non_participating\n* `participating` - participating\n* `capped` - capped",
+        "enum": [
+          "not_recorded",
+          "non_participating",
+          "participating",
+          "capped"
+        ],
+        "type": "string"
       },
       "PatchedCompanyUpdateRequest": {
         "properties": {
@@ -11948,9 +12521,17 @@
       },
       "RegisterAllotmentDecideRequest": {
         "properties": {
+          "applyAppointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "appointment": {
             "format": "uuid",
             "type": "string"
+          },
+          "completeIssue": {
+            "default": false,
+            "type": "boolean"
           },
           "confirmation": {
             "type": "boolean"
@@ -11989,6 +12570,16 @@
             "format": "uuid",
             "readOnly": true,
             "type": "string"
+          },
+          "approvalAppointment": {
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "completeIssue": {
+            "readOnly": true,
+            "type": "boolean"
           },
           "decidedAt": {
             "format": "date-time",
@@ -12033,6 +12624,8 @@
         },
         "required": [
           "appointment",
+          "approvalAppointment",
+          "completeIssue",
           "decidedAt",
           "decidedBy",
           "decidedByName",
@@ -12054,6 +12647,11 @@
           },
           "agreement": {
             "$ref": "#/components/schemas/RegisterAgreement"
+          },
+          "applyAppointment": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           },
           "approvingDirector": {
             "type": "string"
@@ -12077,6 +12675,10 @@
             "format": "date",
             "nullable": true,
             "type": "string"
+          },
+          "completeIssue": {
+            "default": false,
+            "type": "boolean"
           },
           "consideration": {
             "type": "string"
@@ -12168,9 +12770,17 @@
       },
       "RegisterAllotmentDecisionRequestRequest": {
         "properties": {
+          "applyAppointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "appointment": {
             "format": "uuid",
             "type": "string"
+          },
+          "completeIssue": {
+            "default": false,
+            "type": "boolean"
           },
           "kind": {
             "$ref": "#/components/schemas/RegisterDecisionKindEnum"
@@ -14728,12 +15338,13 @@
         "type": "object"
       },
       "RegisterEvidenceKindEnum": {
-        "description": "* `share_register` - Share register\n* `asic_extract` - ASIC extract\n* `authority` - Authority document\n* `supporting` - Supporting document",
+        "description": "* `share_register` - Share register\n* `asic_extract` - ASIC extract\n* `authority` - Authority document\n* `supporting` - Supporting document\n* `class_rights` - Class document",
         "enum": [
           "share_register",
           "asic_extract",
           "authority",
-          "supporting"
+          "supporting",
+          "class_rights"
         ],
         "type": "string"
       },
@@ -17003,6 +17614,139 @@
         ],
         "type": "object"
       },
+      "RegisterMemberDocument": {
+        "properties": {
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterMemberDocumentCategoryEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "evidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "member": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "snapshot": {
+            "readOnly": true
+          },
+          "sourceImport": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "token": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "category",
+          "company",
+          "createdAt",
+          "evidence",
+          "idempotencyKey",
+          "member",
+          "snapshot",
+          "sourceImport",
+          "token",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "RegisterMemberDocumentCategoryEnum": {
+        "description": "* `share_certificate` - Share certificate\n* `shareholder_agreement` - Shareholder agreement\n* `subscription_agreement` - Subscription agreement\n* `other` - Other supporting document",
+        "enum": [
+          "share_certificate",
+          "shareholder_agreement",
+          "subscription_agreement",
+          "other"
+        ],
+        "type": "string"
+      },
+      "RegisterMemberDocumentCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/RegisterMemberDocumentCategoryEnum"
+          },
+          "companyId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "evidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "category",
+          "companyId",
+          "evidence",
+          "idempotencyKey",
+          "member",
+          "token"
+        ],
+        "type": "object"
+      },
       "RegisterMemberSelection": {
         "properties": {
           "currentShares": {
@@ -17012,6 +17756,9 @@
             "format": "date",
             "nullable": true,
             "type": "string"
+          },
+          "hasAwards": {
+            "type": "boolean"
           },
           "lastCeasedOn": {
             "format": "date",
@@ -17027,7 +17774,7 @@
             "type": "string"
           },
           "onRegister": {
-            "description": "False only for an award recipient who has never been on the company's register.",
+            "description": "Whether the person has ever held shares on a company register.",
             "type": "boolean"
           },
           "particularsRetained": {
@@ -18566,6 +19313,11 @@
             "nullable": true,
             "type": "string"
           },
+          "sourceRegistration": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "sourceTransfer": {
             "format": "uuid",
             "nullable": true,
@@ -18581,6 +19333,7 @@
           "sourceChange",
           "sourceGrant",
           "sourceImport",
+          "sourceRegistration",
           "sourceTransfer"
         ],
         "type": "object"
@@ -19080,6 +19833,120 @@
         ],
         "type": "object"
       },
+      "RegisterPeople": {
+        "properties": {
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterMemberSelection"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "company",
+          "members"
+        ],
+        "type": "object"
+      },
+      "RegisterPersonCreateRequest": {
+        "properties": {
+          "appointment": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "residentialAddress": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "appointment",
+          "company",
+          "member",
+          "name",
+          "operationId",
+          "residentialAddress"
+        ],
+        "type": "object"
+      },
+      "RegisterPersonRegistration": {
+        "properties": {
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "member": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "preparingAppointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "residentialAddress": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "submittedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "company",
+          "createdAt",
+          "member",
+          "name",
+          "preparingAppointment",
+          "residentialAddress",
+          "submittedBy",
+          "uuid"
+        ],
+        "type": "object"
+      },
       "RegisterReconciliation": {
         "properties": {
           "blockHash": {
@@ -19524,9 +20391,17 @@
       },
       "RegisterTransferDecideRequest": {
         "properties": {
+          "applyAppointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "appointment": {
             "format": "uuid",
             "type": "string"
+          },
+          "completeTransfer": {
+            "default": false,
+            "type": "boolean"
           },
           "confirmation": {
             "type": "boolean"
@@ -19565,6 +20440,16 @@
             "format": "uuid",
             "readOnly": true,
             "type": "string"
+          },
+          "approvalAppointment": {
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "completeTransfer": {
+            "readOnly": true,
+            "type": "boolean"
           },
           "decidedAt": {
             "format": "date-time",
@@ -19609,6 +20494,8 @@
         },
         "required": [
           "appointment",
+          "approvalAppointment",
+          "completeTransfer",
           "decidedAt",
           "decidedBy",
           "decidedByName",
@@ -19625,6 +20512,11 @@
           "afterIssuedSupply": {
             "type": "string"
           },
+          "applyAppointment": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "approvingDirector": {
             "type": "string"
           },
@@ -19634,17 +20526,35 @@
           "authority": {
             "type": "string"
           },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "authorityReference": {
+            "type": "string"
+          },
           "canDecide": {
             "type": "boolean"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
           },
           "companyEventOn": {
             "format": "date",
             "nullable": true,
             "type": "string"
           },
+          "completeTransfer": {
+            "default": false,
+            "type": "boolean"
+          },
           "effectiveOn": {
             "format": "date",
             "nullable": true,
+            "type": "string"
+          },
+          "evidenceFingerprint": {
             "type": "string"
           },
           "fromAfterShares": {
@@ -19661,6 +20571,13 @@
             "type": "string"
           },
           "fromResidentialAddress": {
+            "type": "string"
+          },
+          "instrumentEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "instrumentFingerprint": {
             "type": "string"
           },
           "issuedSupply": {
@@ -19680,6 +20597,9 @@
             "type": "boolean"
           },
           "previewDigest": {
+            "type": "string"
+          },
+          "reason": {
             "type": "string"
           },
           "registerSequence": {
@@ -19708,6 +20628,10 @@
             "format": "uuid",
             "type": "string"
           },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          },
           "unmetRequirements": {
             "items": {
               "type": "string"
@@ -19720,20 +20644,27 @@
           "approvingDirector",
           "authorisedSupply",
           "authority",
+          "authorityEvidence",
+          "authorityReference",
           "canDecide",
+          "company",
           "companyEventOn",
           "effectiveOn",
+          "evidenceFingerprint",
           "fromAfterShares",
           "fromCurrentShares",
           "fromMember",
           "fromName",
           "fromResidentialAddress",
+          "instrumentEvidence",
+          "instrumentFingerprint",
           "issuedSupply",
           "lodgedOn",
           "name",
           "newMember",
           "newParticulars",
           "previewDigest",
+          "reason",
           "registerSequence",
           "residentialAddress",
           "shares",
@@ -19742,15 +20673,24 @@
           "toAfterShares",
           "toCurrentShares",
           "toMember",
+          "token",
           "unmetRequirements"
         ],
         "type": "object"
       },
       "RegisterTransferDecisionRequestRequest": {
         "properties": {
+          "applyAppointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "appointment": {
             "format": "uuid",
             "type": "string"
+          },
+          "completeTransfer": {
+            "default": false,
+            "type": "boolean"
           },
           "kind": {
             "$ref": "#/components/schemas/RegisterDecisionKindEnum"
@@ -23118,7 +24058,7 @@
             "type": "string"
           },
           "type": {
-            "$ref": "#/components/schemas/TypeEnum"
+            "$ref": "#/components/schemas/TradingWalletTokenBalanceTypeEnum"
           }
         },
         "required": [
@@ -23131,6 +24071,14 @@
           "type"
         ],
         "type": "object"
+      },
+      "TradingWalletTokenBalanceTypeEnum": {
+        "description": "* `share_token` - share_token\n* `stablecoin` - stablecoin",
+        "enum": [
+          "share_token",
+          "stablecoin"
+        ],
+        "type": "string"
       },
       "Transaction": {
         "properties": {
@@ -23495,11 +24443,13 @@
         ],
         "type": "string"
       },
-      "TypeEnum": {
-        "description": "* `share_token` - share_token\n* `stablecoin` - stablecoin",
+      "TriggerEnum": {
+        "description": "* `company` - company\n* `holder` - holder\n* `event` - event\n* `custom` - custom",
         "enum": [
-          "share_token",
-          "stablecoin"
+          "company",
+          "holder",
+          "event",
+          "custom"
         ],
         "type": "string"
       },
@@ -36138,6 +37088,234 @@
         ]
       }
     },
+    "/api/v1/tokens/register-member-documents/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_member_documents_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "idempotency_key",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "member",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRegisterMemberDocumentList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_member_documents_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterMemberDocumentCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterMemberDocumentCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterMemberDocumentCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterMemberDocument"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterMemberDocument"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-member-documents/{uuid}/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_member_documents_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterMemberDocument"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-member-documents/{uuid}/file/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_member_documents_file_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/tokens/register-openings/": {
       "get": {
         "operationId": "api_v1_tokens_register_openings_list",
@@ -37561,6 +38739,130 @@
         ]
       }
     },
+    "/api/v1/tokens/register-people/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_people_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which field to use when ordering the results.",
+            "in": "query",
+            "name": "ordering",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A page number within the paginated result set.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of results to return per page.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPeople"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "post": {
+        "operationId": "api_v1_tokens_register_people_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPersonCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPersonCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPersonCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPersonRegistration"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterPersonRegistration"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/tokens/register-reconciliations/": {
       "get": {
         "operationId": "api_v1_tokens_register_reconciliations_list",
@@ -38265,6 +39567,65 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ShareTokenDetail"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/class-rights-file/": {
+      "get": {
+        "operationId": "api_v1_tokens_class_rights_file_retrieve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "evidence",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
                 }
               }
             },

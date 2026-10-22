@@ -53,9 +53,13 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(people["awardRecipients"], [])
         recipient = next(row for row in people["members"] if row["member"] == award["member"])
         self.assertEqual(
-            (recipient["name"], recipient["currentShares"], recipient["onRegister"]), (award["name"], "0", False)
+            (recipient["name"], recipient["currentShares"], recipient["onRegister"], recipient["hasAwards"]),
+            (award["name"], "0", False, True),
         )
-        self.assertIn((str(awaiting.pk), True), [(row["member"], row["onRegister"]) for row in people["members"]])
+        self.assertIn(
+            (str(awaiting.pk), False, False),
+            [(row["member"], row["onRegister"], row["hasAwards"]) for row in people["members"]],
+        )
         evidence = self.grant_payload()
         renamed = {"name": "Synthetic Other Employee", "residential_address": "9 Other Street, Sydney NSW 2000"}
         transfer = {
@@ -135,7 +139,11 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
         unawarded = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json()
         self.assertNotIn(award["member"], json.dumps(unawarded))
         self.assertIn(str(self.member.pk), [row["member"] for row in unawarded["members"]])
-        self.assertTrue(all(row["onRegister"] for row in unawarded["members"]))
+        self.assertEqual(
+            {row["member"]: row["onRegister"] for row in unawarded["members"]},
+            {str(self.member.pk): True, str(awaiting.pk): False},
+        )
+        self.assertFalse(any(row["hasAwards"] for row in unawarded["members"]))
 
     def test_vesting_cannot_exceed_the_promise_and_transfers_do_not_recycle_issued_entitlement(self):
         yesterday = (timezone.now().date() - timedelta(days=1)).isoformat()

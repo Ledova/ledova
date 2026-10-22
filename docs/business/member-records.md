@@ -38,7 +38,7 @@ company owner may download the register CSV.
 | -------------------- | ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
 | Register CSV         | The company owner or a register reader     | **Documents**: **Download CSV**                         | Who took it, the class, the entry it runs to, row counts |
 | Inspection copy      | A register reader                          | **Documents**: **Inspection copy**                      | SHA-256, instruction, request date, recipient, late flag |
-| Certificate          | A register reader                          | **Register**, **History** (web); **Documents** (mobile) | SHA-256 and instruction                                  |
+| Certificate          | A register reader                          | **Documents**                                          | SHA-256 and instruction                                  |
 | Member's certificate | A register reader, on the member's request | **Member access and requests**                          | The PDF itself, as a certificate record                  |
 | Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**                             | SHA-256, period and instruction                          |
 | Core company pack    | A company administrator                    | **Documents**: **Company pack**                         | Manifest SHA-256, instruction, recipient, per class      |
@@ -143,8 +143,8 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
-2. Open **Documents**, select the company and find the share class. Enter the reference, recipient
-   and request date under **Inspection copy** (on mobile, choose **Prepare inspection copy**).
+2. Open **Documents**, select the company and find the share class. Choose **Prepare inspection copy**
+   and enter the reference, recipient and request date.
 3. Choose **Preview inspection copy**, check the request and register sequence, then **Confirm and
    download inspection copy** (web) or **Confirm and share inspection copy** (mobile).
 
@@ -179,15 +179,19 @@ The whole certificate is refused when a member's wallets resolve to different pe
 no name or residential address on record, the entry is not an issue or transfer in the class's
 register, or a correction has since reversed the entry (the refusal names the correction).
 
-### Preparing a certificate in the Register
+### Preparing a certificate
 
 1. Keep the company's written instruction and note its reference.
-2. On web, in **Register** choose **History** and the share class, open an issue or transfer entry
-   and choose **Prepare unsigned certificate**. On mobile, open the class's entries in
-   **Documents**.
-3. Enter the reference and choose **Preview unsigned certificate**. Check the entry, register
-   sequence and page count, then choose **Confirm and download unsigned PDF** (web) or **Confirm
-   and share unsigned certificate** (mobile).
+2. On web, in **Documents**, find the share class and choose the issue or transfer under
+   **Certificates**, identified by its date and share movements, then **Prepare unsigned certificate**.
+   On mobile, open the class's entries in **Documents**.
+3. On web, enter **Instruction reference** and choose **Preview**. Check the share class and PDF
+   page count; **Record details** holds the entry and register sequence. Choose **Edit** to change
+   the reference, **Download PDF** to generate the unsigned file, or **Cancel** to close the form.
+   The form keeps the privacy and signing reminder visible; the company arranges execution and
+   delivery.
+4. On mobile, enter the reference and choose **Preview unsigned certificate**. Check the entry,
+   register sequence and page count, then choose **Confirm and share unsigned certificate**.
 
 A register change after the preview invalidates it, and the appointment is rechecked before the
 fingerprint is recorded.
@@ -289,7 +293,7 @@ You need **Can change register outputs**.
 3. Tell the company what is due and when.
 4. For notice figures, on the company's written instruction, follow the row's link and
    [prepare the notice figures](#preparing-notice-figures). A certificate row has no link and
-   reads **Certificate (company register)**: the company prepares it in its own Register.
+   reads **Certificate (company register)**: the company prepares it in Documents.
 
 ## The company pack
 
@@ -316,8 +320,9 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
   and wallet nominations and instructions have none.
 - Issues, and subscriptions with a payment recorded by staff (not proved) still to be allotted or
   refunded, an obligation the company inherits.
-- Each class's company-supplied rights descriptions and document references, with every revision,
-  actor, appointment and recording time. References are text, not retained source-file proof.
+- Each class's company-supplied rights descriptions and linked evidence, with every revision,
+  actor, appointment and recording time. Earlier plain-text document references are retained as
+  text, separate from the supporting files.
 - Wallet approvals, the transactions Ledova sent for the company and the settlements it executed.
 - What the company published to its members, with each resolution's result, each dividend's payment
   records and read counts.
@@ -353,12 +358,12 @@ decisions, and of each appointee they relied on; the fingerprint input of each r
 of each dividend payment record or withdrawal carries the number of the account that recorded it,
 without which it cannot be checked.
 
-### Producing a core pack in the Register
+### Producing a core pack
 
-A company administrator produces the pack in **Documents**, **Company pack**: enter the company's
-written instruction and the recipient, then choose **Prepare and download company pack** (web) or
-**Prepare and share company pack** (mobile). The appointment is checked again before the pack is
-recorded.
+A company administrator produces the pack in **Documents**, **Company pack**. On web, choose
+**Prepare company pack** to open the form; enter the company's written instruction and the
+recipient, then choose **Prepare and download company pack**. Mobile keeps **Prepare and share
+company pack**. The appointment is checked again before the pack is recorded.
 
 This route produces only a complete core pack: every share class is an opened imported register
 never put on chain, and the company has no chain issues, subscriptions awaiting allotment,

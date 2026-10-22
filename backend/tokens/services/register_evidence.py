@@ -68,14 +68,20 @@ def _retained(prior, company, kind, appointment, size, mime_type, digest):
 def retain_register_evidence(*, actor, company_id, appointment, kind, idempotency_key, name, raw, mime_type):
     if kind not in RegisterEvidenceKind.values:
         raise ValidationError(
-            "Choose a share register, an ASIC extract, an authority document or a supporting document."
+            "Choose a share register, an ASIC extract, an authority document, "
+            "a supporting document or a class document."
         )
     digest = hashlib.sha256(raw).hexdigest()
     evidence = None
     try:
         with register_command(actor, company_id, "register_evidence") as (company, current_actor, profile, operator):
             source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
+                company,
+                current_actor,
+                profile,
+                operator,
+                appointment,
+                CompanyCapability.ADMIN if kind == RegisterEvidenceKind.CLASS_RIGHTS else CompanyCapability.PREPARE,
             )
             prior = RegisterEvidence.objects.filter(uploaded_by=current_actor, idempotency_key=idempotency_key).first()
             if prior is not None:

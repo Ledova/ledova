@@ -10,6 +10,12 @@ from companies.models import CompanyDocument
 from shared.uploads import UPLOAD_MIME_BY_EXTENSION
 from tokens.constants import COMPANY_PACK_MAX_STORED_BYTES
 from tokens.exceptions import RegisterIntegrityError
+from tokens.models import (
+    ClassRightsRevision,
+    RegisterEvidence,
+    RegisterImport,
+    RegisterMemberDocument,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +69,63 @@ def held(company):
     return listed, stored
 
 
+def member_documents(company):
+    listed, openings, stored = [], [], {}
+    for document in (
+        RegisterMemberDocument.objects.filter(company=company).select_related("evidence").order_by("created_at", "uuid")
+    ):
+        evidence = document.evidence
+        path = _path(f"{EVIDENCE_FOLDER}/shareholders", evidence.pk, evidence.mime_type)
+        listed.append(
+            {
+                "uuid": document.pk,
+                "company": document.company_id,
+                "member": document.member_id,
+                "token": document.token_id,
+                "source_import": document.source_import_id,
+                "evidence": evidence.pk,
+                "category": document.category,
+                "snapshot": document.snapshot,
+                "appointment": document.appointment_id,
+                "recorded_by": document.recorded_by_id,
+                "created_at": document.created_at,
+                "path": path,
+            }
+        )
+        stored[path] = {
+            "file": evidence.file,
+            "size": document.snapshot["file_size"],
+            "recorded": {"size": document.snapshot["file_size"], "sha256": document.snapshot["sha256"]},
+            "of": f"shareholder evidence {evidence.pk}",
+        }
+    for opening in RegisterImport.objects.filter(company=company).order_by("created_at", "uuid"):
+        for member in opening.members:
+            for document in member.get("documents", []):
+                evidence = RegisterEvidence.objects.get(pk=document["evidence"], company=company)
+                snapshot = document["snapshot"]
+                path = _path(f"{EVIDENCE_FOLDER}/shareholders", evidence.pk, snapshot["mime_type"])
+                openings.append(
+                    {
+                        "company": company.pk,
+                        "member": member["member"],
+                        "token": opening.token_id,
+                        "source_import": opening.pk,
+                        "status": opening.status,
+                        "evidence": evidence.pk,
+                        "category": document["category"],
+                        "snapshot": snapshot,
+                        "path": path,
+                    }
+                )
+                stored[path] = {
+                    "file": evidence.file,
+                    "size": snapshot["file_size"],
+                    "recorded": {"size": snapshot["file_size"], "sha256": snapshot["sha256"]},
+                    "of": f"shareholder evidence {evidence.pk}",
+                }
+    return {"links": listed, "openings": openings}, stored
+
+
 def evidence(records) -> dict:
     copies = {
         evidence_path(record): {
@@ -89,6 +152,30 @@ def evidence(records) -> dict:
                 "of": f"the ASIC extract of {record._meta.verbose_name} {record.pk}",
             }
     return copies
+
+
+def class_documents(company):
+    listed, stored = [], {}
+    for revision in ClassRightsRevision.objects.filter(token__company=company).order_by("token_id", "revision"):
+        for snapshot in revision.documents:
+            evidence = RegisterEvidence.objects.get(pk=snapshot["evidence"], company=company)
+            path = _path(f"{EVIDENCE_FOLDER}/class-rights", evidence.pk, snapshot["mime_type"])
+            listed.append(
+                {
+                    "company": company.pk,
+                    "token": revision.token_id,
+                    "revision": revision.pk,
+                    "snapshot": snapshot,
+                    "path": path,
+                }
+            )
+            stored[path] = {
+                "file": evidence.file,
+                "size": snapshot["file_size"],
+                "recorded": {"size": snapshot["file_size"], "sha256": snapshot["sha256"]},
+                "of": f"class document {evidence.pk}",
+            }
+    return listed, stored
 
 
 UNREADABLE = (OSError, ValueError, GoogleAPIError, S3ClientError, BotoCoreError)

@@ -43,6 +43,16 @@ and `RegisterMemberCessation` an exit from an imported register. `FormerHolder` 
 `ImportedFormerMember` hold former members, and `RegisterReconciliation`, `RegisterAcknowledgement`
 and `RegisterExport` reconciliations, acknowledgements and output fingerprints.
 
+`RegisterPersonRegistration` is the attributable source for a person added before holding shares.
+The company-scoped `register-people/` read requires a current register-reader appointment; its
+write requires current preparation or administration authority under the locked company command.
+An exact operation retry returns the same registration; changed data conflicts. It creates only
+the company member ID and particulars with `source_registration`, never a position, register
+entry, award, account or invitation. PostgreSQL checks the company, actor, appointment and matching
+particulars at commit and preserves the registration. People choices report `on_register` and
+`has_awards` separately, so a person without shares is not labelled an award recipient. Existing
+null registration sources stay absent from older snapshots and decision digests.
+
 PostgreSQL enforces the ledger, not Python.
 [database_guards.py](../../backend/tokens/database_guards.py) installs
 [database_guards.sql](../../backend/tokens/database_guards.sql) with the family files
@@ -267,7 +277,9 @@ the uploader's current preparing appointment, a PDF, PNG or JPEG, and that path.
 `share_register` or `asic_extract` (an import's optional copies), `authority` (the director
 resolution or court order behind an opening, correction, wallet link, grant, transfer, allotment or
 chain family) or `supporting` (a particulars change, grant terms and acceptance, a transfer
-instrument, an award agreement, a vesting event, an allotment's agreement and receipt).
+instrument, an award agreement, a vesting event, an allotment's agreement and receipt). The
+`class_rights` kind is a class-wide supporting file and requires a current personal administration
+appointment instead of preparing authority.
 
 Preparation accepts only the preparer's own upload for this company, of the right kind, whose stored
 bytes still match their fingerprint, and keeps a private copy and a snapshot
@@ -398,10 +410,16 @@ The schema leaves `members` and `former_members` free-form. A member row has exa
 `allotted_on`, `shares`, `share_reference`, `certificate_reference`, `amount_paid`, `amount_unpaid`,
 `fully_paid` and `beneficially_held`; a former row exactly `name`, `residential_address`, `shares`
 and `ceased_on`. Shares are positive whole numbers, dates no later than `as_at`, money at most two
-decimal places and names up to 255 characters; a member's 1 to 10,000 allotments sum to its holding,
-and `fully_paid` agrees with a zero `amount_unpaid`. The stored row adds `amount_paid`, the sum of
-its allotments, and `tokens_mirror_members_valid` rechecks the stored shape in PostgreSQL. Earlier
-snapshots keep their missing fields unknown.
+decimal places and names up to 255 characters; a member has 0 to 10,000 optional historical allotments,
+whose quantities are independent of the current holding,
+and `fully_paid` agrees with a zero `amount_unpaid`. `beneficially_held` is a boolean or explicit
+JSON null for **Not recorded**; its key is required, and strings are refused. New web entries leave
+it unknown, while existing answers and references remain intact. The stored row adds `amount_paid`:
+new snapshots use null because optional history does not establish the current holding's paid
+amount. Earlier calculated amounts and exact retries remain intact. New web draft paid/unpaid
+fields normalize blank to zero before submission; the API and stored-record parser still require
+valid explicit amounts on each supplied historical row. `tokens_mirror_members_valid` rechecks
+the stored shape in PostgreSQL. Earlier snapshots keep their missing fields unknown.
 
 Empty `members` and `former_members` arrays are accepted only for an unopened draft class with no
 chain activity or correction source. `tokens_empty_mirror_opening_ready` enforces that boundary
@@ -450,6 +468,15 @@ decision guards, so changing it after preview or before commit cannot authorise 
 vested quantity. A transfer that empties a holding writes a `RegisterMemberCessation`. `GET
 {uuid}/register/members/` lists a class's company members for these forms.
 
+Web transfer review sends `kind: approve`, `complete_transfer: true` and `apply_appointment` to
+`register-transfers/{uuid}/decision-preview/` and `decide/`, alongside the normal approval
+appointment and decision bindings. The preview binds both current appointments and the exact
+transfer effect. The combined command reuses a still-current approval or records one, then records
+the application decision and one TRANSFER entry in the same transaction. A failure rolls back every
+new decision and movement. Its application receipt retains `complete_transfer: true` and
+`approval_appointment`; an identical request recovers that exact receipt without duplicating the
+transfer. Omitting the combined flag keeps the separate API and mobile decisions.
+
 ### Company event dates
 
 New non-tokenised grants, allotments and direct transfers require an explicit `company_event_on`.
@@ -474,19 +501,46 @@ conventions, and the register hash format is unchanged.
 
 ### Class-rights descriptions
 
-`tokens.ClassRightsRevision` retains company-supplied text separately from holdings and legal rights.
+`tokens.ClassRightsRevision` retains company-supplied structured terms, additional text and evidence
+snapshots separately from holdings and legal rights. `attributes` groups voting, dividends, capital
+on winding-up, transfers, conversion and redemption. An unrecorded group does not assert that a right
+is absent. Nullable `effective_date` is the company's known date for the terms, not the system's
+`created_at`. Earlier text-only revisions keep their original content and recording time without
+invented structured values or effective dates.
 The class's `class-rights/` GET is paginated newest first, with the latest `current` record and the
 viewer's current personal administration appointment, if any. `idempotency_key` filters the records
 for exact-request recovery without changing `current`. Reads require current company register access.
 
 POST supplies `appointment`, `idempotency_key`, `previous_revision` (zero initially), `summary` (up
-to 4,000 characters) and `document_reference` (up to 255). Both strings may be blank. Current personal
-administration and the company lock are required, including for an exact retry. A new request appends
-one revision; the same actor/key and exact payload recover the prior result. Changed retries or a
-stale revision conflict. PostgreSQL retains the actor, name snapshot, appointment and actual time,
-refuses edits/deletion, rechecks administration at commit and prevents moving a recorded class to
-another company. The app role has no table grant; member/public projections do not include these records.
-The company pack includes the full revision history as `classes/<class id>/class_rights.json`.
+to 20,000 characters, allowed blank), `attributes`, `effective_date` and `documents` (evidence UUIDs,
+default empty). `summary` remains the storage/API field for the web's single Additional terms field.
+New writes also limit the combined, category-labelled group conditions and summary to 20,000 characters.
+The web combines earlier group conditions with their category labels and existing summary for
+reading and editing. A new web save stores that combined text in `summary` without group-condition
+copies; earlier revisions and API condition fields remain supported. No text is parsed into rights
+or calculations. The response includes the structured terms, effective date and retained evidence
+snapshots. New web edits omit `document_reference`; earlier text remains readable in revisions and
+exports, and the optional legacy request field defaults to blank.
+
+Current personal administration and the company lock are required, including for an exact retry.
+A new request appends one revision; the same actor/key and exact payload, including structured terms,
+effective date and documents, recover the prior result.
+Changed retries or a stale revision conflict. PostgreSQL retains the actor, name snapshot,
+appointment, evidence and actual time, refuses edits/deletion, rechecks administration at commit
+and prevents moving a recorded class to another company. Removing a document from the latest
+record leaves earlier revisions and their files intact. The app role has no table grant;
+member/public projections do not include these records.
+
+`GET <class uuid>/class-rights-file/?revision=<revision uuid>&evidence=<evidence uuid>` requires
+current register access to that exact class and a file linked to that revision, and verifies the
+stored fingerprint. There is no arbitrary evidence download or shareholder association. The
+company pack includes the full revision history and snapshots as
+`classes/<class id>/class_rights.json`, with each unique retained file under
+`documents/evidence/class-rights/<evidence uuid>.<extension>`.
+
+The structured fields are descriptive records for reading and export. They do not change existing
+share-count charts, company capabilities, transfer gates, approvals or calculations. Automated rights
+rules, broader filtering/comparison interfaces and member disclosure require their own scope.
 
 ### Employee awards API
 
@@ -806,7 +860,7 @@ appointment in one durable transaction, builds the pack, then in a second rechec
 locks every captured class row, records the export and rechecks the appointment again.
 `_require_core_contents` refuses the whole pack, rather than omitting records, when the snapshot
 holds anything outside the [core
-scope](../business/member-records.md#producing-a-core-pack-in-the-register): each class must be a
+scope](../business/member-records.md#producing-a-core-pack): each class must be a
 draft with an applied import and no chain fields, deployment, operations, issuance requests,
 subscriptions awaiting allotment, settlements, capital increases or pauses.
 
