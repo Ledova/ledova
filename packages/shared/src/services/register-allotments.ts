@@ -43,6 +43,13 @@ export const previewRegisterAllotmentDecision = async (
     data,
     config,
   );
+  if (
+    data.completeIssue === true &&
+    (data.kind !== 'approve' ||
+      response.data.completeIssue !== true ||
+      response.data.applyAppointment !== (data.applyAppointment ?? data.appointment))
+  )
+    throw createUserFriendlyError(REGISTER_ALLOTMENT_COPY.PREVIEW_FAILED);
   if (data.kind !== 'reject' && response.data.canDecide && allotmentOwnershipImpact(response.data) === null)
     throw createUserFriendlyError(REGISTER_ALLOTMENT_COPY.OWNERSHIP_UNAVAILABLE);
   return response;

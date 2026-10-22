@@ -6723,7 +6723,9 @@ export interface ApiComponents {
       tokenId: string;
     };
     RegisterAllotmentDecideRequest: {
+      applyAppointment?: string;
       appointment: string;
+      completeIssue?: boolean;
       confirmation: boolean;
       idempotencyKey: string;
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
@@ -6732,6 +6734,8 @@ export interface ApiComponents {
     };
     RegisterAllotmentDecision: {
       appointment: string;
+      approvalAppointment: string | null;
+      completeIssue: boolean;
       decidedAt: string;
       decidedBy: number;
       decidedByName: string;
@@ -6745,6 +6749,7 @@ export interface ApiComponents {
       afterIssuedSupply: string;
       afterShares: string;
       agreement: ApiComponents['schemas']['RegisterAgreement'];
+      applyAppointment?: string | null;
       approvingDirector: string;
       authorisedSupply: string;
       authorityReference: string;
@@ -6752,6 +6757,7 @@ export interface ApiComponents {
       classCode: string;
       className: string;
       companyEventOn: string | null;
+      completeIssue?: boolean;
       consideration: string;
       contribution: ApiComponents['schemas']['RegisterContribution'];
       currency: string;
@@ -6770,7 +6776,9 @@ export interface ApiComponents {
       unmetRequirements: string[];
     };
     RegisterAllotmentDecisionRequestRequest: {
+      applyAppointment?: string;
       appointment: string;
+      completeIssue?: boolean;
       kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
       reason?: string;
     };

@@ -62,6 +62,32 @@ it('requires exact fully paid AUD sources and the actual applied ISSUE receipt',
   expect(isRegisterAllotmentDecisionReceipt({ ...applied, registerEntry: null }, row.uuid, request, preview)).toBe(
     false,
   );
+  const completion = {
+    ...request,
+    kind: 'approve' as const,
+    completeIssue: true,
+    applyAppointment: 'application-appointment',
+    idempotencyKey: 'completion-a',
+  };
+  const completionPreview = { ...preview, completeIssue: true, applyAppointment: completion.applyAppointment };
+  const completed = allotmentDecision(row, completion);
+  expect(completed.decisions).toHaveLength(2);
+  expect(isRegisterAllotmentDecisionReceipt(completed, row.uuid, completion, completionPreview)).toBe(true);
+  expect(isRegisterAllotmentDecisionReceipt(completed, row.uuid, completion, preview)).toBe(false);
+  expect(isRegisterAllotmentDecisionReceipt(applied, row.uuid, completion, completionPreview)).toBe(false);
+  expect(
+    isRegisterAllotmentDecisionReceipt({ ...completed, registerEntry: null }, row.uuid, completion, completionPreview),
+  ).toBe(false);
+  expect(
+    isRegisterAllotmentDecisionReceipt(
+      completed,
+      row.uuid,
+      { ...completion, appointment: 'another-approver' },
+      completionPreview,
+    ),
+  ).toBe(false);
+  const approved = allotmentDecision(row, { ...request, kind: 'approve', idempotencyKey: 'prior-approval' });
+  expect(allotmentDecision(approved, completion).decisions).toHaveLength(2);
   const investment: RegisterAllotmentDecisionPreview = {
     ...preview,
     shares: '2500',
@@ -246,4 +272,14 @@ it('requires exact fully paid AUD sources and the actual applied ISSUE receipt',
   await expect(previewRegisterAllotmentDecision(api, row.uuid, decision)).resolves.toBe(response);
   response.data = investment;
   await expect(previewRegisterAllotmentDecision(api, row.uuid, decision)).resolves.toBe(response);
+  const completionRequest = { ...decision, kind: 'approve' as const, completeIssue: true };
+  await expect(previewRegisterAllotmentDecision(api, row.uuid, completionRequest)).rejects.toThrow(
+    REGISTER_ALLOTMENT_COPY.PREVIEW_FAILED,
+  );
+  response.data = { ...investment, completeIssue: true, applyAppointment: decision.appointment };
+  await expect(previewRegisterAllotmentDecision(api, row.uuid, completionRequest)).resolves.toBe(response);
+  response.data = { ...investment, completeIssue: true, applyAppointment: 'different-appointment' };
+  await expect(previewRegisterAllotmentDecision(api, row.uuid, completionRequest)).rejects.toThrow(
+    REGISTER_ALLOTMENT_COPY.PREVIEW_FAILED,
+  );
 });

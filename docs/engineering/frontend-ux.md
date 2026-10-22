@@ -110,8 +110,10 @@ smaller screens; long terms, documents and audit references open on demand. Keep
 confirming action together at the bottom right, without another confirmation dialog. Opening the
 review focuses its heading; cancelling returns to its record's opener. Keep the record controllers
 mounted, and preserve current authority, exact preview binding, loading, errors and original-request
-recovery. Investor allotment approval, rejection and recording the issue use this page review;
-approval still issues no shares. Other decision dialogs keep their existing workflow until refined.
+recovery. For web investor allotments, a green **Review and approve** action opens this read-only
+review; its green **Approve** confirmation records approval and the issue together. Show **Approved**
+and the recorded outcome afterwards, without a separate Record issue action. Rejection also uses
+page review. Other decision families and mobile keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first

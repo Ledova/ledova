@@ -1357,6 +1357,16 @@ custom rights. Earlier group conditions are combined with category labels and ex
 editing; a new save records the combined text without duplicate group conditions, leaving earlier
 versions unchanged. The effective date, Documents, authority checks and save workflow stay the same.
 
+On 22 October 2026 the owner also combined web investor-allotment approval and issuance under
+#1165. A green **Review and approve** opens the main-page review without deciding anything; its
+green **Approve** action records approval and the share issue in one idempotent transaction,
+requiring current approval and application authority. Keep a current existing approval and the original-request
+recovery, exact preview, evidence, identity, director and duplicate-issuance guards. A failed
+transaction records neither new effect. The completed result shows **Approved** and its recorded
+shares. Remove the separate Record issue action from this web workflow. Agreement, company-attested
+receipt, approval and ledger entry remain distinct retained records. This settles no money and
+changes neither non-paid/chain workflows nor mobile's separate steps.
+
 Initial setup stays **Share details → Shareholders → Review**, copying existing holdings or opening
 a genuinely empty class; it does not issue new shares. Later issues, transfers and history reuse
 the same people and register records, without changing company authority,

@@ -86,6 +86,9 @@ class RegisterAllotment(BaseModel):
 
 class RegisterAllotmentDecision(RegisterDecision):
     register_allotment = models.ForeignKey(RegisterAllotment, on_delete=models.PROTECT, related_name="decisions")
+    completion_approval_appointment = models.ForeignKey(
+        "companies.CompanyAppointment", on_delete=models.PROTECT, related_name="+", null=True, editable=False
+    )
 
     class Meta(RegisterDecision.Meta):
         constraints = [

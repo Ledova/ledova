@@ -6,6 +6,7 @@ import {
   formatDateTime,
   type RegisterDecisionKind,
   type RegisterAllotment,
+  type RegisterAllotmentDecisionRequest,
   shareCount,
   formatMoney,
   formatDate,
@@ -19,7 +20,7 @@ import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals
 import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
 import { AllotmentReview } from './AllotmentReview';
 
-const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
+const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, approve: 'Approve', apply: 'Shares recorded' } };
 
 function AllotmentRows({ allotment }: { allotment: RegisterAllotment }) {
   return (
@@ -74,7 +75,14 @@ export function AllotmentRecord({
   const download = useAllotmentRecordDownload(allotment, guard);
   const context = `allotment for ${allotment.name} prepared ${formatDateTime(allotment.createdAt)}`;
   const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
-  const decisionSteps = allotment.stage === 'submitted' ? { ...steps, apply: undefined } : steps;
+  const decisionSteps = { ...steps, apply: undefined };
+  const family = {
+    ...REGISTER_ALLOTMENT_DECISIONS,
+    request: (request: RegisterAllotmentDecisionRequest): RegisterAllotmentDecisionRequest =>
+      request.kind === 'approve'
+        ? { ...request, completeIssue: true, applyAppointment: steps.apply?.uuid ?? request.appointment }
+        : request,
+  };
   const reviewChanged = useCallback(
     (open: boolean) => onReviewChange(allotment.uuid, open),
     [allotment.uuid, onReviewChange],
@@ -105,7 +113,11 @@ export function AllotmentRecord({
             <div className="flex flex-wrap items-center gap-2">
               <h4 className="text-base font-medium">{allotment.name}</h4>
               <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
-                {allotment.stage === 'applied' ? 'Shares issued' : (COPY.STAGES[allotment.stage] ?? allotment.stage)}
+                {allotment.stage === 'applied'
+                  ? 'Approved'
+                  : allotment.stage === 'approved'
+                    ? 'Ready to complete'
+                    : (COPY.STAGES[allotment.stage] ?? allotment.stage)}
               </Status>
             </div>
             <p className="text-sm text-text-muted">
@@ -116,7 +128,7 @@ export function AllotmentRecord({
             {allotment.stage === 'applied'
               ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
               : allotment.stage === 'approved'
-                ? 'Next: record the approved share issue. Approval has not changed ownership.'
+                ? 'Approval is on file; the share issue has not been recorded.'
                 : allotment.stage === 'rejected'
                   ? 'No shares were issued by this rejected allotment. The agreement and company receipt remain recorded.'
                   : 'Ready for approval. No shares issued.'}
@@ -147,13 +159,19 @@ export function AllotmentRecord({
       <RegisterDecisions
         recordActions
         approveLabel="Review and approve"
-        family={REGISTER_ALLOTMENT_DECISIONS}
+        family={family}
         copy={DECISION_COPY}
         noun="external allotment"
         proposal={allotment}
         steps={decisionSteps}
         guard={guard}
-        newEffectGuard={newEffectGuard}
+        newEffectGuard={(kind) => {
+          newEffectGuard(kind);
+          if (kind === 'approve') {
+            if (!steps.apply) throw new Error('Company authority to record share issues is required.');
+            newEffectGuard('apply');
+          }
+        }}
         context={context}
         onDecided={onSettled}
         onRefused={onSettled}
@@ -163,7 +181,7 @@ export function AllotmentRecord({
           target: reviewTarget,
           onChange: reviewChanged,
           title: 'Review share issue',
-          labels: { approve: 'Approve allotment', apply: 'Record issue', reject: 'Reject allotment' },
+          labels: { approve: 'Approve', apply: 'Approve', reject: 'Reject allotment' },
         }}
       >
         {(preview, kind) => (

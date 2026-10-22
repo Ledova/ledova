@@ -169,7 +169,13 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
         prior = family.decision_model.objects.filter(decided_by=current_actor, idempotency_key=idempotency_key).first()
         if prior is not None:
             decided = getattr(prior, f"{family.field}_id")
-            if (decided, prior.kind, prior.appointment_id, prior.reason, prior.digest) != (
+            if getattr(prior, "completion_approval_appointment_id", None) is not None or (
+                decided,
+                prior.kind,
+                prior.appointment_id,
+                prior.reason,
+                prior.digest,
+            ) != (
                 initial.pk,
                 kind,
                 UUID(str(appointment)),

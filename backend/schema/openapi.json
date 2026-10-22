@@ -12521,9 +12521,17 @@
       },
       "RegisterAllotmentDecideRequest": {
         "properties": {
+          "applyAppointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "appointment": {
             "format": "uuid",
             "type": "string"
+          },
+          "completeIssue": {
+            "default": false,
+            "type": "boolean"
           },
           "confirmation": {
             "type": "boolean"
@@ -12562,6 +12570,16 @@
             "format": "uuid",
             "readOnly": true,
             "type": "string"
+          },
+          "approvalAppointment": {
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "completeIssue": {
+            "readOnly": true,
+            "type": "boolean"
           },
           "decidedAt": {
             "format": "date-time",
@@ -12606,6 +12624,8 @@
         },
         "required": [
           "appointment",
+          "approvalAppointment",
+          "completeIssue",
           "decidedAt",
           "decidedBy",
           "decidedByName",
@@ -12627,6 +12647,11 @@
           },
           "agreement": {
             "$ref": "#/components/schemas/RegisterAgreement"
+          },
+          "applyAppointment": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
           },
           "approvingDirector": {
             "type": "string"
@@ -12650,6 +12675,10 @@
             "format": "date",
             "nullable": true,
             "type": "string"
+          },
+          "completeIssue": {
+            "default": false,
+            "type": "boolean"
           },
           "consideration": {
             "type": "string"
@@ -12741,9 +12770,17 @@
       },
       "RegisterAllotmentDecisionRequestRequest": {
         "properties": {
+          "applyAppointment": {
+            "format": "uuid",
+            "type": "string"
+          },
           "appointment": {
             "format": "uuid",
             "type": "string"
+          },
+          "completeIssue": {
+            "default": false,
+            "type": "boolean"
           },
           "kind": {
             "$ref": "#/components/schemas/RegisterDecisionKindEnum"

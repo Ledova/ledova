@@ -181,7 +181,7 @@ paid issues stay.
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Copying existing records (the opening)                               | Sets the opening balance; it is never an issue                                                                                      |
 | Employee award and vesting                                           | None: an award is a promised entitlement and vesting a company record                                                               |
-| Investor agreement and receipt                                       | None on their own; applying the allotment makes the issue                                                                           |
+| Investor agreement and receipt                                       | None on their own; completing the approved allotment makes the issue                                                                           |
 | Any issue: grant, award-linked grant, allotment, chain or paid issue | Increases the issued shares and the recipient's holding once                                                                        |
 | Transfer                                                             | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
 | Correction                                                           | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections))   |
@@ -320,26 +320,34 @@ No deployment, application, payment or chain receipt is involved.
    the list. Check the recipient, class, agreed shares, AUD total and derived price per share, then
    each shareholder's shares and class percentage before and after the proposed issue. Agreement
    and receipt sit beside company authority, with long terms, documents and audit references on
-   demand. Cancel returns to the record; Approve allotment approves the exact preview without
-   another popup. Recording the issue remains a separate action through Record issue. Rejection
-   and recording also use a focused page review; mobile keeps its existing decision screens.
+   demand. Cancel returns to the record. The green Approve action confirms that exact preview and
+   records both the company approval and the share issue together, without another popup or a
+   separate Record issue action. It requires current approval and application authority; opening
+   the review changes nothing. An older approval without an issue shows Ready to complete; the
+   completed record shows Approved and the recorded shares. Rejection also uses a focused page
+   review. Mobile keeps its separate approval and application steps.
 
 The web form shows one step at a time using the same step indicator and fields as Ledger setup.
 Back preserves entries and selected files; Continue validates that step without uploading or saving.
-Preparation is the final form action and still leaves approval and recording the issue separate.
+Preparation saves the proposal without approving or issuing shares. The final web Approve is one
+idempotent transaction: if any authority, evidence, identity or ownership check fails, neither a
+new approval nor an issue is recorded. Retrying the same command returns its original outcome
+without issuing twice. An earlier current approval is retained and reused; its history is not
+rewritten.
 
 On web and mobile, this forecast comes from one current class snapshot in the decision preview.
 The recipient is visible first, with other shareholders available on demand for a longer list.
 Price is rounded half-up to four decimal places and percentages to two; the agreed total and whole
 share quantity stay exact. Percentages count shares in this class, not voting or economic rights,
-and Ledova chooses no valuation. Approval, rejection and a displayed forecast issue no shares; an
-applied record shows its recorded outcome rather than forecasting a second issue. Missing or
-inconsistent ownership data blocks a new approval or issue, while retained records, rejection and
-recovery of the original receipt remain available.
+and Ledova chooses no valuation. A displayed forecast and rejection issue no shares; the completed
+record shows its recorded outcome rather than forecasting a second issue. Missing or inconsistent
+ownership data blocks completion, while retained records, rejection and recovery of the original
+command remain available.
 
 The amount received must equal the consideration, because only fully paid allotments are supported.
-Approval is separate from the receipt, and applying records one Issue; the agreement, receipt,
-decision and resulting ownership stay separate records, shown under Details and documents on web.
+The receipt does not authorise issuance. The completed allotment records one Issue; the agreement,
+receipt, approval and resulting ownership stay separate retained records, shown under Details and
+documents on web. Combining the web confirmation neither collects nor settles money.
 Rejecting an allotment keeps its agreement and receipt and performs no refund. A receipt is shown as
 attested by the company, not verified by Ledova. The register's amount paid then includes the
 consideration ([amount paid](register.md#amount-paid-and-date-entered)).
