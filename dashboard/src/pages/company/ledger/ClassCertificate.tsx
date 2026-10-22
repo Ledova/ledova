@@ -1,10 +1,7 @@
-import { Field, TextInput } from '@components/Field';
-import { FIELD_LIMITS, formatDate, formatDateTime } from '@ledova/shared';
+import { formatDate, formatDateTime } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Disclosure, Outcome, Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
-import { ErrorSummary } from '@components/ErrorSummary';
-import { useErrorSummary } from '@hooks/useErrorSummary';
 import { RegisterChanges } from './shared/RegisterChanges';
 import { useClassCertificate, type Source } from './useClassCertificate';
 
@@ -61,22 +58,14 @@ function CertificateRequest({ onEditingChange, ...source }: Source & Editing) {
 }
 
 function CertificateForm({ register, entry, guard, sourceReady, close }: Source & { close: () => void }) {
-  const instructionField = useRef<HTMLInputElement>(null);
-  useEffect(() => instructionField.current?.focus(), []);
-  const {
-    instruction,
-    setInstruction,
-    target,
-    setTarget,
-    busy,
-    error,
-    downloaded,
-    problems,
-    blocked,
-    preview,
-    download,
-  } = useClassCertificate({ register, entry, guard, sourceReady });
-  const checks = useErrorSummary(problems);
+  const previewButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => previewButton.current?.focus(), []);
+  const { target, busy, error, downloaded, blocked, preview, download } = useClassCertificate({
+    register,
+    entry,
+    guard,
+    sourceReady,
+  });
   const context = `unsigned certificate for entry ${entry.sequence}`;
   return (
     <form
@@ -84,48 +73,26 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
       className="flex w-full flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        if (!target && checks.check()) void preview();
+        if (!target) void preview();
       }}
     >
       <h3 className="text-sm font-medium text-text-primary">Unsigned certificate</h3>
-      <ErrorSummary {...checks.summary} />
-      <div className="grid items-start gap-6 md:grid-cols-2">
-        <div className="space-y-2">
-          <Rows>
-            <Row label="Share movements">
-              <RegisterChanges changes={entry.changes} />
-            </Row>
-            <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
-          </Rows>
-          <Disclosure summary="Record details">
-            <Rows>
-              <Row label="Entry">{entry.sequence}</Row>
-              <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
-              <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
-              {target && <Row label="Register sequence">{target.preview.registerSequence}</Row>}
-            </Rows>
-          </Disclosure>
-        </div>
-        <div className="space-y-3">
-          <Field {...checks.field('instruction')} label="Instruction reference">
-            <TextInput
-              ref={instructionField}
-              maxLength={FIELD_LIMITS.REFERENCE}
-              value={instruction}
-              disabled={blocked || !!target}
-              onChange={(event) => setInstruction(event.target.value)}
-            />
-          </Field>
-          <p className="text-sm text-text-muted">
-            Includes names and residential addresses. The company arranges signing.
-          </p>
-          {target && (
-            <Rows>
-              <Row label="PDF pages">{target.preview.pageCount}</Row>
-            </Rows>
-          )}
-        </div>
-      </div>
+      <Rows>
+        <Row label="Share movements">
+          <RegisterChanges changes={entry.changes} />
+        </Row>
+        <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
+        {target && <Row label="PDF pages">{target.preview.pageCount}</Row>}
+      </Rows>
+      <Disclosure summary="Record details">
+        <Rows>
+          <Row label="Entry">{entry.sequence}</Row>
+          <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
+          <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
+          {target && <Row label="Register sequence">{target.preview.registerSequence}</Row>}
+        </Rows>
+      </Disclosure>
+      <p className="text-sm text-text-muted">Includes names and residential addresses. The company arranges signing.</p>
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -134,7 +101,6 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
       <Outcome>{downloaded && 'The unsigned certificate was downloaded.'}</Outcome>
       <FormActions>
         <PageAction label="Cancel" context={context} disabled={!!busy} onClick={close} />
-        {target && <PageAction label="Edit" context={context} disabled={blocked} onClick={() => setTarget(null)} />}
         {target ? (
           <PageAction
             key="download"
@@ -149,6 +115,7 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
         ) : (
           <PageAction
             key="preview"
+            ref={previewButton}
             type="submit"
             primary
             label="Preview"

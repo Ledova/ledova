@@ -105,12 +105,31 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             "sequence": entry.sequence,
             "appointment": str(self.appointment.pk),
             "source_digest": preview.json()["sourceDigest"],
-            "instruction": "SYNTHETIC-UNSIGNED-COMPANY-CERTIFICATE",
         }
         stale = self.client.post(company_endpoint, {**fields, "source_digest": "0" * 64}, format="json")
         self.assertEqual(stale.status_code, 409, stale.content)
+        with use_operator():
+            self.assertFalse(RegisterExport.objects.exists())
         company_pdf = self.client.post(company_endpoint, fields, format="json")
         self.assertEqual(company_pdf.status_code, 200, company_pdf.content)
+        with use_operator():
+            certificate_audit = RegisterExport.objects.get(kind="certificate")
+            self.assertEqual(
+                certificate_audit.instruction,
+                f"Unsigned certificate requested for ledger entry {entry.pk} (sequence {entry.sequence}).",
+            )
+            self.assertEqual(certificate_audit.requested_by_id, self.owner.pk)
+            self.assertEqual(certificate_audit.register_sequence, entry.sequence)
+            self.assertEqual(certificate_audit.digest, hashlib.sha256(company_pdf.content).hexdigest())
+        referenced_pdf = self.client.post(
+            company_endpoint,
+            {**fields, "instruction": "SYNTHETIC-UNSIGNED-COMPANY-CERTIFICATE"},
+            format="json",
+        )
+        self.assertEqual(referenced_pdf.status_code, 200, referenced_pdf.content)
+        with use_operator():
+            referenced_audit = RegisterExport.objects.exclude(pk=certificate_audit.pk).get(kind="certificate")
+            self.assertEqual(referenced_audit.instruction, "SYNTHETIC-UNSIGNED-COMPANY-CERTIFICATE")
         with pymupdf.open(stream=company_pdf.content, filetype="pdf") as document:
             self.assertEqual(document.page_count, 2)
             company_text = "".join(page.get_text() for page in document)
@@ -303,10 +322,10 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(audit.requested_by_id, self.owner.pk)
             self.assertEqual(int(self.token.stored_register.issued_supply), 150)
             self.assertEqual(RegisterGrant.objects.get(pk=grant.json()["uuid"]).award_id, UUID(award["operation_id"]))
-            self.assertEqual(RegisterExport.objects.count(), 3)
+            self.assertEqual(RegisterExport.objects.count(), 4)
             self.assertEqual(
                 purge_register_exports(now=timezone.now() + timedelta(days=settings.FORMER_MEMBER_RETENTION_DAYS + 1)),
-                2,
+                3,
             )
             self.assertEqual(list(RegisterExport.objects.values_list("pk", flat=True)), [output.export_id])
             output.refresh_from_db()

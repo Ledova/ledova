@@ -839,7 +839,7 @@ def certificate_preview(token, *, sequence):
     }
 
 
-def prepare_certificate(token, requested_by, *, sequence, instruction, source_digest=None) -> bytes:
+def prepare_certificate(token, requested_by, *, sequence, instruction="", source_digest=None) -> bytes:
     with _snapshot():
         entry, content, page_count, digest = _certificate_source(token, sequence)
         if source_digest is not None and source_digest != digest:
@@ -854,7 +854,8 @@ def prepare_certificate(token, requested_by, *, sequence, instruction, source_di
         member_rows=page_count,
         former_rows=0,
         digest=hashlib.sha256(content).hexdigest(),
-        instruction=instruction,
+        instruction=instruction
+        or f"Unsigned certificate requested for ledger entry {entry.pk} (sequence {entry.sequence}).",
     )
     return content
 

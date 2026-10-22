@@ -1980,17 +1980,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Prepare company pack' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
-  fireEvent.change(within(certificateEntry).getByLabelText('Instruction reference'), {
-    target: { value: 'Retained certificate draft' },
-  });
+  expect(within(certificateEntry).queryByRole('textbox')).toBeNull();
   const recordDetails = within(certificateEntry).getByRole('button', { name: 'Record details' });
   expect(recordDetails.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(recordDetails);
   expect(within(certificateEntry).getByText('Ledger date')).toBeTruthy();
   fireEvent.click(recordDetails);
-  expect((within(certificateEntry).getByLabelText('Instruction reference') as HTMLInputElement).value).toBe(
-    'Retained certificate draft',
-  );
+  expect(
+    within(certificateEntry).getByRole('button', { name: 'Preview (unsigned certificate for entry 3)' }),
+  ).toBeTruthy();
   fireEvent.click(within(certificateEntry).getByRole('button', { name: 'Cancel (unsigned certificate for entry 3)' }));
   expect(await screen.findByRole('button', { name: 'Prepare inspection copy' })).toBeTruthy();
   expect(screen.queryByRole('form', { name: 'Unsigned certificate for entry 3' })).toBeNull();

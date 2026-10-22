@@ -14131,7 +14131,6 @@
         },
         "required": [
           "appointment",
-          "instruction",
           "sequence",
           "sourceDigest"
         ],

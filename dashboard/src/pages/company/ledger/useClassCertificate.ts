@@ -8,7 +8,6 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { saveFile } from '@utils/saveFile';
 
 export type Source = {
@@ -23,7 +22,6 @@ type Target = { preview: RegisterCertificatePreview; request: Readonly<RegisterC
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function useClassCertificate({ register, entry, guard, sourceReady }: Source) {
-  const [instruction, setInstruction] = useState('');
   const [target, setTarget] = useState<Target | null>(null);
   const [busy, setBusy] = useState<'preview' | 'download' | null>(null);
   const [error, setError] = useState('');
@@ -38,10 +36,6 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
       transport.current?.abort();
     };
   }, []);
-  const problems: Problems<'instruction'> = {
-    instruction:
-      (!instruction.trim() || instruction.trim().length > 255) && 'Give the certificate instruction reference.',
-  };
   const blocked = !!busy || !sourceReady || !register.initialized;
   const assertCurrent = (controller: AbortController) => {
     guard();
@@ -49,7 +43,7 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
       throw new Error('The certificate source changed.');
   };
   const preview = async () => {
-    if (pending.current || blocked || hasProblems(problems)) return;
+    if (pending.current || blocked) return;
     pending.current = true;
     const controller = new AbortController();
     transport.current = controller;
@@ -57,7 +51,6 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
     setTarget(null);
     setDownloaded(false);
     setError('');
-    const captured = instruction.trim();
     try {
       assertCurrent(controller);
       const { data } = await getRegisterCertificatePreview(apiClient, register.token.uuid, entry.sequence, {
@@ -91,7 +84,6 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
           appointment: data.appointment,
           sequence: entry.sequence,
           sourceDigest: data.sourceDigest,
-          instruction: captured,
         }),
       });
     } catch {
@@ -133,14 +125,10 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
     }
   };
   return {
-    instruction,
-    setInstruction,
     target,
-    setTarget,
     busy,
     error,
     downloaded,
-    problems,
     blocked,
     preview,
     download,
