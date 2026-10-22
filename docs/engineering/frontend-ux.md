@@ -101,8 +101,9 @@ in a right-aligned footer after secondary actions. Name a preview-opening action
 such as **Review and approve**; opening it is not approval. The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
-Issue shares and Transfer shares follow this pattern. Transfer records keep the two people, share
-count, company date and stage visible; full particulars, terms, history and downloads open under
+Issue shares and Transfer shares follow this pattern. Transfer records align From, To, Shares,
+Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
+subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
 Details and documents. Emphasise the review for the current stage; transfer approval and application
 remain separate decisions. Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.

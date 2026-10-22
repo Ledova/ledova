@@ -73,7 +73,6 @@ export function ClassTransfers({
   const supported = register.initialized && register.token.status === 'draft';
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
       {!supported && visible && (
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'

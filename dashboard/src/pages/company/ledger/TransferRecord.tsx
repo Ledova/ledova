@@ -68,30 +68,38 @@ export function TransferRecord({
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
         <>
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h4 className="break-words text-base font-medium">
-                {transfer.fromName || shortReference(transfer.fromMember)} →{' '}
-                {transfer.name || shortReference(transfer.toMember)}
-              </h4>
-              <Status tone={STAGE_TONES[transfer.stage] ?? 'waiting'}>
-                {COPY.STAGES[transfer.stage] ?? transfer.stage}
-              </Status>
+          <h3 className="sr-only">
+            Transfer from {transfer.fromName || shortReference(transfer.fromMember)} to{' '}
+            {transfer.name || shortReference(transfer.toMember)}
+          </h3>
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
+            <div className="min-w-0 space-y-1">
+              <dt className="text-text-muted">From</dt>
+              <dd className="break-words font-medium">{transfer.fromName || shortReference(transfer.fromMember)}</dd>
             </div>
-            <p className="text-sm text-text-muted">
-              {shareCount(transfer.shares)} ·{' '}
-              {formatDate(transfer.companyEventOn, 'Company transfer date not recorded')}
-            </p>
-          </div>
-          <p className="text-sm text-text-muted">
-            {transfer.stage === 'applied'
-              ? 'Shares transferred. Issued shares are unchanged.'
-              : transfer.stage === 'approved'
-                ? 'Approved. The transfer has not been applied.'
-                : transfer.stage === 'rejected'
-                  ? 'Rejected. No shares transferred.'
-                  : 'Ready for approval. No shares transferred.'}
-          </p>
+            <div className="min-w-0 space-y-1">
+              <dt className="text-text-muted">To</dt>
+              <dd className="break-words font-medium">{transfer.name || shortReference(transfer.toMember)}</dd>
+            </div>
+            <div className="min-w-0 space-y-1">
+              <dt className="text-text-muted">Shares</dt>
+              <dd className="break-words font-medium tabular-nums">{shareCount(transfer.shares)}</dd>
+            </div>
+            <div className="min-w-0 space-y-1">
+              <dt className="text-text-muted">Transfer date</dt>
+              <dd className="break-words font-medium tabular-nums">
+                {formatDate(transfer.companyEventOn, 'Not recorded')}
+              </dd>
+            </div>
+            <div className="min-w-0 space-y-1">
+              <dt className="text-text-muted">Status</dt>
+              <dd>
+                <Status tone={STAGE_TONES[transfer.stage] ?? 'waiting'}>
+                  {COPY.STAGES[transfer.stage] ?? transfer.stage}
+                </Status>
+              </dd>
+            </div>
+          </dl>
           <Disclosure summary="Details and documents">
             <Rows>
               <RecordStage stage={transfer.stage}>{COPY.STAGES[transfer.stage] ?? transfer.stage}</RecordStage>
