@@ -413,7 +413,7 @@ account, payment, application or chain transaction.
 5. The saved record aligns From, To, Shares, Transfer date and Status, with **Details and documents**
    available on demand. **Review and approve** opens the approval preview; then Apply records the
    approved transfer. Approval and application remain separate transfer decisions. The preparation
-   action sits below the saved records.
+   action shares the final record's action row, or stands alone when no transfers exist.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the

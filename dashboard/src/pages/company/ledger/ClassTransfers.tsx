@@ -71,6 +71,11 @@ export function ClassTransfers({
     );
   };
   const supported = register.initialized && register.token.status === 'draft';
+  const records = transfers.data ?? [];
+  const prepareAction =
+    privateReady && steps?.prepare && supported ? (
+      <PageLink to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })} label={COPY.PREPARE} />
+    ) : null;
   return (
     <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
       {!supported && visible && (
@@ -108,7 +113,7 @@ export function ClassTransfers({
         <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
       ) : null}
       <ul className="divide-y divide-border-subtle">
-        {(transfers.data ?? []).map((transfer) => (
+        {records.map((transfer, index) => (
           <TransferRecord
             key={transfer.uuid}
             landed={landed?.record === transfer.uuid ? landed : undefined}
@@ -118,17 +123,11 @@ export function ClassTransfers({
             steps={steps ?? {}}
             guard={guard}
             onSettled={refresh}
+            prepareAction={index === records.length - 1 ? prepareAction : undefined}
           />
         ))}
       </ul>
-      {privateReady && steps?.prepare && supported && (
-        <div className="flex flex-wrap justify-end gap-2">
-          <PageLink
-            to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })}
-            label={COPY.PREPARE}
-          />
-        </div>
-      )}
+      {records.length === 0 && prepareAction && <div className="flex flex-wrap justify-end gap-2">{prepareAction}</div>}
     </div>
   );
 }

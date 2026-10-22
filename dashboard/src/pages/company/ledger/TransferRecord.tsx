@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
@@ -52,6 +53,7 @@ export function TransferRecord({
   onSettled,
   visible = true,
   onHeldChange,
+  prepareAction,
 }: {
   landed?: Landed;
   transfer: RegisterTransfer;
@@ -60,6 +62,7 @@ export function TransferRecord({
   onSettled: () => Promise<unknown>;
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
+  prepareAction?: ReactNode;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
   const download = useTransferRecordDownload(transfer, check);
@@ -131,6 +134,7 @@ export function TransferRecord({
       )}
       <RegisterDecisions
         recordActions
+        leadingAction={prepareAction}
         primaryAction={transfer.stage === 'approved' ? 'apply' : 'approve'}
         approveLabel="Review and approve"
         family={REGISTER_TRANSFER_DECISIONS}

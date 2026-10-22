@@ -105,7 +105,9 @@ Issue shares and Transfer shares follow this pattern. Transfer records align Fro
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
 Details and documents. Emphasise the review for the current stage; transfer approval and application
-remain separate decisions. Hide a successfully read empty family when another has records,
+remain separate decisions. Keep transfer preparation beside the final record's decision actions in
+one right-aligned row, wrapping only when needed; an empty collection keeps its own preparation row.
+Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 
 For a substantial record review, replace the collection and its creation action with a focused review
