@@ -141,6 +141,10 @@ function OwnRegister({
   const { setState: setLedgerNavigation } = useLedgerNavigation();
   const [memberHeld, setMemberHeld] = useState(false);
   const [personHeld, setPersonHeld] = useState(false);
+  const [documentTask, setDocumentTask] = useState<string | null>(null);
+  const documentEditing = useCallback((task: string, open: boolean) => {
+    setDocumentTask((current) => (open ? task : current === task ? null : current));
+  }, []);
   const location = useLocation();
   const { hash } = location;
   const includeEmptyCompanies = hash === '#shareholders';
@@ -425,9 +429,15 @@ function OwnRegister({
                 onHeldChange={companyCorrectionHeld}
               />
             </div>
-            <div hidden={view !== 'documents'}>
+            <div hidden={view !== 'documents' || (!!documentTask && documentTask !== `pack/${scope.company.uuid}`)}>
               {readable && (
-                <CompanyPack owner={owner} guard={guard} company={scope.company.uuid} sourceReady={sourceReady} />
+                <CompanyPack
+                  owner={owner}
+                  guard={guard}
+                  company={scope.company.uuid}
+                  sourceReady={sourceReady && view === 'documents'}
+                  onEditingChange={documentEditing}
+                />
               )}
             </div>
           </>
@@ -561,6 +571,12 @@ function OwnRegister({
           {scope.registers.map((register) => (
             <li
               key={register.token.uuid}
+              hidden={
+                view === 'documents' &&
+                !!documentTask &&
+                documentTask !== `inspection/${register.token.uuid}` &&
+                !documentTask.startsWith(`certificate/${register.token.uuid}/`)
+              }
               tabIndex={-1}
               className="scroll-mt-6"
               ref={(section) => {
@@ -717,24 +733,41 @@ function OwnRegister({
                     />
                   </div>
                   <div hidden={view !== 'documents'} className="space-y-5">
+                    <div hidden={!!documentTask && !documentTask.startsWith(`certificate/${register.token.uuid}/`)}>
+                      <ClassCertificates
+                        owner={owner}
+                        guard={guard}
+                        company={scope.company.uuid}
+                        register={register}
+                        sourceReady={sourceReady}
+                        visible={
+                          view === 'documents' &&
+                          sourceReady &&
+                          (!documentTask || documentTask.startsWith(`certificate/${register.token.uuid}/`))
+                        }
+                        activeTask={documentTask}
+                        onEditingChange={documentEditing}
+                      />
+                    </div>
                     {readable && (
                       <>
-                        <RegisterDownload register={register} />
-                        <ClassInspectionCopy
-                          register={register}
-                          guard={guard}
-                          sourceReady={!classes.isFetching && !registers.isFetching}
-                        />
+                        <div hidden={!!documentTask}>
+                          <RegisterDownload register={register} />
+                        </div>
+                        <div hidden={!!documentTask && documentTask !== `inspection/${register.token.uuid}`}>
+                          <ClassInspectionCopy
+                            register={register}
+                            guard={guard}
+                            sourceReady={
+                              sourceReady &&
+                              view === 'documents' &&
+                              (!documentTask || documentTask === `inspection/${register.token.uuid}`)
+                            }
+                            onEditingChange={documentEditing}
+                          />
+                        </div>
                       </>
                     )}
-                    <ClassCertificates
-                      owner={owner}
-                      guard={guard}
-                      company={scope.company.uuid}
-                      register={register}
-                      sourceReady={sourceReady}
-                      visible={view === 'documents' && sourceReady}
-                    />
                   </div>
                 </div>
               </section>

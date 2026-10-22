@@ -1953,20 +1953,32 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByRole('button', { name: /^Details for entry 3:/ })).toBeTruthy();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
-  const certificateDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
-  const certificateEntry = certificateDetails.closest('li')!;
-  fireEvent.click(certificateDetails);
+  const certificatePreparation = await screen.findByRole('button', {
+    name: 'Prepare unsigned certificate (entry 3)',
+  });
+  const certificateEntry = certificatePreparation.closest('li')!;
   expect(within(certificateEntry).queryByRole('link', { name: /^Correct this entry/ })).toBeNull();
-  fireEvent.click(within(certificateEntry).getByRole('button', { name: 'Prepare unsigned certificate (entry 3)' }));
+  expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
+  expect(screen.queryByRole('textbox', { name: 'Written instruction reference' })).toBeNull();
+  expect(screen.queryByRole('textbox', { name: 'Pack instruction reference' })).toBeNull();
+  fireEvent.click(certificatePreparation);
+  expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Prepare company pack' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   fireEvent.change(within(certificateEntry).getByLabelText('Instruction reference'), {
     target: { value: 'Retained certificate draft' },
   });
-  fireEvent.click(certificateDetails);
-  expect(certificateDetails.getAttribute('aria-expanded')).toBe('false');
-  fireEvent.click(certificateDetails);
+  const recordDetails = within(certificateEntry).getByRole('button', { name: 'Record details' });
+  expect(recordDetails.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(recordDetails);
+  expect(within(certificateEntry).getByText('Ledger date')).toBeTruthy();
+  fireEvent.click(recordDetails);
   expect((within(certificateEntry).getByLabelText('Instruction reference') as HTMLInputElement).value).toBe(
     'Retained certificate draft',
   );
+  fireEvent.click(within(certificateEntry).getByRole('button', { name: 'Cancel (unsigned certificate for entry 3)' }));
+  expect(await screen.findByRole('button', { name: 'Prepare inspection copy' })).toBeTruthy();
+  expect(screen.queryByRole('form', { name: 'Unsigned certificate for entry 3' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
   const correctionDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
   fireEvent.click(correctionDetails);

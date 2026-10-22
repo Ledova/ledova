@@ -860,7 +860,7 @@ appointment in one durable transaction, builds the pack, then in a second rechec
 locks every captured class row, records the export and rechecks the appointment again.
 `_require_core_contents` refuses the whole pack, rather than omitting records, when the snapshot
 holds anything outside the [core
-scope](../business/member-records.md#producing-a-core-pack-in-the-register): each class must be a
+scope](../business/member-records.md#producing-a-core-pack): each class must be a
 draft with an applied import and no chain fields, deployment, operations, issuance requests,
 subscriptions awaiting allotment, settlements, capital increases or pauses.
 

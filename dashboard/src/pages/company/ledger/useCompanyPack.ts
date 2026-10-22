@@ -16,7 +16,7 @@ import { saveFile } from '@utils/saveFile';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const FAILED =
-  'The company pack could not be downloaded. Refresh your appointment and try again. A full pack is unavailable when it includes unsupported records; use supported inspection copies or unsigned certificates where applicable.';
+  'The company pack could not be downloaded. Check your current company appointment and try again. A full pack is unavailable when it includes unsupported records; use supported inspection copies or unsigned certificates where applicable.';
 
 async function failureMessage(cause: unknown) {
   const response = (cause as { response?: { status?: number; data?: unknown } })?.response;

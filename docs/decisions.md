@@ -1322,7 +1322,9 @@ web History from operational work. History reads recorded changes and retained s
 with permitted downloads. Documents owns certificate preparation; a separate Ledger **Corrections**
 sidebar view owns the existing correction and maintenance workflows. This changes placement, not
 company authority, append-only records, instruction-bound output generation or original-request
-recovery. Mobile stays unchanged.
+recovery. Documents presents compact output choices, opening one preparation at a time, with
+instruction entry, source/privacy guidance and explicit generation in the opened workflow. Mobile
+stays unchanged.
 
 The owner placed Add share class below the class cards, aligned right. The web standard for a
 collection's primary creation action is one content-width action row beneath its cards, including

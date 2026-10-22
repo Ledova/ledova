@@ -1,13 +1,16 @@
 import { Field, TextInput } from '@components/Field';
-import { FIELD_LIMITS } from '@ledova/shared';
-import { useState } from 'react';
+import { FIELD_LIMITS, formatDate, formatDateTime } from '@ledova/shared';
+import { useEffect, useRef, useState } from 'react';
 import { Disclosure, Outcome, Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { RegisterChanges } from './shared/RegisterChanges';
 import { useClassCertificate, type Source } from './useClassCertificate';
 
-export function ClassCertificate({ sourceKey, ...source }: Source & { sourceKey: string }) {
+type Editing = { onEditingChange?: (entry: string, open: boolean) => void };
+
+export function ClassCertificate({ sourceKey, onEditingChange, ...source }: Source & Editing & { sourceKey: string }) {
   if (
     !['issue', 'transfer'].includes(source.entry.kind) ||
     source.entry.correctedBy ||
@@ -19,16 +22,36 @@ export function ClassCertificate({ sourceKey, ...source }: Source & { sourceKey:
     <CertificateRequest
       key={JSON.stringify([source.register, source.entry, sourceKey, source.sourceReady])}
       {...source}
+      onEditingChange={onEditingChange}
     />
   );
 }
 
-function CertificateRequest(source: Source) {
+function CertificateRequest({ onEditingChange, ...source }: Source & Editing) {
   const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+  useEffect(() => {
+    onEditingChange?.(source.entry.uuid, open);
+    return () => onEditingChange?.(source.entry.uuid, false);
+  }, [onEditingChange, open, source.entry.uuid]);
+  useEffect(() => {
+    if (!open && returnFocus.current) {
+      returnFocus.current = false;
+      opener.current?.focus();
+    }
+  }, [open]);
   return open ? (
-    <CertificateForm {...source} close={() => setOpen(false)} />
+    <CertificateForm
+      {...source}
+      close={() => {
+        returnFocus.current = true;
+        setOpen(false);
+      }}
+    />
   ) : (
     <PageAction
+      ref={opener}
       label="Prepare unsigned certificate"
       context={`entry ${source.entry.sequence}`}
       disabled={!source.sourceReady || !source.register.initialized}
@@ -38,6 +61,8 @@ function CertificateRequest(source: Source) {
 }
 
 function CertificateForm({ register, entry, guard, sourceReady, close }: Source & { close: () => void }) {
+  const instructionField = useRef<HTMLInputElement>(null);
+  useEffect(() => instructionField.current?.focus(), []);
   const {
     instruction,
     setInstruction,
@@ -56,18 +81,22 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
   return (
     <form
       aria-label={`Unsigned certificate for entry ${entry.sequence}`}
-      className="flex w-full flex-col gap-4 border-t border-border-subtle pt-4"
+      className="flex w-full flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         if (!target && checks.check()) void preview();
       }}
     >
-      <h4 className="text-sm font-medium text-text-primary">Unsigned certificate</h4>
+      <h3 className="text-sm font-medium text-text-primary">Unsigned certificate</h3>
+      <div className="text-sm text-text-primary">
+        <RegisterChanges changes={entry.changes} />
+      </div>
       <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">Includes names and residential addresses. The company arranges signing.</p>
       <div className="max-w-xl">
         <Field {...checks.field('instruction')} label="Instruction reference">
           <TextInput
+            ref={instructionField}
             maxLength={FIELD_LIMITS.REFERENCE}
             value={instruction}
             disabled={blocked || !!target}
@@ -75,20 +104,21 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
           />
         </Field>
       </div>
-      {target && (
-        <>
-          <Rows>
-            <Row label="Share class">{register.token.name}</Row>
-            <Row label="PDF pages">{target.preview.pageCount}</Row>
-          </Rows>
-          <Disclosure summary="Record details">
-            <Rows>
-              <Row label="Entry">{target.preview.sequence}</Row>
+      <Disclosure summary="Record details">
+        <Rows>
+          <Row label="Entry">{entry.sequence}</Row>
+          <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
+          <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
+          <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
+          {target && (
+            <>
+              <Row label="Share class">{register.token.name}</Row>
+              <Row label="PDF pages">{target.preview.pageCount}</Row>
               <Row label="Register sequence">{target.preview.registerSequence}</Row>
-            </Rows>
-          </Disclosure>
-        </>
-      )}
+            </>
+          )}
+        </Rows>
+      </Disclosure>
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}

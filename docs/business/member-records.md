@@ -143,8 +143,8 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
-2. Open **Documents**, select the company and find the share class. Enter the reference, recipient
-   and request date under **Inspection copy** (on mobile, choose **Prepare inspection copy**).
+2. Open **Documents**, select the company and find the share class. Choose **Prepare inspection copy**
+   and enter the reference, recipient and request date.
 3. Choose **Preview inspection copy**, check the request and register sequence, then **Confirm and
    download inspection copy** (web) or **Confirm and share inspection copy** (mobile).
 
@@ -182,9 +182,9 @@ register, or a correction has since reversed the entry (the refusal names the co
 ### Preparing a certificate
 
 1. Keep the company's written instruction and note its reference.
-2. On web, in **Documents**, find the share class and open an issue or transfer entry under
-   **Certificates**, then choose **Prepare unsigned certificate**. On mobile, open the class's
-   entries in **Documents**.
+2. On web, in **Documents**, find the share class and choose the issue or transfer under
+   **Certificates**, identified by its date and share movements, then **Prepare unsigned certificate**.
+   On mobile, open the class's entries in **Documents**.
 3. On web, enter **Instruction reference** and choose **Preview**. Check the share class and PDF
    page count; **Record details** holds the entry and register sequence. Choose **Edit** to change
    the reference, **Download PDF** to generate the unsigned file, or **Cancel** to close the form.
@@ -293,8 +293,7 @@ You need **Can change register outputs**.
 3. Tell the company what is due and when.
 4. For notice figures, on the company's written instruction, follow the row's link and
    [prepare the notice figures](#preparing-notice-figures). A certificate row has no link and
-   reads **Certificate (company register)**: the company prepares it in Ledger on the web or Documents
-   on mobile.
+   reads **Certificate (company register)**: the company prepares it in Documents.
 
 ## The company pack
 
@@ -359,12 +358,12 @@ decisions, and of each appointee they relied on; the fingerprint input of each r
 of each dividend payment record or withdrawal carries the number of the account that recorded it,
 without which it cannot be checked.
 
-### Producing a core pack in the Register
+### Producing a core pack
 
-A company administrator produces the pack in **Documents**, **Company pack**: enter the company's
-written instruction and the recipient, then choose **Prepare and download company pack** (web) or
-**Prepare and share company pack** (mobile). The appointment is checked again before the pack is
-recorded.
+A company administrator produces the pack in **Documents**, **Company pack**. On web, choose
+**Prepare company pack** to open the form; enter the company's written instruction and the
+recipient, then choose **Prepare and download company pack**. Mobile keeps **Prepare and share
+company pack**. The appointment is checked again before the pack is recorded.
 
 This route produces only a complete core pack: every share class is an opened imported register
 never put on chain, and the company has no chain issues, subscriptions awaiting allotment,

@@ -116,6 +116,8 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   await act(async () => release!());
   release = undefined;
   expect(createObjectURL).toHaveBeenCalledTimes(1);
+  fireEvent.click(await screen.findByRole('button', { name: 'Prepare company pack' }));
+  expect(screen.queryByRole('button', { name: 'Refresh pack appointment' })).toBeNull();
   fireEvent.change(await screen.findByLabelText('Pack instruction reference'), {
     target: { value: 'Synthetic pack instruction' },
   });

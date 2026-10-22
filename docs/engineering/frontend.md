@@ -653,7 +653,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   Shareholders.
   History shows recorded entries and retained supporting records with read-only detail and permitted
   downloads on demand. Corrections holds their maintenance actions; Documents holds certificate
-  preparation. A section whose read succeeded empty is omitted, while a failed read keeps its
+  preparation and opens only one focused output form at a time from compact choices. A section whose
+  read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.

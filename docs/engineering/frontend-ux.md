@@ -119,8 +119,13 @@ dates, and correction or reversal references. History is read-only, including re
 records and permitted file downloads. Certificate preparation belongs in Documents; correction,
 opening, reconciliation acknowledgement, particulars and wallet-link workflows belong in Ledger's
 Corrections view. Keep their controllers mounted so unfinished work and original-request recovery
-survive navigation. Certificate forms use compact inline fields and one right-aligned action row,
-with technical metadata under **Record details**.
+survive navigation. Documents starts with compact output choices and opens one focused inline
+preparation at a time. Certificate choices show the issue or transfer's date and share movements;
+the form foregrounds **Instruction reference**, with technical metadata under **Record details**
+and one right-aligned Cancel/Preview or Cancel/Edit/Download PDF row. Inspection copy and Company
+pack open from their preparation actions; privacy and source guidance stays with the opened form
+or download. Keep current source and appointment validation and error retries, without routine
+refresh controls.
 
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep company and class context once, then the issue or transfer summary, ownership

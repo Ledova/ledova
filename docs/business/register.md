@@ -616,7 +616,8 @@ Details is unavailable, so the work and its recovery stay on the page.
 The Employee share scheme view, ESS in the sidebar, holds each class's
 [awards](issuing-shares.md#employee-awards-and-vesting),
 each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
-inspection copy, unsigned certificate preparation and the company pack.
+inspection copy, unsigned certificate preparation and the company pack as compact choices, opening
+one preparation form at a time.
 
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.
