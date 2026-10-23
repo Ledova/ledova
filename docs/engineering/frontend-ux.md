@@ -29,7 +29,8 @@ Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 `mobile/src/components/Page.tsx`) under the page's title. Web form fields use `Field`
 ([forms](#forms)). `Page narrow` bounds
 simple task forms, settings and detailed records, including compact tables; ownership dashboards,
-stepped Ledger preparation pages and wide tables take the standard workspace width, and tables
+stepped Ledger preparation pages, signed-in member invitation reviews and wide tables take the
+standard workspace width, and tables
 scroll within their card on small screens.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Section spacing is scoped to the frame; sign-up keeps its
