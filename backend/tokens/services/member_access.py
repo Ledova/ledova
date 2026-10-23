@@ -4,20 +4,30 @@ import re
 import secrets
 from datetime import timedelta
 from decimal import Decimal
+from smtplib import SMTPException
+from urllib.parse import urlsplit
 
+from django.conf import settings
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.mail import BadHeaderError
+from django.core.validators import URLValidator
 from django.db import IntegrityError, connections
 from django.db.models import BooleanField, F, Func, Q, Value
 from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare, salted_hmac
+from django.utils.http import urlsafe_base64_encode
 from rest_framework.exceptions import NotFound, ValidationError
 
 from authentication.email import normalize_email
 from companies.constants import TEAM_INVITATION_DEFAULT_DAYS, TEAM_INVITATION_MAX_DAYS
 from companies.models import REGISTER_READERS, CompanyAppointment, CompanyCapability
 from companies.services.authority_requests import _require_requester
+from integrations.sendgrid_email import sendgrid_client
 from operators.models import Operator
 from shared.db import current_alias
-from tokens.exceptions import RegisterChangeConflict
+from tokens.exceptions import InvitationEmailUnavailable, RegisterChangeConflict
 from tokens.models import (
     MemberAssociation,
     MemberAssociationRevocation,
@@ -105,7 +115,9 @@ def _same(existing, values):
         raise RegisterChangeConflict()
 
 
-def issue_invitation(*, actor, operation_id, company, appointment, member, intended_email, acceptance_deadline=None):
+def issue_invitation(
+    *, actor, operation_id, company, appointment, member, intended_email, acceptance_deadline=None, _code=None
+):
     intended_email = normalize_email(intended_email)
     with register_command(actor, company, "member_invitation_issue") as (issuer, current, profile, operator):
         source = register_appointment(issuer, current, profile, operator, appointment, CompanyCapability.ADMIN)
@@ -129,7 +141,7 @@ def issue_invitation(*, actor, operation_id, company, appointment, member, inten
         deadline = acceptance_deadline or now + timedelta(days=TEAM_INVITATION_DEFAULT_DAYS)
         if not now < deadline <= now + timedelta(days=TEAM_INVITATION_MAX_DAYS):
             raise ValidationError({"acceptance_deadline": "Choose a future deadline within 30 days."})
-        code = secrets.token_urlsafe(32)
+        code = _code or secrets.token_urlsafe(32)
         try:
             invitation = MemberInvitation.objects.create(
                 uuid=operation_id,
@@ -141,6 +153,116 @@ def issue_invitation(*, actor, operation_id, company, appointment, member, inten
         except IntegrityError:
             raise RegisterChangeConflict() from None
         return invitation, code, True
+
+
+def _email_invitation_code(operation_id):
+    proof = salted_hmac("tokens.member_email_invitation", str(operation_id), algorithm="sha256").digest()
+    return urlsafe_base64_encode(proof)
+
+
+def _invitation_url(code):
+    origin = settings.DASHBOARD_BASE_URL.strip().rstrip("/")
+    try:
+        URLValidator(schemes=["https", "http"])(origin)
+        parsed = urlsplit(origin)
+    except (ValueError, DjangoValidationError):
+        raise InvitationEmailUnavailable("The configured dashboard URL is invalid.") from None
+    local = settings.DEBUG and parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+    if (
+        (parsed.scheme != "https" and not local)
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise InvitationEmailUnavailable(
+            "Invitation email is unavailable. Ask the operator to configure the dashboard URL."
+        )
+    return f"{origin}/member-invitation#{code}"
+
+
+def send_invitation_email(*, actor, **values):
+    code = _email_invitation_code(values["operation_id"])
+    invitation_url = _invitation_url(code)
+    invitation, _, created = issue_invitation(actor=actor, _code=code, **values)
+    with register_command(actor, invitation.company_id, "member_invitation_issue") as (
+        company,
+        current,
+        profile,
+        operator,
+    ):
+        register_appointment(company, current, profile, operator, values["appointment"], CompanyCapability.ADMIN)
+        if not constant_time_compare(invitation.code_sha256, hashlib.sha256(code.encode()).hexdigest()):
+            raise RegisterChangeConflict()
+        if (
+            MemberAssociation.objects.filter(company=company, member=invitation.member, current=True).exists()
+            or getattr(invitation, "association", None)
+            or invitation.acceptance_deadline <= timezone.now()
+            or not _query("tokens_member_invitation_current", invitation.pk)
+        ):
+            raise ValidationError("This invitation is no longer pending. Create a new invitation if access is needed.")
+        html = render_to_string(
+            "tokens/member_invitation.html",
+            {
+                "company": company.name,
+                "member": invitation.source_snapshot["name"],
+                "invitation_url": invitation_url,
+                "deadline": invitation.acceptance_deadline,
+            },
+        )
+        try:
+            result = sendgrid_client.send_email(
+                to_email=invitation.intended_email,
+                subject=f"{company.name} invited you to view your shares",
+                html_content=html,
+                text_content=(
+                    f"{company.name} invited you to view {invitation.source_snapshot['name']}'s share records.\n\n"
+                    f"View invitation: {invitation_url}\n\n"
+                    f"Sign in with {invitation.intended_email} and review the invitation before accepting.\n"
+                    f"This invitation expires on {invitation.acceptance_deadline.isoformat()}."
+                ),
+            )
+        except (OSError, SMTPException, BadHeaderError):
+            raise InvitationEmailUnavailable() from None
+        if result.get("success") is not True:
+            raise InvitationEmailUnavailable()
+    return invitation, created
+
+
+def preview_invitation(*, actor, code):
+    _require_requester(actor)
+    invitation = get_object_or_404(
+        MemberInvitation.objects.select_related("company", "association"),
+        code_sha256=hashlib.sha256(code.encode()).hexdigest(),
+    )
+    if normalize_email(actor.email) != invitation.intended_email:
+        raise ValidationError("This invitation names a different recipient.")
+    association = getattr(invitation, "association", None)
+    if association:
+        if not association.current or association.user_id != actor.pk:
+            raise ValidationError("This association is unavailable. Ask the company for a new invitation.")
+        if not _query("tokens_member_association_current", association.pk, actor.pk):
+            raise ValidationError("This member association is no longer current.")
+        status = "accepted"
+    else:
+        if invitation.acceptance_deadline <= timezone.now():
+            raise ValidationError("This invitation has expired. Ask the company for a new invitation.")
+        if not _query("tokens_member_invitation_current", invitation.pk):
+            raise ValidationError("The company invitation or its recorded member identity is no longer current.")
+        if MemberAssociation.objects.filter(
+            company_id=invitation.company_id, member=invitation.member, current=True
+        ).exists():
+            raise ValidationError("This member is already linked. Ask the company to review their access.")
+        status = "pending"
+    return {
+        "company": {"uuid": invitation.company_id, "name": invitation.company.name},
+        "member": {"uuid": invitation.member, "name": invitation.source_snapshot["name"]},
+        "intended_email": invitation.intended_email,
+        "acceptance_deadline": invitation.acceptance_deadline,
+        "status": status,
+    }
 
 
 def accept_invitation(*, actor, code, user_account, confirmation):

@@ -58,20 +58,28 @@ investment eligibility ([decision](../decisions.md#member-invitations-and-accoun
 
 ### Inviting a member
 
-1. A company administrator opens **Member access and requests**: on web on **Shareholders**, or with
-   **Invite to their records** on a shareholder's page; on mobile under **Company**.
-2. On web, choose **Invite a member** to open the form. Choose a named member or award recipient
-   (who can be invited before any shares are issued, and sees their own award), enter the recipient's email and choose
-   **Create member invitation**.
-3. Ledova shows a one-time code, which the company gives the recipient privately; Ledova sends no
-   email. The invitation expires at the displayed deadline, 7 days by default and never more than
-   30, and a retry returns the recorded invitation without the code.
+1. A company administrator opens **Member access and requests** on **Shareholders**, or chooses
+   **Invite to their records** on a shareholder's page.
+2. Choose **Invite a member**, select a named member or award recipient, enter the recipient's email
+   and choose **Send invitation**. An award recipient can be invited before any shares are issued
+   and sees their own award.
+3. Ledova emails an invitation link; neither person needs to copy or enter a code. **Pending** means
+   awaiting acceptance, not proof of email delivery. The success notice means the mail service
+   accepted the email for sending. A sending failure offers a retry of the same invitation; a lost
+   reply can result in another copy of the same email, without another invitation or access grant.
+
+The invitation expires at the displayed deadline, 7 days by default and never more than 30. Mobile
+remains unchanged: under **Company**, create the invitation and share its one-time code privately.
+That code is shown once and is unavailable on a retry. Mobile email invitations are deferred.
 
 ### Accepting an invitation
 
-The recipient signs in, enters the code under **Get access to your shares** on **Dashboard** (web)
-or **My shares** (mobile), confirms and chooses **Accept member invitation**. Their verified email
-must match the invitation, and acceptance binds one current account to one member in that company.
+The email's **View invitation** link opens **Member invitation** on the web. The recipient signs in
+or creates an account, then returns to the invitation in the same tab. They review the company,
+shareholder and intended email before choosing **Accept invitation**; opening a link never grants
+access. Their verified email must match, and acceptance binds one current account to one member
+in that company. Mobile still accepts a privately shared code under **My shares**, with an explicit
+confirmation and **Accept member invitation**.
 An expired invitation, a changed recorded identity for the member, a revoked appointment of the
 inviting administrator, another person's account or a conflicting association is refused.
 
@@ -102,7 +110,8 @@ The web view shows access and requests as records, opening task fields only when
 An empty queue does not ask for a company reason or certificate reference. Reads update on entry,
 focus and reconnect, and after a completed action; a failed read offers a retry.
 Every action rechecks the person's account, session, association and the company's authority; a
-failed refresh hides cached private records, and an uncertain reply is recovered, not resent
+failed refresh hides cached private records, and an uncertain reply is recovered against the
+original request
 ([when the outcome is uncertain](README.md#when-the-outcome-is-uncertain)).
 
 ## Member requests

@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import NotFoundPage from '@pages/not-found';
+import MemberInvitationPage from '@pages/member-invitation';
 import { RootRedirect } from './RootRedirect';
 import { PAGES } from './pages';
 import { signedInRoutes } from './signedInRoutes';
@@ -17,7 +18,14 @@ import SignupCompanyRegistration from '@pages/signup/company-registration';
 import CompanyDashboardPage from '@pages/company/dashboard';
 import { PageTitle } from '@components/PageTitle';
 import { ProtectedRoute } from './ProtectedRoute';
-import { COMPANY_DASHBOARD_PATH, ROOT_PATH, SIGNIN_PATH, SIGNUP_PATHS, NOT_FOUND_PATH } from '@utils/paths';
+import {
+  COMPANY_DASHBOARD_PATH,
+  ROOT_PATH,
+  SIGNIN_PATH,
+  SIGNUP_PATHS,
+  NOT_FOUND_PATH,
+  MEMBER_INVITATION_PATH,
+} from '@utils/paths';
 import { PublicOnlyRoute } from './PublicOnlyRoute';
 
 const SIGNED_IN_ROUTES = signedInRoutes(PAGES);
@@ -36,6 +44,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path={ROOT_PATH} element={<RootRedirect />} />
+      <Route path={MEMBER_INVITATION_PATH} element={<MemberInvitationPage />} />
 
       <Route
         path={SIGNIN_PATH}

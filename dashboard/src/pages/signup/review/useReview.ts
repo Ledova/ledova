@@ -1,3 +1,4 @@
+import { invitationDestination } from '@utils/memberInvitation';
 import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +17,6 @@ export const useReview = () => {
       queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true }, { throwOnError: true }),
     ]);
     guard();
-    navigate(canOpen(role, 'company') ? COMPANY_DASHBOARD_PATH : landingFor(role));
+    navigate(invitationDestination(canOpen(role, 'company') ? COMPANY_DASHBOARD_PATH : landingFor(role)));
   });
 };

@@ -1,5 +1,6 @@
 export const ROOT_PATH = '/';
 export const SIGNIN_PATH = '/signin';
+export const MEMBER_INVITATION_PATH = '/member-invitation';
 export const SIGNUP_PATH = '/signup';
 export const NOT_FOUND_PATH = '*';
 export const COMPANY_DASHBOARD_PATH = '/company/dashboard';

@@ -15,6 +15,8 @@ import type {
   MemberInvitationAccept,
   MemberInvitationCreate,
   MemberInvitationIssued,
+  MemberInvitationEmailed,
+  MemberInvitationPreview,
   MemberParticularsRequest,
   MemberParticularsRequestCreate,
   MemberParticularsRequestPrepare,
@@ -49,6 +51,13 @@ export const createMemberInvitation = (
   data: MemberInvitationCreate,
   config: AxiosRequestConfig = {},
 ) => api.post<MemberInvitationIssued>(URLS.MEMBER_INVITATIONS, data, config);
+export const sendMemberInvitationEmail = (
+  api: AxiosInstance,
+  data: MemberInvitationCreate,
+  config: AxiosRequestConfig = {},
+) => api.post<MemberInvitationEmailed>(URLS.MEMBER_INVITATION_SEND_EMAIL, data, config);
+export const previewMemberInvitation = (api: AxiosInstance, code: string, config: AxiosRequestConfig = {}) =>
+  api.post<MemberInvitationPreview>(URLS.MEMBER_INVITATION_PREVIEW, { code }, config);
 export const getMemberInvitation = (api: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
   api.get<MemberInvitation>(URLS.MEMBER_INVITATION(uuid), config);
 export const getMemberInvitations = (api: AxiosInstance, company: string, page = 1, config: AxiosRequestConfig = {}) =>

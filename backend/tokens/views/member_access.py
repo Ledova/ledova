@@ -45,6 +45,8 @@ class MemberAccessViewSet(AuthenticatedReadOnlyViewSet):
             "retrieve",
             "create",
             "accept",
+            "send_email",
+            "preview",
             "revoke",
             "entries",
             "prepare",
@@ -77,8 +79,9 @@ class MemberInvitationViewSet(MemberAccessViewSet):
     serializer_class = schema.MemberInvitationSerializer
     operator_actions_because = (
         "Member invitations are private company administration. Current personal ADMIN appointments scope every "
-        "company read and issue; accepting a code verifies its intended email and the actual signed-in account "
-        "under the company lock and database guards, and grants no company appointment."
+        "company read, issue and email send; preview requires the verified intended recipient. Accepting the "
+        "hidden credential checks its intended email and actual signed-in account under the company lock and "
+        "database guards, and grants no company appointment."
     )
 
     def narrow(self, queryset):
@@ -94,6 +97,30 @@ class MemberInvitationViewSet(MemberAccessViewSet):
         )
         invitation.code = code
         return Response(schema.MemberInvitationIssuedSerializer(invitation).data, status=201 if created else 200)
+
+    @extend_schema(
+        request=schema.MemberInvitationCreateSerializer,
+        responses={201: schema.MemberInvitationEmailSerializer, 200: schema.MemberInvitationEmailSerializer},
+    )
+    @action(detail=False, methods=["post"], url_path="send-email")
+    def send_email(self, request):
+        invitation, created = service.send_invitation_email(
+            actor=request.user, **self.body(schema.MemberInvitationCreateSerializer)
+        )
+        invitation.email_delivery = "accepted"
+        return Response(schema.MemberInvitationEmailSerializer(invitation).data, status=201 if created else 200)
+
+    @extend_schema(
+        request=schema.MemberInvitationPreviewRequestSerializer, responses=schema.MemberInvitationPreviewSerializer
+    )
+    @action(detail=False, methods=["post"])
+    def preview(self, request):
+        invitation = service.preview_invitation(
+            actor=request.user, **self.body(schema.MemberInvitationPreviewRequestSerializer)
+        )
+        response = Response(schema.MemberInvitationPreviewSerializer(invitation).data)
+        response["Cache-Control"] = "private, no-store"
+        return response
 
     @extend_schema(request=schema.MemberInvitationAcceptSerializer, responses=schema.MemberAssociationSerializer)
     @action(detail=False, methods=["post"])

@@ -1855,6 +1855,38 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/member-invitations/preview/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_invitations_preview_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/member-invitations/send-email/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_v1_tokens_member_invitations_send_email_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/member-particulars-requests/': {
     parameters: {
       query?: never;
@@ -5294,6 +5326,7 @@ export interface ApiComponents {
       file: Blob;
       note?: string;
     };
+    EmailDeliveryEnum: 'accepted';
     EmailVerificationRequest: {
       email: string;
       token: string;
@@ -5655,6 +5688,18 @@ export interface ApiComponents {
       member: string;
       operationId: string;
     };
+    MemberInvitationEmail: {
+      acceptanceDeadline: string;
+      appointment: string;
+      company: string;
+      createdAt: string;
+      emailDelivery: ApiComponents['schemas']['EmailDeliveryEnum'];
+      intendedEmail: string;
+      issuedBy: number;
+      member: string;
+      status: ApiComponents['schemas']['MemberInvitationStatusEnum'];
+      uuid: string;
+    };
     MemberInvitationIssued: {
       acceptanceDeadline: string;
       appointment: string;
@@ -5667,7 +5712,22 @@ export interface ApiComponents {
       status: ApiComponents['schemas']['MemberInvitationStatusEnum'];
       uuid: string;
     };
+    MemberInvitationPreview: {
+      acceptanceDeadline: string;
+      company: ApiComponents['schemas']['MemberInvitationSubject'];
+      intendedEmail: string;
+      member: ApiComponents['schemas']['MemberInvitationSubject'];
+      status: ApiComponents['schemas']['MemberInvitationPreviewStatusEnum'];
+    };
+    MemberInvitationPreviewRequestRequest: {
+      code: string;
+    };
+    MemberInvitationPreviewStatusEnum: 'pending' | 'accepted';
     MemberInvitationStatusEnum: 'pending' | 'expired' | 'unavailable' | 'accepted' | 'revoked';
+    MemberInvitationSubject: {
+      name: string;
+      uuid: string;
+    };
     MemberParticularsRequest: {
       association: string;
       change: string | null;
@@ -12736,6 +12796,64 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['MemberAssociation'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_invitations_preview_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberInvitationPreviewRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberInvitationPreviewRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberInvitationPreviewRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberInvitationPreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_member_invitations_send_email_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['MemberInvitationCreateRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberInvitationCreateRequest'];
+        'multipart/form-data': ApiComponents['schemas']['MemberInvitationCreateRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberInvitationEmail'];
+        };
+      };
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['MemberInvitationEmail'];
         };
       };
     };

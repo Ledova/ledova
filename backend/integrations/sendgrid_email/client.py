@@ -40,9 +40,14 @@ class SendGridClient:
         sender = from_email or self.from_email
         if not self.api_key:
 
-            send_mail(subject, text_content or strip_tags(html_content), sender, [to_email], html_message=html_content)
-            logger.info("Email sent through EMAIL_BACKEND (no SendGrid key)")
-            return {"success": True, "message_id": ""}
+            sent = send_mail(
+                subject, text_content or strip_tags(html_content), sender, [to_email], html_message=html_content
+            )
+            if sent == 1:
+                logger.info("Email accepted by EMAIL_BACKEND (no SendGrid key)")
+                return {"success": True, "message_id": ""}
+            logger.error("EMAIL_BACKEND did not accept the email")
+            return {"success": False, "error": "EMAIL_BACKEND did not accept the email"}
         if not self.api_url:
             logger.error("SENDGRID_API_URL not configured or invalid")
             return {"success": False, "error": "SENDGRID_API_URL not configured or invalid"}

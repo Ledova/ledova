@@ -69,13 +69,11 @@ export function CompanyMemberAccess({
   const [invitationView, setInvitationView] = useState({
     open: false,
     target: '',
-    code: access.code,
-    notice: access.notice,
+    receipt: access.invitationReceipt,
   });
-  const inviting =
-    invitationView.open && invitationView.code === access.code && invitationView.notice === access.notice;
+  const inviting = invitationView.open && invitationView.receipt === access.invitationReceipt;
   const setInviting = (open: boolean) =>
-    setInvitationView((current) => ({ ...current, open, code: access.code, notice: access.notice }));
+    setInvitationView((current) => ({ ...current, open, receipt: access.invitationReceipt }));
   const [revokeMember, setRevokeMember] = useState('');
   const [revoking, setRevoking] = useState<{ uuid: string; name: string } | null>(null);
   const invite = useRef<HTMLHeadingElement>(null);
@@ -84,7 +82,7 @@ export function CompanyMemberAccess({
   const shown = !!inviteMember && member?.uuid === inviteMember;
   const target = `${company}:${inviteMember}`;
   if (shown && invitationView.target !== target)
-    setInvitationView({ open: true, target, code: access.code, notice: access.notice });
+    setInvitationView({ open: true, target, receipt: access.invitationReceipt });
   useEffect(() => {
     if (inviting) {
       invite.current?.focus();
@@ -128,14 +126,6 @@ export function CompanyMemberAccess({
             <p className="text-sm text-text-muted">
               {access.access ? 'No member access or requests yet.' : 'No member requests yet.'}
             </p>
-          )}
-          {access.code && (
-            <Field
-              label="One-time member invitation code"
-              hint="Copy this code and share it privately with the intended recipient. Ledova does not email it."
-            >
-              <TextInput readOnly autoComplete="off" value={access.code} />
-            </Field>
           )}
           {invitations.length > 0 && (
             <div>
@@ -504,8 +494,7 @@ export function CompanyMemberAccess({
               </Disclosure>
             )}
             <p className="text-sm text-text-muted">
-              Invites this person to their own records, including an award before shares are issued. Share the code
-              privately; Ledova does not email it.
+              Emails this person a link to accept access to their own shares and employee awards.
             </p>
             <FormActions>
               <PageAction
@@ -518,11 +507,11 @@ export function CompanyMemberAccess({
                 }}
               />
               <PageAction
-                label="Create member invitation"
+                label="Send invitation"
                 type="submit"
                 primary
                 busy={running === 'invite'}
-                busyLabel="Creating invitation…"
+                busyLabel="Sending invitation…"
                 disabled={held || !recipientsReady}
               />
             </FormActions>

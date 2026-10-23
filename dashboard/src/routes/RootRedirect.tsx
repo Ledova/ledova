@@ -8,6 +8,8 @@ import { useUserProfile } from '@hooks/useUserProfile';
 import { AccountUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';
 import { LoadError, Loading } from '@components/Ledger';
+import { pendingMemberInvitation } from '@utils/memberInvitation';
+import { MEMBER_INVITATION_PATH } from '@utils/paths';
 
 export function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -29,6 +31,7 @@ export function RootRedirect() {
         replace
       />
     );
+  if (pendingMemberInvitation()) return <Navigate to={MEMBER_INVITATION_PATH} replace />;
   if (
     preferences.isError ||
     access.isError ||

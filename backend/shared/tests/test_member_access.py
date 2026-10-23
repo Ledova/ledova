@@ -1,9 +1,13 @@
+from datetime import timedelta
+from unittest.mock import patch
 from uuid import uuid4
 
 from django.db import IntegrityError
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
+from integrations.sendgrid_email import SendGridClient
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import (
     CoreFixtures,
@@ -22,6 +26,7 @@ from tokens.models import (
 
 
 class MemberAccessTest(CoreFixtures, APITransactionTestCase):
+    @override_settings(DASHBOARD_BASE_URL="https://dashboard.example.test")
     def test_exact_walletless_association_own_entitlement_holdings_requests_and_revocation(self):
         award = self.award_payload()
         response = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
@@ -44,27 +49,81 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         ended = self.client.post("/api/v1/tokens/register-award-ends/", end_payload, format="json")
         self.assertEqual(ended.status_code, 201, ended.content)
         payload = self.invitation_payload(member=award["member"], intended_email=" CORE-FOREIGN@EXAMPLE.TEST ")
-        issued = self.client.post("/api/v1/tokens/member-invitations/", payload, format="json")
-        self.assertEqual(issued.status_code, 201, issued.content)
+        email_endpoint = "/api/v1/tokens/member-invitations/send-email/"
+        with patch("tokens.services.member_access.sendgrid_client.send_email") as delivery:
+            self.client.force_authenticate(self.foreign)
+            self.assertEqual(self.client.post(email_endpoint, payload, format="json").status_code, 404)
+            delivery.assert_not_called()
+            self.client.force_authenticate(self.owner)
+            with override_settings(DASHBOARD_BASE_URL="https://dashboard.example.test?redirect=untrusted"):
+                invalid_url = self.client.post(email_endpoint, payload, format="json")
+                self.assertEqual(invalid_url.status_code, 503, invalid_url.content)
+            delivery.assert_not_called()
+            with override_settings(SENDGRID_API_KEY=""), patch(
+                "integrations.sendgrid_email.client.send_mail", return_value=0
+            ):
+                delivery.side_effect = SendGridClient().send_email
+                failed = self.client.post(email_endpoint, payload, format="json")
+            self.assertEqual(failed.status_code, 503, failed.content)
+            with use_operator():
+                self.assertTrue(MemberInvitation.objects.filter(pk=payload["operation_id"]).exists())
+            first_email = delivery.call_args.kwargs
+            delivery.side_effect = None
+            delivery.return_value = {"success": True}
+            issued = self.client.post(email_endpoint, payload, format="json")
+            self.assertEqual(issued.status_code, 200, issued.content)
+            self.assertEqual(delivery.call_args.kwargs, first_email)
+            self.assertEqual(first_email["to_email"], self.foreign.email)
+            self.assertIn("View invitation", first_email["html_content"])
+            link = next(
+                line for line in first_email["text_content"].splitlines() if line.startswith("View invitation: ")
+            )
+            self.assertTrue(link.startswith("View invitation: https://dashboard.example.test/member-invitation#"))
+            invitation_code = link.rsplit("#", 1)[1]
+            self.assertEqual(len(invitation_code), 43)
+            changed = self.client.post(email_endpoint, {**payload, "intended_email": self.owner.email}, format="json")
+            self.assertEqual(changed.status_code, 409, changed.content)
+            self.assertEqual(delivery.call_count, 2)
+            replay = self.client.post(email_endpoint, payload, format="json")
+            self.assertEqual(replay.status_code, 200, replay.content)
+            self.assertEqual(delivery.call_args.kwargs, first_email)
+            with patch("tokens.services.member_access.timezone.now", return_value=timezone.now() + timedelta(days=8)):
+                expired_send = self.client.post(email_endpoint, payload, format="json")
+            self.assertEqual(expired_send.status_code, 400, expired_send.content)
+            self.assertEqual(delivery.call_count, 3)
         self.assertEqual(issued.json()["intendedEmail"], self.foreign.email)
-        replay = self.client.post("/api/v1/tokens/member-invitations/", payload, format="json")
-        self.assertEqual(replay.status_code, 200, replay.content)
-        self.assertIsNone(replay.json()["code"])
+        self.assertEqual(issued.json()["emailDelivery"], "accepted")
+        self.assertNotIn("code", issued.json())
         self.assertNotIn(
             "code", self.client.get(f"/api/v1/tokens/member-invitations/{payload['operation_id']}/").json()
         )
-        changed = self.client.post(
-            "/api/v1/tokens/member-invitations/", {**payload, "intended_email": self.owner.email}, format="json"
-        )
-        self.assertEqual(changed.status_code, 409, changed.content)
+        preview_endpoint = "/api/v1/tokens/member-invitations/preview/"
+        self.assertEqual(self.client.post(preview_endpoint, {"code": invitation_code}, format="json").status_code, 400)
         self.client.force_authenticate(self.foreign)
+        preview = self.client.post(preview_endpoint, {"code": invitation_code}, format="json")
+        self.assertEqual(preview.status_code, 200, preview.content)
+        self.assertEqual(preview.json()["company"], {"uuid": str(self.company.pk), "name": self.company.name})
+        self.assertEqual(preview.json()["member"], {"uuid": award["member"], "name": award["name"]})
+        self.assertEqual(preview.json()["status"], "pending")
+        self.assertEqual(preview["Cache-Control"], "private, no-store")
+        with use_operator():
+            self.assertFalse(MemberAssociation.objects.exists())
+        self.foreign.is_email_verified = False
+        self.assertEqual(self.client.post(preview_endpoint, {"code": invitation_code}, format="json").status_code, 403)
+        self.foreign.is_email_verified = True
+        with patch("tokens.services.member_access.timezone.now", return_value=timezone.now() + timedelta(days=8)):
+            expired = self.client.post(preview_endpoint, {"code": invitation_code}, format="json")
+        self.assertEqual(expired.status_code, 400, expired.content)
         acceptance = {
-            "code": issued.json()["code"],
+            "code": invitation_code,
             "user_account": str(self.foreign_profile.user_account.pk),
             "confirmation": True,
         }
         accepted = self.client.post("/api/v1/tokens/member-invitations/accept/", acceptance, format="json")
         self.assertEqual(accepted.status_code, 200, accepted.content)
+        self.assertEqual(
+            self.client.post(preview_endpoint, {"code": invitation_code}, format="json").json()["status"], "accepted"
+        )
         association = accepted.json()["uuid"]
         self.assertEqual(
             self.client.post("/api/v1/tokens/member-invitations/accept/", acceptance, format="json").json()["uuid"],
@@ -185,6 +244,7 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
             with self.assertRaises(IntegrityError), atomic():
                 MemberAssociation.objects.filter(pk=association).update(current=True)
         self.client.force_authenticate(self.foreign)
+        self.assertEqual(self.client.post(preview_endpoint, {"code": invitation_code}, format="json").status_code, 400)
         self.assertEqual(self.client.get(record_endpoint).status_code, 404)
         self.assertEqual(self.client.get("/api/v1/tokens/member-records/").json()["count"], 0)
         self.assertEqual(
@@ -202,6 +262,18 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(invitation.status_code, 201, invitation.content)
+        with patch("tokens.services.member_access.sendgrid_client.send_email") as delivery:
+            legacy_retry = self.client.post(
+                email_endpoint,
+                self.invitation_payload(
+                    operation_id=invitation.json()["uuid"],
+                    member=copied_award["member"],
+                    intended_email=copied_user.email,
+                ),
+                format="json",
+            )
+            self.assertEqual(legacy_retry.status_code, 409, legacy_retry.content)
+            delivery.assert_not_called()
         self.client.force_authenticate(copied_user)
         accepted = self.client.post(
             "/api/v1/tokens/member-invitations/accept/",

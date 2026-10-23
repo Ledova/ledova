@@ -5153,6 +5153,13 @@
         ],
         "type": "object"
       },
+      "EmailDeliveryEnum": {
+        "description": "* `accepted` - accepted",
+        "enum": [
+          "accepted"
+        ],
+        "type": "string"
+      },
       "EmailVerificationRequest": {
         "properties": {
           "email": {
@@ -7064,6 +7071,80 @@
         ],
         "type": "object"
       },
+      "MemberInvitationEmail": {
+        "properties": {
+          "acceptanceDeadline": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "appointment": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "company": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "emailDelivery": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EmailDeliveryEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "intendedEmail": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "issuedBy": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "member": {
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberInvitationStatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "uuid": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptanceDeadline",
+          "appointment",
+          "company",
+          "createdAt",
+          "emailDelivery",
+          "intendedEmail",
+          "issuedBy",
+          "member",
+          "status",
+          "uuid"
+        ],
+        "type": "object"
+      },
       "MemberInvitationIssued": {
         "properties": {
           "acceptanceDeadline": {
@@ -7135,6 +7216,57 @@
         ],
         "type": "object"
       },
+      "MemberInvitationPreview": {
+        "properties": {
+          "acceptanceDeadline": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "company": {
+            "$ref": "#/components/schemas/MemberInvitationSubject"
+          },
+          "intendedEmail": {
+            "format": "email",
+            "type": "string"
+          },
+          "member": {
+            "$ref": "#/components/schemas/MemberInvitationSubject"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MemberInvitationPreviewStatusEnum"
+          }
+        },
+        "required": [
+          "acceptanceDeadline",
+          "company",
+          "intendedEmail",
+          "member",
+          "status"
+        ],
+        "type": "object"
+      },
+      "MemberInvitationPreviewRequestRequest": {
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{43}$",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "MemberInvitationPreviewStatusEnum": {
+        "description": "* `pending` - pending\n* `accepted` - accepted",
+        "enum": [
+          "pending",
+          "accepted"
+        ],
+        "type": "string"
+      },
       "MemberInvitationStatusEnum": {
         "description": "* `pending` - pending\n* `expired` - expired\n* `unavailable` - unavailable\n* `accepted` - accepted\n* `revoked` - revoked",
         "enum": [
@@ -7145,6 +7277,22 @@
           "revoked"
         ],
         "type": "string"
+      },
+      "MemberInvitationSubject": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "uuid"
+        ],
+        "type": "object"
       },
       "MemberParticularsRequest": {
         "properties": {
@@ -32482,6 +32630,116 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MemberAssociation"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-invitations/preview/": {
+      "post": {
+        "operationId": "api_v1_tokens_member_invitations_preview_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationPreviewRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationPreviewRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationPreviewRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberInvitationPreview"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/member-invitations/send-email/": {
+      "post": {
+        "operationId": "api_v1_tokens_member_invitations_send_email_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberInvitationCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberInvitationEmail"
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberInvitationEmail"
                 }
               }
             },
