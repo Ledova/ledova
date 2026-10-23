@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_AWARD_COPY as COPY,
@@ -12,12 +12,19 @@ import {
 import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
 import { AwardRecord } from './AwardRecord';
-import { useOwnAppointments } from '@hooks/useOwnAppointments';
+import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { registerKey } from '@hooks/useRegisterAccess';
 import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
-import { awardsKey, useRegisterAwards } from '@pages/company/ledger/shared/useRegisterAwards';
+import {
+  awardsKey,
+  awardVestingsKey,
+  awardEndsKey,
+  awardVestingReversalsKey,
+  useRegisterAwards,
+} from '@pages/company/ledger/shared/useRegisterAwards';
 import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
-import { LoadError, Loading } from '@components/Ledger';
+import { LoadError, Loading, Section } from '@components/Ledger';
+import { useAwardFreshness } from './useAwardFreshness';
 
 export function ClassAwards({
   owner,
@@ -25,6 +32,7 @@ export function ClassAwards({
   register,
   guard,
   sourceReady = true,
+  active = true,
   onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
@@ -32,6 +40,7 @@ export function ClassAwards({
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady?: boolean;
+  active?: boolean;
   onHeldChange?: (token: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
@@ -39,6 +48,9 @@ export function ClassAwards({
   const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
   const [recordHolds, setRecordHolds] = useState<Record<string, boolean>>({});
+  const [returnToAction, setReturnToAction] = useState(false);
+  const preparation = useRef<HTMLDivElement>(null);
+  const prepareAction = useRef<HTMLButtonElement>(null);
   const live = useRef(true);
   const heldCallback = useRef(onHeldChange);
   useLayoutEffect(() => {
@@ -82,83 +94,72 @@ export function ClassAwards({
     !appointments.isFetching &&
     !appointments.isError;
   const held = formHeld || Object.values(recordHolds).some(Boolean);
+  useEffect(() => {
+    if (active && editing) preparation.current?.focus();
+  }, [active, editing]);
+  useEffect(() => {
+    if (active && !editing && returnToAction && !blocked && prepareAction.current) {
+      prepareAction.current.focus();
+      setReturnToAction(false);
+    }
+  }, [active, editing, returnToAction, blocked]);
   useLayoutEffect(() => {
     onHeldChange?.(token, held);
   }, [onHeldChange, token, held]);
   useLayoutEffect(() => () => heldCallback.current?.(token, false), [token]);
-  const refresh = async (throwOnError = false) => {
-    await appointments.refetch({ throwOnError });
+  const refresh = async (throwOnError = false, available?: () => boolean) => {
+    await appointments.refetch({ cancelRefetch: false, throwOnError });
+    guard();
+    const current = client.getQueryState<OwnCompanyAppointment[]>(ownAppointmentsKey(owner));
+    latestAppointments.current = current?.status === 'success' ? (current.data ?? []) : [];
+    if (available && !available()) return;
+    if (
+      current?.status !== 'success' ||
+      current.fetchStatus !== 'idle' ||
+      !hasCurrentRegisterReadAuthority(current.data ?? [], company)
+    )
+      return;
+    const currentAwards = await awards.refetch({ cancelRefetch: false, throwOnError });
+    check();
+    if (available && !available()) return;
     await Promise.all([
       client.invalidateQueries({
         queryKey: awardsKey(owner, token),
         predicate: ({ queryKey }) => queryKey.length > awardsKey(owner, token).length,
       }),
-      awards.refetch({ throwOnError }),
+      ...(currentAwards.isSuccess
+        ? currentAwards.data.flatMap((award) =>
+            [
+              awardVestingsKey(owner, award.uuid),
+              awardEndsKey(owner, award.uuid),
+              awardVestingReversalsKey(owner, award.uuid),
+            ].map((queryKey) => client.invalidateQueries({ queryKey, exact: true }, { cancelRefetch: false })),
+          )
+        : []),
       client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
       client.invalidateQueries({ queryKey: [...registerKey(owner), 'invitation-awards', company] }),
       client.invalidateQueries({ queryKey: [...registerKey(owner), 'member-awards', company] }),
       client.invalidateQueries({ queryKey: grantsKey(owner, token) }),
     ]);
   };
-  return (
-    <div className="mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">{COPY.TITLE}</h3>
-      <p className="text-sm text-text-muted">{COPY.NOTE}</p>
+  useAwardFreshness({
+    owner,
+    token,
+    guard,
+    active,
+    sourceReady,
+    held,
+    refreshRecords: (available) => refresh(true, available),
+  });
+  const status = (
+    <>
       {appointments.isError && (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.
         </LoadError>
       )}
-      {appointments.isSuccess && !appointment && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
-      {((appointment && supported) || (editing && formAppointment)) && (
-        <PageAction
-          label={editing ? 'Close award form' : COPY.PREPARE}
-          disabled={blocked || held}
-          onClick={() => {
-            if (editing) {
-              setEditing(false);
-              setFormAppointment(null);
-            } else if (appointment) {
-              setFormAppointment(appointment);
-              setEditing(true);
-            }
-          }}
-        />
-      )}
-      {editing && members.isPending && <Loading>Loading retained recipients…</Loading>}
-      {editing && members.isError && (
-        <LoadError retry={() => members.refetch()} busy={members.isFetching}>
-          The retained recipients could not be loaded.
-        </LoadError>
-      )}
-      {editing && formAppointment && (
-        <AwardForm
-          key={`${company}/${token}/${formAppointment.uuid}`}
-          company={company}
-          token={token}
-          people={peopleFrom(members.data)}
-          appointment={formAppointment}
-          guard={check}
-          blocked={blocked || (!formHeld && (members.isPending || members.isFetching || members.isError))}
-          visible={visible && (formHeld || (members.isSuccess && !members.isFetching))}
-          canPrepare={
-            supported &&
-            !!appointmentForRegisterStep(
-              appointments.isSuccess ? appointments.data.filter((item) => item.uuid === formAppointment.uuid) : [],
-              company,
-              'prepare',
-            )
-          }
-          onHeldChange={setFormHeld}
-          onRecorded={async () => {
-            check();
-            await refresh(true);
-            check();
-            setFormHeld(false);
-            setEditing(false);
-            setFormAppointment(null);
-          }}
-        />
+      {appointments.isSuccess && readable && !appointment && (
+        <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
       {appointments.isError ? null : !appointments.isSuccess || (readable && awards.isPending) ? (
         <Loading>Loading employee awards…</Loading>
@@ -177,35 +178,106 @@ export function ClassAwards({
           The non-paid issues prepared from these awards could not be loaded.
         </LoadError>
       )}
-      {!awards.isError && !appointments.isError && (
-        <PageAction
-          label="Refresh awards"
-          busy={awards.isFetching || appointments.isFetching}
-          busyLabel="Refreshing…"
-          onClick={() => void refresh()}
-        />
-      )}
-      {visible && awards.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
-      <ul className="space-y-4">
-        {awards.data?.map((award) => (
-          <AwardRecord
-            key={award.uuid}
-            owner={owner}
-            award={award}
-            grants={grants.isSuccess ? grants.data.filter((grant) => grant.award === award.uuid) : []}
-            appointment={supported ? appointment : undefined}
-            guard={check}
-            blocked={blocked}
-            visible={visible}
-            onHeldChange={(recordHeld) =>
-              setRecordHolds((previous) =>
-                previous[award.uuid] === recordHeld ? previous : { ...previous, [award.uuid]: recordHeld },
-              )
-            }
-            onSettled={() => refresh(true)}
+    </>
+  );
+  return (
+    <div className="space-y-5">
+      <Section
+        title={
+          editing
+            ? COPY.PREPARE
+            : sourceReady && readable
+              ? `${register.token.name} · ${register.token.symbol}`
+              : COPY.TITLE
+        }
+      >
+        {editing && sourceReady && readable && (
+          <p className="text-sm text-text-muted">
+            {register.token.name} · {register.token.symbol}
+          </p>
+        )}
+        {status}
+        <div hidden={editing} className="space-y-4">
+          {visible && awards.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
+          <ul hidden={!awards.data?.length} className="space-y-4">
+            {awards.data?.map((award) => (
+              <AwardRecord
+                key={award.uuid}
+                owner={owner}
+                award={award}
+                grants={grants.isSuccess ? grants.data.filter((grant) => grant.award === award.uuid) : []}
+                appointment={supported ? appointment : undefined}
+                guard={check}
+                blocked={blocked}
+                visible={visible && !editing}
+                onHeldChange={(recordHeld) =>
+                  setRecordHolds((previous) =>
+                    previous[award.uuid] === recordHeld ? previous : { ...previous, [award.uuid]: recordHeld },
+                  )
+                }
+                onSettled={() => refresh(true)}
+              />
+            ))}
+          </ul>
+        </div>
+        <div ref={preparation} tabIndex={-1} hidden={!editing} className="space-y-4 focus:outline-none">
+          {editing && members.isPending && <Loading>Loading retained recipients…</Loading>}
+          {editing && members.isError && (
+            <LoadError retry={() => members.refetch()} busy={members.isFetching}>
+              The retained recipients could not be loaded.
+            </LoadError>
+          )}
+          {editing && formAppointment && (
+            <AwardForm
+              key={`${company}/${token}/${formAppointment.uuid}`}
+              company={company}
+              token={token}
+              people={peopleFrom(members.data)}
+              appointment={formAppointment}
+              guard={check}
+              blocked={blocked || (!formHeld && (members.isPending || members.isFetching || members.isError))}
+              visible={visible && (formHeld || (members.isSuccess && !members.isFetching))}
+              canPrepare={
+                supported &&
+                !!appointmentForRegisterStep(
+                  appointments.isSuccess ? appointments.data.filter((item) => item.uuid === formAppointment.uuid) : [],
+                  company,
+                  'prepare',
+                )
+              }
+              onCancel={() => {
+                setEditing(false);
+                setFormAppointment(null);
+                setReturnToAction(true);
+              }}
+              onHeldChange={setFormHeld}
+              onRecorded={async () => {
+                check();
+                await refresh(true);
+                check();
+                setFormHeld(false);
+                setEditing(false);
+                setFormAppointment(null);
+              }}
+            />
+          )}
+        </div>
+      </Section>
+      {!editing && appointment && supported && (
+        <div className="flex flex-wrap justify-end gap-2">
+          <PageAction
+            ref={prepareAction}
+            label={COPY.PREPARE}
+            primary
+            disabled={blocked || held}
+            onClick={() => {
+              setReturnToAction(false);
+              setFormAppointment(appointment);
+              setEditing(true);
+            }}
           />
-        ))}
-      </ul>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,10 +5,18 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
 import { useAwardAdjustmentForm } from './useAwardAdjustmentForm';
 
-export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentForm>[0]) {
+export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentForm>[0] & { onCancel: () => void }) {
   const form = useAwardAdjustmentForm(props);
   const checks = useErrorSummary(form.problems);
-  if (!props.visible) return null;
+  const cancel = (
+    <PageAction
+      label="Cancel"
+      context={props.visible ? `entitlement change for ${props.award.recipientName}` : 'entitlement change recovery'}
+      disabled={form.busy || props.blocked || form.held}
+      onClick={props.onCancel}
+    />
+  );
+  if (!props.visible) return <FormActions>{cancel}</FormActions>;
   return (
     <form
       className="space-y-5 border-t border-border-subtle pt-5"
@@ -78,6 +86,7 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
       )}
       {form.held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
       <FormActions>
+        {cancel}
         <PageAction
           type="submit"
           primary

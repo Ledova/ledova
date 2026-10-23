@@ -14,6 +14,7 @@ export function AwardForm({
   guard,
   blocked,
   onRecorded,
+  onCancel,
   onHeldChange,
   visible = true,
   canPrepare = true,
@@ -25,6 +26,7 @@ export function AwardForm({
   guard: () => void;
   blocked: boolean;
   onRecorded: () => Promise<unknown>;
+  onCancel: () => void;
   onHeldChange?: (held: boolean) => void;
   visible?: boolean;
   canPrepare?: boolean;
@@ -64,7 +66,10 @@ export function AwardForm({
     canPrepare,
   });
   const checks = useErrorSummary(problems);
-  if (!visible) return null;
+  const cancel = (
+    <PageAction label="Cancel" context="award preparation" disabled={busy || blocked || held} onClick={onCancel} />
+  );
+  if (!visible) return <FormActions>{cancel}</FormActions>;
   return (
     <form
       className="space-y-5 border-t border-border-subtle pt-5"
@@ -136,6 +141,7 @@ export function AwardForm({
       )}
       {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
       <FormActions>
+        {cancel}
         <PageAction
           type="submit"
           primary

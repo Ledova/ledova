@@ -588,14 +588,15 @@ function OwnRegister({
                 data-register-tasks
                 hidden={view === 'register' && (!selectedTask || selectedToken !== register.token.uuid)}
                 className={
-                  view === 'register' && selectedTask
+                  (view === 'register' && selectedTask) || view === 'awards'
                     ? 'space-y-5'
                     : 'space-y-5 rounded-xl border border-border bg-surface-raised p-4 sm:p-5'
                 }
               >
                 <h2
                   hidden={
-                    sourceReady && view === 'register' && (selectedTask === 'issue' || selectedTask === 'transfer')
+                    view === 'awards' ||
+                    (sourceReady && view === 'register' && (selectedTask === 'issue' || selectedTask === 'transfer'))
                   }
                   className={
                     sourceReady && view === 'register' && ['history', 'corrections'].includes(selectedTask ?? '')
@@ -730,6 +731,7 @@ function OwnRegister({
                       company={scope.company.uuid}
                       sourceReady={sourceReady}
                       onHeldChange={awardHeld}
+                      active={view === 'awards'}
                     />
                   </div>
                   <div hidden={view !== 'documents'} className="space-y-5">

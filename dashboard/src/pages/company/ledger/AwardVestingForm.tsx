@@ -16,6 +16,7 @@ export function AwardVestingForm({
   guard,
   blocked,
   onRecorded,
+  onCancel,
   onHeldChange,
   visible = true,
   canPrepare = true,
@@ -25,6 +26,7 @@ export function AwardVestingForm({
   guard: () => void;
   blocked: boolean;
   onRecorded: () => Promise<unknown>;
+  onCancel: () => void;
   onHeldChange?: (held: boolean) => void;
   visible?: boolean;
   canPrepare?: boolean;
@@ -32,7 +34,15 @@ export function AwardVestingForm({
   const { shares, setShares, vestedOn, setVestedOn, setFile, busy, held, error, today, problems, submit } =
     useAwardVestingForm({ award, appointment, guard, blocked, onRecorded, onHeldChange, visible, canPrepare });
   const checks = useErrorSummary(problems);
-  if (!visible) return null;
+  const cancel = (
+    <PageAction
+      label="Cancel"
+      context={visible ? `vesting for ${award.recipientName}` : 'vesting recovery'}
+      disabled={busy || blocked || held}
+      onClick={onCancel}
+    />
+  );
+  if (!visible) return <FormActions>{cancel}</FormActions>;
   return (
     <form
       className="space-y-5 border-t border-border-subtle pt-5"
@@ -71,6 +81,7 @@ export function AwardVestingForm({
       )}
       {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
       <FormActions>
+        {cancel}
         <PageAction
           type="submit"
           primary

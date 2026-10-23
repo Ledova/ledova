@@ -103,7 +103,10 @@ in a right-aligned footer after secondary actions. Name a preview-opening action
 such as **Review and approve**; opening it is not approval. The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
-Issue shares and Transfer shares follow this pattern. Transfer records align From, To, Shares,
+Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
+keeps its class card and returns to its records after Cancel or a successful save. Its preparation,
+vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
+Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
 Details and documents. Emphasise the review for the current stage. Keep transfer preparation beside
