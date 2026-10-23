@@ -6,6 +6,7 @@ import * as Crypto from 'expo-crypto';
 import {
   apiErrorSentence,
   createUserFriendlyError,
+  DESTINATIONS,
   failureStatus,
   formatShareCount,
   getErrorMessage,
@@ -220,13 +221,13 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
   };
   if (register.isPending || members.isPending || appointments.isPending)
     return (
-      <Page title="Register">
+      <Page title={DESTINATIONS.companyRegisterTransfer.title}>
         <Text style={styles.muted}>Loading the register members and your appointments…</Text>
       </Page>
     );
   if (register.isError || members.isError || appointments.isError)
     return (
-      <Page title="Register">
+      <Page title={DESTINATIONS.companyRegisterTransfer.title}>
         <Text accessibilityRole="alert" style={styles.error}>
           The register members and your appointments could not be loaded.
         </Text>
@@ -235,13 +236,13 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
     );
   if (!steps?.prepare)
     return (
-      <Page title="Register">
+      <Page title={DESTINATIONS.companyRegisterTransfer.title}>
         <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>
       </Page>
     );
   if (!supported)
     return (
-      <Page title="Register">
+      <Page title={DESTINATIONS.companyRegisterTransfer.title}>
         <Text style={styles.muted}>
           This transfer requires an opened register for a draft share class without a deployed contract.
         </Text>
@@ -258,7 +259,7 @@ function PrepareRegisterTransfer({ epoch }: { epoch: number }) {
     ['reason', COPY.REASON, 1000],
   ];
   return (
-    <Page testID="prepare-transfer-screen" title="Register" lede={COPY.NOTE}>
+    <Page testID="prepare-transfer-screen" title={DESTINATIONS.companyRegisterTransfer.title} lede={COPY.NOTE}>
       <Section title={register.data.token.name}>
         <PersonSelect
           label={COPY.FROM}

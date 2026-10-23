@@ -48,7 +48,7 @@ operator and publication-list reads and shared register helpers live in `package
 native session, result and transport policies kept in the client. The native certifier labels live
 in `mobile/src/config/investorEligibility.ts`; register reads remain per client.
 
-`mobile/src/screens/company-register/CreateClassForm.tsx` creates a class from the Register tab,
+`mobile/src/screens/company-register/CreateClassForm.tsx` creates a class from the Ledger tab,
 always with the internal quantity guard (`TECHNICAL_SHARE_LIMIT`). Its controller,
 `useCreateRegisterClass.ts` beside it, owns creation, captured appointment, company and session
 guards, and read-only receipt recovery. An uncertain request stays held without another POST.
@@ -75,12 +75,24 @@ sign-in clears the query cache on focus),
 routes and guards do not apply. Labels come from the `DESTINATIONS` titles, but screens set their
 own titles, so a few differ from the web (Eligibility requests). A company account with readable
 classes (`useRegisterAccess().hasClasses` in `mobile/src/hooks/useCompanyRegister.ts`) starts on the
-Register tab, others on Home (My shares). Its `allowed` result also lets current personal company
-administrators and preparers reach Register before their first class, without changing that landing.
-The tab bar shows only Home, Register (with that access) and Wallets; other destinations are hidden tab
+Ledger tab, others on Home (My shares). Its `allowed` result also lets current personal company
+administrators and preparers reach Ledger before their first class, without changing that landing.
+The tab bar shows only Home, Ledger (with that access) and Wallets; other destinations are hidden tab
 routes (`tabBarItemStyle: { display: 'none' }`) opened from the drawer, Market only for an investing
 account while `trading_enabled` is on, under Invest. Routes and business sections are in
 [Pages](frontend.md#pages).
+
+The drawer's Company group mirrors the web sidebar ([navigation](frontend-ux.md#navigation)). Ledger
+opens the share-class overview, and a separate caret shows Issue shares, Transfer shares, History
+and Corrections; Shareholders, ESS (read aloud as Employee share scheme), Documents and Company
+follow. Each opens a section of the one Ledger screen
+(`mobile/src/screens/company-register/CompanyRegisterScreen.tsx`), which keeps every section and
+class mounted, so unfinished work survives switching. Issue shares, Transfer shares, History,
+Corrections and Shareholders show one class at a time, chosen under **Share class**; ESS and
+Documents list every class, and Company holds member access. The drawer marks the current page.
+While work is held, the screen publishes it through `mobile/src/navigation/LedgerNavigation.tsx`: as
+on the web, the class and company choices lock, and the drawer disables the Ledger overview and the
+other tasks, leaving the held task available from a sibling section.
 
 ## Theme and appearance
 

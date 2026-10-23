@@ -57,7 +57,7 @@ expansion tickets were [closed as not planned on 18 October](../../decisions.md#
 
 | Issue                                               | Remaining                                         | Current prerequisites                              |
 | --------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
-| [#1201](https://github.com/Ledova/ledova/issues/1201) | Mobile people, issue placement and UX refinements | Deferred until the owner resumes mobile work |
+| [#1201](https://github.com/Ledova/ledova/issues/1201) | Mobile people, issue placement and UX refinements | Resumed on 24 October 2026 for the finished web pages |
 | [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance | Genuine device/human and configured-chain evidence |
 
 Programme [#860](https://github.com/Ledova/ledova/issues/860), now closed, tracked the transition to one registry

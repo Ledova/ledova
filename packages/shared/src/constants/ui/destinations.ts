@@ -27,15 +27,15 @@ export const DESTINATIONS = {
   companyClass: { path: '/company/ledger/:uuid', title: 'Share class', audience: 'everyone' },
   companyRegister: {
     path: '/company/ledger',
-    title: 'Register',
+    title: 'Ledger',
     audience: 'everyone',
     views: { shareholders: 'Shareholders', awards: 'Employee share scheme', documents: 'Documents' },
-    tasks: { issue: 'Issue shares', transfer: 'Transfer shares', history: 'History' },
+    tasks: { issue: 'Issue shares', transfer: 'Transfer shares', history: 'History', corrections: 'Corrections' },
   },
-  companyRegisterSetup: { path: '/company/ledger/setup', title: 'Set up your share register', audience: 'everyone' },
+  companyRegisterSetup: { path: '/company/ledger/setup', title: 'Set up your ledger', audience: 'everyone' },
   companyRegisterImport: {
     path: '/company/ledger/:uuid/import',
-    title: 'Set up your share register',
+    title: 'Set up your ledger',
     audience: 'everyone',
   },
   companyRegisterCorrection: {
@@ -53,7 +53,7 @@ export const DESTINATIONS = {
     title: 'Non-paid transfer',
     audience: 'everyone',
   },
-  companyRegisterOpening: { path: '/company/ledger/:uuid/open', title: 'Register opening', audience: 'everyone' },
+  companyRegisterOpening: { path: '/company/ledger/:uuid/open', title: 'Ledger opening', audience: 'everyone' },
   companyRegisterParticulars: {
     path: '/company/ledger/members/:member/particulars',
     title: 'Particulars change',
@@ -72,6 +72,8 @@ export const DESTINATIONS = {
 } as const satisfies Record<string, Destination>;
 
 export type DestinationKey = keyof typeof DESTINATIONS;
+
+export type LedgerTask = keyof typeof DESTINATIONS.companyRegister.tasks;
 
 export interface DestinationParent {
   destination: DestinationKey;

@@ -1,7 +1,6 @@
-import { DESTINATIONS } from '@ledova/shared';
-import { WEB_LEDGER_TASKS, type WebLedgerTask } from '@utils/destinations';
+import { DESTINATIONS, type LedgerTask } from '@ledova/shared';
 
-export type RegisterTask = WebLedgerTask;
+export type RegisterTask = LedgerTask;
 
 export interface RegisterPlace {
   company?: string;
@@ -18,7 +17,7 @@ export interface Landed {
 }
 
 export function isRegisterTask(value: unknown): value is RegisterTask {
-  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(WEB_LEDGER_TASKS, value);
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(DESTINATIONS.companyRegister.tasks, value);
 }
 
 export function registerPlace({ company, token, task, record, outcome }: RegisterPlace) {

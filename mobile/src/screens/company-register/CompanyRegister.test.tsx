@@ -40,7 +40,7 @@ async function choose(
 }
 
 const mockNavigate = jest.fn();
-let mockSection = 'register';
+let mockSection = 'ledger';
 let mockRouteParams: { tokenUuid: string; companyUuid: string; correctionOf?: string } | undefined;
 const mockGoBack = jest.fn();
 const mockSetParams = jest.fn((params: { section: string }) => {
@@ -210,7 +210,7 @@ beforeEach(() => {
     .mocked(Crypto.randomUUID)
     .mockImplementation(() => `00000000-0000-4000-8000-${String(++keys).padStart(12, '0')}`);
   mockPreferences = { userAccount: { role: 'company' }, isLoading: false, isError: false, refetch: jest.fn() };
-  mockSection = 'register';
+  mockSection = 'ledger';
   mockRouteParams = undefined;
   mockGoBack.mockClear();
   resetFiles();
@@ -516,7 +516,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   get.mockClear();
   mockPreferences.userAccount = { role: 'investor' };
   const view = await render(<CompanyRegisterScreen />, { wrapper });
-  await view.findByRole('button', { name: 'Preference shares register' });
+  await view.findByRole('header', { name: 'Preference shares' });
   const epoch = getSessionEpoch();
   const session = { ledovaSessionEpoch: epoch, signal: expect.objectContaining({ aborted: false }) };
   expect(get.mock.calls.filter(([url]) => url === URLS.REGISTER).map(([, config]) => config)).toEqual([
@@ -530,14 +530,19 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   expect(view.queryByText('Choose company')).toBeNull();
   expect(view.getByRole('button', { name: 'Open Ordinary shares' })).toBeTruthy();
   expect(view.getByText('Paper Company · ORD')).toBeTruthy();
-  await fireEvent.press(view.getByRole('button', { name: 'Ordinary shares register' }));
+  mockSection = 'corrections';
+  await view.rerender(<CompanyRegisterScreen />);
+  await fireEvent.press(view.getByRole('radio', { name: 'Ordinary shares' }));
   expect(view.getAllByText('Alex Member').length).toBeGreaterThan(0);
   expect(view.getByText('Company’s existing legal register')).toBeTruthy();
   expect(view.getByText('certificate-1')).toBeTruthy();
   expect(view.getByText('Holder’s own benefit')).toBeTruthy();
   expect(view.queryByRole('button', { name: 'Correct opening records for Ordinary shares' })).toBeNull();
+  mockSection = 'shareholders';
+  await view.rerender(<CompanyRegisterScreen />);
+  expect(view.getAllByText('Alex Member').length).toBeGreaterThan(0);
   expect(view.getByText('9,007,199,254,740,992 shares')).toBeTruthy();
-  await fireEvent.press(view.getByRole('button', { name: 'Documents' }));
+  mockSection = 'documents';
   await view.rerender(<CompanyRegisterScreen />);
   expect(view.getAllByText(REGISTER_COPY.PRIVACY_NOTE).length).toBeGreaterThan(0);
   await fireEvent.press(view.getByRole('button', { name: 'Download CSV for Ordinary shares' }));
@@ -553,8 +558,6 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
     ledovaSubmissionGuard: expect.any(Function),
   });
   expect(files.size).toBe(1);
-  await fireEvent.press(view.getByRole('button', { name: 'Preference shares register' }));
-
   expect(view.getByRole('button', { name: 'Download CSV for Preference shares' })).toBeDisabled();
   let late: ((value: unknown) => void) | undefined;
   read = (url, number) =>
@@ -567,8 +570,8 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   await fireEvent.press(view.getByRole('button', { name: 'Download CSV for Ordinary shares' }));
   await waitFor(() => expect(late).toBeDefined());
   await act(() => invalidateSessionScope());
-  await view.findByRole('button', { name: 'Ordinary shares register' });
-  mockSection = 'register';
+  await view.findByRole('header', { name: 'Ordinary shares' });
+  mockSection = 'ledger';
   await view.rerender(<CompanyRegisterScreen />);
   expect(view.queryByRole('button', { name: 'Download CSV for Ordinary shares' })).toBeNull();
   await act(async () => late!(await defaultRead(URLS.REGISTER_EXPORT('ordinary'), 1)));

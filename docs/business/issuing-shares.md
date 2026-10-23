@@ -36,7 +36,7 @@ rechecked under the company lock. Ownership or platform staff status alone suppl
 [Register setup](register.md#bringing-in-existing-records) on web and mobile lists companies from those
 appointments, including a preparer who is not the owner. Classes are created only through that
 setup: on the web **Ledger**, **Add share class**; on mobile
-**Set up your share register** in Getting started or **Create share class** on the Register tab.
+**Set up your ledger** in Getting started or **Create share class** on the Ledger tab.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.

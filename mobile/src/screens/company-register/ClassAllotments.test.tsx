@@ -28,7 +28,7 @@ import { pickedFile, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
 import { registerKey } from '../../hooks/useCompanyRegister';
 
-let mockSection = 'register';
+let mockSection = 'issue';
 jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({ params: { section: mockSection } }),
   useNavigation: () => ({
@@ -64,7 +64,7 @@ afterEach(async () => {
 });
 
 it('recovers the fully paid company allotment once, separates approval from ISSUE and hides private sources after appointment loss', async () => {
-  mockSection = 'register';
+  mockSection = 'issue';
   resetFiles();
   let keys = 0;
   let picks = 0;
@@ -193,7 +193,6 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
       </ApiClientProvider>
     </QueryClientProvider>,
   );
-  await fireEvent.press(await view.findByRole('button', { name: `${REGISTER.token.name} register` }));
   const open = await view.findByRole('button', { name: COPY.PREPARE });
   await waitFor(() => expect(open).not.toBeDisabled());
   await fireEvent.press(open);
@@ -305,8 +304,16 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
       await waitFor(() => expect(retryAllotments).not.toBeDisabled());
       await fireEvent.press(retryAllotments);
       await view.findByRole('button', { name: /^Recover record issue receipt/ });
+      mockSection = 'shareholders';
+      await view.rerender(
+        <QueryClientProvider client={client}>
+          <ApiClientProvider client={apiClient}>
+            <CompanyRegisterScreen />
+          </ApiClientProvider>
+        </QueryClientProvider>,
+      );
       await view.findByText('100 shares');
-      await fireEvent.press(view.getByRole('button', { name: 'Employee awards' }));
+      mockSection = 'awards';
       await view.rerender(
         <QueryClientProvider client={client}>
           <ApiClientProvider client={apiClient}>
@@ -315,7 +322,7 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
         </QueryClientProvider>,
       );
       expect(view.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
-      await fireEvent.press(view.getByRole('button', { name: 'Register' }));
+      mockSection = 'issue';
       await view.rerender(
         <QueryClientProvider client={client}>
           <ApiClientProvider client={apiClient}>
