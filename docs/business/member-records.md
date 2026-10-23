@@ -60,8 +60,8 @@ investment eligibility ([decision](../decisions.md#member-invitations-and-accoun
 
 1. A company administrator opens **Member access and requests**: on web on **Shareholders**, or with
    **Invite to their records** on a shareholder's page; on mobile under **Company**.
-2. Under **Invite a member**, they choose a named member or award recipient (who can be invited
-   before any shares are issued, and sees their own award), enter the recipient's email and choose
+2. On web, choose **Invite a member** to open the form. Choose a named member or award recipient
+   (who can be invited before any shares are issued, and sees their own award), enter the recipient's email and choose
    **Create member invitation**.
 3. Ledova shows a one-time code, which the company gives the recipient privately; Ledova sends no
    email. The invitation expires at the displayed deadline, 7 days by default and never more than
@@ -93,10 +93,14 @@ are on [the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access
 
-A company administrator revokes access under **Current member access**, with a reason recorded
-against them; relinking needs a new invitation. Revocation stops the person's own-record access,
-file access and new requests, though they can still read the status of requests they made.
+A company administrator opens the relevant record under **Current member access** and chooses
+**Revoke access**, supplying a reason for that action; relinking needs a new invitation. Revocation
+stops the person's own-record access, file access and new requests, though they can still read the
+status of requests they made.
 
+The web view shows access and requests as records, opening task fields only when needed.
+An empty queue does not ask for a company reason or certificate reference. Reads update on entry,
+focus and reconnect, and after a completed action; a failed read offers a retry.
 Every action rechecks the person's account, session, association and the company's authority; a
 failed refresh hides cached private records, and an uncertain reply is recovered, not resent
 ([when the outcome is uncertain](README.md#when-the-outcome-is-uncertain)).

@@ -205,12 +205,14 @@ it('invites and associates a walletless member, recovers one exact request and r
     />,
     { wrapper },
   );
+  expect(screen.queryByRole('button', { name: 'Refresh member access' })).toBeNull();
+  fireEvent.click(await screen.findByRole('button', { name: 'Invite a member' }));
   await choose('Member or award recipient', 'Company Recorded Member', 'recorded member');
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
   fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
   await screen.findByLabelText('One-time member invitation code');
-  expect(screen.getByText(/Private queued member name · Private queued member address/)).toBeTruthy();
-  expect(screen.getByText(/Private queued member address/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: /^Private queued member name/ }));
+  expect(screen.getByText('Private queued member address')).toBeTruthy();
   expect(screen.getByText(/member@example.test/)).toBeTruthy();
   preferencesRefused = true;
   await act(async () => {
@@ -227,6 +229,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.change(await screen.findByLabelText('Certificate instruction reference'), {
     target: { value: 'Synthetic recipient instruction' },
   });
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }));
   fireEvent.click(screen.getByRole('button', { name: `Preview certificate for ${MEMBER_RECORD.name}` }));
   fireEvent.click(await screen.findByRole('button', { name: 'Confirm recipient certificate fulfilment' }));
   await screen.findByText(/The unsigned recipient certificate is recorded/);
@@ -355,6 +358,11 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     { ...memberRegister, token: { ...memberRegister.token, uuid: otherClass, symbol: 'PREF' } },
   ];
   const view = render(companyView(company, registers));
+  expect(screen.queryByRole('combobox', { name: 'Member or award recipient' })).toBeNull();
+  expect(screen.queryByRole('textbox', { name: 'Company action reason' })).toBeNull();
+  expect(screen.queryByRole('textbox', { name: 'Certificate instruction reference' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Refresh member access' })).toBeNull();
+  fireEvent.click(await screen.findByRole('button', { name: 'Invite a member' }));
   const recipient = await screen.findByRole('combobox', { name: 'Member or award recipient' });
   await waitFor(() => expect((recipient as HTMLInputElement).disabled).toBe(false));
   fireEvent.change(recipient, { target: { value: ' ' } });
@@ -376,6 +384,8 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   );
   expect(onHeldChange).toHaveBeenCalledWith(true);
   expect(api.post).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('combobox', { name: 'Member or award recipient' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Invite a member' }));
 
   awards = [];
   await act(async () =>
@@ -398,6 +408,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   awards = [{ ...award, name: 'Foreign Private Award Recipient' }];
   invitation = undefined;
   view.rerender(companyView(otherCompany, [{ ...REGISTER, token: { ...REGISTER.token, uuid: otherClass } }]));
+  fireEvent.click(await screen.findByRole('button', { name: 'Invite a member' }));
   await screen.findByText('The award recipients belong to another company.');
   expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).value).toBe('');
   expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).disabled).toBe(true);
