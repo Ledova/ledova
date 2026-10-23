@@ -1,15 +1,16 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { ScrollView, Text, View, type ScrollViewProps } from 'react-native';
 import { useThemedStyles } from '../contexts';
 
 type PageProps = Pick<ScrollViewProps, 'testID' | 'refreshControl' | 'showsVerticalScrollIndicator'> & {
+  ref?: Ref<ScrollView>;
   title: string;
   lede?: string;
   actions?: ReactNode;
   children?: ReactNode;
 };
 
-export function Page({ title, lede, actions, children, ...scroll }: PageProps) {
+export function Page({ ref, title, lede, actions, children, ...scroll }: PageProps) {
   const styles = useThemedStyles((theme) => ({
     page: { flex: 1, backgroundColor: theme.colors.surface.base },
     content: {
@@ -25,6 +26,7 @@ export function Page({ title, lede, actions, children, ...scroll }: PageProps) {
   }));
   return (
     <ScrollView
+      ref={ref}
       style={styles.page}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"

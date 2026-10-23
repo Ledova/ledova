@@ -23,6 +23,7 @@ import { cache, files, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
 import { PrepareRegisterImportScreen } from './PrepareRegisterImportScreen';
 import { registerAppointmentsKey, useRegisterAccess } from '../../hooks/useCompanyRegister';
+import { LedgerNavigationProvider, useLedgerNavigation } from '../../navigation/LedgerNavigation';
 import { registerImportMembersKey } from './useRegisterImportMembers';
 
 const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -197,6 +198,11 @@ function wrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
+function LedgerNavigationState() {
+  const { state } = useLedgerNavigation();
+  return <Text testID="ledger-navigation">{JSON.stringify(state)}</Text>;
+}
+
 function RegisterAccessState() {
   const access = useRegisterAccess(true);
   return (
@@ -309,8 +315,15 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   );
   await act(() => client.setQueryData(appointmentKey, appointments));
   await access.unmount();
-  const setup = await render(<CompanyRegisterScreen />, { wrapper });
+  const setup = await render(
+    <LedgerNavigationProvider>
+      <CompanyRegisterScreen />
+      <LedgerNavigationState />
+    </LedgerNavigationProvider>,
+    { wrapper },
+  );
   await fireEvent.press(await setup.findByRole('button', { name: 'Create share class' }));
+  expect(setup.getByTestId('ledger-navigation')).toHaveTextContent('{"blocked":true}');
   for (const [label, value] of [
     ['Class name', 'Class A'],
     ['Class code', 'A'],
@@ -344,6 +357,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   capability = 'read_register';
   await fireEvent.press(setup.getByRole('button', { name: 'Refresh share classes' }));
   await waitFor(() => expect(setup.queryByTestId('modal-Create share class')).toBeNull());
+  await waitFor(() => expect(setup.getByTestId('ledger-navigation')).toHaveTextContent('{"blocked":false}'));
   expect(apiClient.post).toHaveBeenCalledTimes(1);
   expect(setup.queryByRole('button', { name: 'Create share class' })).toBeNull();
   await setup.unmount();

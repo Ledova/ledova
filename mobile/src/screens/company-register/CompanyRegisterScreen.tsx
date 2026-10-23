@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Text, View, RefreshControl } from 'react-native';
+import { Text, View, RefreshControl, type ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -21,6 +21,7 @@ import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { CompanySelection } from '../../components/company/CompanySelection';
 import { useCompanyRegister } from '../../hooks/useCompanyRegister';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { useThemedStyles } from '../../contexts';
 import { ClassRecords } from './ClassRecords';
 import { CreateClassForm } from './CreateClassForm';
 import { CompanyLinks } from './CompanyLinks';
@@ -117,6 +118,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
     );
   const shownRegisters: TokenHoldersResponse[] = registers.data ?? [];
   const styles = useCompanyStyles();
+  const layout = useThemedStyles((theme) => ({ stack: { gap: theme.spacing.lg } }));
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const routeToken = params?.tokenUuid;
   const [chosenToken, setChosenToken] = useState(routeToken);
@@ -134,6 +136,10 @@ function CompanyRegister({ epoch }: { epoch: number }) {
     .find(Boolean);
   const shownTask =
     heldSection && isLedgerTask(heldSection) ? heldSection : isLedgerTask(section) ? section : undefined;
+  const page = useRef<ScrollView>(null);
+  useEffect(() => {
+    page.current?.scrollTo({ y: 0, animated: false });
+  }, [section]);
   const { setState: setLedgerNavigation } = useLedgerNavigation();
   useEffect(() => {
     setLedgerNavigation({ task: shownTask, blocked: holding || !sourceReady });
@@ -166,6 +172,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
   };
   return (
     <Page
+      ref={page}
       testID="register-screen"
       title={SECTION_TITLES[section]}
       lede={company ? [company.name, status].filter(Boolean).join(' · ') : undefined}
@@ -319,7 +326,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
         })}
       {company && (
         <>
-          <View style={section === 'corrections' ? undefined : HIDDEN}>
+          <View style={section === 'corrections' ? layout.stack : HIDDEN}>
             <CompanyParticulars
               epoch={epoch}
               company={company.uuid}
@@ -338,7 +345,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
               onPrepare={() => navigation.navigate('PrepareRegisterLink', { company: company.uuid })}
             />
           </View>
-          <View style={section === 'documents' && sourceReady ? undefined : HIDDEN}>
+          <View style={section === 'documents' && sourceReady ? layout.stack : HIDDEN}>
             {sourceReady && (
               <>
                 {shownRegisters.map((register) => (
@@ -366,7 +373,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
               </>
             )}
           </View>
-          <View style={section === 'company' ? undefined : HIDDEN}>
+          <View style={section === 'company' ? layout.stack : HIDDEN}>
             {sourceReady && (
               <Action
                 label="Company information and team"
