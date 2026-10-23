@@ -129,6 +129,15 @@ Inspection copy and Company pack open from their preparation actions; privacy an
 or download. Keep current source and appointment validation and error retries, without routine
 refresh controls.
 
+Member access and requests follows the same records-first pattern on Shareholders. Show compact
+invitation, access and request records only when present, with private metadata under Details. A
+confirmed empty collection has one empty state and an Invite a member action beneath the card.
+Invitation preparation opens inline with member and email fields in the existing responsive grid,
+Cancel and Create together at the bottom right. Keep the one-time code visible after creation.
+Show an action reason only for a selected revocation or particulars update, and certificate
+instruction fields only with an actual request. Preserve drafts, current authority, failed-read
+retries and original-action recovery; there is no routine refresh control.
+
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep company and class context once, then the issue or transfer summary, ownership
 impact and supporting facts. Agreement and receipt, or the transfer instrument, sit beside company
