@@ -405,7 +405,9 @@ only for that active view. Recheck its authority before its dependent records; p
 cycles and stop periodic work while the view is hidden or the browser is offline. Ordinary reads
 need no polling. Issue shares rechecks the selected class's appointments and issue records every
 60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
-This gives bounded freshness, not an instantaneous update guarantee.
+The personal dashboard also rechecks member associations before their dependent records every
+60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
+not an instantaneous update guarantee.
 
 Every read retains the account, company and appointment guards. A failed or inconsistent read
 withholds private records, decision controls and ownership totals as
@@ -627,8 +629,11 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   incomplete; the existing parent condition hides the card when both tasks are complete. Mobile's
   Register tab gives the corresponding status line and checklist to an administrator of the company
   shown, retaining completed rows and judging the register step by that company's registers alone.
-- Personal dashboard: reads the person's own member projection; the first own class's history loads
-  when a member record opens, and choosing another class reads that class's own entries.
+- Personal dashboard: reads the person's own member projection. Its overview sums issued shares
+  with `BigInt` and charts the member's own shares by class, without company-wide totals or ownership
+  percentages. Awards remain separate entitlements. The first own class's history loads when a
+  member record opens, and choosing another class reads that class's own entries. Active web reads
+  follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders (with member access),
   Employee share scheme (ESS) and Documents views by hash.

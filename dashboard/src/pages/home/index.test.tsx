@@ -12,7 +12,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -67,7 +67,13 @@ it('invites and associates a walletless member, recovers one exact request and r
   let refused = false;
   let preferencesRefused = false;
   const createObjectURL = vi.fn(() => 'blob:synthetic');
-  vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+  vi.stubGlobal(
+    'URL',
+    class extends URL {
+      static createObjectURL = createObjectURL;
+      static revokeObjectURL = vi.fn();
+    },
+  );
   vi.stubGlobal('crypto', {
     randomUUID: () => webcrypto.randomUUID(),
     subtle: {
@@ -318,14 +324,30 @@ it('invites and associates a walletless member, recovers one exact request and r
   await screen.findByText(/Invitation accepted/);
   expect(sessionStorage).toHaveLength(0);
   recipient.unmount();
-  render(<MemberRecordsPage />, { wrapper });
+  render(
+    <>
+      <nav>
+        <Link to="/home">Dashboard</Link>
+        <Link to="/home#documents">Documents</Link>
+      </nav>
+      <MemberRecordsPage />
+    </>,
+    { wrapper },
+  );
   await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
+  expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
+  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Company-recorded particulars' }));
   await screen.findByText(MEMBER_RECORD.name);
   expect(await screen.findByText('Company date Not recorded')).toBeTruthy();
   expect(screen.getByText(/Ledger .*Issue.*Own change \+10/)).toBeTruthy();
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   fireEvent.click(await screen.findByRole('button', { name: /Download unsigned certificate/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
+  fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Company-recorded particulars' }));
   fireEvent.click(screen.getByText('Request a particulars update'));
   fireEvent.change(screen.getByLabelText('Requested name'), { target: { value: 'Requested Member Name' } });
   fireEvent.change(screen.getByLabelText('Requested residential address'), {
@@ -349,6 +371,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
   });
   await waitFor(() => expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull());
+  expect(screen.queryByRole('img', { name: /Your issued shares by class/ })).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
   await act(async () => release!());

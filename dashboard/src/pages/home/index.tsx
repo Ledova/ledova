@@ -3,12 +3,10 @@ import { CompanyPicker } from '@components/CompanyPicker';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
   FIELD_LIMITS,
-  DESTINATIONS,
   REGISTER_CORRECTION_COPY,
   MEMBER_PARTICULARS_STATUS_LABELS,
   MEMBER_CERTIFICATE_STATUS_LABELS,
   type RegisterEntryKind,
-  shareCount,
   shortReference,
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
@@ -21,7 +19,7 @@ import {
   useMemberRecords,
   type MemberCertificateRequest,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, Loading, LoadError, Disclosure } from '@components/Ledger';
+import { Row, Rows, Section, Loading, LoadError, Disclosure } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -30,9 +28,12 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { AwardStatus } from '@components/AwardStatus';
 import { useMemberCertificateDownload } from './useMemberCertificateDownload';
+import { useMemberFreshness } from './useMemberFreshness';
+import { OwnSharesOverview } from './OwnSharesOverview';
 
 export default function MemberRecordsPage() {
-  const read = useMemberRecords(() => crypto.randomUUID());
+  const read = useMemberRecords(() => crypto.randomUUID(), undefined, { coordinatedRefresh: true });
+  useMemberFreshness(read);
   const selectionOwner = useRef<ReturnType<typeof useMemberRecords>['owner']>(null);
   useEffect(() => {
     if (read.owner && selectionOwner.current !== read.owner && read.records.length === 1 && !read.busy && !read.retry) {
@@ -42,7 +43,7 @@ export default function MemberRecordsPage() {
   }, [read.owner, read.records, read.busy, read.retry, read.select]);
   return (
     <MemberRecords
-      key={`${read.owner?.userUuid}/${read.owner?.ownerAccountUuid}`}
+      key={`${read.scopeOwner?.userUuid}/${read.scopeOwner?.ownerAccountUuid}`}
       read={read}
       select={(uuid) => {
         selectionOwner.current = read.owner;
@@ -65,12 +66,13 @@ function MemberRecords({
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [confirmed, setConfirmed] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [historyToken, setHistoryToken] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [particularsOpen, setParticularsOpen] = useState(false);
   const initialHistory = useRef('');
   const documentsOnly = useLocation().hash === '#documents';
-  const held = read.busy || !!read.retry;
+  const held = read.busy || read.refreshing || read.readFailed || !read.owner || !!read.retry;
   const [withdrawing, setWithdrawing] = useState<{ uuid: string; createdAt: string } | null>(null);
   const { running, track } = useRunningAction();
   const particularsChecks = useErrorSummary({
@@ -89,13 +91,14 @@ function MemberRecords({
   }, [read.record, read.selectToken, held]);
   const historyClass =
     read.record?.classes.find((item) => item.uuid === historyToken)?.name ?? read.record?.classes[0]?.name ?? '';
-  const records = read.record ? [read.record] : read.records.length === 1 ? read.records : [];
+  const records = !read.readFailed && read.record ? [read.record] : [];
   const choose = (uuid: string) => {
     if (uuid !== read.record?.uuid) select(uuid);
     particularsChecks.reset();
     setName('');
     setAddress('');
     setConfirmed(false);
+    setParticularsOpen(false);
   };
   const shareHistory = read.record && (
     <div className="space-y-3">
@@ -152,41 +155,33 @@ function MemberRecords({
             ? 'Your certificates and company-reviewed requests. No wallet is needed.'
             : 'Your company-recorded shares and employee awards. No wallet is needed.'
         }
-        actions={
-          <PageAction
-            label="Refresh member records"
-            busy={refreshing}
-            busyLabel="Refreshing…"
-            disabled={read.busy}
-            onClick={() => {
-              setRefreshing(true);
-              void read.refresh().finally(() => setRefreshing(false));
-            }}
-          />
-        }
       >
         {read.readFailed && (
           <LoadError
             retry={() => {
-              setRefreshing(true);
-              return read.refresh().finally(() => setRefreshing(false));
+              setRetrying(true);
+              return read.refresh().finally(() => setRetrying(false));
             }}
-            busy={refreshing || read.busy}
+            busy={retrying || read.busy || read.refreshing}
           >
             Your member records could not be loaded.
           </LoadError>
         )}
-        {(read.readFailed ? read.failure : read.error) && (
+        {!read.readFailed && read.error && (
           <p role="alert" className="text-sm text-error-light">
-            {read.readFailed ? read.failure : read.error}
+            {read.error}
           </p>
         )}
         {read.retry && (
-          <PageAction label="Retry original member action" disabled={read.busy} onClick={() => void read.recover()} />
+          <PageAction
+            label="Retry original member action"
+            disabled={read.busy || read.refreshing || read.readFailed || !read.owner}
+            onClick={() => void read.recover()}
+          />
         )}
         {!read.owner ? (
           <p role="status">Check your signed-in account before opening member records.</p>
-        ) : read.loading || refreshing || (read.busy && read.records.length === 0) ? (
+        ) : read.loading || retrying || read.refreshing || (read.busy && read.records.length === 0) ? (
           <Loading>Loading member records…</Loading>
         ) : (
           <>
@@ -195,7 +190,7 @@ function MemberRecords({
                 <CompanyPicker
                   companies={read.records.map((record) => ({ uuid: record.uuid, name: record.company.name }))}
                   value={read.record?.uuid ?? ''}
-                  disabled={held}
+                  disabled={read.busy || read.refreshing || !!read.retry}
                   onChange={choose}
                 />
               </div>
@@ -204,43 +199,16 @@ function MemberRecords({
               <div key={record.uuid} className="space-y-4">
                 <h2 className="break-words font-display text-xl text-text-primary">{record.company.name}</h2>
                 {!documentsOnly && (
-                  <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-                    <Section title="Your issued shares">
-                      {record.classes.length === 0 ? (
-                        <p className="text-sm text-text-muted">No issued shares yet.</p>
-                      ) : (
-                        <div className="divide-y divide-border-subtle">
-                          {record.classes.map((item) => (
-                            <div key={item.uuid} className="space-y-3 py-3">
-                              <div className="space-y-1">
-                                <p className="break-words text-sm text-text-muted">{item.name}</p>
-                                <p className="break-words text-2xl font-medium tabular-nums">
-                                  {shareCount(item.shares, 'issued')}
-                                </p>
-                              </div>
-                              {read.record?.uuid === record.uuid && (
-                                <PageAction
-                                  label={`Read own entries for ${item.name}`}
-                                  disabled={held}
-                                  onClick={() => {
-                                    setHistoryToken(item.uuid);
-                                    read.selectToken(item.uuid);
-                                    setHistoryOpen(true);
-                                  }}
-                                />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {read.record?.uuid !== record.uuid && (
-                        <PageAction
-                          label={`Open ${record.company.name} member record`}
-                          disabled={held}
-                          onClick={() => choose(record.uuid)}
-                        />
-                      )}
-                    </Section>
+                  <div className={`grid items-start gap-4 ${record.awards.length > 0 ? 'xl:grid-cols-2' : ''}`}>
+                    <OwnSharesOverview
+                      classes={record.classes}
+                      disabled={held}
+                      onHistory={(uuid) => {
+                        setHistoryToken(uuid);
+                        read.selectToken(uuid);
+                        setHistoryOpen(true);
+                      }}
+                    />
                     {record.awards.length > 0 && (
                       <Section title="Employee awards">
                         <p className="text-sm text-text-muted">Promised shares are an entitlement until issued.</p>
@@ -290,39 +258,43 @@ function MemberRecords({
                 )}
               </div>
             ))}
-            {read.record && (
-              <div className={`grid items-start gap-4 ${documentsOnly ? '' : 'xl:grid-cols-2'}`}>
-                <Section title="Certificates">
-                  {read.requests?.certificates.some(
-                    (request) => request.status === 'fulfilled' && request.fulfilment,
-                  ) && (
-                    <div className="space-y-3">
-                      <p className="text-sm text-text-muted">
-                        Your unsigned certificates. The company remains responsible for execution.
-                      </p>
-                      {read.requests.certificates
-                        .filter((request) => request.status === 'fulfilled' && request.fulfilment)
-                        .map((request, index) => (
-                          <div key={request.uuid} className="space-y-1">
-                            <p className="text-sm">Certificate requested {formatDate(request.createdAt)}</p>
-                            <MemberCertificateDownload
-                              read={read}
-                              request={request}
-                              context={`certificate ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
-                            />
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                  {read.requests &&
-                    !read.requests.certificates.some(
+            {!read.readFailed && !read.record && read.records.length === 1 && (
+              <Loading>Loading your company record…</Loading>
+            )}
+            {read.record && !read.readFailed && (
+              <div
+                className={`grid items-start gap-4 ${!documentsOnly && read.requests && (read.requests.particulars.length > 0 || read.requests.certificates.length > 0) ? 'xl:grid-cols-2' : ''}`}
+              >
+                {documentsOnly && (
+                  <Section title="Certificates">
+                    {read.requests?.certificates.some(
                       (request) => request.status === 'fulfilled' && request.fulfilment,
-                    ) && <p className="text-sm text-text-muted">No issued certificates yet.</p>}
-                  {!read.requests && <Loading>Loading your documents and requests…</Loading>}
-                  {!documentsOnly && (
-                    <LinkRow to={`${DESTINATIONS.home.path}#documents`} label={pageTitle('home', 'documents')} />
-                  )}
-                </Section>
+                    ) && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-text-muted">
+                          Your unsigned certificates. The company remains responsible for execution.
+                        </p>
+                        {read.requests.certificates
+                          .filter((request) => request.status === 'fulfilled' && request.fulfilment)
+                          .map((request, index) => (
+                            <div key={request.uuid} className="space-y-1">
+                              <p className="text-sm">Certificate requested {formatDate(request.createdAt)}</p>
+                              <MemberCertificateDownload
+                                read={read}
+                                request={request}
+                                context={`certificate ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
+                              />
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                    {read.requests &&
+                      !read.requests.certificates.some(
+                        (request) => request.status === 'fulfilled' && request.fulfilment,
+                      ) && <p className="text-sm text-text-muted">No issued certificates yet.</p>}
+                    {!read.requests && <Loading>Loading your documents and requests…</Loading>}
+                  </Section>
+                )}
                 <Section title={documentsOnly ? 'Share history' : 'Your member record'}>
                   {!documentsOnly && read.entries.length > 0 && (
                     <div className="space-y-2 border-b border-border-subtle pb-3 text-sm">
@@ -341,7 +313,7 @@ function MemberRecords({
                     </div>
                   )}
                   {!documentsOnly && (
-                    <Disclosure summary="Company-recorded particulars" defaultOpen>
+                    <Disclosure summary="Company-recorded particulars">
                       <p className="text-sm text-text-muted">
                         Provided by the company, not verified by Ledova. Profile edits do not change this register.
                       </p>
@@ -371,7 +343,12 @@ function MemberRecords({
                     </Disclosure>
                   )}
                   {!documentsOnly && (
-                    <Disclosure summary="Request a particulars update">
+                    <Disclosure
+                      summary="Request a particulars update"
+                      open={particularsOpen}
+                      onToggle={() => setParticularsOpen((open) => !open)}
+                      keepMounted
+                    >
                       <div className="space-y-3 pt-2">
                         <p className="text-sm text-text-muted">
                           The company reviews your request. Sending it changes no holding or register particulars.

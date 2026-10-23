@@ -13,11 +13,11 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import HomePage from './index';
 import MemberRecordsPage from '../../home/index';
-import { MEMBER_ENTRY, MEMBER_RECORD } from '../../../testSupport/company';
+import { choose, MEMBER_ENTRY, MEMBER_RECORD } from '../../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -99,6 +99,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   client.clear();
+  vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 it('reads every wallet page and shows exact share totals with company/class names and hidden-class fallback', async () => {
@@ -142,29 +144,58 @@ it('reads every wallet page and shows exact share totals with company/class name
   expect(within(detailOf(row)).getByText('Reserve')).toBeTruthy();
 });
 
-it('puts own register shares and awards first without wallet reads, preserves selected history on refresh and hides revoked records without an empty-ownership claim', async () => {
+it('updates own shares and awards automatically, preserves drafts and selected history, and hides revoked records without an empty-ownership claim', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   let refused = false;
+  let detailRefused = false;
+  let includeOther = false;
   let record = MEMBER_RECORD;
+  const otherRecord = {
+    ...MEMBER_RECORD,
+    uuid: 'abababab-abab-4bab-8bab-abababababab',
+    member: 'babababa-baba-4aba-8aba-babababababa',
+    company: { ...MEMBER_RECORD.company, uuid: 'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd', name: 'Second Demo Company' },
+    classes: [{ ...MEMBER_RECORD.classes[0], uuid: 'dededede-dede-4ede-8ede-dededededede', shares: '25' }],
+    awards: [],
+  };
+  const focusRead = async () => {
+    const previous = api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length;
+    await act(async () => {
+      fireEvent(window, new Event('focus'));
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    });
+    expect(api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length).toBeGreaterThan(previous);
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+  };
   api.get.mockImplementation(async (url: string) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current association revoked'), { response: { status: 404 } });
-      return { data: { results: [record], next: null, count: 1 } };
+      return {
+        data: { results: includeOther ? [record, otherRecord] : [record], next: null, count: includeOther ? 2 : 1 },
+      };
     }
-    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: record };
+    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) {
+      if (detailRefused) throw Object.assign(new Error('Selected record unavailable'), { response: { status: 500 } });
+      return { data: record };
+    }
+    if (url === URLS.MEMBER_RECORD(otherRecord.uuid)) return { data: otherRecord };
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
+    if (url === URLS.MEMBER_ENTRIES(otherRecord.uuid)) return { data: { entries: [{ ...MEMBER_ENTRY, delta: '25' }] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS || url === URLS.MEMBER_CERTIFICATE_REQUESTS)
       return { data: { results: [], next: null, count: 0 } };
     throw new Error(`Unexpected request: ${url}`);
   });
-  render(
+  const view = render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
         <MemoryRouter>
           <PageTitle.Provider value="My shares">
+            <Link to="/home#documents">Test Documents navigation</Link>
+            <Link to="/home">Test Dashboard navigation</Link>
             <MemberRecordsPage />
           </PageTitle.Provider>
         </MemoryRouter>
@@ -178,6 +209,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
   expect(screen.queryByRole('heading', { name: 'Shares in your wallets' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Accept another member invitation' })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Member invitation code' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
   await screen.findByText('Recent changes · Ordinary');
   expect(screen.queryByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` })).toBeNull();
   expect(screen.getByText('Recent changes · Ordinary')).toBeTruthy();
@@ -196,7 +228,14 @@ it('puts own register shares and awards first without wallet reads, preserves se
       },
     ],
   };
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const beforeHidden = api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length;
+  const visibility = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+  fireEvent(document, new Event('visibilitychange'));
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS)).toHaveLength(beforeHidden);
+  visibility.mockReturnValue(false);
+  fireEvent(document, new Event('visibilitychange'));
   expect(await screen.findByText('15 issued shares')).toBeTruthy();
   expect(screen.getByRole('img', { name: /0 unvested, 0 vested, awaiting issue, 5 issued from award/ })).toBeTruthy();
   expect(screen.queryByText('20 issued shares')).toBeNull();
@@ -236,7 +275,7 @@ it('puts own register shares and awards first without wallet reads, preserves se
       },
     ],
   };
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
   await screen.findByRole('img', {
     name: /1 unvested, 1 vested, awaiting issue, 1 issued from award, 1 unvested rights ended, 1 vested rights ended/,
   });
@@ -245,29 +284,37 @@ it('puts own register shares and awards first without wallet reads, preserves se
   expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   record = { ...MEMBER_RECORD, classes: [] };
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
+  await focusRead();
   expect(await screen.findByText('No issued shares yet.')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` }));
   await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   record = {
     ...record,
     awards: [{ ...MEMBER_RECORD.awards[0], vestedShares: '6', availableShares: '6' }],
   };
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
-  await screen.findByText('Your award records could not be confirmed. Refresh before continuing.');
+  await focusRead();
+  await screen.findByText('Your member records could not be loaded.');
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByText('No issued shares yet.')).toBeNull();
   record = {
     ...record,
     awards: [{ ...MEMBER_RECORD.awards[0], shares: '0', vestedShares: '0', availableShares: '0' }],
   };
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
-  await screen.findByText('Your award records could not be confirmed. Refresh before continuing.');
+  await focusRead();
+  await screen.findByText('Your member records could not be loaded.');
   expect(screen.queryByRole('img')).toBeNull();
   record = MEMBER_RECORD;
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh member records' }));
+  await focusRead();
   await screen.findByText('10 issued shares');
+  fireEvent.click(screen.getByText('Request a particulars update'));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), { target: { value: 'Retained draft' } });
+  await act(async () => {
+    await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
+  });
+  await focusRead();
+  await waitFor(() =>
+    expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft'),
+  );
   expect(api.get.mock.calls.some(([url]) => url === URLS.HOLDERS(MEMBER_RECORD.classes[0].uuid))).toBe(false);
   fireEvent.click(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
   await screen.findByRole('button', { name: 'Request certificate for entry 1' });
@@ -275,19 +322,54 @@ it('puts own register shares and awards first without wallet reads, preserves se
     await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
   });
   expect(await screen.findByRole('button', { name: 'Request certificate for entry 1' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   expect(await screen.findByRole('heading', { name: 'Documents', level: 1 })).toBeTruthy();
   expect(screen.queryByText('10 issued shares')).toBeNull();
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.getByRole('button', { name: 'Request certificate for entry 1' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
+  await screen.findByText('10 issued shares');
+  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+  const beforeOffline = api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length;
   refused = true;
-  await act(async () => {
-    await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
-  });
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS)).toHaveLength(beforeOffline);
+  online.mockReturnValue(true);
+  fireEvent(window, new Event('online'));
+  await screen.findByText('Your member records could not be loaded.');
   await waitFor(() => expect(screen.queryByText('10 issued shares')).toBeNull());
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
-  expect(screen.getByRole('alert').textContent).toMatch(/Your member records could not be loaded/);
+  expect(screen.getByText('Your member records could not be loaded.')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Get access to your shares' })).toBeNull();
   expect(screen.queryByText('No issued shares yet.')).toBeNull();
+  refused = false;
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Try again', description: 'Your member records could not be loaded.' }),
+  );
+  await screen.findByText('10 issued shares');
+  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  includeOther = true;
+  await focusRead();
+  expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false);
+  detailRefused = true;
+  await focusRead();
+  await screen.findByText('Your member records could not be loaded.');
+  expect(screen.queryByRole('img')).toBeNull();
+  expect(screen.queryByText('10 issued shares')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
+  expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false);
+  await choose('Company', otherRecord.company.name);
+  await screen.findByText('25 issued shares');
+  expect(screen.getByRole('heading', { name: otherRecord.company.name })).toBeTruthy();
+  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  expect(screen.queryByText('10 issued shares')).toBeNull();
+  expect(screen.queryByRole('alert')).toBeNull();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  view.unmount();
+  const beforeUnmounted = api.get.mock.calls.length;
+  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  expect(api.get.mock.calls).toHaveLength(beforeUnmounted);
 });
