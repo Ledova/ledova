@@ -32,13 +32,18 @@ type Command =
   | { kind: 'certificate'; operationId: string; association: string; token: string; entry: string }
   | { kind: 'withdraw'; uuid: string; idempotencyKey: string };
 
-export function useMemberRecords(newKey: () => string, session?: OrderSubmissionSession) {
+export function useMemberRecords(
+  newKey: () => string,
+  session?: OrderSubmissionSession,
+  { coordinatedRefresh = false }: { coordinatedRefresh?: boolean } = {},
+) {
   const api = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
   const [selected, setSelected] = useState('');
   const [token, setToken] = useState('');
   const [busy, setBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState<Command | null>(null);
   const pending = useRef(false);
@@ -60,6 +65,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
     setToken('');
     setRetry(null);
     setError(null);
+    setRefreshing(false);
   }, [owner]);
   const guard = () => {
     const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
@@ -73,7 +79,9 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       throw new Error('Your signed-in account changed. Reopen your member records.');
   };
   const config = (check = guard) => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
+  const refreshOptions = coordinatedRefresh ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
   const list = useQuery({
+    ...refreshOptions,
     queryKey: key,
     enabled: !!owner,
     queryFn: () =>
@@ -99,6 +107,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       throw new Error('Your member association changed.');
   };
   const detail = useQuery({
+    ...refreshOptions,
     queryKey: detailKey,
     enabled: !!selected && list.isSuccess && !list.isFetching,
     queryFn: async () => {
@@ -123,6 +132,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       throw new Error('Refresh the selected member record before continuing.');
   };
   const requests = useQuery({
+    ...refreshOptions,
     queryKey: requestsKey,
     enabled: !!selected && detail.isSuccess && !detail.isFetching && list.isSuccess && !list.isFetching,
     queryFn: async () => {
@@ -159,8 +169,16 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
     },
   });
   const entries = useQuery({
+    ...refreshOptions,
     queryKey: entriesKey,
-    enabled: !!token && !!selected && detail.isSuccess && !detail.isFetching && list.isSuccess && !list.isFetching,
+    enabled:
+      !!token &&
+      !!selected &&
+      detail.isSuccess &&
+      !detail.isFetching &&
+      list.isSuccess &&
+      !list.isFetching &&
+      detail.data.classes.some((row) => row.uuid === token),
     queryFn: async () => {
       const check = () => {
         guardRecord();
@@ -187,14 +205,22 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
   };
   const refresh = async () => {
     guard();
-    await list.refetch({ throwOnError: true });
-    if (selected) {
-      guardSelection();
-      await detail.refetch({ throwOnError: true });
-      await Promise.all([
-        requests.refetch({ throwOnError: true }),
-        ...(token ? [entries.refetch({ throwOnError: true })] : []),
-      ]);
+    if (coordinatedRefresh) setRefreshing(true);
+    try {
+      await list.refetch({ throwOnError: true });
+      if (selected) {
+        guardSelection();
+        await detail.refetch({ throwOnError: true });
+        const hasToken =
+          !!token && client.getQueryData<OwnMemberRecord>(detailKey)?.classes.some((row) => row.uuid === token);
+        if (token && !hasToken) setToken('');
+        await Promise.all([
+          requests.refetch({ throwOnError: true }),
+          ...(hasToken ? [entries.refetch({ throwOnError: true })] : []),
+        ]);
+      }
+    } finally {
+      if (coordinatedRefresh && live.current && boundary.get() === owner) setRefreshing(false);
     }
   };
   const execute = async (command: Command) => {
@@ -315,6 +341,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
   const listReady = available && list.isSuccess && list.fetchStatus === 'idle';
   const ready =
     listReady &&
+    !refreshing &&
     detail.isSuccess &&
     detail.fetchStatus === 'idle' &&
     list.data.some((row) => row.uuid === selected) &&
@@ -322,6 +349,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
     !entries.isError;
   const readFailed = [list, detail, requests, entries].some((read) => read.isError);
   return {
+    scopeOwner: owner,
     owner: available ? owner : null,
     records: listReady ? list.data : [],
     record: ready ? detail.data : null,
@@ -345,6 +373,7 @@ export function useMemberRecords(newKey: () => string, session?: OrderSubmission
       return request.fulfilment;
     },
     busy,
+    refreshing,
     retry,
     loading: list.isPending,
     readFailed,

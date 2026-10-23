@@ -33,8 +33,9 @@ stepped Ledger preparation pages, signed-in member invitation reviews and wide t
 standard workspace width, and tables
 scroll within their card on small screens.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
-and the shared card heading and padding. Section spacing is scoped to the frame; sign-up keeps its
-own presentation.
+and the shared card heading and padding. Ownership dashboards put their overview and charts before
+record-management details, with awards separate from issued shares. Section spacing is scoped to
+the frame; sign-up keeps its own presentation.
 
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
 only where it adds to the titles. On web card collections, the primary creation action follows the
@@ -610,9 +611,10 @@ reply, and a newer record shifting the pages would unmount the oldest loaded one
 lists grow only with one company's register decisions. The owner chose this on 21 October 2026,
 to revisit if registers grow large ([decision](../decisions.md#frontend-ux-standards)).
 
-Every table uses `Table`, apart from the company dashboard's largest-shareholder legend beside its
-chart, which keeps a compact layout with its own caption and header scopes. An import's member
-snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
+Every table uses `Table`, apart from dashboard chart legends, which keep a compact layout with
+their own captions and header scopes. Company charts show ownership within each class; a member's
+chart shows only their own shares by class, with a labelled share count rather than company
+ownership, voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
 record's own page.
 
 ## Loading, empty and error states

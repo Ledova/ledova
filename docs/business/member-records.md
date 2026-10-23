@@ -92,12 +92,15 @@ company decisions, financial documents and other members' parts of an entry are 
 award is an entitlement, not a holding. Editing the personal Profile does not change the register;
 only a [particulars request](#particulars-requests) can.
 
-**Dashboard** (web) and **My shares** (mobile) show issued shares by class apart from awards, with
-the original award promise and its remaining and ended quantities. The web bar includes unvested,
-vested but unissued, issued and ended rights; issued award shares already belong to the holding.
-Both clients also show certificates, recent own changes and request status,
-with particulars and the longer history in expandable sections on the same page. Wallet holdings
-are on [the Wallet shares page](#the-wallet-shares-page).
+**Dashboard** (web) starts with the member's own issued-share total, share-class count and a chart
+of their shares by class. This counts shares, not company ownership, voting power or value; different
+classes can carry different rights. **My shares** (mobile) lists issued shares by class. Both keep
+employee awards separate, with the original promise and its remaining and ended quantities. The
+web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
+already belong to the holding. Recent own changes and request status remain available, with
+particulars and longer history on demand. Web certificates and their requests are in **Documents**;
+mobile also shows certificates. Wallet holdings are on
+[the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access
 
