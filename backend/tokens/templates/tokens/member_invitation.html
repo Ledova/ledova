@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Member invitation</title></head>
+<body>
+  <h1>{{ company }} invited you to view your shares</h1>
+  <p>You have been invited to view {{ member }}’s share records.</p>
+  <p><a href="{{ invitation_url }}">View invitation</a></p>
+  <p>Sign in with the email address this invitation was sent to, then review it before accepting.</p>
+  <p>This invitation expires on {{ deadline|date:"j F Y, H:i T" }}.</p>
+</body>
+</html>

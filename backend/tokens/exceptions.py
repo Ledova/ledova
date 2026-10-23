@@ -300,6 +300,13 @@ class RegisterChangeConflict(APIException):
     default_code = "register_change_conflict"
 
 
+class InvitationEmailUnavailable(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "Invitation email was not confirmed. Retry the original invitation."
+    default_code = "invitation_email_unavailable"
+    expose_code = True
+
+
 class RegisterOpeningHoldingsMoved(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = (

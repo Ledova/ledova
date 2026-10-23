@@ -31,7 +31,7 @@ stay here as history and are marked where they appear.
 | [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October                                                  |
 | [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                        |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                               |
-| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 October 2026                                | Current; #866 implements it                                                                                     |
+| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165                                                                |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                         |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                                                                         |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                                                                         |
@@ -899,6 +899,14 @@ The member can view permitted records and submit particulars or certificate
 requests. Company review remains separate from member confirmation, and
 certificate fulfilment follows the supported #871 outputs. This selects the
 first linking flow; the implementation index records delivery separately.
+
+On 24 October 2026 the owner replaced web users' manual code sharing and entry with an emailed
+invitation link under [#1165](https://github.com/Ledova/ledova/issues/1165). The company sends it to
+one named member's intended email; the signed-in recipient reviews and explicitly accepts it.
+Tokens remain internal, verified-email and company/member binding stay mandatory, and a link alone
+grants no access. The company sees acceptance status and an honest send result; provider acceptance
+does not establish inbox delivery. Retry uses the original invitation and can send another copy of
+the same email. Mobile's existing code flow remains deferred to its later pass.
 
 ## Minimum tests and fresh migrations
 

@@ -20,6 +20,7 @@ import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD, choose } from '../../testSupp
 import { AWARD_REQUEST, REGISTER, awardFrom } from '../../testSupport/company';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF, OUTPUT_APPOINTMENT, OUTPUT_PREVIEW } from '../../testSupport/company';
 import MemberRecordsPage from './index';
+import MemberInvitationPage from '../member-invitation';
 import { CompanyMemberAccess } from '../company/ledger/CompanyMemberAccess';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -31,6 +32,8 @@ afterEach(async () => {
   release = undefined;
   cleanup();
   client.clear();
+  sessionStorage.clear();
+  window.history.replaceState({}, '', '/');
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -77,6 +80,9 @@ it('invites and associates a walletless member, recovers one exact request and r
     arrayBuffer: async () => MEMBER_PDF.buffer,
   });
   let invitation: unknown;
+  let mailAttempts = 0;
+  let holdPreview = true;
+  let signupCompleted = false;
   let particulars: Record<string, unknown>[] = [
     {
       uuid: '12121212-1212-4212-8212-121212121212',
@@ -95,6 +101,10 @@ it('invites and associates a walletless member, recovers one exact request and r
       if (preferencesRefused)
         throw Object.assign(new Error('Current preferences refused'), { response: { status: 404 } });
       return { data: preferences };
+    }
+    if (url === '/api/user-profiles/') {
+      const current = client.getQueryData<{ data: typeof preferences }>(USER_PREFERENCES_QUERY_KEY)?.data;
+      return page([{ uuid: current?.userProfile, isSignupCompleted: signupCompleted }]);
     }
     if (url === '/api/v1/company-authority/appointments/')
       return page([{ ...OUTPUT_APPOINTMENT, capabilities: ['admin', 'prepare'] }]);
@@ -136,15 +146,42 @@ it('invites and associates a walletless member, recovers one exact request and r
       certificates = [request];
       return { data: request };
     }
-    if (url === URLS.MEMBER_INVITATIONS) {
+    if (url === URLS.MEMBER_INVITATION_SEND_EMAIL) {
       invitation = {
         ...body,
         uuid: body.operationId,
         status: 'pending',
-        code: MEMBER_CODE,
+        emailDelivery: 'accepted',
         acceptanceDeadline: '2026-10-18T00:00:00Z',
       };
+      if (++mailAttempts === 1) throw new Error('Synthetic interrupted invitation delivery');
       return { data: invitation };
+    }
+    if (url === URLS.MEMBER_INVITATION_PREVIEW) {
+      expect(body).toEqual({ code: MEMBER_CODE });
+      if (
+        client.getQueryData<{ data: typeof preferences }>(USER_PREFERENCES_QUERY_KEY)?.data.userAccount.uuid !==
+        preferences.userAccount.uuid
+      )
+        throw Object.assign(new Error('This invitation is for another recipient.'), {
+          response: { status: 403, data: { detail: 'This invitation is for another recipient.' } },
+        });
+      const response = {
+        data: {
+          company: MEMBER_RECORD.company,
+          member: { uuid: MEMBER_RECORD.member, name: MEMBER_RECORD.name },
+          intendedEmail: 'member@example.test',
+          acceptanceDeadline: '2026-10-28T00:00:00Z',
+          status: 'pending',
+        },
+      };
+      if (holdPreview) {
+        holdPreview = false;
+        return new Promise((resolve) => {
+          release = () => resolve(response);
+        });
+      }
+      return response;
     }
     if (url === URLS.MEMBER_INVITATION_ACCEPT) {
       associated = true;
@@ -209,8 +246,13 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(await screen.findByRole('button', { name: 'Invite a member' }));
   await choose('Member or award recipient', 'Company Recorded Member', 'recorded member');
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
-  await screen.findByLabelText('One-time member invitation code');
+  fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry original company member action' }));
+  await screen.findByText(/The invitation email was accepted for sending/);
+  const mailCommands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_INVITATION_SEND_EMAIL);
+  expect(mailCommands).toHaveLength(2);
+  expect(mailCommands[0][1]).toEqual(mailCommands[1][1]);
+  expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: /^Private queued member name/ }));
   expect(screen.getByText('Private queued member address')).toBeTruthy();
   expect(screen.getByText(/member@example.test/)).toBeTruthy();
@@ -222,7 +264,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.queryByText(/Private queued member address/)).toBeNull();
   expect(screen.queryByText(/member@example.test/)).toBeNull();
   expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Create member invitation' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Send invitation' })).toBeNull();
   preferencesRefused = false;
   particulars = [];
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
@@ -243,16 +285,40 @@ it('invites and associates a walletless member, recovers one exact request and r
     expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
   );
   company.unmount();
-  render(<MemberRecordsPage />, { wrapper });
-  fireEvent.change(await screen.findByLabelText('Member invitation code'), { target: { value: MEMBER_CODE } });
-  fireEvent.click(screen.getByRole('checkbox', { name: /I accept access/ }));
-  await waitFor(() =>
-    expect((screen.getByRole('button', { name: 'Accept member invitation' }) as HTMLButtonElement).disabled).toBe(
-      false,
+  window.history.replaceState({}, '', `/member-invitation#${MEMBER_CODE}`);
+  const recipient = render(<MemberInvitationPage />, { wrapper });
+  await screen.findByRole('link', { name: 'Continue setup' });
+  expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_INVITATION_PREVIEW)).toHaveLength(0);
+  signupCompleted = true;
+  await act(async () => client.refetchQueries({ queryKey: ['userProfiles'] }));
+  await waitFor(() => expect(release).toBeTypeOf('function'));
+  await act(async () => {
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { userProfile: 'other-profile', userAccount: { uuid: 'other-account', role: 'investor' } },
+    });
+    release!();
+  });
+  expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Accept invitation' })).toBeNull();
+  expect(
+    JSON.stringify(
+      client
+        .getQueryCache()
+        .getAll()
+        .map((query) => query.queryKey),
     ),
-  );
-  fireEvent.click(screen.getByRole('button', { name: 'Accept member invitation' }));
+  ).not.toContain(MEMBER_CODE);
+  await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences }));
+  await screen.findByText(MEMBER_RECORD.name);
+  expect(window.location.hash).toBe('');
+  expect(screen.queryByRole('textbox')).toBeNull();
+  expect(associated).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
   await waitFor(() => expect(associated).toBe(true));
+  await screen.findByText(/Invitation accepted/);
+  expect(sessionStorage).toHaveLength(0);
+  recipient.unmount();
+  render(<MemberRecordsPage />, { wrapper });
   await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
   await screen.findByText(MEMBER_RECORD.name);
   expect(await screen.findByText('Company date Not recorded')).toBeTruthy();
@@ -327,12 +393,12 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     throw new Error(`Unexpected GET ${url}`);
   });
   api.post.mockReset().mockImplementation(async (url, body) => {
-    expect(url).toBe(URLS.MEMBER_INVITATIONS);
+    expect(url).toBe(URLS.MEMBER_INVITATION_SEND_EMAIL);
     invitation = {
       ...body,
       uuid: body.operationId,
       status: 'pending',
-      code: MEMBER_CODE,
+      emailDelivery: 'accepted',
       acceptanceDeadline: '2026-10-18T00:00:00Z',
     };
     return { data: invitation };
@@ -375,10 +441,11 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   expect(screen.queryByRole('option', { name: /Company Recorded Member/ })).toBeNull();
   fireEvent.mouseDown(awardOnly);
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'employee@example.test' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
-  await screen.findByLabelText('One-time member invitation code');
+  fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+  await screen.findByText(/The invitation email was accepted for sending/);
+  expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
   expect(api.post).toHaveBeenCalledWith(
-    URLS.MEMBER_INVITATIONS,
+    URLS.MEMBER_INVITATION_SEND_EMAIL,
     expect.objectContaining({ company, member: awardMember, intendedEmail: 'employee@example.test' }),
     expect.any(Object),
   );
@@ -398,7 +465,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).value).toBe(''),
   );
   expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
-  fireEvent.click(screen.getByRole('button', { name: 'Create member invitation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
   expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
   expect(screen.getByRole('combobox', { name: 'Member or award recipient' }).getAttribute('aria-invalid')).toBe('true');
   expect(api.post).toHaveBeenCalledTimes(1);
@@ -413,7 +480,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).value).toBe('');
   expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).disabled).toBe(true);
   expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
-  expect(screen.getByRole('button', { name: 'Create member invitation' }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: 'Send invitation' }).matches(':disabled')).toBe(true);
   expect(api.post).toHaveBeenCalledTimes(1);
   view.rerender(companyView(otherCompany, [], false));
   await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Member or award recipient' })).toBeNull());

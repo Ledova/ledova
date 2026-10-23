@@ -133,7 +133,11 @@ Member access and requests follows the same records-first pattern on Shareholder
 invitation, access and request records only when present, with private metadata under Details. A
 confirmed empty collection has one empty state and an Invite a member action beneath the card.
 Invitation preparation opens inline with member and email fields in the existing responsive grid,
-Cancel and Create together at the bottom right. Keep the one-time code visible after creation.
+Cancel and Send invitation together at the bottom right. Keep invitation tokens out of visible
+fields: the email link opens one focused Member invitation page, continuing through sign-in or
+signup in the same tab. Show company, shareholder, intended email and expiry before an explicit
+Accept invitation action; opening the link must never accept it. The company sees acceptance status
+and an honest sending result, with a retry on failure; provider acceptance is not inbox delivery.
 Show an action reason only for a selected revocation or particulars update, and certificate
 instruction fields only with an actual request. Preserve drafts, current authority, failed-read
 retries and original-action recovery; there is no routine refresh control.
@@ -781,7 +785,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     web uses now and mobile adopts in #1201: a new person's name and address
     (`NEW_PERSON_PROBLEMS`), a new password (`PASSWORD_PROBLEMS`, which sign-up's shared hook
     already gives both) and an invitation code
-    (`INVITATION_CODE_PROBLEM`). A pasted invitation code is trimmed before its length limit applies.
+    (`INVITATION_CODE_PROBLEM`). A pasted code is trimmed before its length limit applies; web member
+    invitations use email links instead of a code field.
   - **The summary keeps the last press.** It lists the problems found when submit was last pressed
     that still fail, so it shrinks as they are fixed, and it clears when a check passes or the form
     is reset. It takes focus only on a new press.

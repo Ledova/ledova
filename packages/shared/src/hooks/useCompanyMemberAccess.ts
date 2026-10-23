@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import {
   createMemberInvitation,
+  sendMemberInvitationEmail,
   getMemberInvitation,
   getMemberInvitations,
   getMemberAssociations,
@@ -45,6 +46,7 @@ export function useCompanyMemberAccess(
   session?: OrderSubmissionSession,
   sourceReady = true,
   particularsQueryKey?: QueryKey,
+  invitationDelivery: 'code' | 'email' = 'code',
 ) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -58,6 +60,7 @@ export function useCompanyMemberAccess(
   const [retry, setRetry] = useState<Command | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
+  const [invitationReceipt, setInvitationReceipt] = useState('');
   const [certificateTarget, setCertificateTarget] = useState<{
     preview: MemberCertificateFulfilmentPreview;
     command: Extract<Command, { kind: 'fulfil' }>;
@@ -76,6 +79,7 @@ export function useCompanyMemberAccess(
     setRetry(null);
     setCode(null);
     setNotice('');
+    setInvitationReceipt('');
     setCertificateTarget(null);
     setError(null);
   }, [owner, company]);
@@ -222,14 +226,18 @@ export function useCompanyMemberAccess(
       setRetry(command);
       if (command.kind === 'invite') {
         let response;
-        if (recovering) {
+        if (recovering && invitationDelivery === 'code') {
           try {
             response = await getMemberInvitation(api, command.payload.operationId, config(check));
           } catch (failure) {
             if (failureStatus(failure) !== 404) throw failure;
           }
         }
-        response ??= await createMemberInvitation(api, command.payload, config(check));
+        response ??= await (invitationDelivery === 'email' ? sendMemberInvitationEmail : createMemberInvitation)(
+          api,
+          command.payload,
+          config(check),
+        );
         check();
         const data = response.data;
         if (
@@ -240,14 +248,19 @@ export function useCompanyMemberAccess(
           data.intendedEmail.toLowerCase() !== command.payload.intendedEmail.toLowerCase()
         )
           throw new Error('The invitation result does not match the original request.');
-        const receivedCode = 'code' in data ? data.code : null;
+        if (invitationDelivery === 'email' && (!('emailDelivery' in data) || data.emailDelivery !== 'accepted'))
+          throw new Error('The invitation email could not be confirmed. Retry the original action.');
+        const receivedCode = invitationDelivery === 'code' && 'code' in data ? data.code : null;
         if (receivedCode !== null && (typeof receivedCode !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(receivedCode)))
           throw new Error('The one-time invitation code could not be confirmed.');
         setCode(receivedCode);
+        setInvitationReceipt(data.uuid);
         setNotice(
-          receivedCode
-            ? 'Invitation recorded. Copy the one-time code now and share it privately with the intended recipient.'
-            : 'The invitation is recorded. Its code is unavailable on recovery; use the original code or issue a new invitation if it was lost.',
+          invitationDelivery === 'email'
+            ? 'The invitation email was accepted for sending. Awaiting the recipient’s acceptance.'
+            : receivedCode
+              ? 'Invitation recorded. Copy the one-time code now and share it privately with the intended recipient.'
+              : 'The invitation is recorded. Its code is unavailable on recovery; use the original code or issue a new invitation if it was lost.',
         );
       } else if (command.kind === 'revoke') {
         const { data } = await revokeMemberAssociation(api, command.uuid, command.payload, config(check));
@@ -390,6 +403,7 @@ export function useCompanyMemberAccess(
     retry,
     code: accessReady ? code : null,
     notice: readable ? notice : '',
+    invitationReceipt: accessReady ? invitationReceipt : '',
     readFailed,
     failure: error,
     error:

@@ -612,9 +612,22 @@ integer arithmetic; company-entered shares and AUD consideration remain the agre
 
 ### Member access API
 
-What member access gives: [member access](../business/member-records.md#member-access). `POST
-member-invitations/` answers 201 with a one-time `code` (43 URL-safe characters) and a retry 200
-without it; only the code's SHA-256 is stored, and `member-invitations/accept/` takes the code.
+What member access gives: [member access](../business/member-records.md#member-access). Web uses
+`POST member-invitations/send-email/` with the original creation fields. It answers 201 on creation
+or 200 on retry with invitation metadata and `email_delivery: accepted`, never the code. Only the
+token's SHA-256 is stored; the server derives the same email token for an exact original request.
+A mail failure answers 503 after recording the invitation, so retry the same operation UUID and
+payload; a lost reply can send another copy of the same link. Changed retries, and attempts to email
+an existing random-code invitation, are refused. Server-key rotation requires a fresh invitation
+for another send; an already emailed link can still be accepted until it expires.
+
+The email links to `/member-invitation#<token>` on the configured dashboard origin, keeping the
+credential out of HTTP paths and query strings. `POST member-invitations/preview/` requires the
+signed-in verified matching email before returning company, member and expiry;
+`member-invitations/accept/` takes the hidden token and explicit confirmation. Opening or previewing
+the link creates no association.
+The unchanged native API `POST member-invitations/` answers 201 with a one-time `code` (43 URL-safe
+characters), and a retry 200 without it.
 Invitations and associations are listed to current personal `admin` appointees; `member-records/`
 returns only the caller's own associations, with a `ceasedOn` only within retention, and their entry
 deltas. Certificate fulfilment is under [output routes](#output-routes).

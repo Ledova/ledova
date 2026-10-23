@@ -176,8 +176,8 @@ it('puts own register shares and awards first without wallet reads, preserves se
   await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
   expect(api.get.mock.calls.some(([url]) => url === WALLET_ENDPOINTS.BASE)).toBe(false);
   expect(screen.queryByRole('heading', { name: 'Shares in your wallets' })).toBeNull();
-  const invitation = screen.getByRole('button', { name: 'Accept another member invitation' });
-  expect(invitation.getAttribute('aria-expanded')).toBe('false');
+  expect(screen.queryByRole('button', { name: 'Accept another member invitation' })).toBeNull();
+  expect(screen.queryByRole('textbox', { name: 'Member invitation code' })).toBeNull();
   await screen.findByText('Recent changes · Ordinary');
   expect(screen.queryByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` })).toBeNull();
   expect(screen.getByText('Recent changes · Ordinary')).toBeTruthy();

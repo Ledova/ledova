@@ -4,8 +4,6 @@ import { useRunningAction } from '@hooks/useRunningAction';
 import {
   FIELD_LIMITS,
   DESTINATIONS,
-  INVITATION_CODE_PROBLEM,
-  isInvitationCode,
   REGISTER_CORRECTION_COPY,
   MEMBER_PARTICULARS_STATUS_LABELS,
   MEMBER_CERTIFICATE_STATUS_LABELS,
@@ -64,8 +62,6 @@ function MemberRecords({
   read: ReturnType<typeof useMemberRecords>;
   select: (uuid: string) => void;
 }) {
-  const [code, setCode] = useState('');
-  const [accepted, setAccepted] = useState(false);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [confirmed, setConfirmed] = useState(false);
@@ -77,19 +73,11 @@ function MemberRecords({
   const held = read.busy || !!read.retry;
   const [withdrawing, setWithdrawing] = useState<{ uuid: string; createdAt: string } | null>(null);
   const { running, track } = useRunningAction();
-  const invitationChecks = useErrorSummary({
-    code: !isInvitationCode(code) && INVITATION_CODE_PROBLEM,
-    accepted: !accepted && 'Accept access to the invited member record.',
-  });
   const particularsChecks = useErrorSummary({
     name: !name.trim() && 'Give the requested name.',
     address: !address.trim() && 'Give the requested residential address.',
     confirmed: !confirmed && 'Confirm sharing these particulars with the company.',
   });
-  const changeCode = (value: string) => {
-    setCode(value);
-    setAccepted(false);
-  };
   useEffect(() => {
     if (read.record && read.record.uuid !== initialHistory.current && !held) {
       initialHistory.current = read.record.uuid;
@@ -153,45 +141,6 @@ function MemberRecords({
           )}
         </div>
       ))}
-    </div>
-  );
-  const invitation = (
-    <div className="space-y-3 pt-2">
-      <p className="text-sm text-text-muted">
-        Use the one-time code privately supplied by the company for your confirmed email. It grants access to your
-        member record, not company administration.
-      </p>
-      <ErrorSummary {...invitationChecks.summary} />
-      <Field {...invitationChecks.field('code')} label="Member invitation code">
-        <TextInput
-          maxLength={FIELD_LIMITS.INVITATION_CODE}
-          autoComplete="off"
-          value={code}
-          disabled={held}
-          onChange={(event) => changeCode(event.target.value.trim())}
-          onPaste={(event) => {
-            event.preventDefault();
-            changeCode(event.clipboardData.getData('text').trim().slice(0, FIELD_LIMITS.INVITATION_CODE));
-          }}
-        />
-      </Field>
-      <CheckboxField
-        {...invitationChecks.field('accepted')}
-        label="I accept access to the company's invited member record using my signed-in account."
-        checked={accepted}
-        disabled={held}
-        onChange={(event) => setAccepted(event.target.checked)}
-      />
-      <PageAction
-        label="Accept member invitation"
-        primary
-        busy={running === 'accept'}
-        busyLabel="Accepting invitation…"
-        disabled={held}
-        onClick={() => {
-          if (invitationChecks.check()) track('accept', read.accept(code));
-        }}
-      />
     </div>
   );
   return (
@@ -515,15 +464,10 @@ function MemberRecords({
             {!read.error && read.records.length === 0 ? (
               <Section title="Get access to your shares">
                 <p className="text-sm text-text-muted">
-                  Accept your company&apos;s invitation to see your shares and employee awards here.
+                  Open the invitation email from your company to see your shares and employee awards here.
                 </p>
-                {invitation}
               </Section>
-            ) : (
-              <div className="rounded-xl border border-border p-4">
-                <Disclosure summary="Accept another member invitation">{invitation}</Disclosure>
-              </div>
-            )}
+            ) : null}
           </>
         )}
       </Page>

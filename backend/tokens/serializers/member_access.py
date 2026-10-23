@@ -28,6 +28,23 @@ class MemberInvitationAcceptSerializer(StrictTeamSerializer):
     confirmation = serializers.BooleanField()
 
 
+class MemberInvitationPreviewRequestSerializer(StrictTeamSerializer):
+    code = serializers.RegexField(r"^[A-Za-z0-9_-]{43}$", trim_whitespace=False, write_only=True)
+
+
+class MemberInvitationSubjectSerializer(serializers.Serializer):
+    uuid = serializers.UUIDField()
+    name = serializers.CharField()
+
+
+class MemberInvitationPreviewSerializer(serializers.Serializer):
+    company = MemberInvitationSubjectSerializer()
+    member = MemberInvitationSubjectSerializer()
+    intended_email = serializers.EmailField()
+    acceptance_deadline = serializers.DateTimeField()
+    status = serializers.ChoiceField(choices=["pending", "accepted"])
+
+
 class MemberInvitationSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
 
@@ -63,6 +80,14 @@ class MemberInvitationIssuedSerializer(MemberInvitationSerializer):
 
     class Meta(MemberInvitationSerializer.Meta):
         fields = [*MemberInvitationSerializer.Meta.fields, "code"]
+        read_only_fields = fields
+
+
+class MemberInvitationEmailSerializer(MemberInvitationSerializer):
+    email_delivery = serializers.ChoiceField(choices=["accepted"], read_only=True)
+
+    class Meta(MemberInvitationSerializer.Meta):
+        fields = [*MemberInvitationSerializer.Meta.fields, "email_delivery"]
         read_only_fields = fields
 
 
