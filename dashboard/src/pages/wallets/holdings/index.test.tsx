@@ -17,7 +17,7 @@ import { Link, MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import HomePage from './index';
 import MemberRecordsPage from '../../home/index';
-import { MEMBER_ENTRY, MEMBER_RECORD } from '../../../testSupport/company';
+import { choose, MEMBER_ENTRY, MEMBER_RECORD } from '../../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -150,7 +150,17 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   let refused = false;
+  let detailRefused = false;
+  let includeOther = false;
   let record = MEMBER_RECORD;
+  const otherRecord = {
+    ...MEMBER_RECORD,
+    uuid: 'abababab-abab-4bab-8bab-abababababab',
+    member: 'babababa-baba-4aba-8aba-babababababa',
+    company: { ...MEMBER_RECORD.company, uuid: 'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd', name: 'Second Demo Company' },
+    classes: [{ ...MEMBER_RECORD.classes[0], uuid: 'dededede-dede-4ede-8ede-dededededede', shares: '25' }],
+    awards: [],
+  };
   const focusRead = async () => {
     const previous = api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length;
     await act(async () => {
@@ -164,10 +174,17 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current association revoked'), { response: { status: 404 } });
-      return { data: { results: [record], next: null, count: 1 } };
+      return {
+        data: { results: includeOther ? [record, otherRecord] : [record], next: null, count: includeOther ? 2 : 1 },
+      };
     }
-    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: record };
+    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) {
+      if (detailRefused) throw Object.assign(new Error('Selected record unavailable'), { response: { status: 500 } });
+      return { data: record };
+    }
+    if (url === URLS.MEMBER_RECORD(otherRecord.uuid)) return { data: otherRecord };
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
+    if (url === URLS.MEMBER_ENTRIES(otherRecord.uuid)) return { data: { entries: [{ ...MEMBER_ENTRY, delta: '25' }] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS || url === URLS.MEMBER_CERTIFICATE_REQUESTS)
       return { data: { results: [], next: null, count: 0 } };
     throw new Error(`Unexpected request: ${url}`);
@@ -334,6 +351,22 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   );
   await screen.findByText('10 issued shares');
   expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  includeOther = true;
+  await focusRead();
+  expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false);
+  detailRefused = true;
+  await focusRead();
+  await screen.findByText('Your member records could not be loaded.');
+  expect(screen.queryByRole('img')).toBeNull();
+  expect(screen.queryByText('10 issued shares')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
+  expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false);
+  await choose('Company', otherRecord.company.name);
+  await screen.findByText('25 issued shares');
+  expect(screen.getByRole('heading', { name: otherRecord.company.name })).toBeTruthy();
+  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  expect(screen.queryByText('10 issued shares')).toBeNull();
+  expect(screen.queryByRole('alert')).toBeNull();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   view.unmount();
   const beforeUnmounted = api.get.mock.calls.length;

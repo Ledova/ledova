@@ -190,7 +190,7 @@ function MemberRecords({
                 <CompanyPicker
                   companies={read.records.map((record) => ({ uuid: record.uuid, name: record.company.name }))}
                   value={read.record?.uuid ?? ''}
-                  disabled={held}
+                  disabled={read.busy || read.refreshing || !!read.retry}
                   onChange={choose}
                 />
               </div>
