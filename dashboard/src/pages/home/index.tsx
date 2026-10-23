@@ -21,7 +21,7 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Section, Loading, LoadError, Disclosure } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
-import { Page, PageAction } from '@components/Page';
+import { FormActions, Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { pageTitle } from '@utils/destinations';
 import { ErrorSummary } from '@components/ErrorSummary';
@@ -134,13 +134,15 @@ function MemberRecords({
             )}
           </p>
           {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
-            <PageAction
-              label={`Request certificate for entry ${entry.sequence}`}
-              busy={running === `certificate:${entry.uuid}`}
-              busyLabel="Requesting…"
-              disabled={held}
-              onClick={() => track(`certificate:${entry.uuid}`, read.requestCertificate(entry.uuid))}
-            />
+            <FormActions>
+              <PageAction
+                label={`Request certificate for entry ${entry.sequence}`}
+                busy={running === `certificate:${entry.uuid}`}
+                busyLabel="Requesting…"
+                disabled={held}
+                onClick={() => track(`certificate:${entry.uuid}`, read.requestCertificate(entry.uuid))}
+              />
+            </FormActions>
           )}
         </div>
       ))}
@@ -149,7 +151,6 @@ function MemberRecords({
   return (
     <PageTitle.Provider value={pageTitle('home', documentsOnly ? 'documents' : undefined)}>
       <Page
-        narrow={documentsOnly}
         lede={
           documentsOnly
             ? 'Your certificates and company-reviewed requests. No wallet is needed.'
@@ -383,17 +384,19 @@ function MemberRecords({
                           disabled={held}
                           onChange={(event) => setConfirmed(event.target.checked)}
                         />
-                        <PageAction
-                          label="Send particulars request"
-                          primary
-                          busy={running === 'particulars'}
-                          busyLabel="Sending request…"
-                          disabled={held}
-                          onClick={() => {
-                            if (particularsChecks.check())
-                              track('particulars', read.requestParticulars(name.trim(), address.trim()));
-                          }}
-                        />
+                        <FormActions>
+                          <PageAction
+                            label="Send particulars request"
+                            primary
+                            busy={running === 'particulars'}
+                            busyLabel="Sending request…"
+                            disabled={held}
+                            onClick={() => {
+                              if (particularsChecks.check())
+                                track('particulars', read.requestParticulars(name.trim(), address.trim()));
+                            }}
+                          />
+                        </FormActions>
                       </div>
                     </Disclosure>
                   )}
@@ -418,19 +421,21 @@ function MemberRecords({
                             Certificate requested {formatDate(request.createdAt)}
                             {request.status !== 'requested' && ` · ${MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}`}
                           </p>
-                          {request.status === 'requested' && (
-                            <PageAction
-                              label="Withdraw certificate request"
-                              context={`request ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
-                              disabled={held}
-                              onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
-                            />
-                          )}
                           <Disclosure summary="Record details">
                             <p className="break-all">
                               Request {shortReference(request.uuid)} · Entry {shortReference(request.entry)}
                             </p>
                           </Disclosure>
+                          {request.status === 'requested' && (
+                            <FormActions>
+                              <PageAction
+                                label="Withdraw certificate request"
+                                context={`request ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
+                                disabled={held}
+                                onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
+                              />
+                            </FormActions>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -479,14 +484,16 @@ function MemberCertificateDownload({
   const { busy, error, download } = useMemberCertificateDownload(read, request);
   return (
     <>
-      <PageAction
-        label="Download unsigned certificate"
-        context={context}
-        busy={busy}
-        busyLabel="Downloading…"
-        disabled={read.busy || !!read.retry}
-        onClick={() => void download()}
-      />
+      <FormActions>
+        <PageAction
+          label="Download unsigned certificate"
+          context={context}
+          busy={busy}
+          busyLabel="Downloading…"
+          disabled={read.busy || !!read.retry}
+          onClick={() => void download()}
+        />
+      </FormActions>
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
