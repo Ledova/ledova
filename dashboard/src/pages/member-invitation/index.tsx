@@ -114,7 +114,7 @@ export default function MemberInvitationPage() {
   );
   return inFrame ? (
     <PageTitle.Provider value="Member invitation">
-      <Page narrow>{contents}</Page>
+      <Page>{contents}</Page>
     </PageTitle.Provider>
   ) : (
     <AuthLayout>
