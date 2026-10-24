@@ -31,6 +31,7 @@ import { registerKey } from '../../hooks/useCompanyRegister';
 
 let mockSection = 'issue';
 jest.mock('@react-navigation/native', () => ({
+  useIsFocused: () => true,
   useRoute: () => ({ params: { section: mockSection } }),
   useNavigation: () => ({
     navigate: jest.fn(),

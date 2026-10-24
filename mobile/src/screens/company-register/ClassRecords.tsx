@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { Text, View } from 'react-native';
 import type { CompanyRegisterSection } from './CompanyRegisterScreen';
@@ -60,6 +61,7 @@ export function ClassRecords({
 }) {
   const styles = useCompanyStyles();
   const client = useQueryClient();
+  const focused = useIsFocused();
   const currentSource = useRef(sourceReady);
   useLayoutEffect(() => {
     currentSource.current = sourceReady;
@@ -125,7 +127,7 @@ export function ClassRecords({
           onSetUp={() => onPrepareImport()}
           onOpenClass={onOpenClass}
           request={issueRequest}
-          visible={shown('issue')}
+          visible={shown('issue') && focused}
         />
       </View>
       <View style={shown('transfer') ? undefined : HIDDEN}>

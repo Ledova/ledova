@@ -52,6 +52,7 @@ const mockSetParams = jest.fn((params: { section: string }) => {
 });
 let mockPreferences: { userAccount?: { role: string }; isLoading: boolean; isError: boolean; refetch: jest.Mock };
 jest.mock('@react-navigation/native', () => ({
+  useIsFocused: () => true,
   useNavigation: () => ({ navigate: mockNavigate, setParams: mockSetParams, goBack: mockGoBack }),
   useRoute: () => ({ params: mockRouteParams ?? { section: mockSection } }),
 }));
