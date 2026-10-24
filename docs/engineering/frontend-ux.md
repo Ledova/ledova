@@ -172,6 +172,13 @@ and an honest sending result, with a retry on failure; provider acceptance is no
 Show an action reason only for a selected revocation or particulars update, and certificate
 instruction fields only with an actual request. Preserve drafts, current authority, failed-read
 retries and original-action recovery; there is no routine refresh control.
+Selecting a certificate request replaces the collection with focused **Prepare certificate** and
+**Review certificate** views, keeping its controllers mounted. Group the member, exact class,
+request date and unsigned single-recipient PDF summary together. The preparation owns the required
+**Company instruction** field; the review keeps its captured instruction, entry and register
+sequence and source fingerprint under **Record details**. Keep the privacy and signing reminder
+visible, with one right-aligned Cancel/Preview or Cancel/Create certificate row. Other invitation,
+access and request rows return when the task closes.
 
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep company and class context once, then the issue or transfer summary, ownership

@@ -220,9 +220,15 @@ fingerprint is recorded.
 
 ### Fulfilling a member's certificate request
 
-1. In **Member access and requests**, under **Certificate requests**, choose **Preview certificate
-   for** the member, entering the company's written instruction reference.
-2. Check the preview, then choose **Confirm recipient certificate fulfilment**.
+1. On web, in **Member access and requests**, choose **Prepare certificate** on the member's request. The focused
+   **Prepare certificate** view shows the member, share class and request date. Enter the required
+   **Company instruction**, then choose **Preview**.
+2. Check **Review certificate** and its unsigned single-recipient PDF summary. **Record details**
+   holds the exact entry and register sequence, source fingerprint and captured instruction.
+   Choose **Create certificate**, or **Cancel** to return without fulfilling the request. The privacy
+   and signing reminder stays visible; other member-access records return after the task closes.
+3. Mobile keeps **Preview certificate for** the member and the company's written instruction
+   reference, then **Confirm recipient certificate fulfilment** after checking the preview.
 
 This keeps one unchangeable single-page PDF of that member's page only, with its request,
 producer, appointment, instruction and fingerprint, recorded as a certificate for the entry; no
