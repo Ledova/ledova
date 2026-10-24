@@ -28,8 +28,8 @@ and [mobile](mobile.md); what each page does is in the business section.
 Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 `mobile/src/components/Page.tsx`) under the page's title. Web form fields use `Field`
 ([forms](#forms)). `Page narrow` bounds
-simple task forms, settings and detailed records, including compact tables. Ownership dashboards,
-top-level record and document collections, stepped Ledger preparation pages, signed-in member
+simple task forms, settings and most detailed records, including compact tables. Ownership dashboards,
+company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
 invitation reviews and wide tables take the standard workspace width. Inline preparation, review
 and result states retain their collection's frame. Tables scroll within their card on small screens.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing

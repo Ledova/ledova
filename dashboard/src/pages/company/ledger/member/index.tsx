@@ -64,7 +64,7 @@ export default function CompanyShareholderPage() {
       />
     );
   return (
-    <Page narrow back={{ state: company ? { registerCompany: company } : undefined }}>
+    <Page back={{ state: company ? { registerCompany: company } : undefined }}>
       {preferences.isLoading ? (
         <Loading>Loading your account…</Loading>
       ) : (
@@ -404,7 +404,6 @@ function OwnShareholder({
   return (
     <PageTitle.Provider value={title}>
       <Page
-        narrow
         lede={data.company?.name}
         documentTitle={DESTINATIONS.companyShareholder.title}
         back={{ state: company ? { registerCompany: company } : undefined }}
