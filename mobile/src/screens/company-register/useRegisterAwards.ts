@@ -12,6 +12,7 @@ import {
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { registerKey } from '../../hooks/useCompanyRegister';
+import { assertSessionEpoch } from '../../services/sessionScope';
 
 export const awardsKey = (epoch: number, token: string) => [...registerKey(epoch), 'awards', token];
 export const awardVestingsKey = (epoch: number, award: string) => [...registerKey(epoch), 'award-vestings', award];
@@ -36,6 +37,29 @@ export function useRegisterAwards(epoch: number, company: string, token: string,
       return [...new Map(rows.map((row) => [row.uuid, row])).values()].sort(
         (left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt),
       );
+    },
+  });
+}
+
+export function useMemberAwards(epoch: number, company: string, member: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...registerKey(epoch), 'member-awards', company, member],
+    enabled,
+    queryFn: async ({ signal }) => {
+      const guard = () => assertSessionEpoch(epoch);
+      const rows = await readEveryPage(async (page) => {
+        guard();
+        const response = await getRegisterAwards(
+          apiClient,
+          { company, member, page },
+          { ledovaSessionEpoch: epoch, ledovaSubmissionGuard: guard, signal },
+        );
+        guard();
+        return response;
+      });
+      if (rows.some((row) => row.company !== company || row.member !== member || !hasValidRegisterAwardTotals(row)))
+        throw new Error('The awards do not belong to this shareholder or have inconsistent quantities.');
+      return rows;
     },
   });
 }

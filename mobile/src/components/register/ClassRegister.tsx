@@ -86,7 +86,15 @@ export function ClassRegister({ register }: { register: TokenHoldersResponse }) 
 
 const PAGE_SIZE = 25;
 
-export function FormerMembers({ register }: { register: TokenHoldersResponse }) {
+export function FormerMembers({
+  register,
+  blocked = false,
+  onOpen,
+}: {
+  register: TokenHoldersResponse;
+  blocked?: boolean;
+  onOpen?: (member: string) => void;
+}) {
   const styles = useCompanyStyles();
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState(PAGE_SIZE);
@@ -111,6 +119,14 @@ export function FormerMembers({ register }: { register: TokenHoldersResponse }) 
         {visible.map((former, index) => (
           <View key={former.uuid} style={[styles.entry, index === visible.length - 1 && styles.lastEntry]}>
             <Text style={styles.heading}>{former.name || 'Name not recorded'}</Text>
+            {onOpen && former.member && (
+              <Action
+                label="Details"
+                accessibilityLabel={`Details for ${former.name || 'Name not recorded'}`}
+                disabled={blocked}
+                onPress={() => onOpen(former.member!)}
+              />
+            )}
             <Rows>
               {former.member && <Row label="Member reference">{shortReference(former.member)}</Row>}
               <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
@@ -149,7 +165,15 @@ export function FormerMembers({ register }: { register: TokenHoldersResponse }) 
   );
 }
 
-export function FormerShareholders({ registers }: { registers: TokenHoldersResponse[] }) {
+export function FormerShareholders({
+  registers,
+  blocked,
+  onOpen,
+}: {
+  registers: TokenHoldersResponse[];
+  blocked: boolean;
+  onOpen: (member: string) => void;
+}) {
   const styles = useCompanyStyles();
   const classes = registers.filter((register) => register.initialized && register.formerMembers?.length);
   if (!classes.length) return null;
@@ -160,7 +184,7 @@ export function FormerShareholders({ registers }: { registers: TokenHoldersRespo
           <Text accessibilityRole="header" style={styles.heading}>
             {register.token.name} · {register.token.symbol}
           </Text>
-          <FormerMembers register={register} />
+          <FormerMembers register={register} blocked={blocked} onOpen={onOpen} />
         </View>
       ))}
     </Section>

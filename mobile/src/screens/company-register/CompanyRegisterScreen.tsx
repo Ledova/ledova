@@ -403,12 +403,8 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                 ready={ownershipReady}
                 blocked={holding}
                 onHeldChange={peopleHeld}
-                onChangeParticulars={(member, token) =>
-                  navigation.navigate('PrepareRegisterParticulars', {
-                    tokenUuid: token,
-                    companyUuid: company.uuid,
-                    memberUuid: member,
-                  })
+                onOpen={(member) =>
+                  navigation.navigate('CompanyShareholder', { companyUuid: company.uuid, memberUuid: member })
                 }
               />
             </View>

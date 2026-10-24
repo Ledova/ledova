@@ -121,6 +121,7 @@ const COMPANY_MENU_ITEMS: MenuItem[] = [
 
 const COMPANY_SCREEN_SECTIONS: Partial<Record<string, CompanyRegisterSection>> = {
   TokenDetail: 'ledger',
+  CompanyShareholder: 'shareholders',
   PrepareRegisterImport: 'ledger',
   PrepareRegisterGrant: 'issue',
   PrepareRegisterTransfer: 'transfer',

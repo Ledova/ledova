@@ -110,11 +110,17 @@ Shareholders (`CompanyPeople.tsx` and `CompanyShareholders.tsx` beside the scree
 after the same figures check, and only while the person can still read the register: Current
 shareholders across every opened class, with a name search, the share class as radio buttons, an
 identity-review count and each person's shares and percentage by class, 25 more at a time; then
-People without shares and Former shareholders by class. Each current shareholder offers **Change
-particulars** for someone who can prepare the register, since the shareholder screen isn't on
-mobile yet. **Add person** opens an inline name and residential address form;
-`usePersonRegistration.ts` keeps the web's original-save recovery, and an unfinished save stays
-mounted while the other sections say so.
+People without shares and Former shareholders by class. **Add person** opens an inline name and
+residential address form; `usePersonRegistration.ts` keeps the web's original-save recovery, and an
+unfinished save stays mounted while the other sections say so.
+
+Details, beside each current shareholder and each former shareholder the register names, opens
+`CompanyShareholderScreen.tsx`: the web's shareholder page without Documents or the Transfer shares
+and Issue shares to them links yet. It reads the company's registers with the Ledger's query key,
+their recorded particulars, their entries and their awards, and shows any of it only with a current
+company register appointment, holdings included. **Change particulars** stays for someone who can
+prepare the register, and the particulars screen also finds a person without shares. Request and
+invitation links open Company, where mobile keeps member access.
 
 ## Theme and appearance
 

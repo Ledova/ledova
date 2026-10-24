@@ -21,6 +21,7 @@ import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { cache, files, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
+import { CompanyShareholderScreen } from './CompanyShareholderScreen';
 import { PrepareRegisterImportScreen } from './PrepareRegisterImportScreen';
 import { registerAppointmentsKey, useRegisterAccess } from '../../hooks/useCompanyRegister';
 import { LedgerNavigationProvider, useLedgerNavigation } from '../../navigation/LedgerNavigation';
@@ -42,7 +43,9 @@ async function choose(
 
 const mockNavigate = jest.fn();
 let mockSection = 'ledger';
-let mockRouteParams: { tokenUuid: string; companyUuid: string; correctionOf?: string } | undefined;
+let mockRouteParams:
+  | { tokenUuid?: string; companyUuid: string; correctionOf?: string; section?: string; memberUuid?: string }
+  | undefined;
 const mockGoBack = jest.fn();
 const mockSetParams = jest.fn((params: { section: string }) => {
   mockSection = params.section;
@@ -620,6 +623,64 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   await view.rerender(<CompanyRegisterScreen />);
   expect(view.getAllByText('Alex Member').length).toBeGreaterThan(0);
   expect(view.getByText('9,007,199,254,740,992 · 100.00%')).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: 'Details for Alex Member' }));
+  expect(mockNavigate).toHaveBeenCalledWith('CompanyShareholder', {
+    companyUuid: shareClass.companyUuid,
+    memberUuid: 'member-1',
+  });
+  read = (url, number, token) =>
+    url === URLS.REGISTER_MEMBERS('ordinary')
+      ? Promise.resolve({
+          data: {
+            members: [
+              {
+                member: 'member-1',
+                name: 'Alex Member',
+                residentialAddress: '2 Register Lane',
+                currentShares: register.holders[0]!.balance,
+                enteredOn: '2026-09-01',
+                lastCeasedOn: null,
+                particularsRetained: true,
+                walletless: true,
+                onRegister: true,
+              },
+            ],
+            awardRecipients: [],
+          },
+        })
+      : url === URLS.REGISTER_ENTRIES('ordinary')
+        ? Promise.resolve(
+            page([
+              {
+                uuid: 'entry-1',
+                sequence: 1,
+                kind: 'transfer',
+                effectiveOn: '2026-09-01',
+                recordedAt: '2026-09-01T00:00:00Z',
+                companyEventOn: null,
+                correctable: false,
+                correctedBy: null,
+                corrects: null,
+                changes: [
+                  { member: 'member-1', name: 'Alex Member', shares: register.holders[0]!.balance },
+                  { member: 'member-3', name: 'Sam Seller', shares: `-${register.holders[0]!.balance}` },
+                ],
+              },
+            ]),
+          )
+        : url === URLS.REGISTER_ENTRIES('preference') || url === URLS.REGISTER_AWARDS
+          ? Promise.resolve(page([]))
+          : defaultRead(url, number, token);
+  mockRouteParams = { section: 'shareholders', companyUuid: shareClass.companyUuid, memberUuid: 'member-1' };
+  await view.rerender(
+    <>
+      <CompanyRegisterScreen />
+      <CompanyShareholderScreen />
+    </>,
+  );
+  await view.findByText('2 Register Lane');
+  expect(view.getByRole('header', { name: 'Alex Member' })).toBeTruthy();
+  expect(view.getByText('+9,007,199,254,740,992 shares')).toBeTruthy();
   const readAppointments = client.getQueryData(registerAppointmentsKey(epoch));
   await act(() =>
     client.setQueryData(registerAppointmentsKey(epoch), [
@@ -632,7 +693,13 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
     ]),
   );
   await waitFor(() => expect(view.queryByText('9,007,199,254,740,992 · 100.00%')).toBeNull());
+  await waitFor(() => expect(view.queryByText('2 Register Lane')).toBeNull());
+  expect(view.queryByText('+9,007,199,254,740,992 shares')).toBeNull();
+  expect(view.getByText(/show only to someone with a current company register appointment/)).toBeTruthy();
   await act(() => client.setQueryData(registerAppointmentsKey(epoch), readAppointments));
+  await view.rerender(<CompanyRegisterScreen />);
+  mockRouteParams = undefined;
+  read = defaultRead;
   mockSection = 'documents';
   await view.rerender(<CompanyRegisterScreen />);
   expect(view.getAllByText(REGISTER_COPY.PRIVACY_NOTE).length).toBeGreaterThan(0);

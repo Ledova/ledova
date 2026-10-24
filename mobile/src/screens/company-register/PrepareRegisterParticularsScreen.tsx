@@ -21,7 +21,12 @@ import { apiClient } from '../../services/apiClient';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { EvidencePicker, Field, isoDay, utcToday } from '../../components/register/RegisterFields';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { particularsKey, useClassRegister, useRegisterAppointments } from '../../hooks/useCompanyRegister';
+import {
+  particularsKey,
+  useClassRegister,
+  useRegisterAppointments,
+  useTransferMembers,
+} from '../../hooks/useCompanyRegister';
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 
 const FAILED = 'The change could not be prepared. Retry with the same details.';
@@ -38,6 +43,7 @@ function PrepareRegisterParticulars({ epoch }: { epoch: number }) {
   const { tokenUuid, companyUuid, memberUuid } =
     useRoute<RouteProp<CompanyStackParamList, 'PrepareRegisterParticulars'>>().params;
   const register = useClassRegister(epoch, tokenUuid);
+  const people = useTransferMembers(epoch, tokenUuid);
   const { appointments, steps } = useRegisterAppointments(epoch, companyUuid);
   const document = useRegisterEvidence(companyUuid, 'supporting');
   const [name, setName] = useState('');
@@ -137,13 +143,13 @@ function PrepareRegisterParticulars({ epoch }: { epoch: number }) {
     }
   };
   const title = DESTINATIONS.companyRegisterParticulars.title;
-  if (register.isPending || appointments.isPending)
+  if (register.isPending || appointments.isPending || people.isPending)
     return (
       <Page title={title}>
         <Text style={styles.muted}>Loading the member…</Text>
       </Page>
     );
-  if (register.isError || appointments.isError)
+  if (register.isError || appointments.isError || people.isError)
     return (
       <Page title={title}>
         <Text accessibilityRole="alert" style={styles.error}>
@@ -151,15 +157,19 @@ function PrepareRegisterParticulars({ epoch }: { epoch: number }) {
         </Text>
         <Action
           label="Retry"
-          disabled={register.isFetching || appointments.isFetching}
+          disabled={register.isFetching || appointments.isFetching || people.isFetching}
           onPress={() => {
             void register.refetch();
             void appointments.refetch();
+            void people.refetch();
           }}
         />
       </Page>
     );
-  const member = register.data.holders.find((holder) => holder.member === memberUuid)?.name || COPY.UNNAMED_MEMBER;
+  const member =
+    register.data.holders.find((holder) => holder.member === memberUuid)?.name ||
+    people.data.members.find((row) => row.member === memberUuid)?.name ||
+    COPY.UNNAMED_MEMBER;
   const lede = `${COPY.PREPARE} for ${member}.`;
   if (!steps?.prepare)
     return (

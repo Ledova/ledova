@@ -44,7 +44,7 @@ export function CompanyPeople({
   ready,
   blocked,
   onHeldChange,
-  onChangeParticulars,
+  onOpen,
 }: {
   epoch: number;
   company: string;
@@ -53,7 +53,7 @@ export function CompanyPeople({
   ready: boolean;
   blocked: boolean;
   onHeldChange: (held: boolean) => void;
-  onChangeParticulars: (member: string, token: string) => void;
+  onOpen: (member: string) => void;
 }) {
   const styles = useCompanyStyles();
   const person = usePersonRegistration({ epoch, company, sourceReady, onHeldChange });
@@ -65,9 +65,9 @@ export function CompanyPeople({
         registers={registers}
         people={person.peopleReady && person.query.data ? person.query.data : []}
         blocked={blocked}
-        onChangeParticulars={person.mayPrepare ? onChangeParticulars : undefined}
+        onOpen={onOpen}
       />
-      {listed && <FormerShareholders registers={registers} />}
+      {listed && <FormerShareholders registers={registers} blocked={blocked} onOpen={onOpen} />}
       {(ready || person.editing) && (
         <>
           {person.readable && person.query.isError ? (

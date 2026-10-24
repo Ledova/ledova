@@ -5,7 +5,6 @@ import {
   formatShareCount,
   searchRows,
   sharePercentage,
-  REGISTER_PARTICULARS_COPY,
   type Person,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -29,13 +28,13 @@ export function CompanyShareholders({
   registers,
   people,
   blocked,
-  onChangeParticulars,
+  onOpen,
 }: {
   ready: boolean;
   registers: TokenHoldersResponse[];
   people: Person[];
   blocked: boolean;
-  onChangeParticulars?: (member: string, token: string) => void;
+  onOpen: (member: string) => void;
 }) {
   const styles = useCompanyStyles();
   const [search, setSearch] = useState('');
@@ -133,7 +132,8 @@ export function CompanyShareholders({
           )}
           {unresolved > 0 && (
             <Text style={styles.muted}>
-              {unresolved} {unresolved === 1 ? 'shareholder needs' : 'shareholders need'} identity review.
+              {unresolved} {unresolved === 1 ? 'shareholder needs' : 'shareholders need'} identity review. Open their
+              details before relying on these records.
             </Text>
           )}
           {shownShareholders.map((member, index) => (
@@ -152,14 +152,12 @@ export function CompanyShareholders({
                     </Row>
                   ))}
               </Rows>
-              {onChangeParticulars && (
-                <Action
-                  label={REGISTER_PARTICULARS_COPY.PREPARE}
-                  accessibilityLabel={`${REGISTER_PARTICULARS_COPY.PREPARE} for ${member.name}`}
-                  disabled={blocked}
-                  onPress={() => onChangeParticulars(member.member, member.holdings[0].register.token.uuid)}
-                />
-              )}
+              <Action
+                label="Details"
+                accessibilityLabel={`Details for ${member.name}`}
+                disabled={blocked}
+                onPress={() => onOpen(member.member)}
+              />
             </View>
           ))}
           {shareholders.length === 0 && <Text style={styles.muted}>No current shareholders yet.</Text>}
