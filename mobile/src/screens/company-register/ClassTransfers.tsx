@@ -69,44 +69,38 @@ export function ClassTransfers({
   return (
     <>
       <Section title={reviewing ? 'Review share transfer' : 'Share transfers'}>
-        {!reviewing && (
-          <>
-            {!supported && (
-              <View style={styles.group}>
-                {sourceReady && (
-                  <Text style={styles.muted}>
-                    {draft
-                      ? 'Set up this share register before recording a transfer.'
-                      : 'Tokenised share transfers use wallet and chain controls. This task records non-paid transfers for a non-tokenised register.'}
-                  </Text>
-                )}
-                {privateReady && !!steps?.prepare && (
-                  <LinkRow
-                    label={draft ? DESTINATIONS.companyRegisterImport.title : DESTINATIONS.companyClass.title}
-                    onPress={draft ? onSetUp : onOpenClass}
-                  />
-                )}
-              </View>
+        {!supported && (
+          <View style={styles.group}>
+            {sourceReady && (
+              <Text style={styles.muted}>
+                {draft
+                  ? 'Set up this share register before recording a transfer.'
+                  : 'Tokenised share transfers use wallet and chain controls. This task records non-paid transfers for a non-tokenised register.'}
+              </Text>
             )}
-            {steps && !Object.values(steps).some(Boolean) && <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>}
-            {transfers.isPending ? (
-              <Text style={styles.muted}>Loading non-paid transfers…</Text>
-            ) : transfers.isError ? (
-              <>
-                <Text accessibilityRole="alert" style={styles.error}>
-                  The transfers could not be loaded.
-                </Text>
-                <Action
-                  label="Retry transfers"
-                  disabled={transfers.isFetching}
-                  onPress={() => void transfers.refetch()}
-                />
-              </>
-            ) : privateReady && records.length === 0 ? (
-              <Text style={styles.muted}>{COPY.EMPTY}</Text>
-            ) : null}
-            <Action label="Refresh transfers" disabled={transfers.isFetching} onPress={() => void settle()} />
+            {privateReady && !!steps?.prepare && (
+              <LinkRow
+                label={draft ? DESTINATIONS.companyRegisterImport.title : DESTINATIONS.companyClass.title}
+                onPress={draft ? onSetUp : onOpenClass}
+              />
+            )}
+          </View>
+        )}
+        {steps && !Object.values(steps).some(Boolean) && <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>}
+        {transfers.isPending ? (
+          <Text style={styles.muted}>Loading non-paid transfers…</Text>
+        ) : transfers.isError ? (
+          <>
+            <Text accessibilityRole="alert" style={styles.error}>
+              The transfers could not be loaded.
+            </Text>
+            <Action label="Retry transfers" disabled={transfers.isFetching} onPress={() => void transfers.refetch()} />
           </>
+        ) : privateReady && records.length === 0 ? (
+          <Text style={styles.muted}>{COPY.EMPTY}</Text>
+        ) : null}
+        {!reviewing && (
+          <Action label="Refresh transfers" disabled={transfers.isFetching} onPress={() => void settle()} />
         )}
         {records.map((transfer, index) => (
           <TransferRecord

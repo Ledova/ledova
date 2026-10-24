@@ -117,6 +117,7 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   let incompleteImpact = false;
   let staleApproval = true;
   let transfer: RegisterTransfer | null = null;
+  let failedTransfers = false;
   get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') {
       if (failedPreferences) throw new Error('Synthetic preferences unavailable');
@@ -167,7 +168,10 @@ it('recovers the fully paid company allotment once, approves and issues it in on
     if (rows[0] && url === URLS.REGISTER_ALLOTMENT(rows[0].uuid)) return { data: rows[0] };
     if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [], awardRecipients: [] } };
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
-    if (url === URLS.REGISTER_TRANSFERS) return { data: { results: transfer ? [transfer] : [], next: null } };
+    if (url === URLS.REGISTER_TRANSFERS) {
+      if (failedTransfers) throw new Error('Synthetic transfers read failure');
+      return { data: { results: transfer ? [transfer] : [], next: null } };
+    }
     return { data: { results: [], next: null } };
   });
   post.mockReset().mockImplementation(async (url, body) => {
@@ -454,7 +458,16 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   expect(view.getByRole('header', { name: 'Review share transfer' })).toBeTruthy();
   expect(view.getByText('8,000 shares → 7,900 shares')).toBeTruthy();
   expect(view.queryByRole('button', { name: /^Apply/ })).toBeNull();
-  await fireEvent.press(approveTransfer);
+  failedTransfers = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'transfers'] });
+  });
+  const retryTransfers = await view.findByRole('button', { name: 'Retry transfers' });
+  expect(view.getByRole('header', { name: 'Review share transfer' })).toBeTruthy();
+  failedTransfers = false;
+  await fireEvent.press(retryTransfers);
+  await waitFor(() => expect(view.getByRole('button', { name: 'Approve' })).not.toBeDisabled());
+  await fireEvent.press(view.getByRole('button', { name: 'Approve' }));
   await fireEvent.press(await view.findByRole('button', { name: 'Recover original decision receipt' }));
   await view.findByText('Approved');
   expect(transferDecisions()).toEqual([transferDecisions()[0], transferDecisions()[0]]);
