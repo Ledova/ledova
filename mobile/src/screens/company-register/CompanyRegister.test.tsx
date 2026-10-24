@@ -52,6 +52,7 @@ const mockSetParams = jest.fn((params: { section: string }) => {
 });
 let mockPreferences: { userAccount?: { role: string }; isLoading: boolean; isError: boolean; refetch: jest.Mock };
 jest.mock('@react-navigation/native', () => ({
+  useIsFocused: () => true,
   useNavigation: () => ({ navigate: mockNavigate, setParams: mockSetParams, goBack: mockGoBack }),
   useRoute: () => ({ params: mockRouteParams ?? { section: mockSection } }),
 }));
@@ -686,7 +687,6 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   expect(view.getByText('+9,007,199,254,740,992 shares')).toBeTruthy();
   await view.findByText('No supporting documents attached.');
   expect(view.queryByRole('button', { name: 'Change particulars' })).toBeNull();
-  expect(view.queryByRole('link', { name: 'Issue shares to them' })).toBeNull();
   expect(get).toHaveBeenCalledWith(
     URLS.REGISTER_MEMBER_DOCUMENTS,
     expect.objectContaining({

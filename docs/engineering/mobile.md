@@ -116,8 +116,9 @@ mounted, so their held work survives; an open review is held work), recovery
 inside and outside the review and unmet requirements in words. An investor issue's Approve also
 records the issue (`completeIssue` with the apply appointment); a non-paid issue keeps Approve, then
 Record issue. There is no manual refresh: as on the web, it rereads authority, then its records,
-on entry, when the app returns to the foreground and every minute while shown
-(`useIssueFreshness.ts`), waiting while a preparation or review is open. **Prepare issue** opens Prepare share
+on entry, when the app or the screen comes back into view, and every minute while it is on screen
+(`useIssueFreshness.ts`, which treats another tab or a pushed screen as hidden), waiting while a
+preparation or review is open. **Prepare issue** opens Prepare share
 issue in place of the list, which stays mounted, and asks **What kind of issue?**: the investor form
 (`AllotmentForm.tsx`) takes the web's three steps under a step indicator
 (`mobile/src/components/FormSteps.tsx`), and the non-paid grant form (`GrantForm.tsx`) one.
@@ -146,7 +147,8 @@ residential address form; `usePersonRegistration.ts` keeps the web's original-sa
 unfinished save stays mounted while the other sections say so.
 
 Details, beside each current shareholder and each former shareholder the register names, opens
-`CompanyShareholderScreen.tsx`: the web's shareholder page without the Transfer shares link yet. It reads the company's registers with the Ledger's query key,
+`CompanyShareholderScreen.tsx`: the web's shareholder page without the Transfer shares link yet. It
+reads the company's registers with the Ledger's query key,
 their recorded particulars, their entries and their awards, and shows any of it only with a current
 company register appointment, holdings included. **Change particulars** stays for someone who can
 prepare the register, and the particulars screen also finds a person without shares. Request and

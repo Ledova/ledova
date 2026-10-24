@@ -1,15 +1,7 @@
 import { Text, View } from 'react-native';
 import { useThemedStyles } from '../contexts';
 
-export function FormSteps({
-  label,
-  steps,
-  current,
-}: {
-  label: string;
-  steps: readonly { id: string; label: string }[];
-  current: string;
-}) {
+export function FormSteps({ steps, current }: { steps: readonly { id: string; label: string }[]; current: string }) {
   const styles = useThemedStyles((theme) => ({
     list: { flexDirection: 'row' as const, gap: theme.spacing.smd },
     step: {
@@ -35,7 +27,7 @@ export function FormSteps({
     currentLabel: { color: theme.colors.text.primary },
   }));
   return (
-    <View accessibilityLabel={label} style={styles.list}>
+    <View style={styles.list}>
       {steps.map((step, index) => {
         const active = step.id === current;
         return (
