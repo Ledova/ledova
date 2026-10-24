@@ -156,11 +156,11 @@ unfinished save stays mounted while the other sections say so.
 Details, beside each current shareholder and each former shareholder the register names, opens
 `CompanyShareholderScreen.tsx`: the web's shareholder page. For someone who can prepare, each
 holding with no linked wallet in an opened draft class offers **Transfer shares**, which opens the
-preparation with the transferor chosen. It reads the company's registers with the Ledger's query key,
-their recorded particulars, their entries and their awards, and shows any of it only with a current
-company register appointment, holdings included. **Change particulars** stays for someone who can
-prepare the register, and the particulars screen also finds a person without shares. Request and
-invitation links open Company, where mobile keeps member access. Its Documents
+preparation with the transferor chosen. It reads the company's registers with the Ledger's query
+key, their recorded particulars, their entries and their awards, and shows any of it only with a
+current company register appointment, holdings included. **Change particulars** stays for someone
+who can prepare the register, and the particulars screen also finds a person without shares. Request
+and invitation links open Company, where mobile keeps member access. Its Documents
 (`MemberDocuments.tsx`) list the person's retained files with their category and class, share each
 through the share sheet, and add one at a time: the upload reuses `useRegisterEvidence`, and an
 interrupted save is recovered through its idempotency key before anything is sent again.

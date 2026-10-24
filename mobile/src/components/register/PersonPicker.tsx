@@ -56,7 +56,6 @@ export function PersonFields({
   onName,
   onResidentialAddress,
   editable,
-  readOnly = false,
   nameError,
   addressError,
 }: {
@@ -65,24 +64,16 @@ export function PersonFields({
   onName: (value: string) => void;
   onResidentialAddress: (value: string) => void;
   editable: boolean;
-  readOnly?: boolean;
   nameError?: string | null;
   addressError?: string | null;
 }) {
   return (
     <>
-      <Field
-        label="Name"
-        value={name}
-        editable={editable && !readOnly}
-        maxLength={255}
-        error={nameError}
-        onChange={onName}
-      />
+      <Field label="Name" value={name} editable={editable} maxLength={255} error={nameError} onChange={onName} />
       <Field
         label="Residential address"
         value={residentialAddress}
-        editable={editable && !readOnly}
+        editable={editable}
         multiline
         maxLength={1000}
         error={addressError}
