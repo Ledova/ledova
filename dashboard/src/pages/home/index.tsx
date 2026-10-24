@@ -82,18 +82,22 @@ function MemberRecords({
   });
   useEffect(() => {
     if (read.record && read.record.uuid !== initialHistory.current && !held) {
-      initialHistory.current = read.record.uuid;
       const item = read.record.classes[0];
       if (item) {
+        initialHistory.current = read.record.uuid;
         read.selectToken(item.uuid);
       }
     }
   }, [read.record, read.selectToken, held]);
-  const historyClass =
-    read.record?.classes.find((item) => item.uuid === historyToken)?.name ?? read.record?.classes[0]?.name ?? '';
+  const historyShareClass = read.record?.classes.find((item) => item.uuid === historyToken) ?? read.record?.classes[0];
+  const historyClass = historyShareClass?.name ?? '';
   const records = !read.readFailed && read.record ? [read.record] : [];
   const choose = (uuid: string) => {
-    if (uuid !== read.record?.uuid) select(uuid);
+    if (uuid !== read.record?.uuid) {
+      initialHistory.current = '';
+      setHistoryToken('');
+      select(uuid);
+    }
     particularsChecks.reset();
     setName('');
     setAddress('');
@@ -101,14 +105,14 @@ function MemberRecords({
     setParticularsOpen(false);
   };
   const shareHistory = read.record && (
-    <div className="space-y-3">
-      <p className="text-sm text-text-muted">Choose a share class to request a certificate for a receiving entry.</p>
-      {documentsOnly && (
+    <div className="divide-y divide-border-subtle">
+      {documentsOnly && read.record.classes.length > 1 && (
         <div className="flex flex-wrap gap-2 py-3">
           {read.record.classes.map((item) => (
             <PageAction
               key={item.uuid}
-              label={`Read own entries for ${item.name}`}
+              label={`${item.name} · ${item.symbol}`}
+              pressed={item.uuid === historyShareClass?.uuid}
               disabled={held}
               onClick={() => {
                 setHistoryToken(item.uuid);
@@ -118,25 +122,30 @@ function MemberRecords({
           ))}
         </div>
       )}
+      {read.record.classes.length === 0 && <p className="text-sm text-text-muted">No share changes yet.</p>}
       {read.entries.map((entry) => (
-        <div key={entry.uuid} className="space-y-2 py-3">
-          <p className="text-sm">
-            Entry {entry.sequence} · {entryKind(entry.kind)} · Ledger {formatDate(entry.effectiveOn)} · Own change{' '}
-            {shareChange(entry.delta)}
-          </p>
+        <div key={entry.uuid} className="space-y-3 py-3">
+          <h3 className="text-sm font-medium">
+            {shareChange(entry.delta)} {historyShareClass?.symbol} shares
+          </h3>
           <p className="text-sm text-text-muted">
-            Recorded {formatDateTime(entry.createdAt)}
-            {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && (
-              <>
-                {' · '}
-                <span>Company date {entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}</span>
-              </>
-            )}
+            {entryKind(entry.kind)} ·{' '}
+            {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase())
+              ? formatDate(entry.companyEventOn, 'Company date not recorded')
+              : formatDate(entry.effectiveOn)}
           </p>
+          <Disclosure summary="Record details">
+            <Rows>
+              <Row label="Entry">{entry.sequence}</Row>
+              <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
+              <Row label="Recorded">{formatDateTime(entry.createdAt)}</Row>
+            </Rows>
+          </Disclosure>
           {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
             <FormActions>
               <PageAction
-                label={`Request certificate for entry ${entry.sequence}`}
+                label="Request certificate"
+                context={`${historyClass}, entry ${entry.sequence}`}
                 busy={running === `certificate:${entry.uuid}`}
                 busyLabel="Requesting…"
                 disabled={held}
@@ -153,7 +162,7 @@ function MemberRecords({
       <Page
         lede={
           documentsOnly
-            ? 'Your certificates and company-reviewed requests. No wallet is needed.'
+            ? 'Your certificates and company-reviewed requests.'
             : 'Your company-recorded shares and employee awards. No wallet is needed.'
         }
       >
@@ -292,7 +301,7 @@ function MemberRecords({
                     {read.requests &&
                       !read.requests.certificates.some(
                         (request) => request.status === 'fulfilled' && request.fulfilment,
-                      ) && <p className="text-sm text-text-muted">No issued certificates yet.</p>}
+                      ) && <p className="text-sm text-text-muted">No certificates available yet.</p>}
                     {!read.requests && <Loading>Loading your documents and requests…</Loading>}
                   </Section>
                 )}

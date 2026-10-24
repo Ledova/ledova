@@ -154,6 +154,10 @@ Inspection copy and Company pack open from their preparation actions; privacy an
 or download. Keep current source and appointment validation and error retries, without routine
 refresh controls.
 
+Member Documents summarises each share change by quantity, class and company date, with a short
+Request certificate action. Entry numbers, ledger dates and recording timestamps open under
+Record details; a class chooser is only shown when there is more than one class.
+
 Member access and requests follows the same records-first pattern on Shareholders. Show compact
 invitation, access and request records only when present, with private metadata under Details. A
 confirmed empty collection has one empty state and an Invite a member action beneath the card.
