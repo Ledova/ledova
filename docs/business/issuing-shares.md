@@ -175,6 +175,11 @@ A sibling group is hidden only after a current successful read proves it empty; 
 reads remain visible. For a deployed class the task links to Share class, where chain grants and
 paid issues stay.
 
+The mobile app's Issue shares lists the same records under **Share issues**, each with the web's
+summary of recipient and kind, shares and amount, company issue date and status, and Details and
+documents on demand. It still prepares an investor issue beneath the list and a non-paid issue on
+its own screen, and decides each record in a separate dialog.
+
 ### What each record changes
 
 | Record                                                               | Effect on issued shares and holdings                                                                                                |

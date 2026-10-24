@@ -2,22 +2,26 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import {
   COMPANY_TOKEN_ENDPOINTS,
+  formatDate,
   formatDateTime,
-  formatShareCount,
+  formatMoney,
   REGISTER_ALLOTMENT_COPY as COPY,
   REGISTER_ALLOTMENT_DECISIONS,
+  shareCount,
+  shortReference,
   type OwnCompanyAppointment,
   type RegisterDecisionKind,
   type RegisterAllotment,
   type RegisterAllotmentDecisionPreview,
   type RegisterStep,
 } from '@ledova/shared';
-import { Disclosure, Row, Rows } from '../../components/Ledger';
+import { Disclosure, Row, Rows, Status } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { RegisterCopy } from '../../components/register/RegisterCopy';
 import { RegisterDecision } from '../../components/register/RegisterDecision';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { AllotmentOwnership } from './AllotmentOwnership';
+import { ISSUE_TONES, IssueSummary, decisionRows } from './IssueSummary';
 
 const ISSUE_COPY = {
   ...COPY,
@@ -25,32 +29,26 @@ const ISSUE_COPY = {
   CONFIRMATIONS: { ...COPY.CONFIRMATIONS, apply: 'Record the approved shares in the register.' },
 };
 
+const TRAIL_LABELS = { ...COPY.DECISIONS, approve: 'Approve', apply: 'Shares recorded' };
+
 function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterAllotmentDecisionPreview }) {
   return (
     <Rows>
-      <Row label="Investor/member">
-        {allotment.name} · {allotment.member}
-      </Row>
+      <Row label="Investor/member">{allotment.name}</Row>
       <Row label="Residential address">{allotment.residentialAddress}</Row>
       <Row label="Member record">{allotment.newMember ? 'New member' : 'Existing member'}</Row>
-      <Row label={COPY.SHARES}>{allotment.shares}</Row>
-      <Row label={COPY.CONSIDERATION}>AUD {allotment.consideration}</Row>
-      <Row label="External agreement record">{allotment.agreement.uuid}</Row>
+      <Row label={COPY.SHARES}>{shareCount(allotment.shares)}</Row>
+      <Row label={COPY.CONSIDERATION}>{formatMoney(allotment.consideration, allotment.currency)}</Row>
       <Row label={COPY.AGREEMENT_REFERENCE}>{allotment.agreement.reference}</Row>
-      <Row label={COPY.AGREEMENT_ON}>{allotment.agreement.agreedOn}</Row>
+      <Row label={COPY.AGREEMENT_ON}>{formatDate(allotment.agreement.agreedOn)}</Row>
       <Row label={COPY.TERMS}>{allotment.agreement.terms}</Row>
-      <Row label="Agreement recorded">
-        {allotment.agreement.recordedBy} · {formatDateTime(allotment.agreement.recordedAt)}
-      </Row>
-      <Row label="Company contribution record">{allotment.contribution.uuid}</Row>
-      <Row label={COPY.RECEIVED_AMOUNT}>AUD {allotment.contribution.amount}</Row>
-      <Row label={COPY.RECEIVED_ON}>{allotment.contribution.receivedOn}</Row>
-      <Row label="Receipt attested">
-        {allotment.contribution.recordedBy} · {formatDateTime(allotment.contribution.recordedAt)}
-      </Row>
-      <Row label={COPY.COMPANY_EVENT_ON}>{allotment.companyEventOn ?? 'Not recorded'}</Row>
-      {allotment.effectiveOn && allotment.effectiveOn !== allotment.companyEventOn && (
-        <Row label="Retained ledger effective date">{allotment.effectiveOn}</Row>
+      <Row label="Agreement recorded">{formatDateTime(allotment.agreement.recordedAt)}</Row>
+      <Row label={COPY.RECEIVED_AMOUNT}>{formatMoney(allotment.contribution.amount, allotment.currency)}</Row>
+      <Row label={COPY.RECEIVED_ON}>{formatDate(allotment.contribution.receivedOn)}</Row>
+      <Row label="Receipt attested">{formatDateTime(allotment.contribution.recordedAt)}</Row>
+      <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(allotment.companyEventOn, 'Not recorded')}</Row>
+      {!!allotment.effectiveOn && allotment.effectiveOn !== allotment.companyEventOn && (
+        <Row label="Ledger date">{formatDate(allotment.effectiveOn)}</Row>
       )}
       <Row label={COPY.DIRECTOR}>{allotment.approvingDirector}</Row>
     </Rows>
@@ -84,42 +82,64 @@ export function AllotmentRecord({
     <View style={visible ? styles.entry : undefined}>
       {visible && (
         <>
-          <Text style={styles.heading}>
-            {COPY.STAGES[allotment.stage] ?? allotment.stage} · {allotment.name}
-          </Text>
-          <Text style={styles.text}>
-            {formatShareCount(allotment.shares)} shares · AUD {allotment.consideration}
-          </Text>
-          <Text style={styles.muted}>
-            {allotment.registerEntry
-              ? 'Shares recorded in the register.'
-              : allotment.stage === 'approved'
-                ? 'Approved. Record the issue to create the holding.'
-                : allotment.stage === 'rejected'
-                  ? 'Refused. The retained agreement and receipt remain available.'
-                  : 'Prepared. Company approval is required before the issue.'}
-          </Text>
+          <IssueSummary
+            name={allotment.name}
+            kind="Investor issue"
+            shares={allotment.shares}
+            amount={formatMoney(allotment.consideration, allotment.currency)}
+            companyEventOn={allotment.companyEventOn}
+            status={
+              <>
+                <Status tone={ISSUE_TONES[allotment.stage] ?? 'waiting'}>
+                  {allotment.stage === 'applied'
+                    ? 'Approved'
+                    : allotment.stage === 'approved'
+                      ? 'Ready to complete'
+                      : (COPY.STAGES[allotment.stage] ?? allotment.stage)}
+                </Status>
+                <Text style={styles.muted}>{allotment.stage === 'applied' ? 'Shares issued' : 'No shares issued'}</Text>
+              </>
+            }
+          />
           <Disclosure
             open={details}
             onToggle={() => setDetails((value) => !value)}
-            accessibilityLabel={`Allotment records for ${allotment.name}`}
-            summary={<Text style={styles.muted}>Records and documents</Text>}
+            accessibilityLabel={`Details and documents for ${allotment.name}`}
+            summary={<Text style={styles.muted}>Details and documents</Text>}
           >
-            <Text style={styles.muted}>{COPY.RECEIPT_NOTE}</Text>
-            <AllotmentRows allotment={allotment} />
+            <Text style={styles.muted}>
+              {allotment.stage === 'applied'
+                ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
+                : allotment.stage === 'approved'
+                  ? 'Approval is on file; the share issue has not been recorded.'
+                  : allotment.stage === 'rejected'
+                    ? 'No shares were issued by this rejected allotment. The agreement and company receipt remain recorded.'
+                    : 'Ready for approval. No shares issued.'}
+            </Text>
             <Rows>
-              <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
-              <Row label={COPY.REASON}>{allotment.reason}</Row>
+              <Row label="Stage">{COPY.STAGES[allotment.stage] ?? allotment.stage}</Row>
               <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>
               <Row label="Prepared on">{formatDateTime(allotment.createdAt)}</Row>
-              {allotment.decisions.map((decision) => (
-                <Row key={decision.uuid} label={COPY.DECISIONS[decision.kind]}>
-                  {[decision.decidedByName, formatDateTime(decision.decidedAt)].filter(Boolean).join(' · ')}
-                </Row>
-              ))}
-              {!!allotment.rejectionReason && <Row label="Rejection reason">{allotment.rejectionReason}</Row>}
-              {!!allotment.registerEntry && <Row label="Register entry">{allotment.registerEntry}</Row>}
+              <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
+              <Row label={COPY.REASON}>{allotment.reason}</Row>
+              {decisionRows(allotment, TRAIL_LABELS)}
+              {!!allotment.registerEntry && <Row label="Register entry">{shortReference(allotment.registerEntry)}</Row>}
+              <Row label="Allotment record">{shortReference(allotment.uuid)}</Row>
+              <Row label="Member reference">{shortReference(allotment.member)}</Row>
+              <Row label="External agreement record">{shortReference(allotment.agreement.uuid)}</Row>
+              <Row label="Company contribution record">{shortReference(allotment.contribution.uuid)}</Row>
+              <Row label="Authority evidence SHA-256" mono>
+                {allotment.evidenceFingerprint}
+              </Row>
+              <Row label="Agreement evidence SHA-256" mono>
+                {allotment.agreement.evidenceFingerprint}
+              </Row>
+              <Row label="Receipt evidence SHA-256" mono>
+                {allotment.contribution.evidenceFingerprint}
+              </Row>
             </Rows>
+            <AllotmentRows allotment={allotment} />
+            <Text style={styles.muted}>{COPY.RECEIPT_NOTE}</Text>
             {documents.map((kind) => (
               <RegisterCopy
                 key={kind}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import {
+  DESTINATIONS,
   REGISTER_ALLOTMENT_COPY as COPY,
   hasCurrentRegisterReadAuthority,
   appointmentForRegisterStep,
@@ -15,7 +16,7 @@ import {
   transferMembersKey,
   registerHoldersKey,
 } from '../../hooks/useCompanyRegister';
-import { Action } from '../../components/Ledger';
+import { Action, LinkRow } from '../../components/Ledger';
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
@@ -23,18 +24,22 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useRegisterAppointments, useTransferMembers } from '../../hooks/useCompanyRegister';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
-export function ClassAllotments({
+export function useInvestorIssues({
   company,
   register,
   epoch,
   sourceReady,
   onHeldChange,
+  onSetUp,
+  onOpenClass,
 }: {
   company: string;
   register: TokenHoldersResponse;
   epoch: number;
   sourceReady: boolean;
   onHeldChange?: (key: string, held: boolean) => void;
+  onSetUp: () => void;
+  onOpenClass: () => void;
 }) {
   const client = useQueryClient();
   const styles = useCompanyStyles();
@@ -127,23 +132,51 @@ export function ClassAllotments({
       client.invalidateQueries({ queryKey: transferMembersKey(epoch, register.token.uuid) }),
     ]);
   };
-  return (
+  const draft = register.token.status === 'draft';
+  const setup = !supported && (
     <View style={styles.group}>
-      <Text style={styles.heading}>{COPY.TITLE}</Text>
-      <Text style={styles.muted}>{COPY.NOTE}</Text>
-      {appointments.isError && (
-        <>
+      {sourceReady && (
+        <Text style={styles.muted}>
+          {draft
+            ? 'Set up this share register before issuing shares.'
+            : 'Tokenised share issue controls remain on the Share class page.'}
+        </Text>
+      )}
+      {!!appointment && privateReady && (
+        <LinkRow
+          label={draft ? DESTINATIONS.companyRegisterImport.title : DESTINATIONS.companyClass.title}
+          onPress={draft ? onSetUp : onOpenClass}
+        />
+      )}
+    </View>
+  );
+  const status = (
+    <>
+      {appointments.isSuccess && !appointment && <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>}
+      {appointments.isError ? null : !appointments.isSuccess || appointments.isFetching ? (
+        <Text style={styles.muted}>Loading external allotments…</Text>
+      ) : !readable ? (
+        <Text style={styles.muted}>
+          A current company register appointment is required to read external allotments.
+        </Text>
+      ) : allotments.isPending || allotments.isFetching || !sourceReady ? (
+        <Text style={styles.muted}>Loading external allotments…</Text>
+      ) : allotments.isError ? (
+        <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.error}>
-            Your appointments could not be read. Retry before recording an allotment.
+            External allotments could not be loaded.
           </Text>
           <Action
-            label="Retry allotment appointments"
-            disabled={appointments.isFetching}
-            onPress={() => void appointments.refetch()}
+            label="Retry external allotments"
+            disabled={allotments.isFetching || appointments.isFetching}
+            onPress={() => void refresh().catch(() => {})}
           />
-        </>
-      )}
-      {appointments.isSuccess && !appointment && <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>}
+        </View>
+      ) : null}
+    </>
+  );
+  const prepare = (editing || (!!appointment && supported && privateReady)) && (
+    <>
       {(editing || appointment) && supported && privateReady && (
         <Action
           label={editing ? 'Close allotment form' : COPY.PREPARE}
@@ -193,44 +226,33 @@ export function ClassAllotments({
           }}
         />
       )}
-      {!readable ? (
-        <Text style={styles.muted}>
-          A current company register appointment is required to read external allotments.
-        </Text>
-      ) : allotments.isPending || allotments.isFetching || !sourceReady ? (
-        <Text style={styles.muted}>Loading external allotments…</Text>
-      ) : (
-        <>
-          {allotments.isError && (
-            <Text accessibilityRole="alert" style={styles.error}>
-              External allotments could not be read. A current company register appointment is required.
-            </Text>
-          )}
-          {privateReady && allotments.data?.length === 0 && <Text style={styles.muted}>{COPY.EMPTY}</Text>}
-        </>
-      )}
-      <Action
-        label={allotments.isError ? 'Retry allotments' : 'Refresh allotments'}
-        disabled={!sourceReady || allotments.isFetching || appointments.isFetching}
-        onPress={() => void refresh().catch(() => {})}
-      />
-      {allotments.data?.map((allotment) => (
-        <AllotmentRecord
-          key={allotment.uuid}
-          allotment={allotment}
-          epoch={epoch}
-          steps={steps ?? {}}
-          guard={financialGuard}
-          visible={privateReady}
-          onHeldChange={recordHeld}
-          newEffectGuard={(kind) => {
-            guard();
-            if (!writeReady.current || !appointmentForRegisterStep(latestAppointments.current, company, kind))
-              throw new Error('Refresh the register and your appointment before a new decision.');
-          }}
-          onSettled={() => refresh(true)}
-        />
-      ))}
-    </View>
+    </>
   );
+  const records = allotments.data?.map((allotment) => (
+    <AllotmentRecord
+      key={allotment.uuid}
+      allotment={allotment}
+      epoch={epoch}
+      steps={steps ?? {}}
+      guard={financialGuard}
+      visible={privateReady}
+      onHeldChange={recordHeld}
+      newEffectGuard={(kind) => {
+        guard();
+        if (!writeReady.current || !appointmentForRegisterStep(latestAppointments.current, company, kind))
+          throw new Error('Refresh the register and your appointment before a new decision.');
+      }}
+      onSettled={() => refresh(true)}
+    />
+  ));
+  return {
+    setup,
+    status,
+    records,
+    prepare,
+    empty: privateReady && allotments.data?.length === 0,
+    held,
+    refreshing: allotments.isFetching || appointments.isFetching,
+    refresh,
+  };
 }

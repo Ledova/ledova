@@ -324,6 +324,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
               onPrepareGrant={() =>
                 navigation.navigate('PrepareRegisterGrant', { tokenUuid: uuid, companyUuid: company.uuid })
               }
+              onOpenClass={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
               onPrepareTransfer={() =>
                 navigation.navigate('PrepareRegisterTransfer', { tokenUuid: uuid, companyUuid: company.uuid })
               }

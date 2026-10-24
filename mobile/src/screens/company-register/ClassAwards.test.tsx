@@ -641,22 +641,22 @@ it('recovers captured award, vesting and issue requests under read access and re
     view.getByRole('button', { name: `Select company ${APPOINTMENT.companyName}` }).props.accessibilityState.selected,
   ).toBe(true);
   expect(view.queryByRole('header', { name: OTHER_COMPANY.name })).toBeNull();
-  await view.findByText(`Prepared · ${AWARD_REQUEST.name}`);
+  await view.findByRole('header', { name: AWARD_REQUEST.name });
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
   expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   expect(view.queryByRole('button', { name: /^Approve the non-paid grant/ })).toBeNull();
   appointments = [APPOINTMENT];
   const datedGrant = grants[0];
   grants = [{ ...datedGrant, companyEventOn: null }];
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh grants' }));
-  await fireEvent.press(await view.findByRole('button', { name: `Issue records for ${AWARD_REQUEST.name}` }));
-  expect(view.getByText('Not recorded')).toBeTruthy();
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await fireEvent.press(await view.findByRole('button', { name: `Details and documents for ${AWARD_REQUEST.name}` }));
+  expect(view.getAllByText('Not recorded').length).toBeGreaterThan(0);
   expect(view.queryByRole('button', { name: /^Approve the non-paid grant/ })).toBeNull();
   expect(view.queryByRole('button', { name: /^Record issue the non-paid grant/ })).toBeNull();
   expect(view.getByRole('button', { name: /^Reject the non-paid grant/ })).toBeTruthy();
-  await fireEvent.press(view.getByRole('button', { name: `Issue records for ${AWARD_REQUEST.name}` }));
+  await fireEvent.press(view.getByRole('button', { name: `Details and documents for ${AWARD_REQUEST.name}` }));
   grants = [datedGrant];
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh grants' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
   for (const kind of ['approve', 'apply'] as const) {
     const decision = await view.findByRole('button', {
       name: new RegExp(`^${kind === 'apply' ? 'Record issue' : 'Approve'} the non-paid grant`),
@@ -665,8 +665,8 @@ it('recovers captured award, vesting and issue requests under read access and re
     await fireEvent.press(decision);
     const confirm = await view.findByRole('button', { name: 'Confirm' });
     await waitFor(() => expect(confirm).not.toBeDisabled());
-    expect(view.getByText('Company issue date')).toBeTruthy();
-    expect(view.getByText('2026-10-10')).toBeTruthy();
+    expect(view.getAllByText('Company issue date').length).toBeGreaterThan(1);
+    expect(view.getAllByText('10 October 2026').length).toBeGreaterThan(1);
     await fireEvent.press(confirm);
     await waitFor(() => expect(grants[0].decisions).toHaveLength(kind === 'approve' ? 1 : 2));
     if (kind === 'approve') {
@@ -677,12 +677,12 @@ it('recovers captured award, vesting and issue requests under read access and re
       const url = URLS.REGISTER_GRANT_DECIDE(grants[0].uuid);
       const original = submissions(url)[1];
       await view.findByRole('button', { name: /^Recover record issue receipt/ });
-      await fireEvent.press(view.getByRole('button', { name: 'Refresh grants' }));
-      await view.findByText(/grants could not be loaded/);
-      expect(view.queryByText(`Applied · ${AWARD_REQUEST.name}`)).toBeNull();
+      await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+      await view.findByText(/Non-paid issues could not be loaded/);
+      expect(view.queryByRole('header', { name: AWARD_REQUEST.name })).toBeNull();
       failedRead = null;
       appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
-      await fireEvent.press(view.getByRole('button', { name: 'Refresh grants' }));
+      await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
       await fireEvent.press(await view.findByRole('button', { name: /^Recover record issue receipt/ }));
       await waitFor(() => expect(view.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull());
       expect(submissions(url)).toEqual([submissions(url)[0], original, original]);

@@ -13,8 +13,7 @@ import { Action, Section } from '../../components/Ledger';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
-import { ClassGrants } from './ClassGrants';
-import { ClassAllotments } from './ClassAllotments';
+import { ClassIssues } from './ClassIssues';
 import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
@@ -35,6 +34,7 @@ export function ClassRecords({
   onPrepareImport,
   onPrepareGrant,
   onPrepareAwardGrant,
+  onOpenClass,
   sourceReady = true,
   onPrepareTransfer,
   onCorrect,
@@ -53,6 +53,7 @@ export function ClassRecords({
   onPrepareImport: (correctionOf?: string) => void;
   onPrepareGrant: () => void;
   onPrepareAwardGrant: (award: string) => void;
+  onOpenClass: () => void;
   sourceReady?: boolean;
   onPrepareTransfer: () => void;
   onCorrect: (entry: RegisterEntry) => void;
@@ -109,29 +110,22 @@ export function ClassRecords({
   );
   return (
     <>
-      <View style={shown('issue') ? undefined : HIDDEN}>
-        <Section title={register.token.name}>
-          {appointmentFailure}
-          <ClassAllotments
-            key={`allotments/${epoch}/${company}/${token}`}
-            company={company}
-            register={register}
-            epoch={epoch}
-            sourceReady={sourceReady}
-            onHeldChange={onHeldChange}
-          />
-          <ClassGrants
-            epoch={epoch}
-            company={company}
-            register={register}
-            steps={steps}
-            refreshHolders={refreshHolders}
-            refreshAppointments={appointments.refetch}
-            onPrepare={onPrepareGrant}
-            sourceReady={sourceReady}
-            onHeldChange={onHeldChange}
-          />
-        </Section>
+      <View style={shown('issue') ? styles.group : HIDDEN}>
+        {appointmentFailure}
+        <ClassIssues
+          key={`issues/${epoch}/${company}/${token}`}
+          epoch={epoch}
+          company={company}
+          register={register}
+          steps={steps}
+          refreshHolders={refreshHolders}
+          refreshAppointments={appointments.refetch}
+          sourceReady={sourceReady}
+          onHeldChange={onHeldChange}
+          onPrepareGrant={onPrepareGrant}
+          onSetUp={() => onPrepareImport()}
+          onOpenClass={onOpenClass}
+        />
       </View>
       <View style={shown('transfer') ? undefined : HIDDEN}>
         <Section title={register.token.name}>
