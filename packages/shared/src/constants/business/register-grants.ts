@@ -34,10 +34,8 @@ export const REGISTER_GRANT_UNMET_COPY: Record<string, string> = {
 };
 
 export const REGISTER_GRANT_COPY = {
-  TITLE: 'Non-paid grants',
   PREPARE: 'Prepare a non-paid grant',
   SUBMIT: 'Prepare grant',
-  EMPTY: 'No non-paid grant has been prepared for this share class.',
   NOTE: 'Record a non-paid issue to a walletless member of an imported register for a draft share class, with the company’s terms and authority.',
   READ_ONLY_NOTE: 'Preparing, approving and applying a grant needs current company administration or that step.',
   RESIDENTIAL_ADDRESS: 'Residential address',

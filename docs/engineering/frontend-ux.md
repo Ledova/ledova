@@ -34,7 +34,9 @@ invitation reviews and wide tables take the standard workspace width. Inline pre
 and result states retain their collection's frame. Tables scroll within their card on small screens.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
-record-management details, with awards separate from issued shares. Section spacing is scoped to
+record-management details, with awards separate from issued shares. The member overview's shares and
+awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
+on smaller screens without fixed heights. Section spacing is scoped to
 the frame; sign-up keeps its own presentation.
 
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
