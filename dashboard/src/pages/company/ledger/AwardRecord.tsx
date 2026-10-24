@@ -293,48 +293,44 @@ export function AwardRecord({
               <Row label="Recorded by">{award.preparedByName || 'Name not recorded'}</Row>
             </Rows>
           </Disclosure>
-          <FormActions>
-            {!formHeld && !adjusting && !editing && (
-              <PageLink
-                to={shareholderPath(award.member, award.company)}
-                label="Recipient details"
-                context={award.recipientName}
-              />
-            )}
-            {!editing && appointment && BigInt(award.unvestedRemainingShares) > 0n && (
-              <PageAction
-                label="Record vesting"
-                disabled={blocked || !eventReady || formHeld || !!adjusting}
-                onClick={() => {
-                  setFormAppointment(appointment);
-                  setEditing(true);
-                }}
-              />
-            )}
-            {!adjusting && appointment && BigInt(award.remainingUnissuedShares) > 0n && (
-              <PageAction
-                label={COPY.END}
-                disabled={blocked || !eventReady || formHeld || editing}
-                onClick={() => {
-                  recordGuard();
-                  setAdjusting({ appointment });
-                }}
-              />
-            )}
-            {appointment &&
-              !blocked &&
-              eventReady &&
-              !formHeld &&
-              !adjusting &&
-              !editing &&
-              BigInt(award.availableShares) > 0n && (
+          {!editing && !adjusting && (
+            <FormActions>
+              {!formHeld && (
+                <PageLink
+                  to={shareholderPath(award.member, award.company)}
+                  label="Recipient details"
+                  context={award.recipientName}
+                />
+              )}
+              {appointment && BigInt(award.unvestedRemainingShares) > 0n && (
+                <PageAction
+                  label="Record vesting"
+                  disabled={blocked || !eventReady || formHeld}
+                  onClick={() => {
+                    setFormAppointment(appointment);
+                    setEditing(true);
+                  }}
+                />
+              )}
+              {appointment && BigInt(award.remainingUnissuedShares) > 0n && (
+                <PageAction
+                  label={COPY.END}
+                  disabled={blocked || !eventReady || formHeld}
+                  onClick={() => {
+                    recordGuard();
+                    setAdjusting({ appointment });
+                  }}
+                />
+              )}
+              {appointment && !blocked && eventReady && !formHeld && BigInt(award.availableShares) > 0n && (
                 <PageLink
                   label="Issue vested shares"
                   to={`${DESTINATIONS.companyRegister.path}#issue`}
                   state={{ registerCompany: award.company, registerToken: award.token, issueAward: award.uuid }}
                 />
               )}
-          </FormActions>
+            </FormActions>
+          )}
         </>
       )}
       {adjusting && (

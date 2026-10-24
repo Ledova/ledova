@@ -203,11 +203,11 @@ it('retains original award, vesting and linked issue preparations through interr
         ['Schedule', AWARD_REQUEST.schedule],
       ])
         fireEvent.change(await screen.findByLabelText(label), { target: { value } });
-    } else fireEvent.change(await screen.findByLabelText(COPY.VESTING_SHARES), { target: { value: '100' } });
-    fireEvent.change(screen.getByLabelText(kind === 'award' ? 'Document' : COPY.VESTING_DOCUMENT), {
+    } else fireEvent.change(await screen.findByLabelText('Shares in this event'), { target: { value: '100' } });
+    fireEvent.change(screen.getByLabelText('Document'), {
       target: { files: [FILE] },
     });
-    const fileLabel = kind === 'award' ? 'Document' : COPY.VESTING_DOCUMENT;
+    const fileLabel = 'Document';
     const fileInput = screen.getByLabelText(fileLabel) as HTMLInputElement;
     await waitFor(() => expect(client.isFetching()).toBe(0));
     fileInput.focus();
@@ -223,7 +223,7 @@ it('retains original award, vesting and linked issue preparations through interr
     expect(document.activeElement).toBe(fileInput);
     expect(fileInput.files?.[0]).toBe(FILE);
     expect(within(fileInput.parentElement!).getByText(FILE.name)).toBeTruthy();
-    const action = kind === 'award' ? COPY.SUBMIT : COPY.VEST;
+    const action = kind === 'award' ? COPY.SUBMIT : 'Record vesting';
     const close = kind === 'award' ? 'Cancel (award preparation)' : `Cancel (vesting for ${AWARD_REQUEST.name})`;
     const heldClose = kind === 'award' ? close : 'Cancel (vesting recovery)';
     const url = kind === 'award' ? URLS.REGISTER_AWARDS : URLS.REGISTER_AWARD_VESTINGS;
@@ -918,9 +918,9 @@ it('refreshes visible awards without replacing drafts or replaying held requests
   const open = await screen.findByRole('button', { name: 'Record vesting' });
   await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(open);
-  fireEvent.change(screen.getByLabelText(COPY.VESTING_SHARES), { target: { value: '50' } });
-  fireEvent.change(screen.getByLabelText(COPY.VESTING_DOCUMENT), { target: { files: [FILE] } });
-  const vestingDocument = screen.getByLabelText(COPY.VESTING_DOCUMENT) as HTMLInputElement;
+  fireEvent.change(screen.getByLabelText('Shares in this event'), { target: { value: '50' } });
+  fireEvent.change(screen.getByLabelText('Document'), { target: { files: [FILE] } });
+  const vestingDocument = screen.getByLabelText('Document') as HTMLInputElement;
   await waitFor(() => expect(client.isFetching()).toBe(0));
   vestingDocument.focus();
   const beforeDraftRead = api.get.mock.calls.length;
@@ -931,11 +931,11 @@ it('refreshes visible awards without replacing drafts or replaying held requests
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
   expect(api.get.mock.calls).toHaveLength(beforeDraftRead);
   expect(api.post.mock.calls).toHaveLength(beforeDraftWrites);
-  expect(screen.getByLabelText(COPY.VESTING_DOCUMENT)).toBe(vestingDocument);
+  expect(screen.getByLabelText('Document')).toBe(vestingDocument);
   expect(document.activeElement).toBe(vestingDocument);
   expect(vestingDocument.files?.[0]).toBe(FILE);
   expect(within(vestingDocument.parentElement!).getByText(FILE.name)).toBeTruthy();
-  expect((screen.getByLabelText(COPY.VESTING_SHARES) as HTMLInputElement).value).toBe('50');
+  expect((screen.getByLabelText('Shares in this event') as HTMLInputElement).value).toBe('50');
   expect(submissions(URLS.REGISTER_AWARD_VESTINGS)).toHaveLength(0);
   hidden.mockReturnValue(true);
   online.mockReturnValue(false);
@@ -954,7 +954,7 @@ it('refreshes visible awards without replacing drafts or replaying held requests
   expect(api.get.mock.calls).toHaveLength(beforeHiddenRead);
   view.rerender(awardView(held));
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect((screen.getByLabelText(COPY.VESTING_SHARES) as HTMLInputElement).value).toBe('50');
+  expect((screen.getByLabelText('Shares in this event') as HTMLInputElement).value).toBe('50');
   const resumedSchedule = 'The company updated the schedule while this vesting draft was open';
   awards = [{ ...awards[0], schedule: resumedSchedule }];
   fireEvent.click(screen.getByRole('button', { name: `Cancel (vesting for ${AWARD_REQUEST.name})` }));
@@ -965,8 +965,8 @@ it('refreshes visible awards without replacing drafts or replaying held requests
   );
   await waitFor(() => expect(client.isFetching()).toBe(0));
   fireEvent.click(screen.getByRole('button', { name: 'Record vesting' }));
-  fireEvent.change(screen.getByLabelText(COPY.VESTING_SHARES), { target: { value: '50' } });
-  fireEvent.change(screen.getByLabelText(COPY.VESTING_DOCUMENT), { target: { files: [FILE] } });
+  fireEvent.change(screen.getByLabelText('Shares in this event'), { target: { value: '50' } });
+  fireEvent.change(screen.getByLabelText('Document'), { target: { files: [FILE] } });
   const post = api.post.getMockImplementation()!;
   api.post.mockImplementation(async (url, body) => {
     const response = await post(url, body);
@@ -976,7 +976,7 @@ it('refreshes visible awards without replacing drafts or replaying held requests
     }
     return response;
   });
-  fireEvent.click(screen.getByRole('button', { name: COPY.VEST }));
+  fireEvent.click(screen.getByRole('button', { name: 'Record vesting' }));
   await screen.findByRole('alert');
   const original = submissions(URLS.REGISTER_AWARD_VESTINGS)[0];
   expect(held).toHaveBeenLastCalledWith(REGISTER.token.uuid, true);
@@ -1012,7 +1012,7 @@ it('refreshes visible awards without replacing drafts or replaying held requests
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true }));
   await waitFor(() => expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull());
   expect(screen.queryByText(AWARD_REQUEST.residentialAddress!)).toBeNull();
-  expect(screen.queryByLabelText(COPY.VESTING_SHARES)).toBeNull();
+  expect(screen.queryByLabelText('Shares in this event')).toBeNull();
   expect(screen.queryByRole('button', { name: /^Download agreement/ })).toBeNull();
   expect(screen.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
   expect(document.body.textContent).not.toContain(AWARD_REQUEST.name!);
@@ -1022,9 +1022,11 @@ it('refreshes visible awards without replacing drafts or replaying held requests
   appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
   await client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) });
   await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
-  const recover = await screen.findByRole('button', { name: COPY.VEST });
+  const recover = await screen.findByRole('button', { name: 'Record vesting' });
   await waitFor(() => expect((recover as HTMLButtonElement).disabled).toBe(false));
-  expect((screen.getByLabelText(COPY.VESTING_SHARES).closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true);
+  expect((screen.getByLabelText('Shares in this event').closest('fieldset') as HTMLFieldSetElement).disabled).toBe(
+    true,
+  );
   fireEvent.click(recover);
   await waitFor(() =>
     expect(screen.queryByRole('button', { name: `Cancel (vesting for ${AWARD_REQUEST.name})` })).toBeNull(),

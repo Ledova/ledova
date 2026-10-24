@@ -53,14 +53,12 @@ export function AwardVestingForm({
       }}
     >
       <ErrorSummary {...checks.summary} />
-      <p className="text-sm text-text-muted">
-        Record the company-confirmed event for {award.recipientName}; this creates no issued shares.
-      </p>
       <fieldset
         disabled={busy || blocked || held || !canPrepare}
-        className="grid gap-4 sm:grid-cols-2 [&>p]:sm:col-span-2"
+        className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3"
       >
-        <Field {...checks.field('shares')} label={COPY.VESTING_SHARES}>
+        <legend className="pb-4 text-base font-medium">Record vesting</legend>
+        <Field {...checks.field('shares')} label="Shares in this event">
           <TextInput
             inputMode="numeric"
             maxLength={FIELD_LIMITS.REGISTER_SHARES}
@@ -68,11 +66,12 @@ export function AwardVestingForm({
             onChange={(event) => setShares(event.target.value.trim())}
           />
         </Field>
-        <Field {...checks.field('vestedOn')} label={COPY.VESTED_ON}>
+        <Field {...checks.field('vestedOn')} label="Vesting date">
           <TextInput type="date" max={today} value={vestedOn} onChange={(event) => setVestedOn(event.target.value)} />
         </Field>
-        <FileField {...checks.field('file')} label={COPY.VESTING_DOCUMENT} onFile={setFile} />
-        <p className="text-sm text-text-muted">{COPY.VESTING_NOTE}</p>
+        <div className="sm:col-span-2 lg:col-span-1">
+          <FileField {...checks.field('file')} label="Document" showUploadHint={false} onFile={setFile} />
+        </div>
       </fieldset>
       {error && (
         <p role="alert" className="text-sm text-error-light">
@@ -85,7 +84,7 @@ export function AwardVestingForm({
         <PageAction
           type="submit"
           primary
-          label={COPY.VEST}
+          label="Record vesting"
           busy={busy}
           busyLabel="Recording vesting…"
           disabled={blocked || (!held && !canPrepare)}
