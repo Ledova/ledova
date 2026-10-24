@@ -684,6 +684,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   await view.findByText('2 Register Lane');
   expect(view.getByRole('header', { name: 'Alex Member' })).toBeTruthy();
   expect(view.getByText('+9,007,199,254,740,992 shares')).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Change particulars' })).toBeNull();
   await view.findByText('No supporting documents attached.');
   expect(get).toHaveBeenCalledWith(
     URLS.REGISTER_MEMBER_DOCUMENTS,
