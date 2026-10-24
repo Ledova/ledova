@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CompanyRegisterScreen, type CompanyRegisterSection } from '../screens/company-register/CompanyRegisterScreen';
+import { CompanyShareholderScreen } from '../screens/company-register/CompanyShareholderScreen';
 import { PrepareRegisterCorrectionScreen } from '../screens/company-register/PrepareRegisterCorrectionScreen';
 import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
 import { PrepareRegisterLinkScreen } from '../screens/company-register/PrepareRegisterLinkScreen';
@@ -28,6 +29,7 @@ export type CompanyStackParamList = {
   CompanyTeam: undefined;
   CompanyEligibility: undefined;
   TokenDetail: { uuid: string; name?: string };
+  CompanyShareholder: { companyUuid: string; memberUuid: string };
   PrepareRegisterOpening: { tokenUuid: string; companyUuid: string };
   PrepareRegisterImport: { tokenUuid: string; companyUuid: string; correctionOf?: string };
   PrepareRegisterCorrection: { tokenUuid: string; companyUuid: string; entryUuid: string };
@@ -98,6 +100,11 @@ export function CompanyStackNavigator({
           headerBackVisible: true,
           headerRight: () => null,
         })}
+      />
+      <Stack.Screen
+        name="CompanyShareholder"
+        component={CompanyShareholderScreen}
+        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
       <Stack.Screen
         name="PrepareRegisterOpening"

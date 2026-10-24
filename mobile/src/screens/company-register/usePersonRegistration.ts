@@ -70,9 +70,7 @@ export function usePersonRegistration({
     sourceReady && appointments.isSuccess && hasCurrentRegisterReadAuthority(appointments.data, company);
   const readable = authorised && appointments.fetchStatus === 'idle';
   const query = useCompanyPeople(epoch, company, readable);
-  const mayPrepare =
-    sourceReady && appointments.isSuccess && !!appointmentForRegisterStep(appointments.data, company, 'prepare');
-  const canPrepare = settled && mayPrepare;
+  const canPrepare = settled && !!appointmentForRegisterStep(appointments.data, company, 'prepare');
   const peopleReady = readable && query.isSuccess && query.fetchStatus === 'idle';
   const problem = !name.trim()
     ? 'Give the person’s name.'
@@ -179,7 +177,6 @@ export function usePersonRegistration({
     authorised,
     appointments,
     peopleReady,
-    mayPrepare,
     canPrepare,
     editing,
     open,

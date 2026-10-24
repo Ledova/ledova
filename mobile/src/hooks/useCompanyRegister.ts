@@ -225,6 +225,23 @@ export function useCompanyRegister(
   };
 }
 
+export function useCompanyRegisters(epoch: number, company: string) {
+  const classes = useRegisterClasses(epoch);
+  const listed = (classes.data ?? []).filter((item) => item.companyUuid === company);
+  const tokens = listed.map(({ uuid }) => uuid);
+  const registers = useQuery({
+    queryKey: [...registerHoldersKey(epoch), company, tokens],
+    enabled: tokens.length > 0,
+    queryFn: ({ signal }) => Promise.all(tokens.map((uuid) => readRegister(epoch, uuid, signal))),
+  });
+  return {
+    classes,
+    company: listed.length ? { uuid: company, name: listed[0].companyName } : undefined,
+    tokens,
+    registers,
+  };
+}
+
 export function useClassRegister(epoch: number, token: string) {
   return useQuery({
     queryKey: registerClassKey(epoch, token),
@@ -480,6 +497,33 @@ export function useRegisterEntries(epoch: number, token: string) {
     listed: listed.sort((left, right) => right.sequence - left.sequence),
     ...pages,
   };
+}
+
+export function useMemberEntries(epoch: number, tokens: string[], member: string) {
+  return useQuery({
+    queryKey: [...entriesKey(epoch), 'member', member, ...tokens],
+    enabled: tokens.length > 0,
+    queryFn: async ({ signal }) => {
+      const classes = await Promise.all(
+        tokens.map(async (token) => {
+          const rows = distinct(
+            await readEveryPage((page) => readEntries(epoch, token, { member, page }, signal)),
+            ({ uuid }) => uuid,
+          );
+          if (rows.some((row) => !row.changes.some((change) => change.member === member)))
+            throw new Error('The register answered with entries for another member.');
+          return rows.map((entry) => ({ token, entry }));
+        }),
+      );
+      return classes
+        .flat()
+        .sort(
+          (left, right) =>
+            right.entry.effectiveOn.localeCompare(left.entry.effectiveOn) ||
+            Date.parse(right.entry.recordedAt) - Date.parse(left.entry.recordedAt),
+        );
+    },
+  });
 }
 
 export function useRegisterEntry(epoch: number, token: string, uuid: string) {

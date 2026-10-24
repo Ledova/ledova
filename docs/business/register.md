@@ -352,8 +352,7 @@ and ask for changes separately ([member profile](participants.md#member-profile)
 [member requests](member-records.md#member-requests)).
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
-   Recipient details on their award, and choose Change particulars. On mobile, choose **Change
-   particulars** beside the person on Shareholders.
+   Recipient details on their award, and choose Change particulars.
 2. Upload one supporting document, such as a deed poll or the member's notice of a new address, and
    give the new name and residential address, the "as at" date the company's register records (today
    in UTC or earlier) and a reason.
@@ -620,9 +619,8 @@ certificate requests ([member records](member-records.md)). While register work 
 Details is unavailable, so the work and its recovery stay on the page.
 
 Mobile's Shareholders view lists the same current shareholders, with the search and class filter,
-25 more at a time, then People without shares and Former shareholders. The shareholder's page is
-not on mobile yet, so each current shareholder offers **Change particulars** instead of Details.
-**Add person** works as on the web.
+25 more at a time, then People without shares and Former shareholders. Details and **Add person**
+work as on the web.
 
 The Employee share scheme view, ESS in the sidebar, holds each class's
 [awards](issuing-shares.md#employee-awards-and-vesting),
@@ -661,6 +659,10 @@ reached from Recipient details on their award. It shows:
 Details show only while the account, the classes and the holdings read are current; a refresh
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger.
+
+The mobile app shows the same page, without Documents or the Transfer shares and Issue shares to
+them links yet. Its holdings also need a current company register appointment, and its request and
+invitation links open Company, where mobile keeps member access.
 
 ### Choosing a person
 
