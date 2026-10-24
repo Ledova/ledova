@@ -152,8 +152,8 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   let refused = false;
   let detailRefused = false;
   let includeOther = false;
-  let record = MEMBER_RECORD;
-  const otherRecord = {
+  let record: typeof MEMBER_RECORD = { ...MEMBER_RECORD, classes: [] };
+  const otherRecordWithShares = {
     ...MEMBER_RECORD,
     uuid: 'abababab-abab-4bab-8bab-abababababab',
     member: 'babababa-baba-4aba-8aba-babababababa',
@@ -161,6 +161,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     classes: [{ ...MEMBER_RECORD.classes[0], uuid: 'dededede-dede-4ede-8ede-dededededede', shares: '25' }],
     awards: [],
   };
+  let otherRecord = otherRecordWithShares;
   const focusRead = async () => {
     const previous = api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length;
     await act(async () => {
@@ -192,7 +193,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   const view = render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={['/home#documents']}>
           <PageTitle.Provider value="My shares">
             <Link to="/home#documents">Test Documents navigation</Link>
             <Link to="/home">Test Dashboard navigation</Link>
@@ -202,6 +203,12 @@ it('updates own shares and awards automatically, preserves drafts and selected h
       </ApiClientProvider>
     </QueryClientProvider>,
   );
+  await screen.findByText('No share changes yet.');
+  record = MEMBER_RECORD;
+  await focusRead();
+  await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
+  expect(screen.queryByRole('button', { name: 'Ordinary · ORD' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   expect(await screen.findByText('10 issued shares')).toBeTruthy();
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
@@ -317,16 +324,16 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   );
   expect(api.get.mock.calls.some(([url]) => url === URLS.HOLDERS(MEMBER_RECORD.classes[0].uuid))).toBe(false);
   fireEvent.click(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
-  await screen.findByRole('button', { name: 'Request certificate for entry 1' });
+  await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
   await act(async () => {
     await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
   });
-  expect(await screen.findByRole('button', { name: 'Request certificate for entry 1' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   expect(await screen.findByRole('heading', { name: 'Documents', level: 1 })).toBeTruthy();
   expect(screen.queryByText('10 issued shares')).toBeNull();
   expect(screen.queryByRole('img')).toBeNull();
-  expect(screen.getByRole('button', { name: 'Request certificate for entry 1' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await screen.findByText('10 issued shares');
   expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
@@ -341,7 +348,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   await screen.findByText('Your member records could not be loaded.');
   await waitFor(() => expect(screen.queryByText('10 issued shares')).toBeNull());
   expect(screen.queryByRole('img')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
   expect(screen.getByText('Your member records could not be loaded.')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Get access to your shares' })).toBeNull();
   expect(screen.queryByText('No issued shares yet.')).toBeNull();
@@ -352,14 +359,23 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   await screen.findByText('10 issued shares');
   expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
   includeOther = true;
+  otherRecord = { ...otherRecordWithShares, classes: [] };
   await focusRead();
   expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
+  await choose('Company', otherRecord.company.name);
+  await screen.findByText('No share changes yet.');
+  await choose('Company', MEMBER_RECORD.company.name);
+  await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
+  fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
+  otherRecord = otherRecordWithShares;
+  await focusRead();
   detailRefused = true;
   await focusRead();
   await screen.findByText('Your member records could not be loaded.');
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByText('10 issued shares')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
   expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false);
   await choose('Company', otherRecord.company.name);
   await screen.findByText('25 issued shares');
