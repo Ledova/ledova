@@ -17,6 +17,7 @@ import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useGrantRecordDownload } from './useRegisterRecordDownload';
+import { IssueSummary } from './IssueSummary';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
 
@@ -79,25 +80,30 @@ export function GrantRecord({
     <RecordShell hidden={!visible} focusKey={focusKey}>
       {visible && (
         <>
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h4 className="text-base font-medium">{grant.name}</h4>
-              <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>
-                {grant.stage === 'applied' ? 'Shares issued' : (COPY.STAGES[grant.stage] ?? grant.stage)}
-              </Status>
-            </div>
-            <p className="text-sm text-text-muted">{shareCount(grant.shares)} · Non-paid share issue</p>
-          </div>
-          <p className="text-sm text-text-muted">
-            {grant.stage === 'applied'
-              ? 'These shares are issued ownership. An employee award and its vesting records remain separate.'
-              : grant.stage === 'approved'
-                ? 'Next: record the approved issue. Approval has not changed ownership.'
-                : grant.stage === 'rejected'
-                  ? 'This rejected instruction issued no shares.'
-                  : 'Ready for approval. No shares issued.'}
-          </p>
+          <IssueSummary
+            name={grant.name}
+            kind={grant.award ? 'Employee award' : 'Non-paid issue'}
+            shares={grant.shares}
+            companyEventOn={grant.companyEventOn}
+            status={
+              <>
+                <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>
+                  {grant.stage === 'applied' ? 'Shares issued' : (COPY.STAGES[grant.stage] ?? grant.stage)}
+                </Status>
+                {grant.stage !== 'applied' && <p className="text-text-muted">No shares issued</p>}
+              </>
+            }
+          />
           <Disclosure summary="Details and documents">
+            <p className="text-sm text-text-muted">
+              {grant.stage === 'applied'
+                ? 'These shares are issued ownership. An employee award and its vesting records remain separate.'
+                : grant.stage === 'approved'
+                  ? 'Next: record the approved issue. Approval has not changed ownership.'
+                  : grant.stage === 'rejected'
+                    ? 'This rejected instruction issued no shares.'
+                    : 'Ready for approval. No shares issued.'}
+            </p>
             <Rows>
               <RecordStage stage={grant.stage}>{COPY.STAGES[grant.stage] ?? grant.stage}</RecordStage>
               <Row label="Prepared by">{grant.preparedByName || 'Name not recorded'}</Row>

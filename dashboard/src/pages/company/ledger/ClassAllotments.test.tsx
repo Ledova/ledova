@@ -364,10 +364,9 @@ it('preserves original preparation and combined approval recovery through refres
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
   await allotments.findByRole('button', { name: /^Review and approve [(]allotment/ });
   expect(allotments.queryByRole('radio', { name: 'Investor issue' })).toBeNull();
-  expect(allotments.queryByRole('heading', { name: 'Non-paid issues' })).toBeNull();
-  await waitFor(() =>
-    expect(document.activeElement).toBe(allotments.getByText('Ready for approval. No shares issued.').closest('li')),
-  );
+  const preparedIssue = allotments.getByRole('heading', { name: preparedAllotment.name, level: 3 }).closest('li')!;
+  expect(within(preparedIssue.querySelector('dl')!).getByText('Investor issue')).toBeTruthy();
+  await waitFor(() => expect(document.activeElement).toBe(preparedIssue));
   await waitFor(() => expect(taskClass().disabled).toBe(false));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   slowRegister = false;

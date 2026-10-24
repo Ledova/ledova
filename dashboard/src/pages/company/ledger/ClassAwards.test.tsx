@@ -569,7 +569,9 @@ it('retains original award, vesting and linked issue preparations through interr
   retainedGrant = retainedReceipt;
   slowReads = true;
   fireEvent.click(recover);
-  await issues.findByText('Ready for approval. No shares issued.');
+  await issues.findByRole('heading', { name: AWARD_REQUEST.name!, level: 3 });
+  const awardIssueRecord = () => issues.getByRole('heading', { name: AWARD_REQUEST.name!, level: 3 }).closest('li')!;
+  expect(within(awardIssueRecord().querySelector('dl')!).getByText('No shares issued')).toBeTruthy();
   await waitFor(() => expect(issues.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull());
   slowReads = false;
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
@@ -581,9 +583,7 @@ it('retains original award, vesting and linked issue preparations through interr
   expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).value).toBe(APPOINTMENT.companyName);
   expect(screen.getByText('Non-paid issues from this award · 1')).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: /^10 shares, prepared/, hidden: true }));
-  await waitFor(() =>
-    expect(document.activeElement).toBe(issues.getByText('Ready for approval. No shares issued.').closest('li')),
-  );
+  await waitFor(() => expect(document.activeElement).toBe(awardIssueRecord()));
   expect(screen.queryByRole('button', { name: /^Record issue [(]grant/ })).toBeNull();
   for (const label of ['Approve', 'Record issue']) {
     fireEvent.click(
@@ -596,7 +596,7 @@ it('retains original award, vesting and linked issue preparations through interr
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(confirm);
     if (label === 'Approve') {
-      await screen.findByText('Next: record the approved issue. Approval has not changed ownership.');
+      await waitFor(() => expect(within(awardIssueRecord().querySelector('dl')!).getByText('Approved')).toBeTruthy());
       expect(effectCount).toBe(0);
       expect(awards[0].issuedShares).toBe('0');
     }
@@ -671,7 +671,11 @@ it('retains original award, vesting and linked issue preparations through interr
   visibility.mockReturnValue(false);
   fireEvent(document, new Event('visibilitychange'));
   await waitFor(() =>
-    expect(within(screen.getByText(GRANT.COMPANY_EVENT_ON).parentElement!).getByText('Not recorded')).toBeTruthy(),
+    expect(
+      within(
+        within(awardIssueRecord().querySelector('dl')!).getByText(GRANT.COMPANY_EVENT_ON).parentElement!,
+      ).getByText('Not recorded'),
+    ).toBeTruthy(),
   );
   await issues.findByText('External allotments could not be loaded.');
   await waitFor(() =>
