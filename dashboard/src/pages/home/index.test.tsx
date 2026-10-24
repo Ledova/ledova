@@ -339,7 +339,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Company-recorded particulars' }));
   await screen.findByText(MEMBER_RECORD.name);
-  expect(await screen.findByText('Company date Not recorded')).toBeTruthy();
+  expect(await screen.findByText('Issue · Company date not recorded')).toBeTruthy();
   expect(screen.getByText(/Ledger .*Issue.*Own change \+10/)).toBeTruthy();
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
@@ -364,7 +364,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(commands[0][1]).toEqual(commands[1][1]);
   expect(screen.getByText(MEMBER_RECORD.name)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Request certificate for entry 1' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' }));
   await waitFor(() => expect(release).toBeTypeOf('function'));
   refused = true;
   await act(async () => {
@@ -373,7 +373,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   await waitFor(() => expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull());
   expect(screen.queryByRole('img', { name: /Your issued shares by class/ })).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
   await act(async () => release!());
   expect(screen.queryAllByText(/Certificate requested/)).toHaveLength(0);
   expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS)).toHaveLength(1);

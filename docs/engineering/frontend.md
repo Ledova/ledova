@@ -536,14 +536,15 @@ holdings-moved refusal by its `opening_holdings_moved` code
 Ledova, never as a verification by Ledova.
 
 Every decision uses the preview-first `useRegisterDecision`, in a dialog, the web investor
-allotment's main-page review or mobile Issue shares' review in place of its list. It previews the exact decision, its unmet requirements in words and
-its register effect, takes a rejection reason
+allotment's main-page review or mobile Issue shares' review in place of its list. It previews the
+exact decision, its unmet requirements in words and its register effect, takes a rejection reason
 ([how a company decision works](../business/README.md#how-a-company-decision-works)), and confirms
 with a retry key reused only for the same preview while the step's appointment is still the one
 previewed. The investor's final Approve, on the web and mobile, sends one combined
-approval-and-issue command, never an approval followed by a client-side application request. On mobile the decision closes when a
-refresh withdraws its step. `useDiscrepancyAcknowledgement`
-takes the reason for
+approval-and-issue command, never an approval followed by a client-side application request. A
+review in place, on the web or in mobile Issue shares, stays open when a refresh withdraws its step,
+saying so with its confirmation disabled; mobile's other decision dialogs close.
+`useDiscrepancyAcknowledgement` takes the reason for
 [acknowledging a discrepancy](../business/register.md#acknowledging-a-discrepancy), keeps the
 appointment it opened with and holds confirmation if a refresh changes it. Form inputs are described
 with each procedure in [the register of members](../business/register.md).

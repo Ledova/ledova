@@ -362,7 +362,6 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   expect(rows[0].decisions).toHaveLength(2);
   expect(view.queryByRole('button', { name: /^Review and approve for external allotment/ })).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: `Details and documents for ${ALLOTMENT_REQUEST.name}` }));
-  expect(view.queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
   await view.findByText('entry-a');
   await fireEvent.press(view.getByRole('button', { name: /^Download receipt/ }));
   await waitFor(() => expect(releaseFile).toBeDefined());

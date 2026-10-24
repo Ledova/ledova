@@ -191,7 +191,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
         )}
         {preview && !current && !decision.recovery && (
           <Text accessibilityRole="alert" style={styles.error}>
-            Your appointment for this step changed. Cancel and start this decision again.
+            Your appointment for this step changed or could not be checked. Cancel and start this decision again.
           </Text>
         )}
         {decision.busy && !preview && <Text style={styles.muted}>Loading the preview…</Text>}

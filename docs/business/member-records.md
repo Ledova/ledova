@@ -135,8 +135,9 @@ A revoked association or a changed source record blocks a new change or its appl
 ### Certificate requests
 
 A member can request a certificate for an uncorrected issue or transfer that gave them shares
-(**Request certificate for entry** in their share history), and withdraw it (**Withdraw
-certificate request**) until the company [fulfils it](#fulfilling-a-members-certificate-request).
+(**Request certificate** in web Documents; **Request certificate for entry** in mobile share history),
+and withdraw it (**Withdraw certificate request**) until the company
+[fulfils it](#fulfilling-a-members-certificate-request).
 It reads **fulfilled** only once a real file exists, which the member downloads or shares
 (**Download unsigned certificate** on web, **Share unsigned certificate** on mobile) through their
 current access, checked against its record. Nothing is signed automatically and no legal

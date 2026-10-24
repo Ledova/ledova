@@ -118,7 +118,7 @@ export function useNonPaidIssues({
         kind,
       )
     )
-      throw new Error('Refresh the register and your appointment before a new decision.');
+      throw new Error('Current company authority is required for this issue.');
   };
   const refresh = async () => {
     await Promise.all([
@@ -159,7 +159,7 @@ export function useNonPaidIssues({
   const retry = async () => {
     await refreshAppointments();
     void refreshHolders();
-    if (reading) {
+    if (reading || formHeld) {
       void people.refetch();
       if (awardUuid) void award.refetch();
     }
@@ -182,6 +182,11 @@ export function useNonPaidIssues({
         </Text>
       ) : (
         !formVisible && <Text style={styles.muted}>Loading the non-paid issue form…</Text>
+      )}
+      {!formHeld && !(formAppointment && formVisible) && (
+        <View style={styles.actions}>
+          <Action label="Cancel" onPress={() => onClosed()} />
+        </View>
       )}
       {formAppointment && (
         <View style={formVisible ? undefined : HIDDEN}>

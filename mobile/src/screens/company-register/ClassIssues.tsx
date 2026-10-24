@@ -94,7 +94,7 @@ export function ClassIssues({
   const browsing = !preparing && !reviewing;
   return (
     <>
-      {browsing && investor.setup}
+      {investor.setup}
       <View style={preparing ? HIDDEN : undefined}>
         <Section title={reviewing ? 'Review share issue' : 'Share issues'}>
           {investor.status}
