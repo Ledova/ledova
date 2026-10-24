@@ -196,8 +196,7 @@ Ledova, and its holdings must match the stored register. On the web:
 
 1. On Ledger, choose **Add share class**; or choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
-   class not yet set up. Share classes are created only through register setup, in Ledger on the
-   web and Register on mobile.
+   class not yet set up. Share classes are created only through register setup, in Ledger.
 2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
    ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
    type. The company choices come from current personal administrator or preparer appointments,
@@ -232,10 +231,10 @@ Ledova, and its holdings must match the stored register. On the web:
    Confirm loads a fresh preview and records approval and application together; an appointee who may
    only review records the approval for another to apply.
 
-On mobile, setup starts on the Register tab: **Create share class** (or **Set up your share
-register** in Getting started) records the class's name, code and type, and **Bring records** under
-the class's Register mirror prepares its records for review and confirmation. Once a class exists,
-the Getting started step opens that class's register setup.
+On mobile, setup starts on the Ledger tab: **Create share class** (or **Set up your ledger** in
+Getting started) records the class's name, code and type, and **Bring records** under the class's
+Register mirror, in Corrections, prepares its records for review and confirmation. Once a class
+exists, the Getting started step opens that class in Corrections.
 
 The register API also accepts an empty opening with no current or former members for a genuinely
 unopened draft class without chain activity. It retains the same company confirmation and separate
@@ -602,8 +601,10 @@ another view to resume the same request. A failed read withholds the class cards
 shareholder list rather than implying holdings are zero.
 
 The focused views reuse the existing controllers, authority checks and original-request recovery.
-The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165);
-mobile refinements remain deferred under [#1201](https://github.com/Ledova/ledova/issues/1201).
+The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
+Mobile has the same Ledger navigation, task views and held-work lock under
+[#1201](https://github.com/Ledova/ledova/issues/1201); its records keep their earlier layout, and its
+History still offers each entry's correction.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage

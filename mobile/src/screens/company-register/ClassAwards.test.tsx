@@ -444,9 +444,9 @@ afterEach(async () => {
 it('recovers captured award, vesting and issue requests under read access and returns to the original company before separate approval and issue', async () => {
   const view = await render(<CompanyJourney />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: `Select company ${OTHER_COMPANY.companyName}` }));
-  await view.findByRole('button', { name: `${OTHER_COMPANY.name} register` });
+  await view.findByRole('header', { name: OTHER_COMPANY.name });
   await fireEvent.press(view.getByRole('button', { name: `Select company ${APPOINTMENT.companyName}` }));
-  await view.findByRole('button', { name: `${REGISTER.token.name} register` });
+  await view.findByRole('header', { name: REGISTER.token.name });
   for (const kind of ['award', 'vesting'] as const) {
     const open = await view.findByRole('button', { name: kind === 'award' ? COPY.PREPARE : 'Record vesting' });
     await waitFor(() => expect(open).not.toBeDisabled());
@@ -630,7 +630,7 @@ it('recovers captured award, vesting and issue requests under read access and re
       payload: {
         name: 'CompanyMain',
         params: {
-          section: 'awards',
+          section: 'issue',
           companyUuid: APPOINTMENT.company,
           tokenUuid: REGISTER.token.uuid,
         },
@@ -640,7 +640,7 @@ it('recovers captured award, vesting and issue requests under read access and re
   expect(
     view.getByRole('button', { name: `Select company ${APPOINTMENT.companyName}` }).props.accessibilityState.selected,
   ).toBe(true);
-  expect(view.queryByRole('button', { name: `${OTHER_COMPANY.name} register` })).toBeNull();
+  expect(view.queryByRole('header', { name: OTHER_COMPANY.name })).toBeNull();
   await view.findByText(`Prepared · ${AWARD_REQUEST.name}`);
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
   expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
@@ -694,6 +694,7 @@ it('recovers captured award, vesting and issue requests under read access and re
       expect.objectContaining({ status: 'success', data: [expect.objectContaining({ issuedShares: '100' })] }),
     ),
   );
+  await act(() => mockSetParams({ section: 'awards' }));
   await view.findByText(/100 awarded\s*·\s*100 vested\s*·\s*100 issued/);
   expect(awards[0].availableShares).toBe('0');
   expect(grants[0].registerEntry).toBe('entry-a');

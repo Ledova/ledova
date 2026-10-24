@@ -1,4 +1,4 @@
-import { REGISTER_IMPORT_COPY } from '@ledova/shared';
+import { DESTINATIONS, REGISTER_IMPORT_COPY } from '@ledova/shared';
 import { Rows, Section } from '../../components/Ledger';
 import { ActivationStep, SetupStep } from '../../components/SetupStep';
 
@@ -16,7 +16,7 @@ export function GettingStarted({
       <Rows>
         <ActivationStep done={activated} />
         <SetupStep
-          label={REGISTER_IMPORT_COPY.SETUP}
+          label={DESTINATIONS.companyRegisterSetup.title}
           note={REGISTER_IMPORT_COPY.SETUP_NOTE}
           done={registered}
           onPress={onSetUp}

@@ -267,9 +267,8 @@ clients share with their address, title and audience. The whole dashboard route 
 (`dashboard/src/routes/pages.tsx`), a map keyed by that table, so
 TypeScript refuses an entry without a page or a page without an entry. Each route, detail pages
 included, gets the entry's title through `PageTitle`. The web-only `pageTitle` mapping
-(`dashboard/src/utils/destinations.ts`) titles `home` Dashboard, `companyRegister` Ledger,
-`companyRegisterSetup` and `companyRegisterImport` Set up your ledger, and `companyRegisterOpening`
-Ledger opening; native keeps its existing titles. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
+(`dashboard/src/utils/destinations.ts`) titles `home` Dashboard; the other titles, Ledger and its
+tasks included, are the shared ones. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
 `companyRegisterImport` render the same page. Outside the table sit the
 [sign-up steps](#sign-up-routes) and `/company/dashboard` (`COMPANY_DASHBOARD_PATH` in
 `dashboard/src/utils/paths.ts`, routed in `dashboard/src/routes/AppRoutes.tsx` under `ProtectedRoute`
@@ -632,7 +631,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   person's own appointments (`useOwnAppointments`) give the status line and Getting started, which
   reads the register step from the selected company's opened registers. Web tasks render only while
   incomplete; the existing parent condition hides the card when both tasks are complete. Mobile's
-  Register tab gives the corresponding status line and checklist to an administrator of the company
+  Ledger tab gives the corresponding status line and checklist to an administrator of the company
   shown, retaining completed rows and judging the register step by that company's registers alone.
 - Personal dashboard: reads the person's own member projection. Its overview sums issued shares
   with `BigInt` and charts the member's own shares by class, without company-wide totals or ownership
@@ -702,7 +701,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   same links for its class. **Change particulars** and adding documents recheck current preparation
   authority, and attachment downloads require current register-read authority. While register work
   is held, Shareholders' Details links are disabled.
-- Register reads on both clients (Ledger on the web): the web reads the person's appointments through Company team's
+- Register reads on both clients: the web reads the person's appointments through Company team's
   account-bound cache; mobile reads them itself. Both reread them after a revocation on Company team
   or Representative authority, a refused decision, preview or acknowledgement, a waiting-wallets
   read refused as not found, a recorded decision other than an import's (which refreshes the

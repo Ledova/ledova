@@ -1,10 +1,10 @@
 import { createContext, useContext, type Dispatch, type SetStateAction } from 'react';
-import type { WebLedgerTask } from '@utils/destinations';
+import type { LedgerTask } from '@ledova/shared';
 
 export interface LedgerNavigationState {
   company?: string;
   token?: string;
-  task?: WebLedgerTask;
+  task?: LedgerTask;
   blocked: boolean;
 }
 

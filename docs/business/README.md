@@ -251,9 +251,9 @@ company** ([activation](companies.md#activation-and-the-registry-check)) and **S
 are complete, the whole card disappears. Register setup completes once the register of the company
 shown is opened, not when a class is merely created, and it does not wait for activation. Someone
 who can prepare the register but is
-not an administrator is pointed to Ledger instead. On mobile, the Register tab opens with the
-same line and shows Getting started to an administrator of the company shown, keeping **Set up your
-share register** as its setup label and judging completion by that company's register. Its existing
+not an administrator is pointed to Ledger instead. On mobile, the Ledger tab opens with the
+same line and shows Getting started to an administrator of the company shown, with the same **Set up
+your ledger** label, judging completion by that company's register. Its existing
 checklist still marks tasks To do or Done.
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
@@ -268,11 +268,12 @@ The personal Dashboard (My shares on mobile) shows the person's own register rec
 wallet needed and never company totals or other shareholders; personal Documents holds their
 certificates and certificate requests ([member records](member-records.md)).
 
-The mobile app has tabs for My shares, Register (for people who can read a company's register) and
-Wallets. Its menu holds the Company group (Register, Employee awards, Documents and Company), Your
+The mobile app has tabs for My shares, Ledger (for people who can read a company's register) and
+Wallets. Its menu holds the Company group (Ledger, whose caret shows Issue shares, Transfer shares,
+History and Corrections, then Shareholders, ESS, Documents and Company), Your
 shares (My shares), Company for company accounts without register access, Profile and Settings,
 then More with the Invest group, Offerings, Wallets, Notices and Activity, and Help & Support.
-Company accounts with register access start on Register; others start on My shares.
+Company accounts with register access start on Ledger; others start on My shares.
 
 Each page is described in the domain document for its process below;
 [pages](../engineering/frontend.md#pages) lists every page with its route, its audience and the

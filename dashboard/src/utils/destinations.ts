@@ -5,6 +5,7 @@ import {
   type Destination,
   type DestinationKey,
   type DestinationParent,
+  type LedgerTask,
 } from '@ledova/shared';
 
 export interface Place {
@@ -14,15 +15,9 @@ export interface Place {
 
 const WEB_TITLES: Partial<Record<DestinationKey, string>> = {
   home: 'Dashboard',
-  companyRegister: 'Ledger',
-  companyRegisterSetup: 'Set up your ledger',
-  companyRegisterImport: 'Set up your ledger',
-  companyRegisterOpening: 'Ledger opening',
 };
 
-export const WEB_LEDGER_TASKS = { ...DESTINATIONS.companyRegister.tasks, corrections: 'Corrections' } as const;
-
-export type WebLedgerTask = keyof typeof WEB_LEDGER_TASKS;
+const LEDGER_TASKS = DESTINATIONS.companyRegister.tasks;
 
 const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   ...DESTINATION_PARENTS,
@@ -35,8 +30,8 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
 function viewName(key: DestinationKey, view: string): string | undefined {
   const destination: Destination = DESTINATIONS[key];
   const views = destination.views;
-  if (key === 'companyRegister' && Object.prototype.hasOwnProperty.call(WEB_LEDGER_TASKS, view))
-    return WEB_LEDGER_TASKS[view as WebLedgerTask];
+  if (key === 'companyRegister' && Object.prototype.hasOwnProperty.call(LEDGER_TASKS, view))
+    return LEDGER_TASKS[view as LedgerTask];
   return views && Object.prototype.hasOwnProperty.call(views, view) ? views[view] : undefined;
 }
 

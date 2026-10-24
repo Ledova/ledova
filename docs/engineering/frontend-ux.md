@@ -224,18 +224,17 @@ The sidebar owns navigation between sections. A related group has one level of c
 opens the overview and a separate caret expands the children, without an extra Overview item.
 Ledger groups **Issue shares**, **Transfer shares**, **History** and **Corrections** this way, opens
 on a Ledger route and marks the current destination. Shareholders, ESS and Documents remain sibling items.
-The same group appears in the small-screen drawer. Page controls start or complete work for that
+The same group appears in the small-screen drawer and in the mobile app's drawer
+([mobile navigation](mobile.md#navigation)). Page controls start or complete work for that
 page or record: Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
 actions remain beside their records. Do not repeat section navigation in page headers.
 
-`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
-register views (Shareholders, Employee share scheme, Documents) and shared tasks, and Home's Documents
-view. `WEB_LEDGER_TASKS` in `dashboard/src/utils/destinations.ts` adds the web-only Corrections task.
-The web sidebar, page titles and parent links use `pageTitle`
-(`dashboard/src/utils/destinations.ts`), which overrides Home as Dashboard, Register as Ledger,
-setup and import as Set up your ledger, and the chain-opening page as Ledger opening; mobile keeps
-its existing names. The company dashboard is also Dashboard, so the company workspace
-lists Home as Your shares. The sidebar shows
+`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages for
+both clients, including Ledger, its views (Shareholders, Employee share scheme, Documents) and tasks
+(Issue shares, Transfer shares, History, Corrections), Set up your ledger, Ledger opening and Home's
+Documents view. The web sidebar, page titles and parent links use `pageTitle`
+(`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. The company
+dashboard is also Dashboard, so the company workspace lists Home as Your shares. The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each page below a sidebar destination its parent. `Page` puts one
 link back to it in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to
@@ -402,7 +401,7 @@ not automatically a shareholder or a Ledova user and remains a documentary field
 - **Wallet links** offer, for each waiting wallet, the holders of every class in the company
   (`registerLinkMemberLabels`), then "A member not on the current register" and "New member N" where
   they apply.
-- **Ledger opening** (Register opening on mobile) offers, for each unlinked holding, the members already linked in the class,
+- **Ledger opening** offers, for each unlinked holding, the members already linked in the class,
   by name or numbered (`openingMemberLabels`), and a "New member N" for each address.
 
 Wallet links and register opening show one-line labels.

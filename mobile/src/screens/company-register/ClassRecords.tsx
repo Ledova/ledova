@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Text, View } from 'react-native';
 import type { CompanyRegisterSection } from './CompanyRegisterScreen';
@@ -9,7 +9,7 @@ import {
   type RegisterEntry,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Action } from '../../components/Ledger';
+import { Action, Section } from '../../components/Ledger';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
@@ -25,6 +25,7 @@ import { assertSessionEpoch } from '../../services/sessionScope';
 import { registerAppointmentsKey, useRegisterAppointments } from '../../hooks/useCompanyRegister';
 
 const ON_CHAIN = ['deployed', 'paused'];
+const HIDDEN = { display: 'none' } as const;
 
 export function ClassRecords({
   epoch,
@@ -39,10 +40,12 @@ export function ClassRecords({
   onPrepareTransfer,
   onCorrect,
   onChangeParticulars,
-  section = 'register',
+  section,
+  selected,
   onHeldChange,
 }: {
-  section?: CompanyRegisterSection;
+  section: CompanyRegisterSection;
+  selected: boolean;
   onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
   company: string;
@@ -63,6 +66,15 @@ export function ClassRecords({
   useLayoutEffect(() => {
     currentSource.current = sourceReady;
   }, [sourceReady]);
+  const token = register.token.uuid;
+  const transferHeld = useCallback(
+    (key: string, held: boolean) => onHeldChange?.(`transfer/${token}/${key}`, held),
+    [onHeldChange, token],
+  );
+  const correctionHeld = useCallback(
+    (key: string, held: boolean) => onHeldChange?.(`corrections/${token}/${key}`, held),
+    [onHeldChange, token],
+  );
   const guard = () => {
     assertSessionEpoch(epoch);
     const state = client.getQueryState(registerAppointmentsKey(epoch));
@@ -84,127 +96,140 @@ export function ClassRecords({
     !appointments.isFetching &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
   const acknowledging = appointments.isSuccess ? appointmentForAcknowledgement(appointments.data, company) : undefined;
+  const shown = (part: CompanyRegisterSection) => section === part && (part === 'awards' || selected);
+  const appointmentFailure = appointments.isError && (
+    <View style={styles.group}>
+      <Text accessibilityRole="alert" style={styles.error}>
+        Your appointments could not be read, so register actions are hidden.
+      </Text>
+      <Action
+        label="Retry appointments"
+        accessibilityLabel={`Retry appointments for ${register.token.name}`}
+        disabled={appointments.isFetching}
+        onPress={() => void appointments.refetch()}
+      />
+    </View>
+  );
   return (
     <>
-      <View style={section === 'register' ? undefined : { display: 'none' }}>
-        {readReady && (
-          <ClassRegister register={register} onChangeParticulars={steps?.prepare ? onChangeParticulars : undefined} />
-        )}
-        {appointments.isError && (
-          <View style={styles.group}>
-            <Text accessibilityRole="alert" style={styles.error}>
-              Your appointments could not be read, so register actions are hidden.
-            </Text>
-            <Action
-              label="Retry appointments"
-              accessibilityLabel={`Retry appointments for ${register.token.name}`}
-              disabled={appointments.isFetching}
-              onPress={() => void appointments.refetch()}
-            />
-          </View>
-        )}
-        {ON_CHAIN.includes(register.token.status) && (
-          <ClassOpenings
+      <View style={shown('shareholders') ? undefined : HIDDEN}>
+        <Section title={register.token.name}>
+          {readReady && (
+            <ClassRegister register={register} onChangeParticulars={steps?.prepare ? onChangeParticulars : undefined} />
+          )}
+          {appointmentFailure}
+        </Section>
+      </View>
+      <View style={shown('issue') ? undefined : HIDDEN}>
+        <Section title={register.token.name}>
+          {appointmentFailure}
+          <ClassAllotments
+            key={`allotments/${epoch}/${company}/${token}`}
+            company={company}
+            register={register}
+            epoch={epoch}
+            sourceReady={sourceReady}
+            onHeldChange={onHeldChange}
+          />
+          <ClassGrants
             epoch={epoch}
             company={company}
             register={register}
             steps={steps}
             refreshHolders={refreshHolders}
             refreshAppointments={appointments.refetch}
-            onOpen={onOpen}
-            sourceReady={readReady}
-            guard={guard}
+            onPrepare={onPrepareGrant}
+            sourceReady={sourceReady}
             onHeldChange={onHeldChange}
           />
-        )}
-        <ClassImports
-          epoch={epoch}
-          company={company}
-          register={register}
-          steps={steps}
-          refreshHolders={refreshHolders}
-          refreshAppointments={appointments.refetch}
-          onPrepare={onPrepareImport}
-          sourceReady={readReady}
-          guard={guard}
-          onHeldChange={onHeldChange}
-        />
+        </Section>
       </View>
-      <View style={section === 'documents' ? undefined : { display: 'none' }}>
-        {sourceReady && (
-          <ClassEntries
+      <View style={shown('transfer') ? undefined : HIDDEN}>
+        <Section title={register.token.name}>
+          {appointmentFailure}
+          <ClassTransfers
             epoch={epoch}
             company={company}
             register={register}
             steps={steps}
-            onCorrect={onCorrect}
-            sourceReady={sourceReady && appointments.isSuccess && !appointments.isFetching}
+            refreshHolders={refreshHolders}
+            refreshAppointments={appointments.refetch}
+            onPrepare={onPrepareTransfer}
+            sourceReady={readReady}
+            guard={guard}
+            onHeldChange={transferHeld}
           />
-        )}
+        </Section>
       </View>
-      <View style={section === 'awards' ? undefined : { display: 'none' }}>
-        <ClassGrants
-          epoch={epoch}
-          company={company}
-          register={register}
-          steps={steps}
-          refreshHolders={refreshHolders}
-          refreshAppointments={appointments.refetch}
-          onPrepare={onPrepareGrant}
-          sourceReady={sourceReady}
-          onHeldChange={onHeldChange}
-        />
-        <ClassAwards
-          key={`awards/${epoch}/${company}/${register.token.uuid}`}
-          company={company}
-          register={register}
-          epoch={epoch}
-          sourceReady={sourceReady}
-          onPrepareGrant={onPrepareAwardGrant}
-          onHeldChange={onHeldChange}
-        />
+      <View style={shown('history') ? undefined : HIDDEN}>
+        <Section title={register.token.name}>
+          {appointmentFailure}
+          {sourceReady && <ClassEntries epoch={epoch} register={register} steps={steps} onCorrect={onCorrect} />}
+        </Section>
       </View>
-      <View style={section === 'register' ? undefined : { display: 'none' }}>
-        <ClassAllotments
-          key={`allotments/${epoch}/${company}/${register.token.uuid}`}
-          company={company}
-          register={register}
-          epoch={epoch}
-          sourceReady={sourceReady}
-          onHeldChange={onHeldChange}
-        />
-        <ClassCorrections
-          epoch={epoch}
-          company={company}
-          register={register}
-          steps={steps}
-          refreshHolders={refreshHolders}
-          refreshAppointments={appointments.refetch}
-          sourceReady={readReady}
-          guard={guard}
-          onHeldChange={onHeldChange}
-        />
-        <ClassTransfers
-          epoch={epoch}
-          company={company}
-          register={register}
-          steps={steps}
-          refreshHolders={refreshHolders}
-          refreshAppointments={appointments.refetch}
-          onPrepare={onPrepareTransfer}
-          sourceReady={readReady}
-          guard={guard}
-          onHeldChange={onHeldChange}
-        />
-        <ClassReconciliation
-          epoch={epoch}
-          register={register}
-          appointment={acknowledging?.uuid}
-          readOnly={appointments.isSuccess && !acknowledging}
-          refreshAppointments={appointments.refetch}
-          sourceReady={readReady}
-          guard={guard}
-        />
+      <View style={shown('corrections') ? undefined : HIDDEN}>
+        <Section title={register.token.name}>
+          {appointmentFailure}
+          {ON_CHAIN.includes(register.token.status) && (
+            <ClassOpenings
+              epoch={epoch}
+              company={company}
+              register={register}
+              steps={steps}
+              refreshHolders={refreshHolders}
+              refreshAppointments={appointments.refetch}
+              onOpen={onOpen}
+              sourceReady={readReady}
+              guard={guard}
+              onHeldChange={correctionHeld}
+            />
+          )}
+          <ClassImports
+            epoch={epoch}
+            company={company}
+            register={register}
+            steps={steps}
+            refreshHolders={refreshHolders}
+            refreshAppointments={appointments.refetch}
+            onPrepare={onPrepareImport}
+            sourceReady={readReady}
+            guard={guard}
+            onHeldChange={correctionHeld}
+          />
+          <ClassCorrections
+            epoch={epoch}
+            company={company}
+            register={register}
+            steps={steps}
+            refreshHolders={refreshHolders}
+            refreshAppointments={appointments.refetch}
+            sourceReady={readReady}
+            guard={guard}
+            onHeldChange={correctionHeld}
+          />
+          <ClassReconciliation
+            epoch={epoch}
+            register={register}
+            appointment={acknowledging?.uuid}
+            readOnly={appointments.isSuccess && !acknowledging}
+            refreshAppointments={appointments.refetch}
+            sourceReady={readReady}
+            guard={guard}
+          />
+        </Section>
+      </View>
+      <View style={shown('awards') ? undefined : HIDDEN}>
+        <Section title={register.token.name}>
+          <ClassAwards
+            key={`awards/${epoch}/${company}/${token}`}
+            company={company}
+            register={register}
+            epoch={epoch}
+            sourceReady={sourceReady}
+            onPrepareGrant={onPrepareAwardGrant}
+            onHeldChange={onHeldChange}
+          />
+        </Section>
       </View>
     </>
   );

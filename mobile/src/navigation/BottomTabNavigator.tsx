@@ -24,6 +24,7 @@ import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useRole } from '../hooks/useRole';
 import { useAppTheme } from '../contexts';
 import { useRegisterAccess } from '../hooks/useCompanyRegister';
+import { useLedgerNavigation } from './LedgerNavigation';
 
 export type BottomTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
@@ -33,7 +34,7 @@ export type BottomTabParamList = {
   Transactions: undefined;
   Wallets: NavigatorScreenParams<WalletsStackParamList>;
   Profile: undefined;
-  Company: NavigatorScreenParams<CompanyStackParamList>;
+  Company: NavigatorScreenParams<CompanyStackParamList> | undefined;
   Listing: undefined;
   InvestorEligibility: undefined;
   Publications: undefined;
@@ -54,6 +55,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
   const preferences = useUserPreferences();
   const access = useRegisterAccess(!preferences.isLoading && !preferences.isError && !!preferences.userAccount);
   const showTrading = isInvestor && isEnabled('trading_enabled');
+  const { state: ledger } = useLedgerNavigation();
 
   if (isLoadingRole || access.loading) {
     return null;
@@ -112,7 +114,12 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate('Company', { screen: 'CompanyMain', params: { section: 'register' }, pop: true });
+            navigation.navigate(
+              'Company',
+              ledger?.blocked
+                ? { screen: 'CompanyMain', merge: true, pop: true }
+                : { screen: 'CompanyMain', params: { section: 'ledger' }, pop: true },
+            );
           },
         })}
       >

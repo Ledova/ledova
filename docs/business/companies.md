@@ -59,7 +59,7 @@ Later documents do not alter the retained signup request. The company remains Dr
 activation passes the registry check: registration does not incorporate a company with ASIC,
 appoint a director, activate the company or issue shares. Until then, the **Getting started** list
 on the web company Dashboard links its personal administrators to unfinished activation and register
-setup tasks; completed tasks disappear. Mobile keeps its Register tab checklist
+setup tasks; completed tasks disappear. Mobile keeps its Ledger tab checklist
 ([the Dashboard](README.md#the-app-at-a-glance)).
 
 Resuming an unfinished signup:
@@ -274,7 +274,7 @@ for an Active company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
 2. Open Activation, shown only to personal administrators, from **Settings → Verify and activate
-   your company** or the same step in Getting started (the Dashboard on the web, the Register tab
+   your company** or the same step in Getting started (the Dashboard on the web, the Ledger tab
    on mobile). Refresh the company details and your appointment. A company account role or an
    owned draft does not substitute for an appointment; an appointed investor can use the same page.
 3. Choose **Review activation**, read the company and the exact declaration, tick **I accept this
@@ -362,7 +362,7 @@ Its Company administration section links to:
   ([the Published page](publications.md#the-published-page)).
 
 Activation is at the top of Settings, and share classes are listed and added only in
-[Ledger](register.md#bringing-in-existing-records) on the web (Register on mobile). Company documents
+[Ledger](register.md#bringing-in-existing-records). Company documents
 follow for administrators.
 
 Next: [participants and eligibility](participants.md) ·

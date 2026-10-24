@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 22 October 2026                          | Current; web destination named Ledger and revised workflows under #1165; mobile deferred under #1201            |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 24 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile following them under #1201                     |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
@@ -1441,6 +1441,14 @@ icon controls and their tooltip helper. **Edit** and **Remove** sit together bes
 summaries; **Remove** sits below full-width open entry fields. Buttons share typography and spacing,
 and the main footer keeps Cancel and the emphasised **Add shareholder** or **Save changes** action.
 This changes presentation, not whether history or documents are required.
+
+On 24 October 2026 the owner resumed mobile for the web pages that are finished, asking to "only
+update mobile screens that correspond to dashboard pages Codex has already completed and fixed" and
+to leave the others untouched ([#1201](https://github.com/Ledova/ledova/issues/1201)). Mobile now takes
+the shared names Ledger, Set up your ledger and Ledger opening, and its drawer mirrors the web
+sidebar: Ledger with Issue shares, Transfer shares, History and Corrections, then Shareholders, ESS
+and Documents. Member access, the member pages and the content of ESS stay unchanged on mobile while
+their web walkthrough continues.
 
 ## Paper and Dark themes
 

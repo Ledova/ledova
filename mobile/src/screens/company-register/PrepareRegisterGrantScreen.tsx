@@ -185,7 +185,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
   });
   useEffect(() => {
     if (completed && !busy && !held) {
-      const params = { section: 'awards', companyUuid, tokenUuid };
+      const params = { section: 'issue', companyUuid, tokenUuid };
       navigation.dispatch(StackActions.popTo('CompanyMain', params));
     }
   }, [completed, busy, held, navigation, companyUuid, tokenUuid]);
@@ -354,13 +354,13 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
   };
   if (register.isPending || members.isPending || appointments.isPending)
     return (
-      <Page title="Register">
+      <Page title="Prepare share issue">
         <Text style={styles.muted}>Loading the register and your appointments…</Text>
       </Page>
     );
   if (register.isError || members.isError || appointments.isError)
     return (
-      <Page title="Register">
+      <Page title="Prepare share issue">
         <Text accessibilityRole="alert" style={styles.error}>
           The register and your appointments could not be loaded.
         </Text>
@@ -376,13 +376,13 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
     );
   if (!steps?.prepare && !held)
     return (
-      <Page title="Register">
+      <Page title="Prepare share issue">
         <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>
       </Page>
     );
   if (!supported)
     return (
-      <Page title="Register">
+      <Page title="Prepare share issue">
         <Text style={styles.muted}>
           This grant requires an opened register for a draft share class without a deployed contract.
         </Text>
@@ -390,13 +390,13 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
     );
   if (awardUuid && (!readable || award.isPending))
     return (
-      <Page title="Register">
+      <Page title="Prepare share issue">
         <Text style={styles.muted}>Loading the award and your current company authority…</Text>
       </Page>
     );
   if (awardUuid && award.isError)
     return (
-      <Page title="Register">
+      <Page title="Prepare share issue">
         <Text accessibilityRole="alert" style={styles.error}>
           The award and retained recipient could not be read.
         </Text>
@@ -409,7 +409,7 @@ function PrepareRegisterGrant({ epoch }: { epoch: number }) {
       (!awardMember && (!fixed.newMember || BigInt(fixed.issuedShares) > 0n)))
   )
     return (
-      <Page title="Register">
+      <Page title="Prepare share issue">
         <Text style={styles.muted}>
           This award’s recipient needs current retained walletless particulars before a grant can be prepared.
         </Text>
