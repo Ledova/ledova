@@ -114,6 +114,11 @@ award editor is open.
 Inline vesting uses one named field group with the event quantity, date and document, short contextual
 labels and the same responsive grid. While an award editor is open, its footer owns the actions;
 hide unrelated record actions instead of leaving a disabled row above the form.
+Non-paid issue preparation groups **Issue details** and **Company authority** in the same responsive
+grid. Show an award recipient and available vested shares once; its retained agreement belongs
+under **Award record details**, with read-only validation targets that open on error. Ordinary non-paid terms stay
+editable fields. Keep the required fields and guards, without repeated descriptions or routine
+upload hints, and show recovery guidance only while the original preparation is held.
 Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under

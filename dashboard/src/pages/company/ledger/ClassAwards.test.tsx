@@ -520,7 +520,12 @@ it('retains original award, vesting and linked issue preparations through interr
     fireEvent.change(screen.getByLabelText(GRANT.AUTHORITY_DOCUMENT), { target: { files: [FILE] } });
   };
   expect(screen.queryByLabelText(GRANT.TERMS_DOCUMENT)).toBeNull();
-  expect(screen.getByText('The retained award agreement will be used for this issue.')).toBeTruthy();
+  const agreementDetails = issues.getByRole('button', { name: 'Award record details' });
+  expect(agreementDetails.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(agreementDetails);
+  expect((screen.getByLabelText(GRANT.TERMS_ON) as HTMLInputElement).value).toBe(awards[0].termsOn);
+  expect((screen.getByLabelText(GRANT.TERMS) as HTMLTextAreaElement).disabled).toBe(true);
+  fireEvent.click(agreementDetails);
   expect((screen.getByLabelText(GRANT.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('');
   fillGrant();
   const beforeDraftPoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
@@ -550,7 +555,7 @@ it('retains original award, vesting and linked issue preparations through interr
       newMember: false,
     }),
   );
-  expect((screen.getByLabelText(GRANT.SHARES).closest('fieldset') as HTMLFieldSetElement).disabled).toBe(true);
+  expect(screen.getByLabelText(GRANT.SHARES).matches(':disabled')).toBe(true);
   const retainedAward = awards[0];
   const retainedReceipt = retainedGrant!;
   awards = [{ ...retainedAward, agreementEvidence: 'changed-agreement', agreementFingerprint: 'd'.repeat(64) }];
