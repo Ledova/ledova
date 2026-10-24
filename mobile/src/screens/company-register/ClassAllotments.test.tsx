@@ -83,7 +83,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it('recovers the fully paid company allotment once, approves and issues it in one recovered decision and hides private sources after appointment loss', async () => {
+it('recovers the fully paid company allotment once, approves and issues it in one recovered decision, hides private sources after appointment loss, and approves a transfer the same way', async () => {
   mockSection = 'issue';
   resetFiles();
   let keys = 0;
@@ -436,7 +436,10 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   await returnToApp();
   await waitFor(() => expect(view.queryByText('entry-a')).toBeNull());
   expect(view.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
-  appointments = [APPOINTMENT];
+  appointments = [
+    { ...APPOINTMENT, capabilities: ['approve', 'read_register'] },
+    { ...APPOINTMENT, uuid: 'transfer-apply', capabilities: ['apply'] },
+  ];
   transfer = TRANSFER;
   mockSection = 'transfer';
   await view.rerender(
@@ -452,18 +455,20 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   });
   const transferDecisions = () =>
     post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFER_DECIDE(TRANSFER.uuid)).map(([, body]) => body);
-  await fireEvent.press(await view.findByRole('button', { name: /^Review and approve for non-paid transfer/ }));
+  const reviewTransfer = await view.findByRole('button', { name: /^Review and approve for non-paid transfer/ });
+  expect(view.queryByRole('button', { name: /^Transfer recorded for non-paid transfer/ })).toBeNull();
+  await fireEvent.press(reviewTransfer);
   const approveTransfer = await view.findByRole('button', { name: 'Approve' });
   await waitFor(() => expect(approveTransfer).not.toBeDisabled());
   expect(view.getByRole('header', { name: 'Review share transfer' })).toBeTruthy();
   expect(view.getByText('8,000 shares → 7,900 shares')).toBeTruthy();
-  expect(view.queryByRole('button', { name: /^Apply/ })).toBeNull();
   failedTransfers = true;
   await act(async () => {
     await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'transfers'] });
   });
   const retryTransfers = await view.findByRole('button', { name: 'Retry transfers' });
   expect(view.getByRole('header', { name: 'Review share transfer' })).toBeTruthy();
+  expect(view.queryByText('8,000 shares → 7,900 shares')).toBeNull();
   failedTransfers = false;
   await fireEvent.press(retryTransfers);
   await waitFor(() => expect(view.getByRole('button', { name: 'Approve' })).not.toBeDisabled());
@@ -472,6 +477,16 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   await view.findByText('Approved');
   expect(transferDecisions()).toEqual([transferDecisions()[0], transferDecisions()[0]]);
   expect(transferDecisions()[0]).toEqual(
-    expect.objectContaining({ kind: 'approve', completeTransfer: true, applyAppointment: APPOINTMENT.uuid }),
+    expect.objectContaining({ kind: 'approve', completeTransfer: true, applyAppointment: 'transfer-apply' }),
   );
+  transfer = transferDecision({
+    ...(transferDecisions()[0] as RegisterTransferDecideRequest),
+    completeTransfer: false,
+    idempotencyKey: 'prior-approval',
+  });
+  await act(async () => {
+    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'transfers'] });
+  });
+  await view.findByText('Ready to complete');
+  expect(view.getByRole('button', { name: /^Review and approve for non-paid transfer/ })).toBeTruthy();
 });
