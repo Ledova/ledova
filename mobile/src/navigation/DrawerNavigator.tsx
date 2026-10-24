@@ -28,6 +28,7 @@ import {
   signout,
   describeFailure,
   DESTINATIONS,
+  isLedgerTask,
   useNotifications,
   useUserPreferences,
   type LedgerTask,
@@ -52,7 +53,7 @@ import { useUserProfile } from '../hooks/useUserProfile';
 import type { ComponentType } from 'react';
 import type { CompanyRegisterSection } from '../screens/company-register/CompanyRegisterScreen';
 import type { CompanyStackParamList } from './CompanyStackNavigator';
-import { isLedgerTask, LedgerNavigationProvider, useLedgerNavigation } from './LedgerNavigation';
+import { LedgerNavigationProvider, useLedgerNavigation } from './LedgerNavigation';
 
 export type DrawerParamList = {
   Main: undefined;

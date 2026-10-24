@@ -114,8 +114,12 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            if (ledger?.blocked) navigation.navigate('Company');
-            else navigation.navigate('Company', { screen: 'CompanyMain', params: { section: 'ledger' }, pop: true });
+            navigation.navigate(
+              'Company',
+              ledger?.blocked
+                ? { screen: 'CompanyMain', merge: true, pop: true }
+                : { screen: 'CompanyMain', params: { section: 'ledger' }, pop: true },
+            );
           },
         })}
       >

@@ -7,6 +7,7 @@ import {
   companiesAwaitingActivation,
   DESTINATIONS,
   formatShareCount,
+  isLedgerTask,
   REGISTER_COPY,
   useUserPreferences,
   USER_PREFERENCES_QUERY_KEY,
@@ -16,12 +17,13 @@ import {
 import { Action, Choice, LinkRow, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
-import { isLedgerTask, useLedgerNavigation } from '../../navigation/LedgerNavigation';
+import { useLedgerNavigation } from '../../navigation/LedgerNavigation';
 import { getSessionEpoch, subscribeSession } from '../../services/sessionScope';
 import { CompanySelection } from '../../components/company/CompanySelection';
 import { useCompanyRegister } from '../../hooks/useCompanyRegister';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useThemedStyles } from '../../contexts';
+import { ClassCertificates } from './ClassCertificates';
 import { ClassRecords } from './ClassRecords';
 import { CreateClassForm } from './CreateClassForm';
 import { CompanyLinks } from './CompanyLinks';
@@ -55,14 +57,11 @@ const CLASS_SECTIONS: readonly CompanyRegisterSection[] = [
   'shareholders',
 ];
 
-const HELD_SECTIONS: Record<string, CompanyRegisterSection> = {
+const HELD_TASKS: Record<string, LedgerTask> = {
   allotments: 'issue',
   grants: 'issue',
   transfer: 'transfer',
   corrections: 'corrections',
-  awards: 'awards',
-  members: 'company',
-  'class-creation': 'ledger',
 };
 
 const HIDDEN = { display: 'none' } as const;
@@ -130,16 +129,16 @@ function CompanyRegister({ epoch }: { epoch: number }) {
   const selectedToken = shownRegisters.some(({ token }) => token.uuid === chosenToken)
     ? chosenToken
     : shownRegisters[0]?.token.uuid;
-  const heldSection = Object.keys(held)
+  const heldTask = Object.keys(held)
     .filter((key) => held[key])
-    .map((key) => HELD_SECTIONS[key.split('/')[0] ?? ''])
+    .map((key) => HELD_TASKS[key.split('/')[0] ?? ''])
     .find(Boolean);
-  const shownTask =
-    heldSection && isLedgerTask(heldSection) ? heldSection : isLedgerTask(section) ? section : undefined;
+  const shownTask = heldTask ?? (isLedgerTask(section) ? section : undefined);
+  const shown = shownTask && (section === 'ledger' || isLedgerTask(section)) ? shownTask : section;
   const page = useRef<ScrollView>(null);
   useEffect(() => {
     page.current?.scrollTo({ y: 0, animated: false });
-  }, [section]);
+  }, [shown]);
   const { setState: setLedgerNavigation } = useLedgerNavigation();
   useEffect(() => {
     setLedgerNavigation({ task: shownTask, blocked: holding || !sourceReady });
@@ -150,7 +149,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
   const activated = companiesAwaitingActivation(own).length === 0;
   const registered = shownRegisters.some(({ initialized }) => initialized);
   const gettingStarted =
-    section === 'ledger' &&
+    shown === 'ledger' &&
     !!company &&
     appointments.isSuccess &&
     classes.isSuccess &&
@@ -174,7 +173,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
     <Page
       ref={page}
       testID="register-screen"
-      title={SECTION_TITLES[section]}
+      title={SECTION_TITLES[shown]}
       lede={company ? [company.name, status].filter(Boolean).join(' · ') : undefined}
       refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => void refreshAll()} />}
     >
@@ -209,7 +208,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
       {!company && companies.length > 0 && !classes.isPending && (
         <Text style={styles.muted}>Choose a company above.</Text>
       )}
-      <View style={section === 'ledger' ? undefined : HIDDEN}>
+      <View style={shown === 'ledger' ? undefined : HIDDEN}>
         <Section title="Share classes">
           {company && creation.canPrepare && (
             <Action
@@ -253,7 +252,10 @@ function CompanyRegister({ epoch }: { epoch: number }) {
             ))}
         </Section>
       </View>
-      {company && sourceReady && CLASS_SECTIONS.includes(section) && shownRegisters.length > 0 && (
+      {company && sourceReady && company.classes.length === 0 && shown !== 'ledger' && shown !== 'company' && (
+        <Text style={styles.muted}>No share classes recorded for {company.name}.</Text>
+      )}
+      {company && sourceReady && CLASS_SECTIONS.includes(shown) && shownRegisters.length > 0 && (
         <View style={styles.group}>
           <Text style={styles.muted}>Share class</Text>
           <View accessibilityRole="radiogroup" accessibilityLabel="Share class" style={styles.choices}>
@@ -281,7 +283,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
               register={register}
               refreshHolders={registers.refetch}
               sourceReady={sourceReady}
-              section={section}
+              section={shown}
               selected={uuid === selectedToken}
               onHeldChange={onHeldChange}
               onPrepareAwardGrant={(awardUuid) =>
@@ -326,7 +328,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
         })}
       {company && (
         <>
-          <View style={section === 'corrections' ? layout.stack : HIDDEN}>
+          <View style={shown === 'corrections' ? layout.stack : HIDDEN}>
             <CompanyParticulars
               epoch={epoch}
               company={company.uuid}
@@ -345,11 +347,17 @@ function CompanyRegister({ epoch }: { epoch: number }) {
               onPrepare={() => navigation.navigate('PrepareRegisterLink', { company: company.uuid })}
             />
           </View>
-          <View style={section === 'documents' && sourceReady ? layout.stack : HIDDEN}>
+          <View style={shown === 'documents' && sourceReady ? layout.stack : HIDDEN}>
             {sourceReady && (
               <>
                 {shownRegisters.map((register) => (
                   <Section key={register.token.uuid} title={register.token.name}>
+                    <ClassCertificates
+                      epoch={epoch}
+                      company={company.uuid}
+                      register={register}
+                      sourceReady={sourceReady && appointments.isSuccess && !appointments.isFetching}
+                    />
                     <RegisterDownload
                       uuid={register.token.uuid}
                       disabled={!register.initialized || !sourceReady}
@@ -373,7 +381,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
               </>
             )}
           </View>
-          <View style={section === 'company' ? layout.stack : HIDDEN}>
+          <View style={shown === 'company' ? layout.stack : HIDDEN}>
             {sourceReady && (
               <Action
                 label="Company information and team"

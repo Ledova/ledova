@@ -164,16 +164,7 @@ export function ClassRecords({
       <View style={shown('history') ? undefined : HIDDEN}>
         <Section title={register.token.name}>
           {appointmentFailure}
-          {sourceReady && (
-            <ClassEntries
-              epoch={epoch}
-              company={company}
-              register={register}
-              steps={steps}
-              onCorrect={onCorrect}
-              sourceReady={sourceReady && appointments.isSuccess && !appointments.isFetching}
-            />
-          )}
+          {sourceReady && <ClassEntries epoch={epoch} register={register} steps={steps} onCorrect={onCorrect} />}
         </Section>
       </View>
       <View style={shown('corrections') ? undefined : HIDDEN}>

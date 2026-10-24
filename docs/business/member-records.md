@@ -199,7 +199,7 @@ register, or a correction has since reversed the entry (the refusal names the co
 
 1. On web, in **Documents**, find the share class and choose the issue or transfer under
    **Certificates**, identified by its date and share movements, then **Prepare unsigned certificate**.
-   On mobile, open the class's entries in **Documents**.
+   On mobile, **Documents** lists the same issues and transfers under each class's **Certificates**.
 2. On web, choose **Preview**. Check the share class, share movements and PDF page count;
    **Record details** holds the entry and register sequence. Choose **Download PDF** to generate
    the unsigned file, or **Cancel** to close the form. The download action records the requester

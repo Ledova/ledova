@@ -86,13 +86,16 @@ The drawer's Company group mirrors the web sidebar ([navigation](frontend-ux.md#
 opens the share-class overview, and a separate caret shows Issue shares, Transfer shares, History
 and Corrections; Shareholders, ESS (read aloud as Employee share scheme), Documents and Company
 follow. Each opens a section of the one Ledger screen
-(`mobile/src/screens/company-register/CompanyRegisterScreen.tsx`), which keeps every section and
-class mounted, so unfinished work survives switching. Issue shares, Transfer shares, History,
+(`mobile/src/screens/company-register/CompanyRegisterScreen.tsx`), which keeps the sections that
+can hold unfinished work mounted, so the work survives switching; read-only lists, such as History's
+entries and Documents, reload with the screen's data. Issue shares, Transfer shares, History,
 Corrections and Shareholders show one class at a time, chosen under **Share class**; ESS and
-Documents list every class, and Company holds member access. The drawer marks the current page.
-While work is held, the screen publishes it through `mobile/src/navigation/LedgerNavigation.tsx`: as
-on the web, the class and company choices lock, and the drawer disables the Ledger overview and the
-other tasks, leaving the held task available from a sibling section.
+Documents list every class, Documents with each class's certificates, and Company holds member
+access. The drawer marks the current page. While work is held, the screen publishes it through
+`mobile/src/navigation/LedgerNavigation.tsx`: as on the web, the held task stays on screen whichever
+task or overview is opened, the class and company choices lock, and the drawer disables the Ledger
+overview and the other tasks, leaving the held task available from a sibling section. The Ledger tab
+then returns to the screen without changing its section.
 
 ## Theme and appearance
 

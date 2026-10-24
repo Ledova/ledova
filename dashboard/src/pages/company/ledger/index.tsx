@@ -6,16 +6,18 @@ import {
   DESTINATIONS,
   REGISTER_COPY,
   appointmentForRegisterStep,
+  isLedgerTask,
   useSubmissionOwner,
   useUserPreferences,
   USER_PREFERENCES_QUERY_KEY,
+  type LedgerTask,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { pageTitle } from '@utils/destinations';
-import { isRegisterTask, type Landed, type RegisterTask } from '@pages/company/ledger/shared/registerPlace';
+import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
@@ -53,12 +55,12 @@ function RegisterPage({
   selection?: ReactNode;
   companyName?: string;
   sections?: ReactNode;
-  task?: RegisterTask;
+  task?: LedgerTask;
   children: ReactNode;
 }) {
   const { hash } = useLocation();
   const hashTask = hash.slice(1);
-  const shownTask = task ?? (isRegisterTask(hashTask) ? hashTask : undefined);
+  const shownTask = task ?? (isLedgerTask(hashTask) ? hashTask : undefined);
   const title = pageTitle('companyRegister', shownTask ?? hashTask);
   return (
     <PageTitle.Provider value={title}>
@@ -152,7 +154,7 @@ function OwnRegister({
   const [taskSelection, setTaskSelection] = useState<{
     company: string;
     token: string;
-    task: RegisterTask;
+    task: LedgerTask;
     locationKey: string;
   } | null>(null);
   const [retainedScope, setRetainedScope] = useState<{
@@ -252,9 +254,9 @@ function OwnRegister({
       ? location.state.registerCompany
       : (classes.data?.find((item) => item.uuid === registerToken)?.companyUuid ?? '');
   const hashTask = hash.slice(1);
-  const registerTask = isRegisterTask(hashTask)
+  const registerTask = isLedgerTask(hashTask)
     ? hashTask
-    : isRegisterTask(location.state?.registerTask)
+    : isLedgerTask(location.state?.registerTask)
       ? location.state.registerTask
       : undefined;
   const registerOutcome =
@@ -308,7 +310,7 @@ function OwnRegister({
       : undefined;
   const taskToken =
     requestedToken ??
-    (scope && (isRegisterTask(hashTask) || (registerTask && scope.company.uuid === registerCompany))
+    (scope && (isLedgerTask(hashTask) || (registerTask && scope.company.uuid === registerCompany))
       ? scope.registers[0]?.token.uuid
       : undefined);
   const localSelection =

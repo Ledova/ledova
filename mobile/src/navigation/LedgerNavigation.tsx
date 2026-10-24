@@ -7,11 +7,7 @@ import {
   type ReactNode,
   type SetStateAction,
 } from 'react';
-import { DESTINATIONS, type LedgerTask } from '@ledova/shared';
-
-export function isLedgerTask(value: unknown): value is LedgerTask {
-  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(DESTINATIONS.companyRegister.tasks, value);
-}
+import type { LedgerTask } from '@ledova/shared';
 
 export interface LedgerNavigationState {
   task?: LedgerTask;
