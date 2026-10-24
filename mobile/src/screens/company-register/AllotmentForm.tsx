@@ -33,6 +33,8 @@ import { PersonFields, PersonSelect } from '../../components/register/PersonPick
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useRegisterEvidence } from '../../hooks/useRegisterEvidence';
 
+const HIDDEN = { display: 'none' } as const;
+
 type DocumentKind = 'authority' | 'agreement' | 'receipt';
 
 const STEPS = [
@@ -85,7 +87,7 @@ export function AllotmentForm({
   newEffectGuard: () => void;
   blocked: boolean;
   initialMember?: string;
-  onRecorded: (uuid: string) => Promise<unknown>;
+  onRecorded: () => Promise<unknown>;
   onHeldChange: (held: boolean) => void;
   onCancel: () => void;
   visible?: boolean;
@@ -280,7 +282,7 @@ export function AllotmentForm({
           }
         }
       }
-      await onRecorded(command.request.operationId);
+      await onRecorded();
       operation.current = null;
       if (live.current) setHeld(false);
     } catch (cause) {
@@ -335,7 +337,7 @@ export function AllotmentForm({
   if (!visible) return null;
   return (
     <View style={styles.group}>
-      <FormSteps label="Investor issue steps" steps={STEPS} current={step} />
+      <FormSteps steps={STEPS} current={step} />
       <View style={step === 'person' ? styles.group : HIDDEN}>
         <Text accessibilityRole="header" style={styles.heading}>
           Person and shares
@@ -513,5 +515,3 @@ export function AllotmentForm({
     </View>
   );
 }
-
-const HIDDEN = { display: 'none' } as const;

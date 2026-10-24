@@ -64,7 +64,7 @@ export function GrantForm({
   award?: RegisterAward;
   awardMember?: RegisterTransferMember | null;
   onRefused: () => void;
-  onRecorded: (uuid: string) => void;
+  onRecorded: () => void;
   onCancel: () => void;
   onHeldChange: (held: boolean) => void;
 }) {
@@ -254,7 +254,7 @@ export function GrantForm({
       check();
       operation.current = null;
       setHeld(false);
-      onRecorded(command.request.operationId);
+      onRecorded();
     } catch (failure) {
       const status = failureStatus(failure);
       if (operation.current && !operation.current.confirmed) {

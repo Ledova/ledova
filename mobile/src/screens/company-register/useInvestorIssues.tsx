@@ -53,7 +53,7 @@ export function useInvestorIssues({
   issueMember?: string;
   open: boolean;
   kept: boolean;
-  onClosed: (recorded?: boolean) => void;
+  onClosed: () => void;
 }) {
   const client = useQueryClient();
   const styles = useCompanyStyles();
@@ -111,7 +111,6 @@ export function useInvestorIssues({
   const privateReady = readable && financialReady && sourceReady;
   const held = formHeld || Object.values(decisionHolds).some(Boolean);
   const blocked =
-    (!appointment && !held) ||
     !readable ||
     !financialReady ||
     !sourceReady ||
@@ -249,7 +248,7 @@ export function useInvestorIssues({
             await refresh(true);
             guard();
             setEditing(null);
-            onClosed(true);
+            onClosed();
           }}
         />
       )}

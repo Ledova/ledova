@@ -55,7 +55,7 @@ export function useNonPaidIssues({
   award?: string;
   open: boolean;
   kept: boolean;
-  onClosed: (recorded?: boolean) => void;
+  onClosed: () => void;
   reviewing: string | null;
   onReviewChange: (uuid: string, open: boolean) => void;
 }) {
@@ -215,7 +215,7 @@ export function useNonPaidIssues({
             onCancel={() => onClosed()}
             onRecorded={() => {
               setFormAppointment(null);
-              onClosed(true);
+              onClosed();
               void refresh();
             }}
           />

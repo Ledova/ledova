@@ -293,6 +293,9 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   expect(rows[0].decisions).toHaveLength(0);
   expect(rows[0].registerEntry).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  appointments = [{ ...APPOINTMENT, capabilities: ['approve', 'apply'] }];
+  await returnToApp();
+  await waitFor(() => expect(view.queryByRole('button', { name: /^Prepare issue for/ })).toBeNull());
   await fireEvent.press(view.getByRole('button', { name: /^Review and approve for external allotment/ }));
   const confirm = await view.findByRole('button', { name: 'Approve' });
   await waitFor(() => expect(confirm).not.toBeDisabled());
