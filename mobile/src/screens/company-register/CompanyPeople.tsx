@@ -57,16 +57,17 @@ export function CompanyPeople({
 }) {
   const styles = useCompanyStyles();
   const person = usePersonRegistration({ epoch, company, sourceReady, onHeldChange });
+  const listed = ready && person.readable;
   return (
     <>
       <CompanyShareholders
-        ready={ready}
+        ready={listed}
         registers={registers}
         people={person.peopleReady && person.query.data ? person.query.data : []}
         blocked={blocked}
         onChangeParticulars={person.mayPrepare ? onChangeParticulars : undefined}
       />
-      {ready && <FormerShareholders registers={registers} />}
+      {listed && <FormerShareholders registers={registers} />}
       {person.readable && person.query.isError ? (
         <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.error}>

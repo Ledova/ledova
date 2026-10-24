@@ -609,6 +609,19 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   await view.rerender(<CompanyRegisterScreen />);
   expect(view.getAllByText('Alex Member').length).toBeGreaterThan(0);
   expect(view.getByText('9,007,199,254,740,992 · 100.00%')).toBeTruthy();
+  const readAppointments = client.getQueryData(registerAppointmentsKey(epoch));
+  await act(() =>
+    client.setQueryData(registerAppointmentsKey(epoch), [
+      {
+        ...APPOINTMENT,
+        company: shareClass.companyUuid,
+        capabilities: ['read_register'],
+        revokedAt: '2020-01-01T00:00:00Z',
+      },
+    ]),
+  );
+  await waitFor(() => expect(view.queryByText('9,007,199,254,740,992 · 100.00%')).toBeNull());
+  await act(() => client.setQueryData(registerAppointmentsKey(epoch), readAppointments));
   mockSection = 'documents';
   await view.rerender(<CompanyRegisterScreen />);
   expect(view.getAllByText(REGISTER_COPY.PRIVACY_NOTE).length).toBeGreaterThan(0);
