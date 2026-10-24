@@ -113,8 +113,8 @@ export function ClassIssues({
           )}
         </Section>
       </View>
-      {browsing && (investor.prepare || nonPaid.prepare) && (
-        <View style={styles.group}>
+      {(investor.prepare || nonPaid.prepare) && (
+        <View style={browsing ? styles.group : HIDDEN}>
           {investor.prepare}
           {nonPaid.prepare && (
             <Action

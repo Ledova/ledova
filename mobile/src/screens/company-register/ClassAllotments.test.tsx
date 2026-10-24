@@ -241,6 +241,12 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   expect(post.mock.calls.find(([url]) => url === URLS.REGISTER_ALLOTMENTS)?.[1]).toEqual(
     expect.objectContaining({ companyEventOn: '2026-10-10' }),
   );
+  await waitFor(() => expect(view.getByRole('button', { name: 'Refresh share issues' })).not.toBeDisabled());
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await fireEvent.press(await view.findByRole('button', { name: /^Review and approve for external allotment/ }));
+  await fireEvent.press(await view.findByRole('button', { name: 'Cancel' }));
+  expect(await view.findByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('2026-10-10');
+  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveProp('editable', false);
   await fireEvent.press(view.getByRole('button', { name: COPY.SUBMIT }));
   await waitFor(() => expect(view.queryByRole('button', { name: 'Close allotment form' })).toBeNull());
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);

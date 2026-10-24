@@ -111,12 +111,13 @@ Issue shares (`ClassIssues.tsx`) lists both kinds of issue under Share issues, a
 each record (`AllotmentRecord.tsx`, `GrantRecord.tsx`) leads with the web's summary
 (`IssueSummary.tsx`) and its Details and documents. Its decisions (`RegisterDecisions.tsx`) follow
 the web's: Reject first and the primary action last, a review in place of the list (the card's
-title becomes Review share issue and the other records hide; an open review is held work), recovery
+title becomes Review share issue, and the other records and any open preparation hide but stay
+mounted, so their held work survives; an open review is held work), recovery
 inside and outside the review and unmet requirements in words. An investor issue's Approve also
 records the issue (`completeIssue` with the apply appointment); a non-paid issue keeps Approve, then
 Record issue. One **Refresh share issues** rereads both kinds. **Prepare a non-paid grant** opens the
-web's non-paid grant form (`GrantForm.tsx`) in place, under Prepare share issue, and the list hides
-while it is open. An award's **Issue vested shares** opens it too: the screen's route carries an
+web's non-paid grant form (`GrantForm.tsx`) in place, under Prepare share issue; the list and the
+investor preparation hide while it is open, staying mounted. An award's **Issue vested shares** opens it too: the screen's route carries an
 `issue` request with the award, which selects the award's class. A started preparation is held
 work. As on the web, an award's recipient must be a listed walletless person with retained
 particulars, and the form checks its fields when submitted and words a refusal. The investor form
