@@ -267,7 +267,7 @@ failed reads retain Try again, and an interrupted submission keeps its original 
    of members, or on Shareholders, until shares are issued. Each award shows the recipient's current
    name and address, and Recipient details opens their page.
 2. Choose Record vesting on the award for a company-confirmed event with its shares, date and
-   evidence. Dates are no later than today (UTC), an event cannot predate the agreement, and total
+   evidence. The quantity is for that event, not a cumulative vested total. Dates are no later than today (UTC), an event cannot predate the agreement, and total
    vesting cannot exceed the remaining unvested entitlement.
 3. When vested shares are available, choose Issue vested shares. Ledger opens Issue shares with
    Non-paid issue chosen. The grant form shows the recipient and available quantity, and is bound to
