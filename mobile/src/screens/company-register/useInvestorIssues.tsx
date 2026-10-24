@@ -5,6 +5,7 @@ import {
   REGISTER_ALLOTMENT_COPY as COPY,
   hasCurrentRegisterReadAuthority,
   appointmentForRegisterStep,
+  createUserFriendlyError,
   peopleFrom,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
@@ -237,7 +238,7 @@ export function useInvestorIssues({
               !writeReady.current ||
               appointmentForRegisterStep(latestAppointments.current, company, 'prepare')?.uuid !== editing.uuid
             )
-              throw new Error('Refresh the register and your preparation appointment.');
+              throw createUserFriendlyError('Refresh the register and your preparation appointment.');
           }}
           blocked={blocked || members.isFetching}
           visible={privateReady && members.isSuccess && !members.isFetching}
