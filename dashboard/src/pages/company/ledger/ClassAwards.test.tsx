@@ -197,13 +197,13 @@ it('retains original award, vesting and linked issue preparations through interr
         ['Name', AWARD_REQUEST.name!],
         ['Residential address', AWARD_REQUEST.residentialAddress!],
         [COPY.SHARES, AWARD_REQUEST.shares],
-        [COPY.TERMS_ON, AWARD_REQUEST.termsOn],
-        [COPY.TERMS, AWARD_REQUEST.terms],
-        [COPY.SCHEDULE, AWARD_REQUEST.schedule],
+        ['Date', AWARD_REQUEST.termsOn],
+        ['Terms', AWARD_REQUEST.terms],
+        ['Schedule', AWARD_REQUEST.schedule],
       ])
         fireEvent.change(await screen.findByLabelText(label), { target: { value } });
     } else fireEvent.change(await screen.findByLabelText(COPY.VESTING_SHARES), { target: { value: '100' } });
-    fireEvent.change(screen.getByLabelText(kind === 'award' ? COPY.AGREEMENT_DOCUMENT : COPY.VESTING_DOCUMENT), {
+    fireEvent.change(screen.getByLabelText(kind === 'award' ? 'Document' : COPY.VESTING_DOCUMENT), {
       target: { files: [FILE] },
     });
     const action = kind === 'award' ? COPY.SUBMIT : COPY.VEST;

@@ -81,58 +81,76 @@ export function AwardForm({
     >
       <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || blocked || held || !canPrepare} className="space-y-4">
-        <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="pb-2 text-base font-medium">Person and promised shares</legend>
-          <PersonSelect
-            label="Promised recipient"
-            people={people.filter((row) => row.walletless && row.particularsRetained)}
-            value={member}
-            onChange={setMember}
-          />
+        <fieldset className="min-w-0 space-y-4">
+          <legend className="sr-only">Recipient and shares</legend>
+          <div className="grid items-start gap-4 sm:grid-cols-2">
+            <PersonSelect
+              label="Recipient"
+              people={people.filter((row) => row.walletless && row.particularsRetained)}
+              value={member}
+              onChange={setMember}
+            />
+            <Field {...checks.field('shares')} label={COPY.SHARES}>
+              <TextInput
+                inputMode="numeric"
+                maxLength={FIELD_LIMITS.REGISTER_SHARES}
+                value={shares}
+                onChange={(event) => setShares(event.target.value.trim())}
+              />
+            </Field>
+          </div>
           {member === 'new' && (
-            <PersonFields
-              name={name}
-              residentialAddress={address}
-              onName={setName}
-              onResidentialAddress={setAddress}
-              nameCheck={checks.field('name')}
-              addressCheck={checks.field('address')}
-            />
+            <div className="grid items-start gap-4 sm:grid-cols-2">
+              <PersonFields
+                name={name}
+                residentialAddress={address}
+                onName={setName}
+                onResidentialAddress={setAddress}
+                nameCheck={checks.field('name')}
+                addressCheck={checks.field('address')}
+              />
+            </div>
           )}
-          <Field {...checks.field('shares')} label={COPY.SHARES}>
-            <TextInput
-              inputMode="numeric"
-              maxLength={FIELD_LIMITS.REGISTER_SHARES}
-              value={shares}
-              onChange={(event) => setShares(event.target.value.trim())}
-            />
-          </Field>
         </fieldset>
-        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>div:has(textarea)]:sm:col-span-2">
-          <legend className="pb-2 text-base font-medium">Agreement</legend>
-          <Field {...checks.field('termsOn')} label={COPY.TERMS_ON}>
-            <TextInput type="date" max={today} value={termsOn} onChange={(event) => setTermsOn(event.target.value)} />
-          </Field>
-          <Field {...checks.field('terms')} label={COPY.TERMS}>
-            <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
-          </Field>
-          <FileField {...checks.field('file')} label={COPY.AGREEMENT_DOCUMENT} onFile={setFile} />
-          <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-        </fieldset>
-        <fieldset className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>div:has(textarea)]:sm:col-span-2">
-          <legend className="pb-2 text-base font-medium">Vesting schedule</legend>
-          <Field
-            {...checks.field('schedule')}
-            label={COPY.SCHEDULE}
-            hint="Retain the company's schedule. Each vesting event is recorded separately; dates create no vesting or issued shares."
-          >
-            <TextArea
-              maxLength={FIELD_LIMITS.TERMS}
-              value={schedule}
-              onChange={(event) => setSchedule(event.target.value)}
-            />
-          </Field>
-        </fieldset>
+        <div className="grid items-start gap-6 border-t border-border-subtle pt-4 lg:grid-cols-2">
+          <fieldset className="min-w-0 space-y-4">
+            <legend className="pb-4 text-base font-medium">Agreement</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field {...checks.field('termsOn')} label="Date">
+                <TextInput
+                  type="date"
+                  max={today}
+                  value={termsOn}
+                  onChange={(event) => setTermsOn(event.target.value)}
+                />
+              </Field>
+              <FileField {...checks.field('file')} label="Document" showUploadHint={false} onFile={setFile} />
+            </div>
+            <Field {...checks.field('terms')} label="Terms">
+              <TextArea
+                rows={4}
+                maxLength={FIELD_LIMITS.TERMS}
+                value={terms}
+                onChange={(event) => setTerms(event.target.value)}
+              />
+            </Field>
+          </fieldset>
+          <fieldset className="min-w-0 space-y-4 border-t border-border-subtle pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+            <legend className="pb-4 text-base font-medium">Vesting</legend>
+            <Field
+              {...checks.field('schedule')}
+              label="Schedule"
+              hint="Record each actual vesting event separately; dates do not vest or issue shares."
+            >
+              <TextArea
+                rows={6}
+                maxLength={FIELD_LIMITS.TERMS}
+                value={schedule}
+                onChange={(event) => setSchedule(event.target.value)}
+              />
+            </Field>
+          </fieldset>
+        </div>
       </fieldset>
       {error && (
         <p role="alert" className="text-sm text-error-light">

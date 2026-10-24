@@ -181,7 +181,7 @@ paid issues stay.
 | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Copying existing records (the opening)                               | Sets the opening balance; it is never an issue                                                                                      |
 | Employee award and vesting                                           | None: an award is a promised entitlement and vesting a company record                                                               |
-| Investor agreement and receipt                                       | None on their own; completing the approved allotment makes the issue                                                                           |
+| Investor agreement and receipt                                       | None on their own; completing the approved allotment makes the issue                                                                |
 | Any issue: grant, award-linked grant, allotment, chain or paid issue | Increases the issued shares and the recipient's holding once                                                                        |
 | Transfer                                                             | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
 | Correction                                                           | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections))   |
@@ -254,7 +254,8 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 
 On the web, ESS shows each class's recorded awards first, with details on demand. Choose **Record an
 employee award** below a class card to open preparation in that card; Cancel or a successful save returns to
-the records. Preparation, vesting and entitlement-change forms keep Cancel beside their recording
+the records. Preparation groups recipient and promised shares above Agreement and Vesting, side by side
+on wide screens and stacked on smaller ones. Preparation, vesting and entitlement-change forms keep Cancel beside their recording
 action in the bottom-right footer. Records [stay current automatically](../engineering/frontend.md#automatic-data-freshness);
 failed reads retain Try again, and an interrupted submission keeps its original retry.
 
