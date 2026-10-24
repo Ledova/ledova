@@ -406,9 +406,10 @@ need no polling. Issue shares rechecks the selected class's appointments and iss
 60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
 Mobile Issue shares does the same on entry, when the app or its screen comes back into view, and
 every 60 seconds while the task is on screen; another tab or a pushed screen counts as hidden
-(`mobile/src/screens/company-register/useIssueFreshness.ts`). It waits while a preparation or review
+(`mobile/src/screens/company-register/useTaskFreshness.ts`). It waits while a preparation or review
 is open, as Employee share scheme does, because a reread would disable the open form's fields and
-hide the review.
+hide the review. Mobile Transfer shares uses the same hook without an interval, as the web's Transfer
+shares rereads only on entry, focus and reconnect; it waits while a review is open.
 Employee share scheme rechecks appointments before its class records on entry, focus and reconnect,
 and every 60 seconds while the view is active, visible and online. These coordinated cycles wait
 across all class cards while any award preparation, vesting or entitlement-change editor is open.

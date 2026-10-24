@@ -487,9 +487,7 @@ it('recovers the fully paid company allotment once, approves and issues it in on
     completeTransfer: false,
     idempotencyKey: 'prior-approval',
   });
-  await act(async () => {
-    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'transfers'] });
-  });
+  await returnToApp();
   await view.findByText('Ready to complete');
   expect(view.getByRole('button', { name: /^Review and approve for non-paid transfer/ })).toBeTruthy();
   await cleanup();
