@@ -1,8 +1,8 @@
 import { FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
-import type { RegisterMemberDocumentCategory } from '@ledova/shared';
-import { DOCUMENT_CATEGORIES, type DocumentDraft } from './documentAttachmentDraft';
+import { REGISTER_MEMBER_DOCUMENT_CATEGORIES, type RegisterMemberDocumentCategory } from '@ledova/shared';
+import type { DocumentDraft } from './documentAttachmentDraft';
 
 export function DocumentAttachments({
   documents,
@@ -34,7 +34,10 @@ export function DocumentAttachments({
               <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                 <SelectField
                   label="Category"
-                  options={Object.entries(DOCUMENT_CATEGORIES).map(([value, label]) => ({ value, label }))}
+                  options={Object.entries(REGISTER_MEMBER_DOCUMENT_CATEGORIES).map(([value, label]) => ({
+                    value,
+                    label,
+                  }))}
                   value={document.category}
                   disabled={!!document.evidence}
                   onChange={(value) =>

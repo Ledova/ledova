@@ -9,6 +9,16 @@ export const HOLDER_TYPE_LABELS: Record<HolderType, string> = {
   unidentified: 'Unidentified',
 };
 
+export const REGISTER_MEMBER_DOCUMENT_CATEGORIES: Record<
+  ApiComponents['schemas']['RegisterMemberDocumentCategoryEnum'],
+  string
+> = {
+  share_certificate: 'Share certificate',
+  shareholder_agreement: 'Shareholder agreement',
+  subscription_agreement: 'Subscription agreement',
+  other: 'Other supporting document',
+};
+
 export const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
 
 export const REGISTER_COPY = {
