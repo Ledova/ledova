@@ -119,6 +119,11 @@ grid. Show an award recipient and available vested shares once; its retained agr
 under **Award record details**, with read-only validation targets that open on error. Ordinary non-paid terms stay
 editable fields. Keep the required fields and guards, without repeated descriptions or routine
 upload hints, and show recovery guidance only while the original preparation is held.
+Issue records align the recipient and issue type, shares, company issue date and status in the
+same labelled summary grid, with the investor amount where relevant. Keep the issued or not-issued
+fact beside the status and use the recipient as the record heading, without separate family headings.
+Longer state explanations, compliance responsibilities, terms, history and downloads open under
+Details and documents.
 Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under

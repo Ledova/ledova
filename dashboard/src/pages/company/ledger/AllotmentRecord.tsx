@@ -19,6 +19,7 @@ import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
 import { AllotmentReview } from './AllotmentReview';
+import { IssueSummary } from './IssueSummary';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, approve: 'Approve', apply: 'Shares recorded' } };
 
@@ -109,31 +110,37 @@ export function AllotmentRecord({
     <RecordShell hidden={!visible} focusKey={focusKey}>
       {visible && (
         <>
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h4 className="text-base font-medium">{allotment.name}</h4>
-              <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
-                {allotment.stage === 'applied'
-                  ? 'Approved'
-                  : allotment.stage === 'approved'
-                    ? 'Ready to complete'
-                    : (COPY.STAGES[allotment.stage] ?? allotment.stage)}
-              </Status>
-            </div>
-            <p className="text-sm text-text-muted">
-              {shareCount(allotment.shares)} · {formatMoney(allotment.consideration, allotment.currency)}
-            </p>
-          </div>
-          <p className="text-sm text-text-muted">
-            {allotment.stage === 'applied'
-              ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
-              : allotment.stage === 'approved'
-                ? 'Approval is on file; the share issue has not been recorded.'
-                : allotment.stage === 'rejected'
-                  ? 'No shares were issued by this rejected allotment. The agreement and company receipt remain recorded.'
-                  : 'Ready for approval. No shares issued.'}
-          </p>
+          <IssueSummary
+            name={allotment.name}
+            kind="Investor issue"
+            shares={allotment.shares}
+            amount={formatMoney(allotment.consideration, allotment.currency)}
+            companyEventOn={allotment.companyEventOn}
+            status={
+              <>
+                <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
+                  {allotment.stage === 'applied'
+                    ? 'Approved'
+                    : allotment.stage === 'approved'
+                      ? 'Ready to complete'
+                      : (COPY.STAGES[allotment.stage] ?? allotment.stage)}
+                </Status>
+                <p className="text-text-muted">
+                  {allotment.stage === 'applied' ? 'Shares issued' : 'No shares issued'}
+                </p>
+              </>
+            }
+          />
           <Disclosure summary="Details and documents">
+            <p className="text-sm text-text-muted">
+              {allotment.stage === 'applied'
+                ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
+                : allotment.stage === 'approved'
+                  ? 'Approval is on file; the share issue has not been recorded.'
+                  : allotment.stage === 'rejected'
+                    ? 'No shares were issued by this rejected allotment. The agreement and company receipt remain recorded.'
+                    : 'Ready for approval. No shares issued.'}
+            </p>
             <Rows>
               <RecordStage stage={allotment.stage}>{COPY.STAGES[allotment.stage] ?? allotment.stage}</RecordStage>
               <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>

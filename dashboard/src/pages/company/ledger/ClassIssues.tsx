@@ -135,12 +135,8 @@ export function ClassIssues({
         <Section title="Share issues">
           {browsing && status}
           {investor.empty && nonPaid.empty && <p className="text-sm text-text-muted">No share issues recorded yet.</p>}
-          <div hidden={investor.empty}>
-            {grouped && <h3 className="text-sm font-medium text-text-primary">Investor issues</h3>}
-            {investor.records}
-          </div>
-          <div hidden={nonPaid.empty}>
-            {grouped && <h3 className="text-sm font-medium text-text-primary">Non-paid issues</h3>}
+          <div hidden={investor.empty}>{investor.records}</div>
+          <div hidden={nonPaid.empty} className={grouped ? 'border-t border-border-subtle' : undefined}>
             {nonPaid.records}
           </div>
         </Section>
