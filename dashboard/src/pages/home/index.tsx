@@ -200,7 +200,7 @@ function MemberRecords({
               <div key={record.uuid} className="space-y-4">
                 <h2 className="break-words font-display text-xl text-text-primary">{record.company.name}</h2>
                 {!documentsOnly && (
-                  <div className={`grid items-start gap-4 ${record.awards.length > 0 ? 'xl:grid-cols-2' : ''}`}>
+                  <div className={`grid items-stretch gap-4 ${record.awards.length > 0 ? 'xl:grid-cols-2' : ''}`}>
                     <OwnSharesOverview
                       classes={record.classes}
                       disabled={held}
