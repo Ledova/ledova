@@ -55,7 +55,6 @@ let mockSetParams: (params: RouteParams) => void;
 const mockNavigation = {
   navigate: jest.fn(),
   setParams: jest.fn((params: RouteParams) => mockSetParams(params)),
-  dispatch: jest.fn(),
 };
 
 jest.mock('@react-navigation/native', () => {
@@ -92,7 +91,6 @@ let mismatchedEndReceipt: boolean;
 let grants: RegisterGrant[];
 let failedRead: 'award' | 'vesting' | 'grant' | 'change' | null;
 let failedPreferences: boolean;
-let failedClasses: boolean;
 let listed: boolean;
 let pendingFileRelease: (() => void) | undefined;
 let append: jest.SpyInstance<ReturnType<FormData['append']>, Parameters<FormData['append']>>;
@@ -182,7 +180,6 @@ beforeEach(() => {
     .mockImplementation(async () => pickedFile(++picks));
   jest.mocked(Sharing.shareAsync).mockClear();
   mockNavigation.navigate.mockClear();
-  mockNavigation.dispatch.mockClear();
   mockNavigation.setParams.mockClear();
   append = jest.spyOn(FormData.prototype, 'append');
   client = new QueryClient({
@@ -199,7 +196,6 @@ beforeEach(() => {
   grants = [];
   failedRead = null;
   failedPreferences = false;
-  failedClasses = false;
   listed = true;
   get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') {
@@ -207,7 +203,6 @@ beforeEach(() => {
       return { data: preferences };
     }
     if (url === URLS.REGISTER) {
-      if (failedClasses) throw new Error('Synthetic class list unavailable');
       return {
         data: {
           results: [
@@ -548,6 +543,7 @@ it('recovers captured award, vesting and issue requests under read access in pla
   listed = false;
   await act(async () => client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'classes'] }));
   await view.findByText('Loading the non-paid issue form…');
+  expect(view.queryByRole('button', { name: 'Cancel' })).toBeNull();
   expect(view.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull();
   listed = true;
   failedRead = null;

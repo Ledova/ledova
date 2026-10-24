@@ -55,7 +55,7 @@ export function useNonPaidIssues({
   award?: string;
   open: boolean;
   kept: boolean;
-  onClosed: (recorded?: boolean) => void;
+  onClosed: () => void;
   reviewing: string | null;
   onReviewChange: (uuid: string, open: boolean) => void;
 }) {
@@ -158,11 +158,8 @@ export function useNonPaidIssues({
   if (!kept && formAppointment && !formHeld) setFormAppointment(null);
   const retry = async () => {
     await refreshAppointments();
+    if (reading || formHeld) await Promise.all([people.refetch(), ...(awardUuid ? [award.refetch()] : [])]);
     void refreshHolders();
-    if (reading || formHeld) {
-      void people.refetch();
-      if (awardUuid) void award.refetch();
-    }
   };
   const shown = open || formHeld;
   const form = (shown || !!formAppointment) && (
@@ -215,7 +212,7 @@ export function useNonPaidIssues({
             onCancel={() => onClosed()}
             onRecorded={() => {
               setFormAppointment(null);
-              onClosed(true);
+              onClosed();
               void refresh();
             }}
           />
@@ -265,7 +262,6 @@ export function useNonPaidIssues({
     form,
     status,
     records,
-    prepare: privateReady && !!appointment && supported,
     empty: privateReady && grants.data?.length === 0,
     held,
     refreshing: grants.isFetching,

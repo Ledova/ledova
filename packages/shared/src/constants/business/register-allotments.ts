@@ -1,7 +1,6 @@
 import type { RegisterDecisionKind } from '../../types';
 
 export const REGISTER_ALLOTMENT_COPY = {
-  PREPARE: 'Prepare an external allotment',
   SUBMIT: 'Prepare allotment',
   RECEIPT_NOTE: 'Receipt is attested by the company. Ledova has not verified or collected this money.',
   READ_ONLY_NOTE: 'Preparation, approval and application each require current company authority for that step.',

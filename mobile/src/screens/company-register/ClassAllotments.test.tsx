@@ -203,52 +203,61 @@ it('recovers the fully paid company allotment once, approves and issues it in on
       </ApiClientProvider>
     </QueryClientProvider>,
   );
-  const open = await view.findByRole('button', { name: COPY.PREPARE });
+  const open = await view.findByRole('button', { name: `Prepare issue for ${REGISTER.token.name}` });
   await waitFor(() => expect(open).not.toBeDisabled());
   await fireEvent.press(open);
-  expect(await view.findByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('');
+  await fireEvent.press(view.getByRole('radio', { name: 'Investor issue' }));
   for (const [label, value] of [
     ['Name', ALLOTMENT_REQUEST.name!],
     ['Residential address', ALLOTMENT_REQUEST.residentialAddress!],
     [COPY.SHARES, '100'],
     [COPY.CONSIDERATION, '250'],
-    [COPY.RECEIVED_AMOUNT, '249'],
+  ])
+    await fireEvent.changeText(await view.findByLabelText(label), value);
+  await fireEvent.press(view.getByRole('button', { name: 'Continue' }));
+  for (const [label, value] of [
     [COPY.AGREEMENT_REFERENCE, ALLOTMENT_REQUEST.agreementReference],
     [COPY.AGREEMENT_ON, ALLOTMENT_REQUEST.agreementOn],
-    [COPY.RECEIVED_ON, ALLOTMENT_REQUEST.receivedOn],
     [COPY.TERMS, ALLOTMENT_REQUEST.terms],
+    [COPY.RECEIVED_AMOUNT, '249'],
+    [COPY.RECEIVED_ON, ALLOTMENT_REQUEST.receivedOn],
+  ])
+    await fireEvent.changeText(await view.findByLabelText(label), value);
+  for (const noun of ['agreement document', 'receipt evidence']) {
+    await fireEvent.press(view.getByRole('button', { name: `Choose the ${noun}` }));
+    await view.findByRole('button', { name: `Replace the ${noun}` });
+  }
+  await fireEvent.press(view.getByRole('button', { name: 'Continue' }));
+  expect(view.getAllByText(/must equal the full consideration/)).toHaveLength(2);
+  await fireEvent.changeText(view.getByLabelText(COPY.RECEIVED_AMOUNT), '250');
+  await fireEvent.press(view.getByRole('button', { name: 'Continue' }));
+  for (const [label, value] of [
     [COPY.DIRECTOR, ALLOTMENT_REQUEST.approvingDirector],
     [COPY.AUTHORITY_REFERENCE, ALLOTMENT_REQUEST.authorityReference],
     [COPY.REASON, ALLOTMENT_REQUEST.reason],
   ])
     await fireEvent.changeText(await view.findByLabelText(label), value);
-  for (const noun of ['authority document', 'agreement document', 'receipt evidence']) {
-    await fireEvent.press(view.getByRole('button', { name: `Choose the ${noun}` }));
-    await view.findByRole('button', { name: `Replace the ${noun}` });
+  await fireEvent.press(view.getByRole('button', { name: 'Choose the authority document' }));
+  await view.findByRole('button', { name: 'Replace the authority document' });
+  for (const date of ['', '2999-01-01']) {
+    await fireEvent.changeText(view.getByLabelText(COPY.COMPANY_EVENT_ON), date);
+    await fireEvent.press(view.getByRole('button', { name: COPY.SUBMIT }));
+    expect(view.getAllByText(/Enter the company issue date as YYYY-MM-DD/)).toHaveLength(2);
   }
-  expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
-  await fireEvent.changeText(view.getByLabelText(COPY.RECEIVED_AMOUNT), '250');
-  expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
-  await fireEvent.changeText(view.getByLabelText('Company issue date (YYYY-MM-DD)'), '2999-01-01');
-  expect(view.getByRole('button', { name: COPY.SUBMIT })).toBeDisabled();
-  await fireEvent.changeText(view.getByLabelText('Company issue date (YYYY-MM-DD)'), '2026-10-10');
+  expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(0);
+  await fireEvent.changeText(view.getByLabelText(COPY.COMPANY_EVENT_ON), '2026-10-10');
   await fireEvent.press(view.getByRole('button', { name: COPY.SUBMIT }));
   await view.findByRole('alert');
   expect(rows[0].registerEntry).toBeNull();
-  expect(view.getByLabelText(COPY.CONSIDERATION).props.editable).toBe(false);
-  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveProp('editable', false);
-  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('2026-10-10');
+  expect(view.getByLabelText(COPY.COMPANY_EVENT_ON)).toHaveProp('editable', false);
+  expect(view.getByLabelText(COPY.COMPANY_EVENT_ON)).toHaveDisplayValue('2026-10-10');
+  expect(view.getByRole('radio', { name: 'Non-paid issue' })).toBeDisabled();
+  expect(view.getByRole('button', { name: 'Cancel' })).toBeDisabled();
   expect(post.mock.calls.find(([url]) => url === URLS.REGISTER_ALLOTMENTS)?.[1]).toEqual(
     expect.objectContaining({ companyEventOn: '2026-10-10' }),
   );
-  await waitFor(() => expect(view.getByRole('button', { name: 'Refresh share issues' })).not.toBeDisabled());
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
-  await fireEvent.press(await view.findByRole('button', { name: /^Review and approve for external allotment/ }));
-  await fireEvent.press(await view.findByRole('button', { name: 'Cancel' }));
-  expect(await view.findByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('2026-10-10');
-  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveProp('editable', false);
   await fireEvent.press(view.getByRole('button', { name: COPY.SUBMIT }));
-  await waitFor(() => expect(view.queryByRole('button', { name: 'Close allotment form' })).toBeNull());
+  await waitFor(() => expect(view.queryByRole('header', { name: 'Prepare share issue' })).toBeNull());
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   expect(view.queryByRole('button', { name: /^(Record issue|Shares recorded) for external allotment/ })).toBeNull();
@@ -272,6 +281,9 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   expect(rows[0].decisions).toHaveLength(0);
   expect(rows[0].registerEntry).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  appointments = [{ ...APPOINTMENT, capabilities: ['approve', 'apply'] }];
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await waitFor(() => expect(view.queryByRole('button', { name: /^Prepare issue for/ })).toBeNull());
   await fireEvent.press(view.getByRole('button', { name: /^Review and approve for external allotment/ }));
   const confirm = await view.findByRole('button', { name: 'Approve' });
   await waitFor(() => expect(confirm).not.toBeDisabled());

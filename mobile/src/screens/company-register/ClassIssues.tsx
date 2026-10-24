@@ -1,20 +1,23 @@
 import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
-import {
-  REGISTER_GRANT_COPY as GRANT_COPY,
-  type OwnCompanyAppointment,
-  type RegisterStep,
-  type TokenHoldersResponse,
-} from '@ledova/shared';
-import { Action, Section } from '../../components/Ledger';
+import type { OwnCompanyAppointment, RegisterStep, TokenHoldersResponse } from '@ledova/shared';
+import { Action, Choice, Section } from '../../components/Ledger';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useInvestorIssues } from './useInvestorIssues';
 import { useNonPaidIssues } from './useNonPaidIssues';
 
 const HIDDEN = { display: 'none' } as const;
 
+const KINDS = [
+  ['investor', 'Investor issue'],
+  ['nonpaid', 'Non-paid issue'],
+] as const;
+
+type IssueKind = (typeof KINDS)[number][0];
+
 export interface IssueRequest {
   key: string;
+  member?: string;
   award?: string;
 }
 
@@ -46,7 +49,9 @@ export function ClassIssues({
   const styles = useCompanyStyles();
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
+  const [kind, setKind] = useState<IssueKind | ''>('');
   const [award, setAward] = useState<string | undefined>();
+  const [member, setMember] = useState<string | undefined>();
   const [answered, setAnswered] = useState('');
   const onReviewChange = useCallback(
     (uuid: string, open: boolean) => setReviewing((current) => (open ? uuid : current === uuid ? null : current)),
@@ -54,7 +59,9 @@ export function ClassIssues({
   );
   const close = () => {
     setPreparing(false);
+    setKind('');
     setAward(undefined);
+    setMember(undefined);
   };
   const investor = useInvestorIssues({
     company,
@@ -66,6 +73,10 @@ export function ClassIssues({
     onOpenClass,
     reviewing,
     onReviewChange,
+    issueMember: member,
+    open: preparing && kind === 'investor',
+    kept: preparing,
+    onClosed: close,
   });
   const nonPaid = useNonPaidIssues({
     epoch,
@@ -77,7 +88,7 @@ export function ClassIssues({
     sourceReady,
     onHeldChange,
     award,
-    open: preparing,
+    open: preparing && kind === 'nonpaid',
     kept: preparing,
     onClosed: close,
     reviewing,
@@ -86,9 +97,11 @@ export function ClassIssues({
   const held = investor.held || nonPaid.held;
   if (request && answered !== request.key && !held) {
     setAnswered(request.key);
-    if (request.award) {
+    if (request.award || request.member) {
       setPreparing(true);
+      setKind(request.award ? 'nonpaid' : 'investor');
       setAward(request.award);
+      setMember(request.member);
     }
   }
   const browsing = !preparing && !reviewing;
@@ -113,24 +126,43 @@ export function ClassIssues({
           )}
         </Section>
       </View>
-      {(investor.prepare || nonPaid.prepare) && (
-        <View style={browsing ? styles.group : HIDDEN}>
-          {investor.prepare}
-          {nonPaid.prepare && (
-            <Action
-              label={GRANT_COPY.PREPARE}
-              accessibilityLabel={`${GRANT_COPY.PREPARE} for ${register.token.name}`}
-              disabled={held || !sourceReady}
-              onPress={() => setPreparing(true)}
-            />
-          )}
+      {browsing && investor.prepare && (
+        <View style={styles.actions}>
+          <Action
+            label="Prepare issue"
+            accessibilityLabel={`Prepare issue for ${register.token.name}`}
+            primary
+            disabled={held || !sourceReady}
+            onPress={() => setPreparing(true)}
+          />
         </View>
       )}
       <View style={preparing ? undefined : HIDDEN}>
         <Section title="Prepare share issue">
           {preparing && investor.status}
           {preparing && nonPaid.status}
+          <View style={styles.group}>
+            <Text style={styles.text}>What kind of issue?</Text>
+            <View accessibilityRole="radiogroup" accessibilityLabel="What kind of issue?" style={styles.choices}>
+              {KINDS.map(([value, label]) => (
+                <Choice
+                  key={value}
+                  label={label}
+                  accessibilityRole="radio"
+                  selected={kind === value}
+                  disabled={held}
+                  onPress={() => setKind(value)}
+                />
+              ))}
+            </View>
+          </View>
+          {investor.form}
           {nonPaid.form}
+          {(!kind || (kind === 'investor' && !investor.formShown)) && (
+            <View style={styles.actions}>
+              <Action label="Cancel" disabled={held} onPress={close} />
+            </View>
+          )}
         </Section>
       </View>
     </>

@@ -178,9 +178,11 @@ paid issues stay.
 The mobile app's Issue shares lists the same records under **Share issues**, each with the web's
 summary of recipient and kind, shares and amount, company issue date and status, and Details and
 documents on demand. Review and approve opens the review in place of the list, as on the web, with
-the investor issue's single Approve and the non-paid issue's separate Record issue. **Prepare a
-non-paid grant**, and an award's **Issue vested shares**, open the non-paid grant form in place
-under **Prepare share issue**, as on the web. It still prepares an investor issue beneath the list.
+the investor issue's single Approve and the non-paid issue's separate Record issue. **Prepare
+issue** asks **What kind of issue?** in place of the list, as on the web: the investor issue's form
+takes three steps (Person and shares, Agreement and receipt, then Company authority and review), and
+the non-paid grant form one. An award's **Issue vested shares** opens the non-paid form for that
+award, and a shareholder's **Issue shares to them** opens the investor form with them chosen.
 
 ### What each record changes
 
