@@ -632,9 +632,9 @@ one preparation form at a time.
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.
 Steps follow [how a company decision works](README.md#how-a-company-decision-works); someone whose
-appointments allow none sees the history with a read-only note. The mobile app keeps separate
-preparation screens and, outside Issue shares, separate decision dialogs, holds member access under
-Company, and hides every register action while it cannot read the person's appointments
+appointments allow none sees the history with a read-only note. Outside Issue shares, the mobile app
+keeps separate preparation screens and decision dialogs; it holds member access under Company and
+hides every register action while it cannot read the person's appointments
 ([page mechanics](../engineering/frontend.md#page-mechanics)).
 
 ### A shareholder's page

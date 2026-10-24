@@ -543,7 +543,7 @@ with a retry key reused only for the same preview while the step's appointment i
 previewed. The investor's final Approve, on the web and mobile, sends one combined
 approval-and-issue command, never an approval followed by a client-side application request. A
 review in place, on the web or in mobile Issue shares, stays open when a refresh withdraws its step,
-saying so with its confirmation disabled; mobile's other decision dialogs close.
+saying so with its confirmation disabled, as mobile's decision dialogs do.
 `useDiscrepancyAcknowledgement` takes the reason for
 [acknowledging a discrepancy](../business/register.md#acknowledging-a-discrepancy), keeps the
 appointment it opened with and holds confirmation if a refresh changes it. Form inputs are described

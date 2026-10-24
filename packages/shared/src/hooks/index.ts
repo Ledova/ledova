@@ -15,6 +15,8 @@ export { useOrderActions } from './useOrderActions';
 export { useOrderActionSigning } from './useOrderActionSigning';
 export { useSwapSettlements } from './useSwapSettlements';
 export { useSubmissionOwner } from './useSubmissionOwner';
+export { hasProblems, useErrorSummary, useFocusClaim } from './useErrorSummary';
+export type { FieldCheck, Problems } from './useErrorSummary';
 export {
   REGISTER_CORRECTION_DECISIONS,
   REGISTER_IMPORT_DECISIONS,

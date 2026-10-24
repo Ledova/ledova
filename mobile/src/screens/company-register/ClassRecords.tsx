@@ -13,7 +13,7 @@ import { Action, Section } from '../../components/Ledger';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassImports } from './ClassImports';
-import { ClassIssues } from './ClassIssues';
+import { ClassIssues, type IssueRequest } from './ClassIssues';
 import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
 import { ClassOpenings } from './ClassOpenings';
@@ -32,8 +32,8 @@ export function ClassRecords({
   refreshHolders,
   onOpen,
   onPrepareImport,
-  onPrepareGrant,
   onPrepareAwardGrant,
+  issueRequest,
   onOpenClass,
   sourceReady = true,
   onPrepareTransfer,
@@ -51,8 +51,8 @@ export function ClassRecords({
   refreshHolders: () => Promise<unknown>;
   onOpen: () => void;
   onPrepareImport: (correctionOf?: string) => void;
-  onPrepareGrant: () => void;
   onPrepareAwardGrant: (award: string) => void;
+  issueRequest?: IssueRequest;
   onOpenClass: () => void;
   sourceReady?: boolean;
   onPrepareTransfer: () => void;
@@ -122,9 +122,9 @@ export function ClassRecords({
           refreshAppointments={appointments.refetch}
           sourceReady={sourceReady}
           onHeldChange={onHeldChange}
-          onPrepareGrant={onPrepareGrant}
           onSetUp={() => onPrepareImport()}
           onOpenClass={onOpenClass}
+          request={issueRequest}
         />
       </View>
       <View style={shown('transfer') ? undefined : HIDDEN}>

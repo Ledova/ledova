@@ -790,15 +790,18 @@ This section covers how a form reports a problem: when it is submitted, and when
 
 - **Checking on submit.** Web forms check their fields when submitted. Filters that only narrow a
   list, such as Activity's dates, keep their own rules, and Trading's order change, deferred with
-  trading, shows the one sentence its shared hook reports; mobile follows in
-  [#1201](https://github.com/Ledova/ledova/issues/1201).
+  trading, shows the one sentence its shared hook reports. Mobile's non-paid grant form checks the
+  same way; its other forms follow in [#1201](https://github.com/Ledova/ledova/issues/1201). On
+  mobile the summary (`mobile/src/components/ErrorSummary.tsx`) sits above the form's actions,
+  where the press happened, and takes screen-reader focus; each field shows its message beneath
+  it.
   - **Summary and fields.** A problem shows twice. `ErrorSummary` (`dashboard/src/components/`)
     lists each problem at the top of the form as `role="alert"` and takes focus, each item linking
     to its field. The field shows the same sentence as its error and turns `aria-invalid`; on
     sign-up, a registered email's error there also links to sign-in.
-    `useErrorSummary` (`dashboard/src/hooks/useErrorSummary.ts`) reads the form's problems, keyed
-    by field, and a form with two actions, such as the share-class issue's wallet link and grant,
-    checks only the fields its action needs. A box that must be ticked is a `CheckboxField`,
+    `useErrorSummary` (`packages/shared/src/hooks/useErrorSummary.ts`, which both clients use)
+    reads the form's problems, keyed by field, and a form with two actions, such as the share-class
+    issue's wallet link and grant, checks only the fields its action needs. A box that must be ticked is a `CheckboxField`,
     except the eligibility claim's long declaration and sign-up pre-screening's four declarations,
     which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
     to a field, and lists the problems current at the time. Its shareholder editor lists the problems
