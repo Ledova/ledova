@@ -20,7 +20,7 @@ import {
   useCompanyMemberAccess,
   useUserPreferences,
 } from '@ledova/shared';
-import { Action, Row, Rows, Section } from '../../components/Ledger';
+import { Action, LinkRow, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -152,6 +152,9 @@ function CompanyShareholder({ epoch }: { epoch: number }) {
       (register.formerMembers ?? []).filter((row) => row.member === member).map((row) => ({ register, row })),
     );
     const recorded = particulars.isSuccess ? particulars.data.members.find((row) => row.member === member) : undefined;
+    const issueClass = [...holdings.map(({ register }) => register), ...registers].find(
+      (register) => register.initialized && register.token.status === 'draft',
+    )?.token.uuid;
     title = holdings.length
       ? holdings[0].holder.name || HOLDER_TYPE_LABELS[holdings[0].holder.holderType]
       : recorded?.name || former[0]?.row.name || REGISTER_PARTICULARS_COPY.UNNAMED_MEMBER;
@@ -251,6 +254,25 @@ function CompanyShareholder({ epoch }: { epoch: number }) {
                 {row.correctedBy ? ' · cessation corrected' : ''}
               </Text>
             ))}
+            {!!steps?.prepare &&
+              !appointments.isFetching &&
+              !!issueClass &&
+              !!recorded?.walletless &&
+              recorded.particularsRetained && (
+                <LinkRow
+                  label="Issue shares to them"
+                  onPress={() =>
+                    navigation.dispatch(
+                      StackActions.popTo('CompanyMain', {
+                        section: 'issue',
+                        companyUuid: company,
+                        tokenUuid: issueClass,
+                        issue: { key: Crypto.randomUUID(), member },
+                      }),
+                    )
+                  }
+                />
+              )}
             {former.some(({ register }) => register.formerMembersStale) && (
               <Text style={styles.muted}>The former-member history needs a refresh before relying on it.</Text>
             )}

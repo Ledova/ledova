@@ -265,7 +265,6 @@ export function useNonPaidIssues({
     form,
     status,
     records,
-    prepare: privateReady && !!appointment && supported,
     empty: privateReady && grants.data?.length === 0,
     held,
     refreshing: grants.isFetching,

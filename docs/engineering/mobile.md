@@ -115,13 +115,16 @@ title becomes Review share issue, and the other records and any open preparation
 mounted, so their held work survives; an open review is held work), recovery
 inside and outside the review and unmet requirements in words. An investor issue's Approve also
 records the issue (`completeIssue` with the apply appointment); a non-paid issue keeps Approve, then
-Record issue. One **Refresh share issues** rereads both kinds. **Prepare a non-paid grant** opens the
-web's non-paid grant form (`GrantForm.tsx`) in place, under Prepare share issue; the list and the
-investor preparation hide while it is open, staying mounted. An award's **Issue vested shares** opens it too: the screen's route carries an
-`issue` request with the award, which selects the award's class. A started preparation is held
+Record issue. One **Refresh share issues** rereads both kinds. **Prepare issue** opens Prepare share
+issue in place of the list, which stays mounted, and asks **What kind of issue?**: the investor form
+(`AllotmentForm.tsx`) takes the web's three steps under a step indicator
+(`mobile/src/components/FormSteps.tsx`), and the non-paid grant form (`GrantForm.tsx`) one.
+Switching kind keeps each form's entries; Cancel is there until the chosen form shows, and in each
+form after. An award's **Issue vested shares** opens the non-paid form for that award, and the
+shareholder screen's **Issue shares to them** the investor form with that person chosen: the
+screen's route carries an `issue` request, which selects the class. A started preparation is held
 work. As on the web, an award's recipient must be a listed walletless person with retained
-particulars, and the form checks its fields when submitted and words a refusal. The investor form
-stays as it was until part 4 of #1201's step 5.
+particulars, and both forms check their fields when submitted and word a refusal.
 
 Shareholders (`CompanyPeople.tsx` and `CompanyShareholders.tsx` beside the screen) follows the web
 after the same figures check, and only while the person can still read the register: Current

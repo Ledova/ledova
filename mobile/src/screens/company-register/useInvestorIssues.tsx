@@ -24,6 +24,8 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useRegisterAppointments, useTransferMembers } from '../../hooks/useCompanyRegister';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
+const HIDDEN = { display: 'none' } as const;
+
 export function useInvestorIssues({
   company,
   register,
@@ -34,6 +36,10 @@ export function useInvestorIssues({
   onOpenClass,
   reviewing,
   onReviewChange,
+  issueMember,
+  open,
+  kept,
+  onClosed,
 }: {
   company: string;
   register: TokenHoldersResponse;
@@ -44,6 +50,10 @@ export function useInvestorIssues({
   onOpenClass: () => void;
   reviewing: string | null;
   onReviewChange: (uuid: string, open: boolean) => void;
+  issueMember?: string;
+  open: boolean;
+  kept: boolean;
+  onClosed: (recorded?: boolean) => void;
 }) {
   const client = useQueryClient();
   const styles = useCompanyStyles();
@@ -96,7 +106,7 @@ export function useInvestorIssues({
       throw new Error('Refresh the external allotments before reading private sources.');
   };
   const supported = register.initialized && register.token.status === 'draft';
-  const members = useTransferMembers(epoch, register.token.uuid, !!editing && !!appointment && supported);
+  const members = useTransferMembers(epoch, register.token.uuid, (open || !!editing) && !!appointment && supported);
   const financialReady = allotments.isSuccess && allotments.fetchStatus === 'idle';
   const privateReady = readable && financialReady && sourceReady;
   const held = formHeld || Object.values(decisionHolds).some(Boolean);
@@ -114,6 +124,18 @@ export function useInvestorIssues({
     writeReady.current = !blocked;
     privateAvailable.current = privateReady;
   }, [blocked, privateReady]);
+  if (
+    open &&
+    !editing &&
+    appointment &&
+    supported &&
+    privateReady &&
+    !blocked &&
+    !held &&
+    (!issueMember || (members.isSuccess && !members.isFetching))
+  )
+    setEditing(appointment);
+  if (!kept && editing && !formHeld) setEditing(null);
   const recordHeld = useCallback((uuid: string, value: boolean) => {
     setDecisionHolds((previous) => (previous[uuid] === value ? previous : { ...previous, [uuid]: value }));
   }, []);
@@ -179,58 +201,55 @@ export function useInvestorIssues({
       ) : null}
     </>
   );
-  const prepare = (editing || (!!appointment && supported && privateReady)) && (
-    <>
-      {(editing || appointment) && supported && privateReady && (
-        <Action
-          label={editing ? 'Close allotment form' : COPY.PREPARE}
-          disabled={blocked || held}
-          onPress={() => setEditing((value) => (value ? null : (appointment ?? null)))}
-        />
-      )}
-      {editing &&
-        (members.isPending ? (
-          <Text style={styles.muted}>Loading retained recipients…</Text>
-        ) : members.isError ? (
-          <>
-            <Text accessibilityRole="alert" style={styles.error}>
-              The retained recipients could not be read.
-            </Text>
-            <Action
-              label="Retry allotment recipients"
-              disabled={members.isFetching}
-              onPress={() => void members.refetch()}
-            />
-          </>
-        ) : null)}
-      {editing && (
-        <AllotmentForm
-          key={`${company}/${register.token.uuid}/${editing.uuid}`}
-          company={company}
-          token={register.token.uuid}
-          epoch={epoch}
-          people={peopleFrom(members.data)}
-          appointment={editing}
-          guard={financialGuard}
-          newEffectGuard={() => {
-            if (
-              !writeReady.current ||
-              appointmentForRegisterStep(latestAppointments.current, company, 'prepare')?.uuid !== editing.uuid
-            )
-              throw new Error('Refresh the register and your preparation appointment.');
-          }}
-          blocked={blocked || members.isFetching}
-          visible={privateReady && members.isSuccess && !members.isFetching}
-          onHeldChange={setFormHeld}
-          onRecorded={async () => {
-            guard();
-            await refresh(true);
-            guard();
-            setEditing(null);
-          }}
-        />
-      )}
-    </>
+  const form = editing && (
+    <View style={open ? styles.group : HIDDEN}>
+      <Text style={styles.muted}>
+        Record the investment agreement and company receipt, then prepare the share issue for approval.
+      </Text>
+      {members.isPending ? (
+        <Text style={styles.muted}>Loading retained recipients…</Text>
+      ) : members.isError ? (
+        <View style={styles.group}>
+          <Text accessibilityRole="alert" style={styles.error}>
+            The retained recipients could not be loaded.
+          </Text>
+          <Action
+            label="Retry allotment recipients"
+            disabled={members.isFetching}
+            onPress={() => void members.refetch()}
+          />
+        </View>
+      ) : null}
+      <AllotmentForm
+        key={`${company}/${register.token.uuid}/${editing.uuid}/${issueMember ?? ''}`}
+        company={company}
+        token={register.token.uuid}
+        epoch={epoch}
+        classLabel={`${register.token.name} (${register.token.symbol})`}
+        people={peopleFrom(members.data)}
+        initialMember={issueMember}
+        appointment={editing}
+        guard={financialGuard}
+        newEffectGuard={() => {
+          if (
+            !writeReady.current ||
+            appointmentForRegisterStep(latestAppointments.current, company, 'prepare')?.uuid !== editing.uuid
+          )
+            throw new Error('Refresh the register and your preparation appointment.');
+        }}
+        blocked={blocked || members.isFetching}
+        visible={privateReady && members.isSuccess && !members.isFetching}
+        onHeldChange={setFormHeld}
+        onCancel={() => onClosed()}
+        onRecorded={async () => {
+          guard();
+          await refresh(true);
+          guard();
+          setEditing(null);
+          onClosed(true);
+        }}
+      />
+    </View>
   );
   const records = allotments.data?.map((allotment) => (
     <AllotmentRecord
@@ -239,7 +258,7 @@ export function useInvestorIssues({
       epoch={epoch}
       steps={steps ?? {}}
       guard={financialGuard}
-      visible={privateReady && (!reviewing || reviewing === allotment.uuid)}
+      visible={privateReady && !kept && (!reviewing || reviewing === allotment.uuid)}
       onHeldChange={recordHeld}
       onReviewChange={onReviewChange}
       newEffectGuard={(kind) => {
@@ -254,7 +273,9 @@ export function useInvestorIssues({
     setup,
     status,
     records,
-    prepare,
+    form,
+    formShown: !!editing && privateReady && members.isSuccess && !members.isFetching,
+    prepare: !!appointment && supported,
     empty: privateReady && allotments.data?.length === 0,
     held,
     refreshing: allotments.isFetching || appointments.isFetching,
