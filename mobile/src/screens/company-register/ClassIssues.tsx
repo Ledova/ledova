@@ -65,7 +65,7 @@ export function ClassIssues({
   });
   return (
     <>
-      {!reviewing && investor.setup}
+      {investor.setup}
       <Section title={reviewing ? 'Review share issue' : 'Share issues'}>
         {investor.status}
         {nonPaid.status}

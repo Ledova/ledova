@@ -101,7 +101,7 @@ export function useNonPaidIssues({
         kind,
       )
     )
-      throw new Error('Refresh the register and your appointment before a new decision.');
+      throw new Error('Current company authority is required for this issue.');
   };
   const refresh = async () => {
     await Promise.all([
