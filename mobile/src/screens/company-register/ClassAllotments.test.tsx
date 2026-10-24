@@ -11,6 +11,7 @@ import {
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
@@ -53,7 +54,18 @@ const client = new QueryClient({
 });
 let pendingFileRelease: (() => void) | undefined;
 
+const inactive = AppState.currentState;
+
+async function returnToApp() {
+  Object.assign(AppState, { currentState: 'active' });
+  await act(async () => {
+    for (const [type, listener] of jest.mocked(AppState.addEventListener).mock.calls)
+      if (type === 'change') (listener as (state: string) => void)('active');
+  });
+}
+
 afterEach(async () => {
+  Object.assign(AppState, { currentState: inactive });
   await act(async () => {
     pendingFileRelease?.();
   });
@@ -310,7 +322,7 @@ it('recovers the fully paid company allotment once, approves and issues it in on
     expect.objectContaining({ kind: 'approve', completeIssue: true, applyAppointment: APPOINTMENT.uuid }),
   );
   const previews = post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT_PREVIEW(rows[0].uuid)).length;
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await returnToApp();
   await view.findByText(/External allotments could not be loaded/);
   expect(view.queryByRole('header', { name: ALLOTMENT_REQUEST.name })).toBeNull();
   failedPreferences = true;
@@ -330,11 +342,7 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   failedPreferences = false;
   appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
   await fireEvent.press(retryRegister);
-  const retryAllotments = await view.findByRole('button', {
-    name: /^(Retry external allotments|Refresh share issues)$/,
-  });
-  await waitFor(() => expect(retryAllotments).not.toBeDisabled());
-  await fireEvent.press(retryAllotments);
+  await returnToApp();
   await view.findByRole('button', { name: /^Recover approve receipt/ });
   mockSection = 'shareholders';
   await view.rerender(
@@ -375,7 +383,7 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   await fireEvent.press(view.getByRole('button', { name: /^Download receipt/ }));
   await waitFor(() => expect(releaseFile).toBeDefined());
   failedRead = true;
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await returnToApp();
   await view.findByText(/External allotments could not be loaded/);
   expect(view.queryByText('entry-a')).toBeNull();
   expect(view.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
@@ -388,7 +396,7 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   await fireEvent.press(view.getByRole('button', { name: 'Retry external allotments' }));
   await view.findByText('entry-a');
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await returnToApp();
   await waitFor(() => expect(view.queryByText('entry-a')).toBeNull());
   expect(view.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
 });

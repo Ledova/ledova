@@ -115,7 +115,9 @@ title becomes Review share issue, and the other records and any open preparation
 mounted, so their held work survives; an open review is held work), recovery
 inside and outside the review and unmet requirements in words. An investor issue's Approve also
 records the issue (`completeIssue` with the apply appointment); a non-paid issue keeps Approve, then
-Record issue. One **Refresh share issues** rereads both kinds. **Prepare issue** opens Prepare share
+Record issue. There is no manual refresh: as on the web, it rereads authority, then its records,
+on entry, when the app returns to the foreground and every minute while shown
+(`useIssueFreshness.ts`), waiting while a preparation or review is open. **Prepare issue** opens Prepare share
 issue in place of the list, which stays mounted, and asks **What kind of issue?**: the investor form
 (`AllotmentForm.tsx`) takes the web's three steps under a step indicator
 (`mobile/src/components/FormSteps.tsx`), and the non-paid grant form (`GrantForm.tsx`) one.

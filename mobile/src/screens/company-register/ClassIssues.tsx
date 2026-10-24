@@ -4,6 +4,7 @@ import type { OwnCompanyAppointment, RegisterStep, TokenHoldersResponse } from '
 import { Action, Choice, Section } from '../../components/Ledger';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useInvestorIssues } from './useInvestorIssues';
+import { useIssueFreshness } from './useIssueFreshness';
 import { useNonPaidIssues } from './useNonPaidIssues';
 
 const HIDDEN = { display: 'none' } as const;
@@ -33,6 +34,7 @@ export function ClassIssues({
   onSetUp,
   onOpenClass,
   request,
+  visible,
 }: {
   epoch: number;
   company: string;
@@ -45,6 +47,7 @@ export function ClassIssues({
   onSetUp: () => void;
   onOpenClass: () => void;
   request?: IssueRequest;
+  visible: boolean;
 }) {
   const styles = useCompanyStyles();
   const [reviewing, setReviewing] = useState<string | null>(null);
@@ -94,6 +97,15 @@ export function ClassIssues({
     reviewing,
     onReviewChange,
   });
+  useIssueFreshness({
+    epoch,
+    company,
+    token: register.token.uuid,
+    visible,
+    sourceReady,
+    paused: preparing || !!reviewing,
+    refreshRecords: () => Promise.allSettled([investor.refreshRecords(), nonPaid.refreshRecords()]),
+  });
   const held = investor.held || nonPaid.held;
   if (request && answered !== request.key && !held) {
     setAnswered(request.key);
@@ -117,13 +129,6 @@ export function ClassIssues({
           )}
           {investor.records}
           {nonPaid.records}
-          {browsing && (
-            <Action
-              label="Refresh share issues"
-              disabled={!sourceReady || investor.refreshing || nonPaid.refreshing}
-              onPress={() => void Promise.allSettled([investor.refresh(), nonPaid.refresh()])}
-            />
-          )}
         </Section>
       </View>
       {browsing && investor.prepare && (

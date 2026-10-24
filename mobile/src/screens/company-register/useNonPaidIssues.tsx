@@ -267,7 +267,6 @@ export function useNonPaidIssues({
     records,
     empty: privateReady && grants.data?.length === 0,
     held,
-    refreshing: grants.isFetching,
-    refresh,
+    refreshRecords: () => grants.refetch({ cancelRefetch: false, throwOnError: true }),
   };
 }

@@ -282,7 +282,6 @@ export function useInvestorIssues({
     prepare: !!appointment && supported,
     empty: privateReady && allotments.data?.length === 0,
     held,
-    refreshing: allotments.isFetching || appointments.isFetching,
-    refresh,
+    refreshRecords: () => allotments.refetch({ cancelRefetch: false, throwOnError: true }),
   };
 }

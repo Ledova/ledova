@@ -125,6 +125,7 @@ export function ClassRecords({
           onSetUp={() => onPrepareImport()}
           onOpenClass={onOpenClass}
           request={issueRequest}
+          visible={shown('issue')}
         />
       </View>
       <View style={shown('transfer') ? undefined : HIDDEN}>
