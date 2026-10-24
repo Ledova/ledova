@@ -22,6 +22,7 @@ export function Field({
   multiline,
   maxLength,
   clearable,
+  error,
   onChange,
 }: {
   label: string;
@@ -32,6 +33,7 @@ export function Field({
   multiline?: boolean;
   maxLength?: number;
   clearable?: boolean;
+  error?: string | null;
   onChange: (value: string) => void;
 }) {
   const styles = useCompanyStyles();
@@ -47,8 +49,10 @@ export function Field({
         keyboardType={keyboardType}
         multiline={multiline}
         maxLength={maxLength}
+        accessibilityHint={error ?? undefined}
         onChangeText={onChange}
       />
+      {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
 }
@@ -58,12 +62,14 @@ export function EvidencePicker({
   noun,
   evidence,
   disabled,
+  error,
   onPick,
 }: {
   title: string;
   noun: string;
   evidence: ReturnType<typeof useRegisterEvidence>;
   disabled: boolean;
+  error?: string | null;
   onPick: () => void;
 }) {
   const styles = useCompanyStyles();
@@ -75,6 +81,7 @@ export function EvidencePicker({
           ? `${evidence.name}${evidence.uploaded ? ' · uploaded' : ''}`
           : 'Choose a PDF, PNG or JPEG up to 10 MB.'}
       </Text>
+      {!!error && <Text style={styles.error}>{error}</Text>}
       <Action label={`${evidence.name ? 'Replace' : 'Choose'} the ${noun}`} disabled={disabled} onPress={onPick} />
       {!!evidence.name && <Action label={`Remove the ${noun}`} disabled={disabled} onPress={evidence.clear} />}
     </View>

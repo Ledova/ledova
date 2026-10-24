@@ -2,12 +2,12 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { CompanyRegisterScreen, type CompanyRegisterSection } from '../screens/company-register/CompanyRegisterScreen';
 import { CompanyShareholderScreen } from '../screens/company-register/CompanyShareholderScreen';
+import type { IssueRequest } from '../screens/company-register/ClassIssues';
 import { PrepareRegisterCorrectionScreen } from '../screens/company-register/PrepareRegisterCorrectionScreen';
 import { PrepareRegisterImportScreen } from '../screens/company-register/PrepareRegisterImportScreen';
 import { PrepareRegisterLinkScreen } from '../screens/company-register/PrepareRegisterLinkScreen';
 import { PrepareRegisterOpeningScreen } from '../screens/company-register/PrepareRegisterOpeningScreen';
 import { PrepareRegisterParticularsScreen } from '../screens/company-register/PrepareRegisterParticularsScreen';
-import { PrepareRegisterGrantScreen } from '../screens/company-register/PrepareRegisterGrantScreen';
 import { PrepareRegisterTransferScreen } from '../screens/company-register/PrepareRegisterTransferScreen';
 import { OfferingsScreen } from '../screens/company-offerings/OfferingsScreen';
 import { CompanyScreen } from '../screens/company';
@@ -21,7 +21,9 @@ import { getMainHeaderStyle } from './headers/MainHeader';
 import { MainHeader } from './headers';
 
 export type CompanyStackParamList = {
-  CompanyMain: { section?: CompanyRegisterSection; companyUuid?: string; tokenUuid?: string } | undefined;
+  CompanyMain:
+    | { section?: CompanyRegisterSection; companyUuid?: string; tokenUuid?: string; issue?: IssueRequest }
+    | undefined;
   CompanyDetails: undefined;
   CompanyPublications: undefined;
   CompanyOfferings: undefined;
@@ -34,7 +36,6 @@ export type CompanyStackParamList = {
   PrepareRegisterImport: { tokenUuid: string; companyUuid: string; correctionOf?: string };
   PrepareRegisterCorrection: { tokenUuid: string; companyUuid: string; entryUuid: string };
   PrepareRegisterParticulars: { tokenUuid: string; companyUuid: string; memberUuid: string };
-  PrepareRegisterGrant: { tokenUuid: string; companyUuid: string; awardUuid?: string };
   PrepareRegisterTransfer: { tokenUuid: string; companyUuid: string };
   PrepareRegisterLink: { company: string };
 };
@@ -129,11 +130,6 @@ export function CompanyStackNavigator({
       <Stack.Screen
         name="PrepareRegisterLink"
         component={PrepareRegisterLinkScreen}
-        options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
-      />
-      <Stack.Screen
-        name="PrepareRegisterGrant"
-        component={PrepareRegisterGrantScreen}
         options={{ title: '', headerLeft: undefined, headerBackVisible: true, headerRight: () => null }}
       />
       <Stack.Screen

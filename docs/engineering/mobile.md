@@ -114,8 +114,13 @@ the web's: Reject first and the primary action last, a review in place of the li
 title becomes Review share issue and the other records hide; an open review is held work), recovery
 inside and outside the review and unmet requirements in words. An investor issue's Approve also
 records the issue (`completeIssue` with the apply appointment); a non-paid issue keeps Approve, then
-Record issue. One **Refresh share issues** rereads both kinds; the preparation forms stay as they
-were until their own parts of #1201's step 5.
+Record issue. One **Refresh share issues** rereads both kinds. **Prepare a non-paid grant** opens the
+web's non-paid grant form (`GrantForm.tsx`) in place, under Prepare share issue, and the list hides
+while it is open. An award's **Issue vested shares** opens it too: the screen's route carries an
+`issue` request with the award, which selects the award's class. A started preparation is held
+work. As on the web, an award's recipient must be a listed walletless person with retained
+particulars, and the form checks its fields when submitted and words a refusal. The investor form
+stays as it was until part 4 of #1201's step 5.
 
 Shareholders (`CompanyPeople.tsx` and `CompanyShareholders.tsx` beside the screen) follows the web
 after the same figures check, and only while the person can still read the register: Current

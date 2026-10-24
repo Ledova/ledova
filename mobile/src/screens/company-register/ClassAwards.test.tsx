@@ -27,7 +27,6 @@ import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import React from 'react';
-import { View } from 'react-native';
 import {
   APPOINTMENT,
   AWARD_REQUEST,
@@ -42,28 +41,28 @@ import { getSessionEpoch } from '../../services/sessionScope';
 import { files, pickedFile, resetFiles } from '../../testSupport/documentFiles';
 import { ClassAwards } from './ClassAwards';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
-import { PrepareRegisterGrantScreen } from './PrepareRegisterGrantScreen';
-import { registerKey } from '../../hooks/useCompanyRegister';
+import { registerAppointmentsKey, registerKey } from '../../hooks/useCompanyRegister';
 import { awardsKey, awardVestingsKey, awardEndsKey } from './useRegisterAwards';
 
-type RouteParams = { section?: string; companyUuid?: string; tokenUuid?: string; awardUuid?: string };
+type RouteParams = {
+  section?: string;
+  companyUuid?: string;
+  tokenUuid?: string;
+  issue?: { key: string; award?: string };
+};
 const mockRouteContext = React.createContext<{ params: RouteParams }>({ params: { section: 'awards' } });
-let mockNavigate: (name: string, params: RouteParams) => void;
 let mockSetParams: (params: RouteParams) => void;
-let mockDispatch: (action: { type: string; payload: { name: string; params: RouteParams } }) => void;
 const mockNavigation = {
-  navigate: jest.fn((name: string, params: RouteParams) => mockNavigate(name, params)),
+  navigate: jest.fn(),
   setParams: jest.fn((params: RouteParams) => mockSetParams(params)),
-  dispatch: jest.fn((action: { type: string; payload: { name: string; params: RouteParams } }) => mockDispatch(action)),
+  dispatch: jest.fn(),
 };
 
 jest.mock('@react-navigation/native', () => {
   const react = jest.requireActual('react') as typeof React;
   return {
-    StackActions: jest.requireActual('@react-navigation/native').StackActions,
     useRoute: () => react.useContext(mockRouteContext),
     useNavigation: () => mockNavigation,
-    usePreventRemove: jest.fn(),
   };
 });
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
@@ -115,33 +114,13 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 function CompanyJourney() {
   const [params, setParams] = React.useState<RouteParams>({ section: 'awards' });
-  const [preparation, setPreparation] = React.useState<RouteParams>();
   React.useEffect(() => {
     mockSetParams = (next) => setParams((current) => ({ ...current, ...next }));
-    mockNavigate = (name, next) => {
-      expect(name).toBe('PrepareRegisterGrant');
-      setPreparation(next);
-    };
-    mockDispatch = (action) => {
-      expect(action.type).toBe('POP_TO');
-      expect(action.payload.name).toBe('CompanyMain');
-      setParams(action.payload.params);
-      setPreparation(undefined);
-    };
   }, []);
   return (
-    <>
-      <View style={preparation ? { display: 'none' } : undefined}>
-        <mockRouteContext.Provider value={{ params }}>
-          <CompanyRegisterScreen />
-        </mockRouteContext.Provider>
-      </View>
-      {preparation && (
-        <mockRouteContext.Provider value={{ params: preparation }}>
-          <PrepareRegisterGrantScreen />
-        </mockRouteContext.Provider>
-      )}
-    </>
+    <mockRouteContext.Provider value={{ params }}>
+      <CompanyRegisterScreen />
+    </mockRouteContext.Provider>
   );
 }
 
@@ -313,14 +292,18 @@ beforeEach(() => {
     if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid))
       return {
         data: {
-          members: [],
-          awardRecipients: [
-            {
-              member: AWARD_REQUEST.member,
-              name: AWARD_REQUEST.name,
-              residentialAddress: AWARD_REQUEST.residentialAddress,
-            },
-          ],
+          members: awards.map((award) => ({
+            member: award.member,
+            name: award.recipientName,
+            residentialAddress: award.recipientResidentialAddress,
+            currentShares: '0',
+            enteredOn: null,
+            lastCeasedOn: null,
+            walletless: true,
+            particularsRetained: true,
+            onRegister: false,
+          })),
+          awardRecipients: [],
         },
       };
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
@@ -441,7 +424,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it('recovers captured award, vesting and issue requests under read access and returns to the original company before separate approval and issue', async () => {
+it('recovers captured award, vesting and issue requests under read access in place, keeping the original company, before separate approval and issue', async () => {
   const view = await render(<CompanyJourney />, { wrapper });
   await fireEvent.press(await view.findByRole('button', { name: `Select company ${OTHER_COMPANY.companyName}` }));
   await view.findByRole('header', { name: OTHER_COMPANY.name });
@@ -524,10 +507,12 @@ it('recovers captured award, vesting and issue requests under read access and re
     expect.objectContaining({ vestedShares: '100', issuedShares: '0', availableShares: '100' }),
   );
   await fireEvent.press(await view.findByRole('button', { name: `Issue vested shares for ${AWARD_REQUEST.name}` }));
-  await view.findByTestId('prepare-grant-screen');
-  await view.findByText(AWARD_REQUEST.name!);
+  await view.findByRole('header', { name: 'Prepare share issue' });
+  await view.findByText('100 vested shares available to issue');
+  expect(view.getByText(AWARD_REQUEST.name!)).toBeTruthy();
   expect(view.queryByLabelText('Name')).toBeNull();
-  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('');
+  expect(view.queryByRole('button', { name: 'Choose the terms document' })).toBeNull();
+  expect(view.getByLabelText(GRANT_COPY.COMPANY_EVENT_ON)).toHaveDisplayValue('');
   for (const [label, value] of [
     [GRANT_COPY.SHARES, '100'],
     [GRANT_COPY.DIRECTOR, 'Synthetic Director'],
@@ -535,16 +520,17 @@ it('recovers captured award, vesting and issue requests under read access and re
     [GRANT_COPY.REASON, 'Vested employee shares'],
   ])
     await fireEvent.changeText(view.getByLabelText(label), value);
-  expect(view.queryByRole('button', { name: 'Choose the terms document' })).toBeNull();
-  expect(view.getByText('The retained award agreement will be used for this issue.')).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: 'Choose the authority document' }));
   await view.findByRole('button', { name: 'Replace the authority document' });
-  expect(view.getByRole('button', { name: 'Prepare share issue' })).toBeDisabled();
-  await fireEvent.changeText(view.getByLabelText('Company issue date (YYYY-MM-DD)'), '2999-01-01');
-  expect(view.getByRole('button', { name: 'Prepare share issue' })).toBeDisabled();
-  await fireEvent.changeText(view.getByLabelText('Company issue date (YYYY-MM-DD)'), '2026-10-10');
-  await fireEvent.press(view.getByRole('button', { name: 'Prepare share issue' }));
-  await view.findByRole('alert');
+  for (const date of ['', '2999-01-01']) {
+    await fireEvent.changeText(view.getByLabelText(GRANT_COPY.COMPANY_EVENT_ON), date);
+    await fireEvent.press(view.getByRole('button', { name: 'Prepare vested share issue' }));
+    expect(view.getAllByText(/Enter the company issue date as YYYY-MM-DD/)).toHaveLength(2);
+  }
+  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([]);
+  await fireEvent.changeText(view.getByLabelText(GRANT_COPY.COMPANY_EVENT_ON), '2026-10-10');
+  await fireEvent.press(view.getByRole('button', { name: 'Prepare vested share issue' }));
+  await view.findByText(GRANT_COPY.PREPARATION_RECEIPT_FAILED);
   const originalGrant = submissions(URLS.REGISTER_GRANTS)[0];
   expect(originalGrant).toEqual(
     expect.objectContaining({
@@ -552,98 +538,51 @@ it('recovers captured award, vesting and issue requests under read access and re
       tokenId: REGISTER.token.uuid,
       award: awards[0].uuid,
       member: awards[0].member,
+      newMember: false,
       companyEventOn: '2026-10-10',
       termsEvidence: awards[0].agreementEvidence,
     }),
   );
+  expect(view.getByLabelText(GRANT_COPY.SHARES).props.editable).toBe(false);
+  expect(view.getByRole('button', { name: 'Cancel' })).toBeDisabled();
   listed = false;
   await act(async () => client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'classes'] }));
-  await waitFor(() =>
-    expect(client.getQueryData([...registerKey(getSessionEpoch()), 'classes'])).toEqual([OTHER_COMPANY]),
-  );
-  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
-  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
-  failedPreferences = true;
-  await act(async () => {
-    await client
-      .fetchQuery({
-        queryKey: USER_PREFERENCES_QUERY_KEY,
-        queryFn: async () => {
-          throw new Error('Synthetic preferences unavailable');
-        },
-        retry: false,
-      })
-      .catch(() => {});
-  });
-  await view.findByRole('button', { name: 'Refresh share issue' });
-  expect(view.queryByLabelText(GRANT_COPY.SHARES)).toBeNull();
-  expect(view.queryByRole('button', { name: 'Retry original share issue' })).toBeNull();
-  failedPreferences = false;
+  await view.findByText('Loading the non-paid issue form…');
+  expect(view.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull();
   listed = true;
-  appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issue' }));
-  await fireEvent.press(await view.findByRole('button', { name: 'Retry original share issue' }));
-  await view.findByRole('alert');
-  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
-  expect(view.getByLabelText(GRANT_COPY.SHARES).props.editable).toBe(false);
-  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveProp('editable', false);
-  expect(view.getByLabelText('Company issue date (YYYY-MM-DD)')).toHaveDisplayValue('2026-10-10');
-  expect(client.getQueryData([...registerKey(getSessionEpoch()), 'classes'])).toEqual([OTHER_COMPANY]);
   failedRead = null;
+  appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
   const retainedAward = awards[0];
   const retainedReceipt = grants[0];
   awards = [{ ...retainedAward, agreementEvidence: 'changed-agreement', agreementFingerprint: 'd'.repeat(64) }];
   grants = [{ ...retainedReceipt, termsFingerprint: 'c'.repeat(64) }];
-  await act(async () =>
-    client.refetchQueries({
+  await act(async () => {
+    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'classes'] });
+    await client.refetchQueries({ queryKey: registerAppointmentsKey(getSessionEpoch()) });
+    await client.refetchQueries({
       queryKey: [...awardsKey(getSessionEpoch(), REGISTER.token.uuid), retainedAward.uuid],
       exact: true,
-    }),
-  );
-  await fireEvent.press(view.getByRole('button', { name: 'Retry original share issue' }));
-  await view.findByRole('alert');
-  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
-  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
-  grants = [retainedReceipt];
-  failedClasses = true;
-  await fireEvent.press(view.getByRole('button', { name: 'Retry original share issue' }));
+    });
+  });
+  const recover = await view.findByRole('button', { name: 'Recover original grant preparation' });
+  await waitFor(() => expect(recover).not.toBeDisabled());
+  await fireEvent.press(recover);
   await waitFor(() =>
-    expect(client.getQueryState([...registerKey(getSessionEpoch()), 'classes'])?.status).toBe('error'),
+    expect(view.getByRole('button', { name: 'Recover original grant preparation' })).not.toBeDisabled(),
   );
-  await waitFor(() => expect(view.getByRole('button', { name: 'Retry original share issue' })).not.toBeDisabled());
-  await view.findByText('The preparation is confirmed. Refresh the company list before returning.');
-  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
-  expect(view.getByLabelText(GRANT_COPY.SHARES).props.editable).toBe(false);
+  expect(view.getByText(GRANT_COPY.PREPARATION_RECEIPT_FAILED)).toBeTruthy();
+  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
+  awards = [retainedAward];
+  grants = [retainedReceipt];
+  await fireEvent.press(view.getByRole('button', { name: 'Recover original grant preparation' }));
+  await waitFor(() => expect(view.queryByRole('header', { name: 'Prepare share issue' })).toBeNull());
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
   expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
-  awards = [retainedAward];
-  failedClasses = false;
-  await fireEvent.press(view.getByRole('button', { name: 'Retry original share issue' }));
-  await waitFor(() => expect(view.queryByTestId('prepare-grant-screen')).toBeNull());
-  expect(client.getQueryData([...registerKey(getSessionEpoch()), 'classes'])).toEqual([
-    expect.objectContaining({ uuid: REGISTER.token.uuid, companyUuid: APPOINTMENT.company }),
-    OTHER_COMPANY,
-  ]);
-  expect(mockNavigation.dispatch).toHaveBeenCalledWith(
-    expect.objectContaining({
-      type: 'POP_TO',
-      payload: {
-        name: 'CompanyMain',
-        params: {
-          section: 'issue',
-          companyUuid: APPOINTMENT.company,
-          tokenUuid: REGISTER.token.uuid,
-        },
-      },
-    }),
-  );
+  expect(mockNavigation.navigate).not.toHaveBeenCalled();
   expect(
     view.getByRole('button', { name: `Select company ${APPOINTMENT.companyName}` }).props.accessibilityState.selected,
   ).toBe(true);
-  expect(view.queryByRole('header', { name: OTHER_COMPANY.name })).toBeNull();
   await view.findByRole('header', { name: AWARD_REQUEST.name });
-  expect(submissions(URLS.REGISTER_GRANTS)).toEqual([originalGrant]);
-  expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(3);
   expect(view.queryByRole('button', { name: /^Review and approve for non-paid grant/ })).toBeNull();
   appointments = [APPOINTMENT];
   const datedGrant = grants[0];

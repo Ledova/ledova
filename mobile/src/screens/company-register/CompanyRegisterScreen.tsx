@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Text, View, RefreshControl, type ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Crypto from 'expo-crypto';
 import {
   companiesAwaitingActivation,
   DESTINATIONS,
@@ -25,6 +26,7 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useThemedStyles } from '../../contexts';
 import { ClassCertificates } from './ClassCertificates';
 import { ClassRecords } from './ClassRecords';
+import type { IssueRequest } from './ClassIssues';
 import { CreateClassForm } from './CreateClassForm';
 import { CompanyLinks } from './CompanyLinks';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
@@ -65,7 +67,7 @@ const HIDDEN = { display: 'none' } as const;
 function CompanyRegister({ epoch }: { epoch: number }) {
   const route = useRoute();
   const params = route.params as
-    | { section?: CompanyRegisterSection; companyUuid?: string; tokenUuid?: string }
+    | { section?: CompanyRegisterSection; companyUuid?: string; tokenUuid?: string; issue?: IssueRequest }
     | undefined;
   const section = params?.section ?? 'ledger';
   const preferred =
@@ -129,10 +131,11 @@ function CompanyRegister({ epoch }: { epoch: number }) {
   const layout = useThemedStyles((theme) => ({ stack: { gap: theme.spacing.lg } }));
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const routeToken = params?.tokenUuid;
+  const routeSelection = `${routeToken ?? ''}/${params?.issue?.key ?? ''}`;
   const [chosenToken, setChosenToken] = useState(routeToken);
-  const [seenRouteToken, setSeenRouteToken] = useState(routeToken);
-  if (routeToken !== seenRouteToken) {
-    setSeenRouteToken(routeToken);
+  const [seenRouteSelection, setSeenRouteSelection] = useState(routeSelection);
+  if (routeSelection !== seenRouteSelection) {
+    setSeenRouteSelection(routeSelection);
     if (routeToken && !holding) setChosenToken(routeToken);
   }
   const selectedToken = shownRegisters.some(({ token }) => token.uuid === chosenToken)
@@ -305,12 +308,14 @@ function CompanyRegister({ epoch }: { epoch: number }) {
               selected={uuid === selectedToken}
               onHeldChange={onHeldChange}
               onPrepareAwardGrant={(awardUuid) =>
-                navigation.navigate('PrepareRegisterGrant', {
-                  tokenUuid: uuid,
+                navigation.setParams({
+                  section: 'issue',
                   companyUuid: company.uuid,
-                  awardUuid,
+                  tokenUuid: uuid,
+                  issue: { key: Crypto.randomUUID(), award: awardUuid },
                 })
               }
+              issueRequest={params?.tokenUuid === uuid ? params.issue : undefined}
               onOpen={() =>
                 navigation.navigate('PrepareRegisterOpening', { tokenUuid: uuid, companyUuid: company.uuid })
               }
@@ -320,9 +325,6 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                   companyUuid: company.uuid,
                   correctionOf,
                 })
-              }
-              onPrepareGrant={() =>
-                navigation.navigate('PrepareRegisterGrant', { tokenUuid: uuid, companyUuid: company.uuid })
               }
               onOpenClass={() => navigation.navigate('TokenDetail', { uuid, name: register.token.name })}
               onPrepareTransfer={() =>
