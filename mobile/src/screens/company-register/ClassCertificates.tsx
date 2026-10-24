@@ -64,7 +64,7 @@ export function ClassCertificates({
           </Text>
           <Action
             label="Retry register entries"
-            accessibilityLabel={`Retry certificates for ${name}`}
+            accessibilityLabel={`Retry register entries for ${name} certificates`}
             disabled={entries.isFetching}
             onPress={() => void entries.refetch()}
           />
