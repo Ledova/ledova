@@ -16,7 +16,7 @@ import {
   shortReference,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
-import { PageAction, PageLink } from '@components/Page';
+import { FormActions, PageAction, PageLink } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
 import { STAGE_TONES } from '@pages/company/shared/proposals';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
@@ -42,6 +42,7 @@ export function AwardRecord({
   onSettled,
   visible = true,
   onHeldChange,
+  onEditingChange,
 }: {
   owner: OrderSubmissionOwner;
   award: RegisterAward;
@@ -52,6 +53,7 @@ export function AwardRecord({
   onSettled: () => Promise<unknown>;
   visible?: boolean;
   onHeldChange?: (held: boolean) => void;
+  onEditingChange?: (editing: boolean) => void;
 }) {
   const client = useQueryClient();
   const available = useRef(visible && !blocked);
@@ -66,6 +68,12 @@ export function AwardRecord({
   const [editing, setEditing] = useState(false);
   const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
+  const editingCallback = useRef(onEditingChange);
+  useLayoutEffect(() => {
+    editingCallback.current = onEditingChange;
+    onEditingChange?.(editing || !!adjusting);
+  }, [onEditingChange, editing, adjusting]);
+  useLayoutEffect(() => () => editingCallback.current?.(false), []);
 
   const events = useRegisterAwardVestings(owner, award.company, award.uuid, guard);
 
@@ -113,56 +121,6 @@ export function AwardRecord({
         <>
           <h4 className="text-base font-medium text-text-primary">{award.recipientName}</h4>
           <AwardStatus {...award} />
-          <div className="flex flex-wrap gap-2">
-            {!formHeld && !adjusting && !editing && (
-              <PageLink
-                to={shareholderPath(award.member, award.company)}
-                label="Recipient details"
-                context={award.recipientName}
-              />
-            )}
-            {((appointment && BigInt(award.unvestedRemainingShares) > 0n) || (editing && formAppointment)) && (
-              <PageAction
-                label={editing ? 'Close vesting form' : 'Record vesting'}
-                disabled={blocked || !eventReady || formHeld || !!adjusting}
-                onClick={() => {
-                  if (editing) {
-                    setEditing(false);
-                    setFormAppointment(null);
-                  } else if (appointment) {
-                    setFormAppointment(appointment);
-                    setEditing(true);
-                  }
-                }}
-              />
-            )}
-            {(adjusting || (appointment && BigInt(award.remainingUnissuedShares) > 0n)) && (
-              <PageAction
-                label={adjusting ? 'Close change form' : COPY.END}
-                disabled={blocked || !eventReady || formHeld || editing}
-                onClick={() => {
-                  if (adjusting) setAdjusting(null);
-                  else if (appointment) {
-                    recordGuard();
-                    setAdjusting({ appointment });
-                  }
-                }}
-              />
-            )}
-            {appointment &&
-              !blocked &&
-              eventReady &&
-              !formHeld &&
-              !adjusting &&
-              !editing &&
-              BigInt(award.availableShares) > 0n && (
-                <LinkRow
-                  label="Issue vested shares"
-                  to={`${DESTINATIONS.companyRegister.path}#issue`}
-                  state={{ registerCompany: award.company, registerToken: award.token, issueAward: award.uuid }}
-                />
-              )}
-          </div>
           <Disclosure summary="Agreement and vesting schedule">
             <Rows>
               <Row label={COPY.TERMS_ON}>{formatDate(award.termsOn)}</Row>
@@ -335,6 +293,48 @@ export function AwardRecord({
               <Row label="Recorded by">{award.preparedByName || 'Name not recorded'}</Row>
             </Rows>
           </Disclosure>
+          <FormActions>
+            {!formHeld && !adjusting && !editing && (
+              <PageLink
+                to={shareholderPath(award.member, award.company)}
+                label="Recipient details"
+                context={award.recipientName}
+              />
+            )}
+            {!editing && appointment && BigInt(award.unvestedRemainingShares) > 0n && (
+              <PageAction
+                label="Record vesting"
+                disabled={blocked || !eventReady || formHeld || !!adjusting}
+                onClick={() => {
+                  setFormAppointment(appointment);
+                  setEditing(true);
+                }}
+              />
+            )}
+            {!adjusting && appointment && BigInt(award.remainingUnissuedShares) > 0n && (
+              <PageAction
+                label={COPY.END}
+                disabled={blocked || !eventReady || formHeld || editing}
+                onClick={() => {
+                  recordGuard();
+                  setAdjusting({ appointment });
+                }}
+              />
+            )}
+            {appointment &&
+              !blocked &&
+              eventReady &&
+              !formHeld &&
+              !adjusting &&
+              !editing &&
+              BigInt(award.availableShares) > 0n && (
+                <PageLink
+                  label="Issue vested shares"
+                  to={`${DESTINATIONS.companyRegister.path}#issue`}
+                  state={{ registerCompany: award.company, registerToken: award.token, issueAward: award.uuid }}
+                />
+              )}
+          </FormActions>
         </>
       )}
       {adjusting && (
@@ -354,6 +354,7 @@ export function AwardRecord({
             onHeldChange?.(held);
           }}
           onRecorded={settle}
+          onCancel={() => setAdjusting(null)}
         />
       )}
       {editing && formAppointment && (
@@ -370,6 +371,10 @@ export function AwardRecord({
             onHeldChange?.(held);
           }}
           onRecorded={settle}
+          onCancel={() => {
+            setEditing(false);
+            setFormAppointment(null);
+          }}
         />
       )}
     </RecordShell>

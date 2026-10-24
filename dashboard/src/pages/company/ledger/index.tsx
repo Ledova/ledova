@@ -149,6 +149,16 @@ function OwnRegister({
   const { hash } = location;
   const includeEmptyCompanies = hash === '#shareholders';
   const [heldClasses, setHeldClasses] = useState<ReadonlySet<string>>(() => new Set());
+  const [editingAwards, setEditingAwards] = useState<ReadonlySet<string>>(() => new Set());
+  const awardEditing = useCallback((token: string, editing: boolean) => {
+    setEditingAwards((current) => {
+      if (current.has(token) === editing) return current;
+      const next = new Set(current);
+      if (editing) next.add(token);
+      else next.delete(token);
+      return next;
+    });
+  }, []);
   const [taskSelection, setTaskSelection] = useState<{
     company: string;
     token: string;
@@ -588,14 +598,15 @@ function OwnRegister({
                 data-register-tasks
                 hidden={view === 'register' && (!selectedTask || selectedToken !== register.token.uuid)}
                 className={
-                  view === 'register' && selectedTask
+                  (view === 'register' && selectedTask) || view === 'awards'
                     ? 'space-y-5'
                     : 'space-y-5 rounded-xl border border-border bg-surface-raised p-4 sm:p-5'
                 }
               >
                 <h2
                   hidden={
-                    sourceReady && view === 'register' && (selectedTask === 'issue' || selectedTask === 'transfer')
+                    view === 'awards' ||
+                    (sourceReady && view === 'register' && (selectedTask === 'issue' || selectedTask === 'transfer'))
                   }
                   className={
                     sourceReady && view === 'register' && ['history', 'corrections'].includes(selectedTask ?? '')
@@ -730,6 +741,9 @@ function OwnRegister({
                       company={scope.company.uuid}
                       sourceReady={sourceReady}
                       onHeldChange={awardHeld}
+                      onEditingChange={awardEditing}
+                      pauseFreshness={editingAwards.size > 0}
+                      active={view === 'awards'}
                     />
                   </div>
                   <div hidden={view !== 'documents'} className="space-y-5">

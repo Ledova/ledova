@@ -405,6 +405,11 @@ only for that active view. Recheck its authority before its dependent records; p
 cycles and stop periodic work while the view is hidden or the browser is offline. Ordinary reads
 need no polling. Issue shares rechecks the selected class's appointments and issue records every
 60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
+Employee share scheme rechecks appointments before its class records on entry, focus and reconnect,
+and every 60 seconds while the view is active, visible and online. These coordinated cycles wait
+across all class cards while any award preparation, vesting or entitlement-change editor is open.
+Pending reads resume after Cancel or a successful save. Account, source and authority guards,
+explicit recovery and post-write refresh still apply.
 The personal dashboard also rechecks member associations before their dependent records every
 60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
 not an instantaneous update guarantee.
@@ -658,7 +663,9 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   Shareholders.
   History shows recorded entries and retained supporting records with read-only detail and permitted
   downloads on demand. Corrections holds their maintenance actions; Documents holds certificate
-  preparation and opens only one focused output form at a time from compact choices. A section whose
+  preparation and opens only one focused output form at a time from compact choices. ESS uses the
+  shared class-card spacing and shows recorded awards before its preparation action; preparation
+  replaces that class's record list while preserving its controllers. A section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current

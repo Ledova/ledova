@@ -103,7 +103,15 @@ in a right-aligned footer after secondary actions. Name a preview-opening action
 such as **Review and approve**; opening it is not approval. The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
-Issue shares and Transfer shares follow this pattern. Transfer records align From, To, Shares,
+Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
+keeps its class card and returns to its records after Cancel or a successful save. Its preparation,
+vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
+Award preparation groups the recipient and promised shares, with new-person details beneath. Agreement
+and vesting use the existing responsive two-column grid, stacking on smaller screens, with short
+contextual labels and one vesting explanation. Keep draft controls, selected-file display and focus
+stable by [deferring coordinated automatic reads](frontend.md#automatic-data-freshness) while an
+award editor is open.
+Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
 Details and documents. Emphasise the review for the current stage. Keep transfer preparation beside
@@ -704,7 +712,7 @@ Some messages keep their own form:
   10 MB. Its empty control reads **Choose file**, showing the filename after selection while keeping
   the native picker, keyboard focus and accessible label. By default its hint starts with
   "PDF, PNG or JPEG, up to 10 MB." Compact forms such as
-  Investor issue may omit this routine hint with `showUploadHint={false}`. Validation stays
+  Investor issue and employee awards may omit this routine hint with `showUploadHint={false}`. Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
   of up to 10 MB." on the field. The payslip upload on Profile and the evidence in an eligibility claim keep their dashed
   areas but apply the same rule. Mobile's pickers keep their own wording until
