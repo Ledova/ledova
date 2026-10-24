@@ -21,7 +21,7 @@ import {
 import { assertSessionEpoch } from '../../services/sessionScope';
 import { awardsKey } from './useRegisterAwards';
 
-export function ClassGrants({
+export function useNonPaidIssues({
   epoch,
   company,
   register,
@@ -29,7 +29,7 @@ export function ClassGrants({
   refreshHolders,
   refreshAppointments,
   onPrepare,
-  sourceReady = true,
+  sourceReady,
   onHeldChange,
 }: {
   epoch: number;
@@ -39,7 +39,7 @@ export function ClassGrants({
   refreshHolders: () => Promise<unknown>;
   refreshAppointments: () => Promise<unknown>;
   onPrepare: () => void;
-  sourceReady?: boolean;
+  sourceReady: boolean;
   onHeldChange?: (key: string, held: boolean) => void;
 }) {
   const styles = useCompanyStyles();
@@ -62,13 +62,11 @@ export function ClassGrants({
   const grants = useRegisterGrants(epoch, company, register.token.uuid);
   const currentAppointments = queryClient.getQueryData<OwnCompanyAppointment[]>(registerAppointmentsKey(epoch)) ?? [];
   const appointmentRead = queryClient.getQueryState(registerAppointmentsKey(epoch));
-  const privateReady =
-    sourceReady &&
+  const readable =
     appointmentRead?.status === 'success' &&
     appointmentRead.fetchStatus === 'idle' &&
-    grants.isSuccess &&
-    !grants.isFetching &&
     hasCurrentRegisterReadAuthority(currentAppointments, company);
+  const privateReady = sourceReady && readable && grants.isSuccess && !grants.isFetching;
   const guard = () => {
     assertSessionEpoch(epoch);
     const authority = queryClient.getQueryState(registerAppointmentsKey(epoch));
@@ -86,7 +84,7 @@ export function ClassGrants({
     )
       throw new Error('Refresh the register and your current company authority.');
   };
-  const settle = async () => {
+  const refresh = async () => {
     await Promise.all([
       refreshHolders(),
       refreshAppointments(),
@@ -98,43 +96,55 @@ export function ClassGrants({
       queryClient.refetchQueries({ queryKey: awardsKey(epoch, register.token.uuid), type: 'active' }),
     ]);
   };
-  return (
-    <View style={styles.group}>
-      <Text style={styles.heading}>{COPY.TITLE}</Text>
-      {privateReady && steps?.prepare && register.initialized && register.token.status === 'draft' && (
-        <Action
-          label={COPY.PREPARE}
-          accessibilityLabel={`${COPY.PREPARE} for ${register.token.name}`}
-          onPress={onPrepare}
-        />
+  const status = (
+    <>
+      {readable && steps && !Object.values(steps).some(Boolean) && (
+        <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>
       )}
-      {steps && !Object.values(steps).some(Boolean) && <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>}
-      {grants.isPending ? (
-        <Text style={styles.muted}>Loading non-paid grants…</Text>
+      {appointmentRead?.status === 'error' ? null : appointmentRead?.status !== 'success' ||
+        appointmentRead.fetchStatus !== 'idle' ||
+        !sourceReady ||
+        (readable && (grants.isPending || grants.isFetching)) ? (
+        <Text style={styles.muted}>Loading non-paid issues…</Text>
+      ) : !readable ? (
+        <Text style={styles.muted}>A current company register appointment is required to read non-paid issues.</Text>
       ) : grants.isError ? (
-        <>
+        <View style={styles.group}>
           <Text accessibilityRole="alert" style={styles.error}>
-            The grants could not be loaded.
+            Non-paid issues could not be loaded.
           </Text>
-          <Action label="Retry grants" disabled={grants.isFetching} onPress={() => void grants.refetch()} />
-        </>
-      ) : privateReady && grants.data.length === 0 ? (
-        <Text style={styles.muted}>{COPY.EMPTY}</Text>
+          <Action label="Retry non-paid issues" disabled={grants.isFetching} onPress={() => void refresh()} />
+        </View>
       ) : null}
-      <Action label="Refresh grants" disabled={grants.isFetching} onPress={() => void settle()} />
-      {grants.data?.map((grant, index) => (
-        <GrantRecord
-          key={grant.uuid}
-          grant={grant}
-          epoch={epoch}
-          steps={steps}
-          last={index === grants.data!.length - 1}
-          onSettled={settle}
-          visible={privateReady}
-          guard={guard}
-          onHeldChange={recordHeld}
-        />
-      ))}
-    </View>
+    </>
   );
+  const prepare = privateReady && steps?.prepare && register.initialized && register.token.status === 'draft' && (
+    <Action
+      label={COPY.PREPARE}
+      accessibilityLabel={`${COPY.PREPARE} for ${register.token.name}`}
+      onPress={onPrepare}
+    />
+  );
+  const records = grants.data?.map((grant, index) => (
+    <GrantRecord
+      key={grant.uuid}
+      grant={grant}
+      epoch={epoch}
+      steps={steps}
+      last={index === grants.data!.length - 1}
+      onSettled={refresh}
+      visible={privateReady}
+      guard={guard}
+      onHeldChange={recordHeld}
+    />
+  ));
+  return {
+    status,
+    records,
+    prepare,
+    empty: privateReady && grants.data?.length === 0,
+    held,
+    refreshing: grants.isFetching,
+    refresh,
+  };
 }

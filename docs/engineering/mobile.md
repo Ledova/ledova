@@ -106,6 +106,12 @@ loaded, with Retry. **Add share class** follows the cards, aligned right as on t
 who can prepare the register, and opens the class form. While work is held, Add share class is
 hidden and Class details is disabled.
 
+Issue shares (`ClassIssues.tsx`) lists both kinds of issue under Share issues, as on the web:
+`useInvestorIssues.tsx` and `useNonPaidIssues.tsx` each give their status lines and records, and
+each record (`AllotmentRecord.tsx`, `GrantRecord.tsx`) leads with the web's summary
+(`IssueSummary.tsx`) and its Details and documents. One **Refresh share issues** rereads both kinds;
+the decision buttons and preparation forms stay as they were until their own parts of #1201's step 5.
+
 Shareholders (`CompanyPeople.tsx` and `CompanyShareholders.tsx` beside the screen) follows the web
 after the same figures check, and only while the person can still read the register: Current
 shareholders across every opened class, with a name search, the share class as radio buttons, an

@@ -606,8 +606,9 @@ shareholder list rather than implying holdings are zero.
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
 Mobile has the same Ledger navigation, task views and held-work lock under
-[#1201](https://github.com/Ledova/ledova/issues/1201); its records keep their earlier layout, and its
-History still offers each entry's correction.
+[#1201](https://github.com/Ledova/ledova/issues/1201). Its Issue shares records follow the web's
+layout; the other tasks' records keep their earlier layout, and its History still offers each entry's
+correction.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
@@ -662,8 +663,9 @@ current company register appointment and settled reads, as on Ledger.
 
 The mobile app shows the same page, reached from Shareholders only, without the Transfer shares and
 Issue shares to them links yet, and adds one document at a time. Everything on it, holdings
-included, needs a current company register appointment; while a read refreshes, each part keeps what
-it last read. Its request and invitation links open Company, where mobile keeps member access.
+included, needs a current company register appointment; while their particulars, history, awards or
+documents refresh, each keeps what it last read. Its request and invitation links open Company, where
+mobile keeps member access.
 
 ### Choosing a person
 

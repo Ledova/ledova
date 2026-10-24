@@ -265,8 +265,8 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
     );
     const confirm = await view.findByRole('button', { name: 'Confirm' });
     await waitFor(() => expect(confirm).not.toBeDisabled());
-    expect(view.getByText('Company issue date')).toBeTruthy();
-    expect(view.getByText('2026-10-10')).toBeTruthy();
+    expect(view.getAllByText('Company issue date').length).toBeGreaterThan(1);
+    expect(view.getAllByText('10 October 2026').length).toBeGreaterThan(1);
     expect(view.getByText('Ordinary shares (ORD)')).toBeTruthy();
     expect(view.getByText('AUD 2.5000')).toBeTruthy();
     expect(view.getByText('100 shares · 100.00%')).toBeTruthy();
@@ -281,9 +281,9 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
           (body as RegisterAllotmentDecideRequest).kind === 'apply',
       )[0][1];
       const previews = post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT_PREVIEW(rows[0].uuid)).length;
-      await fireEvent.press(view.getByRole('button', { name: 'Refresh allotments' }));
-      await view.findByText(/External allotments could not be read/);
-      expect(view.queryByText(`${COPY.STAGES[rows[0].stage]} · ${ALLOTMENT_REQUEST.name}`)).toBeNull();
+      await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+      await view.findByText(/External allotments could not be loaded/);
+      expect(view.queryByRole('header', { name: ALLOTMENT_REQUEST.name })).toBeNull();
       failedPreferences = true;
       await act(async () => {
         await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
@@ -301,7 +301,9 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
       failedPreferences = false;
       appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
       await fireEvent.press(retryRegister);
-      const retryAllotments = await view.findByRole('button', { name: /^(Retry|Refresh) allotments$/ });
+      const retryAllotments = await view.findByRole('button', {
+        name: /^(Retry external allotments|Refresh share issues)$/,
+      });
       await waitFor(() => expect(retryAllotments).not.toBeDisabled());
       await fireEvent.press(retryAllotments);
       await view.findByRole('button', { name: /^Recover record issue receipt/ });
@@ -351,14 +353,14 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
     await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull());
     if (kind === 'approve') expect(rows[0].registerEntry).toBeNull();
   }
-  await fireEvent.press(view.getByRole('button', { name: `Allotment records for ${ALLOTMENT_REQUEST.name}` }));
+  await fireEvent.press(view.getByRole('button', { name: `Details and documents for ${ALLOTMENT_REQUEST.name}` }));
   expect(view.queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
   await view.findByText('entry-a');
   await fireEvent.press(view.getByRole('button', { name: /^Download receipt/ }));
   await waitFor(() => expect(releaseFile).toBeDefined());
   failedRead = true;
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh allotments' }));
-  await view.findByText(/External allotments could not be read/);
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await view.findByText(/External allotments could not be loaded/);
   expect(view.queryByText('entry-a')).toBeNull();
   expect(view.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   expect(view.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
@@ -367,10 +369,10 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
   });
   expect(Sharing.shareAsync).not.toHaveBeenCalled();
   failedRead = false;
-  await fireEvent.press(view.getByRole('button', { name: 'Retry allotments' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Retry external allotments' }));
   await view.findByText('entry-a');
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh allotments' }));
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
   await waitFor(() => expect(view.queryByText('entry-a')).toBeNull());
   expect(view.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
 });
