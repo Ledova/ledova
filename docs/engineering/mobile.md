@@ -98,12 +98,6 @@ company choices lock, and the drawer disables the Ledger overview and the other 
 held task available from a sibling section. The Ledger tab then returns to the screen without
 changing its section.
 
-Issue shares (`ClassIssues.tsx`) lists both kinds of issue under Share issues, as on the web:
-`useInvestorIssues.tsx` and `useNonPaidIssues.tsx` each give their status lines and records, and
-each record (`AllotmentRecord.tsx`, `GrantRecord.tsx`) leads with the web's summary
-(`IssueSummary.tsx`) and its Details and documents. The decision buttons, preparation forms and
-manual refresh stay as they were until their own parts of #1201's step 5.
-
 The overview gives each class a card titled with its name and code: issued shares, current
 shareholders, authorised shares where set and whether its ledger is opened, with **Class details**
 for the share class screen. As on the web, the cards wait until every class's figures agree
@@ -111,6 +105,12 @@ for the share class screen. As on the web, the cards wait until every class's fi
 loaded, with Retry. **Add share class** follows the cards, aligned right as on the web, for someone
 who can prepare the register, and opens the class form. While work is held, Add share class is
 hidden and Class details is disabled.
+
+Issue shares (`ClassIssues.tsx`) lists both kinds of issue under Share issues, as on the web:
+`useInvestorIssues.tsx` and `useNonPaidIssues.tsx` each give their status lines and records, and
+each record (`AllotmentRecord.tsx`, `GrantRecord.tsx`) leads with the web's summary
+(`IssueSummary.tsx`) and its Details and documents. One **Refresh share issues** rereads both kinds;
+the decision buttons and preparation forms stay as they were until their own parts of #1201's step 5.
 
 Shareholders (`CompanyPeople.tsx` and `CompanyShareholders.tsx` beside the screen) follows the web
 after the same figures check, and only while the person can still read the register: Current

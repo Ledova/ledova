@@ -648,7 +648,9 @@ it('recovers captured award, vesting and issue requests under read access and re
   appointments = [APPOINTMENT];
   const datedGrant = grants[0];
   grants = [{ ...datedGrant, companyEventOn: null }];
+  await waitFor(() => expect(view.getByRole('button', { name: 'Refresh share issues' })).not.toBeDisabled());
   await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await view.findByText('Not recorded');
   await fireEvent.press(await view.findByRole('button', { name: `Details and documents for ${AWARD_REQUEST.name}` }));
   expect(view.getAllByText('Not recorded').length).toBeGreaterThan(0);
   expect(view.queryByRole('button', { name: /^Approve the non-paid grant/ })).toBeNull();
@@ -656,6 +658,7 @@ it('recovers captured award, vesting and issue requests under read access and re
   expect(view.getByRole('button', { name: /^Reject the non-paid grant/ })).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: `Details and documents for ${AWARD_REQUEST.name}` }));
   grants = [datedGrant];
+  await waitFor(() => expect(view.getByRole('button', { name: 'Refresh share issues' })).not.toBeDisabled());
   await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
   for (const kind of ['approve', 'apply'] as const) {
     const decision = await view.findByRole('button', {
