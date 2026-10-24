@@ -7,6 +7,7 @@ import {
   companiesAwaitingActivation,
   DESTINATIONS,
   isLedgerTask,
+  ownershipSummary,
   REGISTER_COPY,
   useUserPreferences,
   USER_PREFERENCES_QUERY_KEY,
@@ -116,6 +117,18 @@ function CompanyRegister({ epoch }: { epoch: number }) {
       classes.data.some((item) => item.uuid === token.uuid && item.companyUuid === company.uuid),
     );
   const shownRegisters: TokenHoldersResponse[] = registers.data ?? [];
+  let ownershipReady = false;
+  let ownershipInvalid = false;
+  if (sourceReady && company) {
+    try {
+      if (shownRegisters.length !== company.classes.length)
+        throw new Error('The company register did not include every share class.');
+      ownershipSummary(shownRegisters);
+      ownershipReady = true;
+    } catch {
+      ownershipInvalid = true;
+    }
+  }
   const styles = useCompanyStyles();
   const layout = useThemedStyles((theme) => ({
     stack: { gap: theme.spacing.lg },
@@ -217,13 +230,21 @@ function CompanyRegister({ epoch }: { epoch: number }) {
         <Text style={styles.muted}>Choose a company above.</Text>
       )}
       <View style={shown === 'ledger' ? layout.stack : HIDDEN}>
-        {company && sourceReady && company.classes.length === 0 && (
+        {ownershipInvalid && (
+          <View style={styles.group}>
+            <Text accessibilityRole="alert" style={styles.error}>
+              We couldn’t load the complete register.
+            </Text>
+            <Action label="Retry register" disabled={isFetching} onPress={() => void refreshAll()} />
+          </View>
+        )}
+        {company && ownershipReady && company.classes.length === 0 && (
           <Section title="Share classes">
             <Text style={styles.muted}>No share classes yet.</Text>
           </Section>
         )}
         {company &&
-          sourceReady &&
+          ownershipReady &&
           shownRegisters.map((register) => (
             <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
               <ClassSummary register={register} />

@@ -62,9 +62,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   title. A card's title is a heading, such as each class's summary on Ledger.
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
-  mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals, register
-  setup's summary, a holding's wallets) and an award's chart legend keep their own layout, without
-  tinted tiles.
+  mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals on the web,
+  register setup's summary, a holding's wallets) and an award's chart legend keep their own layout,
+  without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such
   as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid

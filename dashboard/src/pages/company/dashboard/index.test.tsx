@@ -7,6 +7,7 @@ import {
   AUTH_QUERY_KEY,
   USER_PREFERENCES_ENDPOINTS,
   USER_PREFERENCES_QUERY_KEY,
+  ownershipSummary,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
@@ -14,7 +15,7 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { afterEach, expect, it, vi } from 'vitest';
 import CompanyDashboardPage from '.';
 import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
-import { ownershipSegments, ownershipSummary } from '@pages/company/shared/summary';
+import { ownershipSegments } from '@pages/company/shared/summary';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));

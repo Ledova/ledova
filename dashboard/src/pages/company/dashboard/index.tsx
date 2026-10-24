@@ -4,6 +4,7 @@ import {
   DESTINATIONS,
   appointmentForRegisterStep,
   companiesAwaitingActivation,
+  ownershipSummary,
   useSubmissionOwner,
   useUserPreferences,
   type OrderSubmissionOwner,
@@ -15,7 +16,6 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { GettingStarted } from './GettingStarted';
 import { OwnershipMetrics, ShareholderPanels } from './OwnershipPanels';
-import { ownershipSummary } from '@pages/company/shared/summary';
 import { LoadError, Loading } from '@components/Ledger';
 
 export default function CompanyDashboardPage() {

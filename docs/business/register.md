@@ -553,7 +553,7 @@ reason, the person, their appointment and the time, and the
 ## The Register page
 
 The destination is **Ledger** on the web and mobile; the web adds the subtitle **Share classes and
-current ownership.** Ledger is open to every signed-in account and shows the
+current ownership.** On the web, Ledger is open to every signed-in account and shows the
 registers of companies the person owns or where their appointment includes register access. With
 none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
 selector appears when several companies are readable. Ledger's sidebar label opens the share-class

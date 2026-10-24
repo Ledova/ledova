@@ -7,6 +7,7 @@ import {
   REGISTER_COPY,
   appointmentForRegisterStep,
   isLedgerTask,
+  ownershipSummary,
   useSubmissionOwner,
   useUserPreferences,
   USER_PREFERENCES_QUERY_KEY,
@@ -21,7 +22,6 @@ import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 
-import { ownershipSummary } from '@pages/company/shared/summary';
 import { ClassCorrections } from './ClassCorrections';
 import { ClassEntries } from './ClassEntries';
 import { ClassCertificates } from './ClassCertificates';

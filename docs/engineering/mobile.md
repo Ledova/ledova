@@ -49,7 +49,8 @@ native session, result and transport policies kept in the client. The native cer
 in `mobile/src/config/investorEligibility.ts`; register reads remain per client.
 
 `mobile/src/screens/company-register/CreateClassForm.tsx` creates a class from Ledger's **Add share
-class**, always with the internal quantity guard (`TECHNICAL_SHARE_LIMIT`). Its controller,
+class** or Getting started's **Set up your ledger**, always with the internal quantity guard
+(`TECHNICAL_SHARE_LIMIT`). Its controller,
 `useCreateRegisterClass.ts` beside it, owns creation, captured appointment, company and session
 guards, and read-only receipt recovery. An uncertain request stays held without another POST.
 Empty-opening preparation checks current class and register metadata; the business rules are in
@@ -99,8 +100,11 @@ changing its section.
 
 The overview gives each class a card titled with its name and code: issued shares, current
 shareholders, authorised shares where set and whether its ledger is opened, with **Class details**
-for the share class screen. **Add share class** follows the cards, aligned right as on the web, and
-opens the class form; it is hidden while work is held.
+for the share class screen. As on the web, the cards wait until every class's figures agree
+(`ownershipSummary` in `@ledova/shared`); otherwise the overview says the register couldn't be
+loaded, with Retry. **Add share class** follows the cards, aligned right as on the web, for someone
+who can prepare the register, and opens the class form. While work is held, Add share class is
+hidden and Class details is disabled.
 
 ## Theme and appearance
 

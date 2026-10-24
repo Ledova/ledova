@@ -84,6 +84,7 @@ const register = {
       name: 'Alex Member',
       holderType: 'member',
       balance: '9007199254740992',
+      percentage: 100,
       enteredOn: '2026-09-01',
       wallets: [],
     },
@@ -92,6 +93,7 @@ const register = {
       name: null,
       holderType: 'unidentified',
       balance: '1',
+      percentage: 0,
       enteredOn: '2026-09-02',
       wallets: [{ address: `0x${'1'.repeat(40)}`, whitelistStatus: 'active' }],
     },
@@ -116,7 +118,7 @@ function defaultRead(url: string, number: number, token?: string): Promise<unkno
     return Promise.resolve({ data: { members: [], awardRecipients: [] } });
   if (url === URLS.HOLDERS('preference'))
     return Promise.resolve({
-      data: registerOf(preference, { initialized: false, issuedSupply: null, holders: [] }),
+      data: registerOf(preference, { initialized: false, issuedSupply: null, totalHolders: 0, holders: [] }),
     });
   if (url === URLS.REGISTER_EXPORT('ordinary'))
     return Promise.resolve({ data: Uint8Array.from('member,shares', (c) => c.charCodeAt(0)).buffer });
@@ -322,8 +324,10 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
     </LedgerNavigationProvider>,
     { wrapper },
   );
+  await setup.findByText('No share classes yet.');
   await fireEvent.press(await setup.findByRole('button', { name: 'Add share class' }));
   expect(setup.getByTestId('ledger-navigation')).toHaveTextContent('{"blocked":true}');
+  expect(setup.getAllByRole('button', { name: 'Add share class' })).toHaveLength(1);
   for (const [label, value] of [
     ['Class name', 'Class A'],
     ['Class code', 'A'],
@@ -544,6 +548,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   expect(view.queryByText('Choose company')).toBeNull();
   expect(view.getByRole('button', { name: 'Class details (Ordinary shares)' })).toBeTruthy();
   expect(view.getByRole('header', { name: 'Ordinary shares · ORD' })).toBeTruthy();
+  expect(view.getByText('Ledger not opened')).toBeTruthy();
   mockSection = 'corrections';
   await view.rerender(<CompanyRegisterScreen />);
   await fireEvent.press(view.getByRole('radio', { name: 'Ordinary shares' }));
