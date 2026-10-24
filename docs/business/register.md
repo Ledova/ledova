@@ -663,8 +663,9 @@ current company register appointment and settled reads, as on Ledger.
 
 The mobile app shows the same page, reached from Shareholders only, without the Transfer shares and
 Issue shares to them links yet, and adds one document at a time. Everything on it, holdings
-included, needs a current company register appointment; while a read refreshes, each part keeps what
-it last read. Its request and invitation links open Company, where mobile keeps member access.
+included, needs a current company register appointment; while their particulars, history, awards or
+documents refresh, each keeps what it last read. Its request and invitation links open Company, where
+mobile keeps member access.
 
 ### Choosing a person
 

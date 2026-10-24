@@ -5,14 +5,10 @@ import type {
   RegisterMemberDocumentRequest,
   RegisterMemberDocumentSnapshot,
 } from '../types';
+import { REGISTER_MEMBER_DOCUMENT_CATEGORIES } from '../constants/business/register';
 import { isUuid } from './validation';
 
-const CATEGORIES: RegisterMemberDocumentCategory[] = [
-  'share_certificate',
-  'shareholder_agreement',
-  'subscription_agreement',
-  'other',
-];
+const CATEGORIES = Object.keys(REGISTER_MEMBER_DOCUMENT_CATEGORIES) as RegisterMemberDocumentCategory[];
 
 function isSnapshot(value: unknown, evidence: string, company: string): value is RegisterMemberDocumentSnapshot {
   if (!value || typeof value !== 'object') return false;
