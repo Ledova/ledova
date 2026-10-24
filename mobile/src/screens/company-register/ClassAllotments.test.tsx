@@ -123,6 +123,7 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
                   name: rows[0].name,
                   holderType: 'member',
                   balance: '100',
+                  percentage: 100,
                   enteredOn: '2026-10-11',
                   wallets: [],
                 },
@@ -312,7 +313,7 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
           </ApiClientProvider>
         </QueryClientProvider>,
       );
-      await view.findByText('100 shares');
+      await view.findByText('100 · 100.00%');
       mockSection = 'awards';
       await view.rerender(
         <QueryClientProvider client={client}>

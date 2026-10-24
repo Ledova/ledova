@@ -352,7 +352,8 @@ and ask for changes separately ([member profile](participants.md#member-profile)
 [member requests](member-records.md#member-requests)).
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
-   Recipient details on their award, and choose Change particulars.
+   Recipient details on their award, and choose Change particulars. On mobile, choose **Change
+   particulars** beside the person on Shareholders.
 2. Upload one supporting document, such as a deed poll or the member's notice of a new address, and
    give the new name and residential address, the "as at" date the company's register records (today
    in UTC or earlier) and a reason.
@@ -618,6 +619,11 @@ access and requests then holds invitations, current access and members' particul
 certificate requests ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
+Mobile's Shareholders view lists the same current shareholders, with the search and class filter,
+25 more at a time, then People without shares and Former shareholders. The shareholder's page is
+not on mobile yet, so each person offers **Change particulars** instead of Details. **Add person**
+works as on the web.
+
 The Employee share scheme view, ESS in the sidebar, holds each class's
 [awards](issuing-shares.md#employee-awards-and-vesting),
 each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
@@ -627,8 +633,8 @@ one preparation form at a time.
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.
 Steps follow [how a company decision works](README.md#how-a-company-decision-works); someone whose
-appointments allow none sees the history with a read-only note. The mobile app keeps its own
-per-class ownership view and separate preparation and decision screens, holds member access under
+appointments allow none sees the history with a read-only note. The mobile app keeps separate
+preparation and decision screens, holds member access under
 Company, and hides every register action while it cannot read the person's appointments
 ([page mechanics](../engineering/frontend.md#page-mechanics)).
 
@@ -675,7 +681,8 @@ Each flow keeps its own rule for who can be chosen:
   members without a linked wallet whose name and address are retained;
 - invitations: current and former members and award recipients.
 
-**Add person** on web Shareholders records a company person's name and residential address without
+**Add person** on Shareholders, on the web and mobile, records a company person's name and
+residential address without
 a class, shares, an award, a login or an invitation. People without shares remain separate from
 current shareholders and can be found with the same search. Recording a person does not add them
 to the legal register; a later confirmed opening, share issue or transfer records their holding.

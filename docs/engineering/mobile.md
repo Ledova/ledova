@@ -89,8 +89,8 @@ and Corrections; Shareholders, ESS (read aloud as Employee share scheme), Docume
 follow. Each opens a section of the one Ledger screen
 (`mobile/src/screens/company-register/CompanyRegisterScreen.tsx`), which keeps the sections that can
 hold unfinished work mounted, so the work survives switching; History's entries and Documents reload
-with the screen's data. Issue shares, Transfer shares, History, Corrections and Shareholders show
-one class at a time, chosen under **Share class**; ESS and Documents list every class, Documents
+with the screen's data. Issue shares, Transfer shares, History and Corrections show one class at a
+time, chosen under **Share class**; Shareholders, ESS and Documents list every class, Documents
 with each class's certificates, and Company holds member access. The drawer marks the current page.
 While work is held, the screen publishes it through `mobile/src/navigation/LedgerNavigation.tsx`: as
 on the web, the held task stays on screen whichever task or overview is opened, the class and
@@ -105,6 +105,15 @@ for the share class screen. As on the web, the cards wait until every class's fi
 loaded, with Retry. **Add share class** follows the cards, aligned right as on the web, for someone
 who can prepare the register, and opens the class form. While work is held, Add share class is
 hidden and Class details is disabled.
+
+Shareholders (`CompanyPeople.tsx` and `CompanyShareholders.tsx` beside the screen) follows the web
+after the same figures check: Current shareholders across every opened class, with a name search,
+the share class as radio buttons, an identity-review count and each person's shares and
+percentage by class, 25 more at a time; then People without shares and Former shareholders by
+class. Each person offers **Change particulars** for someone who can prepare the register, since
+the shareholder screen isn't on mobile yet. **Add person** opens an inline name and residential
+address form; `usePersonRegistration.ts` keeps the web's original-save recovery, and an
+unfinished save stays mounted while the other sections say so.
 
 ## Theme and appearance
 
