@@ -535,13 +535,13 @@ holdings-moved refusal by its `opening_holdings_moved` code
 (`REGISTER_OPENING_HOLDINGS_MOVED_CODE`). A wallet's proof is worded as the holder's own proof on
 Ledova, never as a verification by Ledova.
 
-Every decision uses the preview-first `useRegisterDecision`, in a dialog or the web investor
-allotment's main-page review. It previews the exact decision, its unmet requirements in words and
+Every decision uses the preview-first `useRegisterDecision`, in a dialog, the web investor
+allotment's main-page review or mobile Issue shares' review in place of its list. It previews the exact decision, its unmet requirements in words and
 its register effect, takes a rejection reason
 ([how a company decision works](../business/README.md#how-a-company-decision-works)), and confirms
 with a retry key reused only for the same preview while the step's appointment is still the one
-previewed. The web investor's final Approve sends one combined approval-and-issue command, never
-an approval followed by a client-side application request. On mobile the decision closes when a
+previewed. The investor's final Approve, on the web and mobile, sends one combined
+approval-and-issue command, never an approval followed by a client-side application request. On mobile the decision closes when a
 refresh withdraws its step. `useDiscrepancyAcknowledgement`
 takes the reason for
 [acknowledging a discrepancy](../business/register.md#acknowledging-a-discrepancy), keeps the

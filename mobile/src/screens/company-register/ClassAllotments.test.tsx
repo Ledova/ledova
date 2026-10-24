@@ -63,7 +63,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it('recovers the fully paid company allotment once, separates approval from ISSUE and hides private sources after appointment loss', async () => {
+it('recovers the fully paid company allotment once, approves and issues it in one recovered decision and hides private sources after appointment loss', async () => {
   mockSection = 'issue';
   resetFiles();
   let keys = 0;
@@ -167,7 +167,16 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
       throw new Error('Synthetic interrupted preparation response');
     }
     if (url === URLS.REGISTER_ALLOTMENT_PREVIEW(rows[0].uuid))
-      return { data: { ...allotmentPreview(rows[0]), ...(incompleteImpact ? { currentHolders: undefined } : {}) } };
+      return {
+        data: {
+          ...allotmentPreview(rows[0]),
+          completeIssue: (body as RegisterAllotmentDecideRequest).completeIssue === true,
+          applyAppointment:
+            (body as RegisterAllotmentDecideRequest).applyAppointment ??
+            (body as RegisterAllotmentDecideRequest).appointment,
+          ...(incompleteImpact ? { currentHolders: undefined } : {}),
+        },
+      };
     if (url === URLS.REGISTER_ALLOTMENT_DECIDE(rows[0].uuid)) {
       const request = body as RegisterAllotmentDecideRequest;
       if (request.kind === 'approve' && staleApproval) {
@@ -178,7 +187,7 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
       }
       if (!rows[0].decisions.some((decision) => decision.idempotencyKey === request.idempotencyKey))
         rows = [allotmentDecision(rows[0], request)];
-      if (request.kind === 'apply' && !interruptedIssue) {
+      if (request.kind === 'approve' && request.completeIssue && !interruptedIssue) {
         interruptedIssue = true;
         failedRead = true;
         throw new Error('Synthetic interrupted issue response');
@@ -236,123 +245,116 @@ it('recovers the fully paid company allotment once, separates approval from ISSU
   await waitFor(() => expect(view.queryByRole('button', { name: 'Close allotment form' })).toBeNull());
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_EVIDENCE)).toHaveLength(3);
-  expect(view.queryByRole('button', { name: /^Record issue the external allotment/ })).toBeNull();
+  expect(view.queryByRole('button', { name: /^(Record issue|Shares recorded) for external allotment/ })).toBeNull();
   incompleteImpact = true;
-  await fireEvent.press(view.getByRole('button', { name: /^Approve the external allotment/ }));
+  await fireEvent.press(view.getByRole('button', { name: /^Review and approve for external allotment/ }));
   await view.findByText(COPY.OWNERSHIP_UNAVAILABLE);
-  expect(view.getByRole('button', { name: 'Confirm' })).toBeDisabled();
+  expect(view.getByRole('button', { name: 'Approve' })).toBeDisabled();
   expect(rows[0].decisions).toHaveLength(0);
   await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
-  await fireEvent.press(view.getByRole('button', { name: /^Reject the external allotment/ }));
+  await fireEvent.press(view.getByRole('button', { name: /^Reject for external allotment/ }));
   await fireEvent.changeText(view.getByLabelText(COPY.REJECTION_REASON), 'Withdraw instruction');
-  await fireEvent.press(view.getByRole('button', { name: 'Preview rejection' }));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Confirm' })).not.toBeDisabled());
-  expect(view.queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
+  await fireEvent.press(view.getByRole('button', { name: 'Preview the rejection' }));
+  await waitFor(() => expect(view.getByRole('button', { name: 'Reject allotment' })).not.toBeDisabled());
+  expect(view.queryByText('Ownership impact')).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
   incompleteImpact = false;
-  await fireEvent.press(view.getByRole('button', { name: /^Approve the external allotment/ }));
-  await waitFor(() => expect(view.getByRole('button', { name: 'Confirm' })).not.toBeDisabled());
-  await fireEvent.press(view.getByRole('button', { name: 'Confirm' }));
+  await fireEvent.press(view.getByRole('button', { name: /^Review and approve for external allotment/ }));
+  await waitFor(() => expect(view.getByRole('button', { name: 'Approve' })).not.toBeDisabled());
+  await fireEvent.press(view.getByRole('button', { name: 'Approve' }));
   await view.findByText('The ownership snapshot changed. Preview again.');
   expect(rows[0].decisions).toHaveLength(0);
   expect(rows[0].registerEntry).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
-  for (const kind of ['approve', 'apply'] as const) {
-    await fireEvent.press(
-      view.getByRole('button', {
-        name: new RegExp(`^${kind === 'apply' ? 'Record issue' : COPY.DECISIONS[kind]} the external allotment`),
-      }),
-    );
-    const confirm = await view.findByRole('button', { name: 'Confirm' });
-    await waitFor(() => expect(confirm).not.toBeDisabled());
-    expect(view.getAllByText('Company issue date').length).toBeGreaterThan(1);
-    expect(view.getAllByText('10 October 2026').length).toBeGreaterThan(1);
-    expect(view.getByText('Ordinary shares (ORD)')).toBeTruthy();
-    expect(view.getByText('AUD 2.5000')).toBeTruthy();
-    expect(view.getByText('100 shares · 100.00%')).toBeTruthy();
-    expect(view.getByText(COPY.OWNERSHIP_NOTE)).toBeTruthy();
-    await fireEvent.press(confirm);
-    await waitFor(() => expect(rows[0].decisions).toHaveLength(kind === 'approve' ? 1 : 2));
-    if (kind === 'apply') {
-      await view.findByRole('button', { name: /^Recover record issue receipt/ });
-      const original = post.mock.calls.filter(
+  await fireEvent.press(view.getByRole('button', { name: /^Review and approve for external allotment/ }));
+  const confirm = await view.findByRole('button', { name: 'Approve' });
+  await waitFor(() => expect(confirm).not.toBeDisabled());
+  expect(view.getByRole('header', { name: 'Review share issue' })).toBeTruthy();
+  expect(view.getByRole('radio', { name: REGISTER.token.name })).toBeDisabled();
+  expect(view.getByText('10 October 2026')).toBeTruthy();
+  expect(view.getByText('Ordinary shares (ORD)')).toBeTruthy();
+  expect(view.getByText('AUD 2.5000')).toBeTruthy();
+  expect(view.getByText('100 shares · 100.00%')).toBeTruthy();
+  expect(view.queryByRole('button', { name: 'Record issue' })).toBeNull();
+  await fireEvent.press(confirm);
+  await waitFor(() => expect(rows[0].decisions).toHaveLength(2));
+  await view.findByRole('button', { name: 'Recover original decision receipt' });
+  await fireEvent.press(view.getByRole('button', { name: 'Cancel' }));
+  await view.findByRole('button', { name: /^Recover approve receipt/ });
+  const combined = () =>
+    post.mock.calls
+      .filter(
         ([url, body]) =>
           url === URLS.REGISTER_ALLOTMENT_DECIDE(rows[0].uuid) &&
-          (body as RegisterAllotmentDecideRequest).kind === 'apply',
-      )[0][1];
-      const previews = post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT_PREVIEW(rows[0].uuid)).length;
-      await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
-      await view.findByText(/External allotments could not be loaded/);
-      expect(view.queryByRole('header', { name: ALLOTMENT_REQUEST.name })).toBeNull();
-      failedPreferences = true;
-      await act(async () => {
-        await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
-      });
-      expect(view.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
-      listed = false;
-      await act(async () => {
-        await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'classes'] });
-      });
-      expect(view.queryByText('Other Company')).toBeNull();
-      expect(view.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
-      const retryRegister = await view.findByRole('button', { name: 'Retry register' });
-      listed = true;
-      failedRead = false;
-      failedPreferences = false;
-      appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
-      await fireEvent.press(retryRegister);
-      const retryAllotments = await view.findByRole('button', {
-        name: /^(Retry external allotments|Refresh share issues)$/,
-      });
-      await waitFor(() => expect(retryAllotments).not.toBeDisabled());
-      await fireEvent.press(retryAllotments);
-      await view.findByRole('button', { name: /^Recover record issue receipt/ });
-      mockSection = 'shareholders';
-      await view.rerender(
-        <QueryClientProvider client={client}>
-          <ApiClientProvider client={apiClient}>
-            <CompanyRegisterScreen />
-          </ApiClientProvider>
-        </QueryClientProvider>,
-      );
-      await view.findByText('100 · 100.00%');
-      mockSection = 'awards';
-      await view.rerender(
-        <QueryClientProvider client={client}>
-          <ApiClientProvider client={apiClient}>
-            <CompanyRegisterScreen />
-          </ApiClientProvider>
-        </QueryClientProvider>,
-      );
-      expect(view.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
-      mockSection = 'issue';
-      await view.rerender(
-        <QueryClientProvider client={client}>
-          <ApiClientProvider client={apiClient}>
-            <CompanyRegisterScreen />
-          </ApiClientProvider>
-        </QueryClientProvider>,
-      );
-      await fireEvent.press(await view.findByRole('button', { name: /^Recover record issue receipt/ }));
-      await waitFor(() => expect(view.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull());
-      expect(
-        post.mock.calls
-          .filter(
-            ([url, body]) =>
-              url === URLS.REGISTER_ALLOTMENT_DECIDE(rows[0].uuid) &&
-              (body as RegisterAllotmentDecideRequest).kind === 'apply',
-          )
-          .map(([, body]) => body),
-      ).toEqual([original, original]);
-      expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT_PREVIEW(rows[0].uuid))).toHaveLength(
-        previews,
-      );
-      expect(rows[0].decisions).toHaveLength(2);
-    }
-
-    await waitFor(() => expect(view.queryByRole('button', { name: 'Confirm' })).toBeNull());
-    if (kind === 'approve') expect(rows[0].registerEntry).toBeNull();
-  }
+          (body as RegisterAllotmentDecideRequest).idempotencyKey ===
+            rows[0].decisions.find((decision) => decision.completeIssue)?.idempotencyKey,
+      )
+      .map(([, body]) => body);
+  const original = combined()[0];
+  expect(original).toEqual(
+    expect.objectContaining({ kind: 'approve', completeIssue: true, applyAppointment: APPOINTMENT.uuid }),
+  );
+  const previews = post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT_PREVIEW(rows[0].uuid)).length;
+  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await view.findByText(/External allotments could not be loaded/);
+  expect(view.queryByRole('header', { name: ALLOTMENT_REQUEST.name })).toBeNull();
+  failedPreferences = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
+  });
+  expect(view.queryByRole('button', { name: /^Recover approve receipt/ })).toBeNull();
+  listed = false;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'classes'] });
+  });
+  expect(view.queryByText('Other Company')).toBeNull();
+  expect(view.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
+  const retryRegister = await view.findByRole('button', { name: 'Retry register' });
+  listed = true;
+  failedRead = false;
+  failedPreferences = false;
+  appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
+  await fireEvent.press(retryRegister);
+  const retryAllotments = await view.findByRole('button', {
+    name: /^(Retry external allotments|Refresh share issues)$/,
+  });
+  await waitFor(() => expect(retryAllotments).not.toBeDisabled());
+  await fireEvent.press(retryAllotments);
+  await view.findByRole('button', { name: /^Recover approve receipt/ });
+  mockSection = 'shareholders';
+  await view.rerender(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <CompanyRegisterScreen />
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  await view.findByText('100 · 100.00%');
+  mockSection = 'awards';
+  await view.rerender(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <CompanyRegisterScreen />
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  expect(view.queryByRole('button', { name: /^Recover approve receipt/ })).toBeNull();
+  mockSection = 'issue';
+  await view.rerender(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <CompanyRegisterScreen />
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  await fireEvent.press(await view.findByRole('button', { name: /^Recover approve receipt/ }));
+  await waitFor(() => expect(view.queryByRole('button', { name: /^Recover approve receipt/ })).toBeNull());
+  expect(combined()).toEqual([original, original]);
+  expect(post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT_PREVIEW(rows[0].uuid))).toHaveLength(
+    previews,
+  );
+  expect(rows[0].decisions).toHaveLength(2);
+  expect(view.queryByRole('button', { name: /^Review and approve for external allotment/ })).toBeNull();
   await fireEvent.press(view.getByRole('button', { name: `Details and documents for ${ALLOTMENT_REQUEST.name}` }));
   expect(view.queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
   await view.findByText('entry-a');

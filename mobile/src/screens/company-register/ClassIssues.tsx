@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
 import type { OwnCompanyAppointment, RegisterStep, TokenHoldersResponse } from '@ledova/shared';
 import { Action, Section } from '../../components/Ledger';
@@ -31,7 +32,22 @@ export function ClassIssues({
   onOpenClass: () => void;
 }) {
   const styles = useCompanyStyles();
-  const investor = useInvestorIssues({ company, register, epoch, sourceReady, onHeldChange, onSetUp, onOpenClass });
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  const onReviewChange = useCallback(
+    (uuid: string, open: boolean) => setReviewing((current) => (open ? uuid : current === uuid ? null : current)),
+    [],
+  );
+  const investor = useInvestorIssues({
+    company,
+    register,
+    epoch,
+    sourceReady,
+    onHeldChange,
+    onSetUp,
+    onOpenClass,
+    reviewing,
+    onReviewChange,
+  });
   const nonPaid = useNonPaidIssues({
     epoch,
     company,
@@ -42,23 +58,29 @@ export function ClassIssues({
     onPrepare: onPrepareGrant,
     sourceReady,
     onHeldChange,
+    reviewing,
+    onReviewChange,
   });
   return (
     <>
-      {investor.setup}
-      <Section title="Share issues">
+      {!reviewing && investor.setup}
+      <Section title={reviewing ? 'Review share issue' : 'Share issues'}>
         {investor.status}
         {nonPaid.status}
-        {investor.empty && nonPaid.empty && <Text style={styles.muted}>No share issues recorded yet.</Text>}
+        {!reviewing && investor.empty && nonPaid.empty && (
+          <Text style={styles.muted}>No share issues recorded yet.</Text>
+        )}
         {investor.records}
         {nonPaid.records}
-        <Action
-          label="Refresh share issues"
-          disabled={!sourceReady || investor.refreshing || nonPaid.refreshing}
-          onPress={() => void Promise.allSettled([investor.refresh(), nonPaid.refresh()])}
-        />
+        {!reviewing && (
+          <Action
+            label="Refresh share issues"
+            disabled={!sourceReady || investor.refreshing || nonPaid.refreshing}
+            onPress={() => void Promise.allSettled([investor.refresh(), nonPaid.refresh()])}
+          />
+        )}
       </Section>
-      {(investor.prepare || nonPaid.prepare) && (
+      {!reviewing && (investor.prepare || nonPaid.prepare) && (
         <View style={styles.group}>
           {investor.prepare}
           {nonPaid.prepare}

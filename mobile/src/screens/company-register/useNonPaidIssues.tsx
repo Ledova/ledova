@@ -3,8 +3,10 @@ import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_GRANT_COPY as COPY,
+  appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,
   type OwnCompanyAppointment,
+  type RegisterDecisionKind,
   type RegisterStep,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -31,6 +33,8 @@ export function useNonPaidIssues({
   onPrepare,
   sourceReady,
   onHeldChange,
+  reviewing,
+  onReviewChange,
 }: {
   epoch: number;
   company: string;
@@ -41,6 +45,8 @@ export function useNonPaidIssues({
   onPrepare: () => void;
   sourceReady: boolean;
   onHeldChange?: (key: string, held: boolean) => void;
+  reviewing: string | null;
+  onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const styles = useCompanyStyles();
   const sourceAvailable = useRef(sourceReady);
@@ -84,6 +90,19 @@ export function useNonPaidIssues({
     )
       throw new Error('Refresh the register and your current company authority.');
   };
+  const supported = register.initialized && register.token.status === 'draft';
+  const newEffectGuard = (kind: RegisterDecisionKind) => {
+    guard();
+    if (
+      !supported ||
+      !appointmentForRegisterStep(
+        queryClient.getQueryData<OwnCompanyAppointment[]>(registerAppointmentsKey(epoch)) ?? [],
+        company,
+        kind,
+      )
+    )
+      throw new Error('Refresh the register and your appointment before a new decision.');
+  };
   const refresh = async () => {
     await Promise.all([
       refreshHolders(),
@@ -118,7 +137,7 @@ export function useNonPaidIssues({
       ) : null}
     </>
   );
-  const prepare = privateReady && steps?.prepare && register.initialized && register.token.status === 'draft' && (
+  const prepare = privateReady && steps?.prepare && supported && (
     <Action
       label={COPY.PREPARE}
       accessibilityLabel={`${COPY.PREPARE} for ${register.token.name}`}
@@ -130,12 +149,15 @@ export function useNonPaidIssues({
       key={grant.uuid}
       grant={grant}
       epoch={epoch}
-      steps={steps}
+      steps={steps ?? {}}
       last={index === grants.data!.length - 1}
       onSettled={refresh}
-      visible={privateReady}
+      visible={privateReady && (!reviewing || reviewing === grant.uuid)}
       guard={guard}
+      newEffectGuard={newEffectGuard}
+      classLabel={`${register.token.name} (${register.token.symbol})`}
       onHeldChange={recordHeld}
+      onReviewChange={onReviewChange}
     />
   ));
   return {
