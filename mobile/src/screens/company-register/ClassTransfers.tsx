@@ -75,7 +75,7 @@ export function ClassTransfers({
   const supported = register.initialized && draft;
   const recordGuard = () => {
     guard?.();
-    const state = queryClient.getQueryState(transfersKey(epoch, register.token.uuid));
+    const state = queryClient.getQueryState(transfersKey(epoch, token));
     if (state?.status !== 'success' || state.fetchStatus !== 'idle')
       throw new Error('Refresh the register records before continuing.');
   };
@@ -84,8 +84,8 @@ export function ClassTransfers({
       transfers.refetch(),
       refreshHolders(),
       refreshAppointments(),
-      queryClient.refetchQueries({ queryKey: entriesKey(epoch, register.token.uuid), type: 'active' }),
-      queryClient.invalidateQueries({ queryKey: transferMembersKey(epoch, register.token.uuid) }),
+      queryClient.refetchQueries({ queryKey: entriesKey(epoch, token), type: 'active' }),
+      queryClient.invalidateQueries({ queryKey: transferMembersKey(epoch, token) }),
     ]);
   const records = transfers.data ?? [];
   return (
