@@ -8,12 +8,12 @@ import {
   getCompanyTokenIssuances,
   getCapitalIncreases,
   getShareIssuanceRequests,
+  ownershipSummary,
   wholeShares,
   useSubmissionOwner,
   createUserFriendlyError,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { ownershipSummary } from '@pages/company/shared/summary';
 import { guarded } from '@pages/company/ledger/shared/registerReads';
 import { useRecordFeed } from '@pages/company/ledger/shared/useRecordFeed';
 

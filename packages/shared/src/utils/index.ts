@@ -156,6 +156,7 @@ export {
 export { isPreparedRegisterDeployment } from './register-deployments';
 export { isWalletNominationReceipt, isPreparedCompanyWalletInstruction } from './company-wallets';
 export { isPreparedRegisterTransfer } from './register-transfers';
+export { ownershipSummary } from './register-ownership';
 export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
 export { MAX_ORDER_SHARES, MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
 export { marketAmount, marketQuantity, marketShares, priceCents } from './market-data';
