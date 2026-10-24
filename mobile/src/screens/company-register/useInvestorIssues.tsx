@@ -201,12 +201,14 @@ export function useInvestorIssues({
       ) : null}
     </>
   );
-  const form = editing && (
+  const form = (open || !!editing) && (
     <View style={open ? styles.group : HIDDEN}>
-      <Text style={styles.muted}>
-        Record the investment agreement and company receipt, then prepare the share issue for approval.
-      </Text>
-      {members.isPending ? (
+      {editing && (
+        <Text style={styles.muted}>
+          Record the investment agreement and company receipt, then prepare the share issue for approval.
+        </Text>
+      )}
+      {members.isFetching && !members.data ? (
         <Text style={styles.muted}>Loading retained recipients…</Text>
       ) : members.isError ? (
         <View style={styles.group}>
@@ -220,35 +222,37 @@ export function useInvestorIssues({
           />
         </View>
       ) : null}
-      <AllotmentForm
-        key={`${company}/${register.token.uuid}/${editing.uuid}/${issueMember ?? ''}`}
-        company={company}
-        token={register.token.uuid}
-        epoch={epoch}
-        classLabel={`${register.token.name} (${register.token.symbol})`}
-        people={peopleFrom(members.data)}
-        initialMember={issueMember}
-        appointment={editing}
-        guard={financialGuard}
-        newEffectGuard={() => {
-          if (
-            !writeReady.current ||
-            appointmentForRegisterStep(latestAppointments.current, company, 'prepare')?.uuid !== editing.uuid
-          )
-            throw new Error('Refresh the register and your preparation appointment.');
-        }}
-        blocked={blocked || members.isFetching}
-        visible={privateReady && members.isSuccess && !members.isFetching}
-        onHeldChange={setFormHeld}
-        onCancel={() => onClosed()}
-        onRecorded={async () => {
-          guard();
-          await refresh(true);
-          guard();
-          setEditing(null);
-          onClosed(true);
-        }}
-      />
+      {editing && (
+        <AllotmentForm
+          key={`${company}/${register.token.uuid}/${editing.uuid}/${issueMember ?? ''}`}
+          company={company}
+          token={register.token.uuid}
+          epoch={epoch}
+          classLabel={`${register.token.name} (${register.token.symbol})`}
+          people={peopleFrom(members.data)}
+          initialMember={issueMember}
+          appointment={editing}
+          guard={financialGuard}
+          newEffectGuard={() => {
+            if (
+              !writeReady.current ||
+              appointmentForRegisterStep(latestAppointments.current, company, 'prepare')?.uuid !== editing.uuid
+            )
+              throw new Error('Refresh the register and your preparation appointment.');
+          }}
+          blocked={blocked || members.isFetching}
+          visible={privateReady && members.isSuccess && !members.isFetching}
+          onHeldChange={setFormHeld}
+          onCancel={() => onClosed()}
+          onRecorded={async () => {
+            guard();
+            await refresh(true);
+            guard();
+            setEditing(null);
+            onClosed(true);
+          }}
+        />
+      )}
     </View>
   );
   const records = allotments.data?.map((allotment) => (
