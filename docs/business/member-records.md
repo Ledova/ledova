@@ -143,6 +143,10 @@ It reads **fulfilled** only once a real file exists, which the member downloads 
 current access, checked against its record. Nothing is signed automatically and no legal
 recognition is claimed.
 
+Web **Documents** keeps each share change, its latest request status and its certificate actions
+together. **Record details** holds previous requests; **Other certificate requests** keeps requests
+for other classes or entries not shown, including their permitted withdrawals and downloads.
+
 ## Inspection copies
 
 Anyone may ask a company for a copy of its register, and the company must provide it within 7 days
