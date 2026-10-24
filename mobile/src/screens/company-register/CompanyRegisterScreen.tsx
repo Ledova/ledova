@@ -67,7 +67,13 @@ const HIDDEN = { display: 'none' } as const;
 function CompanyRegister({ epoch }: { epoch: number }) {
   const route = useRoute();
   const params = route.params as
-    | { section?: CompanyRegisterSection; companyUuid?: string; tokenUuid?: string; issue?: IssueRequest }
+    | {
+        section?: CompanyRegisterSection;
+        companyUuid?: string;
+        tokenUuid?: string;
+        issue?: IssueRequest;
+        select?: string;
+      }
     | undefined;
   const section = params?.section ?? 'ledger';
   const preferred =
@@ -131,7 +137,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
   const layout = useThemedStyles((theme) => ({ stack: { gap: theme.spacing.lg } }));
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const routeToken = params?.tokenUuid;
-  const routeSelection = `${routeToken ?? ''}/${params?.issue?.key ?? ''}`;
+  const routeSelection = `${routeToken ?? ''}/${params?.issue?.key ?? ''}/${params?.select ?? ''}`;
   const [chosenToken, setChosenToken] = useState(routeToken);
   const [seenRouteSelection, setSeenRouteSelection] = useState(routeSelection);
   if (routeSelection !== seenRouteSelection) {
