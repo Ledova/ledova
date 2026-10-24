@@ -1,9 +1,8 @@
 import { LoadError, Loading, Section } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { SearchSelect } from '@components/SearchSelect';
-import type { OrderSubmissionOwner } from '@ledova/shared';
+import { REGISTER_MEMBER_DOCUMENT_CATEGORIES, type OrderSubmissionOwner } from '@ledova/shared';
 import { DocumentAttachments } from './DocumentAttachments';
-import { DOCUMENT_CATEGORIES } from './documentAttachmentDraft';
 import { useMemberDocuments, type DocumentHolding } from './useMemberDocuments';
 
 export function MemberDocuments(props: {
@@ -52,7 +51,7 @@ function OwnMemberDocuments(props: Parameters<typeof useMemberDocuments>[0] & { 
                   <div className="min-w-0">
                     <p className="break-words text-sm font-medium text-text-primary">{document.snapshot.name}</p>
                     <p className="mt-1 text-xs text-text-muted">
-                      {DOCUMENT_CATEGORIES[document.category]}
+                      {REGISTER_MEMBER_DOCUMENT_CATEGORIES[document.category]}
                       {props.holdings.find(
                         (holding) => holding.member === document.member && holding.token === document.token,
                       )?.label &&

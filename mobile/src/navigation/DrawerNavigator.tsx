@@ -128,7 +128,7 @@ const COMPANY_SCREEN_SECTIONS: Partial<Record<string, CompanyRegisterSection>> =
   PrepareRegisterCorrection: 'corrections',
   PrepareRegisterOpening: 'corrections',
   PrepareRegisterLink: 'corrections',
-  PrepareRegisterParticulars: 'corrections',
+  PrepareRegisterParticulars: 'shareholders',
 } satisfies Partial<Record<keyof CompanyStackParamList, CompanyRegisterSection>>;
 
 interface NavigationTree {
