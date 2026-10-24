@@ -1,22 +1,20 @@
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 import {
+  formatDate,
   formatShareCount,
   HOLDER_TYPE_LABELS,
   REGISTER_COPY,
-  REGISTER_PARTICULARS_COPY,
+  REGISTER_CORRECTION_COPY,
+  shortReference,
   TECHNICAL_SHARE_LIMIT,
+  type RegisterEntryKind,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Action, Row, Rows } from '../Ledger';
+import { Action, Disclosure, Row, Rows, Section } from '../Ledger';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
-export function ClassRegister({
-  register,
-  onChangeParticulars,
-}: {
-  register: TokenHoldersResponse;
-  onChangeParticulars?: (member: string) => void;
-}) {
+export function ClassRegister({ register }: { register: TokenHoldersResponse }) {
   const styles = useCompanyStyles();
   return (
     <View style={styles.group}>
@@ -75,58 +73,96 @@ export function ClassRegister({
                       </Text>
                     ))
                   )}
-                  {onChangeParticulars && (
-                    <Action
-                      label={REGISTER_PARTICULARS_COPY.PREPARE}
-                      accessibilityLabel={`${REGISTER_PARTICULARS_COPY.PREPARE} for ${label} in ${register.token.name}`}
-                      onPress={() => onChangeParticulars(holder.member)}
-                    />
-                  )}
                 </View>
               );
             })
           )}
-          {!!register.formerMembers?.length && (
-            <View style={styles.group}>
-              <Text accessibilityRole="header" style={styles.heading}>
-                {REGISTER_COPY.FORMER_TITLE} · {register.formerMembers.length}
-              </Text>
-              <Text style={styles.muted}>{REGISTER_COPY.FORMER_NOTE}</Text>
-              {register.formerMembersStale && (
-                <Text style={styles.muted}>The former-member history needs a refresh before relying on it.</Text>
-              )}
-              {register.formerMembers.map((former, index) => (
-                <View
-                  key={former.uuid}
-                  style={[styles.entry, index === register.formerMembers.length - 1 && styles.lastEntry]}
-                >
-                  <Text style={styles.heading}>{former.name || 'Name not recorded'}</Text>
-                  <Rows>
-                    {former.member && <Row label="Member ID">{former.member}</Row>}
-                    <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
-                    <Row label="Ceased on">{former.ceasedOn}</Row>
-                    <Row label="Identity source">{former.identitySourceDisplay}</Row>
-                    {former.sourceEntry && <Row label="Cessation entry">{former.sourceEntry}</Row>}
-                    {former.sourceEntrySequence !== null && (
-                      <Row label="Cessation entry sequence">{former.sourceEntrySequence}</Row>
-                    )}
-                    {former.sourceEntryKind && <Row label="Cessation entry kind">{former.sourceEntryKind}</Row>}
-                    {former.sourceEffectiveOn && <Row label="Source effective date">{former.sourceEffectiveOn}</Row>}
-                    {former.corrects && <Row label="Corrects entry">{former.corrects}</Row>}
-                    {former.correctedBy && <Row label="Corrected by entry">{former.correctedBy}</Row>}
-                    {former.returnedOn && <Row label="Returned on">{former.returnedOn}</Row>}
-                    {former.returnedEntry && <Row label="Return entry">{former.returnedEntry}</Row>}
-                    {former.walletAddress && <Row label="Recorded wallet">{former.walletAddress}</Row>}
-                    {former.ceasedAtBlock !== null && (
-                      <Row label="Recorded cessation block">{former.ceasedAtBlock}</Row>
-                    )}
-                  </Rows>
-                </View>
-              ))}
-            </View>
-          )}
+          <FormerMembers register={register} />
         </>
       )}
     </View>
+  );
+}
+
+const PAGE_SIZE = 25;
+
+export function FormerMembers({ register }: { register: TokenHoldersResponse }) {
+  const styles = useCompanyStyles();
+  const [open, setOpen] = useState(false);
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const formers = register.formerMembers ?? [];
+  if (!formers.length) return null;
+  const visible = formers.slice(0, shown);
+  return (
+    <Disclosure
+      open={open}
+      onToggle={() => setOpen((value) => !value)}
+      summary={
+        <Text style={styles.heading}>
+          {REGISTER_COPY.FORMER_TITLE} · {formers.length}
+        </Text>
+      }
+    >
+      <View style={styles.group}>
+        <Text style={styles.muted}>{REGISTER_COPY.FORMER_NOTE}</Text>
+        {register.formerMembersStale && (
+          <Text style={styles.muted}>The former-member history needs a refresh before relying on it.</Text>
+        )}
+        {visible.map((former, index) => (
+          <View key={former.uuid} style={[styles.entry, index === visible.length - 1 && styles.lastEntry]}>
+            <Text style={styles.heading}>{former.name || 'Name not recorded'}</Text>
+            <Rows>
+              {former.member && <Row label="Member reference">{shortReference(former.member)}</Row>}
+              <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
+              <Row label="Ceased on">{formatDate(former.ceasedOn)}</Row>
+              <Row label="Identity source">{former.identitySourceDisplay}</Row>
+              {former.sourceEntry && <Row label="Cessation entry">{shortReference(former.sourceEntry)}</Row>}
+              {former.sourceEntrySequence !== null && (
+                <Row label="Cessation entry sequence">{former.sourceEntrySequence}</Row>
+              )}
+              {former.sourceEntryKind && (
+                <Row label="Cessation entry kind">
+                  {REGISTER_CORRECTION_COPY.ENTRY_KINDS[former.sourceEntryKind as RegisterEntryKind]}
+                </Row>
+              )}
+              {former.sourceEffectiveOn && (
+                <Row label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Row>
+              )}
+              {former.corrects && <Row label="Corrects entry">{shortReference(former.corrects)}</Row>}
+              {former.correctedBy && <Row label="Corrected by entry">{shortReference(former.correctedBy)}</Row>}
+              {former.returnedOn && <Row label="Returned on">{formatDate(former.returnedOn)}</Row>}
+              {former.returnedEntry && <Row label="Return entry">{shortReference(former.returnedEntry)}</Row>}
+              {former.walletAddress && <Row label="Recorded wallet">{former.walletAddress}</Row>}
+              {former.ceasedAtBlock !== null && <Row label="Recorded cessation block">{former.ceasedAtBlock}</Row>}
+            </Rows>
+          </View>
+        ))}
+        {formers.length > shown && (
+          <Action
+            label="Load more former shareholders"
+            accessibilityLabel={`Load more former shareholders of ${register.token.name}`}
+            onPress={() => setShown(shown + PAGE_SIZE)}
+          />
+        )}
+      </View>
+    </Disclosure>
+  );
+}
+
+export function FormerShareholders({ registers }: { registers: TokenHoldersResponse[] }) {
+  const styles = useCompanyStyles();
+  const classes = registers.filter((register) => register.initialized && register.formerMembers?.length);
+  if (!classes.length) return null;
+  return (
+    <Section title="Former shareholders">
+      {classes.map((register) => (
+        <View key={register.token.uuid} style={styles.group}>
+          <Text accessibilityRole="header" style={styles.heading}>
+            {register.token.name} · {register.token.symbol}
+          </Text>
+          <FormerMembers register={register} />
+        </View>
+      ))}
+    </Section>
   );
 }

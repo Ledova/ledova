@@ -617,7 +617,8 @@ withdrawal, revocation and expiry. While another page or outcome loads, its rows
 their View buttons wait; mobile still reads every page of the queue. Shareholders searches and pages
 the register the page has already read in full, since its ownership totals need every holding: the
 same box and pager, matching every word ignoring case and accents (`searchRows` in
-`packages/shared/src/utils/search.ts`), with the share class as its filter.
+`packages/shared/src/utils/search.ts`), with the share class as its filter. Mobile's Shareholders
+searches the same way, with the class as radio buttons, and loads 25 more people at a time.
 
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
 your members, a class's register entries, a share class's issuance requests, authorised share

@@ -21,6 +21,7 @@ export function Field({
   keyboardType,
   multiline,
   maxLength,
+  clearable,
   onChange,
 }: {
   label: string;
@@ -30,6 +31,7 @@ export function Field({
   keyboardType?: KeyboardTypeOptions;
   multiline?: boolean;
   maxLength?: number;
+  clearable?: boolean;
   onChange: (value: string) => void;
 }) {
   const styles = useCompanyStyles();
@@ -37,6 +39,7 @@ export function Field({
     <View style={styles.group}>
       <Text style={styles.text}>{label}</Text>
       <TextInput
+        clearButtonMode={clearable ? 'while-editing' : undefined}
         accessibilityLabel={accessibilityLabel ?? label}
         style={styles.input}
         value={value}

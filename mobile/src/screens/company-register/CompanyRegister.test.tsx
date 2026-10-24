@@ -126,6 +126,7 @@ function defaultRead(url: string, number: number, token?: string): Promise<unkno
     return Promise.resolve(
       page([{ ...APPOINTMENT, company: shareClass.companyUuid, capabilities: ['read_register'] }]),
     );
+  if (url === URLS.REGISTER_PEOPLE) return Promise.resolve({ data: { company: shareClass.companyUuid, members: [] } });
   if (url === URLS.REGISTER_IMPORTS)
     return Promise.resolve(
       page(
@@ -325,6 +326,64 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
     { wrapper },
   );
   await setup.findByText('No share classes yet.');
+  mockSection = 'shareholders';
+  await setup.rerender(
+    <LedgerNavigationProvider>
+      <CompanyRegisterScreen />
+      <LedgerNavigationState />
+    </LedgerNavigationProvider>,
+  );
+  await setup.findByText('No current shareholders yet.');
+  const addPerson = await setup.findByRole('button', { name: 'Add person' });
+  await waitFor(() => expect(addPerson).not.toBeDisabled());
+  await fireEvent.press(addPerson);
+  await fireEvent.changeText(setup.getByLabelText('Name'), 'Sam Person');
+  await fireEvent.changeText(setup.getByLabelText('Residential address'), '1 Example Street');
+  jest
+    .mocked(apiClient.post)
+    .mockRejectedValueOnce({ response: { status: 503 } })
+    .mockImplementationOnce((_url, body) => {
+      const request = body as Record<string, string>;
+      return Promise.resolve({
+        data: {
+          uuid: request.operationId,
+          company: request.company,
+          member: request.member,
+          name: request.name,
+          residentialAddress: request.residentialAddress,
+          preparingAppointment: request.appointment,
+          createdAt: '2026-10-24T00:00:00Z',
+        },
+      }) as ReturnType<typeof apiClient.post>;
+    });
+  await fireEvent.press(setup.getAllByRole('button', { name: 'Add person' }).at(-1)!);
+  await fireEvent.press(await setup.findByRole('button', { name: 'Retry original save' }));
+  await setup.findByText('Sam Person added.');
+  const [operationId, member] = jest
+    .mocked(Crypto.randomUUID)
+    .mock.results.slice(-2)
+    .map(({ value }) => value);
+  const sent = {
+    operationId,
+    company: shareClass.companyUuid,
+    appointment: APPOINTMENT.uuid,
+    member,
+    name: 'Sam Person',
+    residentialAddress: '1 Example Street',
+  };
+  const options = { ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) };
+  expect(jest.mocked(apiClient.post).mock.calls).toEqual([
+    [URLS.REGISTER_PEOPLE, sent, options],
+    [URLS.REGISTER_PEOPLE, sent, options],
+  ]);
+  jest.mocked(apiClient.post).mockClear();
+  mockSection = 'ledger';
+  await setup.rerender(
+    <LedgerNavigationProvider>
+      <CompanyRegisterScreen />
+      <LedgerNavigationState />
+    </LedgerNavigationProvider>,
+  );
   await fireEvent.press(await setup.findByRole('button', { name: 'Add share class' }));
   expect(setup.getByTestId('ledger-navigation')).toHaveTextContent('{"blocked":true}');
   expect(setup.getAllByRole('button', { name: 'Add share class' })).toHaveLength(1);
@@ -560,7 +619,20 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   mockSection = 'shareholders';
   await view.rerender(<CompanyRegisterScreen />);
   expect(view.getAllByText('Alex Member').length).toBeGreaterThan(0);
-  expect(view.getByText('9,007,199,254,740,992 shares')).toBeTruthy();
+  expect(view.getByText('9,007,199,254,740,992 · 100.00%')).toBeTruthy();
+  const readAppointments = client.getQueryData(registerAppointmentsKey(epoch));
+  await act(() =>
+    client.setQueryData(registerAppointmentsKey(epoch), [
+      {
+        ...APPOINTMENT,
+        company: shareClass.companyUuid,
+        capabilities: ['read_register'],
+        revokedAt: '2020-01-01T00:00:00Z',
+      },
+    ]),
+  );
+  await waitFor(() => expect(view.queryByText('9,007,199,254,740,992 · 100.00%')).toBeNull());
+  await act(() => client.setQueryData(registerAppointmentsKey(epoch), readAppointments));
   mockSection = 'documents';
   await view.rerender(<CompanyRegisterScreen />);
   expect(view.getAllByText(REGISTER_COPY.PRIVACY_NOTE).length).toBeGreaterThan(0);

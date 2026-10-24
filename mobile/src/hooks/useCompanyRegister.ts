@@ -4,6 +4,7 @@ import {
   appointmentForRegisterStep,
   assertNextPageAdvances,
   canOpen,
+  getCompanyPeople,
   getCompanyTokenHolders,
   getOwnCompanyAppointments,
   getRegisterClasses,
@@ -22,6 +23,7 @@ import {
   getRegisterReconciliations,
   getRegisterWaitingWallets,
   hasWholeShares,
+  peopleFrom,
   readEveryPage,
   useSubmissionOwner,
   useLaterPages,
@@ -82,6 +84,7 @@ export const reconciliationKey = recordsKey('reconciliation');
 export const particularsKey = recordsKey('particulars');
 export const linksKey = recordsKey('links');
 export const waitingWalletsKey = recordsKey('waiting-wallets');
+export const peopleKey = recordsKey('people');
 export const registerAppointmentsKey = (epoch: number) => [...registerKey(epoch), 'appointments'];
 
 function distinct<Row>(rows: Row[], uuid: (row: Row) => string) {
@@ -283,6 +286,19 @@ export function useRegisterTransfers(epoch: number, company: string, token: stri
       if (rows.some((row) => row.token !== token || row.company !== company))
         throw new Error('The transfers do not belong to this share class');
       return rows.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+    },
+  });
+}
+
+export function useCompanyPeople(epoch: number, company: string, enabled = true) {
+  return useQuery({
+    queryKey: peopleKey(epoch, company),
+    enabled,
+    queryFn: async ({ signal }) => {
+      const { data } = await sessionRead(epoch, () =>
+        getCompanyPeople(apiClient, company, { ledovaSessionEpoch: epoch, signal }),
+      );
+      return peopleFrom({ ...data, awardRecipients: [] });
     },
   });
 }

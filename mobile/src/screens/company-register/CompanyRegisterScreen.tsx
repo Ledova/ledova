@@ -28,6 +28,7 @@ import { ClassRecords } from './ClassRecords';
 import { CreateClassForm } from './CreateClassForm';
 import { CompanyLinks } from './CompanyLinks';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
+import { CompanyPeople } from './CompanyPeople';
 import { CompanyPack } from './CompanyPack';
 import { GettingStarted } from './GettingStarted';
 import { CompanyParticulars } from './CompanyParticulars';
@@ -50,13 +51,7 @@ const SECTION_TITLES: Record<CompanyRegisterSection, string> = {
   company: DESTINATIONS.company.title,
 };
 
-const CLASS_SECTIONS: readonly CompanyRegisterSection[] = [
-  'issue',
-  'transfer',
-  'history',
-  'corrections',
-  'shareholders',
-];
+const CLASS_SECTIONS: readonly CompanyRegisterSection[] = ['issue', 'transfer', 'history', 'corrections'];
 
 const HELD_TASKS: Record<string, LedgerTask> = {
   allotments: 'issue',
@@ -98,6 +93,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
     setHeld(next);
   }, []);
   const memberHeld = useCallback((value: boolean) => onHeldChange('members', value), [onHeldChange]);
+  const peopleHeld = useCallback((value: boolean) => onHeldChange('people', value), [onHeldChange]);
   const companyCorrectionHeld = useCallback(
     (key: string, value: boolean) => onHeldChange(`corrections/company/${key}`, value),
     [onHeldChange],
@@ -130,15 +126,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
     }
   }
   const styles = useCompanyStyles();
-  const layout = useThemedStyles((theme) => ({
-    stack: { gap: theme.spacing.lg },
-    end: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      justifyContent: 'flex-end' as const,
-      gap: theme.spacing.sm,
-    },
-  }));
+  const layout = useThemedStyles((theme) => ({ stack: { gap: theme.spacing.lg } }));
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const routeToken = params?.tokenUuid;
   const [chosenToken, setChosenToken] = useState(routeToken);
@@ -156,6 +144,8 @@ function CompanyRegister({ epoch }: { epoch: number }) {
     .find(Boolean);
   const shownTask = heldTask ?? (isLedgerTask(section) ? section : undefined);
   const shown = shownTask && (section === 'ledger' || isLedgerTask(section)) ? shownTask : section;
+  const [peopleOpened, setPeopleOpened] = useState(false);
+  if (shown === 'shareholders' && !peopleOpened) setPeopleOpened(true);
   const page = useRef<ScrollView>(null);
   useEffect(() => {
     page.current?.scrollTo({ y: 0, animated: false });
@@ -229,15 +219,21 @@ function CompanyRegister({ epoch }: { epoch: number }) {
       {!company && companies.length > 0 && !classes.isPending && (
         <Text style={styles.muted}>Choose a company above.</Text>
       )}
+      {ownershipInvalid && (shown === 'ledger' || shown === 'shareholders') && (
+        <View style={styles.group}>
+          <Text accessibilityRole="alert" style={styles.error}>
+            We couldn’t load the complete register.
+          </Text>
+          <Action label="Retry register" disabled={isFetching} onPress={() => void refreshAll()} />
+        </View>
+      )}
+      {company && held.people && shown !== 'shareholders' && (
+        <View style={styles.group}>
+          <Text style={styles.muted}>A person save is unfinished. Return to its original form to finish it.</Text>
+          <Action label="Return to person form" onPress={() => navigation.setParams({ section: 'shareholders' })} />
+        </View>
+      )}
       <View style={shown === 'ledger' ? layout.stack : HIDDEN}>
-        {ownershipInvalid && (
-          <View style={styles.group}>
-            <Text accessibilityRole="alert" style={styles.error}>
-              We couldn’t load the complete register.
-            </Text>
-            <Action label="Retry register" disabled={isFetching} onPress={() => void refreshAll()} />
-          </View>
-        )}
         {company && ownershipReady && company.classes.length === 0 && (
           <Section title="Share classes">
             <Text style={styles.muted}>No share classes yet.</Text>
@@ -259,7 +255,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
             </Section>
           ))}
         {company && creation.canPrepare && sourceReady && !holding && (
-          <View style={layout.end}>
+          <View style={styles.actions}>
             <Action
               primary
               label="Add share class"
@@ -271,9 +267,12 @@ function CompanyRegister({ epoch }: { epoch: number }) {
           </View>
         )}
       </View>
-      {company && sourceReady && company.classes.length === 0 && shown !== 'ledger' && shown !== 'company' && (
-        <Text style={styles.muted}>No share classes recorded for {company.name}.</Text>
-      )}
+      {company &&
+        sourceReady &&
+        company.classes.length === 0 &&
+        !['ledger', 'shareholders', 'company'].includes(shown) && (
+          <Text style={styles.muted}>No share classes recorded for {company.name}.</Text>
+        )}
       {company && sourceReady && CLASS_SECTIONS.includes(shown) && shownRegisters.length > 0 && (
         <View style={styles.group}>
           <Text style={styles.muted}>Share class</Text>
@@ -335,13 +334,6 @@ function CompanyRegister({ epoch }: { epoch: number }) {
                   entryUuid: entry.uuid,
                 })
               }
-              onChangeParticulars={(member) =>
-                navigation.navigate('PrepareRegisterParticulars', {
-                  tokenUuid: uuid,
-                  companyUuid: company.uuid,
-                  memberUuid: member,
-                })
-              }
             />
           );
         })}
@@ -400,6 +392,27 @@ function CompanyRegister({ epoch }: { epoch: number }) {
               </>
             )}
           </View>
+          {peopleOpened && (
+            <View style={shown === 'shareholders' ? layout.stack : HIDDEN}>
+              <CompanyPeople
+                key={`people/${epoch}/${company.uuid}`}
+                epoch={epoch}
+                company={company.uuid}
+                registers={shownRegisters}
+                sourceReady={sourceReady}
+                ready={ownershipReady}
+                blocked={holding}
+                onHeldChange={peopleHeld}
+                onChangeParticulars={(member, token) =>
+                  navigation.navigate('PrepareRegisterParticulars', {
+                    tokenUuid: token,
+                    companyUuid: company.uuid,
+                    memberUuid: member,
+                  })
+                }
+              />
+            </View>
+          )}
           <View style={shown === 'company' ? layout.stack : HIDDEN}>
             {sourceReady && (
               <Action
