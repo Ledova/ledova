@@ -280,12 +280,32 @@ it('invites and associates a walletless member, recovers one exact request and r
   preferencesRefused = false;
   particulars = [];
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
-  fireEvent.change(await screen.findByLabelText('Certificate instruction reference'), {
+  fireEvent.click(await screen.findByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }));
+  const prepareCertificate = screen.getByRole('button', { name: `Prepare certificate (${MEMBER_RECORD.name})` });
+  expect(screen.queryByRole('textbox', { name: 'Company instruction' })).toBeNull();
+  fireEvent.click(prepareCertificate);
+  await screen.findByRole('heading', { name: 'Prepare certificate' });
+  expect(screen.queryByRole('heading', { name: 'Invitations' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Current member access' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Invite a member' })).toBeNull();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Company instruction' }), {
     target: { value: 'Synthetic recipient instruction' },
   });
-  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }));
-  fireEvent.click(screen.getByRole('button', { name: `Preview certificate for ${MEMBER_RECORD.name}` }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Confirm recipient certificate fulfilment' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(document.activeElement).toBe(prepareCertificate));
+  expect(
+    api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_FULFIL(FULFILLED_CERTIFICATE.uuid)),
+  ).toHaveLength(0);
+  fireEvent.click(prepareCertificate);
+  fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+  await screen.findByRole('heading', { name: 'Review certificate' });
+  expect(screen.getByText(`${memberRegister.token.name} · ${memberRegister.token.symbol}`)).toBeTruthy();
+  expect(screen.getByText('Unsigned certificate · 1 page')).toBeTruthy();
+  expect(screen.queryByRole('textbox', { name: 'Company instruction' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Invite a member' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Record details' }));
+  expect(screen.getByText('Synthetic recipient instruction')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Create certificate' }));
   await screen.findByText(/The unsigned recipient certificate is recorded/);
   expect(api.post).toHaveBeenCalledWith(
     URLS.MEMBER_CERTIFICATE_FULFIL(FULFILLED_CERTIFICATE.uuid),

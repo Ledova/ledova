@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
   FIELD_LIMITS,
+  formatDate,
   formatDateTime,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
@@ -28,6 +29,7 @@ export function CompanyMemberAccess({
   sourceReady = true,
   inviteMember,
   onHeldChange,
+  onEditingChange,
 }: {
   company: string;
   owner: OrderSubmissionOwner;
@@ -36,6 +38,7 @@ export function CompanyMemberAccess({
   sourceReady?: boolean;
   inviteMember?: string;
   onHeldChange?: (held: boolean) => void;
+  onEditingChange?: (editing: boolean) => void;
 }) {
   const {
     access,
@@ -76,6 +79,14 @@ export function CompanyMemberAccess({
     setInvitationView((current) => ({ ...current, open, receipt: access.invitationReceipt }));
   const [revokeMember, setRevokeMember] = useState('');
   const [revoking, setRevoking] = useState<{ uuid: string; name: string } | null>(null);
+  const certificateContext = `${company}:${owner.userUuid}:${owner.ownerAccountUuid}`;
+  const [certificateSelection, setCertificateSelection] = useState({ context: certificateContext, uuid: '' });
+  const certificateRequest = certificateSelection.context === certificateContext ? certificateSelection.uuid : '';
+  const setCertificateRequest = (uuid: string) => setCertificateSelection({ context: certificateContext, uuid });
+  if (certificateSelection.context !== certificateContext) setCertificateRequest('');
+  const certificateHeading = useRef<HTMLHeadingElement>(null);
+  const certificateOpeners = useRef(new Map<string, HTMLButtonElement>());
+  const certificateReturnFocus = useRef('');
   const invite = useRef<HTMLHeadingElement>(null);
   const inviteAction = useRef<HTMLDivElement>(null);
   const restoreInviteFocus = useRef(false);
@@ -96,11 +107,52 @@ export function CompanyMemberAccess({
   const associations = access.access?.associations ?? [];
   const particulars = access.requests?.particulars ?? [];
   const certificates = access.requests?.certificates ?? [];
+  const certificateTarget = access.certificateTarget;
+  const editCertificate = access.editCertificate;
+  const certificatePreviewing = !!certificateTarget;
+  const certificateOpen = !!certificateRequest || !!certificateTarget || access.retry?.kind === 'fulfil';
+  const selectedCertificate = certificates.find(
+    (item) => item.uuid === (certificateTarget?.preview.memberRequest ?? certificateRequest),
+  );
+  const certificateClass = registers.find((item) => item.token.uuid === selectedCertificate?.token)?.token;
+  useEffect(() => {
+    onEditingChange?.(certificateOpen);
+    return () => onEditingChange?.(false);
+  }, [certificateOpen, onEditingChange]);
+  useEffect(() => {
+    if (certificateOpen) {
+      certificateHeading.current?.focus();
+      certificateHeading.current?.scrollIntoView?.({ block: 'start' });
+    } else if (certificateReturnFocus.current) {
+      certificateOpeners.current.get(certificateReturnFocus.current)?.focus();
+      certificateReturnFocus.current = '';
+    }
+  }, [certificateOpen, certificatePreviewing]);
+  const selectedCertificateId = certificateTarget?.preview.memberRequest ?? certificateRequest;
+  if (selectedCertificateId && access.requests && selectedCertificate?.status !== 'requested' && !held) {
+    editCertificate();
+    setCertificateRequest('');
+  }
+  const closeCertificate = () => {
+    if (held) return;
+    certificateReturnFocus.current = certificateRequest || certificateTarget?.preview.memberRequest || '';
+    access.editCertificate();
+    setCertificateRequest('');
+    checks.reset();
+  };
   const hasRecords = invitations.length + associations.length + particulars.length + certificates.length > 0;
   const selectedRequest = particulars.find((item) => item.uuid === request && item.status === 'submitted');
   return (
     <>
-      <Section title="Member access and requests">
+      <Section
+        title={
+          certificateOpen
+            ? certificateTarget
+              ? 'Review certificate'
+              : 'Prepare certificate'
+            : 'Member access and requests'
+        }
+      >
         <ErrorSummary {...checks.summary} />
         {access.readFailed && (
           <LoadError retry={() => track('refresh', refresh())} busy={running === 'refresh' || access.busy || uploading}>
@@ -120,7 +172,104 @@ export function CompanyMemberAccess({
             onClick={() => void access.recover()}
           />
         )}
-        <div hidden={inviting && !!access.admin} className="space-y-4">
+        {certificateOpen && (
+          <div className="space-y-4">
+            {selectedCertificate ? (
+              <>
+                <h3
+                  ref={certificateHeading}
+                  tabIndex={-1}
+                  className="scroll-mt-6 text-base font-medium focus:outline-none"
+                >
+                  {memberName(selectedCertificate.member)}
+                </h3>
+                <div className="grid gap-4 text-sm sm:grid-cols-3">
+                  <div>
+                    <p className="text-text-muted">Share class</p>
+                    <p className="mt-1 font-medium">
+                      {certificateClass ? `${certificateClass.name} · ${certificateClass.symbol}` : 'Not available'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text-muted">Requested</p>
+                    <p className="mt-1">{formatDate(selectedCertificate.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-text-muted">Document</p>
+                    <p className="mt-1">
+                      Unsigned certificate{certificateTarget ? ` · ${certificateTarget.preview.pageCount} page` : ''}
+                    </p>
+                  </div>
+                </div>
+                {certificateTarget ? (
+                  <>
+                    <Disclosure summary="Record details">
+                      <Rows>
+                        <Row label="Entry">{certificateTarget.preview.sequence}</Row>
+                        <Row label="Register sequence">{certificateTarget.preview.registerSequence}</Row>
+                        <Row label="Company instruction">{certificateTarget.command.payload.instruction}</Row>
+                        <Row label="Request reference">{shortReference(selectedCertificate.uuid)}</Row>
+                        <Row label="Entry reference">{shortReference(certificateTarget.preview.entry)}</Row>
+                        <Row label="Appointment reference">{shortReference(certificateTarget.preview.appointment)}</Row>
+                        <Row label="Source fingerprint">{certificateTarget.preview.sourceDigest}</Row>
+                      </Rows>
+                    </Disclosure>
+                    <p className="text-sm text-text-muted">
+                      Unsigned PDF for this recipient only. The company arranges signing and permitted use.
+                    </p>
+                    <FormActions>
+                      <PageAction label="Cancel" disabled={held} onClick={closeCertificate} />
+                      <PageAction
+                        label="Create certificate"
+                        primary
+                        busy={running === 'fulfil'}
+                        busyLabel="Creating…"
+                        disabled={held || selectedCertificate.status !== 'requested'}
+                        onClick={() => track('fulfil', access.fulfilCertificate())}
+                      />
+                    </FormActions>
+                  </>
+                ) : (
+                  <form
+                    noValidate
+                    className="space-y-4"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (!held && selectedCertificate.status === 'requested' && checks.check(['instruction']))
+                        track(
+                          `preview:${selectedCertificate.uuid}`,
+                          access.previewCertificate(selectedCertificate.uuid, certificateInstruction.trim()),
+                        );
+                    }}
+                  >
+                    <Field {...checks.field('instruction')} label="Company instruction">
+                      <TextInput
+                        value={certificateInstruction}
+                        maxLength={FIELD_LIMITS.REFERENCE}
+                        disabled={held}
+                        onChange={(event) => setCertificateInstruction(event.target.value)}
+                      />
+                    </Field>
+                    <FormActions>
+                      <PageAction label="Cancel" disabled={held} onClick={closeCertificate} />
+                      <PageAction
+                        label="Preview"
+                        type="submit"
+                        primary
+                        busy={running === `preview:${selectedCertificate.uuid}`}
+                        busyLabel="Previewing…"
+                        disabled={held || selectedCertificate.status !== 'requested'}
+                      />
+                    </FormActions>
+                  </form>
+                )}
+              </>
+            ) : (
+              !access.readFailed && <Loading>Loading the current certificate request…</Loading>
+            )}
+          </div>
+        )}
+        <div hidden={(inviting && !!access.admin) || certificateOpen} className="space-y-4">
           {!access.readFailed && !access.requests && <Loading>Loading member access and requests…</Loading>}
           {!access.readFailed && access.requests && !hasRecords && (
             <p className="text-sm text-text-muted">
@@ -332,44 +481,6 @@ export function CompanyMemberAccess({
           {certificates.length > 0 && (
             <div className="space-y-4 border-t border-border-subtle pt-4">
               <h3 className="text-base font-medium">Certificate requests</h3>
-              {certificates.some((item) => item.status === 'requested') && (
-                <Field {...checks.field('instruction')} label="Certificate instruction reference">
-                  <TextInput
-                    value={certificateInstruction}
-                    maxLength={FIELD_LIMITS.REFERENCE}
-                    disabled={held || !!access.certificateTarget}
-                    onChange={(event) => setCertificateInstruction(event.target.value)}
-                  />
-                </Field>
-              )}
-              {access.certificateTarget && (
-                <div className="space-y-4">
-                  <Rows>
-                    <Row label="Member">{memberName(access.certificateTarget.preview.member)}</Row>
-                    <Row label="Entry">{access.certificateTarget.preview.sequence}</Row>
-                    <Row label="Register sequence">{access.certificateTarget.preview.registerSequence}</Row>
-                  </Rows>
-                  <p className="text-sm text-text-muted">
-                    The unsigned PDF is for this recipient only. The company remains responsible for signing and
-                    permitted use.
-                  </p>
-                  <FormActions>
-                    <PageAction
-                      label="Edit recipient certificate request"
-                      disabled={held}
-                      onClick={access.editCertificate}
-                    />
-                    <PageAction
-                      label="Confirm recipient certificate fulfilment"
-                      primary
-                      busy={running === 'fulfil'}
-                      busyLabel="Confirming fulfilment…"
-                      disabled={held}
-                      onClick={() => track('fulfil', access.fulfilCertificate())}
-                    />
-                  </FormActions>
-                </div>
-              )}
               <div className="divide-y divide-border-subtle">
                 {certificates.map((item) => (
                   <Disclosure
@@ -396,16 +507,17 @@ export function CompanyMemberAccess({
                     {item.status === 'requested' && (
                       <FormActions>
                         <PageAction
-                          label={`Preview certificate for ${memberName(item.member)}`}
-                          busy={running === `preview:${item.uuid}`}
-                          busyLabel="Previewing…"
-                          disabled={held || !!access.certificateTarget}
+                          ref={(element) => {
+                            if (element) certificateOpeners.current.set(item.uuid, element);
+                            else certificateOpeners.current.delete(item.uuid);
+                          }}
+                          label="Prepare certificate"
+                          context={memberName(item.member)}
+                          disabled={held}
                           onClick={() => {
-                            if (checks.check(['instruction']))
-                              track(
-                                `preview:${item.uuid}`,
-                                access.previewCertificate(item.uuid, certificateInstruction.trim()),
-                              );
+                            checks.reset();
+                            certificateReturnFocus.current = item.uuid;
+                            setCertificateRequest(item.uuid);
                           }}
                         />
                       </FormActions>
@@ -419,7 +531,7 @@ export function CompanyMemberAccess({
         {access.admin && (
           <form
             noValidate
-            hidden={!inviting}
+            hidden={!inviting || certificateOpen}
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
@@ -518,7 +630,7 @@ export function CompanyMemberAccess({
           </form>
         )}
       </Section>
-      {access.admin && !inviting && (
+      {access.admin && !inviting && !certificateOpen && (
         <div ref={inviteAction} className="mt-4 flex flex-wrap justify-end gap-2">
           <PageAction
             label="Invite a member"

@@ -142,6 +142,7 @@ function OwnRegister({
 }) {
   const { setState: setLedgerNavigation } = useLedgerNavigation();
   const [memberHeld, setMemberHeld] = useState(false);
+  const [memberEditing, setMemberEditing] = useState(false);
   const [personHeld, setPersonHeld] = useState(false);
   const [documentTask, setDocumentTask] = useState<string | null>(null);
   const documentEditing = useCallback((task: string, open: boolean) => {
@@ -417,6 +418,7 @@ function OwnRegister({
                 sourceReady={sourceReady}
                 inviteMember={inviteMember}
                 onHeldChange={setMemberHeld}
+                onEditingChange={setMemberEditing}
               />
             </div>
             <div hidden={view !== 'register' || !['history', 'corrections'].includes(selectedTask ?? '')}>
@@ -507,7 +509,7 @@ function OwnRegister({
         </div>
       )}
       {scope && ((view === 'shareholders' && ownershipReady) || personHeld) && (
-        <div hidden={view !== 'shareholders'}>
+        <div hidden={view !== 'shareholders' || memberEditing}>
           <CompanyPeople
             key={scope.company.uuid}
             owner={owner}
