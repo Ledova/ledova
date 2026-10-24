@@ -638,8 +638,8 @@ keeps an uploaded document if the response is interrupted.
 Steps follow [how a company decision works](README.md#how-a-company-decision-works); someone whose
 appointments allow none sees the history with a read-only note. On mobile, preparations outside Issue
 shares keep their own screens, and decisions outside Issue shares and Transfer shares keep their
-dialogs; it holds member access under Company and hides every register action while it cannot read the person's appointments
-([page mechanics](../engineering/frontend.md#page-mechanics)).
+dialogs; mobile holds member access under Company and hides every register action while it cannot
+read the person's appointments ([page mechanics](../engineering/frontend.md#page-mechanics)).
 
 ### A shareholder's page
 
@@ -665,10 +665,10 @@ Details show only while the account, the classes and the holdings read are curre
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger.
 
-The mobile app shows the same page, reached from Shareholders only, and adds one document at a time. Everything on it, holdings
-included, needs a current company register appointment; while their particulars, history, awards or
-documents refresh, each keeps what it last read. Its request and invitation links open Company, where
-mobile keeps member access.
+The mobile app shows the same page, reached from Shareholders only, and adds one document at a
+time. Everything on it, holdings included, needs a current company register appointment; while
+their particulars, history, awards or documents refresh, each keeps what it last read. Its request
+and invitation links open Company, where mobile keeps member access.
 
 ### Choosing a person
 

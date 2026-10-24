@@ -251,7 +251,7 @@ function CompanyShareholder({ epoch }: { epoch: number }) {
                   register.token.status === 'draft' && (
                     <LinkRow
                       label="Transfer shares"
-                      accessibilityLabel={`Transfer ${register.token.name} from ${title}`}
+                      accessibilityLabel={`Transfer shares: ${register.token.name} from ${title}`}
                       onPress={() =>
                         navigation.navigate('PrepareRegisterTransfer', {
                           tokenUuid: register.token.uuid,
