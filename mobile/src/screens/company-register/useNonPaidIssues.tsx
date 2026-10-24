@@ -158,11 +158,8 @@ export function useNonPaidIssues({
   if (!kept && formAppointment && !formHeld) setFormAppointment(null);
   const retry = async () => {
     await refreshAppointments();
+    if (reading || formHeld) await Promise.all([people.refetch(), ...(awardUuid ? [award.refetch()] : [])]);
     void refreshHolders();
-    if (reading || formHeld) {
-      void people.refetch();
-      if (awardUuid) void award.refetch();
-    }
   };
   const shown = open || formHeld;
   const form = (shown || !!formAppointment) && (

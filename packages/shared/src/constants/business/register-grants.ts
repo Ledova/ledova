@@ -41,11 +41,7 @@ export const REGISTER_GRANT_COPY = {
   SHARES: 'Shares to grant',
   TERMS_ON: 'Terms dated on',
   DIRECTOR: 'Approving director',
-  DIRECTOR_NOTE:
-    'The company supplies the approving director’s name. This director must be someone other than the recipient.',
   COMPANY_EVENT_ON: 'Company issue date',
-  EFFECTIVE_NOTE:
-    'The company supplies the issue date from its records. Ledova records preparation, decisions and application separately.',
   TERMS: 'Non-paid grant terms',
   AUTHORITY_REFERENCE: 'Company authority reference',
   REASON: 'Reason for grant',
