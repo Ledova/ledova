@@ -17,7 +17,7 @@ import { Disclosure, Row, Rows } from '../../components/Ledger';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { AllotmentOwnership } from './AllotmentOwnership';
 
-function Part({ title, children }: { title: string; children: ReactNode }) {
+export function Part({ title, children }: { title: string; children: ReactNode }) {
   const styles = useCompanyStyles();
   return (
     <View style={styles.group}>
@@ -29,7 +29,7 @@ function Part({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Details({ label, children }: { label: string; children: ReactNode }) {
+export function Details({ label, children }: { label: string; children: ReactNode }) {
   const styles = useCompanyStyles();
   const [open, setOpen] = useState(false);
   return (

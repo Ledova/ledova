@@ -129,6 +129,15 @@ screen's route carries an `issue` request, which selects the class. A started pr
 work. As on the web, an award's recipient must be a listed walletless person with retained
 particulars, and both forms check their fields when submitted and word a refusal.
 
+Transfer shares (`ClassTransfers.tsx`) lists the class's non-paid transfers under Share transfers,
+each record (`TransferRecord.tsx`) leading with the web's From, To, Shares, Transfer date and Status
+and its Details and documents. Review and approve opens the web's review (`TransferReview.tsx`) in
+place of the list, titled Review share transfer, and its Approve records the transfer too
+(`completeTransfer` with the apply appointment): an approved transfer still waiting for its entry
+shows **Ready to complete**, and Approve finishes it. Reject transfer uses the same review.
+**Prepare a non-paid transfer** sits beneath the list and opens the separate preparation screen
+(`PrepareRegisterTransferScreen.tsx`), which still takes a new recipient and keeps its single page.
+
 Shareholders (`CompanyPeople.tsx` and `CompanyShareholders.tsx` beside the screen) follows the web
 after the same figures check, and only while the person can still read the register: Current
 shareholders across every opened class, with a name search, the share class as radio buttons, an

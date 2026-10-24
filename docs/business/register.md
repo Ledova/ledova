@@ -418,7 +418,9 @@ account, payment, application or chain transaction.
    Success shows **Approved** and the recorded entry, without a separate Apply action. A failed
    transaction records no new approval or movement; retrying the same request cannot move the shares
    twice. Rejection also uses page review. The preparation action shares the final record's action
-   row, or stands alone when no transfers exist. The API and mobile keep their separate decision steps.
+   row, or stands alone when no transfers exist. Mobile Transfer shares works the same way, with
+   the review in place of its list (Cancel returns to the list) and **Prepare a non-paid transfer**
+   beneath it; the API keeps its separate decision steps.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the
@@ -606,9 +608,9 @@ shareholder list rather than implying holdings are zero.
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
 Mobile has the same Ledger navigation, task views and held-work lock under
-[#1201](https://github.com/Ledova/ledova/issues/1201). Its Issue shares records follow the web's
-layout; the other tasks' records keep their earlier layout, and its History still offers each entry's
-correction.
+[#1201](https://github.com/Ledova/ledova/issues/1201). Its Issue shares and Transfer shares records
+follow the web's layout; the other tasks' records keep their earlier layout, and its History still
+offers each entry's correction.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
@@ -632,9 +634,9 @@ one preparation form at a time.
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.
 Steps follow [how a company decision works](README.md#how-a-company-decision-works); someone whose
-appointments allow none sees the history with a read-only note. Outside Issue shares, the mobile app
-keeps separate preparation screens and decision dialogs; it holds member access under Company and
-hides every register action while it cannot read the person's appointments
+appointments allow none sees the history with a read-only note. On mobile, preparations outside Issue
+shares keep their own screens, and decisions outside Issue shares and Transfer shares keep their
+dialogs; it holds member access under Company and hides every register action while it cannot read the person's appointments
 ([page mechanics](../engineering/frontend.md#page-mechanics)).
 
 ### A shareholder's page
