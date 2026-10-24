@@ -23,6 +23,7 @@ import type {
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { AppState } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
@@ -61,6 +62,7 @@ const mockNavigation = {
 jest.mock('@react-navigation/native', () => {
   const react = jest.requireActual('react') as typeof React;
   return {
+    useIsFocused: () => true,
     useRoute: () => react.useContext(mockRouteContext),
     useNavigation: () => mockNavigation,
   };
@@ -416,7 +418,18 @@ beforeEach(() => {
   });
 });
 
+const inactive = AppState.currentState;
+
+async function returnToApp() {
+  Object.assign(AppState, { currentState: 'active' });
+  await act(async () => {
+    for (const [type, listener] of jest.mocked(AppState.addEventListener).mock.calls)
+      if (type === 'change') (listener as (state: string) => void)('active');
+  });
+}
+
 afterEach(async () => {
+  Object.assign(AppState, { currentState: inactive });
   await act(async () => pendingFileRelease?.());
   pendingFileRelease = undefined;
   await cleanup();
@@ -587,8 +600,7 @@ it('recovers captured award, vesting and issue requests under read access in pla
   appointments = [APPOINTMENT];
   const datedGrant = grants[0];
   grants = [{ ...datedGrant, companyEventOn: null }];
-  await waitFor(() => expect(view.getByRole('button', { name: 'Refresh share issues' })).not.toBeDisabled());
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await returnToApp();
   await view.findByText('Not recorded');
   await fireEvent.press(await view.findByRole('button', { name: `Details and documents for ${AWARD_REQUEST.name}` }));
   expect(view.getAllByText('Not recorded').length).toBeGreaterThan(0);
@@ -597,8 +609,7 @@ it('recovers captured award, vesting and issue requests under read access in pla
   expect(view.getByRole('button', { name: /^Reject for non-paid grant/ })).toBeTruthy();
   await fireEvent.press(view.getByRole('button', { name: `Details and documents for ${AWARD_REQUEST.name}` }));
   grants = [datedGrant];
-  await waitFor(() => expect(view.getByRole('button', { name: 'Refresh share issues' })).not.toBeDisabled());
-  await fireEvent.press(view.getByRole('button', { name: 'Refresh share issues' }));
+  await returnToApp();
   for (const kind of ['approve', 'apply'] as const) {
     const decision = await view.findByRole('button', {
       name: new RegExp(`^${kind === 'apply' ? 'Record issue' : 'Review and approve'} for non-paid grant`),
