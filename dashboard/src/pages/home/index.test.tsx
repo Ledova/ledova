@@ -10,7 +10,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
 import { Link, MemoryRouter } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
@@ -102,6 +102,11 @@ it('invites and associates a walletless member, recovers one exact request and r
     },
   ];
   let certificates: Record<string, unknown>[] = [{ ...FULFILLED_CERTIFICATE, status: 'requested', fulfilment: null }];
+  const otherCertificate = {
+    ...FULFILLED_CERTIFICATE,
+    uuid: '56565656-5656-4565-8565-565656565656',
+    token: '78787878-7878-4787-8787-787878787878',
+  };
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') {
       if (preferencesRefused)
@@ -125,7 +130,8 @@ it('invites and associates a walletless member, recovers one exact request and r
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
-    if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid)) return { data: pdf };
+    if ([FULFILLED_CERTIFICATE.uuid, otherCertificate.uuid].some((uuid) => url === URLS.MEMBER_CERTIFICATE_FILE(uuid)))
+      return { data: pdf };
     if (url === URLS.MEMBER_CERTIFICATE_PREVIEW(FULFILLED_CERTIFICATE.uuid))
       return {
         data: {
@@ -324,6 +330,23 @@ it('invites and associates a walletless member, recovers one exact request and r
   await screen.findByText(/Invitation accepted/);
   expect(sessionStorage).toHaveLength(0);
   recipient.unmount();
+  certificates.push(
+    {
+      ...FULFILLED_CERTIFICATE,
+      uuid: '67676767-6767-4676-8676-676767676767',
+      createdAt: '2026-10-03T00:00:00Z',
+      status: 'requested',
+      fulfilment: null,
+    },
+    {
+      ...FULFILLED_CERTIFICATE,
+      uuid: '89898989-8989-4898-8898-898989898989',
+      createdAt: '2026-10-02T00:00:00Z',
+      status: 'withdrawn',
+      fulfilment: null,
+    },
+    otherCertificate,
+  );
   render(
     <>
       <nav>
@@ -344,8 +367,27 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
+  const certificatesCard = (await screen.findByRole('heading', { name: 'Certificates' })).closest('section')!;
+  expect(within(certificatesCard).getByRole('heading', { name: '+10 ORD shares' })).toBeTruthy();
+  expect(within(certificatesCard).getByText('Requested', { exact: true, selector: 'p.font-medium' })).toBeTruthy();
+  expect(within(certificatesCard).getByText('Not recorded')).toBeTruthy();
+  expect(within(certificatesCard).getByRole('button', { name: /Withdraw certificate request/ })).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Share history' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Your request status' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
+  fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Record details' }));
+  expect(within(certificatesCard).getByRole('heading', { name: 'Previous requests' })).toBeTruthy();
+  expect(within(certificatesCard).getByText('Ordinary · Withdrawn')).toBeTruthy();
+  expect(within(certificatesCard).getByText('Ordinary · Fulfilled')).toBeTruthy();
   fireEvent.click(await screen.findByRole('button', { name: /Download unsigned certificate/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
+  expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid), expect.anything());
+  fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Record details' }));
+  fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Other certificate requests' }));
+  expect(within(certificatesCard).getByText('Share certificate · Fulfilled')).toBeTruthy();
+  fireEvent.click(within(certificatesCard).getByRole('button', { name: /Download unsigned certificate/ }));
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(2));
+  expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(otherCertificate.uuid), expect.anything());
   fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
   fireEvent.click(screen.getByRole('button', { name: 'Company-recorded particulars' }));
   fireEvent.click(screen.getByText('Request a particulars update'));

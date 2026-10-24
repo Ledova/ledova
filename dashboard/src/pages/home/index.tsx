@@ -11,14 +11,7 @@ import {
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import {
-  formatDate,
-  formatDateTime,
-  shareChange,
-  formatShareCount,
-  useMemberRecords,
-  type MemberCertificateRequest,
-} from '@ledova/shared';
+import { formatDate, formatDateTime, shareChange, formatShareCount, useMemberRecords } from '@ledova/shared';
 import { Row, Rows, Section, Loading, LoadError, Disclosure } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { FormActions, Page, PageAction } from '@components/Page';
@@ -27,7 +20,7 @@ import { pageTitle } from '@utils/destinations';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { AwardStatus } from '@components/AwardStatus';
-import { useMemberCertificateDownload } from './useMemberCertificateDownload';
+import { MemberCertificates } from './MemberCertificates';
 import { useMemberFreshness } from './useMemberFreshness';
 import { OwnSharesOverview } from './OwnSharesOverview';
 
@@ -106,22 +99,6 @@ function MemberRecords({
   };
   const shareHistory = read.record && (
     <div className="divide-y divide-border-subtle">
-      {documentsOnly && read.record.classes.length > 1 && (
-        <div className="flex flex-wrap gap-2 py-3">
-          {read.record.classes.map((item) => (
-            <PageAction
-              key={item.uuid}
-              label={`${item.name} · ${item.symbol}`}
-              pressed={item.uuid === historyShareClass?.uuid}
-              disabled={held}
-              onClick={() => {
-                setHistoryToken(item.uuid);
-                read.selectToken(item.uuid);
-              }}
-            />
-          ))}
-        </div>
-      )}
       {read.record.classes.length === 0 && <p className="text-sm text-text-muted">No share changes yet.</p>}
       {read.entries.map((entry) => (
         <div key={entry.uuid} className="space-y-3 py-3">
@@ -275,54 +252,37 @@ function MemberRecords({
               <div
                 className={`grid items-start gap-4 ${!documentsOnly && read.requests && (read.requests.particulars.length > 0 || read.requests.certificates.length > 0) ? 'xl:grid-cols-2' : ''}`}
               >
-                {documentsOnly && (
-                  <Section title="Certificates">
-                    {read.requests?.certificates.some(
-                      (request) => request.status === 'fulfilled' && request.fulfilment,
-                    ) && (
-                      <div className="space-y-3">
-                        <p className="text-sm text-text-muted">
-                          Your unsigned certificates. The company remains responsible for execution.
-                        </p>
-                        {read.requests.certificates
-                          .filter((request) => request.status === 'fulfilled' && request.fulfilment)
-                          .map((request, index) => (
-                            <div key={request.uuid} className="space-y-1">
-                              <p className="text-sm">Certificate requested {formatDate(request.createdAt)}</p>
-                              <MemberCertificateDownload
-                                read={read}
-                                request={request}
-                                context={`certificate ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
-                              />
-                            </div>
+                {documentsOnly ? (
+                  <MemberCertificates
+                    read={read}
+                    selectedClass={historyShareClass}
+                    held={held}
+                    running={running}
+                    onSelectClass={(uuid) => {
+                      setHistoryToken(uuid);
+                      read.selectToken(uuid);
+                    }}
+                    onRequest={(uuid) => track(`certificate:${uuid}`, read.requestCertificate(uuid))}
+                    onWithdraw={(request) => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
+                  />
+                ) : (
+                  <Section title="Your member record">
+                    {read.entries.length > 0 && (
+                      <div className="space-y-2 border-b border-border-subtle pb-3 text-sm">
+                        <h3 className="font-medium">Recent changes · {historyClass}</h3>
+                        {[...read.entries]
+                          .sort((left, right) => right.sequence - left.sequence)
+                          .slice(0, 3)
+                          .map((entry) => (
+                            <p key={entry.uuid} className="text-text-muted">
+                              Ledger {formatDate(entry.effectiveOn)} · {entryKind(entry.kind)} · Own change{' '}
+                              {shareChange(entry.delta)}
+                              {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) &&
+                                ` · Company date ${entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}`}
+                            </p>
                           ))}
                       </div>
                     )}
-                    {read.requests &&
-                      !read.requests.certificates.some(
-                        (request) => request.status === 'fulfilled' && request.fulfilment,
-                      ) && <p className="text-sm text-text-muted">No certificates available yet.</p>}
-                    {!read.requests && <Loading>Loading your documents and requests…</Loading>}
-                  </Section>
-                )}
-                <Section title={documentsOnly ? 'Share history' : 'Your member record'}>
-                  {!documentsOnly && read.entries.length > 0 && (
-                    <div className="space-y-2 border-b border-border-subtle pb-3 text-sm">
-                      <h3 className="font-medium">Recent changes · {historyClass}</h3>
-                      {[...read.entries]
-                        .sort((left, right) => right.sequence - left.sequence)
-                        .slice(0, 3)
-                        .map((entry) => (
-                          <p key={entry.uuid} className="text-text-muted">
-                            Ledger {formatDate(entry.effectiveOn)} · {entryKind(entry.kind)} · Own change{' '}
-                            {shareChange(entry.delta)}
-                            {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) &&
-                              ` · Company date ${entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}`}
-                          </p>
-                        ))}
-                    </div>
-                  )}
-                  {!documentsOnly && (
                     <Disclosure summary="Company-recorded particulars">
                       <p className="text-sm text-text-muted">
                         Provided by the company, not verified by Ledova. Profile edits do not change this register.
@@ -339,10 +299,6 @@ function MemberRecords({
                         </p>
                       ))}
                     </Disclosure>
-                  )}
-                  {documentsOnly ? (
-                    shareHistory
-                  ) : (
                     <Disclosure
                       summary="Your share history and certificate requests"
                       open={historyOpen}
@@ -351,8 +307,6 @@ function MemberRecords({
                     >
                       {shareHistory}
                     </Disclosure>
-                  )}
-                  {!documentsOnly && (
                     <Disclosure
                       summary="Request a particulars update"
                       open={particularsOpen}
@@ -408,48 +362,52 @@ function MemberRecords({
                         </FormActions>
                       </div>
                     </Disclosure>
-                  )}
-                </Section>
-                {read.requests && (read.requests.particulars.length > 0 || read.requests.certificates.length > 0) && (
-                  <Section title="Your request status">
-                    <div className="space-y-3 pt-2 text-sm">
-                      {read.requests.particulars.map((request) => (
-                        <div key={request.uuid}>
-                          <p>Particulars update · {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}</p>
-                          <Disclosure summary="Record details">
-                            <p className="break-all">
-                              Request {shortReference(request.uuid)}
-                              {request.change ? ` · Company instruction ${shortReference(request.change)}` : ''}
-                            </p>
-                          </Disclosure>
-                        </div>
-                      ))}
-                      {read.requests.certificates.map((request, index) => (
-                        <div key={request.uuid} className="space-y-2">
-                          <p>
-                            Certificate requested {formatDate(request.createdAt)}
-                            {request.status !== 'requested' && ` · ${MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}`}
-                          </p>
-                          <Disclosure summary="Record details">
-                            <p className="break-all">
-                              Request {shortReference(request.uuid)} · Entry {shortReference(request.entry)}
-                            </p>
-                          </Disclosure>
-                          {request.status === 'requested' && (
-                            <FormActions>
-                              <PageAction
-                                label="Withdraw certificate request"
-                                context={`request ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
-                                disabled={held}
-                                onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
-                              />
-                            </FormActions>
-                          )}
-                        </div>
-                      ))}
-                    </div>
                   </Section>
                 )}
+                {read.requests &&
+                  (read.requests.particulars.length > 0 ||
+                    (!documentsOnly && read.requests.certificates.length > 0)) && (
+                    <Section title={documentsOnly ? 'Particulars requests' : 'Your request status'}>
+                      <div className="space-y-3 pt-2 text-sm">
+                        {read.requests.particulars.map((request) => (
+                          <div key={request.uuid}>
+                            <p>Particulars update · {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}</p>
+                            <Disclosure summary="Record details">
+                              <p className="break-all">
+                                Request {shortReference(request.uuid)}
+                                {request.change ? ` · Company instruction ${shortReference(request.change)}` : ''}
+                              </p>
+                            </Disclosure>
+                          </div>
+                        ))}
+                        {!documentsOnly &&
+                          read.requests.certificates.map((request, index) => (
+                            <div key={request.uuid} className="space-y-2">
+                              <p>
+                                Certificate requested {formatDate(request.createdAt)}
+                                {request.status !== 'requested' &&
+                                  ` · ${MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}`}
+                              </p>
+                              <Disclosure summary="Record details">
+                                <p className="break-all">
+                                  Request {shortReference(request.uuid)} · Entry {shortReference(request.entry)}
+                                </p>
+                              </Disclosure>
+                              {request.status === 'requested' && (
+                                <FormActions>
+                                  <PageAction
+                                    label="Withdraw certificate request"
+                                    context={`request ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
+                                    disabled={held}
+                                    onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
+                                  />
+                                </FormActions>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    </Section>
+                  )}
               </div>
             )}
             {!read.error && read.records.length === 0 ? (
@@ -478,36 +436,5 @@ function MemberRecords({
         </Confirmation>
       )}
     </PageTitle.Provider>
-  );
-}
-
-function MemberCertificateDownload({
-  read,
-  request,
-  context,
-}: {
-  read: ReturnType<typeof useMemberRecords>;
-  request: MemberCertificateRequest;
-  context: string;
-}) {
-  const { busy, error, download } = useMemberCertificateDownload(read, request);
-  return (
-    <>
-      <FormActions>
-        <PageAction
-          label="Download unsigned certificate"
-          context={context}
-          busy={busy}
-          busyLabel="Downloading…"
-          disabled={read.busy || !!read.retry}
-          onClick={() => void download()}
-        />
-      </FormActions>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
-    </>
   );
 }
