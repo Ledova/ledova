@@ -111,6 +111,9 @@ and vesting use the existing responsive two-column grid, stacking on smaller scr
 contextual labels and one vesting explanation. Keep draft controls, selected-file display and focus
 stable by [deferring coordinated automatic reads](frontend.md#automatic-data-freshness) while an
 award editor is open.
+Inline vesting uses one named field group with the event quantity, date and document, short contextual
+labels and the same responsive grid. While an award editor is open, its footer owns the actions;
+hide unrelated record actions instead of leaving a disabled row above the form.
 Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
