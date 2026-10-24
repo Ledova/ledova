@@ -111,7 +111,8 @@ Issue shares (`ClassIssues.tsx`) lists both kinds of issue under Share issues, a
 each record (`AllotmentRecord.tsx`, `GrantRecord.tsx`) leads with the web's summary
 (`IssueSummary.tsx`) and its Details and documents. Its decisions (`RegisterDecisions.tsx`) follow
 the web's: Reject first and the primary action last, a review in place of the list (the card's
-title becomes Review share issue and the other records hide; an open review is held work), recovery
+title becomes Review share issue, and the other records and any open preparation hide but stay
+mounted, so their held work survives; an open review is held work), recovery
 inside and outside the review and unmet requirements in words. An investor issue's Approve also
 records the issue (`completeIssue` with the apply appointment); a non-paid issue keeps Approve, then
 Record issue. One **Refresh share issues** rereads both kinds; the preparation forms stay as they

@@ -6,6 +6,8 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useInvestorIssues } from './useInvestorIssues';
 import { useNonPaidIssues } from './useNonPaidIssues';
 
+const HIDDEN = { display: 'none' } as const;
+
 export function ClassIssues({
   epoch,
   company,
@@ -80,8 +82,8 @@ export function ClassIssues({
           />
         )}
       </Section>
-      {!reviewing && (investor.prepare || nonPaid.prepare) && (
-        <View style={styles.group}>
+      {(investor.prepare || nonPaid.prepare) && (
+        <View style={reviewing ? HIDDEN : styles.group}>
           {investor.prepare}
           {nonPaid.prepare}
         </View>
