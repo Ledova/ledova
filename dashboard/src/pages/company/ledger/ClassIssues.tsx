@@ -93,6 +93,8 @@ export function ClassIssues({
     open: preparing && kind === 'nonpaid',
     kept: preparing,
     onClosed: close,
+    reviewTarget,
+    onReviewChange: reviewChanged,
   });
   useIssueFreshness({
     owner,

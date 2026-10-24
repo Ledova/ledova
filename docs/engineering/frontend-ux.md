@@ -180,8 +180,10 @@ the reviewed ownership, class, dates and evidence, and reuse a current earlier a
 already approved but awaiting its entry shows **Ready to complete**. Success shows **Approved** and
 the recorded outcome, without a separate Record issue or Apply action. Keep approval and entry as
 distinct retained facts, with atomic failure and same-request recovery that cannot duplicate the
-effect. Rejection also uses page review. Other decision families, separate API decisions and mobile
-keep their existing workflow.
+effect. Non-paid and employee-award issues use the same page review, with award quantities, ownership
+impact and company authority grouped, and terms and documents on demand. Their approval remains separate from
+**Record issue**; approval alone changes no holding. Rejection also uses page review. Other decision
+families, separate API decisions and mobile keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first

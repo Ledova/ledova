@@ -35,6 +35,8 @@ export function useNonPaidIssues({
   open,
   kept,
   onClosed,
+  reviewTarget,
+  onReviewChange,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
@@ -48,6 +50,8 @@ export function useNonPaidIssues({
   open: boolean;
   kept: boolean;
   onClosed: (recorded?: boolean) => void;
+  reviewTarget: HTMLElement | null;
+  onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const client = useQueryClient();
   const token = register.token.uuid;
@@ -241,6 +245,9 @@ export function useNonPaidIssues({
           focusKey={focusRecord?.uuid === grant.uuid ? focusRecord.key : prepared === grant.uuid ? prepared : undefined}
           onHeldChange={recordHeld}
           onSettled={refresh}
+          classLabel={`${register.token.name} (${register.token.symbol})`}
+          reviewTarget={reviewTarget}
+          onReviewChange={onReviewChange}
         />
       ))}
     </ul>
