@@ -108,7 +108,9 @@ keeps its class card and returns to its records after Cancel or a successful sav
 vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
 Award preparation groups the recipient and promised shares, with new-person details beneath. Agreement
 and vesting use the existing responsive two-column grid, stacking on smaller screens, with short
-contextual labels and one vesting explanation.
+contextual labels and one vesting explanation. Keep draft controls, selected-file display and focus
+stable by [deferring coordinated automatic reads](frontend.md#automatic-data-freshness) while an
+award editor is open.
 Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under

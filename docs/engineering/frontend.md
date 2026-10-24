@@ -406,7 +406,10 @@ cycles and stop periodic work while the view is hidden or the browser is offline
 need no polling. Issue shares rechecks the selected class's appointments and issue records every
 60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
 Employee share scheme rechecks appointments before its class records on entry, focus and reconnect,
-and every 60 seconds while the view is active, visible and online.
+and every 60 seconds while the view is active, visible and online. These coordinated cycles wait
+across all class cards while any award preparation, vesting or entitlement-change editor is open.
+Pending reads resume after Cancel or a successful save. Account, source and authority guards,
+explicit recovery and post-write refresh still apply.
 The personal dashboard also rechecks member associations before their dependent records every
 60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
 not an instantaneous update guarantee.

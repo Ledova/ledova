@@ -149,6 +149,16 @@ function OwnRegister({
   const { hash } = location;
   const includeEmptyCompanies = hash === '#shareholders';
   const [heldClasses, setHeldClasses] = useState<ReadonlySet<string>>(() => new Set());
+  const [editingAwards, setEditingAwards] = useState<ReadonlySet<string>>(() => new Set());
+  const awardEditing = useCallback((token: string, editing: boolean) => {
+    setEditingAwards((current) => {
+      if (current.has(token) === editing) return current;
+      const next = new Set(current);
+      if (editing) next.add(token);
+      else next.delete(token);
+      return next;
+    });
+  }, []);
   const [taskSelection, setTaskSelection] = useState<{
     company: string;
     token: string;
@@ -731,6 +741,8 @@ function OwnRegister({
                       company={scope.company.uuid}
                       sourceReady={sourceReady}
                       onHeldChange={awardHeld}
+                      onEditingChange={awardEditing}
+                      pauseFreshness={editingAwards.size > 0}
                       active={view === 'awards'}
                     />
                   </div>

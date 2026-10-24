@@ -42,6 +42,7 @@ export function AwardRecord({
   onSettled,
   visible = true,
   onHeldChange,
+  onEditingChange,
 }: {
   owner: OrderSubmissionOwner;
   award: RegisterAward;
@@ -52,6 +53,7 @@ export function AwardRecord({
   onSettled: () => Promise<unknown>;
   visible?: boolean;
   onHeldChange?: (held: boolean) => void;
+  onEditingChange?: (editing: boolean) => void;
 }) {
   const client = useQueryClient();
   const available = useRef(visible && !blocked);
@@ -66,6 +68,12 @@ export function AwardRecord({
   const [editing, setEditing] = useState(false);
   const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
+  const editingCallback = useRef(onEditingChange);
+  useLayoutEffect(() => {
+    editingCallback.current = onEditingChange;
+    onEditingChange?.(editing || !!adjusting);
+  }, [onEditingChange, editing, adjusting]);
+  useLayoutEffect(() => () => editingCallback.current?.(false), []);
 
   const events = useRegisterAwardVestings(owner, award.company, award.uuid, guard);
 

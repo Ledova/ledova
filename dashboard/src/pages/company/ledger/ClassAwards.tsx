@@ -34,6 +34,8 @@ export function ClassAwards({
   sourceReady = true,
   active = true,
   onHeldChange,
+  onEditingChange,
+  pauseFreshness = false,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
@@ -42,17 +44,21 @@ export function ClassAwards({
   sourceReady?: boolean;
   active?: boolean;
   onHeldChange?: (token: string, held: boolean) => void;
+  onEditingChange?: (token: string, editing: boolean) => void;
+  pauseFreshness?: boolean;
 }) {
   const client = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
   const [recordHolds, setRecordHolds] = useState<Record<string, boolean>>({});
+  const [recordEdits, setRecordEdits] = useState<Record<string, boolean>>({});
   const [returnToAction, setReturnToAction] = useState(false);
   const preparation = useRef<HTMLDivElement>(null);
   const prepareAction = useRef<HTMLButtonElement>(null);
   const live = useRef(true);
   const heldCallback = useRef(onHeldChange);
+  const editingCallback = useRef(onEditingChange);
   useLayoutEffect(() => {
     heldCallback.current = onHeldChange;
   }, [onHeldChange]);
@@ -94,6 +100,12 @@ export function ClassAwards({
     !appointments.isFetching &&
     !appointments.isError;
   const held = formHeld || Object.values(recordHolds).some(Boolean);
+  const editorOpen = editing || Object.values(recordEdits).some(Boolean);
+  useLayoutEffect(() => {
+    editingCallback.current = onEditingChange;
+    onEditingChange?.(token, editorOpen);
+  }, [onEditingChange, token, editorOpen]);
+  useLayoutEffect(() => () => editingCallback.current?.(token, false), [token]);
   useEffect(() => {
     if (active && editing) preparation.current?.focus();
   }, [active, editing]);
@@ -149,6 +161,7 @@ export function ClassAwards({
     active,
     sourceReady,
     held,
+    editing: editorOpen || pauseFreshness,
     refreshRecords: (available) => refresh(true, available),
   });
   const status = (
@@ -213,6 +226,11 @@ export function ClassAwards({
                 onHeldChange={(recordHeld) =>
                   setRecordHolds((previous) =>
                     previous[award.uuid] === recordHeld ? previous : { ...previous, [award.uuid]: recordHeld },
+                  )
+                }
+                onEditingChange={(recordEditing) =>
+                  setRecordEdits((previous) =>
+                    previous[award.uuid] === recordEditing ? previous : { ...previous, [award.uuid]: recordEditing },
                   )
                 }
                 onSettled={() => refresh(true)}

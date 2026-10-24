@@ -14,6 +14,7 @@ export function useAwardFreshness({
   active,
   sourceReady,
   held,
+  editing,
   refreshRecords,
 }: {
   owner: OrderSubmissionOwner;
@@ -22,14 +23,15 @@ export function useAwardFreshness({
   active: boolean;
   sourceReady: boolean;
   held: boolean;
+  editing: boolean;
   refreshRecords: (available: () => boolean) => Promise<unknown>;
 }) {
   const client = useQueryClient();
-  const current = useRef({ active, sourceReady, held, refreshRecords });
+  const current = useRef({ active, sourceReady, held, editing, refreshRecords });
   const resume = useRef<() => void>(() => {});
   useLayoutEffect(() => {
-    current.current = { active, sourceReady, held, refreshRecords };
-  }, [active, sourceReady, held, refreshRecords]);
+    current.current = { active, sourceReady, held, editing, refreshRecords };
+  }, [active, sourceReady, held, editing, refreshRecords]);
   useEffect(() => {
     if (!active) return;
     let live = true;
@@ -41,6 +43,7 @@ export function useAwardFreshness({
       current.current.active &&
       current.current.sourceReady &&
       !current.current.held &&
+      !current.current.editing &&
       !document.hidden &&
       navigator.onLine !== false;
     const schedule = (delay = 0) => {
@@ -105,5 +108,5 @@ export function useAwardFreshness({
       resume.current = () => {};
     };
   }, [client, owner, token, guard, active]);
-  useEffect(() => resume.current(), [sourceReady, held]);
+  useEffect(() => resume.current(), [sourceReady, held, editing]);
 }
