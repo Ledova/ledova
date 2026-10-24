@@ -244,6 +244,23 @@ function CompanyShareholder({ epoch }: { epoch: number }) {
                 ) : (
                   <Text style={styles.muted}>{REGISTER_COPY.NO_WALLET}</Text>
                 )}
+                {!!steps?.prepare &&
+                  !appointments.isFetching &&
+                  !holder.wallets.length &&
+                  register.initialized &&
+                  register.token.status === 'draft' && (
+                    <LinkRow
+                      label="Transfer shares"
+                      accessibilityLabel={`Transfer ${register.token.name} from ${title}`}
+                      onPress={() =>
+                        navigation.navigate('PrepareRegisterTransfer', {
+                          tokenUuid: register.token.uuid,
+                          companyUuid: company,
+                          fromMember: member,
+                        })
+                      }
+                    />
+                  )}
               </View>
             ))}
             {former.map(({ register, row }) => (

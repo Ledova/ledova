@@ -17,6 +17,7 @@ export function SearchSelect({
   placeholder = 'Type to search',
   disabled = false,
   noun = ['option', 'options'],
+  error,
 }: {
   label: string;
   choices: readonly SearchChoice[];
@@ -26,6 +27,7 @@ export function SearchSelect({
   placeholder?: string;
   disabled?: boolean;
   noun?: readonly [string, string];
+  error?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -108,7 +110,7 @@ export function SearchSelect({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${current ? [current.label, current.detail].filter(Boolean).join(' · ') : 'none chosen'}`}
-        accessibilityHint="Opens a list to search and choose"
+        accessibilityHint={[error, 'Opens a list to search and choose'].filter(Boolean).join(' ')}
         accessibilityState={{ disabled, expanded: open }}
         disabled={disabled}
         onPress={() => {
@@ -123,6 +125,7 @@ export function SearchSelect({
         </View>
         <CaretDownIcon size={16} color={theme.colors.text.muted} />
       </Pressable>
+      {!!error && <Text style={dialog.error}>{error}</Text>}
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
         <View style={styles.overlay}>
           <KeyboardAvoidingView

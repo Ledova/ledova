@@ -30,11 +30,9 @@ export const REGISTER_TRANSFER_UNMET_COPY: Record<string, string> = {
 };
 
 export const REGISTER_TRANSFER_COPY = {
-  TITLE: 'Non-paid transfers',
   PREPARE: 'Prepare a non-paid transfer',
   SUBMIT: 'Prepare transfer',
   EMPTY: 'No non-paid transfer has been prepared for this share class.',
-  NOTE: 'Transfer shares between walletless members of an imported draft register, under the company’s authority and a genuine signed instrument.',
   READ_ONLY_NOTE: 'Preparing, approving and applying a transfer needs current company administration or that step.',
   FROM: 'Transferor',
   TO: 'Recipient',
@@ -44,17 +42,10 @@ export const REGISTER_TRANSFER_COPY = {
   LODGED_ON: 'Instrument lodged with the company on',
   TERMS: 'Non-paid transfer terms',
   DIRECTOR: 'Approving director',
-  DIRECTOR_NOTE: 'The approving director must be someone other than either party to the transfer.',
   AUTHORITY_REFERENCE: 'Company authority reference',
   REASON: 'Reason for transfer',
-  AUTHORITY_DOCUMENT: 'Authority document',
-  INSTRUMENT_DOCUMENT: 'Signed transfer instrument',
   PROVIDED_BY_COMPANY: 'The instrument, authority, terms and particulars are provided by the company.',
-  RECOVERY_NOTE:
-    'If a decision response is interrupted, refresh transfers to read its recorded outcome before retrying.',
   COMPANY_EVENT_ON: 'Company transfer date',
-  EFFECTIVE_NOTE:
-    'The company supplies the transfer date from its records. Ledova records preparation, decisions and application separately.',
   STAGES: { submitted: 'Prepared', approved: 'Approved', applied: 'Applied', rejected: 'Rejected' } as Record<
     string,
     string

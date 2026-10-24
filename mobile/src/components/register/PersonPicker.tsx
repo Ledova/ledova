@@ -17,6 +17,7 @@ export function PersonSelect({
   disabledMembers = NONE,
   context,
   disabled = false,
+  error,
 }: {
   label: string;
   people: Person[];
@@ -26,6 +27,7 @@ export function PersonSelect({
   disabledMembers?: string[];
   context?: (person: Person) => string;
   disabled?: boolean;
+  error?: string | null;
 }) {
   const choices = useMemo(() => {
     const added = new Set(disabledMembers);
@@ -43,6 +45,7 @@ export function PersonSelect({
       placeholder="Type a name or address"
       disabled={disabled}
       noun={PEOPLE}
+      error={error}
     />
   );
 }

@@ -742,8 +742,8 @@ Some messages keep their own form:
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
 - **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
-  `FormSteps` (`dashboard/src/components/FormSteps.tsx`; mobile's investor issue has its own
-  `mobile/src/components/FormSteps.tsx`), with one step visible at a time.
+  `FormSteps` (`dashboard/src/components/FormSteps.tsx`; mobile's investor issue and transfer
+  forms use `mobile/src/components/FormSteps.tsx`), with one step visible at a time.
   Show company and class context once above the form, without a duplicate information card or
   routine technical and upload descriptions. Transfer preparation follows the investor pattern:
   People and shares, Transfer documents, then Company authority and review.
@@ -791,8 +791,8 @@ This section covers how a form reports a problem: when it is submitted, and when
 
 - **Checking on submit.** Web forms check their fields when submitted. Filters that only narrow a
   list, such as Activity's dates, keep their own rules, and Trading's order change, deferred with
-  trading, shows the one sentence its shared hook reports. Mobile's Issue shares forms check the
-  same way; its other forms follow in [#1201](https://github.com/Ledova/ledova/issues/1201). On
+  trading, shows the one sentence its shared hook reports. Mobile's Issue shares forms and its
+  transfer form check the same way; its other forms follow in [#1201](https://github.com/Ledova/ledova/issues/1201). On
   mobile the summary (`mobile/src/components/ErrorSummary.tsx`) sits above the form's actions,
   where the press happened, and takes screen-reader focus; each field shows its message beneath
   it.
