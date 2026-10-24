@@ -1447,8 +1447,8 @@ update mobile screens that correspond to dashboard pages Codex has already compl
 to leave the others untouched ([#1201](https://github.com/Ledova/ledova/issues/1201)). Mobile now takes
 the shared names Ledger, Set up your ledger and Ledger opening, and its drawer mirrors the web
 sidebar: Ledger with Issue shares, Transfer shares, History and Corrections, then Shareholders, ESS
-and Documents. Member access, the member pages and the content of ESS stay unchanged on mobile while
-their web walkthrough continues.
+and Documents. Member access, the member pages and ESS's award records stay unchanged on mobile
+while their web walkthrough continues.
 
 ## Paper and Dark themes
 

@@ -322,7 +322,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
     </LedgerNavigationProvider>,
     { wrapper },
   );
-  await fireEvent.press(await setup.findByRole('button', { name: 'Create share class' }));
+  await fireEvent.press(await setup.findByRole('button', { name: 'Add share class' }));
   expect(setup.getByTestId('ledger-navigation')).toHaveTextContent('{"blocked":true}');
   for (const [label, value] of [
     ['Class name', 'Class A'],
@@ -330,7 +330,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   ])
     await fireEvent.changeText(setup.getByLabelText(label), value);
   jest.mocked(apiClient.post).mockRejectedValueOnce({ response: { status: 503 } });
-  await fireEvent.press(setup.getAllByRole('button', { name: 'Create share class' }).at(-1)!);
+  await fireEvent.press(setup.getAllByRole('button', { name: 'Add share class' }).at(-1)!);
   await setup.findByText('The request may have created the class. Refresh to check; it will not be submitted again.');
   expect(apiClient.post).toHaveBeenCalledTimes(1);
   expect(apiClient.post).toHaveBeenCalledWith(
@@ -350,16 +350,16 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   await fireEvent.press(setup.getByRole('button', { name: 'Refresh share classes' }));
   await setup.findByText('Share classes or your company appointments could not be loaded.');
   expect(apiClient.post).toHaveBeenCalledTimes(1);
-  expect(setup.getAllByRole('button', { name: 'Create share class' }).at(-1)).toBeDisabled();
-  expect(setup.getByTestId('modal-Create share class')).toBeTruthy();
+  expect(setup.getAllByRole('button', { name: 'Add share class' }).at(-1)).toBeDisabled();
+  expect(setup.getByTestId('modal-Add share class')).toBeTruthy();
   read = setupRead;
   pages = [[draftClass]];
   capability = 'read_register';
   await fireEvent.press(setup.getByRole('button', { name: 'Refresh share classes' }));
-  await waitFor(() => expect(setup.queryByTestId('modal-Create share class')).toBeNull());
+  await waitFor(() => expect(setup.queryByTestId('modal-Add share class')).toBeNull());
   await waitFor(() => expect(setup.getByTestId('ledger-navigation')).toHaveTextContent('{"blocked":false}'));
   expect(apiClient.post).toHaveBeenCalledTimes(1);
-  expect(setup.queryByRole('button', { name: 'Create share class' })).toBeNull();
+  expect(setup.queryByRole('button', { name: 'Add share class' })).toBeNull();
   await setup.unmount();
   capability = 'prepare';
   client.removeQueries();
@@ -530,7 +530,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   get.mockClear();
   mockPreferences.userAccount = { role: 'investor' };
   const view = await render(<CompanyRegisterScreen />, { wrapper });
-  await view.findByRole('header', { name: 'Preference shares' });
+  await view.findByRole('header', { name: 'Preference shares · PRF' });
   const epoch = getSessionEpoch();
   const session = { ledovaSessionEpoch: epoch, signal: expect.objectContaining({ aborted: false }) };
   expect(get.mock.calls.filter(([url]) => url === URLS.REGISTER).map(([, config]) => config)).toEqual([
@@ -542,8 +542,8 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   expect(getCompanyTokens).not.toHaveBeenCalled();
   expect(requested()).not.toContain(URLS.BASE);
   expect(view.queryByText('Choose company')).toBeNull();
-  expect(view.getByRole('button', { name: 'Open Ordinary shares' })).toBeTruthy();
-  expect(view.getByText('Paper Company · ORD')).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Class details (Ordinary shares)' })).toBeTruthy();
+  expect(view.getByRole('header', { name: 'Ordinary shares · ORD' })).toBeTruthy();
   mockSection = 'corrections';
   await view.rerender(<CompanyRegisterScreen />);
   await fireEvent.press(view.getByRole('radio', { name: 'Ordinary shares' }));

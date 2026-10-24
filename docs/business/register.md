@@ -231,10 +231,10 @@ Ledova, and its holdings must match the stored register. On the web:
    Confirm loads a fresh preview and records approval and application together; an appointee who may
    only review records the approval for another to apply.
 
-On mobile, setup starts on the Ledger tab: **Create share class** (or **Set up your ledger** in
-Getting started) records the class's name, code and type, and **Bring records** under the class's
-Register mirror, in Corrections, prepares its records for review and confirmation. Once a class
-exists, the Getting started step opens that class in Corrections.
+On mobile, setup starts on the Ledger tab: **Add share class** below the class cards (or **Set up
+your ledger** in Getting started) records the class's name, code and type, and **Bring records**
+under the class's Register mirror, in Corrections, prepares its records for review and confirmation.
+Once a class exists, the Getting started step opens that class in Corrections.
 
 The register API also accepts an empty opening with no current or former members for a genuinely
 unopened draft class without chain activity. It retains the same company confirmation and separate
@@ -552,8 +552,8 @@ reason, the person, their appointment and the time, and the
 
 ## The Register page
 
-The web destination is **Ledger**, with the subtitle **Share classes and current ownership.** The
-mobile destination remains Register. Ledger is open to every signed-in account and shows the
+The destination is **Ledger** on the web and mobile; the web adds the subtitle **Share classes and
+current ownership.** Ledger is open to every signed-in account and shows the
 registers of companies the person owns or where their appointment includes register access. With
 none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
 selector appears when several companies are readable. Ledger's sidebar label opens the share-class
@@ -570,6 +570,9 @@ The Ledger view shows:
   note when completed issues or transfers wait or cannot be checked;
 - **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
+
+Mobile's Ledger shows the same cards and **Add share class**, which opens its class form; mobile
+brings in a class's records from Corrections.
 
 Ledger's four sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the overview cards: Issue shares

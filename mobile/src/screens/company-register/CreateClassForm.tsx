@@ -31,12 +31,12 @@ export function CreateClassForm({ target, read, onClose, onSuccess }: Props) {
   return (
     <CustomModal
       visible
-      title="Create share class"
+      title="Add share class"
       onClose={close}
       busy={create.isPending || uncertain}
       showFooter
       onConfirm={submit}
-      confirmLabel="Create share class"
+      confirmLabel="Add share class"
       confirmDisabled={!valid || create.isPending}
     >
       <View style={styles.group}>

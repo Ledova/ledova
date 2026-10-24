@@ -6,7 +6,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   companiesAwaitingActivation,
   DESTINATIONS,
-  formatShareCount,
   isLedgerTask,
   REGISTER_COPY,
   useUserPreferences,
@@ -14,7 +13,7 @@ import {
   type LedgerTask,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Action, Choice, LinkRow, Row, Rows, Section } from '../../components/Ledger';
+import { Action, Choice, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import type { CompanyStackParamList } from '../../navigation/CompanyStackNavigator';
 import { useLedgerNavigation } from '../../navigation/LedgerNavigation';
@@ -31,6 +30,7 @@ import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyPack } from './CompanyPack';
 import { GettingStarted } from './GettingStarted';
 import { CompanyParticulars } from './CompanyParticulars';
+import { ClassSummary } from '../../components/register/ClassSummary';
 import { RegisterDownload } from '../../components/register/RegisterDownload';
 import { RegisterInspectionCopy } from './RegisterInspectionCopy';
 import { useRegisterClassCreation } from './useRegisterClassCreation';
@@ -117,7 +117,15 @@ function CompanyRegister({ epoch }: { epoch: number }) {
     );
   const shownRegisters: TokenHoldersResponse[] = registers.data ?? [];
   const styles = useCompanyStyles();
-  const layout = useThemedStyles((theme) => ({ stack: { gap: theme.spacing.lg } }));
+  const layout = useThemedStyles((theme) => ({
+    stack: { gap: theme.spacing.lg },
+    end: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      justifyContent: 'flex-end' as const,
+      gap: theme.spacing.sm,
+    },
+  }));
   const navigation = useNavigation<NativeStackNavigationProp<CompanyStackParamList>>();
   const routeToken = params?.tokenUuid;
   const [chosenToken, setChosenToken] = useState(routeToken);
@@ -208,49 +216,39 @@ function CompanyRegister({ epoch }: { epoch: number }) {
       {!company && companies.length > 0 && !classes.isPending && (
         <Text style={styles.muted}>Choose a company above.</Text>
       )}
-      <View style={shown === 'ledger' ? undefined : HIDDEN}>
-        <Section title="Share classes">
-          {company && creation.canPrepare && (
+      <View style={shown === 'ledger' ? layout.stack : HIDDEN}>
+        {company && sourceReady && company.classes.length === 0 && (
+          <Section title="Share classes">
+            <Text style={styles.muted}>No share classes yet.</Text>
+          </Section>
+        )}
+        {company &&
+          sourceReady &&
+          shownRegisters.map((register) => (
+            <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
+              <ClassSummary register={register} />
+              <Action
+                label="Class details"
+                accessibilityLabel={`Class details (${register.token.name})`}
+                disabled={holding}
+                onPress={() =>
+                  navigation.navigate('TokenDetail', { uuid: register.token.uuid, name: register.token.name })
+                }
+              />
+            </Section>
+          ))}
+        {company && creation.canPrepare && sourceReady && !holding && (
+          <View style={layout.end}>
             <Action
-              label="Create share class"
-              disabled={!sourceReady || holding}
+              primary
+              label="Add share class"
               onPress={() => {
                 onHeldChange('class-creation', true);
                 setCreating({ uuid: company.uuid, name: company.name });
               }}
             />
-          )}
-          {company && company.classes.length === 0 && sourceReady && (
-            <Text style={styles.muted}>No share classes recorded for {company.name}.</Text>
-          )}
-          {company &&
-            sourceReady &&
-            shownRegisters.map((register, index) => (
-              <View
-                key={register.token.uuid}
-                style={[styles.entry, index === shownRegisters.length - 1 && styles.lastEntry]}
-              >
-                <Text accessibilityRole="header" style={styles.heading}>
-                  {register.token.name}
-                </Text>
-                <Text style={styles.muted}>
-                  {company.name} · {register.token.symbol}
-                </Text>
-                <Rows>
-                  <Row label="Issued shares">
-                    {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
-                  </Row>
-                </Rows>
-                <LinkRow
-                  label="Share class"
-                  accessibilityLabel={`Open ${register.token.name}`}
-                  onPress={() =>
-                    navigation.navigate('TokenDetail', { uuid: register.token.uuid, name: register.token.name })
-                  }
-                />
-              </View>
-            ))}
-        </Section>
+          </View>
+        )}
       </View>
       {company && sourceReady && company.classes.length === 0 && shown !== 'ledger' && shown !== 'company' && (
         <Text style={styles.muted}>No share classes recorded for {company.name}.</Text>

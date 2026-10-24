@@ -40,8 +40,8 @@ the frame; sign-up keeps its own presentation.
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
 only where it adds to the titles. On web card collections, the primary creation action follows the
 last card in one right-aligned, wrapping row, rather than the title row; keep its content width.
-Ledger's Add share class follows this pattern for both empty and populated collections. The first
-section follows at the same gap as between sections (`Page`
+Ledger's Add share class follows this pattern for both empty and populated collections, on mobile
+too. The first section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground: the title (Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions
 as one wrapping row, since a phone's large title leaves no room beside it; the stack header holds
@@ -59,7 +59,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
   muted sentence ("No activity yet.") and at most one action; a state is never a
-  title. A card's title is a heading, such as each class's summary on Ledger on the web.
+  title. A card's title is a heading, such as each class's summary on Ledger.
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
   mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals, register
