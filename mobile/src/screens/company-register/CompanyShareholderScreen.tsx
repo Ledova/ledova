@@ -330,17 +330,6 @@ function CompanyShareholder({ epoch }: { epoch: number }) {
               {!current && !invited && <Action label="Invite to their records" onPress={() => open('company')} />}
             </Section>
           )}
-          <MemberDocuments
-            epoch={epoch}
-            company={company}
-            member={member}
-            sourceReady={sourceReady}
-            holdings={holdings.map(({ register }) => ({
-              member,
-              token: register.token.uuid,
-              label: `${register.token.name} · ${register.token.symbol}`,
-            }))}
-          />
         </>
       );
   }
@@ -357,6 +346,23 @@ function CompanyShareholder({ epoch }: { epoch: number }) {
       }
     >
       {content}
+      {data.company && (
+        <MemberDocuments
+          epoch={epoch}
+          company={company}
+          member={member}
+          sourceReady={sourceReady}
+          holdings={(data.registers.data ?? []).flatMap((register) =>
+            register.holders
+              .filter((holder) => holder.member === member)
+              .map(() => ({
+                member,
+                token: register.token.uuid,
+                label: `${register.token.name} · ${register.token.symbol}`,
+              })),
+          )}
+        />
+      )}
     </Page>
   );
 }
