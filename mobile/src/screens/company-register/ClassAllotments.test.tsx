@@ -8,6 +8,8 @@ import {
   type OwnCompanyAppointment,
   type RegisterAllotmentPreparation,
   type RegisterAllotmentDecideRequest,
+  type RegisterTransfer,
+  type RegisterTransferDecideRequest,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
@@ -23,6 +25,11 @@ import {
   allotmentDecision,
   allotmentPreview,
 } from '../../../../packages/shared/tests/fixtures/external-allotments';
+import {
+  TRANSFER,
+  TRANSFER_PREVIEW,
+  transferDecision,
+} from '../../../../packages/shared/tests/fixtures/register-transfers';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { pickedFile, resetFiles } from '../../testSupport/documentFiles';
@@ -108,6 +115,7 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   let releaseFile: (() => void) | undefined;
   let incompleteImpact = false;
   let staleApproval = true;
+  let transfer: RegisterTransfer | null = null;
   get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') {
       if (failedPreferences) throw new Error('Synthetic preferences unavailable');
@@ -158,9 +166,28 @@ it('recovers the fully paid company allotment once, approves and issues it in on
     if (rows[0] && url === URLS.REGISTER_ALLOTMENT(rows[0].uuid)) return { data: rows[0] };
     if (url === URLS.REGISTER_MEMBERS(REGISTER.token.uuid)) return { data: { members: [], awardRecipients: [] } };
     if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
+    if (url === URLS.REGISTER_TRANSFERS) return { data: { results: transfer ? [transfer] : [], next: null } };
     return { data: { results: [], next: null } };
   });
   post.mockReset().mockImplementation(async (url, body) => {
+    if (url === URLS.REGISTER_TRANSFER_PREVIEW(TRANSFER.uuid)) {
+      const request = body as RegisterTransferDecideRequest;
+      return {
+        data: {
+          ...TRANSFER_PREVIEW,
+          completeTransfer: request.completeTransfer === true,
+          applyAppointment: request.applyAppointment ?? request.appointment,
+        },
+      };
+    }
+    if (transfer && url === URLS.REGISTER_TRANSFER_DECIDE(TRANSFER.uuid)) {
+      const request = body as RegisterTransferDecideRequest;
+      if (!transfer.decisions.some((decision) => decision.idempotencyKey === request.idempotencyKey)) {
+        transfer = transferDecision(request);
+        throw new Error('Synthetic interrupted transfer approval response');
+      }
+      return { data: transfer };
+    }
     if (url === URLS.REGISTER_EVIDENCE)
       return {
         data: {
@@ -399,4 +426,33 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   await returnToApp();
   await waitFor(() => expect(view.queryByText('entry-a')).toBeNull());
   expect(view.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
+  appointments = [APPOINTMENT];
+  transfer = TRANSFER;
+  mockSection = 'transfer';
+  await view.rerender(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <CompanyRegisterScreen />
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  await act(async () => {
+    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'appointments'] });
+    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'transfers'] });
+  });
+  const transferDecisions = () =>
+    post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFER_DECIDE(TRANSFER.uuid)).map(([, body]) => body);
+  await fireEvent.press(await view.findByRole('button', { name: /^Review and approve for non-paid transfer/ }));
+  const approveTransfer = await view.findByRole('button', { name: 'Approve' });
+  await waitFor(() => expect(approveTransfer).not.toBeDisabled());
+  expect(view.getByRole('header', { name: 'Review share transfer' })).toBeTruthy();
+  expect(view.getByText('8,000 shares → 7,900 shares')).toBeTruthy();
+  expect(view.queryByRole('button', { name: /^Apply/ })).toBeNull();
+  await fireEvent.press(approveTransfer);
+  await fireEvent.press(await view.findByRole('button', { name: 'Recover original decision receipt' }));
+  await view.findByText('Approved');
+  expect(transferDecisions()).toEqual([transferDecisions()[0], transferDecisions()[0]]);
+  expect(transferDecisions()[0]).toEqual(
+    expect.objectContaining({ kind: 'approve', completeTransfer: true, applyAppointment: APPOINTMENT.uuid }),
+  );
 });

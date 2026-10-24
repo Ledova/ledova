@@ -418,7 +418,9 @@ account, payment, application or chain transaction.
    Success shows **Approved** and the recorded entry, without a separate Apply action. A failed
    transaction records no new approval or movement; retrying the same request cannot move the shares
    twice. Rejection also uses page review. The preparation action shares the final record's action
-   row, or stands alone when no transfers exist. The API and mobile keep their separate decision steps.
+   row, or stands alone when no transfers exist. Mobile Transfer shares works the same way, with
+   the review in place of its list and **Prepare a non-paid transfer** beneath it; the API keeps
+   its separate decision steps.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the
@@ -661,8 +663,8 @@ Details show only while the account, the classes and the holdings read are curre
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger.
 
-The mobile app shows the same page, reached from Shareholders only, without the Transfer shares and
-Issue shares to them links yet, and adds one document at a time. Everything on it, holdings
+The mobile app shows the same page, reached from Shareholders only, without the Transfer shares link
+yet, and adds one document at a time. Everything on it, holdings
 included, needs a current company register appointment; while their particulars, history, awards or
 documents refresh, each keeps what it last read. Its request and invitation links open Company, where
 mobile keeps member access.

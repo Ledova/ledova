@@ -1,12 +1,14 @@
+import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  DESTINATIONS,
   REGISTER_TRANSFER_COPY as COPY,
   type OwnCompanyAppointment,
   type RegisterStep,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Action } from '../../components/Ledger';
+import { Action, LinkRow, Section } from '../../components/Ledger';
 import { TransferRecord } from './TransferRecord';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { entriesKey, transfersKey, transferMembersKey, useRegisterTransfers } from '../../hooks/useCompanyRegister';
@@ -19,6 +21,8 @@ export function ClassTransfers({
   refreshHolders,
   refreshAppointments,
   onPrepare,
+  onSetUp,
+  onOpenClass,
   sourceReady = true,
   guard,
   onHeldChange,
@@ -33,11 +37,20 @@ export function ClassTransfers({
   refreshHolders: () => Promise<unknown>;
   refreshAppointments: () => Promise<unknown>;
   onPrepare: () => void;
+  onSetUp: () => void;
+  onOpenClass: () => void;
 }) {
   const styles = useCompanyStyles();
   const queryClient = useQueryClient();
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  const onReviewChange = useCallback(
+    (uuid: string, open: boolean) => setReviewing((current) => (open ? uuid : current === uuid ? null : current)),
+    [],
+  );
   const transfers = useRegisterTransfers(epoch, company, register.token.uuid);
   const privateReady = sourceReady && transfers.isSuccess && !transfers.isFetching;
+  const draft = register.token.status === 'draft';
+  const supported = register.initialized && draft;
   const recordGuard = () => {
     guard?.();
     const state = queryClient.getQueryState(transfersKey(epoch, register.token.uuid));
@@ -52,43 +65,74 @@ export function ClassTransfers({
       queryClient.refetchQueries({ queryKey: entriesKey(epoch, register.token.uuid), type: 'active' }),
       queryClient.invalidateQueries({ queryKey: transferMembersKey(epoch, register.token.uuid) }),
     ]);
+  const records = transfers.data ?? [];
   return (
-    <View style={styles.group}>
-      <Text style={styles.heading}>{COPY.TITLE}</Text>
-      {privateReady && steps?.prepare && register.initialized && register.token.status === 'draft' && (
-        <Action
-          label={COPY.PREPARE}
-          accessibilityLabel={`${COPY.PREPARE} for ${register.token.name}`}
-          onPress={onPrepare}
-        />
+    <>
+      <Section title={reviewing ? 'Review share transfer' : 'Share transfers'}>
+        {!reviewing && (
+          <>
+            {!supported && (
+              <View style={styles.group}>
+                {sourceReady && (
+                  <Text style={styles.muted}>
+                    {draft
+                      ? 'Set up this share register before recording a transfer.'
+                      : 'Tokenised share transfers use wallet and chain controls. This task records non-paid transfers for a non-tokenised register.'}
+                  </Text>
+                )}
+                {privateReady && !!steps?.prepare && (
+                  <LinkRow
+                    label={draft ? DESTINATIONS.companyRegisterImport.title : DESTINATIONS.companyClass.title}
+                    onPress={draft ? onSetUp : onOpenClass}
+                  />
+                )}
+              </View>
+            )}
+            {steps && !Object.values(steps).some(Boolean) && <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>}
+            {transfers.isPending ? (
+              <Text style={styles.muted}>Loading non-paid transfers…</Text>
+            ) : transfers.isError ? (
+              <>
+                <Text accessibilityRole="alert" style={styles.error}>
+                  The transfers could not be loaded.
+                </Text>
+                <Action
+                  label="Retry transfers"
+                  disabled={transfers.isFetching}
+                  onPress={() => void transfers.refetch()}
+                />
+              </>
+            ) : privateReady && records.length === 0 ? (
+              <Text style={styles.muted}>{COPY.EMPTY}</Text>
+            ) : null}
+            <Action label="Refresh transfers" disabled={transfers.isFetching} onPress={() => void settle()} />
+          </>
+        )}
+        {records.map((transfer, index) => (
+          <TransferRecord
+            key={transfer.uuid}
+            transfer={transfer}
+            epoch={epoch}
+            steps={steps ?? {}}
+            last={index === records.length - 1}
+            onSettled={settle}
+            visible={privateReady && (!reviewing || reviewing === transfer.uuid)}
+            guard={recordGuard}
+            onHeldChange={onHeldChange}
+            onReviewChange={onReviewChange}
+          />
+        ))}
+      </Section>
+      {!reviewing && privateReady && !!steps?.prepare && supported && (
+        <View style={styles.actions}>
+          <Action
+            label={COPY.PREPARE}
+            accessibilityLabel={`${COPY.PREPARE} for ${register.token.name}`}
+            primary
+            onPress={onPrepare}
+          />
+        </View>
       )}
-      {steps && !Object.values(steps).some(Boolean) && <Text style={styles.muted}>{COPY.READ_ONLY_NOTE}</Text>}
-      {transfers.isPending ? (
-        <Text style={styles.muted}>Loading non-paid transfers…</Text>
-      ) : transfers.isError ? (
-        <>
-          <Text accessibilityRole="alert" style={styles.error}>
-            The transfers could not be loaded.
-          </Text>
-          <Action label="Retry transfers" disabled={transfers.isFetching} onPress={() => void transfers.refetch()} />
-        </>
-      ) : privateReady && transfers.data.length === 0 ? (
-        <Text style={styles.muted}>{COPY.EMPTY}</Text>
-      ) : null}
-      <Action label="Refresh transfers" disabled={transfers.isFetching} onPress={() => void settle()} />
-      {transfers.data?.map((transfer, index) => (
-        <TransferRecord
-          key={transfer.uuid}
-          transfer={transfer}
-          epoch={epoch}
-          steps={steps}
-          last={index === transfers.data!.length - 1}
-          onSettled={settle}
-          visible={privateReady}
-          guard={recordGuard}
-          onHeldChange={onHeldChange}
-        />
-      ))}
-    </View>
+    </>
   );
 }

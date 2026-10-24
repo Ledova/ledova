@@ -39,6 +39,27 @@ export function decisionRows(proposal: RegisterProposal, labels: Record<Register
   );
 }
 
+function useSummaryGrid() {
+  return useThemedStyles((theme) => ({
+    grid: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, rowGap: theme.spacing.md },
+    cell: { width: '50%' as const, gap: theme.spacing.xs, paddingRight: theme.spacing.sm },
+  }));
+}
+
+export function RecordSummary({ children }: { children: ReactNode }) {
+  return <View style={useSummaryGrid().grid}>{children}</View>;
+}
+
+export function SummaryCell({ label, children }: { label: string; children: ReactNode }) {
+  const styles = useCompanyStyles();
+  return (
+    <View style={useSummaryGrid().cell}>
+      <Text style={styles.muted}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
 export function IssueSummary({
   name,
   kind,
@@ -55,32 +76,22 @@ export function IssueSummary({
   status: ReactNode;
 }) {
   const styles = useCompanyStyles();
-  const grid = useThemedStyles((theme) => ({
-    grid: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, rowGap: theme.spacing.md },
-    cell: { width: '50%' as const, gap: theme.spacing.xs, paddingRight: theme.spacing.sm },
-  }));
   return (
-    <View style={grid.grid}>
-      <View style={grid.cell}>
-        <Text style={styles.muted}>Recipient</Text>
+    <RecordSummary>
+      <SummaryCell label="Recipient">
         <Text accessibilityRole="header" style={styles.heading}>
           {name}
         </Text>
         <Text style={styles.muted}>{kind}</Text>
-      </View>
-      <View style={grid.cell}>
-        <Text style={styles.muted}>Shares</Text>
+      </SummaryCell>
+      <SummaryCell label="Shares">
         <Text style={styles.text}>{shareCount(shares)}</Text>
         {!!amount && <Text style={styles.muted}>{amount}</Text>}
-      </View>
-      <View style={grid.cell}>
-        <Text style={styles.muted}>Company issue date</Text>
+      </SummaryCell>
+      <SummaryCell label="Company issue date">
         <Text style={styles.text}>{formatDate(companyEventOn, 'Not recorded')}</Text>
-      </View>
-      <View style={grid.cell}>
-        <Text style={styles.muted}>Status</Text>
-        {status}
-      </View>
-    </View>
+      </SummaryCell>
+      <SummaryCell label="Status">{status}</SummaryCell>
+    </RecordSummary>
   );
 }
