@@ -1,12 +1,11 @@
+import { useCallback } from 'react';
 import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
 import {
   REGISTER_GRANT_COPY as COPY,
-  REGISTER_AWARD_COPY as AWARD_COPY,
   REGISTER_GRANT_DECISIONS,
   formatDateTime,
   type RegisterDecisionKind,
   type RegisterGrant,
-  type RegisterGrantDecisionPreview,
   shareCount,
   formatDate,
   shortReference,
@@ -18,21 +17,14 @@ import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
 import { useGrantRecordDownload } from './useRegisterRecordDownload';
 import { IssueSummary } from './IssueSummary';
+import { GrantReview } from './GrantReview';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
 
-function GrantRows({ grant }: { grant: RegisterGrant | RegisterGrantDecisionPreview }) {
+function GrantRows({ grant }: { grant: RegisterGrant }) {
   return (
     <Rows>
       {grant.award && <Row label="Employee award">{shortReference(grant.award)}</Row>}
-      {'awardPromisedShares' in grant && grant.award && (
-        <>
-          <Row label={AWARD_COPY.PROMISED}>{shareCount(grant.awardPromisedShares!)}</Row>
-          <Row label={AWARD_COPY.VESTED}>{shareCount(grant.awardVestedShares!)}</Row>
-          <Row label={AWARD_COPY.ISSUED}>{shareCount(grant.awardIssuedShares!)}</Row>
-          <Row label={AWARD_COPY.AVAILABLE}>{shareCount(grant.awardAvailableShares!)}</Row>
-        </>
-      )}
       <Row label="Member">{grant.name}</Row>
       <Row label={COPY.RESIDENTIAL_ADDRESS}>{grant.residentialAddress}</Row>
       <Row label="Member record">{grant.newMember ? 'New member' : 'Existing member'}</Row>
@@ -61,6 +53,9 @@ export function GrantRecord({
   onHeldChange,
   newEffectGuard,
   focusKey,
+  classLabel,
+  reviewTarget,
+  onReviewChange,
 }: {
   grant: RegisterGrant;
   steps: RegisterSteps;
@@ -70,12 +65,34 @@ export function GrantRecord({
   onHeldChange?: (uuid: string, held: boolean) => void;
   newEffectGuard?: (kind: RegisterDecisionKind) => void;
   focusKey?: string;
+  classLabel: string;
+  reviewTarget: HTMLElement | null;
+  onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const download = useGrantRecordDownload(grant, guard);
   const context = `grant for ${grant.name} prepared ${formatDateTime(grant.createdAt)}`;
   const documents: ('authority' | 'terms' | 'acceptance')[] = grant.acceptanceEvidence
     ? ['authority', 'terms', 'acceptance']
     : ['authority', 'terms'];
+  const reviewChanged = useCallback((open: boolean) => onReviewChange(grant.uuid, open), [grant.uuid, onReviewChange]);
+  const documentsView = (
+    <>
+      <div className="flex flex-wrap gap-2">
+        {documents.map((kind) => (
+          <PageAction
+            key={kind}
+            label={`Download ${kind} document`}
+            busy={download.isPending && download.variables === kind}
+            busyLabel="Downloading…"
+            context={context}
+            disabled={download.isPending}
+            onClick={() => download.mutate(kind)}
+          />
+        ))}
+      </div>
+      {download.isError && <RecordDownloadFailure error={download.error} />}
+    </>
+  );
   return (
     <RecordShell hidden={!visible} focusKey={focusKey}>
       {visible && (
@@ -115,20 +132,7 @@ export function GrantRecord({
             </Rows>
             <GrantRows grant={grant} />
             <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-            <div className="flex flex-wrap gap-2">
-              {documents.map((kind) => (
-                <PageAction
-                  key={kind}
-                  label={`Download ${kind} document`}
-                  busy={download.isPending && download.variables === kind}
-                  busyLabel="Downloading…"
-                  context={context}
-                  disabled={download.isPending}
-                  onClick={() => download.mutate(kind)}
-                />
-              ))}
-            </div>
-            {download.isError && <RecordDownloadFailure error={download.error} />}
+            {documentsView}
             <Rows>
               <Row label="Issue record">{shortReference(grant.uuid)}</Row>
               <Row label="Member reference">{shortReference(grant.member)}</Row>
@@ -151,22 +155,22 @@ export function GrantRecord({
         context={context}
         onDecided={onSettled}
         onRefused={onSettled}
+        pageReview={{
+          target: reviewTarget,
+          onChange: reviewChanged,
+          title: 'Review share issue',
+          labels: { approve: 'Approve', apply: 'Record issue', reject: 'Reject issue' },
+        }}
       >
-        {(preview) => (
-          <>
-            <GrantRows grant={preview} />
-            <p className="text-sm text-text-muted">{COPY.EFFECTIVE_NOTE}</p>
-            <Rows>
-              <Row label="Register sequence">{preview.registerSequence}</Row>
-              <Row label="Member holding">
-                {shareCount(preview.currentShares)} → {shareCount(preview.afterShares)}
-              </Row>
-              <Row label="Issued supply">
-                {shareCount(preview.issuedSupply)} → {shareCount(preview.afterIssuedSupply)}
-              </Row>
-              <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
-            </Rows>
-          </>
+        {(preview, kind) => (
+          <GrantReview
+            preview={preview}
+            proposal={grant}
+            classLabel={classLabel}
+            documents={documentsView}
+            showOwnership={kind !== 'reject'}
+            approving={kind === 'approve'}
+          />
         )}
       </RegisterDecisions>
     </RecordShell>

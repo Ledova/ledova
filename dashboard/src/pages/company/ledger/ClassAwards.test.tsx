@@ -586,13 +586,27 @@ it('retains original award, vesting and linked issue preparations through interr
   await waitFor(() => expect(document.activeElement).toBe(awardIssueRecord()));
   expect(screen.queryByRole('button', { name: /^Record issue [(]grant/ })).toBeNull();
   for (const label of ['Approve', 'Record issue']) {
-    fireEvent.click(
+    const opener = () =>
       screen.getByRole('button', {
         name: new RegExp(`^${label === 'Approve' ? 'Review and approve' : label} [(]grant`),
-      }),
-    );
-    const confirm = await screen.findByRole('button', { name: `${label} non-paid grant` });
-    expect(within(screen.getByRole('dialog')).getByText(formatDate('2026-10-06'))).toBeTruthy();
+      });
+    fireEvent.click(opener());
+    let review = await screen.findByRole('region', { name: 'Review share issue' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(issues.queryByRole('button', { name: 'Prepare issue' })).toBeNull();
+    expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(true);
+    expect(document.activeElement).toBe(within(review).getByRole('heading', { name: 'Review share issue' }));
+    if (label === 'Approve') {
+      fireEvent.click(within(review).getByRole('button', { name: 'Cancel' }));
+      await waitFor(() => expect(screen.queryByRole('region', { name: 'Review share issue' })).toBeNull());
+      await waitFor(() => expect(document.activeElement).toBe(opener()));
+      expect(submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid))).toHaveLength(0);
+      fireEvent.click(opener());
+      review = await screen.findByRole('region', { name: 'Review share issue' });
+      expect(within(review).getByText('Approval alone does not issue shares.')).toBeTruthy();
+    }
+    const confirm = within(review).getByRole('button', { name: label });
+    await within(review).findByText(formatDate('2026-10-06'));
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(confirm);
     if (label === 'Approve') {
@@ -601,7 +615,12 @@ it('retains original award, vesting and linked issue preparations through interr
       expect(awards[0].issuedShares).toBe('0');
     }
   }
-  await screen.findByRole('button', { name: /^Recover record issue receipt/, hidden: true });
+  const uncertainReview = await screen.findByRole('region', { name: 'Review share issue' });
+  await within(uncertainReview).findByRole('button', { name: 'Recover original decision receipt' });
+  const cancelUncertain = within(uncertainReview).getByRole('button', { name: 'Cancel' });
+  await waitFor(() => expect(cancelUncertain.matches(':disabled')).toBe(false));
+  fireEvent.click(cancelUncertain);
+  await screen.findByRole('button', { name: /^Recover record issue receipt/ });
   const originalIssue = submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter(
     (row) => row.kind === 'apply',
   )[0];
@@ -613,6 +632,7 @@ it('retains original award, vesting and linked issue preparations through interr
     expect(screen.getByText('Your account could not be loaded.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull();
     expect(document.body.textContent).not.toContain(AWARD_REQUEST.name);
+    expect(screen.queryByRole('region', { name: 'Review share issue' })).toBeNull();
   });
   listed = false;
   await act(async () =>

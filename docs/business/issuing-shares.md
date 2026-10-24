@@ -222,13 +222,17 @@ wallet or chain transaction.
 3. Give the shares, the company issue date, the separate date of the terms, the non-paid terms, the
    approving director, the authority reference and the reason, and upload the authority document,
    the terms document and any acceptance the terms require.
-4. Approve the preview, then choose Record issue.
+4. Choose Review and approve. On the web, the review replaces the records on the same page, showing
+   the proposed shares, ownership impact, terms and company authority, with documents on demand.
+   For an award-linked issue it also shows the award's promised, vested, issued and available shares.
+   Cancel returns without approval. Approve the preview, then choose Record issue; approval alone
+   issues no shares.
 
 Applying checks the authority, evidence, identity, director, register and authorised shares again (a
 lapsed approval needs a new one), and records one Issue entry with, for a new member, the member and
 their particulars. The recipient must have no linked wallet anywhere in the company; a member with
 one receives shares through a [chain grant](#non-paid-chain-grants). The member can then be invited
-to read their own holding ([member access](member-records.md#member-access)). The Non-paid issues
+to read their own holding ([member access](member-records.md#member-access)). The Issue shares
 list shows the recipient, quantity, stage and next action, with particulars, documents and decision
 history in the details.
 
