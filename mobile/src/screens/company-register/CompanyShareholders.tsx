@@ -98,6 +98,8 @@ export function CompanyShareholders({
             label="Search people"
             value={search}
             editable
+            maxLength={100}
+            clearable
             onChange={(value) => {
               setSearch(value);
               setShown(PAGE_SIZE);

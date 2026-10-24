@@ -392,7 +392,7 @@ function CompanyRegister({ epoch }: { epoch: number }) {
               </>
             )}
           </View>
-          {(peopleOpened || held.people) && (
+          {peopleOpened && (
             <View style={shown === 'shareholders' ? layout.stack : HIDDEN}>
               <CompanyPeople
                 key={`people/${epoch}/${company.uuid}`}

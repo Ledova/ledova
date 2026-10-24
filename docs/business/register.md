@@ -621,8 +621,8 @@ Details is unavailable, so the work and its recovery stay on the page.
 
 Mobile's Shareholders view lists the same current shareholders, with the search and class filter,
 25 more at a time, then People without shares and Former shareholders. The shareholder's page is
-not on mobile yet, so each person offers **Change particulars** instead of Details. **Add person**
-works as on the web.
+not on mobile yet, so each current shareholder offers **Change particulars** instead of Details.
+**Add person** works as on the web.
 
 The Employee share scheme view, ESS in the sidebar, holds each class's
 [awards](issuing-shares.md#employee-awards-and-vesting),

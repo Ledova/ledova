@@ -110,10 +110,11 @@ Shareholders (`CompanyPeople.tsx` and `CompanyShareholders.tsx` beside the scree
 after the same figures check, and only while the person can still read the register: Current
 shareholders across every opened class, with a name search, the share class as radio buttons, an
 identity-review count and each person's shares and percentage by class, 25 more at a time; then
-People without shares and Former shareholders by class. Each person offers **Change particulars**
-for someone who can prepare the register, since the shareholder screen isn't on mobile yet. **Add
-person** opens an inline name and residential address form; `usePersonRegistration.ts` keeps the
-web's original-save recovery, and an unfinished save stays mounted while the other sections say so.
+People without shares and Former shareholders by class. Each current shareholder offers **Change
+particulars** for someone who can prepare the register, since the shareholder screen isn't on
+mobile yet. **Add person** opens an inline name and residential address form;
+`usePersonRegistration.ts` keeps the web's original-save recovery, and an unfinished save stays
+mounted while the other sections say so.
 
 ## Theme and appearance
 

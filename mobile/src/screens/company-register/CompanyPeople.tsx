@@ -57,7 +57,7 @@ export function CompanyPeople({
 }) {
   const styles = useCompanyStyles();
   const person = usePersonRegistration({ epoch, company, sourceReady, onHeldChange });
-  const listed = ready && person.readable;
+  const listed = ready && person.authorised;
   return (
     <>
       <CompanyShareholders
@@ -68,44 +68,48 @@ export function CompanyPeople({
         onChangeParticulars={person.mayPrepare ? onChangeParticulars : undefined}
       />
       {listed && <FormerShareholders registers={registers} />}
-      {person.readable && person.query.isError ? (
-        <View style={styles.group}>
-          <Text accessibilityRole="alert" style={styles.error}>
-            The company people could not be loaded.
-          </Text>
-          <Action
-            label="Retry company people"
-            disabled={person.query.isFetching}
-            onPress={() => void person.query.refetch()}
-          />
-        </View>
-      ) : person.readable && !person.peopleReady ? (
-        <Text style={styles.muted}>Loading company people…</Text>
-      ) : null}
-      {!!person.outcome && (
-        <Text accessibilityLiveRegion="polite" style={styles.text}>
-          {person.outcome}
-        </Text>
+      {(ready || person.editing) && (
+        <>
+          {person.readable && person.query.isError ? (
+            <View style={styles.group}>
+              <Text accessibilityRole="alert" style={styles.error}>
+                The company people could not be loaded.
+              </Text>
+              <Action
+                label="Retry company people"
+                disabled={person.query.isFetching}
+                onPress={() => void person.query.refetch()}
+              />
+            </View>
+          ) : person.readable && !person.peopleReady ? (
+            <Text style={styles.muted}>Loading company people…</Text>
+          ) : null}
+          {!!person.outcome && (
+            <Text accessibilityLiveRegion="polite" style={styles.text}>
+              {person.outcome}
+            </Text>
+          )}
+          {person.appointments.isError && (
+            <View style={styles.group}>
+              <Text accessibilityRole="alert" style={styles.error}>
+                Your appointments could not be loaded.
+              </Text>
+              <Action
+                label="Retry appointments"
+                disabled={person.appointments.isFetching}
+                onPress={() => void person.appointments.refetch()}
+              />
+            </View>
+          )}
+          {person.editing ? (
+            <PersonForm person={person} />
+          ) : person.canPrepare ? (
+            <View style={styles.actions}>
+              <Action primary label="Add person" disabled={blocked || !person.peopleReady} onPress={person.open} />
+            </View>
+          ) : null}
+        </>
       )}
-      {person.appointments.isError && (
-        <View style={styles.group}>
-          <Text accessibilityRole="alert" style={styles.error}>
-            Your appointments could not be loaded.
-          </Text>
-          <Action
-            label="Retry appointments"
-            disabled={person.appointments.isFetching}
-            onPress={() => void person.appointments.refetch()}
-          />
-        </View>
-      )}
-      {person.editing ? (
-        <PersonForm person={person} />
-      ) : person.canPrepare ? (
-        <View style={styles.actions}>
-          <Action primary label="Add person" disabled={blocked || !person.peopleReady} onPress={person.open} />
-        </View>
-      ) : null}
     </>
   );
 }

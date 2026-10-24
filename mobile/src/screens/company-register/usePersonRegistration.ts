@@ -66,7 +66,9 @@ export function usePersonRegistration({
   };
   const { appointments } = useRegisterAppointments(epoch, company);
   const settled = sourceReady && appointments.isSuccess && appointments.fetchStatus === 'idle';
-  const readable = settled && hasCurrentRegisterReadAuthority(appointments.data, company);
+  const authorised =
+    sourceReady && appointments.isSuccess && hasCurrentRegisterReadAuthority(appointments.data, company);
+  const readable = authorised && appointments.fetchStatus === 'idle';
   const query = useCompanyPeople(epoch, company, readable);
   const mayPrepare =
     sourceReady && appointments.isSuccess && !!appointmentForRegisterStep(appointments.data, company, 'prepare');
@@ -174,6 +176,7 @@ export function usePersonRegistration({
   return {
     query,
     readable,
+    authorised,
     appointments,
     peopleReady,
     mayPrepare,

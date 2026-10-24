@@ -339,32 +339,43 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   await fireEvent.press(addPerson);
   await fireEvent.changeText(setup.getByLabelText('Name'), 'Sam Person');
   await fireEvent.changeText(setup.getByLabelText('Residential address'), '1 Example Street');
-  jest.mocked(apiClient.post).mockImplementationOnce((_url, body) => {
-    const request = body as Record<string, string>;
-    return Promise.resolve({
-      data: {
-        uuid: request.operationId,
-        company: request.company,
-        member: request.member,
-        name: request.name,
-        residentialAddress: request.residentialAddress,
-        preparingAppointment: request.appointment,
-        createdAt: '2026-10-24T00:00:00Z',
-      },
-    }) as ReturnType<typeof apiClient.post>;
-  });
+  jest
+    .mocked(apiClient.post)
+    .mockRejectedValueOnce({ response: { status: 503 } })
+    .mockImplementationOnce((_url, body) => {
+      const request = body as Record<string, string>;
+      return Promise.resolve({
+        data: {
+          uuid: request.operationId,
+          company: request.company,
+          member: request.member,
+          name: request.name,
+          residentialAddress: request.residentialAddress,
+          preparingAppointment: request.appointment,
+          createdAt: '2026-10-24T00:00:00Z',
+        },
+      }) as ReturnType<typeof apiClient.post>;
+    });
   await fireEvent.press(setup.getAllByRole('button', { name: 'Add person' }).at(-1)!);
+  await fireEvent.press(await setup.findByRole('button', { name: 'Retry original save' }));
   await setup.findByText('Sam Person added.');
-  expect(apiClient.post).toHaveBeenCalledTimes(1);
-  expect(apiClient.post).toHaveBeenCalledWith(
-    URLS.REGISTER_PEOPLE,
-    expect.objectContaining({
-      company: shareClass.companyUuid,
-      name: 'Sam Person',
-      residentialAddress: '1 Example Street',
-    }),
-    { ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) },
-  );
+  const [operationId, member] = jest
+    .mocked(Crypto.randomUUID)
+    .mock.results.slice(-2)
+    .map(({ value }) => value);
+  const sent = {
+    operationId,
+    company: shareClass.companyUuid,
+    appointment: APPOINTMENT.uuid,
+    member,
+    name: 'Sam Person',
+    residentialAddress: '1 Example Street',
+  };
+  const options = { ledovaSessionEpoch: getSessionEpoch(), ledovaSubmissionGuard: expect.any(Function) };
+  expect(jest.mocked(apiClient.post).mock.calls).toEqual([
+    [URLS.REGISTER_PEOPLE, sent, options],
+    [URLS.REGISTER_PEOPLE, sent, options],
+  ]);
   jest.mocked(apiClient.post).mockClear();
   mockSection = 'ledger';
   await setup.rerender(
