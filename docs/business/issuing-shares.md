@@ -177,8 +177,9 @@ paid issues stay.
 
 The mobile app's Issue shares lists the same records under **Share issues**, each with the web's
 summary of recipient and kind, shares and amount, company issue date and status, and Details and
-documents on demand. It still prepares an investor issue beneath the list and a non-paid issue on
-its own screen, and decides each record in a separate dialog.
+documents on demand. Review and approve opens the review in place of the list, as on the web, with
+the investor issue's single Approve and the non-paid issue's separate Record issue. It still prepares
+an investor issue beneath the list and a non-paid issue on its own screen.
 
 ### What each record changes
 
@@ -341,7 +342,7 @@ No deployment, application, payment or chain receipt is involved.
    separate Record issue action. It requires current approval and application authority; opening
    the review changes nothing. An older approval without an issue shows Ready to complete; the
    completed record shows Approved and the recorded shares. Rejection also uses a focused page
-   review. Mobile keeps its separate approval and application steps.
+   review. Mobile does the same, opening the review in place of the record list.
 
 The web form shows one step at a time using the same step indicator and fields as Ledger setup.
 Back preserves entries and selected files; Continue validates that step without uploading or saving.

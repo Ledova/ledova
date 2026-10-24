@@ -55,8 +55,6 @@ export const REGISTER_GRANT_COPY = {
   ACCEPTANCE_DOCUMENT: 'Acceptance document',
   ACCEPTANCE_REQUIRED: 'The terms require recipient acceptance',
   PROVIDED_BY_COMPANY: 'Terms, approving director, authority and particulars are provided by the company.',
-  RECOVERY_NOTE:
-    'If a decision response is interrupted, refresh grants to read its recorded outcome before starting another decision.',
   STAGES: { submitted: 'Prepared', approved: 'Approved', applied: 'Applied', rejected: 'Rejected' } as Record<
     string,
     string

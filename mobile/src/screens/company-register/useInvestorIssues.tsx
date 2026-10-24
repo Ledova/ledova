@@ -32,6 +32,8 @@ export function useInvestorIssues({
   onHeldChange,
   onSetUp,
   onOpenClass,
+  reviewing,
+  onReviewChange,
 }: {
   company: string;
   register: TokenHoldersResponse;
@@ -40,6 +42,8 @@ export function useInvestorIssues({
   onHeldChange?: (key: string, held: boolean) => void;
   onSetUp: () => void;
   onOpenClass: () => void;
+  reviewing: string | null;
+  onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const client = useQueryClient();
   const styles = useCompanyStyles();
@@ -235,8 +239,9 @@ export function useInvestorIssues({
       epoch={epoch}
       steps={steps ?? {}}
       guard={financialGuard}
-      visible={privateReady}
+      visible={privateReady && (!reviewing || reviewing === allotment.uuid)}
       onHeldChange={recordHeld}
+      onReviewChange={onReviewChange}
       newEffectGuard={(kind) => {
         guard();
         if (!writeReady.current || !appointmentForRegisterStep(latestAppointments.current, company, kind))

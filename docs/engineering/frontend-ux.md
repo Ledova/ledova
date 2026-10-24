@@ -188,8 +188,9 @@ the recorded outcome, without a separate Record issue or Apply action. Keep appr
 distinct retained facts, with atomic failure and same-request recovery that cannot duplicate the
 effect. Non-paid and employee-award issues use the same page review, with award quantities, ownership
 impact and company authority grouped, and terms and documents on demand. Their approval remains separate from
-**Record issue**; approval alone changes no holding. Rejection also uses page review. Other decision
-families, separate API decisions and mobile keep their existing workflow.
+**Record issue**; approval alone changes no holding. Rejection also uses page review. Mobile's Issue
+shares follows this review in place of its list. Other decision families, separate API decisions and
+mobile's other tasks keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
 import {
   COMPANY_TOKEN_ENDPOINTS,
@@ -12,26 +12,20 @@ import {
   type OwnCompanyAppointment,
   type RegisterDecisionKind,
   type RegisterAllotment,
-  type RegisterAllotmentDecisionPreview,
+  type RegisterAllotmentDecisionRequest,
   type RegisterStep,
 } from '@ledova/shared';
 import { Disclosure, Row, Rows, Status } from '../../components/Ledger';
 import { apiClient } from '../../services/apiClient';
 import { RegisterCopy } from '../../components/register/RegisterCopy';
-import { RegisterDecision } from '../../components/register/RegisterDecision';
+import { RegisterDecisions } from '../../components/register/RegisterDecisions';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { AllotmentOwnership } from './AllotmentOwnership';
+import { AllotmentReview } from './IssueReviews';
 import { ISSUE_TONES, IssueSummary, decisionRows } from './IssueSummary';
 
-const ISSUE_COPY = {
-  ...COPY,
-  DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' },
-  CONFIRMATIONS: { ...COPY.CONFIRMATIONS, apply: 'Record the approved shares in the register.' },
-};
+const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, approve: 'Approve', apply: 'Shares recorded' } };
 
-const TRAIL_LABELS = { ...COPY.DECISIONS, approve: 'Approve', apply: 'Shares recorded' };
-
-function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterAllotmentDecisionPreview }) {
+function AllotmentRows({ allotment }: { allotment: RegisterAllotment }) {
   return (
     <Rows>
       <Row label="Investor/member">{allotment.name}</Row>
@@ -47,7 +41,7 @@ function AllotmentRows({ allotment }: { allotment: RegisterAllotment | RegisterA
       <Row label={COPY.RECEIVED_ON}>{formatDate(allotment.contribution.receivedOn)}</Row>
       <Row label="Receipt attested">{formatDateTime(allotment.contribution.recordedAt)}</Row>
       <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(allotment.companyEventOn, 'Not recorded')}</Row>
-      {!!allotment.effectiveOn && allotment.effectiveOn !== allotment.companyEventOn && (
+      {!!allotment.registerEntry && !!allotment.effectiveOn && allotment.effectiveOn !== allotment.companyEventOn && (
         <Row label="Ledger date">{formatDate(allotment.effectiveOn)}</Row>
       )}
       <Row label={COPY.DIRECTOR}>{allotment.approvingDirector}</Row>
@@ -64,23 +58,68 @@ export function AllotmentRecord({
   newEffectGuard,
   visible = true,
   onHeldChange,
+  onReviewChange,
 }: {
   allotment: RegisterAllotment;
   epoch: number;
-  steps?: Partial<Record<RegisterStep, OwnCompanyAppointment>>;
+  steps: Partial<Record<RegisterStep, OwnCompanyAppointment>>;
   onSettled: () => Promise<unknown>;
   guard: () => void;
   newEffectGuard: (kind: RegisterDecisionKind) => void;
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
+  onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const styles = useCompanyStyles();
   const [details, setDetails] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const description = `external allotment for ${allotment.name}, prepared ${formatDateTime(allotment.createdAt)}`;
-  const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
+  const kinds: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
+  const family = {
+    ...REGISTER_ALLOTMENT_DECISIONS,
+    request: (request: RegisterAllotmentDecisionRequest): RegisterAllotmentDecisionRequest =>
+      request.kind === 'approve'
+        ? { ...request, completeIssue: true, applyAppointment: steps.apply?.uuid ?? request.appointment }
+        : request,
+  };
+  const reviewChanged = useCallback(
+    (open: boolean) => {
+      setReviewing(open);
+      onReviewChange(allotment.uuid, open);
+    },
+    [allotment.uuid, onReviewChange],
+  );
+  const documents = kinds.map((kind) => (
+    <RegisterCopy
+      key={kind}
+      label={`Download ${kind} document`}
+      accessibilityLabel={`Download ${kind} document of ${description}`}
+      filename={`${kind}-${allotment.uuid}`}
+      epoch={epoch}
+      guard={guard}
+      read={() => {
+        const config = {
+          responseType: 'arraybuffer' as const,
+          ledovaSessionEpoch: epoch,
+          ledovaSubmissionGuard: guard,
+        };
+        if (kind === 'authority')
+          return apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_FILE(allotment.uuid), config);
+        if (kind === 'agreement')
+          return apiClient.get<ArrayBuffer>(
+            COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_AGREEMENT_FILE(allotment.uuid),
+            config,
+          );
+        return apiClient.get<ArrayBuffer>(
+          COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_RECEIPT_FILE(allotment.uuid),
+          config,
+        );
+      }}
+    />
+  ));
   return (
     <View style={visible ? styles.entry : undefined}>
-      {visible && (
+      {visible && !reviewing && (
         <>
           <IssueSummary
             name={allotment.name}
@@ -122,7 +161,7 @@ export function AllotmentRecord({
               <Row label="Prepared on">{formatDateTime(allotment.createdAt)}</Row>
               <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
               <Row label={COPY.REASON}>{allotment.reason}</Row>
-              {decisionRows(allotment, TRAIL_LABELS)}
+              {decisionRows(allotment, DECISION_COPY.DECISIONS)}
               {!!allotment.registerEntry && <Row label="Register entry">{shortReference(allotment.registerEntry)}</Row>}
               <Row label="Allotment record">{shortReference(allotment.uuid)}</Row>
               <Row label="Member reference">{shortReference(allotment.member)}</Row>
@@ -140,80 +179,43 @@ export function AllotmentRecord({
             </Rows>
             <AllotmentRows allotment={allotment} />
             <Text style={styles.muted}>{COPY.RECEIPT_NOTE}</Text>
-            {documents.map((kind) => (
-              <RegisterCopy
-                key={kind}
-                label={`Download ${kind} document`}
-                accessibilityLabel={`Download ${kind} document of ${description}`}
-                filename={`${kind}-${allotment.uuid}`}
-                epoch={epoch}
-                guard={guard}
-                read={() => {
-                  const config = {
-                    responseType: 'arraybuffer' as const,
-                    ledovaSessionEpoch: epoch,
-                    ledovaSubmissionGuard: guard,
-                  };
-                  if (kind === 'authority')
-                    return apiClient.get<ArrayBuffer>(
-                      COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_FILE(allotment.uuid),
-                      config,
-                    );
-                  if (kind === 'agreement')
-                    return apiClient.get<ArrayBuffer>(
-                      COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_AGREEMENT_FILE(allotment.uuid),
-                      config,
-                    );
-                  return apiClient.get<ArrayBuffer>(
-                    COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_RECEIPT_FILE(allotment.uuid),
-                    config,
-                  );
-                }}
-              />
-            ))}
+            {documents}
           </Disclosure>
         </>
       )}
-      <View style={styles.choices}>
-        {(['approve', 'apply', 'reject'] as RegisterDecisionKind[]).map((kind) => (
-          <RegisterDecision
-            key={kind}
-            family={REGISTER_ALLOTMENT_DECISIONS}
-            copy={ISSUE_COPY}
-            noun="external allotment"
-            proposal={allotment}
-            kind={kind}
-            appointment={steps?.[kind]?.uuid}
-            visible={visible}
-            enabled={
-              allotment.status === 'submitted' &&
-              (kind === 'reject' ||
-                (!!allotment.companyEventOn && (kind !== 'apply' || allotment.stage === 'approved')))
-            }
-            onHeldChange={onHeldChange}
-            epoch={epoch}
-            readGuard={guard}
-            newEffectGuard={() => newEffectGuard(kind)}
-            description={description}
-            onSettled={onSettled}
-            onRefused={onSettled}
-          >
-            {(preview) => (
-              <>
-                {kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry && (
-                  <AllotmentOwnership preview={preview} />
-                )}
-                <AllotmentRows allotment={preview} />
-                <Text style={styles.muted}>{COPY.EFFECTIVE_NOTE}</Text>
-                <Rows>
-                  <Row label="Register sequence">{preview.registerSequence}</Row>
-                  <Row label="Authorised supply">{preview.authorisedSupply}</Row>
-                </Rows>
-              </>
-            )}
-          </RegisterDecision>
-        ))}
-      </View>
+      <RegisterDecisions
+        family={family}
+        copy={DECISION_COPY}
+        proposal={allotment}
+        steps={{ ...steps, apply: undefined }}
+        epoch={epoch}
+        readGuard={guard}
+        newEffectGuard={(kind) => {
+          newEffectGuard(kind);
+          if (kind === 'approve') {
+            if (!steps.apply) throw new Error('Company authority to record share issues is required.');
+            newEffectGuard('apply');
+          }
+        }}
+        description={description}
+        onDecided={onSettled}
+        onRefused={onSettled}
+        visible={visible}
+        onHeldChange={onHeldChange}
+        approveLabel="Review and approve"
+        review={{
+          onChange: reviewChanged,
+          labels: { approve: 'Approve', apply: 'Approve', reject: 'Reject allotment' },
+        }}
+      >
+        {(preview, kind) => (
+          <AllotmentReview
+            preview={preview}
+            documents={documents}
+            showOwnership={kind !== 'reject' && allotment.status === 'submitted' && !allotment.registerEntry}
+          />
+        )}
+      </RegisterDecisions>
     </View>
   );
 }

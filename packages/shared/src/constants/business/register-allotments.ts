@@ -9,8 +9,6 @@ export const REGISTER_ALLOTMENT_COPY = {
   CONSIDERATION: 'Full consideration (AUD)',
   OWNERSHIP_TITLE: 'Ownership if recorded',
   UNIT_PRICE: 'Derived price per share',
-  OWNERSHIP_NOTE:
-    'Calculated from the agreed total. Price is rounded half-up to 4 decimals and class percentages to 2. Percentages count shares in this class, not voting or economic rights. This preview does not issue shares or set a valuation.',
   OWNERSHIP_UNAVAILABLE: 'The ownership preview could not be confirmed. Refresh and try again.',
   RECEIVED_AMOUNT: 'Company-reported amount received (AUD)',
   RECEIVED_ON: 'Company-reported receipt date',
