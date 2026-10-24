@@ -452,10 +452,6 @@ it('recovers the fully paid company allotment once, approves and issues it in on
       </ApiClientProvider>
     </QueryClientProvider>,
   );
-  await act(async () => {
-    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'appointments'] });
-    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'transfers'] });
-  });
   const transferDecisions = () =>
     post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFER_DECIDE(TRANSFER.uuid)).map(([, body]) => body);
   const reviewTransfer = await view.findByRole('button', { name: /^Review and approve for non-paid transfer/ });
@@ -487,9 +483,7 @@ it('recovers the fully paid company allotment once, approves and issues it in on
     completeTransfer: false,
     idempotencyKey: 'prior-approval',
   });
-  await act(async () => {
-    await client.refetchQueries({ queryKey: [...registerKey(getSessionEpoch()), 'transfers'] });
-  });
+  await returnToApp();
   await view.findByText('Ready to complete');
   expect(view.getByRole('button', { name: /^Review and approve for non-paid transfer/ })).toBeTruthy();
   await cleanup();

@@ -142,7 +142,9 @@ export function ClassRecords({
           onPrepare={onPrepareTransfer}
           onSetUp={() => onPrepareImport()}
           onOpenClass={onOpenClass}
-          sourceReady={readReady}
+          sourceReady={sourceReady}
+          readReady={readReady}
+          visible={shown('transfer') && focused}
           guard={guard}
           onHeldChange={transferHeld}
         />
