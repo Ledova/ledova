@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  REGISTER_MEMBER_DOCUMENT_CATEGORIES,
   formatDate,
   formatShareCount,
   registerImportTotals,
@@ -10,7 +11,6 @@ import { Table } from '@components/List';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { Row, Rows } from '@components/Ledger';
-import { DOCUMENT_CATEGORIES } from './documentAttachmentDraft';
 
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -115,7 +115,9 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                   {selected.documents.map((document) => (
                     <li key={document.evidence}>
                       {document.snapshot?.name || 'Retained supporting document'}
-                      <p className="mt-1 text-xs text-text-muted">{DOCUMENT_CATEGORIES[document.category]}</p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        {REGISTER_MEMBER_DOCUMENT_CATEGORIES[document.category]}
+                      </p>
                     </li>
                   ))}
                 </ul>

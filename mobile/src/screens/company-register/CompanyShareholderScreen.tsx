@@ -33,6 +33,7 @@ import {
   useTransferMembers,
 } from '../../hooks/useCompanyRegister';
 import type { CompanyRegisterSection } from './CompanyRegisterScreen';
+import { MemberDocuments } from './MemberDocuments';
 import { useMemberAwards } from './useRegisterAwards';
 
 const PRIVATE_NOTE =
@@ -329,6 +330,17 @@ function CompanyShareholder({ epoch }: { epoch: number }) {
               {!current && !invited && <Action label="Invite to their records" onPress={() => open('company')} />}
             </Section>
           )}
+          <MemberDocuments
+            epoch={epoch}
+            company={company}
+            member={member}
+            sourceReady={sourceReady}
+            holdings={holdings.map(({ register }) => ({
+              member,
+              token: register.token.uuid,
+              label: `${register.token.name} · ${register.token.symbol}`,
+            }))}
+          />
         </>
       );
   }

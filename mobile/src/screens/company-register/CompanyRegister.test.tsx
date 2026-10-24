@@ -109,7 +109,7 @@ const registerOf = (target: typeof shareClass, changes: object) => ({
 });
 let client: QueryClient;
 let pages: unknown[][];
-let read: (url: string, page: number, token?: string) => Promise<unknown>;
+let read: (url: string, page: number, token?: string, member?: string) => Promise<unknown>;
 const page = (results: unknown[], next: string | null = null) => ({ data: { results, next, count: results.length } });
 function defaultRead(url: string, number: number, token?: string): Promise<unknown> {
   if (url === URLS.REGISTER)
@@ -243,6 +243,7 @@ beforeEach(() => {
         url,
         (config?.params as { page?: number } | undefined)?.page ?? 1,
         (config?.params as { token?: string } | undefined)?.token,
+        (config?.params as { member?: string } | undefined)?.member,
       ) as ReturnType<typeof apiClient.get>,
   );
   jest.mocked(Sharing.shareAsync).mockClear();
@@ -628,7 +629,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
     companyUuid: shareClass.companyUuid,
     memberUuid: 'member-1',
   });
-  read = (url, number, token) =>
+  read = (url, number, token, member) =>
     url === URLS.REGISTER_MEMBERS('ordinary')
       ? Promise.resolve({
           data: {
@@ -648,7 +649,7 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
             awardRecipients: [],
           },
         })
-      : url === URLS.REGISTER_ENTRIES('ordinary')
+      : url === URLS.REGISTER_ENTRIES('ordinary') && member === 'member-1'
         ? Promise.resolve(
             page([
               {
@@ -668,7 +669,9 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
               },
             ]),
           )
-        : url === URLS.REGISTER_ENTRIES('preference') || url === URLS.REGISTER_AWARDS
+        : url === URLS.REGISTER_ENTRIES('preference') ||
+            url === URLS.REGISTER_AWARDS ||
+            url === URLS.REGISTER_MEMBER_DOCUMENTS
           ? Promise.resolve(page([]))
           : defaultRead(url, number, token);
   mockRouteParams = { section: 'shareholders', companyUuid: shareClass.companyUuid, memberUuid: 'member-1' };
@@ -681,6 +684,13 @@ it('sets up an appointed company without issuing shares, recovers uncertain clas
   await view.findByText('2 Register Lane');
   expect(view.getByRole('header', { name: 'Alex Member' })).toBeTruthy();
   expect(view.getByText('+9,007,199,254,740,992 shares')).toBeTruthy();
+  await view.findByText('No supporting documents attached.');
+  expect(get).toHaveBeenCalledWith(
+    URLS.REGISTER_MEMBER_DOCUMENTS,
+    expect.objectContaining({
+      params: expect.objectContaining({ company: shareClass.companyUuid, member: 'member-1' }),
+    }),
+  );
   const readAppointments = client.getQueryData(registerAppointmentsKey(epoch));
   await act(() =>
     client.setQueryData(registerAppointmentsKey(epoch), [

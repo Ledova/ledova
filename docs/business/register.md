@@ -660,9 +660,9 @@ Details show only while the account, the classes and the holdings read are curre
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger.
 
-The mobile app shows the same page, without Documents or the Transfer shares and Issue shares to
-them links yet. Its holdings also need a current company register appointment, and its request and
-invitation links open Company, where mobile keeps member access.
+The mobile app shows the same page, without the Transfer shares and Issue shares to them links yet,
+and adds one document at a time. Its holdings also need a current company register appointment, and
+its request and invitation links open Company, where mobile keeps member access.
 
 ### Choosing a person
 
