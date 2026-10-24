@@ -22,9 +22,6 @@ import { awardsKey, useRegisterAward } from '@pages/company/ledger/shared/useReg
 import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { LoadError, Loading } from '@components/Ledger';
 
-const AWARD_NOTE =
-  'Prepare the company’s issue of recorded vested shares. The employee does not purchase them; approval and recording the issue are separate steps.';
-
 export function useNonPaidIssues({
   owner,
   guard,
@@ -156,7 +153,6 @@ export function useNonPaidIssues({
   const shown = open || formHeld;
   const form = (shown || !!formAppointment) && (
     <div hidden={!shown} className="flex flex-col gap-3">
-      <p className="text-sm text-text-muted">{awardUuid ? AWARD_NOTE : COPY.NOTE}</p>
       {stale ? (
         <LoadError retry={retry} busy={busy}>
           The non-paid issue form could not be loaded.
