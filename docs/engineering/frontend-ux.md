@@ -39,10 +39,13 @@ awards cards share equal columns and stretch to the same height on wide screens,
 on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
 quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
 included in the holding. The member Dashboard contains only the shares and read-only award overview.
-**Company-recorded details** in Settings groups current particulars, the update form and
-particulars-request status in the standard workspace frame; pending requests stay visible and
-completed requests open on demand. Keep these company records distinct from personal Profile
-edits. Share history and certificate tracking belong in Documents, without duplicate particulars status.
+**Company-recorded details** in Settings separates **Current details** from **Update requests** in
+the standard workspace frame. The current name and address stay together, with **Request update**
+in the card's right-aligned footer. That action opens one focused inline form with **Cancel** and
+**Send request** together; a successful submission closes the form and clears sharing consent.
+Pending requests show their requested name, address and status together, with technical references
+and completed requests on demand. Keep these company records distinct from personal Profile edits.
+Share history and certificate tracking belong in Documents, without duplicate particulars status.
 Section spacing is scoped to
 the frame; sign-up keeps its own presentation.
 

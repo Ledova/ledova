@@ -640,11 +640,13 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   with `BigInt` and charts the member's own shares by class, without company-wide totals or ownership
   percentages. Its only other content is read-only awards: separate entitlements, with the promise
   and nonzero lifecycle quantities above their full breakdown and terms in Award details.
-  Company-recorded details in Settings groups recorded particulars, their update form and
-  particulars-request status in the workspace frame; Documents holds share history and certificate
-  tracking. The views share an owner-bound member-records controller, retaining an unfinished
-  particulars draft in memory across their navigation within the same account and company, without
-  browser storage. Choosing another class in Documents reads that class's own entries. Active web
+  Company-recorded details in Settings separates current particulars from update-request records.
+  Request update opens a focused inline form; successful submission closes it and clears consent,
+  while pending requests keep the requested particulars and status visible together. Documents
+  holds share history and certificate tracking. The views share an owner-bound member-records
+  controller, retaining an unfinished particulars draft in memory across their navigation within
+  the same account and company, without browser storage. Choosing another class in Documents reads
+  that class's own entries. Active web
   reads follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders (with member access),
