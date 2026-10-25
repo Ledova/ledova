@@ -338,7 +338,9 @@ not built.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
    transfers.
-3. Approve, then Apply.
+3. In **Ledger** → **Corrections**, choose **Approve**. On web, compare the current and proposed
+   particulars on the main page before confirming; **Cancel** returns to the prepared record.
+   **Apply** records the approved update separately.
 
 A correction is refused for an entry with no changes or already corrected, or an inverse taking a
 holding below zero; if a newer entry was recorded after preparation, reject it and prepare another.
