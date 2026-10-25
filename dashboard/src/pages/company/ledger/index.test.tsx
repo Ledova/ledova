@@ -32,7 +32,7 @@ import {
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -46,6 +46,9 @@ import { ClassReconciliation } from './ClassReconciliation';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
+import { useShareClass } from './detail/useShareClass';
+import { useDeploymentFlow } from './detail/useDeploymentFlow';
+import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, readPeople } from './shared/usePeople';
 import {
   blankAllotment,
@@ -170,9 +173,12 @@ afterEach(() => {
   client.clear();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  focusManager.setFocused(undefined);
 });
 
 it('reads every class page and groups exact holdings by member identity with search, filtering, paging and private details', async () => {
+  vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
   const original = register();
   const shared = original.holders[0];
   const ordinary = register('ordinary', {
@@ -467,7 +473,7 @@ it('reads every class page and groups exact holdings by member identity with sea
               company: 'harbour',
               companyUuid: 'harbour',
               companyName: 'Harbour Example Pty Ltd',
-              isOwner: false,
+              isOwner: true,
               statusDisplay: 'Deployed',
               tokenTypeDisplay: 'Ordinary shares',
               isTransferable: false,
@@ -515,6 +521,25 @@ it('reads every class page and groups exact holdings by member identity with sea
   });
   fireEvent.click(rightsForm.getByRole('button', { name: 'Add document' }));
   fireEvent.change(rightsForm.getByLabelText('File'), { target: { files: [rightsFile] } });
+  const technicalWhileEditing = screen.getByRole('button', { name: 'Technical details and chain workflows' });
+  fireEvent.click(technicalWhileEditing);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const editingForm = screen.getByRole('form', { name: 'Edit class rights' });
+  const termsControl = rightsForm.getByLabelText('Additional terms');
+  termsControl.focus();
+  const readsBeforeFocus = api.get.mock.calls.length;
+  await act(async () => {
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+    window.dispatchEvent(new Event('focus'));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  });
+  expect(api.get.mock.calls).toHaveLength(readsBeforeFocus);
+  expect(screen.getByRole('form', { name: 'Edit class rights' })).toBe(editingForm);
+  expect(rightsForm.getByText(rightsFile.name)).toBeTruthy();
+  expect(document.activeElement).toBe(termsControl);
+  expect(screen.queryByRole('button', { name: /^Refresh / })).toBeNull();
+  fireEvent.click(technicalWhileEditing);
   api.post.mockImplementation(async (url: string, body: ClassRightsRequest | FormData, config) => {
     config?.ledovaSubmissionGuard();
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE) {
@@ -737,8 +762,16 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByRole('link', { name: 'Back to Ledger' }).getAttribute('href')).toBe('/company/ledger');
   const technical = screen.getByRole('button', { name: 'Technical details and chain workflows' });
   expect(technical.getAttribute('aria-expanded')).toBe('false');
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const readsBeforeTechnical = api.get.mock.calls.length;
+  const writesBeforeTechnical = api.post.mock.calls.length;
   fireEvent.click(technical);
   expect(technical.getAttribute('aria-expanded')).toBe('true');
+  await waitFor(() =>
+    expect(api.get.mock.calls.slice(readsBeforeTechnical).some(([url]) => url === APPOINTMENTS)).toBe(true),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(api.post.mock.calls).toHaveLength(writesBeforeTechnical);
   fireEvent.click(technical);
   expect(technical.getAttribute('aria-expanded')).toBe('false');
 
@@ -1197,6 +1230,75 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('button', { name: 'Recover original save' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(documentRows).toHaveLength(1);
+
+  cleanup();
+  client.clear();
+  prepareCompanyClient(client);
+  const deploymentToken = 'deployment-class';
+  api.get.mockReset().mockImplementation(async (url: string) => {
+    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(deploymentToken))
+      return {
+        data: {
+          ...ordinary.token,
+          uuid: deploymentToken,
+          company: 'harbour',
+          companyUuid: 'harbour',
+          status: 'draft',
+          isOwner: false,
+        },
+      };
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(deploymentToken)) return { data: register(deploymentToken) };
+    if (url === APPOINTMENTS)
+      return {
+        data: {
+          results: [{ ...CURRENT_APPOINTMENT, company: 'harbour', capabilities: ['prepare'] }],
+          count: 1,
+          next: null,
+          previous: null,
+        },
+      };
+    return { data: { results: [], count: 0, next: null, previous: null } };
+  });
+  api.post.mockReset().mockRejectedValue(new Error('Synthetic interrupted deployment preparation'));
+  const deployment = renderHook(
+    () => {
+      const data = useShareClass(deploymentToken);
+      return useDeploymentFlow({ uuid: deploymentToken, data });
+    },
+    {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>
+          <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+        </QueryClientProvider>
+      ),
+    },
+  );
+  await waitFor(() => expect(deployment.result.current.canPrepare).toBe(true));
+  await act(async () => {
+    await deployment.result.current.prepare();
+  });
+  expect(deployment.result.current.uncertain).toBe(true);
+  expect(api.post).toHaveBeenCalledTimes(1);
+  const replacement = companyPreferences();
+  act(() =>
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: {
+        ...replacement,
+        userProfile: 'replacement-profile',
+        userAccount: { ...replacement.userAccount!, uuid: 'replacement-account' },
+      },
+    }),
+  );
+  await waitFor(() => expect(deployment.result.current.owner?.ownerAccountUuid).toBe('replacement-account'));
+  await waitFor(() => expect(deployment.result.current.canPrepare).toBe(true));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(deployment.result.current.uncertain).toBe(false);
+  await act(async () => {
+    client.setQueryData(ownAppointmentsKey(deployment.result.current.owner!), []);
+    await deployment.result.current.prepare();
+  });
+  expect(api.post).toHaveBeenCalledTimes(1);
+  expect(deployment.result.current.error).toMatch(/appointment before starting this decision/);
 });
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {

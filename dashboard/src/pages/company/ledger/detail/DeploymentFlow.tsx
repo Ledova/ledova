@@ -1,5 +1,7 @@
 import { Row, Rows, Section, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { useCallback, useEffect } from 'react';
+import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { FormActions, PageAction } from '@components/Page';
 import {
   REGISTER_DEPLOYMENT_COPY as COPY,
   createUserFriendlyError,
@@ -63,7 +65,15 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
   );
 }
 
-export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
+export function DeploymentFlow({
+  uuid,
+  data,
+  active = true,
+}: {
+  uuid: string;
+  data: ReturnType<typeof useShareClass>;
+  active?: boolean;
+}) {
   const {
     owner,
     guard,
@@ -71,6 +81,7 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
     key,
     records,
     busy,
+    working,
     uncertain,
     error,
     retain,
@@ -83,12 +94,27 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
     refresh,
     prepare,
   } = useDeploymentFlow({ uuid, data });
+  const onHeldChange = useCallback(
+    (uuid: string, held: boolean) => data.holdReads('deployment/decision/' + uuid, held),
+    [data.holdReads],
+  );
+  useEffect(() => {
+    data.holdReads('deployment/request', working || uncertain);
+    return () => data.holdReads('deployment/request', false);
+  }, [working, uncertain, data.holdReads]);
+  useAutomaticReads({
+    scope: active && owner ? data.scopeKey + '/deployment' : null,
+    paused: data.readingPaused || working || uncertain,
+    refresh,
+  });
   if (!owner) return null;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       {canPrepare && (
-        <PageAction label={COPY.PREPARE} busy={busy} busyLabel="Preparing…" onClick={() => void prepare()} />
+        <FormActions>
+          <PageAction label={COPY.PREPARE} busy={busy} busyLabel="Preparing…" onClick={() => void prepare()} />
+        </FormActions>
       )}
       {uncertain && (
         <>
@@ -105,11 +131,11 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
       {appointments.isError && (
-        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+        <LoadError retry={refresh} busy={appointments.isFetching}>
           Your appointments could not be loaded.
         </LoadError>
       )}
-      {deployments.isError ? (
+      {deployments.isError && (
         <LoadError
           retry={() => refresh().catch(() => undefined)}
           busy={deployments.isFetching || appointments.isFetching}
@@ -118,15 +144,6 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
             ? 'Deployment history could not be refreshed. Retained receipts remain below.'
             : 'Deployment history could not be loaded.'}
         </LoadError>
-      ) : (
-        !appointments.isError && (
-          <PageAction
-            label="Refresh deployments"
-            onClick={() => void refresh().catch(() => undefined)}
-            busy={deployments.isFetching || appointments.isFetching}
-            busyLabel="Refreshing…"
-          />
-        )
       )}
       {!records.length ? (
         !deployments.isError &&
@@ -213,6 +230,7 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                   await refresh();
                 }}
                 onRefused={refresh}
+                onHeldChange={onHeldChange}
               >
                 {(preview) => (
                   <>

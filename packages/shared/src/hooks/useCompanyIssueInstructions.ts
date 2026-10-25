@@ -44,6 +44,9 @@ export function useCompanyIssueInstructions(
     tokenKey: QueryKey;
     newKey: () => string;
     session?: OrderSubmissionSession;
+    coordinatedReads?: boolean;
+    paused?: boolean;
+    onPrepared?: (kind: 'link' | 'issue') => void;
   },
 ) {
   const api = useApiClient();
@@ -59,7 +62,9 @@ export function useCompanyIssueInstructions(
         ? current.current.company
         : '';
   const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0, tokenUuid, company];
-  const scopeKey = scope.join('/');
+  const [view, setView] = useState({ owner, generation: 0 });
+  if (view.owner !== owner) setView({ owner, generation: view.generation + 1 });
+  const scopeKey = [...scope, view.generation].join('/');
   const appointmentKey = ['company-issue-appointments', ...scope];
   const nominationKey = ['company-issue-nominations', ...scope];
   const approvalKey = ['company-issue-wallet-approvals', ...scope];
@@ -72,10 +77,22 @@ export function useCompanyIssueInstructions(
     issues: RegisterIssue[];
     links: RegisterLink[];
   }>({ owner, company, issues: [], links: [] });
-  const [original, setOriginal] = useState<{ owner: typeof owner; company: string; operation: Original } | null>(null);
+  const [original, setOriginal] = useState<{
+    owner: typeof owner;
+    company: string;
+    token: string;
+    operation: Original;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [workingOwner, setWorkingOwner] = useState<typeof owner>(null);
   const [error, setError] = useState<string | null>(null);
   const [, setClock] = useState(0);
+  const readingPaused =
+    !!options.paused ||
+    (busy && workingOwner === owner) ||
+    (original?.owner === owner && original.company === company && original.token === tokenUuid);
+  const reading = !options.coordinatedReads || !readingPaused;
+  const timing = options.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
   useLayoutEffect(() => {
     current.current = { owner, tokenUuid, company };
   }, [owner, tokenUuid, company]);
@@ -114,7 +131,8 @@ export function useCompanyIssueInstructions(
   });
   const appointments = useQuery({
     queryKey: appointmentKey,
-    enabled: !!owner && !!company,
+    enabled: !!owner && !!company && reading,
+    ...timing,
     queryFn: () =>
       readEveryPage(async (page) => {
         ownerGuard();
@@ -145,7 +163,8 @@ export function useCompanyIssueInstructions(
   };
   const nominations = useQuery({
     queryKey: nominationKey,
-    enabled: visible,
+    enabled: visible && reading,
+    ...timing,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
@@ -158,7 +177,8 @@ export function useCompanyIssueInstructions(
   });
   const walletApprovals = useQuery({
     queryKey: approvalKey,
-    enabled: visible,
+    enabled: visible && reading,
+    ...timing,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
@@ -171,7 +191,8 @@ export function useCompanyIssueInstructions(
   });
   const members = useQuery({
     queryKey: memberKey,
-    enabled: visible,
+    enabled: visible && reading,
+    ...timing,
     queryFn: async () => {
       guard();
       const response = await getRegisterTransferMembers(api, tokenUuid, config(guard));
@@ -184,7 +205,8 @@ export function useCompanyIssueInstructions(
   });
   const links = useQuery({
     queryKey: linkKey,
-    enabled: visible,
+    enabled: visible && reading,
+    ...timing,
     queryFn: async () => {
       guard();
       const rows = await getRegisterLinks(api, { company }, config(guard));
@@ -207,7 +229,8 @@ export function useCompanyIssueInstructions(
   });
   const instructions = useQuery({
     queryKey: issueKey,
-    enabled: visible,
+    enabled: visible && reading,
+    ...timing,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
@@ -388,19 +411,45 @@ export function useCompanyIssueInstructions(
         throw createUserFriendlyError('The selected nominated address changed.');
     }
   };
-  const refresh = async () => {
+  const refresh = async (available?: () => boolean) => {
+    const currentRead = () =>
+      !available || (available() && !readingPaused && !(pending.current && workingOwner === owner));
+    if (!currentRead()) return;
+    if (
+      available &&
+      [
+        appointmentKey,
+        issueKey,
+        nominationKey,
+        approvalKey,
+        memberKey,
+        linkKey,
+        options.tokenKey,
+        USER_PREFERENCES_QUERY_KEY,
+        AUTH_QUERY_KEY,
+      ].some((queryKey) => client.isFetching({ queryKey, exact: true }))
+    )
+      return false;
     setError(null);
     try {
       ownerGuard();
-      if ((await appointments.refetch()).isError) return;
+      if ((await appointments.refetch({ cancelRefetch: false })).isError || !currentRead()) return;
       guard();
+      if (available) {
+        await client.refetchQueries({ queryKey: options.tokenKey, exact: true }, { cancelRefetch: false });
+        if (!currentRead()) return;
+        guard();
+        const source = client.getQueryState(options.tokenKey);
+        if (source?.status !== 'success' || source.fetchStatus !== 'idle') return;
+      }
       await Promise.all([
-        nominations.refetch(),
-        walletApprovals.refetch(),
-        members.refetch(),
-        links.refetch(),
-        instructions.refetch(),
+        nominations.refetch({ cancelRefetch: false }),
+        walletApprovals.refetch({ cancelRefetch: false }),
+        members.refetch({ cancelRefetch: false }),
+        links.refetch({ cancelRefetch: false }),
+        instructions.refetch({ cancelRefetch: false }),
       ]);
+      if (!currentRead()) return;
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
@@ -450,6 +499,7 @@ export function useCompanyIssueInstructions(
   const send = async (operation: Original, recovering: boolean) => {
     if (pending.current || (!recovering && original !== null && original.owner === owner)) return;
     pending.current = true;
+    setWorkingOwner(owner);
     setBusy(true);
     setError(null);
     let dispatched = false;
@@ -471,7 +521,7 @@ export function useCompanyIssueInstructions(
         return data;
       };
       requestConfig.transformRequest = [...prior, mark];
-      setOriginal({ owner, company, operation });
+      setOriginal({ owner, company, token: tokenUuid, operation });
       if (operation.kind === 'issue') {
         const response = await prepareRegisterIssue(api, operation.body, requestConfig);
         guard();
@@ -479,6 +529,7 @@ export function useCompanyIssueInstructions(
           throw createUserFriendlyError('The grant receipt could not be confirmed. Recover its original request.');
         setOriginal(null);
         await accept(response.data);
+        options.onPrepared?.('issue');
       } else {
         const response = await prepareRegisterLink(api, operation.body, requestConfig);
         guard();
@@ -488,6 +539,7 @@ export function useCompanyIssueInstructions(
           );
         setOriginal(null);
         await acceptLink(response.data);
+        options.onPrepared?.('link');
       }
     } catch (failure) {
       const cause = (failure as { originalError?: unknown }).originalError ?? failure;
@@ -523,7 +575,10 @@ export function useCompanyIssueInstructions(
       },
       false,
     );
-  const recovery = original?.owner === owner && original.company === company ? original.operation : null;
+  const recovery =
+    original?.owner === owner && original.company === company && original.token === tokenUuid
+      ? original.operation
+      : null;
   const recover = async () => {
     if (recovery) await send(recovery, true);
   };
@@ -538,9 +593,11 @@ export function useCompanyIssueInstructions(
     classState.data?.status === 'deployed' &&
     classState.data.chain === 'base';
   return {
+    working: busy && workingOwner === owner,
     owner,
     company,
     scopeKey,
+    readingPaused,
     visible,
     canPrepare,
     steps,

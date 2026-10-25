@@ -4,6 +4,7 @@ import { SearchSelect } from '@components/SearchSelect';
 import { REGISTER_MEMBER_DOCUMENT_CATEGORIES, type OrderSubmissionOwner } from '@ledova/shared';
 import { DocumentAttachments } from './DocumentAttachments';
 import { useMemberDocuments, type DocumentHolding } from './useMemberDocuments';
+import { useEffect } from 'react';
 
 export function MemberDocuments(props: {
   owner: OrderSubmissionOwner;
@@ -14,6 +15,9 @@ export function MemberDocuments(props: {
   sourceReady: boolean;
   holdings: DocumentHolding[];
   title?: string;
+  deferWhileEditing?: boolean;
+  readsPaused?: boolean;
+  onHeldChange?: (held: boolean) => void;
 }) {
   return (
     <OwnMemberDocuments
@@ -23,9 +27,15 @@ export function MemberDocuments(props: {
   );
 }
 
-function OwnMemberDocuments(props: Parameters<typeof useMemberDocuments>[0] & { title?: string }) {
+function OwnMemberDocuments(
+  props: Parameters<typeof useMemberDocuments>[0] & { title?: string; onHeldChange?: (held: boolean) => void },
+) {
   const documents = useMemberDocuments(props);
   const editor = documents.editor;
+  useEffect(() => {
+    props.onHeldChange?.(!!editor || documents.busy || documents.held);
+    return () => props.onHeldChange?.(false);
+  }, [editor, documents.busy, documents.held, props.onHeldChange]);
   return (
     <Section title={props.title ?? 'Documents'}>
       {documents.appointments.isError ? (

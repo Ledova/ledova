@@ -11,7 +11,7 @@ import {
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import type { Problems } from '@hooks/useErrorSummary';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export type Commands = ReturnType<typeof useCompanyPaidIssues>;
 export function usePaidIssueRecord({ record, commands }: { record: RegisterPaidIssue; commands: Commands }) {
@@ -134,7 +134,12 @@ export function usePaidIssuePreparation({ commands }: { commands: Commands }) {
     }
   };
   const candidates = commands.availableSubscriptions.data ?? [];
+  const draft = useMemo(
+    () => ({ active: !!captured || !!director || !!reference || !!reason || !!file }),
+    [captured, director, reference, reason, file],
+  );
   return {
+    draft,
     captured,
     selections,
     director,
