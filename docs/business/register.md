@@ -338,9 +338,7 @@ not built.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
    transfers.
-3. In **Ledger** → **Corrections**, choose **Approve**. On web, compare the current and proposed
-   particulars on the main page before confirming; **Cancel** returns to the prepared record.
-   **Apply** records the approved update separately.
+3. Approve, then Apply.
 
 A correction is refused for an entry with no changes or already corrected, or an inverse taking a
 holding below zero; if a newer entry was recorded after preparation, reject it and prepare another.
@@ -358,7 +356,9 @@ and ask for changes separately ([member profile](participants.md#member-profile)
 2. Upload one supporting document, such as a deed poll or the member's notice of a new address, and
    give the new name and residential address, the "as at" date the company's register records (today
    in UTC or earlier) and a reason.
-3. Approve, then Apply.
+3. In **Ledger** → **Corrections**, choose **Approve**. On web, compare the current and proposed
+   particulars on the main page before confirming; **Cancel** returns to the prepared record.
+   **Apply** records the approved update separately.
 
 The latest "as at" date wins between imports and changes
 ([identity order](#members-holder-types-and-identity)). A change is refused if dated before the
