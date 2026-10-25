@@ -300,8 +300,10 @@ it('invites and associates a walletless member, recovers one exact request and r
   ).toHaveLength(0);
   fireEvent.click(prepareCertificate);
   fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
-  await screen.findByRole('heading', { name: 'Review certificate' });
-  expect(screen.getByText(`${memberRegister.token.name} · ${memberRegister.token.symbol}`)).toBeTruthy();
+  const certificateReview = (await screen.findByRole('heading', { name: 'Review certificate' })).closest('section')!;
+  expect(
+    within(certificateReview).getByText(`${memberRegister.token.name} · ${memberRegister.token.symbol}`),
+  ).toBeTruthy();
   expect(screen.getByText('Unsigned certificate · 1 page')).toBeTruthy();
   expect(screen.queryByRole('textbox', { name: 'Company instruction' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Invite a member' })).toBeNull();
