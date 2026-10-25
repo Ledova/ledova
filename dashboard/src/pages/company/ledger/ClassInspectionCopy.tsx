@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type TokenHoldersResponse, formatDate } from '@ledova/shared';
-import { Outcome, Row, Rows } from '@components/Ledger';
+import { Disclosure, Outcome, Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -42,16 +42,19 @@ function InspectionForm({
 }) {
   const [open, setOpen] = useState(false);
   const firstField = useRef<HTMLInputElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
   const editingKey = `inspection/${register.token.uuid}`;
   useEffect(() => {
     onEditingChange?.(editingKey, open);
-    if (open) firstField.current?.focus();
     return () => onEditingChange?.(editingKey, false);
   }, [editingKey, onEditingChange, open]);
   const { today, draft, setDraft, target, setTarget, busy, error, downloaded, problems, blocked, preview, download } =
     useClassInspectionCopy({ register, guard, sourceReady });
   const checks = useErrorSummary(problems);
+  useEffect(() => {
+    if (open) (target ? heading.current : firstField.current)?.focus();
+  }, [open, target]);
   if (!open)
     return <PageAction ref={opener} label="Prepare inspection copy" disabled={blocked} onClick={() => setOpen(true)} />;
   return (
@@ -63,45 +66,54 @@ function InspectionForm({
         if (!target && checks.check()) void preview();
       }}
     >
-      <h3 className="text-sm font-medium text-text-primary">Inspection copy</h3>
+      <h3 ref={heading} tabIndex={-1} className="text-sm font-medium text-text-primary focus:outline-none">
+        Inspection copy
+      </h3>
       <p className="text-sm text-text-muted">
         Prepare an inspection CSV under your current company appointment. It includes residential addresses. The
         company&apos;s request and output provenance are retained.
       </p>
       <ErrorSummary {...checks.summary} />
-      <fieldset disabled={blocked || !!target} className="grid gap-4 sm:grid-cols-2">
-        <Field {...checks.field('instruction')} label="Written instruction reference">
-          <TextInput
-            ref={firstField}
-            maxLength={FIELD_LIMITS.REFERENCE}
-            value={draft.instruction}
-            onChange={(event) => setDraft({ ...draft, instruction: event.target.value })}
-          />
-        </Field>
-        <Field {...checks.field('recipient')} label="Recipient">
-          <TextInput
-            maxLength={FIELD_LIMITS.NAME}
-            value={draft.recipient}
-            onChange={(event) => setDraft({ ...draft, recipient: event.target.value })}
-          />
-        </Field>
-        <Field {...checks.field('requestedOn')} label="Date of request (Sydney)">
-          <TextInput
-            type="date"
-            max={today}
-            value={draft.requestedOn}
-            onChange={(event) => setDraft({ ...draft, requestedOn: event.target.value })}
-          />
-        </Field>
-      </fieldset>
-      {target && (
-        <Rows>
-          <Row label="Share class">{register.token.name}</Row>
-          <Row label="Register sequence">{target.preview.registerSequence}</Row>
-          <Row label="Instruction">{target.request.instruction}</Row>
-          <Row label="Recipient">{target.request.recipient}</Row>
-          <Row label="Request date">{formatDate(target.request.requestedOn)}</Row>
-        </Rows>
+      {target ? (
+        <>
+          <Rows>
+            <Row label="Share class">{register.token.name}</Row>
+            <Row label="Instruction">{target.request.instruction}</Row>
+            <Row label="Recipient">{target.request.recipient}</Row>
+            <Row label="Request date">{formatDate(target.request.requestedOn)}</Row>
+          </Rows>
+          <Disclosure summary="Record details">
+            <Rows>
+              <Row label="Register sequence">{target.preview.registerSequence}</Row>
+            </Rows>
+          </Disclosure>
+        </>
+      ) : (
+        <fieldset disabled={blocked} className="grid gap-4 sm:grid-cols-2">
+          <Field {...checks.field('instruction')} label="Written instruction reference">
+            <TextInput
+              ref={firstField}
+              maxLength={FIELD_LIMITS.REFERENCE}
+              value={draft.instruction}
+              onChange={(event) => setDraft({ ...draft, instruction: event.target.value })}
+            />
+          </Field>
+          <Field {...checks.field('recipient')} label="Recipient">
+            <TextInput
+              maxLength={FIELD_LIMITS.NAME}
+              value={draft.recipient}
+              onChange={(event) => setDraft({ ...draft, recipient: event.target.value })}
+            />
+          </Field>
+          <Field {...checks.field('requestedOn')} label="Date of request (Sydney)">
+            <TextInput
+              type="date"
+              max={today}
+              value={draft.requestedOn}
+              onChange={(event) => setDraft({ ...draft, requestedOn: event.target.value })}
+            />
+          </Field>
+        </fieldset>
       )}
       {error && (
         <p role="alert" className="text-sm text-error-light">

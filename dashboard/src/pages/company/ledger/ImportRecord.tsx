@@ -13,7 +13,7 @@ import {
   type RegisterImportDecisionPreview,
 } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { type RegisterSteps } from '@pages/company/shared/proposals';
@@ -89,6 +89,29 @@ export function ImportRecord({
   const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useImportRecordDownload(proposal, check);
   const totals = registerImportTotals(proposal.members);
+  const hasDocuments = !!(proposal.registerEvidence || proposal.sourceDocument || proposal.asicEvidence !== null);
+  const downloadActions = (
+    <>
+      {(proposal.registerEvidence || proposal.sourceDocument) && (
+        <PageAction
+          label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
+          busy={download.isPending && download.variables === 'register'}
+          busyLabel="Downloading…"
+          disabled={download.isPending}
+          onClick={() => download.mutate('register')}
+        />
+      )}
+      {proposal.asicEvidence !== null && (
+        <PageAction
+          label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
+          busy={download.isPending && download.variables === 'asic'}
+          busyLabel="Downloading…"
+          disabled={download.isPending}
+          onClick={() => download.mutate('asic')}
+        />
+      )}
+    </>
+  );
   return (
     <RecordShell hidden={!visible}>
       {visible && (
@@ -133,48 +156,37 @@ export function ImportRecord({
             {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
           </p>
           <MemberRecords members={proposal.members} />
-          <div className="flex flex-wrap gap-2">
-            {(proposal.registerEvidence || proposal.sourceDocument) && (
-              <PageAction
-                label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
-                busy={download.isPending && download.variables === 'register'}
-                busyLabel="Downloading…"
-                disabled={download.isPending}
-                onClick={() => download.mutate('register')}
-              />
-            )}
-            {proposal.asicEvidence !== null && (
-              <PageAction
-                label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
-                busy={download.isPending && download.variables === 'asic'}
-                busyLabel="Downloading…"
-                disabled={download.isPending}
-                onClick={() => download.mutate('asic')}
-              />
-            )}
-          </div>
-          {download.isError && <RecordDownloadFailure error={download.error} />}
+          {readOnly && hasDocuments && <FormActions>{downloadActions}</FormActions>}
+          {readOnly && download.isError && <RecordDownloadFailure error={download.error} />}
         </Disclosure>
       )}
-      <RegisterDecisions
-        family={REGISTER_IMPORT_DECISIONS}
-        copy={REGISTER_IMPORT_COPY}
-        noun="import"
-        proposal={proposal}
-        steps={steps}
-        guard={guard}
-        newEffectGuard={decide}
-        visible={visible && !readOnly}
-        onHeldChange={onHeldChange}
-        onDecided={onDecided}
-        onRefused={onRefused}
-        note={(kind, preview) =>
-          kind === 'apply' &&
-          preview.opensRegister && <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</p>
-        }
-      >
-        {(preview) => <ImportPreview preview={preview} />}
-      </RegisterDecisions>
+      <div hidden={readOnly}>
+        <FormActions>
+          {downloadActions}
+          <RegisterDecisions
+            family={REGISTER_IMPORT_DECISIONS}
+            copy={REGISTER_IMPORT_COPY}
+            noun="import"
+            proposal={proposal}
+            steps={steps}
+            guard={guard}
+            newEffectGuard={decide}
+            visible={visible && !readOnly}
+            onHeldChange={onHeldChange}
+            onDecided={onDecided}
+            onRefused={onRefused}
+            note={(kind, preview) =>
+              kind === 'apply' &&
+              preview.opensRegister && (
+                <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</p>
+              )
+            }
+          >
+            {(preview) => <ImportPreview preview={preview} />}
+          </RegisterDecisions>
+        </FormActions>
+        {download.isError && <RecordDownloadFailure error={download.error} />}
+      </div>
     </RecordShell>
   );
 }

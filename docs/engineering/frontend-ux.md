@@ -171,7 +171,9 @@ count after preview. No manual certificate reference is needed: the server recor
 request when the file is generated. Keep technical metadata under **Record details** and one
 right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
 Inspection copy and Company pack open from their preparation actions; privacy and source guidance stays with the opened form
-or download. Keep current source and appointment validation and error retries, without routine
+or download. Inspection copy shows editable request fields before preview and captured summary rows afterwards,
+with its sequence under Record details. Correction, particulars, wallet-link and opening forms use the same
+responsive field grid; their records group document and decision actions in one wrapping footer. Keep current source and appointment validation and error retries, without routine
 refresh controls.
 
 Member Documents uses one **Certificates** card. Each share change groups its quantity, class and

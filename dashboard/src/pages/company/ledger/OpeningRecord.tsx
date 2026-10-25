@@ -11,7 +11,7 @@ import {
   formatDate,
 } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -50,6 +50,15 @@ export function OpeningRecord({
   const holdings = summary ? largestHoldingsFirst(summary.holdings) : [];
   const labels = openingMemberLabels(holdings);
   const context = `opening prepared ${formatDateTime(proposal.createdAt)}`;
+  const downloadAction = (
+    <PageAction
+      label={COPY.DOWNLOAD}
+      context={context}
+      busy={download.isPending}
+      busyLabel="Downloading…"
+      onClick={() => download.mutate()}
+    />
+  );
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
@@ -101,54 +110,52 @@ export function OpeningRecord({
           <p className="text-sm text-text-muted">
             {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
           </p>
-          <div className="flex flex-wrap gap-2">
-            <PageAction
-              label={COPY.DOWNLOAD}
-              context={context}
-              busy={download.isPending}
-              busyLabel="Downloading…"
-              onClick={() => download.mutate()}
-            />
-          </div>
-          {download.isError && <RecordDownloadFailure error={download.error} />}
+          {readOnly && <FormActions>{downloadAction}</FormActions>}
+          {readOnly && download.isError && <RecordDownloadFailure error={download.error} />}
         </Disclosure>
       )}
-      <RegisterDecisions
-        family={REGISTER_OPENING_DECISIONS}
-        copy={COPY}
-        noun="opening"
-        proposal={proposal}
-        steps={steps}
-        guard={guard}
-        newEffectGuard={decide}
-        visible={visible && !readOnly}
-        onHeldChange={onHeldChange}
-        context={context}
-        onDecided={onDecided}
-        onRefused={onRefused}
-        formatError={registerInclusionMessage}
-        note={(kind) => kind === 'apply' && <p className="text-sm text-text-muted">{COPY.HOLDINGS_NOTE}</p>}
-      >
-        {(preview) =>
-          preview.effectiveOn !== null && (
-            <Rows>
-              <Row label="Effective on">{formatDate(preview.effectiveOn)}</Row>
-              <Row label="Opening entry">
-                {preview.changes.length === 0 ? (
-                  COPY.NO_HOLDINGS
-                ) : (
-                  <RegisterChanges
-                    changes={preview.changes.map((change) => ({
-                      ...change,
-                      name: labels.get(change.member) ?? COPY.NEW_MEMBER,
-                    }))}
-                  />
-                )}
-              </Row>
-            </Rows>
-          )
-        }
-      </RegisterDecisions>
+      <div hidden={readOnly}>
+        <FormActions>
+          {downloadAction}
+          <RegisterDecisions
+            family={REGISTER_OPENING_DECISIONS}
+            copy={COPY}
+            noun="opening"
+            proposal={proposal}
+            steps={steps}
+            guard={guard}
+            newEffectGuard={decide}
+            visible={visible && !readOnly}
+            onHeldChange={onHeldChange}
+            context={context}
+            onDecided={onDecided}
+            onRefused={onRefused}
+            formatError={registerInclusionMessage}
+            note={(kind) => kind === 'apply' && <p className="text-sm text-text-muted">{COPY.HOLDINGS_NOTE}</p>}
+          >
+            {(preview) =>
+              preview.effectiveOn !== null && (
+                <Rows>
+                  <Row label="Effective on">{formatDate(preview.effectiveOn)}</Row>
+                  <Row label="Opening entry">
+                    {preview.changes.length === 0 ? (
+                      COPY.NO_HOLDINGS
+                    ) : (
+                      <RegisterChanges
+                        changes={preview.changes.map((change) => ({
+                          ...change,
+                          name: labels.get(change.member) ?? COPY.NEW_MEMBER,
+                        }))}
+                      />
+                    )}
+                  </Row>
+                </Rows>
+              )
+            }
+          </RegisterDecisions>
+        </FormActions>
+        {download.isError && <RecordDownloadFailure error={download.error} />}
+      </div>
     </RecordShell>
   );
 }
