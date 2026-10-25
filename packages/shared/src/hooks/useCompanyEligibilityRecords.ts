@@ -164,11 +164,14 @@ export interface EligibilityQueuePage {
   outcome?: CompanyEligibilityQueueQuery['outcome'];
 }
 
+type EligibilityReadOptions = { coordinatedReads?: boolean; paused?: boolean };
+
 function useEligibilityRecords(
   mode: 'participant' | 'company',
   newKey: () => string,
   session?: OrderSubmissionSession,
   queue?: EligibilityQueuePage,
+  options: EligibilityReadOptions = {},
 ) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -180,6 +183,7 @@ function useEligibilityRecords(
   const retries = useRef(retriesFor(client));
   const [action, setAction] = useState<Command | null>(null);
   const [busy, setBusy] = useState(false);
+  const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authorityClock, setAuthorityClock] = useState(0);
   const [selection, setSelection] = useState({
@@ -191,6 +195,9 @@ function useEligibilityRecords(
   });
   const selected = useRef(selection);
   selected.current = selection;
+  const readingPaused = !!options.paused || drafting || !!action || busy;
+  const timing = options.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
+  const reading = !options.coordinatedReads || !readingPaused;
   const scope = [owner?.userUuid ?? '', owner?.ownerAccountUuid ?? '', session?.getEpoch() ?? 0];
   const sourceKey = ['eligibility-sources', ...scope];
   const appointmentKey = [...OWN_APPOINTMENTS_QUERY_KEY, ...scope.slice(0, 2)];
@@ -217,7 +224,8 @@ function useEligibilityRecords(
   });
   const sources = useQuery({
     queryKey: sourceKey,
-    enabled: !!owner && mode === 'participant',
+    enabled: !!owner && mode === 'participant' && reading,
+    ...timing,
     queryFn: async () => {
       const rows = await everyPage((page) => getInvestorClassifications(api, page, config()), ownerGuard);
       if (rows.some((row) => row.userAccount !== owner!.ownerAccountUuid))
@@ -227,7 +235,8 @@ function useEligibilityRecords(
   });
   const appointments = useQuery({
     queryKey: appointmentKey,
-    enabled: !!owner && mode === 'company',
+    enabled: !!owner && mode === 'company' && reading,
+    ...timing,
     queryFn: () => everyPage((page) => getOwnCompanyAppointments(api, page, config()), ownerGuard),
   });
   const companyGuard = () => {
@@ -253,9 +262,18 @@ function useEligibilityRecords(
   };
   const paged = mode === 'company' && !!queue;
   const listScope = [...eligibilityRecordsKey(mode, scope), selection.company];
+  const sourceReady =
+    mode === 'participant'
+      ? sources.isSuccess && !sources.isFetching
+      : appointments.isSuccess && !appointments.isFetching;
   const list = useQuery({
     queryKey: listKey,
-    enabled: !!owner && (mode === 'participant' || !!selection.company),
+    enabled:
+      !!owner &&
+      (mode === 'participant' || !!selection.company) &&
+      reading &&
+      (!options.coordinatedReads || sourceReady),
+    ...timing,
     ...(paged
       ? {
           placeholderData: (previous: EligibilityList | undefined, previousQuery?: { queryKey: readonly unknown[] }) =>
@@ -303,7 +321,13 @@ function useEligibilityRecords(
   });
   const detail = useQuery({
     queryKey: detailKey,
-    enabled: !!owner && !!selection.record && (mode === 'participant' || !!selection.company),
+    enabled:
+      !!owner &&
+      !!selection.record &&
+      (mode === 'participant' || !!selection.company) &&
+      reading &&
+      (!options.coordinatedReads || sourceReady),
+    ...timing,
     queryFn: async () => {
       const target = { ...selection };
       const guard = () => {
@@ -455,19 +479,26 @@ function useEligibilityRecords(
     );
     return () => clearTimeout(timer);
   }, [appointments.data, authorityClock, mode, owner]);
-  const refresh = async () => {
-    retire();
+  const refresh = async (available?: () => boolean) => {
+    const current = () => !available || (available() && !pending.current && !active.current && !readingPaused);
+    if (!current()) return;
+    if (!available) retire();
     if (client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status !== 'success') {
       await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
       return;
     }
     if (!owner || (mode === 'company' && !selection.company)) {
-      if (owner) await appointments.refetch();
+      if (owner) await appointments.refetch({ cancelRefetch: false });
       return;
     }
-    await (mode === 'participant' ? sources.refetch() : appointments.refetch());
-    await list.refetch();
-    if (selection.record) await detail.refetch();
+    const source = await (mode === 'participant'
+      ? sources.refetch({ cancelRefetch: false })
+      : appointments.refetch({ cancelRefetch: false }));
+    if (source.isError || !current()) return;
+    readGuard();
+    const records = await list.refetch({ cancelRefetch: false });
+    if (records.isError || !current()) return;
+    if (selection.record) await detail.refetch({ cancelRefetch: false });
   };
   const prepare = async (kind: EligibilityAction['kind'], reason = '') => {
     if (pending.current) return;
@@ -727,6 +758,7 @@ function useEligibilityRecords(
           'The outcome could not be confirmed. Retry the identical request to recover its retained result.',
         );
       retries.current.delete(command.binding);
+      setDrafting(false);
       active.current = null;
       setAction(null);
       change({ record: record.uuid });
@@ -792,6 +824,8 @@ function useEligibilityRecords(
   );
   return {
     owner: available ? owner : null,
+    scopeKey: [...scope, selection.company, selection.record].join('/'),
+    readingPaused,
     loading: !!owner && relevantReads.some((read) => read.isPending),
     refreshing: relevantReads.some((read) => read.isFetching) || detail.isFetching,
     readFailed: readError,
@@ -821,25 +855,38 @@ function useEligibilityRecords(
       if (mode !== 'participant' || selected.current.record !== uuid)
         throw createUserFriendlyError('Your selected own eligibility request changed.');
     },
-    selectRecord: (uuid: string | null) => change({ record: uuid ?? '' }),
+    selectRecord: (uuid: string | null) => {
+      setDrafting(false);
+      change({ record: uuid ?? '' });
+    },
     busy,
     action: readReady ? (action as EligibilityAction | null) : null,
     canRetryDecision: readReady && retries.current.has(binding('decision')),
-    cancel: retire,
+    cancel: () => {
+      setDrafting(true);
+      retire();
+    },
     confirm,
     sources: available && !sources.isError ? (sources.data ?? []) : [],
     appointments: available ? authorityRows : [],
     companies: available ? companies : [],
     companyUuid: selection.company,
     appointmentUuid: selection.appointment,
-    setCompany: (uuid: string) => change({ company: uuid, appointment: '', record: '' }),
+    setCompany: (uuid: string) => {
+      setDrafting(false);
+      change({ company: uuid, appointment: '', record: '' });
+    },
     setAppointment: (uuid: string) => change({ appointment: uuid }),
     requestDraft: selection.request,
     decisionDraft: selection.decision,
-    updateRequest: (patch: Partial<EligibilityRequestDraft>) =>
-      change({ request: { ...selected.current.request, ...patch } }),
-    updateDecision: (patch: Partial<EligibilityDecisionDraft>) =>
-      change({ decision: { ...selected.current.decision, ...patch } }),
+    updateRequest: (patch: Partial<EligibilityRequestDraft>) => {
+      setDrafting(true);
+      change({ request: { ...selected.current.request, ...patch } });
+    },
+    updateDecision: (patch: Partial<EligibilityDecisionDraft>) => {
+      setDrafting(true);
+      change({ decision: { ...selected.current.decision, ...patch } });
+    },
     previewRequest: () => prepare('request'),
     previewDecision: () => prepare('decision'),
     prepareWithdrawal: (record: CompanyEligibilityRequest) => {
@@ -859,8 +906,12 @@ function useEligibilityRecords(
   };
 }
 
-export function useParticipantEligibilityRecords(newKey: () => string, session?: OrderSubmissionSession) {
-  const read = useEligibilityRecords('participant', newKey, session);
+export function useParticipantEligibilityRecords(
+  newKey: () => string,
+  session?: OrderSubmissionSession,
+  options?: EligibilityReadOptions,
+) {
+  const read = useEligibilityRecords('participant', newKey, session, undefined, options);
   return { ...read, draft: read.requestDraft, updateDraft: read.updateRequest };
 }
 
@@ -868,7 +919,8 @@ export function useCompanyEligibilityRecords(
   newKey: () => string,
   session?: OrderSubmissionSession,
   queue?: EligibilityQueuePage,
+  options?: EligibilityReadOptions,
 ) {
-  const read = useEligibilityRecords('company', newKey, session, queue);
+  const read = useEligibilityRecords('company', newKey, session, queue, options);
   return { ...read, draft: read.decisionDraft, updateDraft: read.updateDecision };
 }

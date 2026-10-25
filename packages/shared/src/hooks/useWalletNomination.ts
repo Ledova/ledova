@@ -27,6 +27,8 @@ export function useWalletNomination(options: {
   newKey: () => string;
   session?: OrderSubmissionSession;
   guardRequest?: () => void;
+  coordinatedReads?: boolean;
+  paused?: boolean;
 }) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -45,12 +47,16 @@ export function useWalletNomination(options: {
   const [retained, setRetained] = useState<typeof reviewed>(null);
   const [receiptState, setReceipt] = useState<{ owner: typeof owner; record: WalletNomination } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0];
   const scopeKey = [...scope, options.requestUuid].join('/');
   const requestKey = eligibilityRecordKey('participant', scope, '', options.requestUuid);
   const walletKey = [...WALLETS_QUERY_KEY, 'nomination', ...scope];
   const nominationKey = ['wallet-nominations', ...scope, options.requestUuid];
+  const readingPaused = !!options.paused || drafting || busy || !!reviewed || !!retained;
+  const reading = !options.coordinatedReads || !readingPaused;
+  const timing = options.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
   useLayoutEffect(() => {
     selected.current = { owner, request: options.requestUuid, wallet: walletUuid };
   }, [owner, options.requestUuid, walletUuid]);
@@ -80,7 +86,8 @@ export function useWalletNomination(options: {
   });
   const request = useQuery({
     queryKey: requestKey,
-    enabled: !!owner && !!options.requestUuid,
+    enabled: !!owner && !!options.requestUuid && reading,
+    ...timing,
     queryFn: async () => {
       guard();
       const response = await getEligibilityRequest(api, options.requestUuid, config());
@@ -92,7 +99,12 @@ export function useWalletNomination(options: {
   });
   const wallets = useQuery({
     queryKey: walletKey,
-    enabled: !!owner && !!options.requestUuid,
+    enabled:
+      !!owner &&
+      !!options.requestUuid &&
+      reading &&
+      (!options.coordinatedReads || (request.isSuccess && !request.isFetching)),
+    ...timing,
     queryFn: async () => {
       const rows = await readEveryPage(async (page) => {
         guard();
@@ -107,7 +119,12 @@ export function useWalletNomination(options: {
   });
   const nominations = useQuery({
     queryKey: nominationKey,
-    enabled: !!owner && !!options.requestUuid,
+    enabled:
+      !!owner &&
+      !!options.requestUuid &&
+      reading &&
+      (!options.coordinatedReads || (request.isSuccess && !request.isFetching)),
+    ...timing,
     queryFn: async () => {
       const rows = await readEveryPage(async (page) => {
         guard();
@@ -147,10 +164,16 @@ export function useWalletNomination(options: {
         'Refresh the exact own company request and selected Base wallet before continuing.',
       );
   };
-  const refresh = async () => {
+  const refresh = async (available?: () => boolean) => {
+    const current = () => !available || (available() && !pending.current && !readingPaused);
+    if (!current()) return;
     try {
       guard();
-      await Promise.all([request.refetch(), wallets.refetch(), nominations.refetch()]);
+      if (options.coordinatedReads) {
+        if ((await request.refetch({ cancelRefetch: false })).isError || !current()) return;
+        guard();
+        await Promise.all([wallets.refetch({ cancelRefetch: false }), nominations.refetch({ cancelRefetch: false })]);
+      } else await Promise.all([request.refetch(), wallets.refetch(), nominations.refetch()]);
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
@@ -264,6 +287,7 @@ export function useWalletNomination(options: {
       setReceipt({ owner, record: response.data });
       setRetained(null);
       setReviewed(null);
+      setDrafting(false);
       await nominations.refetch();
       guard();
     } catch (failure) {
@@ -301,6 +325,7 @@ export function useWalletNomination(options: {
     original,
     receipt,
     busy,
+    readingPaused,
     error,
     guard,
     guardWallet,
@@ -310,6 +335,7 @@ export function useWalletNomination(options: {
       if (original || pending.current) return;
       selected.current = { owner, request: options.requestUuid, wallet: uuid };
       setWalletSelection({ owner, uuid });
+      setDrafting(!!uuid);
       setReviewed(null);
       setError(null);
     },

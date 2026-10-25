@@ -1,7 +1,8 @@
 import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { CompanyPicker } from '@components/CompanyPicker';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useAutomaticReads } from '@hooks/useAutomaticReads';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -64,7 +65,15 @@ function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot']
     </Rows>
   );
 }
-function Record({ record, data }: { record: CompanyWalletInstruction; data: Read }) {
+function Record({
+  record,
+  data,
+  onHeldChange,
+}: {
+  record: CompanyWalletInstruction;
+  data: Read;
+  onHeldChange: (uuid: string, held: boolean) => void;
+}) {
   return (
     <div className="space-y-3">
       {data.canRead && (
@@ -121,6 +130,7 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
         onDecided={data.accept}
         onRefused={data.refresh}
         visible={data.canRead}
+        onHeldChange={onHeldChange}
       >
         {(preview) => (
           <>
@@ -137,7 +147,7 @@ function Record({ record, data }: { record: CompanyWalletInstruction; data: Read
     </div>
   );
 }
-function Preparation({ data }: { data: Read }) {
+function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (editing: boolean) => void }) {
   const { running, track } = useRunningAction();
   const [draft, setDraft] = useState<{
     owner: typeof data.owner;
@@ -178,6 +188,7 @@ function Preparation({ data }: { data: Read }) {
         disabled={blocked}
         onChange={(next) => {
           checks.reset();
+          onEditingChange(next !== 'add');
           setDraft({ owner: data.owner, action: next, source: '', expires: '' });
         }}
       />
@@ -202,7 +213,10 @@ function Preparation({ data }: { data: Read }) {
               }))
         }
         value={source}
-        onChange={(uuid) => setDraft({ ...current, source: uuid })}
+        onChange={(uuid) => {
+          onEditingChange(!!uuid || !!expires || action !== 'add');
+          setDraft({ ...current, source: uuid });
+        }}
         placeholder="Type part of a wallet address"
         disabled={blocked}
         noun={WALLETS}
@@ -225,7 +239,10 @@ function Preparation({ data }: { data: Read }) {
             type="datetime-local"
             disabled={blocked}
             value={expires}
-            onChange={(event) => setDraft({ ...current, expires: event.target.value })}
+            onChange={(event) => {
+              onEditingChange(!!source || !!event.target.value || action !== 'add');
+              setDraft({ ...current, expires: event.target.value });
+            }}
           />
         </Field>
       )}
@@ -238,19 +255,43 @@ function Preparation({ data }: { data: Read }) {
           if (checks.check())
             track(
               'prepare',
-              data.prepare(
-                action === 'add'
-                  ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
-                  : { action, targetChange: source },
-              ),
+              data
+                .prepare(
+                  action === 'add'
+                    ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
+                    : { action, targetChange: source },
+                )
+                .then((saved) => {
+                  if (saved) onEditingChange(false);
+                }),
             );
         }}
       />
     </div>
   );
 }
-export function CompanyWalletInstructions() {
-  const data = useCompanyWalletInstructions({ newKey: () => crypto.randomUUID() });
+export function CompanyWalletInstructions({ active = true }: { active?: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [held, setHeld] = useState<Set<string>>(() => new Set());
+  const onHeldChange = useCallback((uuid: string, pending: boolean) => {
+    setHeld((prior) => {
+      if (prior.has(uuid) === pending) return prior;
+      const next = new Set(prior);
+      if (pending) next.add(uuid);
+      else next.delete(uuid);
+      return next;
+    });
+  }, []);
+  const data = useCompanyWalletInstructions({
+    newKey: () => crypto.randomUUID(),
+    coordinatedReads: true,
+    paused: !active || editing || held.size > 0,
+  });
+  useAutomaticReads({
+    scope: active && data.owner ? data.scopeKey : null,
+    paused: data.readingPaused,
+    refresh: data.refresh,
+  });
   const { running, track } = useRunningAction();
   const readFailed = data.canRead && (data.nominations.isError || data.targets.isError || data.instructions.isError);
   return (
@@ -272,18 +313,12 @@ export function CompanyWalletInstructions() {
             label="Wallet approval company"
             companies={data.companies}
             value={data.companyUuid}
-            disabled={data.busy}
-            onChange={data.setCompany}
+            disabled={data.busy || held.size > 0}
+            onChange={(uuid) => {
+              setEditing(false);
+              data.setCompany(uuid);
+            }}
           />
-          {data.companyUuid && !readFailed && !data.appointments.isError && (
-            <PageAction
-              label="Refresh company wallet instructions"
-              busy={running === 'refresh'}
-              busyLabel="Refreshing…"
-              disabled={data.busy}
-              onClick={() => track('refresh', data.refresh())}
-            />
-          )}
           {data.error && (
             <p role="alert" className="text-sm text-error-light">
               {data.error}
@@ -291,8 +326,8 @@ export function CompanyWalletInstructions() {
           )}
           {data.companyUuid && !data.canRead && !data.appointments.isError && (
             <p role="status">
-              Refresh current personal register access before reading these private wallet records. Original requests
-              are retained.
+              Current personal register access is required to read these private wallet records. Original requests are
+              retained.
             </p>
           )}
           {data.original && (
@@ -313,7 +348,7 @@ export function CompanyWalletInstructions() {
               />
             </div>
           )}
-          {data.companyUuid && <Preparation key={data.scopeKey} data={data} />}
+          {data.companyUuid && <Preparation key={data.scopeKey} data={data} onEditingChange={setEditing} />}
           {readFailed && (
             <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
               The current wallet records could not be {data.instructions.data ? 'refreshed' : 'loaded'}. Original
@@ -321,7 +356,7 @@ export function CompanyWalletInstructions() {
             </LoadError>
           )}
           {data.retainedRecords.map((record) => (
-            <Record key={`${data.scopeKey}/${record.uuid}`} record={record} data={data} />
+            <Record key={`${data.scopeKey}/${record.uuid}`} record={record} data={data} onHeldChange={onHeldChange} />
           ))}
         </>
       )}

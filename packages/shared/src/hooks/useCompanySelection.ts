@@ -36,7 +36,15 @@ export function useCompanySelection({
   ownedOnly = false,
   personalOnly = false,
   session,
-}: { ownedOnly?: boolean; personalOnly?: boolean; session?: OrderSubmissionSession } = {}) {
+  coordinatedReads = false,
+  paused = false,
+}: {
+  ownedOnly?: boolean;
+  personalOnly?: boolean;
+  session?: OrderSubmissionSession;
+  coordinatedReads?: boolean;
+  paused?: boolean;
+} = {}) {
   const apiClient = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
@@ -80,7 +88,8 @@ export function useCompanySelection({
   ];
   const companies = useQuery({
     queryKey: companiesKey,
-    enabled,
+    enabled: enabled && (!coordinatedReads || !paused),
+    ...(coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {}),
     queryFn: async ({ signal }) => {
       const rows = await readEveryPage(async (page) => {
         ownerGuard();
@@ -116,7 +125,8 @@ export function useCompanySelection({
   const companyKey = [...COMPANY_QUERY_KEY, companyUuid, owner?.userUuid, owner?.ownerAccountUuid, scopeKey];
   const detail = useQuery({
     queryKey: companyKey,
-    enabled: enabled && !!companyUuid && !companies.isError,
+    enabled: enabled && !!companyUuid && !companies.isError && (!coordinatedReads || !paused),
+    ...(coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {}),
     queryFn: async ({ signal }) => {
       const guard = () => {
         ownerGuard();
@@ -217,8 +227,8 @@ export function useCompanySelection({
     refetch: () =>
       Promise.all([
         ...(preferences.isError ? [preferences.refetch()] : []),
-        companies.refetch(),
-        ...(companyUuid ? [detail.refetch()] : []),
+        companies.refetch(coordinatedReads ? { cancelRefetch: false } : undefined),
+        ...(companyUuid ? [detail.refetch(coordinatedReads ? { cancelRefetch: false } : undefined)] : []),
       ]),
   };
 }

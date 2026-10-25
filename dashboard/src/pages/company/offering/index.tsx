@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { OFFERING_STATUS_TONES } from '@pages/company/shared/statusTones';
-import { Outcome, Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { Disclosure, Outcome, Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
+import { FormActions, Page, PageAction } from '@components/Page';
 import { CopyButton } from '@components/CopyButton';
 import { Confirmation } from '@components/Modal';
 import {
@@ -41,40 +41,51 @@ function OfferingRecord({
   addDocuments: () => void;
 }) {
   return (
-    <li className="space-y-3 py-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="min-w-0 break-words text-sm font-medium text-text-primary">
-          {row.tokenName} ({row.tokenSymbol})
-        </h3>
-        <Status tone={row.isOpen ? 'done' : (OFFERING_STATUS_TONES.get(row.status) ?? 'closed')}>
-          {row.statusDisplay}
-        </Status>
-      </div>
-      <Rows>
-        <Row label="Price per share">
-          <span className="break-all">{formatMoney(row.pricePerShare, row.priceCurrency)}</span>
-        </Row>
-        <Row label="Minimum shares">{formatShareCount(String(row.minimumShares))}</Row>
-        <Row label="Target shares">{formatShareCount(String(row.targetShares))}</Row>
-        <Row label="Cap shares">{formatShareCount(String(row.capShares))}</Row>
-        {row.maximumShares !== null && (
-          <Row label="Maximum per investor">{formatShareCount(String(row.maximumShares))}</Row>
-        )}
-        <Row label="Opens">{formatDateTime(row.opensAt)}</Row>
-        <Row label="Closes">{row.closesAt ? formatDateTime(row.closesAt) : 'No closing date'}</Row>
-        <Row label="Exemption">{OFFERING_EXEMPTION_LABELS[row.exemption] ?? row.exemptionDisplay}</Row>
+    <li className="space-y-3 py-3">
+      <Disclosure
+        summary={
+          <span className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <span className="min-w-0">
+              <span className="block break-words text-sm font-medium text-text-primary">
+                {row.tokenName} ({row.tokenSymbol})
+              </span>
+              <span className="block break-words text-sm tabular-nums text-text-muted">
+                {formatMoney(row.pricePerShare, row.priceCurrency)} per share
+              </span>
+            </span>
+            <Status tone={row.isOpen ? 'done' : (OFFERING_STATUS_TONES.get(row.status) ?? 'closed')}>
+              {row.statusDisplay}
+            </Status>
+          </span>
+        }
+      >
+        <Rows>
+          <Row label="Minimum shares">{formatShareCount(String(row.minimumShares))}</Row>
+          <Row label="Target shares">{formatShareCount(String(row.targetShares))}</Row>
+          <Row label="Cap shares">{formatShareCount(String(row.capShares))}</Row>
+          {row.maximumShares !== null && (
+            <Row label="Maximum per investor">{formatShareCount(String(row.maximumShares))}</Row>
+          )}
+          <Row label="Opens">{formatDateTime(row.opensAt)}</Row>
+          <Row label="Closes">{row.closesAt ? formatDateTime(row.closesAt) : 'No closing date'}</Row>
+          <Row label="Exemption">{OFFERING_EXEMPTION_LABELS[row.exemption] ?? row.exemptionDisplay}</Row>
+        </Rows>
         {row.status === 'approved' && (
-          <Row label="Offering UUID">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <span className="min-w-0 break-all">{row.uuid}</span>
-              <CopyButton key={row.uuid} value={row.uuid} label="Copy offering UUID" />
-            </div>
-            <p className="mt-1 text-xs text-text-muted">
-              Give this to investors for their large-investment eligibility requests.
-            </p>
-          </Row>
+          <Disclosure summary="Record details">
+            <Rows>
+              <Row label="Offering UUID">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <span className="min-w-0 break-all">{row.uuid}</span>
+                  <CopyButton key={row.uuid} value={row.uuid} label="Copy offering UUID" />
+                </div>
+                <p className="mt-1 text-xs text-text-muted">
+                  Give this to investors for their large-investment eligibility requests.
+                </p>
+              </Row>
+            </Rows>
+          </Disclosure>
         )}
-      </Rows>
+      </Disclosure>
       {row.status === 'rejected' && row.rejectionReason && (
         <p className="whitespace-pre-wrap break-words text-sm text-text-muted">Rejected: {row.rejectionReason}</p>
       )}
@@ -86,20 +97,8 @@ function OfferingRecord({
       {row.closeReason && (
         <p className="whitespace-pre-wrap break-words text-sm text-text-muted">Closed: {row.closeReason}</p>
       )}
-      <div className="flex flex-wrap gap-2">
-        {row.canBeEdited && (
-          <>
-            <PageAction
-              primary
-              label={row.status === 'rejected' ? 'Submit again' : 'Submit for review'}
-              disabled={busy}
-              busy={submitting}
-              busyLabel="Submitting…"
-              onClick={() => run('submit', row.uuid)}
-            />
-            <PageAction label="Edit" disabled={busy} onClick={edit} />
-          </>
-        )}
+      <FormActions>
+        {row.canBeEdited && <PageAction label="Edit" disabled={busy} onClick={edit} />}
         {OFFERING_WITHDRAWABLE_STATUSES.includes(row.status) && (
           <PageAction label="Withdraw" disabled={busy} onClick={() => confirm('withdraw')} />
         )}
@@ -107,7 +106,17 @@ function OfferingRecord({
         {OFFERING_PUBLISHED_STATUSES.includes(row.status) && (
           <PageAction label={OFFER_DOCUMENT_COPY.ADD} disabled={busy} onClick={addDocuments} />
         )}
-      </div>
+        {row.canBeEdited && (
+          <PageAction
+            primary
+            label={row.status === 'rejected' ? 'Submit again' : 'Submit for review'}
+            disabled={busy}
+            busy={submitting}
+            busyLabel="Submitting…"
+            onClick={() => run('submit', row.uuid)}
+          />
+        )}
+      </FormActions>
     </li>
   );
 }
@@ -140,20 +149,7 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
   const [confirming, setConfirming] = useState<{ action: 'withdraw' | 'remove'; row: OfferingListItem } | null>(null);
   return (
     <>
-      <Page
-        narrow
-        loading={companyRead.isLoading || data.isLoading}
-        actions={
-          <PageAction
-            primary
-            label="New offering"
-            disabled={!ready || !data.tokens.some((token) => token.status === 'deployed')}
-            onClick={() => {
-              if (ready) setEditor({ company: company.uuid });
-            }}
-          />
-        }
-      >
+      <Page loading={companyRead.isLoading || data.isLoading}>
         <CompanySelection read={companyRead} />
         {companyRead.error ? (
           <CompanyReadNotice read={companyRead} />
@@ -203,6 +199,16 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
                     </p>
                   )}
                 </Section>
+                <FormActions>
+                  <PageAction
+                    primary
+                    label="New offering"
+                    disabled={!ready || !data.tokens.some((token) => token.status === 'deployed')}
+                    onClick={() => {
+                      if (ready) setEditor({ company: company.uuid });
+                    }}
+                  />
+                </FormActions>
                 <SubscriptionsLedger
                   offerings={data.offerings}
                   operatorName={data.operatorName}

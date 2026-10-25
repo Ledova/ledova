@@ -11,7 +11,7 @@ import {
 } from '@ledova/shared';
 import type { BallotChoice, Publication, PublicationResult, ResolutionStatus } from '@ledova/shared';
 import { Row, Rows, Status } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 
 function statusLabel(status: ResolutionStatus, closesAt: string | null) {
   if (status === 'upcoming') return PUBLICATION_COPY.NOT_OPEN_YET;
@@ -83,11 +83,11 @@ export function Resolution({
       )}
 
       {mayVote && choosing === null && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <FormActions>
           {BALLOT_CHOICES.map((choice) => (
             <PageAction key={choice} onClick={() => setChoosing(choice)} label={PUBLICATION_COPY.CHOICES[choice]} />
           ))}
-        </div>
+        </FormActions>
       )}
 
       {mayVote && choosing !== null && (
@@ -96,7 +96,8 @@ export function Resolution({
             {PUBLICATION_COPY.CONFIRM_TITLE} {PUBLICATION_COPY.CHOICES[choosing]}
           </p>
           <p className="text-xs text-text-muted mt-0.5">{PUBLICATION_COPY.CONFIRM_BODY}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <FormActions>
+            <PageAction onClick={() => setChoosing(null)} disabled={isCasting} label={PUBLICATION_COPY.CANCEL} />
             <PageAction
               onClick={() => onCast(publication.uuid, choosing)}
               primary
@@ -104,8 +105,7 @@ export function Resolution({
               busy={isCasting}
               busyLabel={PUBLICATION_COPY.CASTING}
             />
-            <PageAction onClick={() => setChoosing(null)} disabled={isCasting} label={PUBLICATION_COPY.CANCEL} />
-          </div>
+          </FormActions>
         </div>
       )}
 

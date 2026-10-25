@@ -29,7 +29,12 @@ import { useApiClient } from './useApiClient';
 const OUTCOME_UNCERTAIN =
   'The preparation outcome is uncertain. Recover its identical original body and operation UUID.';
 
-export function useCompanyWalletInstructions(options: { newKey: () => string; session?: OrderSubmissionSession }) {
+export function useCompanyWalletInstructions(options: {
+  newKey: () => string;
+  session?: OrderSubmissionSession;
+  coordinatedReads?: boolean;
+  paused?: boolean;
+}) {
   const api = useApiClient();
   const client = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(options.session);
@@ -46,6 +51,9 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clock, setClock] = useState(0);
+  const readingPaused = !!options.paused || busy || !!retained;
+  const reading = !options.coordinatedReads || !readingPaused;
+  const timing = options.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
   const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0];
   const scopeKey = [...scope, companyUuid].join('/');
   const appointmentKey = ['company-wallet-appointments', ...scope];
@@ -80,7 +88,8 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
   });
   const appointments = useQuery({
     queryKey: appointmentKey,
-    enabled: !!owner,
+    enabled: !!owner && reading,
+    ...timing,
     queryFn: () =>
       readEveryPage(async (page) => {
         ownerGuard();
@@ -116,7 +125,8 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
     appointments.data.some((row) => row.company === companyUuid && readable(row));
   const nominations = useQuery({
     queryKey: nominationKey,
-    enabled,
+    enabled: enabled && reading,
+    ...timing,
     queryFn: async () => {
       const rows = await readEveryPage(async (page) => {
         guard();
@@ -131,7 +141,8 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
   });
   const targets = useQuery({
     queryKey: targetKey,
-    enabled,
+    enabled: enabled && reading,
+    ...timing,
     queryFn: async () => {
       const rows = await readEveryPage(async (page) => {
         guard();
@@ -146,7 +157,8 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
   });
   const instructions = useQuery({
     queryKey: instructionKey,
-    enabled,
+    enabled: enabled && reading,
+    ...timing,
     queryFn: async () => {
       const rows = await readEveryPage(async (page) => {
         guard();
@@ -241,15 +253,21 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
         );
     }
   };
-  const refresh = async () => {
+  const refresh = async (available?: () => boolean) => {
+    const current = () => !available || (available() && !pending.current && !readingPaused);
+    if (!current()) return;
     setError(null);
     try {
       ownerGuard();
-      if ((await appointments.refetch()).isError) return;
+      if ((await appointments.refetch({ cancelRefetch: false })).isError || !current()) return;
       ownerGuard();
       if (companyUuid) {
         guard();
-        await Promise.all([nominations.refetch(), targets.refetch(), instructions.refetch()]);
+        await Promise.all([
+          nominations.refetch({ cancelRefetch: false }),
+          targets.refetch({ cancelRefetch: false }),
+          instructions.refetch({ cancelRefetch: false }),
+        ]);
         guard();
       }
     } catch (failure) {
@@ -358,12 +376,14 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
         );
       setRetained(null);
       await accept(response.data);
+      return true;
     } catch (failure) {
       const cause = (failure as { originalError?: unknown }).originalError ?? failure;
       const status = failureStatus(cause);
       if (!dispatched || status === 400 || status === 409) setRetained(null);
       if (mounted.current && boundary.get() === owner)
         setError(refusalSentence(failure, COMPANY_WALLET_UNMET_COPY) ?? failureSentence(failure, OUTCOME_UNCERTAIN));
+      return false;
     } finally {
       pending.current = false;
       if (mounted.current) setBusy(false);
@@ -394,6 +414,7 @@ export function useCompanyWalletInstructions(options: { newKey: () => string; se
     retainedRecords: records,
     original: canRead ? original : null,
     busy,
+    readingPaused,
     error,
     guard,
     guardStep,

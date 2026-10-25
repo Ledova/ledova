@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DESTINATIONS, WALLET_VERIFICATION_STATUS, getActiveChains, sortWallets, useWalletSort } from '@ledova/shared';
 import type { Wallet as WalletType, DerivedAddress, HardwareWalletImport } from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
+import { FormActions, Page, PageAction } from '@components/Page';
 import { LinkRow, Section, LoadError, Loading } from '@components/Ledger';
 import { WalletItem } from './WalletItem';
 import { useWallets } from './useWallets';
@@ -142,20 +142,11 @@ function WalletsPage() {
   };
 
   if (isLoading) {
-    return <Page narrow loading lede={LEDE} />;
+    return <Page loading lede={LEDE} />;
   }
 
   return (
-    <Page
-      narrow
-      lede={LEDE}
-      actions={
-        <>
-          {!hasError && <PageAction label="Add wallet" onClick={openAdd} />}
-          <CryptoActions wallets={hasError ? null : wallets} />
-        </>
-      }
-    >
+    <Page lede={LEDE}>
       <LinkRow to={DESTINATIONS.walletHoldings.path} label={DESTINATIONS.walletHoldings.title} />
       {hasError ? (
         <LoadError retry={retry} busy={isRefreshing}>
@@ -164,6 +155,11 @@ function WalletsPage() {
       ) : (
         getActiveChains().map(({ code, name }) => renderChain(code, name))
       )}
+
+      <FormActions>
+        {!hasError && <PageAction label="Add wallet" onClick={openAdd} />}
+        <CryptoActions wallets={hasError ? null : wallets} />
+      </FormActions>
 
       <AddWalletModal
         isOpen={showAddModal}
