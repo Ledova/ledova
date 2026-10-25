@@ -116,8 +116,8 @@ status of requests they made.
 
 The web sidebar separates **Member access** from **Member requests** under Shareholders. Member access
 shows **People** and **Invitations**; Member requests is one list identifying each request's type, date
-and status. The rows keep names and relevant details together, with technical references under
-**Technical details**.
+and status. The rows keep names and relevant details together. Access, invitation and certificate
+records place technical references under **Technical details**.
 Task fields open only when needed;
 an empty queue does not ask for a company reason or certificate reference. Reads update on entry,
 focus and reconnect, and after a completed action; a failed read offers a retry.
@@ -139,7 +139,9 @@ Cancel closes an unfinished form without sending it; its draft stays in memory f
 account and company, including navigation through Dashboard and Documents.
 
 The company sees it as **Details update** under **Shareholders** → **Member requests** on web
-(a current personal appointment is needed). A preparer adds evidence, a reason and an as-at date
+(a current personal appointment is needed). Its row and preparation form show the requested particulars
+and company actions; internal request, member and instruction references remain in the audit records.
+A preparer adds evidence, a reason and an as-at date
 and records it as an ordinary
 [particulars change](register.md#changing-a-members-particulars). The request keeps the exact
 particulars asked for, and its status follows the change: prepared, approved, applied or rejected.
