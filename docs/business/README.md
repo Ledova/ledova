@@ -234,7 +234,7 @@ On the web, the sidebar shows:
 
 - Company, for a person who can read a company's register: Dashboard, Ledger, Shareholders, ESS
   (Employee share scheme) and Documents. Ledger opens the share-class overview; its separate caret
-  expands Issue shares, Transfer shares, History and Corrections. Shareholders opens the people list;
+  expands Issue shares, Transfer shares and Corrections. Shareholders opens the people list;
   its caret expands Member access and Member requests. Personal holds Your shares.
 - For everyone else: Dashboard and Documents, both personal.
 - Configuration: Settings ([Profile and Settings](participants.md#profile-and-settings)).

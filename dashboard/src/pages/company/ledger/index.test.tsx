@@ -35,7 +35,7 @@ import apiClient from '@services/apiClient';
 import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyRegisterPage from '.';
 import CompanyShareholderPage from './member';
@@ -147,6 +147,11 @@ function noCommands(url: string) {
     : null;
 }
 
+function LedgerLocation() {
+  const location = useLocation();
+  return <output aria-label="Ledger location">{JSON.stringify(location)}</output>;
+}
+
 function show(
   role: AccountRole = 'company',
   content: ReactNode = <CompanyRegisterPage />,
@@ -254,7 +259,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByRole('heading', { name: 'Current shareholders' })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Member access' })).toBeNull();
   expect(screen.queryByRole('heading', { name: 'Member requests' })).toBeNull();
-  for (const name of ['Issue shares', 'Transfer shares', 'History', 'Corrections'])
+  for (const name of ['Issue shares', 'Transfer shares', 'Corrections'])
     expect(screen.queryByRole('button', { name })).toBeNull();
   const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;
   expect(within(formerSection).getByRole('heading', { name: /^Ordinary shares ·/ })).toBeTruthy();
@@ -2059,6 +2064,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       createdAt: '2026-10-22T02:00:00Z',
     },
   ];
+  const decisionAppointment = appointment;
+  appointment = { ...appointment, capabilities: ['read_register'] };
   cleanup();
   client.clear();
   show(
@@ -2067,13 +2074,24 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       <CompanyRegisterPage />
       <Link to="/#transfer">Transfer shares</Link>
       <Link to="/#documents">Open Documents</Link>
-      <Link to="/#history">Open History</Link>
+      <Link
+        to="/#history"
+        state={{ registerCompany: company.uuid, registerToken: token.uuid, registerTask: 'history', preserved: true }}
+      >
+        Open old History link
+      </Link>
+      <LedgerLocation />
       <Link to="/#corrections">Open Corrections</Link>
     </>,
     'Ledger',
-    { entry: '/#history' },
+    { entry: '/?audit=1#history' },
   );
   expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 1, name: 'Corrections' })).toBeTruthy();
+  expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!)).toMatchObject({
+    hash: '#corrections',
+    search: '?audit=1',
+  });
   const entryDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
   expect(within(entryDetails).getByText('Transfer')).toBeTruthy();
   const transferEntry = entryDetails.closest('li')!;
@@ -2096,6 +2114,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Example Shareholder · Prepared' }));
   expect(screen.getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
+  appointment = decisionAppointment;
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['company-appointments'] });
+  });
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
   const particularsApproval = await screen.findByRole('button', { name: /^Approve \(change for Example Shareholder/ });
   const beforeParticularsReview = api.post.mock.calls.filter(([url]) => url.endsWith('/decide/')).length;
@@ -2113,8 +2135,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await waitFor(() => expect(document.activeElement).toBe(particularsApproval));
   expect(screen.queryByRole('region', { name: 'Review particulars change' })).toBeNull();
   expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(beforeParticularsReview);
-  fireEvent.click(screen.getByRole('link', { name: 'Open History' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
   await screen.findByRole('heading', { name: 'Changes' });
+  expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!)).toMatchObject({
+    hash: '#corrections',
+    state: { registerCompany: company.uuid, registerToken: token.uuid, registerTask: 'history', preserved: true },
+  });
   const beforeHistoryRead = api.post.mock.calls.length;
   pauseHistory = true;
   let refreshingHistory!: Promise<void>;
@@ -2172,12 +2198,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('form', { name: 'Unsigned certificate for entry 3' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
   const correctionDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
-  fireEvent.click(correctionDetails);
+  if (correctionDetails.getAttribute('aria-expanded') !== 'true') fireEvent.click(correctionDetails);
   expect(within(correctionDetails.closest('li')!).getByRole('link', { name: /^Correct this entry/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Prepare unsigned certificate/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Approve (correction of entry 3)' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('link', { name: 'Open History' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
   expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);

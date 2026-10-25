@@ -46,7 +46,6 @@ export function ParticularsRecord({
   onDecided,
   onRefused,
   visible = true,
-  readOnly = false,
   onHeldChange,
   reviewTarget,
   onReviewChange,
@@ -59,13 +58,11 @@ export function ParticularsRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   reviewTarget: HTMLElement | null;
   onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
-  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useParticularsRecordDownload(change, check);
   const context = `change for ${member} prepared ${formatDateTime(change.createdAt)}`;
   const reviewChanged = useCallback(
@@ -86,7 +83,7 @@ export function ParticularsRecord({
       {visible && (
         <Disclosure
           summary={`${member} · ${COPY.STAGES[change.stage] ?? change.stage}`}
-          defaultOpen={!readOnly && change.status === 'submitted'}
+          defaultOpen={change.status === 'submitted'}
         >
           <Rows>
             <Row label={COPY.MEMBER}>{member}</Row>
@@ -100,57 +97,53 @@ export function ParticularsRecord({
             <DecisionTrail proposal={change} labels={COPY.DECISIONS} />
           </Rows>
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-          {readOnly && <FormActions>{downloadAction}</FormActions>}
-          {readOnly && download.isError && <RecordDownloadFailure error={download.error} />}
         </Disclosure>
       )}
-      <div hidden={readOnly}>
-        <FormActions>
-          {downloadAction}
-          <RegisterDecisions
-            family={REGISTER_PARTICULARS_DECISIONS}
-            copy={COPY}
-            noun="particulars change"
-            proposal={change}
-            steps={steps}
-            guard={guard}
-            newEffectGuard={decide}
-            visible={visible && !readOnly}
-            onHeldChange={onHeldChange}
-            context={context}
-            onDecided={onDecided}
-            onRefused={onRefused}
-            note={(kind) => kind !== 'reject' && <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>}
-            pageReview={{
-              target: reviewTarget,
-              onChange: reviewChanged,
-              title: 'Review particulars change',
-              labels: {
-                approve: 'Approve particulars change',
-                apply: 'Apply particulars change',
-                reject: 'Reject particulars change',
-              },
-            }}
-          >
-            {(preview) => (
-              <Section title={member}>
-                <div className="grid gap-6 lg:grid-cols-2">
-                  <Particulars title={COPY.CURRENT_PARTICULARS} held={preview.current} />
-                  <Particulars title={COPY.PROPOSED_PARTICULARS} held={preview} />
-                </div>
-                <Disclosure summary="Reason and supporting document">
-                  <Rows>
-                    <Row label={COPY.REASON}>{change.reason}</Row>
-                  </Rows>
-                  <FormActions>{downloadAction}</FormActions>
-                </Disclosure>
-                {download.isError && <RecordDownloadFailure error={download.error} />}
-              </Section>
-            )}
-          </RegisterDecisions>
-        </FormActions>
-        {download.isError && <RecordDownloadFailure error={download.error} />}
-      </div>
+      <FormActions>
+        {downloadAction}
+        <RegisterDecisions
+          family={REGISTER_PARTICULARS_DECISIONS}
+          copy={COPY}
+          noun="particulars change"
+          proposal={change}
+          steps={steps}
+          guard={guard}
+          newEffectGuard={check}
+          visible={visible}
+          onHeldChange={onHeldChange}
+          context={context}
+          onDecided={onDecided}
+          onRefused={onRefused}
+          note={(kind) => kind !== 'reject' && <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>}
+          pageReview={{
+            target: reviewTarget,
+            onChange: reviewChanged,
+            title: 'Review particulars change',
+            labels: {
+              approve: 'Approve particulars change',
+              apply: 'Apply particulars change',
+              reject: 'Reject particulars change',
+            },
+          }}
+        >
+          {(preview) => (
+            <Section title={member}>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Particulars title={COPY.CURRENT_PARTICULARS} held={preview.current} />
+                <Particulars title={COPY.PROPOSED_PARTICULARS} held={preview} />
+              </div>
+              <Disclosure summary="Reason and supporting document">
+                <Rows>
+                  <Row label={COPY.REASON}>{change.reason}</Row>
+                </Rows>
+                <FormActions>{downloadAction}</FormActions>
+              </Disclosure>
+              {download.isError && <RecordDownloadFailure error={download.error} />}
+            </Section>
+          )}
+        </RegisterDecisions>
+      </FormActions>
+      {download.isError && <RecordDownloadFailure error={download.error} />}
     </RecordShell>
   );
 }

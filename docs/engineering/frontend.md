@@ -309,9 +309,10 @@ The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATION
 `companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
 `#documents`, `/home#documents`). The web also names Shareholders' `#member-access` and
 `#member-requests` views. Ledger's label opens its overview; a separate caret expands
-Issue shares (`#issue`), Transfer shares (`#transfer`), History (`#history`) and Corrections
-(`#corrections`), marking the active
-child and opening the group on Ledger routes. Shareholders' label opens its people list, with the
+Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`), marking the active
+child and opening the group on Ledger routes. The web replaces an incoming `#history` with `#corrections`
+without dropping company/class navigation state or remounting its controllers; shared task names and mobile
+retain History. Shareholders' label opens its people list, with the
 same caret pattern for Member access and Member requests. Each group opens on its routes and marks
 the active destination. Ledger, Shareholders, ESS and Documents stay siblings. Its
 company group follows `useRegisterEntry`, its investing group the investing
@@ -667,7 +668,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   that class's own entries. Active web
   reads follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
-  Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders, Member access,
+  Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
   Member requests, Employee share scheme (ESS) and Documents views by hash.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
@@ -691,9 +692,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   (or the class's company), class and task hash and focuses that class; with a record it focuses that
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
   Member access.
-  History shows recorded entries and retained supporting records with read-only detail and permitted
-  downloads on demand. Corrections holds their maintenance actions; Documents holds certificate
-  preparation and opens only one focused output form at a time from compact choices. ESS uses the
+  Corrections shows immutable recorded entries and retained supporting records with details and permitted
+  downloads on demand, alongside their capability-guarded append-only maintenance workflows. Register-read
+  access alone grants no mutation. Documents holds certificate preparation and opens only one focused
+  output form at a time from compact choices. ESS uses the
   shared class-card spacing and shows recorded awards before its preparation action; preparation
   replaces that class's record list while preserving its controllers. A section whose
   read succeeded empty is omitted, while a failed read keeps its

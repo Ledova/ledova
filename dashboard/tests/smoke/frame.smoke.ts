@@ -96,18 +96,19 @@ async function openTheSidebar(page: Page, role: Role) {
     for (const [name, hash] of [
       ['Issue shares', 'issue'],
       ['Transfer shares', 'transfer'],
-      ['History', 'history'],
+      ['Corrections', 'corrections'],
     ]) {
       await expect(aside.getByRole('link', { name, exact: true })).toHaveAttribute('href', `/company/ledger#${hash}`);
     }
-    await aside.getByRole('link', { name: 'History', exact: true }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'History', exact: true })).toBeVisible();
+    await expect(aside.getByRole('link', { name: 'History', exact: true })).toHaveCount(0);
+    await aside.getByRole('link', { name: 'Corrections', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Corrections', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Class details', exact: true })).toHaveCount(0);
     if (phone) {
       await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
       await page.getByRole('button', { name: 'Open navigation' }).click();
     }
-    await expect(aside.getByRole('link', { name: 'History', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(aside.getByRole('link', { name: 'Corrections', exact: true })).toHaveAttribute('aria-current', 'page');
     await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).not.toHaveAttribute('aria-current');
     await aside.getByRole('link', { name: 'Ledger', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Ledger', exact: true })).toBeVisible();
