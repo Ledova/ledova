@@ -7,10 +7,14 @@ export function useRecordFeed<Row extends { uuid: string }>(
   queryKey: QueryKey,
   read: (page: number) => Promise<{ data: PaginatedResponse<Row> }>,
   enabled = true,
+  policy: { paused?: boolean } = {},
 ) {
   const query = useInfiniteQuery({
     queryKey,
-    enabled,
+    enabled: enabled && !policy.paused,
+    ...(policy.paused === undefined
+      ? {}
+      : { refetchOnWindowFocus: !policy.paused, refetchOnReconnect: !policy.paused }),
     queryFn: async ({ pageParam }) => {
       const { data } = await read(pageParam);
       assertNextPageAdvances(pageParam, data);

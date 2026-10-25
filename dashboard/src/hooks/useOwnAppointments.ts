@@ -17,7 +17,12 @@ export function ownAppointmentsKey(owner: OrderSubmissionOwner) {
 export function useOwnAppointments(
   owner: OrderSubmissionOwner,
   guard: () => void,
-  policy: { queryKey?: readonly unknown[]; enabled?: boolean; timing?: Partial<typeof READ_TIMING> } = {},
+  policy: {
+    queryKey?: readonly unknown[];
+    enabled?: boolean;
+    timing?: Partial<typeof READ_TIMING>;
+    coordinatedReads?: boolean;
+  } = {},
 ) {
   return useQuery({
     queryKey: policy.queryKey ?? ownAppointmentsKey(owner),
@@ -29,6 +34,7 @@ export function useOwnAppointments(
         return result;
       }),
     ...(policy.timing ?? READ_TIMING),
+    ...(policy.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {}),
     ...(policy.enabled === undefined ? {} : { enabled: policy.enabled }),
   });
 }

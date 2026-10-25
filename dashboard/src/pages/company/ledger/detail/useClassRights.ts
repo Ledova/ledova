@@ -101,7 +101,7 @@ function matchesReceipt(
   );
 }
 
-export function useClassRights(token: string, tokenReady: boolean, company: string | undefined) {
+export function useClassRights(token: string, tokenReady: boolean, company: string | undefined, readsPaused = false) {
   const { owner, boundary } = useSubmissionOwner();
   const queryClient = useQueryClient();
   const preferences = useUserPreferences();
@@ -165,6 +165,8 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
     getNextPageParam,
     ...READ_TIMING,
     refetchOnMount: 'always',
+    refetchOnWindowFocus: !readsPaused && !editor && !busy && !held,
+    refetchOnReconnect: !readsPaused && !editor && !busy && !held,
   });
   const first = query.data?.pages[0];
   const coherent = query.data?.pages.every((page) => page.current?.uuid === first?.current?.uuid) ?? true;

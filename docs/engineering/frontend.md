@@ -424,6 +424,12 @@ source and authority checks; edited drafts, decision reviews and original-reques
 Trading uses it only to reread locally saved work, without replaying a saved command. Explicit possession-proof
 renewal and indexer synchronisation remain commands, and failed reads keep Try again.
 
+Class-operation records use the same scheduler only while Technical details is open. Class rights,
+class documents and technical preparation, decision or recovery tasks pause the class's coordinated reads
+and parent focus/reconnect reads; their holds are scoped to the current account, company and class.
+Closing Technical details stops its periodic reads while keeping its controllers mounted. Confirmation
+and execution stay explicit; a retained pending job can still be read after its dispatch finishes.
+
 Every read retains the account, company and appointment guards. A failed or inconsistent read
 withholds private records, decision controls and ownership totals as
 [lists, figures and currency](#lists-figures-and-currency) requires; cached client authority never
