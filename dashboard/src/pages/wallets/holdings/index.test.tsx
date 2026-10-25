@@ -237,7 +237,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request a particulars update' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Share history' })).toBeNull();
   expect(screen.queryByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` })).toBeNull();
   expect(screen.queryByText('Recent changes · Ordinary')).toBeNull();
@@ -344,19 +344,23 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
   expect(screen.getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
-  fireEvent.click(screen.getByText('Request a particulars update'));
+  fireEvent.click(screen.getByText('Request update'));
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), { target: { value: 'Retained draft' } });
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested residential address' }), {
     target: { value: 'Retained draft address' },
   });
   fireEvent.click(screen.getByRole('checkbox', { name: /Share these requested particulars/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+  expect(screen.queryByRole('textbox', { name: 'Requested name' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Request update', exact: true }));
+  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await screen.findByText('10 issued shares');
   expect(screen.queryByRole('textbox', { name: 'Requested name' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request a particulars update' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
-  expect(screen.queryByRole('heading', { name: 'Particulars requests' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Update requests' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   await act(async () => {
@@ -414,12 +418,8 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   await choose('Company', otherRecord.company.name);
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Request a particulars update' }).getAttribute('aria-expanded')).toBe(
-      'false',
-    ),
-  );
-  fireEvent.click(screen.getByRole('button', { name: 'Request a particulars update' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Request update' })).toBeTruthy());
+  fireEvent.click(screen.getByRole('button', { name: 'Request update' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
   expect((screen.getByRole('textbox', { name: 'Requested residential address' }) as HTMLTextAreaElement).value).toBe(
     '',
@@ -431,7 +431,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     target: { value: 'Second company draft' },
   });
   await choose('Company', MEMBER_RECORD.company.name);
-  fireEvent.click(await screen.findByRole('button', { name: 'Request a particulars update' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Request update' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   await choose('Company', otherRecord.company.name);
@@ -456,7 +456,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   expect(screen.queryByRole('alert')).toBeNull();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Request a particulars update' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Request update' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), {
     target: { value: 'Private previous-account draft' },
   });
@@ -472,7 +472,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   detailRefused = false;
   currentPreferences = preferences;
   await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Request a particulars update' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Request update' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
   expect((screen.getByRole('textbox', { name: 'Requested residential address' }) as HTMLTextAreaElement).value).toBe(
     '',

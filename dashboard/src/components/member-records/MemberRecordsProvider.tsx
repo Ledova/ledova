@@ -29,7 +29,15 @@ function MemberState({ children, read }: { children: ReactNode; read: ReturnType
   const [token, setToken] = useState('');
   const selectionOwner = useRef<typeof read.owner>(null);
   const initialHistory = useRef('');
+  const particularsRequest = useRef('');
   const held = read.busy || read.refreshing || read.readFailed || !read.owner || !!read.retry;
+  useEffect(() => {
+    if (read.retry?.kind === 'particulars') particularsRequest.current = read.retry.operationId;
+    if (!held && read.requests?.particulars.some((request) => request.uuid === particularsRequest.current)) {
+      particularsRequest.current = '';
+      setDraft(EMPTY_DRAFT);
+    }
+  }, [read.retry, read.requests, held]);
   useEffect(() => {
     if (read.owner && selectionOwner.current !== read.owner && read.records.length === 1 && !read.busy && !read.retry) {
       selectionOwner.current = read.owner;
@@ -58,6 +66,7 @@ function MemberState({ children, read }: { children: ReactNode; read: ReturnType
           if (read.busy || read.refreshing || read.retry || !read.owner) return;
           selectionOwner.current = read.owner;
           initialHistory.current = '';
+          particularsRequest.current = '';
           setToken('');
           setDraft(EMPTY_DRAFT);
           read.select(uuid);
