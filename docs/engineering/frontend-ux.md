@@ -187,7 +187,8 @@ or class context and genuine dates before expansion, without repeating the page 
 Each whole row opens its details and relevant actions together, including the full requested particulars.
 Preparing a details update focuses its form heading and keeps the selected row and form together,
 with other rows mounted but hidden; Cancel restores the list and opener focus.
-Put account, member and entry references, fingerprints
+Details-update requests omit **Technical details**; their internal identifiers remain in the audit records.
+Access, invitation and certificate records put account, member and entry references, fingerprints
 and file sizes under **Technical details**. A certificate request does not supply a share quantity;
 do not substitute the member's current holding. Keep unavailable reads and their retries distinct
 from confirmed empty collections.

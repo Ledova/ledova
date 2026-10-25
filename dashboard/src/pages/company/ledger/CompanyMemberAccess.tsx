@@ -635,15 +635,6 @@ export function CompanyMemberAccess({
                           <Rows>
                             <Row label="Residential address">{item.record.residentialAddress}</Row>
                           </Rows>
-                          <Disclosure summary="Technical details">
-                            <Rows>
-                              <Row label="Request reference">{shortReference(item.record.uuid)}</Row>
-                              <Row label="Member reference">{shortReference(item.record.member)}</Row>
-                              {item.record.change && (
-                                <Row label="Company instruction">{shortReference(item.record.change)}</Row>
-                              )}
-                            </Rows>
-                          </Disclosure>
                           {item.record.status === 'submitted' &&
                             access.prepare &&
                             selectedRequest?.uuid !== item.record.uuid && (
