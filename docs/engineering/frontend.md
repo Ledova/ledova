@@ -313,8 +313,8 @@ Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#correc
 child and opening the group on Ledger routes. The web replaces an incoming `#history` with `#corrections`
 without dropping company/class navigation state or remounting its controllers; shared task names and mobile
 retain History. Shareholders' label opens its people list, with the
-same caret pattern for Member access and Member requests. Each group opens on its routes and marks
-the active destination. Ledger, Shareholders, ESS and Documents stay siblings. Its
+same caret pattern for ESS, Member access and Member requests. Each group opens on its routes and marks
+the active destination. Ledger, Shareholders and Documents stay siblings. Its
 company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). A page that isn't an item marks its nearest
@@ -408,8 +408,10 @@ only for that active view. Recheck its authority before its dependent records; p
 cycles and stop periodic work while the view is hidden or the browser is offline. Ordinary reads
 need no polling. Issue shares rechecks the selected class's appointments and issue records every
 60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
-Employee share scheme rechecks appointments before its class records on entry, focus and reconnect,
-and every 60 seconds while the view is active, visible and online. These coordinated cycles wait
+Employee share scheme uses the selected class's freshness cycle. Fresh, settled appointment and
+class-record reads satisfy entry without a duplicate cycle; stale entry, focus, reconnect and each
+60-second visible, online interval recheck appointments before dependent records. Revalidation shows
+a loading state while private records and actions are withheld. These coordinated cycles wait
 across all class cards while any award preparation, vesting or entitlement-change editor is open.
 Pending reads resume after Cancel or a successful save. Account, source and authority guards,
 explicit recovery and post-write refresh still apply.
@@ -696,8 +698,9 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   downloads on demand, alongside their capability-guarded append-only maintenance workflows. Register-read
   access alone grants no mutation. Documents holds certificate preparation and opens only one focused
   output form at a time from compact choices. ESS uses the
-  shared class-card spacing and shows recorded awards before its preparation action; preparation
-  replaces that class's record list while preserving its controllers. A section whose
+  shared class-card spacing and shows only the selected class, with one preparation action below its records.
+  The Share class selector locks while any award editor or recovery is open; all class controllers stay
+  mounted. Preparation replaces that class's record list while preserving its controllers. A section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current

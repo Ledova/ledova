@@ -560,7 +560,7 @@ registers of companies the person owns or where their appointment includes regis
 none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
 selector appears when several companies are readable. Ledger's sidebar label opens the share-class
 overview; its separate caret expands Issue shares, Transfer shares and Corrections.
-Shareholders, ESS and Documents remain beside Ledger. These are views of one page, so switching between them keeps
+Shareholders and Documents remain beside Ledger; ESS is under Shareholders. These are views of one page, so switching between them keeps
 unfinished forms and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
 company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
@@ -619,7 +619,7 @@ name search, a Share class filter and 25 rows per page, giving each class's shar
 and flagging an identity that needs review. The search, the filter and the page stay in the address.
 Details opens the shareholder's page. Former shareholders follows, holding each class's
 Former-member history 25 at a time, with Details for a former member the register names.
-Shareholders' sidebar submenus open Member access for invitations and access, and Member requests
+Shareholders' sidebar submenus open ESS for employee awards, Member access for invitations and access, and Member requests
 for particulars and certificate requests ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
@@ -627,8 +627,8 @@ Mobile's Shareholders view lists the same current shareholders, with the search 
 25 more at a time, then People without shares and Former shareholders. Details and **Add person**
 work as on the web.
 
-The Employee share scheme view, ESS in the sidebar, holds each class's
-[awards](issuing-shares.md#employee-awards-and-vesting),
+The Employee share scheme view, ESS under Shareholders, shows one class's
+[awards](issuing-shares.md#employee-awards-and-vesting) at a time, chosen with Share class,
 each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
 inspection copy, unsigned certificate preparation and the company pack as compact choices, opening
 one preparation form at a time.

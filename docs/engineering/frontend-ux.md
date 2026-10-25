@@ -129,7 +129,9 @@ The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
 Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
-keeps its class card and returns to its records after Cancel or a successful save. Its preparation,
+keeps the selected class card and returns to its records after Cancel or a successful save. ESS uses the
+existing Share class selector and one creation action; disable class selection while an award editor or
+recovery is open, keeping every class controller mounted. Its preparation,
 vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
 Award preparation groups the recipient and promised shares, with new-person details beneath. Agreement
 and vesting use the existing responsive two-column grid, stacking on smaller screens, with short
@@ -304,9 +306,9 @@ content", which moves focus to the page's heading.
 The sidebar owns navigation between sections. A related group has one level of children: its label
 opens the overview and a separate caret expands the children, without an extra Overview item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
-Shareholders uses the same web pattern for **Member access** and **Member requests**, with its parent
+Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
 opening the people list. Each group opens on its routes and marks the current destination.
-Ledger, Shareholders, ESS and Documents remain siblings. Both web groups appear in the small-screen
+Ledger, Shareholders and Documents remain siblings. Both web groups appear in the small-screen
 drawer; native navigation is documented [separately](mobile.md#navigation).
 Page controls start or complete work for that page or record: Add person, Invite a member,
 Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer

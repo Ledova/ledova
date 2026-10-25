@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { USER_PREFERENCES_QUERY_KEY, type OrderSubmissionOwner, type RegisterAward } from '@ledova/shared';
-import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
+import { ownAppointmentsKey, READ_TIMING } from '@hooks/useOwnAppointments';
 import { registerClassesKey, registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { grantsKey } from './shared/useRegisterGrants';
 import { awardsKey, awardVestingsKey, awardEndsKey, awardVestingReversalsKey } from './shared/useRegisterAwards';
@@ -37,6 +37,7 @@ export function useAwardFreshness({
     let live = true;
     let running = false;
     let pending = true;
+    let entering = !current.current.held && !current.current.editing;
     let scheduled: number | undefined;
     const available = () =>
       live &&
@@ -56,6 +57,11 @@ export function useAwardFreshness({
     const run = async () => {
       if (!pending || running || !available()) return;
       const records = client.getQueryData<RegisterAward[]>(awardsKey(owner, token)) ?? [];
+      const eventKeys = records.flatMap((award) => [
+        awardVestingsKey(owner, award.uuid),
+        awardEndsKey(owner, award.uuid),
+        awardVestingReversalsKey(owner, award.uuid),
+      ]);
       const keys = [
         ownAppointmentsKey(owner),
         registerClassesKey(owner),
@@ -64,16 +70,26 @@ export function useAwardFreshness({
         awardsKey(owner, token),
         grantsKey(owner, token),
         peopleKey(owner, token),
-        ...records.flatMap((award) => [
-          awardVestingsKey(owner, award.uuid),
-          awardEndsKey(owner, award.uuid),
-          awardVestingReversalsKey(owner, award.uuid),
-        ]),
+        ...eventKeys,
       ];
       if (keys.some((queryKey) => client.isFetching({ queryKey }))) {
         schedule(250);
         return;
       }
+      const fresh = (queryKey: readonly unknown[]) => {
+        const query = client.getQueryCache().find({ queryKey, exact: true });
+        return query?.state.status === 'success' && !query.isStaleByTime(READ_TIMING.staleTime);
+      };
+      if (
+        entering &&
+        [ownAppointmentsKey(owner), awardsKey(owner, token), grantsKey(owner, token)].every(fresh) &&
+        eventKeys.every((queryKey) => !client.getQueryState(queryKey) || fresh(queryKey))
+      ) {
+        entering = false;
+        pending = false;
+        return;
+      }
+      entering = false;
       running = true;
       pending = false;
       try {
@@ -87,6 +103,7 @@ export function useAwardFreshness({
       }
     };
     const request = () => {
+      entering = false;
       pending = true;
       schedule();
     };

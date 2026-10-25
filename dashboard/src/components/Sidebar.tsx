@@ -13,7 +13,6 @@ import {
   HandCoinsIcon,
   BookOpenIcon,
   FilesIcon,
-  UsersIcon,
   UsersThreeIcon,
   CaretDownIcon,
   CaretRightIcon,
@@ -47,7 +46,6 @@ interface NavItem {
   icon: Icon;
   view?: string;
   label?: string;
-  short?: string;
 }
 
 interface NavGroup {
@@ -60,7 +58,6 @@ const COMPANY: NavItem[] = [
   { destination: 'companyDashboard', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
   { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
-  { destination: 'companyRegister', view: 'awards', short: 'ESS', icon: UsersIcon },
   { destination: 'companyRegister', view: 'documents', icon: FilesIcon },
 ];
 
@@ -113,12 +110,11 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
     <Link
       to={itemPath(item)}
       onClick={onNavigate}
-      title={item.short ? title : undefined}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-      <span>{item.short ?? item.label ?? title}</span>
+      <span>{item.label ?? title}</span>
     </Link>
   );
 }
@@ -228,7 +224,8 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
   const [expanded, setExpanded] = useState(active);
   const id = useId();
   const children = Object.entries(SHAREHOLDER_VIEWS);
-  const selected = location.pathname === path ? location.hash.slice(1) : '';
+  const routedView = location.pathname === path ? location.hash.slice(1) : '';
+  const selected = state?.blocked && state.shareholderView ? state.shareholderView : routedView;
   const selectedChild = children.some(([key]) => key === selected);
   const blocked = location.pathname === path && (!state || state.blocked);
   const blocks = (view: string) => blocked && view !== (state?.shareholderView ?? selected);
@@ -292,6 +289,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
             key={key}
             to={`${path}#${key}`}
             state={context}
+            title={key === 'awards' ? label : undefined}
             onClick={navigate}
             onAuxClick={(event) => {
               if (blocks(key)) event.preventDefault();
@@ -300,7 +298,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
             aria-disabled={blocks(key) || undefined}
             className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocks(key) ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            {label}
+            {key === 'awards' ? 'ESS' : label}
           </Link>
         ))}
       </div>
