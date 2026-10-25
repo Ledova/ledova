@@ -343,7 +343,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   await screen.findByText('10 issued shares');
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
-  expect(screen.getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
+  expect(screen.getByTitle(MEMBER_RECORD.residentialAddress)).toBeTruthy();
   fireEvent.click(screen.getByText('Request update'));
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), { target: { value: 'Retained draft' } });
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested residential address' }), {
