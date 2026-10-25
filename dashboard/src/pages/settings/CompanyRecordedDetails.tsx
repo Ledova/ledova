@@ -148,7 +148,7 @@ function MemberParticulars() {
                     </span>
                   </Row>
                 </Rows>
-                <div className="lg:mt-auto">
+                <div className="text-sm lg:mt-auto">
                   <Disclosure summary="Ledger details">
                     <Rows>
                       <Row label="Full address">
