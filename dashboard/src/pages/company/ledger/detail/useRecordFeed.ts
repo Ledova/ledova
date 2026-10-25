@@ -1,7 +1,7 @@
 import { useInfiniteQuery, type QueryKey } from '@tanstack/react-query';
 import { assertNextPageAdvances, getNextPageParam, useLaterPages, type PaginatedResponse } from '@ledova/shared';
 import { READ_TIMING } from '@hooks/useRegisterAccess';
-import { firstOfEach } from './registerReads';
+import { firstOfEach } from '@pages/company/ledger/shared/registerReads';
 
 export function useRecordFeed<Row extends { uuid: string }>(
   queryKey: QueryKey,

@@ -7,7 +7,7 @@ import { Confirmation } from '@components/Modal';
 import { useInvestorWithdrawal } from './useInvestorWithdrawal';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
-import { useInvestorEligibility } from '@hooks/useInvestorEligibility';
+import { useInvestorEligibility } from './useInvestorEligibility';
 
 const CLASSIFICATION_TONES = new Map<string, Tone>([['submitted', 'moving']]);
 const READINESS_TONES = new Map<boolean, Tone>([

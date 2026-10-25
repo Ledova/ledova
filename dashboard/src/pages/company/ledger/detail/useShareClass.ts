@@ -16,7 +16,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { guarded } from '@pages/company/ledger/shared/registerReads';
-import { useRecordFeed } from '@pages/company/ledger/shared/useRecordFeed';
+import { useRecordFeed } from './useRecordFeed';
 
 export function shareClassKey(uuid: string) {
   return ['token', uuid];
