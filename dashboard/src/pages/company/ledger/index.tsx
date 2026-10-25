@@ -152,6 +152,10 @@ function OwnRegister({
   }, []);
   const [personHeld, setPersonHeld] = useState(false);
   const [documentTask, setDocumentTask] = useState<string | null>(null);
+  const [particularsReviewCompany, setParticularsReviewCompany] = useState<string | null>(null);
+  const particularsReviewChanged = useCallback((company: string, open: boolean) => {
+    setParticularsReviewCompany((current) => (open ? company : current === company ? null : current));
+  }, []);
   const documentEditing = useCallback((task: string, open: boolean) => {
     setDocumentTask((current) => (open ? task : current === task ? null : current));
   }, []);
@@ -204,6 +208,7 @@ function OwnRegister({
       : company && registers.data
         ? { company, registers: registers.data }
         : null;
+  const reviewingParticulars = !!scope && particularsReviewCompany === scope.company.uuid;
   const appointments = useOwnAppointments(owner, guard, { enabled: !!scope });
   const readable =
     preferences?.status === 'success' &&
@@ -424,6 +429,7 @@ function OwnRegister({
         classes.isSuccess &&
         !classes.isFetching &&
         (!held || readable) &&
+        !reviewingParticulars &&
         companies.length > 1 && (
           <CompanySelection
             read={{
@@ -457,6 +463,7 @@ function OwnRegister({
             </div>
             <div hidden={view !== 'register' || !['history', 'corrections'].includes(selectedTask ?? '')}>
               <RegisterParticulars
+                key={`particulars/${scope.company.uuid}`}
                 landed={landed}
                 owner={owner}
                 guard={guard}
@@ -465,17 +472,22 @@ function OwnRegister({
                 readOnly={selectedTask !== 'corrections'}
                 visible={view === 'register' && ['history', 'corrections'].includes(selectedTask ?? '') && sourceReady}
                 onHeldChange={companyCorrectionHeld}
+                onReviewChange={particularsReviewChanged}
               />
-              <RegisterLinks
-                landed={landed}
-                owner={owner}
-                guard={guard}
-                company={scope.company.uuid}
-                registers={scope.registers}
-                readOnly={selectedTask !== 'corrections'}
-                visible={view === 'register' && ['history', 'corrections'].includes(selectedTask ?? '') && sourceReady}
-                onHeldChange={companyCorrectionHeld}
-              />
+              <div hidden={reviewingParticulars}>
+                <RegisterLinks
+                  landed={landed}
+                  owner={owner}
+                  guard={guard}
+                  company={scope.company.uuid}
+                  registers={scope.registers}
+                  readOnly={selectedTask !== 'corrections'}
+                  visible={
+                    view === 'register' && ['history', 'corrections'].includes(selectedTask ?? '') && sourceReady
+                  }
+                  onHeldChange={companyCorrectionHeld}
+                />
+              </div>
             </div>
             <div hidden={view !== 'documents' || (!!documentTask && documentTask !== `pack/${scope.company.uuid}`)}>
               {readable && (
@@ -595,7 +607,7 @@ function OwnRegister({
               />
             </div>
           )}
-          <section aria-label="Ledger tasks" className="space-y-4">
+          <section aria-label="Ledger tasks" hidden={reviewingParticulars} className="space-y-4">
             {selectedTask && sourceReady && scope.registers.length === 1 && (
               <p className="text-sm text-text-muted">
                 {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
@@ -627,7 +639,7 @@ function OwnRegister({
         </>
       )}
       {scope && (
-        <ul hidden={includeEmptyCompanies} className="space-y-6">
+        <ul hidden={includeEmptyCompanies || reviewingParticulars} className="space-y-6">
           {scope.registers.map((register) => (
             <li
               key={register.token.uuid}

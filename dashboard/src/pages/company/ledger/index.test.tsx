@@ -9,6 +9,7 @@ import {
   type RegisterImportPreparation,
   type RegisterEntry,
   type RegisterCorrection,
+  type RegisterParticularsChange,
   type RegisterDecideRequest,
   REGISTER_COPY,
   REGISTER_PARTICULARS_COPY,
@@ -1310,6 +1311,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let proposal: RegisterImport | undefined;
   let historyEntries: RegisterEntry[] = [];
   let historyCorrections: RegisterCorrection[] = [];
+  let historyParticulars: RegisterParticularsChange[] = [];
   let pauseHistory = false;
   let releaseHistory!: () => void;
   const attachment = new File(['%PDF-1.4 synthetic certificate'], 'share-certificate.pdf', { type: 'application/pdf' });
@@ -1386,6 +1388,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     if (url === CORRECTIONS) return dataPage(historyCorrections);
+    if (url === PARTICULARS) return dataPage(historyParticulars);
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)) {
       if (pauseHistory)
         return new Promise((resolve) => {
@@ -1497,6 +1500,30 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     const request = body as RegisterDecideRequest;
     expect(request.appointment).toBe(appointment.uuid);
     expect(appointment.capabilities).toContain(request.kind);
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGE_PREVIEW('retained-particulars-change'))
+      return {
+        data: {
+          canDecide: true,
+          unmetRequirements: [],
+          previewDigest: 'd'.repeat(64),
+          member: historyParticulars[0].member,
+          name: historyParticulars[0].name,
+          residentialAddress: historyParticulars[0].residentialAddress,
+          asAt: historyParticulars[0].asAt,
+          current: {
+            name: 'Example Shareholder',
+            residentialAddress: '1 Example Street, Sydney NSW 2000',
+            asAt: '2026-10-21',
+            sourceImport: proposal!.uuid,
+            sourceChange: null,
+            sourceGrant: null,
+            sourceTransfer: null,
+            sourceAllotment: null,
+            sourceAward: null,
+            sourceRegistration: null,
+          },
+        },
+      };
     if (url.endsWith('/decision-preview/')) {
       if (failNextPreview) {
         failNextPreview = false;
@@ -1904,6 +1931,32 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       submittedBy: 1,
     },
   ];
+  historyParticulars = [
+    {
+      uuid: 'retained-particulars-change',
+      company: company.uuid,
+      member: proposal!.members[0].member,
+      memberRequest: null,
+      name: 'Example Shareholder',
+      residentialAddress: '2 Example Street, Sydney NSW 2000',
+      asAt: '2026-10-22',
+      reason: 'Address update requested by the member',
+      preparingAppointment: appointment.uuid,
+      preparedByName: 'Example Director',
+      providedBy: 'company',
+      status: 'submitted',
+      stage: 'submitted',
+      decisions: [],
+      evidenceFingerprint: 'd'.repeat(64),
+      evidenceSnapshot: {},
+      supportingEvidence: 'retained-supporting-document',
+      rejectionReason: '',
+      reviewedAt: null,
+      reviewedBy: null,
+      submittedBy: 1,
+      createdAt: '2026-10-22T02:00:00Z',
+    },
+  ];
   cleanup();
   client.clear();
   show(
@@ -1938,6 +1991,28 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(await screen.findByRole('button', { name: /^Correction of entry 3/ }));
   expect(screen.getByText('Retained correction reason')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Example Shareholder · Prepared' }));
+  expect(screen.getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
+  const particularsApproval = await screen.findByRole('button', { name: /^Approve \(change for Example Shareholder/ });
+  const beforeParticularsReview = api.post.mock.calls.filter(([url]) => url.endsWith('/decide/')).length;
+  fireEvent.click(particularsApproval);
+  const particularsReview = await screen.findByRole('region', { name: 'Review particulars change' });
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(within(particularsReview).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
+  expect(within(particularsReview).getByText('2 Example Street, Sydney NSW 2000')).toBeTruthy();
+  expect(within(particularsReview).getByText(formatDate('2026-10-22'))).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Particulars changes' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Details for entry 3:/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Approve \(correction of entry 3/ })).toBeNull();
+  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(beforeParticularsReview);
+  fireEvent.click(within(particularsReview).getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(document.activeElement).toBe(particularsApproval));
+  expect(screen.queryByRole('region', { name: 'Review particulars change' })).toBeNull();
+  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(beforeParticularsReview);
+  fireEvent.click(screen.getByRole('link', { name: 'Open History' }));
+  await screen.findByRole('heading', { name: 'Changes' });
   const beforeHistoryRead = api.post.mock.calls.length;
   pauseHistory = true;
   let refreshingHistory!: Promise<void>;

@@ -1,4 +1,5 @@
 import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
+import { useCallback } from 'react';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
   REGISTER_PARTICULARS_COPY,
@@ -7,7 +8,7 @@ import {
   type RegisterParticularsChange,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows, Disclosure } from '@components/Ledger';
+import { Row, Rows, Disclosure, Section } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -47,6 +48,8 @@ export function ParticularsRecord({
   visible = true,
   readOnly = false,
   onHeldChange,
+  reviewTarget,
+  onReviewChange,
 }: {
   landed?: Landed;
   change: RegisterParticularsChange;
@@ -58,11 +61,17 @@ export function ParticularsRecord({
   visible?: boolean;
   readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
+  reviewTarget: HTMLElement | null;
+  onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
   const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useParticularsRecordDownload(change, check);
   const context = `change for ${member} prepared ${formatDateTime(change.createdAt)}`;
+  const reviewChanged = useCallback(
+    (open: boolean) => onReviewChange(change.uuid, open),
+    [change.uuid, onReviewChange],
+  );
   const downloadAction = (
     <PageAction
       label={COPY.DOWNLOAD}
@@ -112,12 +121,31 @@ export function ParticularsRecord({
             onDecided={onDecided}
             onRefused={onRefused}
             note={(kind) => kind !== 'reject' && <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>}
+            pageReview={{
+              target: reviewTarget,
+              onChange: reviewChanged,
+              title: 'Review particulars change',
+              labels: {
+                approve: 'Approve particulars change',
+                apply: 'Apply particulars change',
+                reject: 'Reject particulars change',
+              },
+            }}
           >
             {(preview) => (
-              <div className="grid gap-4">
-                <Particulars title={COPY.CURRENT_PARTICULARS} held={preview.current} />
-                <Particulars title={COPY.PROPOSED_PARTICULARS} held={preview} />
-              </div>
+              <Section title={member}>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <Particulars title={COPY.CURRENT_PARTICULARS} held={preview.current} />
+                  <Particulars title={COPY.PROPOSED_PARTICULARS} held={preview} />
+                </div>
+                <Disclosure summary="Reason and supporting document">
+                  <Rows>
+                    <Row label={COPY.REASON}>{change.reason}</Row>
+                  </Rows>
+                  <FormActions>{downloadAction}</FormActions>
+                </Disclosure>
+                {download.isError && <RecordDownloadFailure error={download.error} />}
+              </Section>
             )}
           </RegisterDecisions>
         </FormActions>
