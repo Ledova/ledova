@@ -179,7 +179,7 @@ function OwnRegister({
   const [taskSelection, setTaskSelection] = useState<{
     company: string;
     token: string;
-    task: LedgerTask;
+    task: LedgerTask | 'awards';
     locationKey: string;
   } | null>(null);
   const [retainedScope, setRetainedScope] = useState<{
@@ -336,14 +336,17 @@ function OwnRegister({
       ? 'member-access'
       : memberHeldView === 'requests'
         ? 'member-requests'
-        : undefined;
+        : [...heldClasses].some((key) => key.startsWith('awards/'))
+          ? 'awards'
+          : undefined;
   const requestedToken =
     scope && scope.company.uuid === registerCompany && scope.registers.some(({ token }) => token.uuid === registerToken)
       ? registerToken
       : undefined;
   const taskToken =
     requestedToken ??
-    (scope && (ledgerTask(hashTask) || (registerTask && scope.company.uuid === registerCompany))
+    (scope &&
+    (ledgerTask(hashTask) || hashTask === 'awards' || (registerTask && scope.company.uuid === registerCompany))
       ? scope.registers[0]?.token.uuid
       : undefined);
   const localSelection =
@@ -351,7 +354,7 @@ function OwnRegister({
       ? taskSelection
       : null;
   const pinned = [...heldClasses].find((key) =>
-    ['allotments/', 'grants/', 'transfer/', 'corrections/'].some((prefix) => key.startsWith(prefix)),
+    ['allotments/', 'grants/', 'transfer/', 'corrections/', 'awards/'].some((prefix) => key.startsWith(prefix)),
   );
   const pinnedParts = pinned?.split('/');
   const selectedTask =
@@ -361,9 +364,13 @@ function OwnRegister({
         ? 'transfer'
         : pinnedParts?.[0] === 'corrections'
           ? 'corrections'
-          : (localSelection?.task ?? (taskToken ? registerTask : undefined));
+          : ledgerTask(localSelection?.task ?? (taskToken ? registerTask : undefined));
   const candidateToken =
-    pinnedParts && pinnedParts[1] !== 'company' ? pinnedParts[1] : (localSelection?.token ?? taskToken);
+    pinnedParts && pinnedParts[1] !== 'company'
+      ? pinnedParts[1]
+      : view === 'awards' && editingAwards.size > 0
+        ? [...editingAwards][0]
+        : (localSelection?.token ?? taskToken);
   const selectedToken = scope?.registers.some(({ token }) => token.uuid === candidateToken)
     ? candidateToken
     : scope?.registers[0]?.token.uuid;
@@ -575,9 +582,10 @@ function OwnRegister({
           />
         </div>
       )}
-      {scope && view === 'register' && (
+      {scope && (view === 'register' || view === 'awards') && (
         <>
-          {!selectedTask &&
+          {view === 'register' &&
+            !selectedTask &&
             ownershipReady &&
             scope.registers.map((register) => (
               <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
@@ -593,7 +601,7 @@ function OwnRegister({
                 )}
               </Section>
             ))}
-          {!selectedTask && canAddClass && (
+          {view === 'register' && !selectedTask && canAddClass && (
             <div className="flex flex-wrap justify-end gap-2">
               <PageLink
                 primary
@@ -603,12 +611,12 @@ function OwnRegister({
             </div>
           )}
           <section aria-label="Ledger tasks" hidden={reviewingParticulars} className="space-y-4">
-            {selectedTask && sourceReady && scope.registers.length === 1 && (
+            {(selectedTask || view === 'awards') && sourceReady && scope.registers.length === 1 && (
               <p className="text-sm text-text-muted">
                 {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
               </p>
             )}
-            {selectedTask && sourceReady && scope.registers.length > 1 && (
+            {(selectedTask || view === 'awards') && sourceReady && scope.registers.length > 1 && (
               <div className="max-w-sm">
                 <SelectField
                   label="Share class"
@@ -617,13 +625,13 @@ function OwnRegister({
                     label: `${token.name} · ${token.symbol}`,
                   }))}
                   value={selectedToken}
-                  disabled={held}
+                  disabled={held || (view === 'awards' && editingAwards.size > 0)}
                   onChange={(token) => {
-                    if (!held && sourceReady)
+                    if (!held && (view !== 'awards' || editingAwards.size === 0) && sourceReady)
                       setTaskSelection({
                         company: scope.company.uuid,
                         token,
-                        task: selectedTask,
+                        task: view === 'awards' ? 'awards' : selectedTask!,
                         locationKey: location.key,
                       });
                   }}
@@ -639,10 +647,11 @@ function OwnRegister({
             <li
               key={register.token.uuid}
               hidden={
-                view === 'documents' &&
-                !!documentTask &&
-                documentTask !== `inspection/${register.token.uuid}` &&
-                !documentTask.startsWith(`certificate/${register.token.uuid}/`)
+                (view === 'awards' && selectedToken !== register.token.uuid) ||
+                (view === 'documents' &&
+                  !!documentTask &&
+                  documentTask !== `inspection/${register.token.uuid}` &&
+                  !documentTask.startsWith(`certificate/${register.token.uuid}/`))
               }
               tabIndex={-1}
               className="scroll-mt-6"
@@ -783,7 +792,7 @@ function OwnRegister({
                       onHeldChange={awardHeld}
                       onEditingChange={awardEditing}
                       pauseFreshness={editingAwards.size > 0}
-                      active={view === 'awards'}
+                      active={view === 'awards' && selectedToken === register.token.uuid}
                     />
                   </div>
                   <div hidden={view !== 'documents'} className="space-y-5">

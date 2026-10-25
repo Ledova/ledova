@@ -1459,6 +1459,12 @@ Old web History links open Corrections with their company and class context. Thi
 separate web History view above without deleting audit records or expanding register-read authority.
 Mobile retains its existing History destination; no mobile workflow changes are part of this decision.
 
+On 26 October 2026 the owner placed web ESS under Shareholders. It retains the Employee share scheme
+page title and existing address, with the shared Share class selector and one Record an employee award
+action for the selected class. Editors and recovery keep their class pinned. Fresh entry reads are reused
+instead of repeated; required revalidation withholds private records with an explicit loading state.
+Award, vesting and issuance rules and mobile navigation remain unchanged.
+
 ## Paper and Dark themes
 
 On 14 October 2026 the owner directed under

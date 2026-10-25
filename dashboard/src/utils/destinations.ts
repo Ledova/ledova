@@ -32,6 +32,7 @@ export function ledgerTask(value: unknown): LedgerTask | undefined {
 }
 
 export const SHAREHOLDER_VIEWS = {
+  awards: DESTINATIONS.companyRegister.views.awards,
   'member-access': 'Member access',
   'member-requests': 'Member requests',
 } as const;

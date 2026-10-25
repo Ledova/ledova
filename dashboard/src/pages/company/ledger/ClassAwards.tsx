@@ -174,7 +174,8 @@ export function ClassAwards({
       {appointments.isSuccess && readable && !appointment && (
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
-      {appointments.isError ? null : !appointments.isSuccess || (readable && awards.isPending) ? (
+      {appointments.isError ? null : !appointments.isSuccess ||
+        (readable && (awards.isPending || awards.isFetching || appointments.isFetching)) ? (
         <Loading>Loading employee awards…</Loading>
       ) : !readable ? (
         <p className="text-sm text-text-muted">

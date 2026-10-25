@@ -22,7 +22,7 @@ import type {
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   APPOINTMENT,
@@ -97,6 +97,7 @@ beforeEach(() => {
       if (failedRead === 'award') throw new Error('Recorded awards could not be refreshed');
       return { data: { results: awards, next: null } };
     }
+    if (url === URLS.REGISTER_GRANTS) return { data: { results: [], next: null } };
     if (url === URLS.REGISTER_AWARD_VESTINGS) {
       if (failedRead === 'vesting') throw new Error('Recorded vesting could not be refreshed');
       return { data: { results: events, next: null } };
@@ -460,10 +461,16 @@ it('retains original award, vesting and linked issue preparations through interr
       <ApiClientProvider client={apiClient}>
         <MemoryRouter
           initialEntries={[
-            { pathname: '/company/ledger', hash: '#awards', state: { registerCompany: APPOINTMENT.company } },
+            {
+              pathname: '/company/ledger',
+              hash: '#awards',
+              state: { registerCompany: APPOINTMENT.company, registerToken: REGISTER.token.uuid },
+            },
           ]}
         >
           <CompanyRegisterPage />
+          <Link to="/company/ledger#issue">Open issue task</Link>
+          <Link to="/company/ledger#awards">Return to ESS</Link>
         </MemoryRouter>
       </ApiClientProvider>
     </QueryClientProvider>,
@@ -471,9 +478,19 @@ it('retains original award, vesting and linked issue preparations through interr
   await screen.findByRole('link', { name: 'Issue vested shares' });
   await waitFor(() => expect(screen.queryByText('Loading employee awards…')).toBeNull());
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(screen.getByRole('heading', { name: 'Preference shares · PRF' })).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Preference shares · PRF' })).toBeNull();
+  expect(screen.getAllByRole('button', { name: COPY.PREPARE })).toHaveLength(1);
+  const awardClass = screen.getByLabelText('Share class') as HTMLSelectElement;
+  fireEvent.change(awardClass, { target: { value: siblingRegister.token.uuid } });
+  expect(await screen.findByRole('heading', { name: 'Preference shares · PRF' })).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Ordinary shares · ORD' })).toBeNull();
+  expect(screen.getAllByRole('button', { name: COPY.PREPARE })).toHaveLength(1);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  fireEvent.change(awardClass, { target: { value: REGISTER.token.uuid } });
+  await screen.findByRole('link', { name: 'Issue vested shares' });
   const ordinaryClass = screen.getByRole('heading', { name: 'Ordinary shares · ORD' }).closest('li')!;
   fireEvent.click(within(ordinaryClass).getByRole('button', { name: COPY.PREPARE }));
+  expect(awardClass.disabled).toBe(true);
   const draftDocument = (await within(ordinaryClass).findByLabelText('Document')) as HTMLInputElement;
   fireEvent.change(draftDocument, { target: { files: [FILE] } });
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -490,6 +507,16 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(document.activeElement).toBe(draftDocument);
   expect(draftDocument.files?.[0]).toBe(FILE);
   expect(within(draftDocument.parentElement!).getByText(FILE.name)).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: 'Open issue task' }));
+  const issueClass = screen.getByLabelText('Share class') as HTMLSelectElement;
+  expect(issueClass.disabled).toBe(false);
+  fireEvent.change(issueClass, { target: { value: siblingRegister.token.uuid } });
+  expect(issueClass.value).toBe(siblingRegister.token.uuid);
+  fireEvent.click(screen.getByRole('link', { name: 'Return to ESS' }));
+  expect((screen.getByLabelText('Share class') as HTMLSelectElement).value).toBe(REGISTER.token.uuid);
+  expect((screen.getByLabelText('Share class') as HTMLSelectElement).disabled).toBe(true);
+  expect(within(ordinaryClass).getByLabelText('Document')).toBe(draftDocument);
+  expect(draftDocument.files?.[0]).toBe(FILE);
   const resumedSchedule = 'Schedule refreshed after closing a draft beside another class';
   awards = [{ ...awards[0], schedule: resumedSchedule }];
   fireEvent.click(within(ordinaryClass).getByRole('button', { name: 'Cancel (award preparation)' }));
@@ -500,8 +527,16 @@ it('retains original award, vesting and linked issue preparations through interr
   );
   await waitFor(() => expect(client.isFetching()).toBe(0));
   const beforeHiddenTaskPoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS).length;
+  const beforeOtherClassPoll = api.get.mock.calls.filter(
+    ([url, config]) => url === URLS.REGISTER_AWARDS && config?.params?.token === siblingRegister.token.uuid,
+  ).length;
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
   expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(beforeHiddenTaskPoll);
+  expect(
+    api.get.mock.calls.filter(
+      ([url, config]) => url === URLS.REGISTER_AWARDS && config?.params?.token === siblingRegister.token.uuid,
+    ),
+  ).toHaveLength(beforeOtherClassPoll);
   fireEvent.click(await screen.findByRole('link', { name: 'Issue vested shares' }));
   const issues = within(await screen.findByRole('region', { name: 'Share issue workflow' }));
   expect(screen.queryByRole('button', { name: 'Refresh grants' })).toBeNull();
@@ -880,6 +915,10 @@ it('refreshes visible awards without replacing drafts or replaying held requests
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('button', { name: 'Refresh awards' })).toBeNull();
   const firstRead = api.get.mock.calls.length;
+  view.rerender(awardView(held, false));
+  view.rerender(awardView(held));
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  expect(api.get.mock.calls).toHaveLength(firstRead);
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   await waitFor(() => expect(api.get.mock.calls.length).toBeGreaterThan(firstRead));
@@ -920,6 +959,8 @@ it('refreshes visible awards without replacing drafts or replaying held requests
         api.get.mock.calls.filter(([url]) => url === '/api/v1/company-authority/appointments/').length,
       ).toBeGreaterThan(beforeAppointment),
     );
+    expect(screen.getByText('Loading employee awards…')).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull();
     if (suspension === 'inactive') view.rerender(awardView(held, false));
     else if (suspension === 'hidden') hidden.mockReturnValue(true);
     else online.mockReturnValue(false);
