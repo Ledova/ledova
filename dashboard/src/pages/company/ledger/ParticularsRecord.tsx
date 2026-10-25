@@ -8,7 +8,7 @@ import {
   formatDate,
 } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { type RegisterSteps } from '@pages/company/shared/proposals';
@@ -63,6 +63,15 @@ export function ParticularsRecord({
   const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useParticularsRecordDownload(change, check);
   const context = `change for ${member} prepared ${formatDateTime(change.createdAt)}`;
+  const downloadAction = (
+    <PageAction
+      label={COPY.DOWNLOAD}
+      context={context}
+      busy={download.isPending}
+      busyLabel="Downloading…"
+      onClick={() => download.mutate()}
+    />
+  );
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
@@ -82,40 +91,38 @@ export function ParticularsRecord({
             <DecisionTrail proposal={change} labels={COPY.DECISIONS} />
           </Rows>
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-          <div className="flex flex-wrap gap-2">
-            <PageAction
-              label={COPY.DOWNLOAD}
-              context={context}
-              busy={download.isPending}
-              busyLabel="Downloading…"
-              onClick={() => download.mutate()}
-            />
-          </div>
-          {download.isError && <RecordDownloadFailure error={download.error} />}
+          {readOnly && <FormActions>{downloadAction}</FormActions>}
+          {readOnly && download.isError && <RecordDownloadFailure error={download.error} />}
         </Disclosure>
       )}
-      <RegisterDecisions
-        family={REGISTER_PARTICULARS_DECISIONS}
-        copy={COPY}
-        noun="particulars change"
-        proposal={change}
-        steps={steps}
-        guard={guard}
-        newEffectGuard={decide}
-        visible={visible && !readOnly}
-        onHeldChange={onHeldChange}
-        context={context}
-        onDecided={onDecided}
-        onRefused={onRefused}
-        note={(kind) => kind !== 'reject' && <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>}
-      >
-        {(preview) => (
-          <div className="grid gap-4">
-            <Particulars title={COPY.CURRENT_PARTICULARS} held={preview.current} />
-            <Particulars title={COPY.PROPOSED_PARTICULARS} held={preview} />
-          </div>
-        )}
-      </RegisterDecisions>
+      <div hidden={readOnly}>
+        <FormActions>
+          {downloadAction}
+          <RegisterDecisions
+            family={REGISTER_PARTICULARS_DECISIONS}
+            copy={COPY}
+            noun="particulars change"
+            proposal={change}
+            steps={steps}
+            guard={guard}
+            newEffectGuard={decide}
+            visible={visible && !readOnly}
+            onHeldChange={onHeldChange}
+            context={context}
+            onDecided={onDecided}
+            onRefused={onRefused}
+            note={(kind) => kind !== 'reject' && <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>}
+          >
+            {(preview) => (
+              <div className="grid gap-4">
+                <Particulars title={COPY.CURRENT_PARTICULARS} held={preview.current} />
+                <Particulars title={COPY.PROPOSED_PARTICULARS} held={preview} />
+              </div>
+            )}
+          </RegisterDecisions>
+        </FormActions>
+        {download.isError && <RecordDownloadFailure error={download.error} />}
+      </div>
     </RecordShell>
   );
 }
