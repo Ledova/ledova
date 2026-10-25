@@ -350,9 +350,9 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     target: { value: 'Retained draft address' },
   });
   fireEvent.click(screen.getByRole('checkbox', { name: /Share these requested particulars/ }));
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(screen.queryByRole('textbox', { name: 'Requested name' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Request update', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Request update' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await screen.findByText('10 issued shares');
