@@ -39,19 +39,19 @@ function MemberParticulars() {
   const particularsRequests = (requests: NonNullable<typeof read.requests>['particulars']) => (
     <div className="divide-y divide-border-subtle text-sm">
       {requests.map((request) => (
-        <div key={request.uuid} className="py-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            <p className="text-text-muted">{formatDate(request.createdAt, 'Date not recorded')}</p>
-            <Status tone={request.status === 'applied' ? 'done' : request.status === 'rejected' ? 'closed' : 'waiting'}>
-              {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}
-            </Status>
-          </div>
+        <div key={request.uuid} className="space-y-2 py-4 first:pt-0 last:pb-0">
           <Rows>
             <Row label="Name">{request.name}</Row>
             <Row label="Residential address">
               <span className="whitespace-pre-line">{request.residentialAddress}</span>
             </Row>
           </Rows>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <p className="text-text-muted">{formatDate(request.createdAt, 'Date not recorded')}</p>
+            <Status tone={request.status === 'applied' ? 'done' : request.status === 'rejected' ? 'closed' : 'waiting'}>
+              {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}
+            </Status>
+          </div>
           <Disclosure summary="Record details">
             <Rows>
               <Row label="Request">{shortReference(request.uuid)}</Row>
@@ -64,106 +64,112 @@ function MemberParticulars() {
   );
   return (
     read.record && (
-      <>
-        <Section title={particularsOpen ? 'Request update' : 'Current details'}>
-          {particularsOpen ? (
-            <form
-              className="space-y-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!held && particularsChecks.check())
-                  track('particulars', read.requestParticulars(name.trim(), address.trim()));
-              }}
-            >
-              <p className="text-sm text-text-muted">The company reviews your request before updating its records.</p>
-              <ErrorSummary {...particularsChecks.summary} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field {...particularsChecks.field('name')} label="Requested name">
-                  <TextInput
-                    maxLength={FIELD_LIMITS.NAME}
-                    value={name}
-                    disabled={held}
-                    onChange={(event) => {
-                      setName(event.target.value);
-                      setConfirmed(false);
-                    }}
-                  />
-                </Field>
-                <Field {...particularsChecks.field('address')} label="Requested residential address">
-                  <TextArea
-                    rows={3}
-                    maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
-                    value={address}
-                    disabled={held}
-                    onChange={(event) => {
-                      setAddress(event.target.value);
-                      setConfirmed(false);
-                    }}
-                  />
-                </Field>
-              </div>
-              <CheckboxField
-                {...particularsChecks.field('confirmed')}
-                label="Share these requested particulars with this company for review."
-                checked={confirmed}
+      <Section title={particularsOpen ? 'Request update' : 'Your details'}>
+        {particularsOpen ? (
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!held && particularsChecks.check())
+                track('particulars', read.requestParticulars(name.trim(), address.trim()));
+            }}
+          >
+            <p className="text-sm text-text-muted">The company reviews your request before updating its records.</p>
+            <ErrorSummary {...particularsChecks.summary} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field {...particularsChecks.field('name')} label="Requested name">
+                <TextInput
+                  maxLength={FIELD_LIMITS.NAME}
+                  value={name}
+                  disabled={held}
+                  onChange={(event) => {
+                    setName(event.target.value);
+                    setConfirmed(false);
+                  }}
+                />
+              </Field>
+              <Field {...particularsChecks.field('address')} label="Requested residential address">
+                <TextArea
+                  rows={3}
+                  maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
+                  value={address}
+                  disabled={held}
+                  onChange={(event) => {
+                    setAddress(event.target.value);
+                    setConfirmed(false);
+                  }}
+                />
+              </Field>
+            </div>
+            <CheckboxField
+              {...particularsChecks.field('confirmed')}
+              label="Share these requested particulars with this company for review."
+              checked={confirmed}
+              disabled={held}
+              onChange={(event) => setConfirmed(event.target.checked)}
+            />
+            <FormActions>
+              <PageAction
+                label="Cancel"
                 disabled={held}
-                onChange={(event) => setConfirmed(event.target.checked)}
+                onClick={() => setDraft((value) => ({ ...value, open: false }))}
               />
-              <FormActions>
-                <PageAction
-                  label="Cancel"
-                  disabled={held}
-                  onClick={() => setDraft((value) => ({ ...value, open: false }))}
-                />
-                <PageAction
-                  type="submit"
-                  label="Send request"
-                  primary
-                  busy={running === 'particulars'}
-                  busyLabel="Sending request…"
-                  disabled={held}
-                />
-              </FormActions>
-            </form>
-          ) : (
-            <>
-              <Rows>
-                <Row label="Name">{read.record.name}</Row>
-                <Row label="Residential address">
-                  <span className="whitespace-pre-line">{read.record.residentialAddress}</span>
-                </Row>
-              </Rows>
-              <Disclosure summary="Ledger details">
-                <p className="text-sm text-text-muted">
-                  Provided by the company, not verified by Ledova. Profile edits do not change this register.
-                </p>
-                {read.record.classes.map((item) => (
-                  <p key={item.uuid} className="py-2 text-sm text-text-muted">
-                    {item.name} · Entered {formatDate(item.enteredOn, 'Not recorded')}
-                    {item.ceasedOn ? ` · Ceased ${formatDate(item.ceasedOn)}` : ''} · Amount paid{' '}
-                    {item.amountPaid ?? 'not recorded'}
+              <PageAction
+                type="submit"
+                label="Send request"
+                primary
+                busy={running === 'particulars'}
+                busyLabel="Sending request…"
+                disabled={held}
+              />
+            </FormActions>
+          </form>
+        ) : (
+          <>
+            <div
+              className={`grid gap-6 ${pendingParticulars.length > 0 || previousParticulars.length > 0 ? 'lg:grid-cols-2' : ''}`}
+            >
+              <div className="min-w-0 space-y-3">
+                <h3 className="text-sm font-medium">Current details</h3>
+                <Rows>
+                  <Row label="Name">{read.record.name}</Row>
+                  <Row label="Residential address">
+                    <span className="whitespace-pre-line">{read.record.residentialAddress}</span>
+                  </Row>
+                </Rows>
+                <Disclosure summary="Ledger details">
+                  <p className="text-sm text-text-muted">
+                    Provided by the company, not verified by Ledova. Profile edits do not change this register.
                   </p>
-                ))}
-              </Disclosure>
-              <FormActions>
-                <PageAction
-                  label="Request update"
-                  disabled={held}
-                  onClick={() => setDraft((value) => ({ ...value, open: true }))}
-                />
-              </FormActions>
-            </>
-          )}
-        </Section>
-        {!particularsOpen && (pendingParticulars.length > 0 || previousParticulars.length > 0) && (
-          <Section title="Update requests">
-            {pendingParticulars.length > 0 && particularsRequests(pendingParticulars)}
-            {previousParticulars.length > 0 && (
-              <Disclosure summary="Previous requests">{particularsRequests(previousParticulars)}</Disclosure>
-            )}
-          </Section>
+                  {read.record.classes.map((item) => (
+                    <p key={item.uuid} className="py-2 text-sm text-text-muted">
+                      {item.name} · Entered {formatDate(item.enteredOn, 'Not recorded')}
+                      {item.ceasedOn ? ` · Ceased ${formatDate(item.ceasedOn)}` : ''} · Amount paid{' '}
+                      {item.amountPaid ?? 'not recorded'}
+                    </p>
+                  ))}
+                </Disclosure>
+              </div>
+              {(pendingParticulars.length > 0 || previousParticulars.length > 0) && (
+                <div className="min-w-0 space-y-3 border-t border-border-subtle pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+                  <h3 className="text-sm font-medium">Update requests</h3>
+                  {pendingParticulars.length > 0 && particularsRequests(pendingParticulars)}
+                  {previousParticulars.length > 0 && (
+                    <Disclosure summary="Previous requests">{particularsRequests(previousParticulars)}</Disclosure>
+                  )}
+                </div>
+              )}
+            </div>
+            <FormActions>
+              <PageAction
+                label="Request update"
+                disabled={held}
+                onClick={() => setDraft((value) => ({ ...value, open: true }))}
+              />
+            </FormActions>
+          </>
         )}
-      </>
+      </Section>
     )
   );
 }
