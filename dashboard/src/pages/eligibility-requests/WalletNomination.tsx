@@ -14,7 +14,7 @@ import {
   shortReference,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
 
@@ -135,29 +135,6 @@ export function WalletNomination({
           {data.wallets.isSuccess && wallets.length === 0 && (
             <p className="text-sm text-text-muted">No own Base wallets yet.</p>
           )}
-          {wallet && (
-            <PageAction
-              label="Refresh selected wallet possession proof"
-              disabled={blocked}
-              onClick={() => {
-                try {
-                  data.guardWallet();
-                  setVerifying({ owner: data.owner, wallet: wallet.uuid, scope: data.scopeKey });
-                } catch {
-                  return;
-                }
-              }}
-            />
-          )}
-          <PageAction
-            label="Review wallet nomination"
-            busy={running === 'review'}
-            busyLabel="Reviewing…"
-            disabled={blocked}
-            onClick={() => {
-              if (checks.check(['wallet'])) track('review', data.review());
-            }}
-          />
           {preview && (
             <div className="space-y-3">
               <Facts preview={preview} />
@@ -173,6 +150,33 @@ export function WalletNomination({
                 disabled={blocked}
                 onChange={(event) => setConsent({ preview, accepted: event.target.checked })}
               />
+            </div>
+          )}
+          <FormActions>
+            {wallet && (
+              <PageAction
+                label="Refresh selected wallet possession proof"
+                disabled={blocked}
+                onClick={() => {
+                  try {
+                    data.guardWallet();
+                    setVerifying({ owner: data.owner, wallet: wallet.uuid, scope: data.scopeKey });
+                  } catch {
+                    return;
+                  }
+                }}
+              />
+            )}
+            <PageAction
+              label="Review wallet nomination"
+              busy={running === 'review'}
+              busyLabel="Reviewing…"
+              disabled={blocked}
+              onClick={() => {
+                if (checks.check(['wallet'])) track('review', data.review());
+              }}
+            />
+            {preview && (
               <PageAction
                 label="Submit wallet nomination"
                 primary
@@ -181,8 +185,8 @@ export function WalletNomination({
                   if (checks.check(['consent'])) void data.confirm();
                 }}
               />
-            </div>
-          )}
+            )}
+          </FormActions>
         </>
       )}
       <WalletVerificationModal

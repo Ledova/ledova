@@ -21,7 +21,7 @@ import {
   CHAIN_FAILURE_LABELS,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { SearchSelect } from '@components/SearchSelect';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 
@@ -246,27 +246,29 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
           />
         </Field>
       )}
-      <PageAction
-        label="Prepare wallet instruction"
-        busy={running === 'prepare'}
-        busyLabel="Preparing…"
-        disabled={blocked || (action === 'add' && !!selected?.unmetRequirements.length)}
-        onClick={() => {
-          if (checks.check())
-            track(
-              'prepare',
-              data
-                .prepare(
-                  action === 'add'
-                    ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
-                    : { action, targetChange: source },
-                )
-                .then((saved) => {
-                  if (saved) onEditingChange(false);
-                }),
-            );
-        }}
-      />
+      <FormActions>
+        <PageAction
+          label="Prepare wallet instruction"
+          busy={running === 'prepare'}
+          busyLabel="Preparing…"
+          disabled={blocked || (action === 'add' && !!selected?.unmetRequirements.length)}
+          onClick={() => {
+            if (checks.check())
+              track(
+                'prepare',
+                data
+                  .prepare(
+                    action === 'add'
+                      ? { action, nomination: source, expiresAt: new Date(moment).toISOString() }
+                      : { action, targetChange: source },
+                  )
+                  .then((saved) => {
+                    if (saved) onEditingChange(false);
+                  }),
+              );
+          }}
+        />
+      </FormActions>
     </div>
   );
 }

@@ -15,7 +15,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useDirectoryNames } from '@hooks/useDirectoryNames';
 import { LinkRow, Section, LoadError } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { FormActions, Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
 import { Field, TextInput } from '@components/Field';
 import { WalletNomination } from './WalletNomination';
@@ -134,18 +134,20 @@ export default function ParticipantEligibilityPage() {
                   onChange={(event) => read.updateDraft({ requestedExpiresAt: event.target.value })}
                 />
               </Field>
-              <PageAction
-                label="Preview company eligibility request"
-                busy={running === 'request'}
-                busyLabel="Previewing…"
-                disabled={read.busy || read.refreshing}
-                onClick={() => {
-                  if (request.check()) {
-                    setActionOpener(document.activeElement as HTMLElement | null);
-                    track('request', read.previewRequest());
-                  }
-                }}
-              />
+              <FormActions>
+                <PageAction
+                  label="Preview company eligibility request"
+                  busy={running === 'request'}
+                  busyLabel="Previewing…"
+                  disabled={read.busy || read.refreshing}
+                  onClick={() => {
+                    if (request.check()) {
+                      setActionOpener(document.activeElement as HTMLElement | null);
+                      track('request', read.previewRequest());
+                    }
+                  }}
+                />
+              </FormActions>
             </Section>
           </div>
           {read.action && (
@@ -172,16 +174,18 @@ export default function ParticipantEligibilityPage() {
               <>
                 <EligibilityHistory record={read.selectedRecord} />
                 {['pending', 'accepted'].includes(read.selectedRecord.outcome) && (
-                  <PageAction
-                    label="Prepare request withdrawal"
-                    busy={running === 'withdrawal'}
-                    busyLabel="Preparing…"
-                    disabled={read.busy || read.refreshing}
-                    onClick={() => {
-                      setActionOpener(document.activeElement as HTMLElement | null);
-                      track('withdrawal', read.prepareWithdrawal(read.selectedRecord!));
-                    }}
-                  />
+                  <FormActions>
+                    <PageAction
+                      label="Prepare request withdrawal"
+                      busy={running === 'withdrawal'}
+                      busyLabel="Preparing…"
+                      disabled={read.busy || read.refreshing}
+                      onClick={() => {
+                        setActionOpener(document.activeElement as HTMLElement | null);
+                        track('withdrawal', read.prepareWithdrawal(read.selectedRecord!));
+                      }}
+                    />
+                  </FormActions>
                 )}
               </>
             )}

@@ -18,7 +18,7 @@ import {
 import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { Pager } from '@components/List';
 import { PAGE_SIZE, useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
-import { Page, PageAction } from '@components/Page';
+import { FormActions, Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
 import { Field, TextInput } from '@components/Field';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
@@ -204,18 +204,20 @@ export default function CompanyEligibilityPage() {
                         />
                       </Field>
                     )}
-                    <PageAction
-                      label="Preview company decision"
-                      busy={running === 'decision'}
-                      busyLabel="Previewing…"
-                      disabled={read.busy || read.refreshing || !appointment}
-                      onClick={() => {
-                        if (decisionChecks.check()) {
-                          setActionOpener(document.activeElement as HTMLElement | null);
-                          track('decision', read.previewDecision());
-                        }
-                      }}
-                    />
+                    <FormActions>
+                      <PageAction
+                        label="Preview company decision"
+                        busy={running === 'decision'}
+                        busyLabel="Previewing…"
+                        disabled={read.busy || read.refreshing || !appointment}
+                        onClick={() => {
+                          if (decisionChecks.check()) {
+                            setActionOpener(document.activeElement as HTMLElement | null);
+                            track('decision', read.previewDecision());
+                          }
+                        }}
+                      />
+                    </FormActions>
                   </Section>
                 )}
                 {read.selectedRecord.outcome === 'accepted' && (
@@ -231,18 +233,20 @@ export default function CompanyEligibilityPage() {
                         }}
                       />
                     </Field>
-                    <PageAction
-                      label="Prepare acceptance revocation"
-                      busy={running === 'revocation'}
-                      busyLabel="Preparing…"
-                      disabled={read.busy || read.refreshing || !canApprove}
-                      onClick={() => {
-                        if (revocationChecks.check()) {
-                          setActionOpener(document.activeElement as HTMLElement | null);
-                          track('revocation', read.prepareRevocation(read.selectedRecord!, revocationReason));
-                        }
-                      }}
-                    />
+                    <FormActions>
+                      <PageAction
+                        label="Prepare acceptance revocation"
+                        busy={running === 'revocation'}
+                        busyLabel="Preparing…"
+                        disabled={read.busy || read.refreshing || !canApprove}
+                        onClick={() => {
+                          if (revocationChecks.check()) {
+                            setActionOpener(document.activeElement as HTMLElement | null);
+                            track('revocation', read.prepareRevocation(read.selectedRecord!, revocationReason));
+                          }
+                        }}
+                      />
+                    </FormActions>
                   </Section>
                 )}
               </>
