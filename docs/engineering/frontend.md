@@ -409,8 +409,8 @@ and every 60 seconds while the view is active, visible and online. These coordin
 across all class cards while any award preparation, vesting or entitlement-change editor is open.
 Pending reads resume after Cancel or a successful save. Account, source and authority guards,
 explicit recovery and post-write refresh still apply.
-The personal dashboard also rechecks member associations before their dependent records every
-60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
+The member Dashboard, Documents and Company-recorded details views also recheck member associations
+before their dependent records every 60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
 not an instantaneous update guarantee.
 
 Every read retains the account, company and appointment guards. A failed or inconsistent read
@@ -622,7 +622,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | [Market](../business/trading.md#the-market-page)                                                         | `/trading`                                                                         | investing |
 | [Wallets](../business/trading.md#the-wallets-page)                                                       | `/wallets`                                                                         | everyone  |
 | [Activity](../business/trading.md#the-activity-page)                                                     | `/transactions`                                                                    | everyone  |
-| [Profile, Settings](../business/participants.md#profile-and-settings)                                    | `/user-profile`, `/settings`                                                       | everyone  |
+| [Profile, Settings](../business/participants.md#profile-and-settings)                                    | `/user-profile`, `/settings`, `/settings#company-recorded-details`                   | everyone  |
 
 ### Page mechanics
 
@@ -638,12 +638,14 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   company's registers alone.
 - Personal dashboard: reads the person's own member projection. Its overview sums issued shares
   with `BigInt` and charts the member's own shares by class, without company-wide totals or ownership
-  percentages. Awards remain separate entitlements, with the promise and nonzero lifecycle quantities
-  above their full breakdown and terms in Award details. Your details groups recorded particulars, their
-  update form and particulars-request status in one full-width card; certificate tracking remains
-  in Documents. Share history opens on demand. The first own class's history loads when a
-  member record opens, and choosing another class reads that class's own entries. Active web reads
-  follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
+  percentages. Its only other content is read-only awards: separate entitlements, with the promise
+  and nonzero lifecycle quantities above their full breakdown and terms in Award details.
+  Company-recorded details in Settings groups recorded particulars, their update form and
+  particulars-request status in the workspace frame; Documents holds share history and certificate
+  tracking. The views share an owner-bound member-records controller, retaining an unfinished
+  particulars draft in memory across their navigation within the same account and company, without
+  browser storage. Choosing another class in Documents reads that class's own entries. Active web
+  reads follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders (with member access),
   Employee share scheme (ESS) and Documents views by hash.

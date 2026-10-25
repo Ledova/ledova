@@ -30,7 +30,7 @@ Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 ([forms](#forms)). `Page narrow` bounds
 simple task forms, settings and most detailed records, including compact tables. Ownership dashboards,
 company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
-invitation reviews and wide tables take the standard workspace width. Inline preparation, review
+invitation reviews, company-recorded member details and wide tables take the standard workspace width. Inline preparation, review
 and result states retain their collection's frame. Tables scroll within their card on small screens.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
@@ -38,9 +38,11 @@ record-management details, with awards separate from issued shares. The member o
 awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
 on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
 quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
-included in the holding. One full-width **Your details** card groups current particulars, the
-update form and particulars-request status; pending requests stay visible and completed requests
-open on demand. Share history opens on demand, while certificate tracking belongs in Documents.
+included in the holding. The member Dashboard contains only the shares and read-only award overview.
+**Company-recorded details** in Settings groups current particulars, the update form and
+particulars-request status in the standard workspace frame; pending requests stay visible and
+completed requests open on demand. Keep these company records distinct from personal Profile
+edits. Share history and certificate tracking belong in Documents, without duplicate particulars status.
 Section spacing is scoped to
 the frame; sign-up keeps its own presentation.
 
@@ -164,6 +166,7 @@ company date with the latest certificate-request status and its request, withdra
 download actions. Entry numbers, ledger dates, recording timestamps and previous requests open
 under **Record details**; requests without a matching visible entry remain under **Other certificate
 requests**, with their own actions. A class chooser is only shown when there is more than one class.
+Particulars requests stay in Company-recorded details in Settings.
 
 Member access and requests follows the same records-first pattern on Shareholders. Show compact
 invitation, access and request records only when present, with private metadata under Details. A

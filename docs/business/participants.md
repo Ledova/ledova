@@ -391,6 +391,10 @@ Company documents and Company team;
   register entries are kept. The confirmation says so, and the browser's copy of the account's data
   is cleared once the server confirms.
 
+Web Settings also opens **Company-recorded details**: the person's name and residential address
+held by each linked company, with a company-reviewed update request and its status. These are
+separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
+
 On mobile, Company settings reaches company details, documents and the team, and Settings also
 offers biometric sign-in, **App lock** (biometrics after the app goes into the background), **Rate
 the app** and **Share with friends**, and groups password, export and deletion under Account.

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import { PageTitle } from '../../../components/PageTitle';
+import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
+import { CompanyRecordedDetails } from '@pages/settings/CompanyRecordedDetails';
 import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
@@ -13,7 +15,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { Link, MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import HomePage from './index';
 import MemberRecordsPage from '../../home/index';
@@ -147,6 +149,7 @@ it('reads every wallet page and shows exact share totals with company/class name
 it('updates own shares and awards automatically, preserves drafts and selected history, and hides revoked records without an empty-ownership claim', async () => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
+  let currentPreferences = preferences;
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   let refused = false;
@@ -172,8 +175,10 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     await waitFor(() => expect(client.isFetching()).toBe(0));
   };
   api.get.mockImplementation(async (url: string) => {
-    if (url === '/api/user-preferences/') return { data: preferences };
+    if (url === '/api/user-preferences/') return { data: currentPreferences };
     if (url === URLS.MEMBER_RECORDS) {
+      if (currentPreferences.userAccount.uuid !== preferences.userAccount.uuid)
+        return { data: { results: [], next: null, count: 0 } };
       if (refused) throw Object.assign(new Error('Current association revoked'), { response: { status: 404 } });
       return {
         data: { results: includeOther ? [record, otherRecord] : [record], next: null, count: includeOther ? 2 : 1 },
@@ -194,11 +199,17 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
         <MemoryRouter initialEntries={['/home#documents']}>
-          <PageTitle.Provider value="My shares">
-            <Link to="/home#documents">Test Documents navigation</Link>
-            <Link to="/home">Test Dashboard navigation</Link>
-            <MemberRecordsPage />
-          </PageTitle.Provider>
+          <MemberRecordsProvider>
+            <PageTitle.Provider value="My shares">
+              <Link to="/home#documents">Test Documents navigation</Link>
+              <Link to="/home">Test Dashboard navigation</Link>
+              <Link to="/settings#company-recorded-details">Test Settings navigation</Link>
+              <Routes>
+                <Route path="/home" element={<MemberRecordsPage />} />
+                <Route path="/settings" element={<CompanyRecordedDetails />} />
+              </Routes>
+            </PageTitle.Provider>
+          </MemberRecordsProvider>
         </MemoryRouter>
       </ApiClientProvider>
     </QueryClientProvider>,
@@ -218,15 +229,16 @@ it('updates own shares and awards automatically, preserves drafts and selected h
       .getAllByRole('term')
       .map((item) => item.textContent),
   ).toEqual(['Unvested', 'Vested, awaiting issue']);
-  await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
+  expect(screen.queryByRole('button', { name: 'Read own entries for Ordinary' })).toBeNull();
   expect(api.get.mock.calls.some(([url]) => url === WALLET_ENDPOINTS.BASE)).toBe(false);
   expect(screen.queryByRole('heading', { name: 'Shares in your wallets' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Accept another member invitation' })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Member invitation code' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
-  const detailsCard = screen.getByRole('heading', { name: 'Your details' }).closest('section')!;
-  expect(within(detailsCard).getByText(MEMBER_RECORD.name)).toBeTruthy();
-  expect(within(detailsCard).getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
+  expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
+  expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request a particulars update' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Share history' })).toBeNull();
   expect(screen.queryByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` })).toBeNull();
   expect(screen.queryByText('Recent changes · Ordinary')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
@@ -302,7 +314,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   await screen.findByRole('img', {
     name: /1 unvested, 1 vested, awaiting issue, 1 issued from award, 1 unvested rights ended, 1 vested rights ended/,
   });
-  fireEvent.click(screen.getByText('Award details'));
+  fireEvent.click(screen.getByRole('button', { name: 'Award details' }));
   expect(screen.getByText(/Company selected reduction/)).toBeTruthy();
   expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
@@ -329,12 +341,24 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   record = MEMBER_RECORD;
   await focusRead();
   await screen.findByText('10 issued shares');
+  fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
+  expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
+  expect(screen.getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
   fireEvent.click(screen.getByText('Request a particulars update'));
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), { target: { value: 'Retained draft' } });
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested residential address' }), {
     target: { value: 'Retained draft address' },
   });
   fireEvent.click(screen.getByRole('checkbox', { name: /Share these requested particulars/ }));
+  fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
+  await screen.findByText('10 issued shares');
+  expect(screen.queryByRole('textbox', { name: 'Requested name' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request a particulars update' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
+  await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
+  expect(screen.queryByRole('heading', { name: 'Particulars requests' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
+  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   await act(async () => {
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
   });
@@ -349,14 +373,11 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     (screen.getByRole('checkbox', { name: /Share these requested particulars/ }) as HTMLInputElement).checked,
   ).toBe(true);
   expect(api.get.mock.calls.some(([url]) => url === URLS.HOLDERS(MEMBER_RECORD.classes[0].uuid))).toBe(false);
-  fireEvent.click(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
-  await screen.findByRole('heading', { name: '+10 ORD shares' });
   expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
   await act(async () => {
     await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
   });
-  expect(await screen.findByRole('heading', { name: '+10 ORD shares' })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Share history' }).getAttribute('aria-expanded')).toBe('true');
+  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   expect(await screen.findByRole('heading', { name: 'Documents', level: 1 })).toBeTruthy();
   expect(screen.queryByText('10 issued shares')).toBeNull();
@@ -390,6 +411,28 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   otherRecord = { ...otherRecordWithShares, classes: [] };
   await focusRead();
   expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
+  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
+  await choose('Company', otherRecord.company.name);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Request a particulars update' }).getAttribute('aria-expanded')).toBe(
+      'false',
+    ),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Request a particulars update' }));
+  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
+  expect((screen.getByRole('textbox', { name: 'Requested residential address' }) as HTMLTextAreaElement).value).toBe(
+    '',
+  );
+  expect(
+    (screen.getByRole('checkbox', { name: /Share these requested particulars/ }) as HTMLInputElement).checked,
+  ).toBe(false);
+  fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), {
+    target: { value: 'Second company draft' },
+  });
+  await choose('Company', MEMBER_RECORD.company.name);
+  fireEvent.click(await screen.findByRole('button', { name: 'Request a particulars update' }));
+  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   await choose('Company', otherRecord.company.name);
   await screen.findByText('No share changes yet.');
@@ -411,6 +454,32 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
   expect(screen.queryByText('10 issued shares')).toBeNull();
   expect(screen.queryByRole('alert')).toBeNull();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Request a particulars update' }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), {
+    target: { value: 'Private previous-account draft' },
+  });
+  includeOther = false;
+  currentPreferences = {
+    userProfile: 'profile-two',
+    userAccount: { uuid: 'account-two', role: 'investor' },
+  };
+  await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: currentPreferences }));
+  await screen.findByRole('heading', { name: 'Get access to your shares' });
+  expect(screen.queryByRole('textbox', { name: 'Requested name' })).toBeNull();
+  expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
+  detailRefused = false;
+  currentPreferences = preferences;
+  await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Request a particulars update' }));
+  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
+  expect((screen.getByRole('textbox', { name: 'Requested residential address' }) as HTMLTextAreaElement).value).toBe(
+    '',
+  );
+  expect(
+    (screen.getByRole('checkbox', { name: /Share these requested particulars/ }) as HTMLInputElement).checked,
+  ).toBe(false);
   await waitFor(() => expect(client.isFetching()).toBe(0));
   view.unmount();
   const beforeUnmounted = api.get.mock.calls.length;
