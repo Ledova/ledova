@@ -640,7 +640,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   with `BigInt` and charts the member's own shares by class, without company-wide totals or ownership
   percentages. Its only other content is read-only awards: separate entitlements, with the promise
   and nonzero lifecycle quantities above their full breakdown and terms in Award details.
-  Company-recorded details in Settings separates current particulars from update-request records.
+  Company-recorded details in Settings groups current particulars and update-request records in one
+  card, side by side on desktop and stacked on smaller screens, with one shared action footer.
   Request update opens a focused inline form; successful submission closes it and clears consent,
   while pending requests keep the requested particulars and status visible together. Documents
   holds share history and certificate tracking. The views share an owner-bound member-records
