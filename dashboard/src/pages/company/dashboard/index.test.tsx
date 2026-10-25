@@ -15,7 +15,7 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { afterEach, expect, it, vi } from 'vitest';
 import CompanyDashboardPage from '.';
 import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
-import { ownershipSegments } from '@pages/company/shared/summary';
+import { ownershipSegments } from './summary';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));

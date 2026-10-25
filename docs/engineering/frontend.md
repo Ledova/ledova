@@ -523,12 +523,13 @@ receive the controller's original owner guard from `dashboard/src/pages/company/
 They check it before and after each request and pass it as `ledovaSubmissionGuard`, so a late reply
 after an account change or reauthentication is discarded. Query keys and cache timing stay unchanged.
 
-Each preparation is a page of its own (on mobile, in the same stack), a `companyRegister*` entry in
-`DESTINATIONS`: `/company/ledger/setup`; import, correction, opening, grant and transfer under
-`/company/ledger/:uuid/` (`import`, `correct/:entry`, `open`, `grant`, `transfer`); particulars
+The standalone preparations are `companyRegister*` entries in `DESTINATIONS` (on mobile, in the same
+stack): `/company/ledger/setup`; import, correction, opening and transfer under
+`/company/ledger/:uuid/` (`import`, `correct/:entry`, `open`, `transfer`); particulars
 changes at `/company/ledger/members/:member/particulars`; and wallet links at
 `/company/ledger/companies/:company/links`. Setup is the import page without a class in its
 address: it chooses or creates a share class, then prepares the mirror import.
+Non-paid and employee-award grants are prepared inline in Issue shares.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
 `dashboard/src/pages/company/ledger/shared/DocumentAttachments.tsx` for optional categorised
@@ -648,7 +649,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Company dashboard: reads the scoped register API for the selected company (`useCompanyRegister`)
   and computes issued-share totals, holders deduplicated across classes and each class's shares with
   `BigInt` (`ownershipSummary` in `packages/shared/src/utils/register-ownership.ts`, and each
-  class's segments in `dashboard/src/pages/company/shared/summary.ts`); it draws each class's donut
+  class's segments in `dashboard/src/pages/company/dashboard/summary.ts`); it draws each class's donut
   itself. The person's own appointments (`useOwnAppointments`) give the status line and Getting
   started, which reads the register step from the selected company's opened registers. Web tasks
   render only while incomplete; the existing parent condition hides the card when both tasks are
