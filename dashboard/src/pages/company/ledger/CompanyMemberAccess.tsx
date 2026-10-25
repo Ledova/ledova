@@ -96,6 +96,9 @@ export function CompanyMemberAccess({
   const certificateHeading = useRef<HTMLHeadingElement>(null);
   const certificateOpeners = useRef(new Map<string, HTMLButtonElement>());
   const certificateReturnFocus = useRef('');
+  const requestHeading = useRef<HTMLHeadingElement>(null);
+  const requestOpeners = useRef(new Map<string, HTMLButtonElement>());
+  const requestReturnFocus = useRef('');
   const invite = useRef<HTMLHeadingElement>(null);
   const inviteAction = useRef<HTMLDivElement>(null);
   const restoreInviteFocus = useRef(false);
@@ -147,9 +150,26 @@ export function CompanyMemberAccess({
     setCertificateRequest('');
     checks.reset();
   };
-  const hasAccess = invitations.length + associations.length > 0;
   const hasRequests = particulars.length + certificates.length > 0;
   const selectedRequest = particulars.find((item) => item.uuid === request && item.status === 'submitted');
+  const requestOpen = !!selectedRequest && !!access.prepare;
+  useEffect(() => {
+    if (view !== 'requests' || certificateOpen) return;
+    if (requestOpen) {
+      requestHeading.current?.focus();
+      requestHeading.current?.scrollIntoView?.({ block: 'start' });
+    } else if (!request && requestReturnFocus.current) {
+      const opener = requestOpeners.current.get(requestReturnFocus.current);
+      if (opener) {
+        opener.focus();
+        requestReturnFocus.current = '';
+      }
+    }
+  }, [requestOpen, request, view, certificateOpen]);
+  const memberRequests = [
+    ...particulars.map((record) => ({ kind: 'particulars' as const, record })),
+    ...certificates.map((record) => ({ kind: 'certificate' as const, record })),
+  ];
   return (
     <>
       <div className="space-y-4">
@@ -276,133 +296,162 @@ export function CompanyMemberAccess({
             )}
           </Section>
         </div>
-        <div>
-          <div hidden={view !== 'access'}>
-            <Section title="Member access">
-              <div hidden={inviting} className="space-y-4">
-                {!access.readFailed &&
-                  !access.access &&
-                  (access.readable && !access.canAdminister ? (
+        <div hidden={view !== 'access'} className="space-y-4">
+          <div hidden={inviting} className="space-y-4">
+            {!access.readFailed && (!access.access || associations.length === 0) && (
+              <Section title="People">
+                {!access.access ? (
+                  access.readable && !access.canAdminister ? (
                     <p className="text-sm text-text-muted">A company administrator manages member access.</p>
                   ) : (
                     <Loading>Loading member access…</Loading>
-                  ))}
-                {!access.readFailed && access.access && !hasAccess && (
+                  )
+                ) : (
                   <p className="text-sm text-text-muted">No member access yet.</p>
                 )}
-                {invitations.length > 0 && (
-                  <div>
-                    <h3 className="text-base font-medium">Invitations</h3>
-                    <div className="divide-y divide-border-subtle">
-                      {invitations.map((item) => (
-                        <Disclosure
-                          key={item.uuid}
-                          summary={
-                            <span className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 text-sm">
-                              <span className="min-w-0 grow basis-40 break-words font-medium">
-                                {memberName(item.member)}
-                                <span className="block font-normal text-text-muted">{item.intendedEmail}</span>
-                              </span>
-                              <span className="min-w-0 break-words text-text-muted">
-                                {MEMBER_INVITATION_STATUS_LABELS[item.status]}
-                              </span>
+              </Section>
+            )}
+            {associations.length > 0 && (
+              <Section title="People">
+                <div
+                  aria-hidden="true"
+                  className="hidden grid-cols-[minmax(0,1fr)_10rem_12rem] gap-6 pl-7 text-xs font-medium text-text-muted md:grid"
+                >
+                  <span>Person</span>
+                  <span>Linked</span>
+                  <span>Status</span>
+                </div>
+                <ul aria-label="Member access records" className="divide-y divide-border-subtle">
+                  {associations.map((association) => (
+                    <li key={association.uuid}>
+                      <Disclosure
+                        summary={
+                          <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6">
+                            <span className="min-w-0 break-words font-medium">
+                              {memberName(association.member)}
+                              <span className="block font-normal text-text-muted">{association.acceptedEmail}</span>
                             </span>
-                          }
-                        >
+                            <span className="col-start-1 row-start-2 tabular-nums text-text-muted md:col-auto md:row-auto">
+                              <span className="md:sr-only">Linked: </span>
+                              {formatDate(association.createdAt)}
+                            </span>
+                            <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted md:col-auto md:row-auto">
+                              {association.current ? 'Current access' : 'Revoked access'}
+                            </span>
+                          </span>
+                        }
+                      >
+                        <Disclosure summary="Technical details">
                           <Rows>
-                            <Row label="Invitation date">{formatDate(item.createdAt)}</Row>
-                            <Row label="Accept before">{formatDateTime(item.acceptanceDeadline)}</Row>
+                            <Row label="Member reference">{shortReference(association.member)}</Row>
+                            <Row label="Account reference">{shortReference(association.userAccount)}</Row>
+                            <Row label="Access reference">{shortReference(association.uuid)}</Row>
                           </Rows>
-                          <Disclosure summary="Technical details">
-                            <Rows>
-                              <Row label="Invitation reference">{shortReference(item.uuid)}</Row>
-                              <Row label="Member reference">{shortReference(item.member)}</Row>
-                            </Rows>
-                          </Disclosure>
                         </Disclosure>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {associations.length > 0 && (
-                  <div className={invitations.length ? 'border-t border-border-subtle pt-4' : ''}>
-                    <h3 className="text-base font-medium">Current member access</h3>
-                    <div className="divide-y divide-border-subtle">
-                      {associations.map((association) => (
-                        <Disclosure
-                          key={association.uuid}
-                          summary={
-                            <span className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 text-sm">
-                              <span className="min-w-0 grow basis-40 break-words font-medium">
-                                {memberName(association.member)}
-                                <span className="block font-normal text-text-muted">{association.acceptedEmail}</span>
-                              </span>
-                              <span className="min-w-0 break-words text-text-muted">
-                                {association.current ? 'Current access' : 'Revoked access'}
-                              </span>
-                            </span>
-                          }
-                        >
-                          <Rows>
-                            <Row label="Linked on">{formatDate(association.createdAt)}</Row>
-                          </Rows>
-                          <Disclosure summary="Technical details">
-                            <Rows>
-                              <Row label="Member reference">{shortReference(association.member)}</Row>
-                              <Row label="Account reference">{shortReference(association.userAccount)}</Row>
-                              <Row label="Access reference">{shortReference(association.uuid)}</Row>
-                            </Rows>
-                          </Disclosure>
-                          {association.current && revokeMember !== association.uuid && (
+                        {association.current && revokeMember !== association.uuid && (
+                          <FormActions>
+                            <PageAction
+                              label="Revoke access"
+                              context={memberName(association.member)}
+                              disabled={held}
+                              onClick={() => {
+                                checks.reset();
+                                setRequest('');
+                                setRevokeMember(association.uuid);
+                              }}
+                            />
+                          </FormActions>
+                        )}
+                        {association.current && revokeMember === association.uuid && (
+                          <form
+                            noValidate
+                            className="space-y-4"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              if (!held && checks.check(['reason']))
+                                setRevoking({ uuid: association.uuid, name: memberName(association.member) });
+                            }}
+                          >
+                            <Field {...checks.field('reason')} label="Company action reason">
+                              <TextArea
+                                maxLength={FIELD_LIMITS.REASON}
+                                value={reason}
+                                disabled={held}
+                                onChange={(event) => setReason(event.target.value)}
+                              />
+                            </Field>
                             <FormActions>
                               <PageAction
-                                label={`Revoke access for ${memberName(association.member)}`}
+                                label="Cancel"
                                 disabled={held}
                                 onClick={() => {
                                   checks.reset();
-                                  setRequest('');
-                                  setRevokeMember(association.uuid);
+                                  setRevokeMember('');
                                 }}
                               />
+                              <PageAction label="Revoke access" type="submit" disabled={held} />
                             </FormActions>
-                          )}
-                          {association.current && revokeMember === association.uuid && (
-                            <form
-                              noValidate
-                              className="space-y-4"
-                              onSubmit={(event) => {
-                                event.preventDefault();
-                                if (!held && checks.check(['reason']))
-                                  setRevoking({ uuid: association.uuid, name: memberName(association.member) });
-                              }}
-                            >
-                              <Field {...checks.field('reason')} label="Company action reason">
-                                <TextArea
-                                  maxLength={FIELD_LIMITS.REASON}
-                                  value={reason}
-                                  disabled={held}
-                                  onChange={(event) => setReason(event.target.value)}
-                                />
-                              </Field>
-                              <FormActions>
-                                <PageAction
-                                  label="Cancel"
-                                  disabled={held}
-                                  onClick={() => {
-                                    checks.reset();
-                                    setRevokeMember('');
-                                  }}
-                                />
-                                <PageAction label="Revoke access" type="submit" disabled={held} />
-                              </FormActions>
-                            </form>
-                          )}
+                          </form>
+                        )}
+                      </Disclosure>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            )}
+            {!access.readFailed && access.access && invitations.length === 0 && (
+              <Section title="Invitations">
+                <p className="text-sm text-text-muted">No invitations yet.</p>
+              </Section>
+            )}
+            {invitations.length > 0 && (
+              <Section title="Invitations">
+                <div
+                  aria-hidden="true"
+                  className="hidden grid-cols-[minmax(0,1fr)_10rem_12rem] gap-6 pl-7 text-xs font-medium text-text-muted md:grid"
+                >
+                  <span>Person</span>
+                  <span>Invited</span>
+                  <span>Status</span>
+                </div>
+                <ul aria-label="Member invitations" className="divide-y divide-border-subtle">
+                  {invitations.map((item) => (
+                    <li key={item.uuid}>
+                      <Disclosure
+                        summary={
+                          <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6">
+                            <span className="min-w-0 break-words font-medium">
+                              {memberName(item.member)}
+                              <span className="block font-normal text-text-muted">{item.intendedEmail}</span>
+                            </span>
+                            <span className="col-start-1 row-start-2 tabular-nums text-text-muted md:col-auto md:row-auto">
+                              <span className="md:sr-only">Invited: </span>
+                              {formatDate(item.createdAt)}
+                            </span>
+                            <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted md:col-auto md:row-auto">
+                              {MEMBER_INVITATION_STATUS_LABELS[item.status]}
+                            </span>
+                          </span>
+                        }
+                      >
+                        <Rows>
+                          <Row label="Accept before">{formatDateTime(item.acceptanceDeadline)}</Row>
+                        </Rows>
+                        <Disclosure summary="Technical details">
+                          <Rows>
+                            <Row label="Invitation reference">{shortReference(item.uuid)}</Row>
+                            <Row label="Member reference">{shortReference(item.member)}</Row>
+                          </Rows>
                         </Disclosure>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                      </Disclosure>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            )}
+          </div>
+          <div hidden={!inviting}>
+            <Section title="Invite a member">
               {access.admin && (
                 <form
                   noValidate
@@ -414,7 +463,7 @@ export function CompanyMemberAccess({
                       track('invite', access.invite(member.uuid, email.trim()));
                   }}
                 >
-                  <h3 ref={invite} tabIndex={-1} className="scroll-mt-6 text-base font-medium focus:outline-none">
+                  <h3 ref={invite} tabIndex={-1} className="sr-only scroll-mt-6 focus:outline-none">
                     Invite a member
                   </h3>
                   <div className="grid items-start gap-4 sm:grid-cols-2">
@@ -506,211 +555,233 @@ export function CompanyMemberAccess({
                 </form>
               )}
             </Section>
-            {access.admin && !inviting && (
-              <div ref={inviteAction} className="mt-4 flex flex-wrap justify-end gap-2">
-                <PageAction
-                  label="Invite a member"
-                  primary
-                  disabled={held}
-                  onClick={() => {
-                    checks.reset();
-                    setInviting(true);
-                  }}
-                />
+          </div>
+          {access.admin && !inviting && (
+            <div ref={inviteAction} className="flex flex-wrap justify-end gap-2">
+              <PageAction
+                label="Invite a member"
+                primary
+                disabled={held}
+                onClick={() => {
+                  checks.reset();
+                  setInviting(true);
+                }}
+              />
+            </div>
+          )}
+        </div>
+        <div hidden={view !== 'requests' || certificateOpen}>
+          <Section title="Requests">
+            {!access.readFailed && !access.requests && <Loading>Loading member requests…</Loading>}
+            {!access.readFailed && access.requests && !hasRequests && (
+              <p className="text-sm text-text-muted">No member requests yet.</p>
+            )}
+            {hasRequests && (
+              <div
+                aria-hidden="true"
+                className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_10rem] gap-6 pl-7 text-xs font-medium text-text-muted lg:grid"
+              >
+                <span>Person</span>
+                <span>Request</span>
+                <span>Requested</span>
+                <span>Status</span>
               </div>
             )}
-          </div>
-          <div hidden={view !== 'requests' || certificateOpen}>
-            <Section title="Member requests">
-              {!access.readFailed && !access.requests && <Loading>Loading member requests…</Loading>}
-              {!access.readFailed && access.requests && !hasRequests && (
-                <p className="text-sm text-text-muted">No member requests yet.</p>
-              )}
-              {particulars.length > 0 && (
-                <div>
-                  <h3 className="text-base font-medium">Particulars requests</h3>
-                  <div className="divide-y divide-border-subtle">
-                    {particulars.map((item) => (
-                      <Disclosure
-                        key={item.uuid}
-                        summary={
-                          <span className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 text-sm">
-                            <span className="min-w-0 grow basis-40 break-words font-medium">{item.name}</span>
-                            <span className="min-w-0 break-words text-text-muted">
-                              {MEMBER_PARTICULARS_STATUS_LABELS[item.status]}
-                            </span>
+            <ul aria-label="Member requests" className="divide-y divide-border-subtle">
+              {memberRequests.map((item) => {
+                const record = item.record;
+                const shareClass =
+                  item.kind === 'certificate'
+                    ? registers.find((register) => register.token.uuid === item.record.token)?.token
+                    : undefined;
+                return (
+                  <li
+                    key={`${item.kind}/${record.uuid}`}
+                    hidden={
+                      !!selectedRequest &&
+                      !!access.prepare &&
+                      (item.kind !== 'particulars' || item.record.uuid !== selectedRequest.uuid)
+                    }
+                  >
+                    <Disclosure
+                      summary={
+                        <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_10rem] lg:gap-6">
+                          <span className="min-w-0 break-words font-medium">
+                            {item.kind === 'particulars' ? item.record.name : memberName(item.record.member)}
                           </span>
-                        }
-                      >
-                        <Rows>
-                          <Row label="Requested on">{formatDate(item.createdAt)}</Row>
-                          <Row label="Residential address">{item.residentialAddress}</Row>
-                        </Rows>
-                        <Disclosure summary="Technical details">
-                          <Rows>
-                            <Row label="Request reference">{shortReference(item.uuid)}</Row>
-                            <Row label="Member reference">{shortReference(item.member)}</Row>
-                            {item.change && <Row label="Company instruction">{shortReference(item.change)}</Row>}
-                          </Rows>
-                        </Disclosure>
-                        {item.status === 'submitted' && access.prepare && (
-                          <FormActions>
-                            <PageAction
-                              label={`Prepare particulars update for ${item.name}`}
-                              disabled={held}
-                              onClick={() => {
-                                checks.reset();
-                                setRevokeMember('');
-                                setRequest(item.uuid);
-                              }}
-                            />
-                          </FormActions>
-                        )}
-                      </Disclosure>
-                    ))}
-                  </div>
-                  {access.prepare && (
-                    <form
-                      noValidate
-                      hidden={!selectedRequest}
-                      className="space-y-4 border-t border-border-subtle pt-4"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        if (selectedRequest && !held && checks.check(PARTICULARS_FIELDS))
-                          track('particulars', prepare());
-                      }}
+                          <span className="col-span-2 min-w-0 break-words text-text-muted lg:col-span-1">
+                            <span className="sr-only">Request: </span>
+                            {item.kind === 'particulars' ? 'Details update' : 'Unsigned certificate'}
+                            {shareClass && (
+                              <span className="block">
+                                {shareClass.name} · {shareClass.symbol}
+                              </span>
+                            )}
+                          </span>
+                          <span className="col-span-2 tabular-nums text-text-muted lg:col-span-1">
+                            <span className="lg:sr-only">Requested: </span>
+                            {formatDate(record.createdAt)}
+                          </span>
+                          <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted lg:col-auto lg:row-auto">
+                            {item.kind === 'particulars'
+                              ? MEMBER_PARTICULARS_STATUS_LABELS[item.record.status]
+                              : MEMBER_CERTIFICATE_STATUS_LABELS[item.record.status]}
+                          </span>
+                        </span>
+                      }
                     >
-                      <h4 className="text-base font-medium">
-                        Prepare {selectedRequest?.name}&apos;s particulars update
-                      </h4>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <FileField
-                          {...checks.field('file')}
-                          label="Company supporting document"
-                          showUploadHint={false}
-                          disabled={held}
-                          onFile={selectFile}
-                        />
-                        <Field {...checks.field('asAt')} label="As-at date (UTC)">
-                          <TextInput
-                            type="date"
-                            max={utcToday()}
-                            value={asAt}
-                            disabled={held}
-                            onChange={(event) => setAsAt(event.target.value)}
-                          />
-                        </Field>
-                      </div>
-                      {selectedRequest && (
-                        <Field {...checks.field('reason')} label="Company action reason">
-                          <TextArea
-                            maxLength={FIELD_LIMITS.REASON}
-                            value={reason}
-                            disabled={held}
-                            onChange={(event) => setReason(event.target.value)}
-                          />
-                        </Field>
-                      )}
-                      <p className="text-sm text-text-muted">
-                        This records the company instruction. Review and approve it separately in Ledger, Corrections.
-                      </p>
-                      {uploadError && (
-                        <p role="alert" className="text-sm text-error-light">
-                          {uploadError}
-                        </p>
-                      )}
-                      <FormActions>
-                        <PageAction
-                          label="Cancel"
-                          disabled={held}
-                          onClick={() => {
-                            checks.reset();
-                            setRequest('');
-                          }}
-                        />
-                        <PageAction
-                          label="Record company particulars instruction"
-                          type="submit"
-                          primary
-                          busy={running === 'particulars'}
-                          busyLabel="Recording instruction…"
-                          disabled={held}
-                        />
-                      </FormActions>
-                    </form>
-                  )}
-                </div>
-              )}
-              {certificates.length > 0 && (
-                <div className={particulars.length ? 'border-t border-border-subtle pt-4' : ''}>
-                  <h3 className="text-base font-medium">Certificate requests</h3>
-                  <div className="divide-y divide-border-subtle">
-                    {certificates.map((item) => {
-                      const shareClass = registers.find((register) => register.token.uuid === item.token)?.token;
-                      return (
-                        <Disclosure
-                          key={item.uuid}
-                          summary={
-                            <span className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 text-sm">
-                              <span className="min-w-0 grow basis-40 break-words font-medium">
-                                {memberName(item.member)}
-                                {shareClass && (
-                                  <span className="block font-normal text-text-muted">
-                                    {shareClass.name} · {shareClass.symbol}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="min-w-0 break-words text-text-muted">
-                                {MEMBER_CERTIFICATE_STATUS_LABELS[item.status]}
-                              </span>
-                            </span>
-                          }
-                        >
+                      {item.kind === 'particulars' ? (
+                        <>
                           <Rows>
-                            <Row label="Requested on">{formatDate(item.createdAt)}</Row>
-                            <Row label="Document">Unsigned certificate</Row>
-                            {item.fulfilment && <Row label="Created on">{formatDate(item.fulfilment.createdAt)}</Row>}
+                            <Row label="Residential address">{item.record.residentialAddress}</Row>
                           </Rows>
                           <Disclosure summary="Technical details">
                             <Rows>
-                              <Row label="Request reference">{shortReference(item.uuid)}</Row>
-                              <Row label="Member reference">{shortReference(item.member)}</Row>
-                              <Row label="Entry reference">{shortReference(item.entry)}</Row>
-                              {item.fulfilment && (
+                              <Row label="Request reference">{shortReference(item.record.uuid)}</Row>
+                              <Row label="Member reference">{shortReference(item.record.member)}</Row>
+                              {item.record.change && (
+                                <Row label="Company instruction">{shortReference(item.record.change)}</Row>
+                              )}
+                            </Rows>
+                          </Disclosure>
+                          {item.record.status === 'submitted' &&
+                            access.prepare &&
+                            selectedRequest?.uuid !== item.record.uuid && (
+                              <FormActions>
+                                <PageAction
+                                  ref={(element) => {
+                                    if (element) requestOpeners.current.set(item.record.uuid, element);
+                                    else requestOpeners.current.delete(item.record.uuid);
+                                  }}
+                                  label="Prepare update"
+                                  context={item.record.name}
+                                  disabled={held}
+                                  onClick={() => {
+                                    checks.reset();
+                                    setRevokeMember('');
+                                    requestReturnFocus.current = item.record.uuid;
+                                    setRequest(item.record.uuid);
+                                  }}
+                                />
+                              </FormActions>
+                            )}
+                        </>
+                      ) : (
+                        <>
+                          {item.record.fulfilment && (
+                            <Rows>
+                              <Row label="Created on">{formatDate(item.record.fulfilment.createdAt)}</Row>
+                            </Rows>
+                          )}
+                          <Disclosure summary="Technical details">
+                            <Rows>
+                              <Row label="Request reference">{shortReference(item.record.uuid)}</Row>
+                              <Row label="Member reference">{shortReference(item.record.member)}</Row>
+                              <Row label="Entry reference">{shortReference(item.record.entry)}</Row>
+                              {item.record.fulfilment && (
                                 <>
-                                  <Row label="Unsigned PDF">{shortReference(item.fulfilment.uuid)}</Row>
-                                  <Row label="SHA-256">{item.fulfilment.digest}</Row>
-                                  <Row label="File size">{item.fulfilment.fileSize} bytes</Row>
+                                  <Row label="Unsigned PDF">{shortReference(item.record.fulfilment.uuid)}</Row>
+                                  <Row label="SHA-256">{item.record.fulfilment.digest}</Row>
+                                  <Row label="File size">{item.record.fulfilment.fileSize} bytes</Row>
                                 </>
                               )}
                             </Rows>
                           </Disclosure>
-                          {item.status === 'requested' && (
+                          {item.record.status === 'requested' && (
                             <FormActions>
                               <PageAction
                                 ref={(element) => {
-                                  if (element) certificateOpeners.current.set(item.uuid, element);
-                                  else certificateOpeners.current.delete(item.uuid);
+                                  if (element) certificateOpeners.current.set(item.record.uuid, element);
+                                  else certificateOpeners.current.delete(item.record.uuid);
                                 }}
                                 label="Prepare certificate"
-                                context={memberName(item.member)}
+                                context={memberName(item.record.member)}
                                 disabled={held}
                                 onClick={() => {
                                   checks.reset();
-                                  certificateReturnFocus.current = item.uuid;
-                                  setCertificateRequest(item.uuid);
+                                  certificateReturnFocus.current = item.record.uuid;
+                                  setCertificateRequest(item.record.uuid);
                                 }}
                               />
                             </FormActions>
                           )}
-                        </Disclosure>
-                      );
-                    })}
-                  </div>
+                        </>
+                      )}
+                    </Disclosure>
+                  </li>
+                );
+              })}
+            </ul>
+            {access.prepare && (
+              <form
+                noValidate
+                hidden={!selectedRequest}
+                className="space-y-4 border-t border-border-subtle pt-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (selectedRequest && !held && checks.check(PARTICULARS_FIELDS)) track('particulars', prepare());
+                }}
+              >
+                <h3 ref={requestHeading} tabIndex={-1} className="scroll-mt-6 text-base font-medium focus:outline-none">
+                  Prepare {selectedRequest?.name}&apos;s particulars update
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FileField
+                    {...checks.field('file')}
+                    label="Company supporting document"
+                    showUploadHint={false}
+                    disabled={held}
+                    onFile={selectFile}
+                  />
+                  <Field {...checks.field('asAt')} label="As-at date (UTC)">
+                    <TextInput
+                      type="date"
+                      max={utcToday()}
+                      value={asAt}
+                      disabled={held}
+                      onChange={(event) => setAsAt(event.target.value)}
+                    />
+                  </Field>
                 </div>
-              )}
-            </Section>
-          </div>
+                {selectedRequest && (
+                  <Field {...checks.field('reason')} label="Company action reason">
+                    <TextArea
+                      maxLength={FIELD_LIMITS.REASON}
+                      value={reason}
+                      disabled={held}
+                      onChange={(event) => setReason(event.target.value)}
+                    />
+                  </Field>
+                )}
+                <p className="text-sm text-text-muted">
+                  This records the company instruction. Review and approve it separately in Ledger, Corrections.
+                </p>
+                {uploadError && (
+                  <p role="alert" className="text-sm text-error-light">
+                    {uploadError}
+                  </p>
+                )}
+                <FormActions>
+                  <PageAction
+                    label="Cancel"
+                    disabled={held}
+                    onClick={() => {
+                      checks.reset();
+                      setRequest('');
+                    }}
+                  />
+                  <PageAction
+                    label="Record company particulars instruction"
+                    type="submit"
+                    primary
+                    busy={running === 'particulars'}
+                    busyLabel="Recording instruction…"
+                    disabled={held}
+                  />
+                </FormActions>
+              </form>
+            )}
+          </Section>
         </div>
       </div>
       {revoking && (

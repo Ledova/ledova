@@ -83,7 +83,7 @@ function RegisterPage({
                         : hash === '#member-access'
                           ? 'Invite people to their records and manage their access.'
                           : hash === '#member-requests'
-                            ? 'Review particulars updates and certificate requests.'
+                            ? 'Review requests to update details or prepare certificates.'
                             : 'Share classes and current ownership.'
         }
       >

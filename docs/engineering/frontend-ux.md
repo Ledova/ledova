@@ -176,15 +176,22 @@ requests**, with their own actions. A class chooser is only shown when there is 
 Particulars requests stay in Company-recorded details in Settings.
 
 The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
-Its **Member access** submenu opens invitations and current or revoked access; **Member requests**
-opens particulars updates and certificate requests. Each uses the standard workspace width and
-`Section` cards, with shared heading, row and disclosure spacing.
-Keep names, email addresses, status and relevant dates together; request details
-show the requested particulars or share class. Put account, member and entry references, fingerprints
+Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order,
+with compact rows aligned under Person, Linked or Invited, and Status. People retains current and
+revoked access records; invitations remain separate records. **Member requests** uses one **Requests**
+card, with Person, Request, Requested and Status columns. Identify each request as a details update
+or an unsigned certificate, with the certificate's share class when available. Keep all retained
+statuses in the list. Both views use the standard workspace width and History's aligned row pattern;
+headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
+or class context and genuine dates before expansion, without repeating the page title inside a card.
+Each whole row opens its details and relevant actions together, including the full requested particulars.
+Preparing a details update focuses its form heading and keeps the selected row and form together,
+with other rows mounted but hidden; Cancel restores the list and opener focus.
+Put account, member and entry references, fingerprints
 and file sizes under **Technical details**. A certificate request does not supply a share quantity;
 do not substitute the member's current holding. Keep unavailable reads and their retries distinct
 from confirmed empty collections.
-Invite a member sits in a right-aligned row beneath Member access. Invitation preparation replaces
+Invite a member sits in a right-aligned row beneath the Invitations card. Invitation preparation replaces
 the collection with a focused view across the workspace, with member and email fields in the existing
 responsive grid and Cancel and Send invitation together at the bottom right. Keep invitation tokens
 out of visible fields: the email link opens one focused Member invitation page, continuing through sign-in or
