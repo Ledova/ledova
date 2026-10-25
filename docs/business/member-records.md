@@ -98,10 +98,11 @@ classes can carry different rights. **My shares** (mobile) lists issued shares b
 employee awards separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
-breakdown and terms under **Award details**. **Your details** groups current particulars, their update
-form and particulars-request status. Pending particulars requests stay visible; completed requests
-and share history open on demand. Web certificates and their requests are in **Documents**;
-mobile also shows certificates. Wallet holdings are on
+breakdown and terms under **Award details**. This read-only overview is the whole web Dashboard.
+**Company-recorded details** in Settings groups current particulars, their update form and
+particulars-request status, separately from the personal Profile. Pending particulars requests stay
+visible; completed requests open on demand. Share history, certificates and certificate requests
+are in web **Documents**, without duplicate particulars status. Mobile also shows certificates. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access
@@ -124,8 +125,9 @@ original request
 ### Particulars requests
 
 A member, including an award recipient before any shares are issued, asks the company to change
-their recorded name and residential address: **Request a particulars update** on **Dashboard**
-(**Request a particulars change** on **My shares**), then **Send particulars request**. Sending
+their recorded name and residential address: **Settings** → **Company-recorded details** →
+**Request a particulars update** on web
+(**Request a particulars change** on mobile **My shares**), then **Send particulars request**. Sending
 changes nothing on the register.
 
 The company sees it under **Particulars requests** (a current personal appointment is needed). A

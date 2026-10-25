@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import { registerKey } from '@hooks/useRegisterAccess';
+import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
+import { CompanyRecordedDetails } from '@pages/settings/CompanyRecordedDetails';
 
 import {
   ApiClientProvider,
@@ -12,7 +14,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { Link, MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -241,7 +243,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <MemoryRouter>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={['/home']}>{children}</MemoryRouter>
       </ApiClientProvider>
     </QueryClientProvider>
   );
@@ -380,32 +382,43 @@ it('invites and associates a walletless member, recovers one exact request and r
     otherCertificate,
   );
   render(
-    <>
+    <MemberRecordsProvider>
       <nav>
         <Link to="/home">Dashboard</Link>
         <Link to="/home#documents">Documents</Link>
+        <Link to="/settings#company-recorded-details">Settings</Link>
       </nav>
-      <MemberRecordsPage />
-    </>,
+      <Routes>
+        <Route path="/home" element={<MemberRecordsPage />} />
+        <Route path="/settings" element={<CompanyRecordedDetails />} />
+      </Routes>
+    </MemberRecordsProvider>,
     { wrapper },
   );
-  await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
+  await screen.findByText('10 issued shares');
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
   expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
-  const detailsCard = screen.getByRole('heading', { name: 'Your details' }).closest('section')!;
-  expect(within(detailsCard).getByText(MEMBER_RECORD.name)).toBeTruthy();
-  expect(within(detailsCard).getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
+  expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
+  expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request a particulars update' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Read own entries for Ordinary' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Particulars requests' })).toBeNull();
   expect(screen.queryByText('Recent changes · Ordinary')).toBeNull();
-  const previousParticulars = await screen.findByRole('button', { name: 'Previous particulars requests' });
-  expect(previousParticulars.getAttribute('aria-expanded')).toBe('false');
-  fireEvent.click(previousParticulars);
-  expect(screen.getByText('Particulars update · Applied')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
-  expect(await screen.findByText('Issue · Company date not recorded')).toBeTruthy();
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Withdraw certificate request/ })).toBeNull();
   expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+  const detailsCard = (await screen.findByRole('heading', { name: 'Your details' })).closest('section')!;
+  expect(
+    within(detailsCard)
+      .getAllByRole('definition')
+      .map((item) => item.textContent),
+  ).toEqual([MEMBER_RECORD.name, MEMBER_RECORD.residentialAddress]);
+  const previousParticulars = await screen.findByRole('button', { name: 'Previous particulars requests' });
+  expect(previousParticulars.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(previousParticulars);
+  expect(screen.getByText('Particulars update · Applied')).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   const certificatesCard = (await screen.findByRole('heading', { name: 'Certificates' })).closest('section')!;
   expect(within(certificatesCard).getByRole('heading', { name: '+10 ORD shares' })).toBeTruthy();
@@ -414,6 +427,8 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(within(certificatesCard).getByRole('button', { name: /Withdraw certificate request/ })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Share history' })).toBeNull();
   expect(screen.queryByRole('heading', { name: 'Your request status' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Particulars requests' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request a particulars update' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
   fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Record details' }));
   expect(within(certificatesCard).getByRole('heading', { name: 'Previous requests' })).toBeTruthy();
@@ -428,7 +443,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(within(certificatesCard).getByRole('button', { name: /Download unsigned certificate/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(2));
   expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(otherCertificate.uuid), expect.anything());
-  fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
   fireEvent.click(screen.getByText('Request a particulars update'));
   fireEvent.change(screen.getByLabelText('Requested name'), { target: { value: 'Requested Member Name' } });
   fireEvent.change(screen.getByLabelText('Requested residential address'), {

@@ -10,15 +10,7 @@ const SERIES = [
   'color-mix(in srgb, var(--color-info-light) 60%, var(--color-error-light))',
 ];
 
-export function OwnSharesOverview({
-  classes,
-  disabled,
-  onHistory,
-}: {
-  classes: OwnMemberRecord['classes'];
-  disabled: boolean;
-  onHistory: (uuid: string) => void;
-}) {
+export function OwnSharesOverview({ classes }: { classes: OwnMemberRecord['classes'] }) {
   const id = useId();
   if (!hasWholeShares(classes) || new Set(classes.map((item) => item.uuid)).size !== classes.length)
     return (
@@ -106,23 +98,17 @@ export function OwnSharesOverview({
               {classes.map((item) => (
                 <tr key={item.uuid}>
                   <th scope="row" className="py-3 pr-3 text-left font-medium text-text-primary">
-                    <button
-                      type="button"
-                      aria-label={`Read own entries for ${item.name}`}
-                      disabled={disabled}
-                      onClick={() => onHistory(item.uuid)}
-                      className="group inline-flex items-baseline gap-2 text-left hover:text-brand-light disabled:cursor-not-allowed disabled:opacity-50"
-                    >
+                    <span className="inline-flex items-baseline gap-2 text-left">
                       <span
                         aria-hidden="true"
                         className="h-2 w-2 shrink-0"
                         style={{ backgroundColor: colors.get(item.uuid) ?? 'var(--color-text-muted)' }}
                       />
-                      <span className="min-w-0 break-words underline decoration-border underline-offset-4 group-hover:decoration-current">
+                      <span className="min-w-0 break-words">
                         {item.name}
                         <span className="ml-2 text-xs font-normal text-text-muted">{item.symbol}</span>
                       </span>
-                    </button>
+                    </span>
                   </th>
                   <td className="break-all py-3 text-right tabular-nums text-text-primary">
                     {formatShareCount(item.shares)}
