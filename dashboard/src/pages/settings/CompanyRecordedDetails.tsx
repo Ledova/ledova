@@ -39,21 +39,30 @@ function MemberParticulars() {
   const particularsRequests = (requests: NonNullable<typeof read.requests>['particulars']) => (
     <div className="divide-y divide-border-subtle text-sm">
       {requests.map((request) => (
-        <div key={request.uuid} className="space-y-2 py-4 first:pt-0 last:pb-0">
+        <div key={request.uuid} className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0">
           <Rows>
             <Row label="Name">{request.name}</Row>
             <Row label="Residential address">
-              <span className="whitespace-pre-line">{request.residentialAddress}</span>
+              <span className="block truncate" title={request.residentialAddress}>
+                {request.residentialAddress}
+              </span>
+            </Row>
+            <Row label="Status">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <Status
+                  tone={request.status === 'applied' ? 'done' : request.status === 'rejected' ? 'closed' : 'waiting'}
+                >
+                  {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}
+                </Status>
+                <span className="text-text-muted">{formatDate(request.createdAt, 'Date not recorded')}</span>
+              </div>
             </Row>
           </Rows>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            <p className="text-text-muted">{formatDate(request.createdAt, 'Date not recorded')}</p>
-            <Status tone={request.status === 'applied' ? 'done' : request.status === 'rejected' ? 'closed' : 'waiting'}>
-              {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}
-            </Status>
-          </div>
           <Disclosure summary="Record details">
             <Rows>
+              <Row label="Full address">
+                <span className="whitespace-pre-line">{request.residentialAddress}</span>
+              </Row>
               <Row label="Request">{shortReference(request.uuid)}</Row>
               {request.change && <Row label="Company instruction">{shortReference(request.change)}</Row>}
             </Rows>
@@ -129,29 +138,38 @@ function MemberParticulars() {
             <div
               className={`grid gap-6 ${pendingParticulars.length > 0 || previousParticulars.length > 0 ? 'lg:grid-cols-2' : ''}`}
             >
-              <div className="min-w-0 space-y-3">
+              <div className="flex min-w-0 flex-col gap-3">
                 <h3 className="text-sm font-medium">Current details</h3>
                 <Rows>
                   <Row label="Name">{read.record.name}</Row>
                   <Row label="Residential address">
-                    <span className="whitespace-pre-line">{read.record.residentialAddress}</span>
+                    <span className="block truncate" title={read.record.residentialAddress}>
+                      {read.record.residentialAddress}
+                    </span>
                   </Row>
                 </Rows>
-                <Disclosure summary="Ledger details">
-                  <p className="text-sm text-text-muted">
-                    Provided by the company, not verified by Ledova. Profile edits do not change this register.
-                  </p>
-                  {read.record.classes.map((item) => (
-                    <p key={item.uuid} className="py-2 text-sm text-text-muted">
-                      {item.name} · Entered {formatDate(item.enteredOn, 'Not recorded')}
-                      {item.ceasedOn ? ` · Ceased ${formatDate(item.ceasedOn)}` : ''} · Amount paid{' '}
-                      {item.amountPaid ?? 'not recorded'}
+                <div className="text-sm lg:mt-auto">
+                  <Disclosure summary="Ledger details">
+                    <Rows>
+                      <Row label="Full address">
+                        <span className="whitespace-pre-line">{read.record.residentialAddress}</span>
+                      </Row>
+                    </Rows>
+                    <p className="text-sm text-text-muted">
+                      Provided by the company, not verified by Ledova. Profile edits do not change this register.
                     </p>
-                  ))}
-                </Disclosure>
+                    {read.record.classes.map((item) => (
+                      <p key={item.uuid} className="py-2 text-sm text-text-muted">
+                        {item.name} · Entered {formatDate(item.enteredOn, 'Not recorded')}
+                        {item.ceasedOn ? ` · Ceased ${formatDate(item.ceasedOn)}` : ''} · Amount paid{' '}
+                        {item.amountPaid ?? 'not recorded'}
+                      </p>
+                    ))}
+                  </Disclosure>
+                </div>
               </div>
               {(pendingParticulars.length > 0 || previousParticulars.length > 0) && (
-                <div className="min-w-0 space-y-3 border-t border-border-subtle pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+                <div className="flex min-w-0 flex-col gap-3 border-t border-border-subtle pt-6 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
                   <h3 className="text-sm font-medium">Update requests</h3>
                   {pendingParticulars.length > 0 && particularsRequests(pendingParticulars)}
                   {previousParticulars.length > 0 && (

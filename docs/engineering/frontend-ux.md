@@ -41,8 +41,10 @@ quantities, with the full breakdown and terms under **Award details**. Issued aw
 included in the holding. The member Dashboard contains only the shares and read-only award overview.
 **Company-recorded details** in Settings uses one **Your details** card in the standard workspace
 frame. **Current details** and **Update requests** form equal desktop groups separated by a hairline,
-with aligned name and address rows; they stack on smaller screens without nested cards. Each pending
-request keeps its status and date with its requested particulars. **Request update** sits in the shared
+with aligned name and address rows; they stack on smaller screens without nested cards. Address previews
+stay on one line with an ellipsis when space runs out; **Ledger details** and **Record details** show
+the full original addresses without changing stored text. Each request's status and date use a labelled
+row aligned with the name and address values. **Request update** sits in the shared
 right-aligned footer. That action opens one focused inline form with **Cancel** and
 **Send request** together; a successful submission closes the form and clears sharing consent.
 Technical references and completed requests open on demand. Keep these company records distinct
