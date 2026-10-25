@@ -109,13 +109,15 @@ are in web **Documents**, without duplicate particulars status. Mobile also show
 ### Revoking member access
 
 A company administrator opens **Shareholders** → **Member access** in the web sidebar, then the
-relevant record under **Current member access**, and chooses **Revoke access**, supplying a reason for that action;
+relevant record under **People**, and chooses **Revoke access**, supplying a reason for that action;
 relinking needs a new invitation. Revocation
 stops the person's own-record access, file access and new requests, though they can still read the
 status of requests they made.
 
-The web sidebar separates **Member access** from **Member requests** under Shareholders. Their views
-show names, status and relevant dates together, with technical references under **Technical details**.
+The web sidebar separates **Member access** from **Member requests** under Shareholders. Member access
+shows **People** and **Invitations**; Member requests is one list identifying each request's type, date
+and status. The rows keep names and relevant details together, with technical references under
+**Technical details**.
 Task fields open only when needed;
 an empty queue does not ask for a company reason or certificate reference. Reads update on entry,
 focus and reconnect, and after a completed action; a failed read offers a retry.
@@ -136,7 +138,7 @@ On web, the form closes after successful submission and the request appears unde
 Cancel closes an unfinished form without sending it; its draft stays in memory for the same signed-in
 account and company, including navigation through Dashboard and Documents.
 
-The company sees it under **Shareholders** → **Member requests** → **Particulars requests** on web
+The company sees it as **Details update** under **Shareholders** → **Member requests** on web
 (a current personal appointment is needed). A preparer adds evidence, a reason and an as-at date
 and records it as an ordinary
 [particulars change](register.md#changing-a-members-particulars). The request keeps the exact
@@ -231,8 +233,8 @@ fingerprint is recorded.
 
 ### Fulfilling a member's certificate request
 
-1. On web, in **Shareholders** → **Member requests** → **Certificate requests**, choose
-   **Prepare certificate** on the member's request. The focused view shows the member, share class
+1. On web, open the member's **Unsigned certificate** request in **Shareholders** → **Member requests**,
+   then choose **Prepare certificate**. The focused view shows the member, share class
    and request date. Enter the required
    **Company instruction**, then choose **Preview**.
 2. Check **Review certificate** and its unsigned single-recipient PDF summary. **Record details**

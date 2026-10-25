@@ -279,6 +279,17 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(screen.getByRole('button', { name: /^Private queued member name/ }));
   expect(screen.getByText('Private queued member address')).toBeTruthy();
   expect(screen.getByText(/member@example.test/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare update (Private queued member name)' }));
+  expect(document.activeElement).toBe(
+    screen.getByRole('heading', { name: "Prepare Private queued member name's particulars update" }),
+  );
+  expect(screen.queryByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() =>
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Prepare update (Private queued member name)' }),
+    ),
+  );
   preferencesRefused = true;
   await act(async () => {
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
@@ -297,7 +308,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(prepareCertificate);
   await screen.findByRole('heading', { name: 'Prepare certificate' });
   expect(screen.queryByRole('heading', { name: 'Invitations' })).toBeNull();
-  expect(screen.queryByRole('heading', { name: 'Current member access' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'People' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Invite a member' })).toBeNull();
   fireEvent.change(screen.getByRole('textbox', { name: 'Company instruction' }), {
     target: { value: 'Synthetic recipient instruction' },
