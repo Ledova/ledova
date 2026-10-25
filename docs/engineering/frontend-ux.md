@@ -115,8 +115,11 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 
 On workflow collections, show the saved records first, with company and class context once above
 them. Keep each recipient, status and key facts together, its details on demand, and its next action
-in a right-aligned footer after secondary actions. Name a preview-opening action for that review,
-such as **Review and approve**; opening it is not approval. The collection's creation action opens
+in a right-aligned footer after secondary actions.
+Particulars changes keep supporting-document download and decision actions together in one right-aligned,
+wrapping footer, with download errors visible beside that action group.
+Name a preview-opening action for that review, such as **Review and approve**; opening it is not approval.
+The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
 Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
