@@ -284,12 +284,14 @@ export function CompanyMemberAccess({
                   <Disclosure
                     key={item.uuid}
                     summary={
-                      <span className="grid gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
+                      <span className="grid min-w-0 gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_12rem] sm:gap-4">
                         <span className="min-w-0 break-words font-medium">
                           {memberName(item.member)}
                           <span className="block font-normal text-text-muted">{item.intendedEmail}</span>
                         </span>
-                        <span className="text-text-muted">{MEMBER_INVITATION_STATUS_LABELS[item.status]}</span>
+                        <span className="min-w-0 break-words text-text-muted">
+                          {MEMBER_INVITATION_STATUS_LABELS[item.status]}
+                        </span>
                       </span>
                     }
                   >
@@ -311,9 +313,9 @@ export function CompanyMemberAccess({
                   <Disclosure
                     key={association.uuid}
                     summary={
-                      <span className="grid gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
-                        <span className="font-medium">{memberName(association.member)}</span>
-                        <span className="text-text-muted">
+                      <span className="grid min-w-0 gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_12rem] sm:gap-4">
+                        <span className="min-w-0 break-words font-medium">{memberName(association.member)}</span>
+                        <span className="min-w-0 break-words text-text-muted">
                           {association.current ? 'Current access' : 'Revoked access'}
                         </span>
                       </span>
@@ -374,16 +376,18 @@ export function CompanyMemberAccess({
             </div>
           )}
           {particulars.length > 0 && (
-            <div className="border-t border-border-subtle pt-4">
+            <div className={invitations.length || associations.length ? 'border-t border-border-subtle pt-4' : ''}>
               <h3 className="text-base font-medium">Particulars requests</h3>
               <div className="divide-y divide-border-subtle">
                 {particulars.map((item) => (
                   <Disclosure
                     key={item.uuid}
                     summary={
-                      <span className="grid gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
-                        <span className="font-medium">{item.name}</span>
-                        <span className="text-text-muted">{MEMBER_PARTICULARS_STATUS_LABELS[item.status]}</span>
+                      <span className="grid min-w-0 gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_12rem] sm:gap-4">
+                        <span className="min-w-0 break-words font-medium">{item.name}</span>
+                        <span className="min-w-0 break-words text-text-muted">
+                          {MEMBER_PARTICULARS_STATUS_LABELS[item.status]}
+                        </span>
                       </span>
                     }
                   >
@@ -479,16 +483,24 @@ export function CompanyMemberAccess({
             </div>
           )}
           {certificates.length > 0 && (
-            <div className="space-y-4 border-t border-border-subtle pt-4">
+            <div
+              className={
+                invitations.length || associations.length || particulars.length
+                  ? 'border-t border-border-subtle pt-4'
+                  : ''
+              }
+            >
               <h3 className="text-base font-medium">Certificate requests</h3>
               <div className="divide-y divide-border-subtle">
                 {certificates.map((item) => (
                   <Disclosure
                     key={item.uuid}
                     summary={
-                      <span className="grid gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
-                        <span className="font-medium">{memberName(item.member)}</span>
-                        <span className="text-text-muted">{MEMBER_CERTIFICATE_STATUS_LABELS[item.status]}</span>
+                      <span className="grid min-w-0 gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_12rem] sm:gap-4">
+                        <span className="min-w-0 break-words font-medium">{memberName(item.member)}</span>
+                        <span className="min-w-0 break-words text-text-muted">
+                          {MEMBER_CERTIFICATE_STATUS_LABELS[item.status]}
+                        </span>
                       </span>
                     }
                   >
