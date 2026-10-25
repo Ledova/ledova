@@ -93,6 +93,7 @@ export function useIssuerPublications(
     paused: opening.isPending || listing.isFetchingNextPage,
     refresh: async (available) => {
       if (pending.current) return;
+      if (read.isRefreshing || listing.isFetching) return false;
       await read.refetch();
       if (!available() || pending.current || !companyUuid) return;
       guard();

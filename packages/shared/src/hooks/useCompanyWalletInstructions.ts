@@ -34,6 +34,7 @@ export function useCompanyWalletInstructions(options: {
   session?: OrderSubmissionSession;
   coordinatedReads?: boolean;
   paused?: boolean;
+  pausedScope?: string;
 }) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -49,13 +50,20 @@ export function useCompanyWalletInstructions(options: {
   });
   const [retained, setRetained] = useState<{ owner: typeof owner; body: CompanyWalletPreparation } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [workingOwner, setWorkingOwner] = useState<typeof owner>(null);
+  const view = useRef({ owner, generation: 0 });
+  if (view.current.owner !== owner) view.current = { owner, generation: view.current.generation + 1 };
   const [error, setError] = useState<string | null>(null);
   const [clock, setClock] = useState(0);
-  const readingPaused = !!options.paused || busy || !!retained;
+  const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0];
+  const scopeKey = [...scope, companyUuid, view.current.generation].join('/');
+  const readingPaused =
+    !!options.paused ||
+    options.pausedScope === scopeKey ||
+    (!!owner &&
+      ((busy && workingOwner === owner) || (retained?.owner === owner && retained.body.company === companyUuid)));
   const reading = !options.coordinatedReads || !readingPaused;
   const timing = options.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
-  const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0];
-  const scopeKey = [...scope, companyUuid].join('/');
   const appointmentKey = ['company-wallet-appointments', ...scope];
   const nominationKey = ['company-wallet-nominations', ...scope, companyUuid];
   const targetKey = ['company-wallet-targets', ...scope, companyUuid];
@@ -254,8 +262,15 @@ export function useCompanyWalletInstructions(options: {
     }
   };
   const refresh = async (available?: () => boolean) => {
-    const current = () => !available || (available() && !pending.current && !readingPaused);
+    const current = () => !available || (available() && !(pending.current && workingOwner === owner) && !readingPaused);
     if (!current()) return;
+    if (
+      available &&
+      [appointmentKey, nominationKey, targetKey, instructionKey, USER_PREFERENCES_QUERY_KEY].some((queryKey) =>
+        client.isFetching({ queryKey, exact: true }),
+      )
+    )
+      return false;
     setError(null);
     try {
       ownerGuard();
@@ -314,6 +329,7 @@ export function useCompanyWalletInstructions(options: {
     if (!operation || operation.owner !== owner || operation.body.company !== companyUuid) return;
     pending.current = true;
     setBusy(true);
+    setWorkingOwner(owner);
     setError(null);
     let dispatched = false;
     try {

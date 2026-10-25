@@ -44,13 +44,18 @@ export function WalletNomination({
   onHeldChange: (held: boolean) => void;
   active?: boolean;
 }) {
-  const [verifying, setVerifying] = useState<{ owner: OrderSubmissionOwner | null; wallet: string } | null>(null);
+  const [verifying, setVerifying] = useState<{
+    owner: OrderSubmissionOwner | null;
+    wallet: string;
+    scope: string;
+  } | null>(null);
   const data = useWalletNomination({
     requestUuid,
     newKey: () => crypto.randomUUID(),
     guardRequest,
     coordinatedReads: true,
-    paused: !active || !!verifying,
+    paused: !active,
+    pausedScope: verifying?.scope,
   });
   const { running, track } = useRunningAction();
   const reads = [data.request, data.nominations, data.wallets];
@@ -137,7 +142,7 @@ export function WalletNomination({
               onClick={() => {
                 try {
                   data.guardWallet();
-                  setVerifying({ owner: data.owner, wallet: wallet.uuid });
+                  setVerifying({ owner: data.owner, wallet: wallet.uuid, scope: data.scopeKey });
                 } catch {
                   return;
                 }

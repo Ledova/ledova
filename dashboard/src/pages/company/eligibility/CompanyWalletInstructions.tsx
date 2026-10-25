@@ -271,22 +271,33 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
   );
 }
 export function CompanyWalletInstructions({ active = true }: { active?: boolean }) {
-  const [editing, setEditing] = useState(false);
-  const [held, setHeld] = useState<Set<string>>(() => new Set());
-  const onHeldChange = useCallback((uuid: string, pending: boolean) => {
-    setHeld((prior) => {
-      if (prior.has(uuid) === pending) return prior;
-      const next = new Set(prior);
-      if (pending) next.add(uuid);
-      else next.delete(uuid);
-      return next;
-    });
-  }, []);
+  const [held, setHeld] = useState<{ scope: string; editing: boolean; records: Set<string> } | null>(null);
   const data = useCompanyWalletInstructions({
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
-    paused: !active || editing || held.size > 0,
+    paused: !active,
+    pausedScope: held && (held.editing || held.records.size > 0) ? held.scope : undefined,
   });
+  const onHeldChange = useCallback(
+    (uuid: string, pending: boolean) => {
+      setHeld((prior) => {
+        const current =
+          prior?.scope === data.scopeKey ? prior : { scope: data.scopeKey, editing: false, records: new Set<string>() };
+        if (current.records.has(uuid) === pending) return prior;
+        const records = new Set(current.records);
+        if (pending) records.add(uuid);
+        else records.delete(uuid);
+        return { ...current, records };
+      });
+    },
+    [data.scopeKey],
+  );
+  const setEditing = (editing: boolean) =>
+    setHeld((prior) => ({
+      scope: data.scopeKey,
+      editing,
+      records: prior?.scope === data.scopeKey ? prior.records : new Set(),
+    }));
   useAutomaticReads({
     scope: active && data.owner ? data.scopeKey : null,
     paused: data.readingPaused,
@@ -313,7 +324,7 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
             label="Wallet approval company"
             companies={data.companies}
             value={data.companyUuid}
-            disabled={data.busy || held.size > 0}
+            disabled={data.busy || (held?.scope === data.scopeKey && held.records.size > 0)}
             onChange={(uuid) => {
               setEditing(false);
               data.setCompany(uuid);

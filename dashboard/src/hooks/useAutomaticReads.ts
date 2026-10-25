@@ -21,25 +21,27 @@ export function useAutomaticReads({
     let pending = true;
     let scheduled: number | undefined;
     const available = () => live && !current.current.paused && !document.hidden && navigator.onLine !== false;
-    const schedule = () => {
+    const schedule = (delay = 0) => {
       if (scheduled !== undefined || running || !available()) return;
       scheduled = window.setTimeout(() => {
         scheduled = undefined;
         void run();
-      }, 0);
+      }, delay);
     };
     const run = async () => {
       if (!pending || running || !available()) return;
       pending = false;
       running = true;
       try {
-        await current.current.refresh(available);
+        if ((await current.current.refresh(available)) === false) {
+          pending = true;
+        }
       } catch {
         return;
       } finally {
         running = false;
         if (live && !available()) pending = true;
-        if (pending) schedule();
+        if (pending) schedule(250);
       }
     };
     const request = () => {

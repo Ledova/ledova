@@ -38,12 +38,14 @@ export function useCompanySelection({
   session,
   coordinatedReads = false,
   paused = false,
+  pausedScope,
 }: {
   ownedOnly?: boolean;
   personalOnly?: boolean;
   session?: OrderSubmissionSession;
   coordinatedReads?: boolean;
   paused?: boolean;
+  pausedScope?: string;
 } = {}) {
   const apiClient = useApiClient();
   const client = useQueryClient();
@@ -60,6 +62,7 @@ export function useCompanySelection({
   const scope = useRef({ owner, generation: 0 });
   if (scope.current.owner !== owner) scope.current = { owner, generation: scope.current.generation + 1 };
   const scopeKey = `${id}/${scope.current.generation}`;
+  const readingPaused = paused || pausedScope === scopeKey;
   const [selection, setSelection] = useState<{ scope: string; uuid: string } | null>(null);
   const ownerBusiness = !!preferences.userAccount?.role && canOpen(preferences.userAccount.role, 'company');
   const enabled = !!owner && !preferences.isError && (!ownedOnly || ownerBusiness);
@@ -88,7 +91,7 @@ export function useCompanySelection({
   ];
   const companies = useQuery({
     queryKey: companiesKey,
-    enabled: enabled && (!coordinatedReads || !paused),
+    enabled: enabled && (!coordinatedReads || !readingPaused),
     ...(coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {}),
     queryFn: async ({ signal }) => {
       const rows = await readEveryPage(async (page) => {
@@ -125,7 +128,7 @@ export function useCompanySelection({
   const companyKey = [...COMPANY_QUERY_KEY, companyUuid, owner?.userUuid, owner?.ownerAccountUuid, scopeKey];
   const detail = useQuery({
     queryKey: companyKey,
-    enabled: enabled && !!companyUuid && !companies.isError && (!coordinatedReads || !paused),
+    enabled: enabled && !!companyUuid && !companies.isError && (!coordinatedReads || !readingPaused),
     ...(coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {}),
     queryFn: async ({ signal }) => {
       const guard = () => {

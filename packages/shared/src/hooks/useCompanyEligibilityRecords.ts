@@ -43,6 +43,7 @@ import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionOwner } from '../utils/order-submission-storage';
 import { useApiClient } from './useApiClient';
 
 const RESULT_UNCERTAIN =
@@ -75,7 +76,13 @@ type Payload =
   | CompanyEligibilityDecisionCreate
   | CompanyEligibilityWithdrawalCreate
   | CompanyEligibilityRevocationCreate;
-type Command = EligibilityAction & { payload: Payload; binding: string; signature: string; generation: number };
+type Command = EligibilityAction & {
+  owner: OrderSubmissionOwner | null;
+  payload: Payload;
+  binding: string;
+  signature: string;
+  generation: number;
+};
 const retainedRetries = new WeakMap<QueryClient, Map<string, Command>>();
 function retriesFor(client: QueryClient) {
   let values = retainedRetries.get(client);
@@ -164,7 +171,7 @@ export interface EligibilityQueuePage {
   outcome?: CompanyEligibilityQueueQuery['outcome'];
 }
 
-type EligibilityReadOptions = { coordinatedReads?: boolean; paused?: boolean };
+type EligibilityReadOptions = { coordinatedReads?: boolean; paused?: boolean; pausedScope?: string };
 
 function useEligibilityRecords(
   mode: 'participant' | 'company',
@@ -183,22 +190,41 @@ function useEligibilityRecords(
   const retries = useRef(retriesFor(client));
   const [action, setAction] = useState<Command | null>(null);
   const [busy, setBusy] = useState(false);
-  const [drafting, setDrafting] = useState(false);
+  const [drafting, setDrafting] = useState<typeof owner>(null);
+  const [workingOwner, setWorkingOwner] = useState<typeof owner>(null);
+  const view = useRef({ owner, generation: 0 });
+  if (view.current.owner !== owner) view.current = { owner, generation: view.current.generation + 1 };
   const [error, setError] = useState<string | null>(null);
   const [authorityClock, setAuthorityClock] = useState(0);
-  const [selection, setSelection] = useState({
+  const [keptSelection, setSelection] = useState({
+    owner,
     company: '',
     appointment: '',
     record: '',
     request: { ...requestDraft },
     decision: { ...decisionDraft },
   });
+  const selection =
+    keptSelection.owner === owner
+      ? keptSelection
+      : {
+          owner,
+          company: '',
+          appointment: '',
+          record: '',
+          request: { ...requestDraft },
+          decision: { ...decisionDraft },
+        };
   const selected = useRef(selection);
   selected.current = selection;
-  const readingPaused = !!options.paused || drafting || !!action || busy;
+  const scope = [owner?.userUuid ?? '', owner?.ownerAccountUuid ?? '', session?.getEpoch() ?? 0];
+  const scopeKey = [...scope, selection.company, selection.record, view.current.generation].join('/');
+  const readingPaused =
+    !!options.paused ||
+    options.pausedScope === scopeKey ||
+    (!!owner && (drafting === owner || action?.owner === owner || (busy && workingOwner === owner)));
   const timing = options.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
   const reading = !options.coordinatedReads || !readingPaused;
-  const scope = [owner?.userUuid ?? '', owner?.ownerAccountUuid ?? '', session?.getEpoch() ?? 0];
   const sourceKey = ['eligibility-sources', ...scope];
   const appointmentKey = [...OWN_APPOINTMENTS_QUERY_KEY, ...scope.slice(0, 2)];
   const listKey = [
@@ -390,7 +416,12 @@ function useEligibilityRecords(
     ]);
   const commandGuard = (target: Command) => {
     readGuard();
-    if (active.current !== target || target.generation !== generation.current || target.signature !== signature())
+    if (
+      target.owner !== owner ||
+      active.current !== target ||
+      target.generation !== generation.current ||
+      target.signature !== signature()
+    )
       throw createUserFriendlyError(
         'The source, company, appointment, record or terms changed. Review again before continuing.',
       );
@@ -480,8 +511,20 @@ function useEligibilityRecords(
     return () => clearTimeout(timer);
   }, [appointments.data, authorityClock, mode, owner]);
   const refresh = async (available?: () => boolean) => {
-    const current = () => !available || (available() && !pending.current && !active.current && !readingPaused);
+    const current = () =>
+      !available ||
+      (available() &&
+        !(pending.current && workingOwner === owner) &&
+        active.current?.owner !== owner &&
+        !readingPaused);
     if (!current()) return;
+    if (
+      available &&
+      [sourceKey, appointmentKey, listKey, detailKey, USER_PREFERENCES_QUERY_KEY].some((queryKey) =>
+        client.isFetching({ queryKey, exact: true }),
+      )
+    )
+      return false;
     if (!available) retire();
     if (client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status !== 'success') {
       await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
@@ -506,6 +549,7 @@ function useEligibilityRecords(
     const ticket = generation.current;
     pending.current = true;
     setBusy(true);
+    setWorkingOwner(owner);
     try {
       readGuard();
       const before = signature();
@@ -517,7 +561,7 @@ function useEligibilityRecords(
       const identity = binding(kind, reason);
       const retry = retries.current.get(identity);
       if (retry) {
-        const target = { ...retry, signature: before, generation: ticket };
+        const target = { ...retry, owner, signature: before, generation: ticket };
         active.current = target;
         setAction(target);
         return;
@@ -632,6 +676,7 @@ function useEligibilityRecords(
       }
       guard();
       const target: Command = {
+        owner,
         kind,
         key,
         binding: identity,
@@ -671,6 +716,7 @@ function useEligibilityRecords(
       return;
     pending.current = true;
     setBusy(true);
+    setWorkingOwner(owner);
     setError(null);
     let transportStarted = false;
     let dispatched = false;
@@ -758,7 +804,7 @@ function useEligibilityRecords(
           'The outcome could not be confirmed. Retry the identical request to recover its retained result.',
         );
       retries.current.delete(command.binding);
-      setDrafting(false);
+      setDrafting(null);
       active.current = null;
       setAction(null);
       change({ record: record.uuid });
@@ -824,7 +870,7 @@ function useEligibilityRecords(
   );
   return {
     owner: available ? owner : null,
-    scopeKey: [...scope, selection.company, selection.record].join('/'),
+    scopeKey,
     readingPaused,
     loading: !!owner && relevantReads.some((read) => read.isPending),
     refreshing: relevantReads.some((read) => read.isFetching) || detail.isFetching,
@@ -856,14 +902,14 @@ function useEligibilityRecords(
         throw createUserFriendlyError('Your selected own eligibility request changed.');
     },
     selectRecord: (uuid: string | null) => {
-      setDrafting(false);
+      setDrafting(null);
       change({ record: uuid ?? '' });
     },
     busy,
-    action: readReady ? (action as EligibilityAction | null) : null,
+    action: readReady && action?.owner === owner ? (action as EligibilityAction) : null,
     canRetryDecision: readReady && retries.current.has(binding('decision')),
     cancel: () => {
-      setDrafting(true);
+      setDrafting(owner);
       retire();
     },
     confirm,
@@ -873,18 +919,18 @@ function useEligibilityRecords(
     companyUuid: selection.company,
     appointmentUuid: selection.appointment,
     setCompany: (uuid: string) => {
-      setDrafting(false);
+      setDrafting(null);
       change({ company: uuid, appointment: '', record: '' });
     },
     setAppointment: (uuid: string) => change({ appointment: uuid }),
     requestDraft: selection.request,
     decisionDraft: selection.decision,
     updateRequest: (patch: Partial<EligibilityRequestDraft>) => {
-      setDrafting(true);
+      setDrafting(owner);
       change({ request: { ...selected.current.request, ...patch } });
     },
     updateDecision: (patch: Partial<EligibilityDecisionDraft>) => {
-      setDrafting(true);
+      setDrafting(owner);
       change({ decision: { ...selected.current.decision, ...patch } });
     },
     previewRequest: () => prepare('request'),

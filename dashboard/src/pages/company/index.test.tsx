@@ -8,13 +8,17 @@ import {
   type Company,
   type CompanyDocument,
   type OwnCompanyAppointment,
+  type CompanyEligibilityRequest,
+  USER_PREFERENCES_QUERY_KEY,
+  AUTH_QUERY_KEY,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyPage from '.';
 import CompanyTeamPage from './team';
-import { APPOINTMENT, companyRecord, renderCompanyPage } from '../../testSupport/company';
+import CompanyEligibilityPage from './eligibility';
+import { APPOINTMENT, choose, companyPreferences, companyRecord, renderCompanyPage } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -195,4 +199,137 @@ it('shows company details and destinations without share classes, and uploads do
   expect(screen.queryAllByText('Private team administrator')).toHaveLength(0);
   expect((screen.getByRole('button', { name: 'Invite a company user' }) as HTMLButtonElement).disabled).toBe(true);
   expect(api.post).toHaveBeenCalledTimes(1);
+
+  cleanup();
+  client.clear();
+  failed = null;
+  const queueUrl = `${COMPANY}eligibility-requests/`;
+  const requestUuid = '00000000-0000-4000-8000-000000000072';
+  const expiresAt = `${addCalendarDays(utcToday(), 1)}T12:00`;
+  const eligibility: CompanyEligibilityRequest = {
+    uuid: requestUuid,
+    company: company.uuid,
+    userAccount: 'participant-account',
+    source: '00000000-0000-4000-8000-000000000073',
+    category: 'professional_investor',
+    outcome: 'pending',
+    decision: null,
+    withdrawal: null,
+    digest: 'synthetic-request-digest',
+    evidenceHash: 'synthetic-evidence-hash',
+    sourceFingerprint: 'synthetic-source-fingerprint',
+    idempotencyKey: '00000000-0000-4000-8000-000000000074',
+    requestedExpiresAt: expiresAt,
+    submittedAt: '2026-10-25T00:00:00Z',
+    submittedBy: 1,
+    version: '1',
+    sharedSummary: {
+      category: 'professional_investor',
+      source: '00000000-0000-4000-8000-000000000073',
+      userAccount: 'participant-account',
+      company: company.uuid,
+      declarationText: 'Synthetic private eligibility declaration',
+      submittedAt: '2026-10-25T00:00:00Z',
+      requestedExpiresAt: expiresAt,
+    },
+  };
+  let authorityGate: Promise<void> | null = null;
+  let otherAccount = false;
+  api.get.mockImplementation(async (url: string) => {
+    if (url === failed) throw new Error('Unavailable');
+    if (url === appointmentsUrl) {
+      if (authorityGate) await authorityGate;
+      return {
+        data: { ...EMPTY, results: otherAccount ? [] : [{ ...appointment, capabilities: ['prepare', 'approve'] }] },
+      };
+    }
+    if (url === queueUrl) return { data: { ...EMPTY, count: 1, results: [eligibility] } };
+    if (url === `${queueUrl}${requestUuid}/`) return { data: eligibility };
+    throw new Error(`Unexpected eligibility request: ${url}`);
+  });
+  api.post.mockImplementation(async (url: string) => {
+    expect(url).toBe(`${queueUrl}${requestUuid}/decision-preview/`);
+    return { data: { canDecide: true, previewDigest: 'synthetic-decision-digest', unmetRequirements: [] } };
+  });
+  renderCompanyPage(client, <CompanyEligibilityPage />, 'Company eligibility');
+  await choose('Company', company.name);
+  await screen.findByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.queryByRole('button', { name: /Refresh/ })).toBeNull();
+  const queueReads = () => api.get.mock.calls.filter(([url]) => url === queueUrl).length;
+  const beforeSource = ownReads();
+  const beforeQueue = queueReads();
+  let releaseAuthority!: () => void;
+  authorityGate = new Promise<void>((resolve) => {
+    releaseAuthority = resolve;
+  });
+  await act(async () => {
+    window.dispatchEvent(new Event('focus'));
+  });
+  await waitFor(() => expect(ownReads()).toBeGreaterThan(beforeSource));
+  expect(queueReads()).toBe(beforeQueue);
+  await act(async () => {
+    authorityGate = null;
+    releaseAuthority();
+  });
+  await waitFor(() => expect(queueReads()).toBeGreaterThan(beforeQueue));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  fireEvent.change(screen.getByLabelText('Your exact decision appointment'), { target: { value: appointment.uuid } });
+  fireEvent.click(screen.getByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` }));
+  fireEvent.change(await screen.findByLabelText('Acceptance expiry (local date and time)'), {
+    target: { value: expiresAt },
+  });
+  const previewOpener = screen.getByRole('button', { name: 'Preview company decision' });
+  previewOpener.focus();
+  fireEvent.click(previewOpener);
+  const reviewHeading = await screen.findByRole('heading', { name: 'Review exact action' });
+  expect(document.activeElement).toBe(reviewHeading);
+  expect(screen.queryByRole('heading', { name: 'Company request queue' })).toBeNull();
+  const duringReview = ownReads();
+  await act(async () => {
+    window.dispatchEvent(new Event('focus'));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  });
+  expect(ownReads()).toBe(duringReview);
+  expect(screen.getByRole('heading', { name: 'Review exact action' })).toBe(reviewHeading);
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(document.activeElement).toBe(previewOpener));
+  expect((screen.getByLabelText('Acceptance expiry (local date and time)') as HTMLInputElement).value).toBe(expiresAt);
+  const beforeAccountChange = ownReads();
+  otherAccount = true;
+  await act(async () => {
+    const preferences = companyPreferences();
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { ...preferences, userAccount: { ...preferences.userAccount!, uuid: 'account-two' } },
+    });
+  });
+  await waitFor(() => expect(ownReads()).toBeGreaterThan(beforeAccountChange));
+  expect(screen.queryByText('Synthetic private eligibility declaration')).toBeNull();
+  expect(screen.queryByLabelText('Acceptance expiry (local date and time)')).toBeNull();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const beforeNewSession = ownReads();
+  await act(async () => {
+    client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
+  });
+  await act(async () => {
+    client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  });
+  await waitFor(() => expect(ownReads()).toBeGreaterThan(beforeNewSession));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  otherAccount = false;
+  await act(async () => {
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences() });
+  });
+  await choose('Company', company.name);
+  await screen.findByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const beforeAuthorityFailure = queueReads();
+  failed = appointmentsUrl;
+  await act(async () => {
+    window.dispatchEvent(new Event('focus'));
+  });
+  await screen.findByText("The company's eligibility records could not be loaded.");
+  expect(queueReads()).toBe(beforeAuthorityFailure);
+  expect(screen.queryByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Preview company decision' })).toBeNull();
 });

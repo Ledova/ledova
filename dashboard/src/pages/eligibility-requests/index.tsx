@@ -1,7 +1,7 @@
 import { SelectField } from '@components/SelectField';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { useAutomaticReads } from '@hooks/useAutomaticReads';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   FIELD_LIMITS,
   DESTINATIONS,
@@ -21,11 +21,20 @@ import { Field, TextInput } from '@components/Field';
 import { WalletNomination } from './WalletNomination';
 
 export default function ParticipantEligibilityPage() {
-  const [walletHeld, setWalletHeld] = useState(false);
+  const [actionOpener, setActionOpener] = useState<HTMLElement | null>(null);
+  const [walletHeld, setWalletHeld] = useState<{ scope: string; held: boolean } | null>(null);
   const read = useParticipantEligibilityRecords(() => crypto.randomUUID(), undefined, {
     coordinatedReads: true,
-    paused: walletHeld,
+    pausedScope: walletHeld?.held ? walletHeld.scope : undefined,
   });
+  const onWalletHeld = useCallback(
+    (held: boolean) => {
+      setWalletHeld((prior) =>
+        prior?.scope === read.scopeKey && prior.held === held ? prior : { scope: read.scopeKey, held },
+      );
+    },
+    [read.scopeKey],
+  );
   useAutomaticReads({ scope: read.owner ? read.scopeKey : null, paused: read.readingPaused, refresh: read.refresh });
   const { running, track } = useRunningAction();
   const source = read.sources.find((item) => item.uuid === read.draft.source);
@@ -131,13 +140,22 @@ export default function ParticipantEligibilityPage() {
                 busyLabel="Previewing…"
                 disabled={read.busy || read.refreshing}
                 onClick={() => {
-                  if (request.check()) track('request', read.previewRequest());
+                  if (request.check()) {
+                    setActionOpener(document.activeElement as HTMLElement | null);
+                    track('request', read.previewRequest());
+                  }
                 }}
               />
             </Section>
           </div>
           {read.action && (
-            <ActionConfirmation action={read.action} busy={read.busy} confirm={read.confirm} cancel={read.cancel} />
+            <ActionConfirmation
+              action={read.action}
+              busy={read.busy}
+              confirm={read.confirm}
+              cancel={read.cancel}
+              opener={actionOpener}
+            />
           )}
           <div hidden={!!read.action} className="flex flex-col gap-5">
             {!read.readFailed && (
@@ -159,7 +177,10 @@ export default function ParticipantEligibilityPage() {
                     busy={running === 'withdrawal'}
                     busyLabel="Preparing…"
                     disabled={read.busy || read.refreshing}
-                    onClick={() => track('withdrawal', read.prepareWithdrawal(read.selectedRecord!))}
+                    onClick={() => {
+                      setActionOpener(document.activeElement as HTMLElement | null);
+                      track('withdrawal', read.prepareWithdrawal(read.selectedRecord!));
+                    }}
                   />
                 )}
               </>
@@ -173,7 +194,7 @@ export default function ParticipantEligibilityPage() {
             key={`${read.scopeKey}/${read.selectedRequestUuid}`}
             requestUuid={read.selectedRequestUuid}
             guardRequest={() => read.guardOwnRequest(read.selectedRequestUuid)}
-            onHeldChange={setWalletHeld}
+            onHeldChange={onWalletHeld}
             active={!read.action}
           />
         </div>

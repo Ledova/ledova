@@ -10,13 +10,21 @@ import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
 
 export default function IssuerPublicationsPage() {
-  const [opening, setOpening] = useState(false);
-  const companyRead = useCompanySelection({ ownedOnly: true, coordinatedReads: true, paused: opening });
+  const [opening, setOpening] = useState<{ scope: string; company: string | undefined } | null>(null);
+  const companyRead = useCompanySelection({ ownedOnly: true, coordinatedReads: true, pausedScope: opening?.scope });
   return (
     <CompanyPublications
       key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`}
       companyRead={companyRead}
-      onOpeningChange={setOpening}
+      onOpeningChange={(busy) =>
+        setOpening((current) =>
+          busy
+            ? { scope: companyRead.scopeKey, company: companyRead.companyUuid }
+            : current?.scope === companyRead.scopeKey && current.company === companyRead.companyUuid
+              ? null
+              : current,
+        )
+      }
     />
   );
 }

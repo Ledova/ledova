@@ -41,6 +41,7 @@ const QUEUE_OUTCOMES = [
 type QueueOutcome = Exclude<(typeof QUEUE_OUTCOMES)[number][0], ''>;
 
 export default function CompanyEligibilityPage() {
+  const [actionOpener, setActionOpener] = useState<HTMLElement | null>(null);
   const list = useListParams(['outcome']);
   const outcome = QUEUE_OUTCOMES.find(([value]) => value && value === list.filters.outcome)?.[0] as
     QueueOutcome | undefined;
@@ -209,7 +210,10 @@ export default function CompanyEligibilityPage() {
                       busyLabel="Previewing…"
                       disabled={read.busy || read.refreshing || !appointment}
                       onClick={() => {
-                        if (decisionChecks.check()) track('decision', read.previewDecision());
+                        if (decisionChecks.check()) {
+                          setActionOpener(document.activeElement as HTMLElement | null);
+                          track('decision', read.previewDecision());
+                        }
                       }}
                     />
                   </Section>
@@ -233,8 +237,10 @@ export default function CompanyEligibilityPage() {
                       busyLabel="Preparing…"
                       disabled={read.busy || read.refreshing || !canApprove}
                       onClick={() => {
-                        if (revocationChecks.check())
+                        if (revocationChecks.check()) {
+                          setActionOpener(document.activeElement as HTMLElement | null);
                           track('revocation', read.prepareRevocation(read.selectedRecord!, revocationReason));
+                        }
                       }}
                     />
                   </Section>
@@ -243,7 +249,13 @@ export default function CompanyEligibilityPage() {
             )}
           </div>
           {read.action && (
-            <ActionConfirmation action={read.action} busy={read.busy} confirm={read.confirm} cancel={read.cancel} />
+            <ActionConfirmation
+              action={read.action}
+              busy={read.busy}
+              confirm={read.confirm}
+              cancel={read.cancel}
+              opener={actionOpener}
+            />
           )}
         </>
       )}

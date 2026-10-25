@@ -22,16 +22,16 @@ type ConfirmationProps = {
     checks: { sharingAccepted?: boolean; declarationAccepted?: boolean; confirmation?: boolean },
   ) => Promise<void>;
   cancel: () => void;
+  opener?: HTMLElement | null;
 };
 
 export function ActionConfirmation(props: ConfirmationProps) {
   return <Confirmation key={props.action.key} {...props} />;
 }
 
-function Confirmation({ action, busy, confirm, cancel }: ConfirmationProps) {
+function Confirmation({ action, busy, confirm, cancel, opener }: ConfirmationProps) {
   const container = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const opener = document.activeElement;
     const heading = container.current?.querySelector('h2');
     if (heading) {
       heading.tabIndex = -1;
@@ -42,7 +42,7 @@ function Confirmation({ action, busy, confirm, cancel }: ConfirmationProps) {
       if (opener instanceof HTMLElement && opener.isConnected && !opener.closest('[hidden]'))
         opener.focus({ preventScroll: true });
     };
-  }, []);
+  }, [opener]);
   const [consent, setConsent] = useState({ action, sharing: false, declaration: false, confirmed: false });
   const checks = consent.action === action ? consent : { action, sharing: false, declaration: false, confirmed: false };
   const { sharing, declaration, confirmed } = checks;

@@ -29,6 +29,7 @@ export function useWalletNomination(options: {
   guardRequest?: () => void;
   coordinatedReads?: boolean;
   paused?: boolean;
+  pausedScope?: string;
 }) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -47,14 +48,24 @@ export function useWalletNomination(options: {
   const [retained, setRetained] = useState<typeof reviewed>(null);
   const [receiptState, setReceipt] = useState<{ owner: typeof owner; record: WalletNomination } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [drafting, setDrafting] = useState(false);
+  const [drafting, setDrafting] = useState<typeof owner>(null);
+  const [workingOwner, setWorkingOwner] = useState<typeof owner>(null);
+  const view = useRef({ owner, generation: 0 });
+  if (view.current.owner !== owner) view.current = { owner, generation: view.current.generation + 1 };
   const [error, setError] = useState<string | null>(null);
   const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0];
-  const scopeKey = [...scope, options.requestUuid].join('/');
+  const scopeKey = [...scope, options.requestUuid, view.current.generation].join('/');
   const requestKey = eligibilityRecordKey('participant', scope, '', options.requestUuid);
   const walletKey = [...WALLETS_QUERY_KEY, 'nomination', ...scope];
   const nominationKey = ['wallet-nominations', ...scope, options.requestUuid];
-  const readingPaused = !!options.paused || drafting || busy || !!reviewed || !!retained;
+  const readingPaused =
+    !!options.paused ||
+    options.pausedScope === scopeKey ||
+    (!!owner &&
+      (drafting === owner ||
+        (busy && workingOwner === owner) ||
+        (reviewed?.owner === owner && reviewed.body.request === options.requestUuid) ||
+        (retained?.owner === owner && retained.body.request === options.requestUuid)));
   const reading = !options.coordinatedReads || !readingPaused;
   const timing = options.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
   useLayoutEffect(() => {
@@ -165,8 +176,15 @@ export function useWalletNomination(options: {
       );
   };
   const refresh = async (available?: () => boolean) => {
-    const current = () => !available || (available() && !pending.current && !readingPaused);
+    const current = () => !available || (available() && !(pending.current && workingOwner === owner) && !readingPaused);
     if (!current()) return;
+    if (
+      available &&
+      [requestKey, walletKey, nominationKey, USER_PREFERENCES_QUERY_KEY].some((queryKey) =>
+        client.isFetching({ queryKey, exact: true }),
+      )
+    )
+      return false;
     try {
       guard();
       if (options.coordinatedReads) {
@@ -186,6 +204,7 @@ export function useWalletNomination(options: {
     if (pending.current || retained?.owner === owner) return;
     pending.current = true;
     setBusy(true);
+    setWorkingOwner(owner);
     setError(null);
     setReviewed(null);
     try {
@@ -233,6 +252,7 @@ export function useWalletNomination(options: {
     if (pending.current || !original || original.owner !== owner || (!recover && !original.preview.canSubmit)) return;
     pending.current = true;
     setBusy(true);
+    setWorkingOwner(owner);
     setError(null);
     let dispatched = false;
     try {
@@ -287,7 +307,7 @@ export function useWalletNomination(options: {
       setReceipt({ owner, record: response.data });
       setRetained(null);
       setReviewed(null);
-      setDrafting(false);
+      setDrafting(null);
       await nominations.refetch();
       guard();
     } catch (failure) {
@@ -335,7 +355,7 @@ export function useWalletNomination(options: {
       if (original || pending.current) return;
       selected.current = { owner, request: options.requestUuid, wallet: uuid };
       setWalletSelection({ owner, uuid });
-      setDrafting(!!uuid);
+      setDrafting(uuid ? owner : null);
       setReviewed(null);
       setError(null);
     },
