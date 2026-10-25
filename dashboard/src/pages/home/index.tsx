@@ -5,7 +5,6 @@ import {
   FIELD_LIMITS,
   REGISTER_CORRECTION_COPY,
   MEMBER_PARTICULARS_STATUS_LABELS,
-  MEMBER_CERTIFICATE_STATUS_LABELS,
   type RegisterEntryKind,
   shortReference,
 } from '@ledova/shared';
@@ -83,8 +82,28 @@ function MemberRecords({
     }
   }, [read.record, read.selectToken, held]);
   const historyShareClass = read.record?.classes.find((item) => item.uuid === historyToken) ?? read.record?.classes[0];
-  const historyClass = historyShareClass?.name ?? '';
   const records = !read.readFailed && read.record ? [read.record] : [];
+  const pendingParticulars =
+    read.requests?.particulars.filter((request) => request.status !== 'applied' && request.status !== 'rejected') ?? [];
+  const previousParticulars =
+    read.requests?.particulars.filter((request) => request.status === 'applied' || request.status === 'rejected') ?? [];
+  const particularsRequests = (requests: NonNullable<typeof read.requests>['particulars']) => (
+    <div className="divide-y divide-border-subtle text-sm">
+      {requests.map((request) => (
+        <div key={request.uuid} className="py-3">
+          <p>Particulars update · {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}</p>
+          <Disclosure summary="Record details">
+            <Rows>
+              <Row label="Requested name">{request.name}</Row>
+              <Row label="Requested residential address">{request.residentialAddress}</Row>
+              <Row label="Request">{shortReference(request.uuid)}</Row>
+              {request.change && <Row label="Company instruction">{shortReference(request.change)}</Row>}
+            </Rows>
+          </Disclosure>
+        </div>
+      ))}
+    </div>
+  );
   const choose = (uuid: string) => {
     if (uuid !== read.record?.uuid) {
       initialHistory.current = '';
@@ -118,18 +137,6 @@ function MemberRecords({
               <Row label="Recorded">{formatDateTime(entry.createdAt)}</Row>
             </Rows>
           </Disclosure>
-          {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) && BigInt(entry.delta) > 0n && (
-            <FormActions>
-              <PageAction
-                label="Request certificate"
-                context={`${historyClass}, entry ${entry.sequence}`}
-                busy={running === `certificate:${entry.uuid}`}
-                busyLabel="Requesting…"
-                disabled={held}
-                onClick={() => track(`certificate:${entry.uuid}`, read.requestCertificate(entry.uuid))}
-              />
-            </FormActions>
-          )}
         </div>
       ))}
     </div>
@@ -198,7 +205,6 @@ function MemberRecords({
                     />
                     {record.awards.length > 0 && (
                       <Section title="Employee awards">
-                        <p className="text-sm text-text-muted">Promised shares are an entitlement until issued.</p>
                         <div className="divide-y divide-border-subtle">
                           {record.awards.map((award) => (
                             <div key={award.uuid} className="space-y-3 py-3">
@@ -207,8 +213,19 @@ function MemberRecords({
                                   {record.classes.find((item) => item.uuid === award.token)!.name}
                                 </h3>
                               )}
-                              <AwardStatus {...award} />
-                              <Disclosure summary="Award terms and recorded vesting">
+                              <AwardStatus {...award} compact />
+                              <Disclosure summary="Award details">
+                                <Rows>
+                                  <Row label="Company-recorded vested">{formatShareCount(award.vestedShares)}</Row>
+                                  <Row label="Unvested">{formatShareCount(award.unvestedRemainingShares)}</Row>
+                                  <Row label="Vested, awaiting issue">{formatShareCount(award.availableShares)}</Row>
+                                  <Row label="Issued from award">{formatShareCount(award.issuedShares)}</Row>
+                                  <Row label="Unvested rights ended">{formatShareCount(award.endedUnvestedShares)}</Row>
+                                  <Row label="Vested rights ended">{formatShareCount(award.endedVestedShares)}</Row>
+                                  <Row label="Remaining unissued">
+                                    {formatShareCount(award.remainingUnissuedShares)}
+                                  </Row>
+                                </Rows>
                                 <div className="space-y-2 text-sm text-text-muted">
                                   <p>
                                     {formatDate(award.termsOn)} · {award.terms}
@@ -249,9 +266,7 @@ function MemberRecords({
               <Loading>Loading your company record…</Loading>
             )}
             {read.record && !read.readFailed && (
-              <div
-                className={`grid items-start gap-4 ${!documentsOnly && read.requests && (read.requests.particulars.length > 0 || read.requests.certificates.length > 0) ? 'xl:grid-cols-2' : ''}`}
-              >
+              <div className="space-y-4">
                 {documentsOnly ? (
                   <MemberCertificates
                     read={read}
@@ -266,47 +281,11 @@ function MemberRecords({
                     onWithdraw={(request) => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
                   />
                 ) : (
-                  <Section title="Your member record">
-                    {read.entries.length > 0 && (
-                      <div className="space-y-2 border-b border-border-subtle pb-3 text-sm">
-                        <h3 className="font-medium">Recent changes · {historyClass}</h3>
-                        {[...read.entries]
-                          .sort((left, right) => right.sequence - left.sequence)
-                          .slice(0, 3)
-                          .map((entry) => (
-                            <p key={entry.uuid} className="text-text-muted">
-                              Ledger {formatDate(entry.effectiveOn)} · {entryKind(entry.kind)} · Own change{' '}
-                              {shareChange(entry.delta)}
-                              {['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) &&
-                                ` · Company date ${entry.companyEventOn ? formatDate(entry.companyEventOn) : 'Not recorded'}`}
-                            </p>
-                          ))}
-                      </div>
-                    )}
-                    <Disclosure summary="Company-recorded particulars">
-                      <p className="text-sm text-text-muted">
-                        Provided by the company, not verified by Ledova. Profile edits do not change this register.
-                      </p>
-                      <Rows>
-                        <Row label="Member">{read.record.name}</Row>
-                        <Row label="Residential address">{read.record.residentialAddress}</Row>
-                      </Rows>
-                      {read.record.classes.map((item) => (
-                        <p key={item.uuid} className="py-2 text-sm text-text-muted">
-                          {item.name} · Entered {formatDate(item.enteredOn, 'Not recorded')}
-                          {item.ceasedOn ? ` · Ceased ${formatDate(item.ceasedOn)}` : ''} · Amount paid{' '}
-                          {item.amountPaid ?? 'not recorded'}
-                        </p>
-                      ))}
-                    </Disclosure>
-                    <Disclosure
-                      summary="Your share history and certificate requests"
-                      open={historyOpen}
-                      onToggle={() => setHistoryOpen((open) => !open)}
-                      keepMounted
-                    >
-                      {shareHistory}
-                    </Disclosure>
+                  <Section title="Your details">
+                    <Rows>
+                      <Row label="Name">{read.record.name}</Row>
+                      <Row label="Residential address">{read.record.residentialAddress}</Row>
+                    </Rows>
                     <Disclosure
                       summary="Request a particulars update"
                       open={particularsOpen}
@@ -318,28 +297,31 @@ function MemberRecords({
                           The company reviews your request. Sending it changes no holding or register particulars.
                         </p>
                         <ErrorSummary {...particularsChecks.summary} />
-                        <Field {...particularsChecks.field('name')} label="Requested name">
-                          <TextInput
-                            maxLength={FIELD_LIMITS.NAME}
-                            value={name}
-                            disabled={held}
-                            onChange={(event) => {
-                              setName(event.target.value);
-                              setConfirmed(false);
-                            }}
-                          />
-                        </Field>
-                        <Field {...particularsChecks.field('address')} label="Requested residential address">
-                          <TextArea
-                            maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
-                            value={address}
-                            disabled={held}
-                            onChange={(event) => {
-                              setAddress(event.target.value);
-                              setConfirmed(false);
-                            }}
-                          />
-                        </Field>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <Field {...particularsChecks.field('name')} label="Requested name">
+                            <TextInput
+                              maxLength={FIELD_LIMITS.NAME}
+                              value={name}
+                              disabled={held}
+                              onChange={(event) => {
+                                setName(event.target.value);
+                                setConfirmed(false);
+                              }}
+                            />
+                          </Field>
+                          <Field {...particularsChecks.field('address')} label="Requested residential address">
+                            <TextArea
+                              rows={3}
+                              maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
+                              value={address}
+                              disabled={held}
+                              onChange={(event) => {
+                                setAddress(event.target.value);
+                                setConfirmed(false);
+                              }}
+                            />
+                          </Field>
+                        </div>
                         <CheckboxField
                           {...particularsChecks.field('confirmed')}
                           label="Share these requested particulars with this company for review."
@@ -362,52 +344,42 @@ function MemberRecords({
                         </FormActions>
                       </div>
                     </Disclosure>
+                    {pendingParticulars.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-medium">Particulars requests</h3>
+                        {particularsRequests(pendingParticulars)}
+                      </div>
+                    )}
+                    {previousParticulars.length > 0 && (
+                      <Disclosure summary="Previous particulars requests">
+                        {particularsRequests(previousParticulars)}
+                      </Disclosure>
+                    )}
+                    <Disclosure summary="Ledger details">
+                      <p className="text-sm text-text-muted">
+                        Provided by the company, not verified by Ledova. Profile edits do not change this register.
+                      </p>
+                      {read.record.classes.map((item) => (
+                        <p key={item.uuid} className="py-2 text-sm text-text-muted">
+                          {item.name} · Entered {formatDate(item.enteredOn, 'Not recorded')}
+                          {item.ceasedOn ? ` · Ceased ${formatDate(item.ceasedOn)}` : ''} · Amount paid{' '}
+                          {item.amountPaid ?? 'not recorded'}
+                        </p>
+                      ))}
+                    </Disclosure>
+                    <Disclosure
+                      summary="Share history"
+                      open={historyOpen}
+                      onToggle={() => setHistoryOpen((open) => !open)}
+                      keepMounted
+                    >
+                      {shareHistory}
+                    </Disclosure>
                   </Section>
                 )}
-                {read.requests &&
-                  (read.requests.particulars.length > 0 ||
-                    (!documentsOnly && read.requests.certificates.length > 0)) && (
-                    <Section title={documentsOnly ? 'Particulars requests' : 'Your request status'}>
-                      <div className="space-y-3 pt-2 text-sm">
-                        {read.requests.particulars.map((request) => (
-                          <div key={request.uuid}>
-                            <p>Particulars update · {MEMBER_PARTICULARS_STATUS_LABELS[request.status]}</p>
-                            <Disclosure summary="Record details">
-                              <p className="break-all">
-                                Request {shortReference(request.uuid)}
-                                {request.change ? ` · Company instruction ${shortReference(request.change)}` : ''}
-                              </p>
-                            </Disclosure>
-                          </div>
-                        ))}
-                        {!documentsOnly &&
-                          read.requests.certificates.map((request, index) => (
-                            <div key={request.uuid} className="space-y-2">
-                              <p>
-                                Certificate requested {formatDate(request.createdAt)}
-                                {request.status !== 'requested' &&
-                                  ` · ${MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}`}
-                              </p>
-                              <Disclosure summary="Record details">
-                                <p className="break-all">
-                                  Request {shortReference(request.uuid)} · Entry {shortReference(request.entry)}
-                                </p>
-                              </Disclosure>
-                              {request.status === 'requested' && (
-                                <FormActions>
-                                  <PageAction
-                                    label="Withdraw certificate request"
-                                    context={`request ${index + 1}, requested ${formatDateTime(request.createdAt)}`}
-                                    disabled={held}
-                                    onClick={() => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
-                                  />
-                                </FormActions>
-                              )}
-                            </div>
-                          ))}
-                      </div>
-                    </Section>
-                  )}
+                {documentsOnly && read.requests && read.requests.particulars.length > 0 && (
+                  <Section title="Particulars requests">{particularsRequests(read.requests.particulars)}</Section>
+                )}
               </div>
             )}
             {!read.error && read.records.length === 0 ? (

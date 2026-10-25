@@ -211,15 +211,25 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   expect(await screen.findByText('10 issued shares')).toBeTruthy();
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
+  const awardsCard = screen.getByRole('heading', { name: 'Employee awards' }).closest('section')!;
+  expect(within(awardsCard).getByText('5 shares promised')).toBeTruthy();
+  expect(
+    within(awardsCard)
+      .getAllByRole('term')
+      .map((item) => item.textContent),
+  ).toEqual(['Unvested', 'Vested, awaiting issue']);
   await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
   expect(api.get.mock.calls.some(([url]) => url === WALLET_ENDPOINTS.BASE)).toBe(false);
   expect(screen.queryByRole('heading', { name: 'Shares in your wallets' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Accept another member invitation' })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Member invitation code' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
-  await screen.findByText('Recent changes · Ordinary');
+  const detailsCard = screen.getByRole('heading', { name: 'Your details' }).closest('section')!;
+  expect(within(detailsCard).getByText(MEMBER_RECORD.name)).toBeTruthy();
+  expect(within(detailsCard).getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
   expect(screen.queryByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` })).toBeNull();
-  expect(screen.getByText('Recent changes · Ordinary')).toBeTruthy();
+  expect(screen.queryByText('Recent changes · Ordinary')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
   record = {
     ...MEMBER_RECORD,
     classes: [{ ...MEMBER_RECORD.classes[0], shares: '15' }],
@@ -245,6 +255,12 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   fireEvent(document, new Event('visibilitychange'));
   expect(await screen.findByText('15 issued shares')).toBeTruthy();
   expect(screen.getByRole('img', { name: /0 unvested, 0 vested, awaiting issue, 5 issued from award/ })).toBeTruthy();
+  const issuedAwardCard = screen.getByRole('heading', { name: 'Employee awards' }).closest('section')!;
+  expect(
+    within(issuedAwardCard)
+      .getAllByRole('term')
+      .map((item) => item.textContent),
+  ).toEqual(['Issued from award']);
   expect(screen.queryByText('20 issued shares')).toBeNull();
   record = {
     ...record,
@@ -286,7 +302,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   await screen.findByRole('img', {
     name: /1 unvested, 1 vested, awaiting issue, 1 issued from award, 1 unvested rights ended, 1 vested rights ended/,
   });
-  fireEvent.click(screen.getByText('Award terms and recorded vesting'));
+  fireEvent.click(screen.getByText('Award details'));
   expect(screen.getByText(/Company selected reduction/)).toBeTruthy();
   expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
@@ -315,6 +331,10 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   await screen.findByText('10 issued shares');
   fireEvent.click(screen.getByText('Request a particulars update'));
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), { target: { value: 'Retained draft' } });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Requested residential address' }), {
+    target: { value: 'Retained draft address' },
+  });
+  fireEvent.click(screen.getByRole('checkbox', { name: /Share these requested particulars/ }));
   await act(async () => {
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
   });
@@ -322,13 +342,21 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   await waitFor(() =>
     expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft'),
   );
+  expect((screen.getByRole('textbox', { name: 'Requested residential address' }) as HTMLTextAreaElement).value).toBe(
+    'Retained draft address',
+  );
+  expect(
+    (screen.getByRole('checkbox', { name: /Share these requested particulars/ }) as HTMLInputElement).checked,
+  ).toBe(true);
   expect(api.get.mock.calls.some(([url]) => url === URLS.HOLDERS(MEMBER_RECORD.classes[0].uuid))).toBe(false);
   fireEvent.click(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
-  await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
+  await screen.findByRole('heading', { name: '+10 ORD shares' });
+  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
   await act(async () => {
     await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
   });
-  expect(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: '+10 ORD shares' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Share history' }).getAttribute('aria-expanded')).toBe('true');
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   expect(await screen.findByRole('heading', { name: 'Documents', level: 1 })).toBeTruthy();
   expect(screen.queryByText('10 issued shares')).toBeNull();

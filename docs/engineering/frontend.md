@@ -638,7 +638,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   company's registers alone.
 - Personal dashboard: reads the person's own member projection. Its overview sums issued shares
   with `BigInt` and charts the member's own shares by class, without company-wide totals or ownership
-  percentages. Awards remain separate entitlements. The first own class's history loads when a
+  percentages. Awards remain separate entitlements, with the promise and nonzero lifecycle quantities
+  above their full breakdown and terms in Award details. Your details groups recorded particulars, their
+  update form and particulars-request status in one full-width card; certificate tracking remains
+  in Documents. Share history opens on demand. The first own class's history loads when a
   member record opens, and choosing another class reads that class's own entries. Active web reads
   follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
