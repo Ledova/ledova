@@ -20,7 +20,7 @@ import type {
   RegisterAwardVestingReversal,
   RegisterGrant,
 } from '@ledova/shared';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Link, MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
@@ -77,11 +77,17 @@ function awardView(onHeldChange?: (token: string, held: boolean) => void, active
   );
 }
 
+async function expandAward() {
+  const row = await screen.findByRole('button', { name: new RegExp(`Award for.*${AWARD_REQUEST.name}`) });
+  if (row.getAttribute('aria-expanded') !== 'true') fireEvent.click(row);
+}
+
 function show(onHeldChange?: (token: string, held: boolean) => void) {
   return render(awardView(onHeldChange));
 }
 
 beforeEach(() => {
+  window.history.replaceState({}, '', '/company/ledger#awards');
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   appointments = [APPOINTMENT];
   awards = [];
@@ -182,6 +188,9 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  focusManager.setFocused(undefined);
+  onlineManager.setOnline(true);
+  window.history.replaceState({}, '', '/');
   client.clear();
   vi.useRealTimers();
   vi.restoreAllMocks();
@@ -191,6 +200,7 @@ it('retains original award, vesting and linked issue preparations through interr
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const view = show();
   for (const kind of ['award', 'vesting'] as const) {
+    if (kind === 'vesting') await expandAward();
     const open = await screen.findByRole('button', { name: kind === 'award' ? COPY.PREPARE : 'Record vesting' });
     await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(open);
@@ -262,13 +272,7 @@ it('retains original award, vesting and linked issue preparations through interr
     '/company/ledger#issue',
   );
   expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
-  expect(screen.getByText('100 shares promised · 100 company-recorded vested')).toBeTruthy();
-  for (const [label, quantity] of [
-    ['Unvested', '0'],
-    ['Issued from award', '0'],
-    ['Vested, awaiting issue', '100'],
-  ])
-    expect(within(screen.getByText(label).parentElement!).getByText(`${quantity} shares`)).toBeTruthy();
+  expect(screen.getByRole('img', { name: /0 unvested, 100 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   view.unmount();
   const post = api.post.getMockImplementation()!;
   let retainedGrant: RegisterGrant | null = null;
@@ -475,6 +479,7 @@ it('retains original award, vesting and linked issue preparations through interr
       </ApiClientProvider>
     </QueryClientProvider>,
   );
+  await expandAward();
   await screen.findByRole('link', { name: 'Issue vested shares' });
   await waitFor(() => expect(screen.queryByText('Loading employee awards…')).toBeNull());
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -517,14 +522,7 @@ it('retains original award, vesting and linked issue preparations through interr
   expect((screen.getByLabelText('Share class') as HTMLSelectElement).disabled).toBe(true);
   expect(within(ordinaryClass).getByLabelText('Document')).toBe(draftDocument);
   expect(draftDocument.files?.[0]).toBe(FILE);
-  const resumedSchedule = 'Schedule refreshed after closing a draft beside another class';
-  awards = [{ ...awards[0], schedule: resumedSchedule }];
   fireEvent.click(within(ordinaryClass).getByRole('button', { name: 'Cancel (award preparation)' }));
-  await waitFor(() =>
-    expect(client.getQueryData<RegisterAward[]>(awardsKey(OWNER, REGISTER.token.uuid))?.[0].schedule).toBe(
-      resumedSchedule,
-    ),
-  );
   await waitFor(() => expect(client.isFetching()).toBe(0));
   const beforeHiddenTaskPoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS).length;
   const beforeOtherClassPoll = api.get.mock.calls.filter(
@@ -811,6 +809,7 @@ it('retains original award, vesting and linked issue preparations through interr
   });
   const changes = show();
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
+  await expandAward();
   const ending = await screen.findByRole('button', { name: COPY.END });
   await waitFor(() => expect((ending as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(ending);
@@ -906,85 +905,83 @@ it('retains original award, vesting and linked issue preparations through interr
   changes.unmount();
 });
 
-it('refreshes visible awards without replacing drafts or replaying held requests and hides private records when authority is lost', async () => {
-  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+it('keeps awards stable until entry or an explicit read and preserves guarded original-request recovery', async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
   awards = [awardFrom(AWARD_REQUEST)];
   const held = vi.fn();
-  const view = show(held);
-  await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
+  let view = show(held);
+  await expandAward();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('button', { name: 'Refresh awards' })).toBeNull();
   const firstRead = api.get.mock.calls.length;
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(180_000);
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+    onlineManager.setOnline(false);
+    onlineManager.setOnline(true);
+    fireEvent(window, new Event('focus'));
+    fireEvent(window, new Event('online'));
+    fireEvent(document, new Event('visibilitychange'));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  expect(api.get.mock.calls).toHaveLength(firstRead);
+  expect(screen.getByRole('heading', { name: AWARD_REQUEST.name! })).toBeTruthy();
   view.rerender(awardView(held, false));
   view.rerender(awardView(held));
-  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
-  expect(api.get.mock.calls).toHaveLength(firstRead);
-  await act(async () => vi.advanceTimersByTimeAsync(60_000));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
   await waitFor(() => expect(api.get.mock.calls.length).toBeGreaterThan(firstRead));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   const readCycle = api.get.mock.calls.slice(firstRead).map(([url]) => url);
   expect(readCycle[0]).toBe('/api/v1/company-authority/appointments/');
   expect(readCycle.indexOf(URLS.REGISTER_AWARDS)).toBeGreaterThan(0);
-  const beforeRevokedRead = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS).length;
-  appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
-  fireEvent(window, new Event('focus'));
-  await waitFor(() => expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull());
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS)).toHaveLength(beforeRevokedRead);
-  appointments = [APPOINTMENT];
-  fireEvent(window, new Event('online'));
-  await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
-  const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
-  const read = api.get.getMockImplementation()!;
-  let appointmentWait: Promise<void> | undefined;
-  api.get.mockImplementation(async (url, config) => {
-    if (url === '/api/v1/company-authority/appointments/' && appointmentWait) await appointmentWait;
-    return read(url, config);
-  });
-  for (const suspension of ['inactive', 'hidden', 'offline']) {
+  const entryRead = api.get.getMockImplementation()!;
+  for (const delayed of ['/api/v1/company-authority/appointments/', URLS.REGISTER_AWARDS]) {
+    await act(async () => vi.advanceTimersByTimeAsync(180_000));
     let release = () => {};
-    appointmentWait = new Promise<void>((resolve) => {
+    const pending = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const beforeAppointment = api.get.mock.calls.filter(
-      ([url]) => url === '/api/v1/company-authority/appointments/',
-    ).length;
-    const beforeSuspendedAwards = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS).length;
-    const beforeSuspendedGrants = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
-    fireEvent(window, new Event('focus'));
-    await waitFor(() =>
-      expect(
-        api.get.mock.calls.filter(([url]) => url === '/api/v1/company-authority/appointments/').length,
-      ).toBeGreaterThan(beforeAppointment),
-    );
-    expect(screen.getByText('Loading employee awards…')).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull();
-    if (suspension === 'inactive') view.rerender(awardView(held, false));
-    else if (suspension === 'hidden') hidden.mockReturnValue(true);
-    else online.mockReturnValue(false);
-    await act(async () => {
-      release();
-      await new Promise((resolve) => setTimeout(resolve, 0));
+    api.get.mockImplementation(async (url, config) => {
+      if (url === delayed) await pending;
+      return entryRead(url, config);
     });
+    const beforeDelayed = api.get.mock.calls.filter(([url]) => url === delayed).length;
+    const beforeHiddenAwards = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS).length;
+    const beforeHiddenGrants = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
+    const beforeHiddenVestings = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARD_VESTINGS).length;
+    view.rerender(awardView(held, false));
+    view.rerender(awardView(held));
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(api.get.mock.calls.filter(([url]) => url === delayed)).toHaveLength(beforeDelayed + 1);
+    view.rerender(awardView(held, false));
+    await act(async () => release());
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS)).toHaveLength(beforeSuspendedAwards);
-    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeSuspendedGrants);
-    appointmentWait = undefined;
-    const updatedSchedule = `Schedule revalidated after ${suspension}`;
-    awards = [{ ...awards[0], schedule: updatedSchedule }];
-    hidden.mockReturnValue(false);
-    online.mockReturnValue(true);
-    if (suspension === 'inactive') view.rerender(awardView(held));
-    fireEvent(window, new Event('focus'));
-    await waitFor(() =>
-      expect(client.getQueryData<RegisterAward[]>(awardsKey(OWNER, REGISTER.token.uuid))?.[0].schedule).toBe(
-        updatedSchedule,
-      ),
+    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS)).toHaveLength(
+      beforeHiddenAwards + (delayed === URLS.REGISTER_AWARDS ? 1 : 0),
     );
+    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeHiddenGrants);
+    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARD_VESTINGS)).toHaveLength(
+      beforeHiddenVestings,
+    );
+    api.get.mockImplementation(entryRead);
+    view.unmount();
+    view = render(awardView(held, false));
     await waitFor(() => expect(client.isFetching()).toBe(0));
+    await expandAward();
+    await waitFor(() =>
+      expect((screen.getByRole('button', { name: 'Record vesting' }) as HTMLButtonElement).disabled).toBe(false),
+    );
   }
+  const beforeRevokedRead = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS).length;
+  appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
+  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true }));
+  await waitFor(() => expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull());
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS)).toHaveLength(beforeRevokedRead);
+  appointments = [APPOINTMENT];
+  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true }));
+  view.rerender(awardView(held));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await expandAward();
   const open = await screen.findByRole('button', { name: 'Record vesting' });
   await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(open);
@@ -995,10 +992,14 @@ it('refreshes visible awards without replacing drafts or replaying held requests
   vestingDocument.focus();
   const beforeDraftRead = api.get.mock.calls.length;
   const beforeDraftWrites = api.post.mock.calls.length;
-  fireEvent(window, new Event('focus'));
-  fireEvent(window, new Event('online'));
-  fireEvent(document, new Event('visibilitychange'));
-  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(180_000);
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+    onlineManager.setOnline(false);
+    onlineManager.setOnline(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
   expect(api.get.mock.calls).toHaveLength(beforeDraftRead);
   expect(api.post.mock.calls).toHaveLength(beforeDraftWrites);
   expect(screen.getByLabelText('Document')).toBe(vestingDocument);
@@ -1007,36 +1008,6 @@ it('refreshes visible awards without replacing drafts or replaying held requests
   expect(within(vestingDocument.parentElement!).getByText(FILE.name)).toBeTruthy();
   expect((screen.getByLabelText('Shares in this event') as HTMLInputElement).value).toBe('50');
   expect(submissions(URLS.REGISTER_AWARD_VESTINGS)).toHaveLength(0);
-  hidden.mockReturnValue(true);
-  online.mockReturnValue(false);
-  const beforeHiddenRead = api.get.mock.calls.length;
-  await act(async () => vi.advanceTimersByTimeAsync(60_000));
-  expect(api.get.mock.calls).toHaveLength(beforeHiddenRead);
-  hidden.mockReturnValue(false);
-  await act(async () => vi.advanceTimersByTimeAsync(60_000));
-  expect(api.get.mock.calls).toHaveLength(beforeHiddenRead);
-  online.mockReturnValue(true);
-  view.rerender(awardView(held, false));
-  await act(async () => vi.advanceTimersByTimeAsync(60_000));
-  expect(api.get.mock.calls).toHaveLength(beforeHiddenRead);
-  view.rerender(awardView(held, true, false));
-  await act(async () => vi.advanceTimersByTimeAsync(60_000));
-  expect(api.get.mock.calls).toHaveLength(beforeHiddenRead);
-  view.rerender(awardView(held));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect((screen.getByLabelText('Shares in this event') as HTMLInputElement).value).toBe('50');
-  const resumedSchedule = 'The company updated the schedule while this vesting draft was open';
-  awards = [{ ...awards[0], schedule: resumedSchedule }];
-  fireEvent.click(screen.getByRole('button', { name: `Cancel (vesting for ${AWARD_REQUEST.name})` }));
-  await waitFor(() =>
-    expect(client.getQueryData<RegisterAward[]>(awardsKey(OWNER, REGISTER.token.uuid))?.[0].schedule).toBe(
-      resumedSchedule,
-    ),
-  );
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  fireEvent.click(screen.getByRole('button', { name: 'Record vesting' }));
-  fireEvent.change(screen.getByLabelText('Shares in this event'), { target: { value: '50' } });
-  fireEvent.change(screen.getByLabelText('Document'), { target: { files: [FILE] } });
   const post = api.post.getMockImplementation()!;
   api.post.mockImplementation(async (url, body) => {
     const response = await post(url, body);

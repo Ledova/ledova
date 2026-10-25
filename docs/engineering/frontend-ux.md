@@ -135,9 +135,12 @@ recovery is open, keeping every class controller mounted. Its preparation,
 vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
 Award preparation groups the recipient and promised shares, with new-person details beneath. Agreement
 and vesting use the existing responsive two-column grid, stacking on smaller screens, with short
-contextual labels and one vesting explanation. Keep draft controls, selected-file display and focus
-stable by [deferring coordinated automatic reads](frontend.md#automatic-data-freshness) while an
-award editor is open.
+contextual labels and one vesting explanation. ESS has no background refresh; keep draft controls,
+selected-file display and focus stable through entry reads, explicit retries and post-save refreshes
+([read policy](frontend.md#automatic-data-freshness)). Its award list follows the existing aligned
+Disclosure rows: Recipient and agreement date, then Promised, Vested and Issued quantities. On small
+screens, the three quantities sit beneath the recipient with short labels. Charts, supporting records
+and actions open on demand; an open editor or uncertain action keeps its row open.
 Inline vesting uses one named field group with the event quantity, date and document, short contextual
 labels and the same responsive grid. While an award editor is open, its footer owns the actions;
 hide unrelated record actions instead of leaving a disabled row above the form.

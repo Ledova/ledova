@@ -791,7 +791,6 @@ function OwnRegister({
                       sourceReady={sourceReady}
                       onHeldChange={awardHeld}
                       onEditingChange={awardEditing}
-                      pauseFreshness={editingAwards.size > 0}
                       active={view === 'awards' && selectedToken === register.token.uuid}
                     />
                   </div>

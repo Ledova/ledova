@@ -1465,6 +1465,11 @@ action for the selected class. Editors and recovery keep their class pinned. Fre
 instead of repeated; required revalidation withholds private records with an explicit loading state.
 Award, vesting and issuance rules and mobile navigation remain unchanged.
 
+Later on 26 October 2026 the owner removed web ESS's background refresher, including periodic and
+focus/reconnect reads. Entry, explicit error recovery and post-change reads remain guarded; authentication
+revalidation is unchanged. Award records use compact recipient/date and quantity rows, with charts,
+documents and actions on demand. This supersedes ESS's automatic refresh policy above.
+
 ## Paper and Dark themes
 
 On 14 October 2026 the owner directed under
