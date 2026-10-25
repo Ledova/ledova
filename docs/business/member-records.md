@@ -97,8 +97,10 @@ of their shares by class. This counts shares, not company ownership, voting powe
 classes can carry different rights. **My shares** (mobile) lists issued shares by class. Both keep
 employee awards separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
-already belong to the holding. Recent own changes and request status remain available, with
-particulars and longer history on demand. Web certificates and their requests are in **Documents**;
+already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
+breakdown and terms under **Award details**. **Your details** groups current particulars, their update
+form and particulars-request status. Pending particulars requests stay visible; completed requests
+and share history open on demand. Web certificates and their requests are in **Documents**;
 mobile also shows certificates. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 

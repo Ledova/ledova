@@ -36,7 +36,12 @@ Ledger's share-class summaries stack as full-width `Section` cards, using the wo
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The member overview's shares and
 awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
-on smaller screens without fixed heights. Section spacing is scoped to
+on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
+quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
+included in the holding. One full-width **Your details** card groups current particulars, the
+update form and particulars-request status; pending requests stay visible and completed requests
+open on demand. Share history opens on demand, while certificate tracking belongs in Documents.
+Section spacing is scoped to
 the frame; sign-up keeps its own presentation.
 
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
