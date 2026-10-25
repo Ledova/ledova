@@ -69,7 +69,6 @@ export function ClassReconciliation({
   holders,
   status,
   visible = true,
-  readOnly = false,
   onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
@@ -79,7 +78,6 @@ export function ClassReconciliation({
   holders: Holders;
   status: TokenHoldersResponse['token']['status'];
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
@@ -97,10 +95,10 @@ export function ClassReconciliation({
     appointments.isSuccess &&
     appointments.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
-  const available = useRef(privateReady && !readOnly);
+  const available = useRef(privateReady);
   useLayoutEffect(() => {
-    available.current = privateReady && !readOnly;
-  }, [privateReady, readOnly]);
+    available.current = privateReady;
+  }, [privateReady]);
   const check = () => {
     guard();
     if (!available.current) throw new Error('Refresh the current reconciliation and company appointment.');
@@ -132,12 +130,12 @@ export function ClassReconciliation({
   }, [onHeldChange, token, heldUuid, held]);
   const row = open && record?.uuid === open.record ? record.discrepancies[open.index] : undefined;
   const current = !!open && !!row?.acknowledgeable && acknowledger?.uuid === open.appointment;
-  const ready = privateReady && !readOnly && current && !acknowledgement.busy;
+  const ready = privateReady && current && !acknowledgement.busy;
   const checks = useErrorSummary({ reason: !reason.trim() && 'Give the reason for acknowledging.' });
   const offered = (item: RegisterDiscrepancy) =>
-    !readOnly && !!acknowledger && item.acknowledgeable && ACKNOWLEDGEABLE_DISCREPANCIES.includes(item.kind);
+    !!acknowledger && item.acknowledgeable && ACKNOWLEDGEABLE_DISCREPANCIES.includes(item.kind);
   const begin = (index: number) => {
-    if (readOnly || open || acknowledgement.busy || !record || !acknowledger) return;
+    if (open || acknowledgement.busy || !record || !acknowledger) return;
     setReason('');
     setAttempted(false);
     checks.reset();
@@ -223,7 +221,7 @@ export function ClassReconciliation({
           )}
         </>
       )}
-      {!readOnly && open && (
+      {open && (
         <Modal
           isOpen={!!open}
           onClose={close}

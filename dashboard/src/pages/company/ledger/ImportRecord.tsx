@@ -73,7 +73,6 @@ export function ImportRecord({
   onDecided,
   onRefused,
   visible = true,
-  readOnly = false,
   onHeldChange,
 }: {
   proposal: RegisterImport;
@@ -82,14 +81,11 @@ export function ImportRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
-  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useImportRecordDownload(proposal, check);
   const totals = registerImportTotals(proposal.members);
-  const hasDocuments = !!(proposal.registerEvidence || proposal.sourceDocument || proposal.asicEvidence !== null);
   const downloadActions = (
     <>
       {(proposal.registerEvidence || proposal.sourceDocument) && (
@@ -117,7 +113,7 @@ export function ImportRecord({
       {visible && (
         <Disclosure
           summary={`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}
-          defaultOpen={!readOnly && proposal.status === 'submitted'}
+          defaultOpen={proposal.status === 'submitted'}
         >
           <Rows>
             <RecordStage stage={proposal.stage}>
@@ -156,37 +152,31 @@ export function ImportRecord({
             {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
           </p>
           <MemberRecords members={proposal.members} />
-          {readOnly && hasDocuments && <FormActions>{downloadActions}</FormActions>}
-          {readOnly && download.isError && <RecordDownloadFailure error={download.error} />}
         </Disclosure>
       )}
-      <div hidden={readOnly}>
-        <FormActions>
-          {downloadActions}
-          <RegisterDecisions
-            family={REGISTER_IMPORT_DECISIONS}
-            copy={REGISTER_IMPORT_COPY}
-            noun="import"
-            proposal={proposal}
-            steps={steps}
-            guard={guard}
-            newEffectGuard={decide}
-            visible={visible && !readOnly}
-            onHeldChange={onHeldChange}
-            onDecided={onDecided}
-            onRefused={onRefused}
-            note={(kind, preview) =>
-              kind === 'apply' &&
-              preview.opensRegister && (
-                <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</p>
-              )
-            }
-          >
-            {(preview) => <ImportPreview preview={preview} />}
-          </RegisterDecisions>
-        </FormActions>
-        {download.isError && <RecordDownloadFailure error={download.error} />}
-      </div>
+      <FormActions>
+        {downloadActions}
+        <RegisterDecisions
+          family={REGISTER_IMPORT_DECISIONS}
+          copy={REGISTER_IMPORT_COPY}
+          noun="import"
+          proposal={proposal}
+          steps={steps}
+          guard={guard}
+          newEffectGuard={check}
+          visible={visible}
+          onHeldChange={onHeldChange}
+          onDecided={onDecided}
+          onRefused={onRefused}
+          note={(kind, preview) =>
+            kind === 'apply' &&
+            preview.opensRegister && <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</p>
+          }
+        >
+          {(preview) => <ImportPreview preview={preview} />}
+        </RegisterDecisions>
+      </FormActions>
+      {download.isError && <RecordDownloadFailure error={download.error} />}
     </RecordShell>
   );
 }

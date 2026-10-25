@@ -83,7 +83,8 @@ routes (`tabBarItemStyle: { display: 'none' }`) opened from the drawer, Market o
 account while `trading_enabled` is on, under Invest. Routes and business sections are in
 [Pages](frontend.md#pages).
 
-The drawer's Company group mirrors the web sidebar ([navigation](frontend-ux.md#navigation)). Ledger
+The drawer's Company group uses the web sidebar's overview and caret pattern
+([navigation](frontend-ux.md#navigation)), retaining its separate History item. Ledger
 opens the share-class overview, and a separate caret shows Issue shares, Transfer shares, History
 and Corrections; Shareholders, ESS (read aloud as Employee share scheme), Documents and Company
 follow. Each opens a section of the one Ledger screen

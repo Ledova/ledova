@@ -18,7 +18,7 @@ import {
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
-import { DESTINATIONS, useFeatureFlags, type DestinationKey, type LedgerTask } from '@ledova/shared';
+import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@hooks/useUserProfile';
@@ -29,7 +29,15 @@ import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useRegisterEntry } from '@hooks/useRegisterAccess';
 import { COMPANY_DASHBOARD_PATH, SITE_PATHS } from '@utils/paths';
-import { destinationAt, pageTitle, placesAt, SHAREHOLDER_VIEWS } from '@utils/destinations';
+import {
+  destinationAt,
+  pageTitle,
+  placesAt,
+  SHAREHOLDER_VIEWS,
+  LEDGER_TASKS,
+  ledgerTask,
+  type LedgerTask,
+} from '@utils/destinations';
 import { useLedgerNavigation } from './LedgerNavigation';
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
@@ -124,9 +132,9 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const [shownPlace, setShownPlace] = useState(place);
   const [expanded, setExpanded] = useState(current);
   const id = useId();
-  const tasks = Object.entries(DESTINATIONS.companyRegister.tasks);
+  const tasks = Object.entries(LEDGER_TASKS);
   const hashTask = location.pathname === path ? location.hash.slice(1) : '';
-  const routedTask = tasks.some(([key]) => key === hashTask) ? hashTask : undefined;
+  const routedTask = ledgerTask(hashTask);
   const destination = destinationAt(location.pathname);
   const task =
     active && location.pathname === path

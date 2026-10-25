@@ -21,7 +21,6 @@ export function CorrectionRecord({
   onDecided,
   onRefused,
   visible = true,
-  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -31,11 +30,9 @@ export function CorrectionRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
-  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useCorrectionRecordDownload(proposal, check);
   const context = `correction of entry ${entry.sequence}`;
   const downloadAction = (
@@ -52,7 +49,7 @@ export function CorrectionRecord({
       {visible && (
         <Disclosure
           summary={`Correction of entry ${entry.sequence} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}
-          defaultOpen={!readOnly && proposal.status === 'submitted'}
+          defaultOpen={proposal.status === 'submitted'}
         >
           <Rows>
             <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
@@ -77,44 +74,40 @@ export function CorrectionRecord({
           <p className="text-sm text-text-muted">
             {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
           </p>
-          {readOnly && <FormActions>{downloadAction}</FormActions>}
-          {readOnly && download.isError && <RecordDownloadFailure error={download.error} />}
         </Disclosure>
       )}
-      <div hidden={readOnly}>
-        <FormActions>
-          {downloadAction}
-          <RegisterDecisions
-            family={REGISTER_CORRECTION_DECISIONS}
-            copy={COPY}
-            noun="correction"
-            proposal={proposal}
-            steps={steps}
-            guard={guard}
-            newEffectGuard={decide}
-            visible={visible && !readOnly}
-            onHeldChange={onHeldChange}
-            context={context}
-            onDecided={onDecided}
-            onRefused={onRefused}
-            note={(kind) => kind === 'apply' && <p className="text-sm text-text-muted">{COPY.COMPENSATION_NOTE}</p>}
-          >
-            {(preview) => (
-              <Rows>
-                <Row label="Register sequence">{preview.registerSequence}</Row>
-                <Row label={COPY.EFFECTIVE_ON}>{formatDate(preview.effectiveOn)}</Row>
-                <Row label={COPY.ORIGINAL_CHANGES}>
-                  <RegisterChanges changes={preview.originalChanges} named={entry.changes} />
-                </Row>
-                <Row label={COPY.COMPENSATING_CHANGES}>
-                  <RegisterChanges changes={preview.changes} named={entry.changes} />
-                </Row>
-              </Rows>
-            )}
-          </RegisterDecisions>
-        </FormActions>
-        {download.isError && <RecordDownloadFailure error={download.error} />}
-      </div>
+      <FormActions>
+        {downloadAction}
+        <RegisterDecisions
+          family={REGISTER_CORRECTION_DECISIONS}
+          copy={COPY}
+          noun="correction"
+          proposal={proposal}
+          steps={steps}
+          guard={guard}
+          newEffectGuard={check}
+          visible={visible}
+          onHeldChange={onHeldChange}
+          context={context}
+          onDecided={onDecided}
+          onRefused={onRefused}
+          note={(kind) => kind === 'apply' && <p className="text-sm text-text-muted">{COPY.COMPENSATION_NOTE}</p>}
+        >
+          {(preview) => (
+            <Rows>
+              <Row label="Register sequence">{preview.registerSequence}</Row>
+              <Row label={COPY.EFFECTIVE_ON}>{formatDate(preview.effectiveOn)}</Row>
+              <Row label={COPY.ORIGINAL_CHANGES}>
+                <RegisterChanges changes={preview.originalChanges} named={entry.changes} />
+              </Row>
+              <Row label={COPY.COMPENSATING_CHANGES}>
+                <RegisterChanges changes={preview.changes} named={entry.changes} />
+              </Row>
+            </Rows>
+          )}
+        </RegisterDecisions>
+      </FormActions>
+      {download.isError && <RecordDownloadFailure error={download.error} />}
     </RecordShell>
   );
 }

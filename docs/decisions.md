@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 24 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile following them under #1201                     |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile following them under #1201                     |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
@@ -1334,6 +1334,8 @@ recovery. Documents presents compact output choices, opening one preparation at 
 instruction entry, source/privacy guidance and explicit generation in the opened workflow. Mobile
 stays unchanged.
 
+_The web History/Corrections split was superseded by the 26 October consolidation below._
+
 On 23 October 2026 the owner asked to finish the web refinements under #1165, reuse the existing
 summary grids and aligned form actions in Documents, and merge the completed work after review
 and checks. Mobile remains deferred under #1201.
@@ -1449,6 +1451,13 @@ the shared names Ledger, Set up your ledger and Ledger opening, and its drawer m
 sidebar: Ledger with Issue shares, Transfer shares, History and Corrections, then Shareholders, ESS
 and Documents. Member access, the member pages and ESS's award records stay unchanged on mobile
 while their web walkthrough continues.
+
+On 26 October 2026 the owner removed the duplicate web Ledger History destination under #1165.
+Corrections keeps the same chronological entries, retained supporting records and permitted downloads,
+with existing append-only maintenance actions gated by the person's current company capabilities.
+Old web History links open Corrections with their company and class context. This supersedes the
+separate web History view above without deleting audit records or expanding register-read authority.
+Mobile retains its existing History destination; no mobile workflow changes are part of this decision.
 
 ## Paper and Dark themes
 

@@ -158,15 +158,15 @@ collection keeps its own preparation row.
 Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 
-Web History uses one full-width `Section` titled **Changes**, with compact ruled rows aligned under
+Web Corrections starts with one full-width `Section` titled **Changes**, with compact ruled rows aligned under
 **Change**, **Date** and **Share movements**. Each whole row opens its details; on smaller screens,
 kind and date sit above the movements. Show the company date for an issue or transfer (ledger
 effective date for other kinds), and the first two signed movements plus a count of the rest.
 Details start closed and hold the full list, entry number, separate company, ledger and recording
-dates, and correction or reversal references. History is read-only, including retained supporting
-records and permitted file downloads. Certificate preparation belongs in Documents; correction,
-opening, reconciliation acknowledgement, particulars and wallet-link workflows belong in Ledger's
-Corrections view. Keep their controllers mounted so unfinished work and original-request recovery
+dates, and correction or reversal references. Entries stay immutable; current register readers can
+inspect retained supporting records and permitted downloads. The same view holds capability-guarded
+correction, opening, reconciliation acknowledgement, particulars and wallet-link workflows. Certificate
+preparation belongs in Documents. Keep their controllers mounted so unfinished work and original-request recovery
 survive navigation. Documents starts with compact output choices and opens one focused inline
 preparation at a time. Certificate choices show the issue or transfer's date and share movements;
 the form uses the existing labelled summary rows for share movements, company date and PDF page
@@ -192,7 +192,7 @@ with compact rows aligned under Person, Linked or Invited, and Status. People re
 revoked access records; invitations remain separate records. **Member requests** uses one **Requests**
 card, with Person, Request, Requested and Status columns. Identify each request as a details update
 or an unsigned certificate, with the certificate's share class when available. Keep all retained
-statuses in the list. Both views use the standard workspace width and History's aligned row pattern;
+statuses in the list. Both views use the standard workspace width and Ledger's aligned change-row pattern;
 headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
 or class context and genuine dates before expansion, without repeating the page title inside a card.
 Each whole row opens its details and relevant actions together, including the full requested particulars.
@@ -303,7 +303,7 @@ content", which moves focus to the page's heading.
 
 The sidebar owns navigation between sections. A related group has one level of children: its label
 opens the overview and a separate caret expands the children, without an extra Overview item.
-Ledger groups **Issue shares**, **Transfer shares**, **History** and **Corrections** this way.
+Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **Member access** and **Member requests**, with its parent
 opening the people list. Each group opens on its routes and marks the current destination.
 Ledger, Shareholders, ESS and Documents remain siblings. Both web groups appear in the small-screen
@@ -315,7 +315,9 @@ actions remain beside their records. Do not repeat section navigation in page he
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages for
 both clients, including Ledger, its views (Shareholders, Employee share scheme, Documents) and tasks
 (Issue shares, Transfer shares, History, Corrections), Set up your ledger, Ledger opening and Home's
-Documents view. The web sidebar, page titles and parent links use `pageTitle`
+Documents view. Mobile retains History; the web exposes only Issue shares, Transfer shares and Corrections,
+replacing an incoming `#history` with `#corrections` while retaining company/class context. The web sidebar,
+page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. The company
 dashboard is also Dashboard, so the company workspace lists Home as Your shares. The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`

@@ -28,7 +28,6 @@ export function RegisterParticulars({
   company,
   registers,
   visible = true,
-  readOnly = false,
   onHeldChange,
   onReviewChange,
 }: {
@@ -38,7 +37,6 @@ export function RegisterParticulars({
   company: string;
   registers: TokenHoldersResponse[];
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   onReviewChange?: (company: string, open: boolean) => void;
 }) {
@@ -122,7 +120,6 @@ export function RegisterParticulars({
                 landed={landed?.record === change.uuid ? landed : undefined}
                 change={change}
                 visible={privateReady}
-                readOnly={readOnly}
                 onHeldChange={onHeldChange}
                 member={nameOf(change.member)}
                 steps={steps ?? {}}
@@ -136,7 +133,7 @@ export function RegisterParticulars({
           </ul>
         </Section>
       </div>
-      <div hidden={!reviewing || readOnly} className="space-y-5">
+      <div hidden={!reviewing} className="space-y-5">
         {reviewing && status}
         <div ref={setReviewTarget} />
       </div>
