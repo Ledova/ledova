@@ -587,7 +587,7 @@ export function CompanyMemberAccess({
                 <span>Status</span>
               </div>
             )}
-            <ul aria-label="Member requests" className="divide-y divide-border-subtle">
+            <ul aria-label="Member requests" className={requestOpen ? '' : 'divide-y divide-border-subtle'}>
               {memberRequests.map((item) => {
                 const record = item.record;
                 const shareClass =
