@@ -418,6 +418,12 @@ not an instantaneous update guarantee.
 Company team also reads appointments before dependent team records on focus, reconnect and a visible,
 online 60-second interval, deferring those cycles while a team editor or revocation is open.
 
+The remaining web eligibility and company-publication views use `dashboard/src/hooks/useAutomaticReads.ts`
+for the same visible, online entry/focus/reconnect and 60-second scheduling. Their callbacks retain ordered
+source and authority checks; edited drafts, decision reviews and original-request recovery defer those cycles.
+Trading uses it only to reread locally saved work, without replaying a saved command. Explicit possession-proof
+renewal and indexer synchronisation remain commands, and failed reads keep Try again.
+
 Every read retains the account, company and appointment guards. A failed or inconsistent read
 withholds private records, decision controls and ownership totals as
 [lists, figures and currency](#lists-figures-and-currency) requires; cached client authority never

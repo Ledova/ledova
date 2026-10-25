@@ -37,11 +37,11 @@ function ShareClassRow({ token }: { token: DirectoryToken }) {
 export default function DirectoryPage() {
   const { tokens, isReady, isLoading, hasError, isRefreshing, retry } = useDirectoryTokens();
 
-  if (isLoading) return <Page narrow loading />;
+  if (isLoading) return <Page loading />;
 
   if (hasError) {
     return (
-      <Page narrow>
+      <Page>
         <LoadError retry={retry} busy={isRefreshing}>
           The directory could not be loaded.
         </LoadError>
@@ -51,7 +51,7 @@ export default function DirectoryPage() {
 
   if (!isReady) {
     return (
-      <Page narrow>
+      <Page>
         <Section title="Check your investor account">
           <p className="py-2 text-sm text-text-muted">
             Account and identity checks are prerequisites. Each company separately decides eligibility for its
@@ -68,7 +68,7 @@ export default function DirectoryPage() {
   for (const token of tokens) issuers.set(token.companyUuid, [...(issuers.get(token.companyUuid) ?? []), token]);
 
   return (
-    <Page narrow>
+    <Page>
       {tokens.length === 0 ? (
         <Section title="Share classes">
           <p className="py-3 text-sm text-text-muted">

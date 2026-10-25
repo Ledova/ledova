@@ -35,6 +35,9 @@ and result states retain their collection's frame. Tables scroll within their ca
 Company information, company documents, authority records and company team use this workspace frame too.
 Team invitations and acceptance replace their collection with one focused inline task, retaining its
 mounted editors and drafts. Company documents has its own view, with Category and File in the inline upload.
+The remaining offering, publication, directory, application, wallet, activity and eligibility collections
+use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
+keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The member overview's shares and
