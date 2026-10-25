@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, OperationalError
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import ValidationError
 
 from blockchain.models import OutgoingOperation, OutgoingStatus, TransactionStatus
 from companies.models import (
@@ -13,11 +13,9 @@ from companies.models import (
     CompanyCapability,
     CompanyStatus,
 )
-from companies.services.authority_requests import _requester_principal
 from companies.services.company import primary_wallet_for
 from operators.models import Operator
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import use_operator
 from shared.tasks.queue import defer
 from tokens.exceptions import (
     DeploymentSigningHold,
@@ -35,7 +33,11 @@ from tokens.models import (
     ShareTokenStatus,
     TokenDeployment,
 )
-from tokens.services.register_authority import register_appointment, register_command
+from tokens.services.register_authority import (
+    readable_token_company_id,
+    register_appointment,
+    register_command,
+)
 from tokens.services.register_decisions import DecisionFamily, _scalar, decide, preview
 from tokens.services.register_events import verify_register
 from users.models import UserAccount, UserProfile
@@ -214,26 +216,13 @@ def _state(proposal):
     return sorted(set(unmet))
 
 
-def _company_of(actor, token_id):
-    with use_operator(), _requester_principal(actor.pk):
-        company_id = (
-            ShareToken.objects.register_readable_by(actor)
-            .filter(pk=token_id)
-            .values_list("company_id", flat=True)
-            .first()
-        )
-    if company_id is None:
-        raise NotFound("Share class not found.")
-    return company_id
-
-
 def prepare_deployment(*, actor, operation_id, appointment, token):
     try:
         operation_id, appointment, token_id = (UUID(str(value)) for value in (operation_id, appointment, token))
     except (ValueError, TypeError, AttributeError):
         raise ValidationError("Deployment references must be UUIDs.") from None
     try:
-        with register_command(actor, _company_of(actor, token_id), "register_deployment_prepare") as (
+        with register_command(actor, readable_token_company_id(actor, token_id), "register_deployment_prepare") as (
             company,
             current_actor,
             profile,
