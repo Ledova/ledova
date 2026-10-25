@@ -415,6 +415,8 @@ explicit recovery and post-write refresh still apply.
 The member Dashboard, Documents and Company-recorded details views also recheck member associations
 before their dependent records every 60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
 not an instantaneous update guarantee.
+Company team also reads appointments before dependent team records on focus, reconnect and a visible,
+online 60-second interval, deferring those cycles while a team editor or revocation is open.
 
 Every read retains the account, company and appointment guards. A failed or inconsistent read
 withholds private records, decision controls and ownership totals as
@@ -538,8 +540,8 @@ holdings-moved refusal by its `opening_holdings_moved` code
 (`REGISTER_OPENING_HOLDINGS_MOVED_CODE`). A wallet's proof is worded as the holder's own proof on
 Ledova, never as a verification by Ledova.
 
-Every decision uses the preview-first `useRegisterDecision`, in a dialog, the web investor
-allotment's main-page review or mobile Issue shares' review in place of its list. It previews the
+Every decision uses the preview-first `useRegisterDecision`, in a dialog, the web's main-page
+issue, transfer and particulars reviews or mobile Issue shares' review in place of its list. It previews the
 exact decision, its unmet requirements in words and its register effect, takes a rejection reason
 ([how a company decision works](../business/README.md#how-a-company-decision-works)), and confirms
 with a retry key reused only for the same preview while the step's appointment is still the one

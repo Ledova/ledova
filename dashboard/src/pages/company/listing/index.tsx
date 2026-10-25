@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DESTINATIONS, companyActivationOutcome, useCompanyActivation, useCompanySelection } from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
-import { LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
-import { Modal } from '@components/Modal';
+import { FormActions, Page, PageAction } from '@components/Page';
+import { Disclosure, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -17,6 +16,15 @@ export default function ListingPage() {
 function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelection> }) {
   const action = useCompanyActivation(read, () => crypto.randomUUID());
   const { company } = read;
+  const opener = useRef<HTMLButtonElement>(null);
+  const reviewing = useRef(false);
+  useEffect(() => {
+    if (action.preview) reviewing.current = true;
+    else if (reviewing.current) {
+      reviewing.current = false;
+      opener.current?.focus();
+    }
+  }, [action.preview]);
   const events: TimelineEvent[] = company
     ? [
         ['Submitted', company.submittedAt],
@@ -31,8 +39,8 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
         .sort((a, b) => a.at.localeCompare(b.at))
     : [];
   return (
-    <>
-      <Page narrow loading={read.isLoading}>
+    <Page loading={read.isLoading}>
+      <div hidden={!!action.preview} className="space-y-5">
         <CompanySelection read={read} />
         {action.busy && (
           <p role="status" className="text-sm text-text-muted">
@@ -49,8 +57,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
           </p>
         ) : (
           <>
-            <Section title="Company activation">
-              <p className="break-words text-sm text-text-primary">{company.name}</p>
+            <Section title={company.name}>
               <p className="text-sm text-text-muted">
                 Company information is provided by the company. Activation records your declaration and the configured
                 identity and ABR checks. It does not approve an offering, issue shares or approve a wallet.
@@ -68,16 +75,19 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                 </div>
               )}
               {action.canActivate && (
-                <PageAction
-                  primary
-                  label={action.latestAttempt ? 'Try activation again' : 'Review activation'}
-                  onClick={() => void action.open()}
-                  disabled={action.busy || read.isRefreshing}
-                />
+                <FormActions>
+                  <PageAction
+                    ref={opener}
+                    primary
+                    label={action.latestAttempt ? 'Try activation again' : 'Review activation'}
+                    onClick={() => void action.open()}
+                    disabled={action.busy || read.isRefreshing}
+                  />
+                </FormActions>
               )}
             </Section>
             {events.length > 0 && (
-              <Section title="Historical record">
+              <Disclosure summary="Historical record">
                 <Timeline events={events} />
                 {company.rejectionReason && (
                   <p className="text-sm text-text-muted">Rejection reason: {company.rejectionReason}</p>
@@ -91,15 +101,10 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                 {company.additionalInfoResponse && (
                   <p className="text-sm text-text-muted">Previous response: {company.additionalInfoResponse}</p>
                 )}
-              </Section>
+              </Disclosure>
             )}
             <LinkRow to={DESTINATIONS.company.path} label={DESTINATIONS.company.title} />
           </>
-        )}
-        {action.error && (
-          <p role="alert" className="text-sm text-error-light">
-            {action.error}
-          </p>
         )}
         <Section title={action.identityRequired ? 'Identity verification required' : 'Your identity'}>
           <p className="text-sm text-text-muted">
@@ -107,9 +112,14 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
           </p>
           <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title} />
         </Section>
-      </Page>
+      </div>
       {action.preview && <ActivationConfirmation action={action} />}
-    </>
+      {action.error && (
+        <p role="alert" className="text-sm text-error-light">
+          {action.error}
+        </p>
+      )}
+    </Page>
   );
 }
 
@@ -118,33 +128,41 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
   const [acceptance, setAcceptance] = useState<typeof action.preview>(null);
   const accepted = acceptance === target;
   const declaration = useErrorSummary({ accepted: !accepted && 'Accept the declaration for this company.' });
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), []);
   return (
-    <Modal
-      isOpen
-      title="Activate company"
-      showFooter
-      confirmLabel="Confirm activation"
-      busy={action.busy}
-      busyLabel="Activating…"
-      onClose={action.cancel}
-      onConfirm={() => {
-        if (declaration.check()) void action.confirm(target);
-      }}
-    >
-      <ErrorSummary {...declaration.summary} className="mb-3" />
-      <p className="text-sm text-text-primary">{target.name}</p>
-      <p className="whitespace-pre-wrap text-sm text-text-primary">{target.text}</p>
-      <CheckboxField
-        {...declaration.field('accepted')}
-        label="I accept this declaration for this company."
-        checked={accepted}
-        disabled={action.busy}
-        onChange={(event) => setAcceptance(event.target.checked ? target : null)}
-      />
-      <p className="text-sm text-text-muted">
-        The configured ABR lookup must match before activation can be applied. A failed or unavailable check remains in
-        the record.
-      </p>
-    </Modal>
+    <div role="region" aria-label="Review company activation" className="space-y-5">
+      <h2 ref={heading} tabIndex={-1} className="font-display text-xl text-text-primary focus:outline-none">
+        Review activation
+      </h2>
+      <form
+        aria-label="Activate company"
+        className="space-y-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!action.busy && declaration.check()) void action.confirm(target);
+        }}
+      >
+        <Section title={target.name}>
+          <ErrorSummary {...declaration.summary} />
+          <p className="whitespace-pre-wrap text-sm text-text-primary">{target.text}</p>
+          <CheckboxField
+            {...declaration.field('accepted')}
+            label="I accept this declaration for this company."
+            checked={accepted}
+            disabled={action.busy}
+            onChange={(event) => setAcceptance(event.target.checked ? target : null)}
+          />
+          <p className="text-sm text-text-muted">
+            The configured ABR lookup must match before activation can be applied. A failed or unavailable check remains
+            in the record.
+          </p>
+        </Section>
+        <FormActions>
+          <PageAction label="Cancel" disabled={action.busy} onClick={action.cancel} />
+          <PageAction type="submit" label="Confirm activation" primary busy={action.busy} busyLabel="Activating…" />
+        </FormActions>
+      </form>
+    </div>
   );
 }

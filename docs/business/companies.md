@@ -112,10 +112,10 @@ An owner of a draft company can also request initial authority outside signup, f
 
 Open the team from **Company → Company team** or **Settings → Company team** (on mobile,
 under **Settings → Company settings**). Investor-only accounts can open it too: accepting an
-invitation or reading your appointments needs no company workspace. The page has sections to
-accept an invitation, read your appointments, invite and manage the company team, and read the
-invitations you issued, with a link to
-[Company eligibility](participants.md#company-eligibility-decisions).
+invitation or reading your appointments needs no company workspace. The web page starts with
+appointments, the selected company's team and issued invitations; **Invite a company user** and
+**Accept a company invitation** open focused inline forms. Mobile keeps its separate sections.
+[Company eligibility](participants.md#company-eligibility-decisions) is reached from Company settings.
 
 1. To invite someone, select the company and one of your current appointments that can delegate.
    Choose the personal capabilities and, separately, any onward delegation for the invitee. Set an
@@ -218,9 +218,9 @@ documents from Company settings on web and mobile
 company explicitly first.
 
 1. Select the company and read its name, address, contact details and status.
-2. Choose **Edit company** to change the permitted fields, save, and wait for the confirmed receipt
+2. Choose **Edit company** to change the permitted fields inline on web, save, and wait for the confirmed receipt
    and refreshed information.
-3. In **Company documents**, view a retained file, upload a document of a chosen type, or confirm
+3. In **Company documents**, a separate view on web, view a retained file, upload a document of a chosen type, or confirm
    removal of an eligible document. Documents are optional; use Other documents for representative
    authority records.
 
@@ -277,7 +277,7 @@ for an Active company.
    your company** or the same step in Getting started (the Dashboard on the web, the Ledger tab
    on mobile). Refresh the company details and your appointment. A company account role or an
    owned draft does not substitute for an appointment; an appointed investor can use the same page.
-3. Choose **Review activation**, read the company and the exact declaration, tick **I accept this
+3. Choose **Review activation**, read the company and the exact declaration on the main page on web, tick **I accept this
    declaration for this company** and choose **Confirm activation** once.
 4. Read the retained outcome. A passing attempt makes the company Active. A pending, failed or
    unconfigured check leaves the status unchanged and stays in the record; resolve the stated

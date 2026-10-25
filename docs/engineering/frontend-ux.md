@@ -32,6 +32,9 @@ simple task forms, settings and most detailed records, including compact tables.
 company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
 invitation reviews, company-recorded member details and wide tables take the standard workspace width. Inline preparation, review
 and result states retain their collection's frame. Tables scroll within their card on small screens.
+Company information, company documents, authority records and company team use this workspace frame too.
+Team invitations and acceptance replace their collection with one focused inline task, retaining its
+mounted editors and drafts. Company documents has its own view, with Category and File in the inline upload.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The member overview's shares and
@@ -243,6 +246,10 @@ mobile's other tasks keep their existing workflow.
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
 field when editing opens and return focus to Edit when it ends, if that action is still available.
+Company information and personal Profile details follow this pattern. Activation reviews its current
+company and declaration on the main page before explicit confirmation. Supporting payslips use
+compact document records with extraction details on demand and warnings visible in the expanded record;
+uploading opens an inline form.
 Class rights follows this pattern: Edit replaces its read view and Previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
@@ -269,8 +276,7 @@ On mobile the backdrop closes it; a busy dialog holds the backdrop, Android Back
 Inside cards and dialogs nothing is boxed: fields share the card's surface with a hairline border
 (`rounded-lg border border-border bg-surface-raised`; `useDialogStyles` on mobile), steps are
 numbered lines, and warnings (beside an icon) and errors are coloured text, not tinted boxes. The
-exceptions are the tinted extraction-status pill beside a saved payslip on Profile, the dashed
-upload areas for a payslip and for a claim's evidence, and sign-in and the sign-up steps, which keep
+exceptions are the dashed upload area for a claim's evidence, and sign-in and the sign-up steps, which keep
 tinted fields and boxed outcomes within the same cards and titles. Addresses, hashes and signing summaries
 use the monospaced face (`font-mono`; `theme.fontFamily.mono`).
 
@@ -379,7 +385,7 @@ way:
 
 A load error's Try again and recovery actions keep their label while they run; a form's submit
 button that also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
-placeholder, the payslip upload area and Trading keep their own controls, and dialog footers use the
+placeholder and Trading keep their own controls, and dialog footers use the
 same order as `FormActions`. Mobile's `Action` has no busy or pressed form yet.
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
@@ -786,8 +792,8 @@ Some messages keep their own form:
   "PDF, PNG or JPEG, up to 10 MB." Compact forms such as
   Investor issue and employee awards may omit this routine hint with `showUploadHint={false}`. Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
-  of up to 10 MB." on the field. The payslip upload on Profile and the evidence in an eligibility claim keep their dashed
-  areas but apply the same rule. Mobile's pickers keep their own wording until
+  of up to 10 MB." on the field. The evidence in an eligibility claim keeps its dashed
+  area but applies the same rule. Mobile's pickers keep their own wording until
   [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.

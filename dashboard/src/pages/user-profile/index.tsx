@@ -1,5 +1,5 @@
 import { Field, TextArea, TextInput } from '@components/Field';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   FIELD_LIMITS,
   formatDate,
@@ -9,7 +9,7 @@ import {
   VERIFICATION_TONES,
 } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { Outcome, Row, Rows, Section, Status, LoadError } from '@components/Ledger';
+import { Disclosure, Outcome, Row, Rows, Section, Status, LoadError } from '@components/Ledger';
 import { DocumentsPanel } from './DocumentsPanel';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
@@ -36,6 +36,22 @@ function UserProfilePage() {
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationOpen, setVerificationOpen] = useState(false);
+  const firstField = useRef<HTMLInputElement>(null);
+  const editAction = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
+  const isEditing = editing?.source === sourceKey && editing?.owner === ownerKey;
+  useEffect(() => {
+    if (isEditing) firstField.current?.focus();
+    else if (returnFocus.current && !isUpdating && !isFetching && editAction.current) {
+      returnFocus.current = false;
+      editAction.current.focus();
+    }
+  }, [isEditing, isUpdating, isFetching]);
+
+  function closeEdit() {
+    returnFocus.current = true;
+    setEditing(null);
+  }
 
   function editDetails() {
     setFullName(userProfile?.fullName || '');
@@ -65,7 +81,6 @@ function UserProfilePage() {
     );
 
   const blocked = isFetching || isUpdating;
-  const isEditing = editing?.source === sourceKey && editing?.owner === ownerKey;
   const phone = userProfile.phoneNumber
     ? `${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()
     : 'Not provided';
@@ -106,7 +121,7 @@ function UserProfilePage() {
                     phoneNumber,
                   },
                   () => {
-                    setEditing(null);
+                    closeEdit();
                     setSavedFor(ownerKey);
                   },
                 );
@@ -115,26 +130,27 @@ function UserProfilePage() {
             <p className="text-sm text-text-muted">
               These details are provided by you. Editing them does not verify your identity.
             </p>
-            <Field label="Full name">
-              <TextInput
-                type="text"
-                autoComplete="name"
-                value={fullName}
-                maxLength={FIELD_LIMITS.PROFILE_NAME}
-                disabled={blocked}
-                onChange={(event) => setFullName(event.target.value)}
-              />
-            </Field>
-            <Field label="Residential address">
-              <TextArea
-                autoComplete="street-address"
-                value={residentialAddress}
-                disabled={blocked}
-                onChange={(event) => setResidentialAddress(event.target.value)}
-              />
-            </Field>
-            <div className="flex flex-wrap gap-3">
-              <Field label="Country code" className="w-28">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Full name" className="sm:col-span-2">
+                <TextInput
+                  ref={firstField}
+                  type="text"
+                  autoComplete="name"
+                  value={fullName}
+                  maxLength={FIELD_LIMITS.PROFILE_NAME}
+                  disabled={blocked}
+                  onChange={(event) => setFullName(event.target.value)}
+                />
+              </Field>
+              <Field label="Residential address" className="sm:col-span-2">
+                <TextArea
+                  autoComplete="street-address"
+                  value={residentialAddress}
+                  disabled={blocked}
+                  onChange={(event) => setResidentialAddress(event.target.value)}
+                />
+              </Field>
+              <Field label="Country code">
                 <TextInput
                   maxLength={FIELD_LIMITS.PHONE_COUNTRY_CODE}
                   type="tel"
@@ -144,7 +160,7 @@ function UserProfilePage() {
                   onChange={(event) => setPhoneCode(event.target.value)}
                 />
               </Field>
-              <Field label="Phone number" className="min-w-0 flex-1">
+              <Field label="Phone number">
                 <TextInput
                   maxLength={FIELD_LIMITS.PHONE}
                   type="tel"
@@ -161,7 +177,7 @@ function UserProfilePage() {
               </p>
             )}
             <FormActions>
-              <PageAction label="Cancel" disabled={blocked} onClick={() => setEditing(null)} />
+              <PageAction label="Cancel" disabled={blocked} onClick={closeEdit} />
               <PageAction
                 type="submit"
                 primary
@@ -173,7 +189,9 @@ function UserProfilePage() {
             </FormActions>
           </form>
         ) : (
-          <PageAction label="Edit personal details" disabled={blocked} onClick={editDetails} />
+          <FormActions>
+            <PageAction ref={editAction} label="Edit personal details" disabled={blocked} onClick={editDetails} />
+          </FormActions>
         )}
       </Section>
       <Section title="Account status">
@@ -181,10 +199,16 @@ function UserProfilePage() {
           <Row label="Identity check">
             <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
           </Row>
-          <Row label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Row>
-          <Row label="Last login">{formatDateTime(userProfile.lastLogin)}</Row>
         </Rows>
-        <PageAction label="Review identity check" onClick={() => setVerificationOpen(true)} />
+        <Disclosure summary="Account details">
+          <Rows>
+            <Row label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Row>
+            <Row label="Last login">{formatDateTime(userProfile.lastLogin)}</Row>
+          </Rows>
+        </Disclosure>
+        <FormActions>
+          <PageAction label="Review identity check" onClick={() => setVerificationOpen(true)} />
+        </FormActions>
       </Section>
       <Section title="Supporting payslips">
         <DocumentsPanel />
