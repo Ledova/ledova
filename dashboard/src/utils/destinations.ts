@@ -19,6 +19,11 @@ const WEB_TITLES: Partial<Record<DestinationKey, string>> = {
 
 const LEDGER_TASKS = DESTINATIONS.companyRegister.tasks;
 
+export const SHAREHOLDER_VIEWS = {
+  'member-access': 'Member access',
+  'member-requests': 'Member requests',
+} as const;
+
 const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   ...DESTINATION_PARENTS,
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
@@ -32,6 +37,8 @@ function viewName(key: DestinationKey, view: string): string | undefined {
   const views = destination.views;
   if (key === 'companyRegister' && Object.prototype.hasOwnProperty.call(LEDGER_TASKS, view))
     return LEDGER_TASKS[view as LedgerTask];
+  if (key === 'companyRegister' && Object.prototype.hasOwnProperty.call(SHAREHOLDER_VIEWS, view))
+    return SHAREHOLDER_VIEWS[view as keyof typeof SHAREHOLDER_VIEWS];
   return views && Object.prototype.hasOwnProperty.call(views, view) ? views[view] : undefined;
 }
 

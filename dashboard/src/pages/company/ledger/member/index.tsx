@@ -30,7 +30,6 @@ import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointment
 import { useShareholder } from './useShareholder';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 
-const SHAREHOLDERS = `${DESTINATIONS.companyRegister.path}#shareholders`;
 const PRIVATE_NOTE =
   'Particulars, history and awards show only to someone with a current company register appointment.';
 
@@ -377,7 +376,11 @@ function OwnShareholder({
                   {row.text}
                 </p>
               ))}
-              <PageLink to={SHAREHOLDERS} state={{ registerCompany: company }} label="Open member requests" />
+              <PageLink
+                to={`${DESTINATIONS.companyRegister.path}#member-requests`}
+                state={{ registerCompany: company }}
+                label="Open member requests"
+              />
             </Section>
           )}
           {access.access && (
@@ -391,7 +394,7 @@ function OwnShareholder({
               </p>
               {!current && !invited && (
                 <PageLink
-                  to={SHAREHOLDERS}
+                  to={`${DESTINATIONS.companyRegister.path}#member-access`}
                   state={{ registerCompany: company, inviteMember: member }}
                   label="Invite to their records"
                 />

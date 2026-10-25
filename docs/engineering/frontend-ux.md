@@ -175,10 +175,11 @@ under **Record details**; requests without a matching visible entry remain under
 requests**, with their own actions. A class chooser is only shown when there is more than one class.
 Particulars requests stay in Company-recorded details in Settings.
 
-Shareholders separates **Member access** (invitations and current or revoked access) from
-**Member requests** (particulars updates and certificate requests) in two sibling `Section` cards.
-Use equal columns at `xl` and stack them below that breakpoint, with shared heading, row and
-disclosure spacing. Keep names, email addresses, status and relevant dates together; request details
+The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
+Its **Member access** submenu opens invitations and current or revoked access; **Member requests**
+opens particulars updates and certificate requests. Each uses the standard workspace width and
+`Section` cards, with shared heading, row and disclosure spacing.
+Keep names, email addresses, status and relevant dates together; request details
 show the requested particulars or share class. Put account, member and entry references, fingerprints
 and file sizes under **Technical details**. A certificate request does not supply a share quantity;
 do not substitute the member's current holding. Keep unavailable reads and their retries distinct
@@ -199,7 +200,7 @@ request date and unsigned single-recipient PDF summary together. The preparation
 **Company instruction** field; the review keeps its captured instruction, entry and register
 sequence and source fingerprint under **Record details**. Keep the privacy and signing reminder
 visible, with one right-aligned Cancel/Preview or Cancel/Create certificate row. The focused views
-span the workspace; both collection cards return when the task closes.
+span the workspace; the Member requests collection returns when the task closes.
 
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep company and class context once, then the issue or transfer summary, ownership
@@ -274,11 +275,13 @@ content", which moves focus to the page's heading.
 
 The sidebar owns navigation between sections. A related group has one level of children: its label
 opens the overview and a separate caret expands the children, without an extra Overview item.
-Ledger groups **Issue shares**, **Transfer shares**, **History** and **Corrections** this way, opens
-on a Ledger route and marks the current destination. Shareholders, ESS and Documents remain sibling items.
-The same group appears in the small-screen drawer and in the mobile app's drawer
-([mobile navigation](mobile.md#navigation)). Page controls start or complete work for that
-page or record: Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
+Ledger groups **Issue shares**, **Transfer shares**, **History** and **Corrections** this way.
+Shareholders uses the same web pattern for **Member access** and **Member requests**, with its parent
+opening the people list. Each group opens on its routes and marks the current destination.
+Ledger, Shareholders, ESS and Documents remain siblings. Both web groups appear in the small-screen
+drawer; native navigation is documented [separately](mobile.md#navigation).
+Page controls start or complete work for that page or record: Add person, Invite a member,
+Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
 actions remain beside their records. Do not repeat section navigation in page headers.
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages for

@@ -245,7 +245,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.getByRole('heading', { level: 1, name: 'Shareholders' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Current shareholders' })).toBeTruthy();
-  expect(screen.getByRole('heading', { name: 'Member requests' })).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Member access' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Member requests' })).toBeNull();
   for (const name of ['Issue shares', 'Transfer shares', 'History', 'Corrections'])
     expect(screen.queryByRole('button', { name })).toBeNull();
   const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;

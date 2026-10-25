@@ -247,26 +247,35 @@ it('invites and associates a walletless member, recovers one exact request and r
       </ApiClientProvider>
     </QueryClientProvider>
   );
-  const company = render(
+  const memberHeld = vi.fn();
+  const companyView = (view: 'access' | 'requests') => (
     <CompanyMemberAccess
+      view={view}
       owner={{ userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount.uuid }}
       company={MEMBER_RECORD.company.uuid}
       guard={() => {}}
       registers={[memberRegister]}
-    />,
-    { wrapper },
+      onHeldChange={memberHeld}
+    />
   );
+  const company = render(companyView('access'), { wrapper });
   expect(screen.queryByRole('button', { name: 'Refresh member access' })).toBeNull();
   fireEvent.click(await screen.findByRole('button', { name: 'Invite a member' }));
   await choose('Member or award recipient', 'Company Recorded Member', 'recorded member');
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
   fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Retry original company member action' }));
+  await screen.findByRole('button', { name: 'Retry original company member action' });
+  company.rerender(companyView('requests'));
+  expect(memberHeld).toHaveBeenLastCalledWith(true, 'access');
+  company.rerender(companyView('access'));
+  expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('member@example.test');
+  fireEvent.click(screen.getByRole('button', { name: 'Retry original company member action' }));
   await screen.findByText(/The invitation email was accepted for sending/);
   const mailCommands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_INVITATION_SEND_EMAIL);
   expect(mailCommands).toHaveLength(2);
   expect(mailCommands[0][1]).toEqual(mailCommands[1][1]);
   expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
+  company.rerender(companyView('requests'));
   fireEvent.click(screen.getByRole('button', { name: /^Private queued member name/ }));
   expect(screen.getByText('Private queued member address')).toBeTruthy();
   expect(screen.getByText(/member@example.test/)).toBeTruthy();
@@ -565,6 +574,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
         <CompanyMemberAccess
+          view="access"
           owner={owner}
           company={uuid}
           registers={registers}
@@ -605,7 +615,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     expect.objectContaining({ company, member: awardMember, intendedEmail: 'employee@example.test' }),
     expect.any(Object),
   );
-  expect(onHeldChange).toHaveBeenCalledWith(true);
+  expect(onHeldChange).toHaveBeenCalledWith(true, 'access');
   expect(api.post).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole('combobox', { name: 'Member or award recipient' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Invite a member' }));
