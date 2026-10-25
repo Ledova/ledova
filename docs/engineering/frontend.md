@@ -408,13 +408,12 @@ only for that active view. Recheck its authority before its dependent records; p
 cycles and stop periodic work while the view is hidden or the browser is offline. Ordinary reads
 need no polling. Issue shares rechecks the selected class's appointments and issue records every
 60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
-Employee share scheme uses the selected class's freshness cycle. Fresh, settled appointment and
-class-record reads satisfy entry without a duplicate cycle; stale entry, focus, reconnect and each
-60-second visible, online interval recheck appointments before dependent records. Revalidation shows
-a loading state while private records and actions are withheld. These coordinated cycles wait
-across all class cards while any award preparation, vesting or entitlement-change editor is open.
-Pending reads resume after Cancel or a successful save. Account, source and authority guards,
-explicit recovery and post-write refresh still apply.
+Employee share scheme is the owner's explicit exception: no interval, focus, visibility or reconnect
+refreshes. It reads on entry and after the person's own changes, with explicit retries after errors.
+Stale entry rechecks appointments before dependent records, deferring that entry read while an editor
+or original-request recovery is open. The web register query policy and user-preferences defaults
+suppress native focus/reconnect refetches only at the ESS address; authentication revalidation stays
+unchanged. Current authority, source and account checks still gate every command and private read.
 The member Dashboard, Documents and Company-recorded details views also recheck member associations
 before their dependent records every 60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
 not an instantaneous update guarantee.

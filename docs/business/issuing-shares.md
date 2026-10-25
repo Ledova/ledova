@@ -265,12 +265,13 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 | Unvested remaining        | Promise less net vesting and ended unvested rights                             |
 | Remaining unissued        | Promise less issued shares and both ended pools                                |
 
-On the web, **Shareholders → ESS** shows the selected class's recorded awards first, with details on demand.
+On the web, **Shareholders → ESS** shows the selected class's awards as compact rows: recipient,
+agreement date, promised, vested and issued quantities. Open a row for its chart, records and actions.
 Choose **Share class**, then the single **Record an employee award** action below its card to open preparation; Cancel or a successful save returns to
 the records. Preparation groups recipient and promised shares above Agreement and Vesting, side by side
 on wide screens and stacked on smaller ones. Preparation, vesting and entitlement-change forms keep Cancel beside their recording
-action in the bottom-right footer. Records [stay current automatically](../engineering/frontend.md#automatic-data-freshness);
-failed reads retain Try again, and an interrupted submission keeps its original retry.
+action in the bottom-right footer. ESS reads on entry and after your changes, without background
+refreshes. Failed reads retain Try again, and an interrupted submission keeps its original retry.
 
 1. Choose Shareholders → ESS in the sidebar, select the share class, then Record an employee award. Choose the recipient
    ([choosing a person](register.md#choosing-a-person)) and give the promised shares, the agreement date and terms, the recorded vesting
