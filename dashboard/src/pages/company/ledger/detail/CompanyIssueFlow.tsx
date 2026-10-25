@@ -322,7 +322,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <SearchSelect
@@ -372,10 +372,11 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
           onChange={(event) => setReference(event.target.value)}
         />
       </Field>
-      <Field {...checks.field('reason')} label="Reason">
+      <Field {...checks.field('reason')} label="Reason" className="sm:col-span-2">
         <TextInput maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
       <FileField
+        showUploadHint={false}
         {...checks.field('authorityDocument')}
         label="Authority document"
         onFile={(file) => setFiles({ ...files, authority: file ?? undefined })}
@@ -424,15 +425,16 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       <Field {...checks.field('termsOn')} label="Terms date (UTC)">
         <TextInput type="date" max={utcToday()} value={termsOn} onChange={(event) => setTermsOn(event.target.value)} />
       </Field>
-      <Field {...checks.field('terms')} label="Non-paid terms">
+      <Field {...checks.field('terms')} label="Non-paid terms" className="sm:col-span-2">
         <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
       </Field>
       <FileField
+        showUploadHint={false}
         {...checks.field('termsDocument')}
         label="Terms document"
         onFile={(file) => setFiles({ ...files, terms: file ?? undefined })}
       />
-      <label className="flex gap-2 text-sm">
+      <label className="flex gap-2 text-sm sm:col-span-2">
         <input
           type="checkbox"
           checked={acceptanceRequired}
@@ -442,6 +444,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       </label>
       {acceptanceRequired && (
         <FileField
+          showUploadHint={false}
           {...checks.field('acceptanceDocument')}
           label="Acceptance document"
           onFile={(file) => setFiles({ ...files, acceptance: file ?? undefined })}

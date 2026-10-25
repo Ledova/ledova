@@ -1,7 +1,7 @@
 import { useAutomaticReads } from '@hooks/useAutomaticReads';
 import { useCallback, useEffect } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
-import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
+import { Disclosure, Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -167,12 +167,19 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company capital increase</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
-      <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <p className="text-sm">Captured authorised cap: {formatShareCount(before)}</p>
+      <div className="min-w-0 sm:col-span-2">
+        <Disclosure summary="Record details">
+          <Rows>
+            <Row label="Captured authorised cap">
+              <span className="min-w-0 break-all">{formatShareCount(before)}</span>
+            </Row>
+          </Rows>
+        </Disclosure>
+      </div>
       {commands.source?.totalSupply !== before && (
         <PageAction
           label="Use current authorised cap"
@@ -191,8 +198,8 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
           onChange={(event) => setAdditional(event.target.value)}
         />
       </Field>
-      {total !== null && <p className="text-sm">New authorised cap: {formatShareCount(total)}</p>}
-      <Field {...checks.field('purpose')} label="Purpose">
+      {total !== null && <p className="min-w-0 break-all text-sm">New authorised cap: {formatShareCount(total)}</p>}
+      <Field {...checks.field('purpose')} label="Purpose" className="sm:col-span-2">
         <TextArea value={purpose} onChange={(event) => setPurpose(event.target.value)} />
       </Field>
       <Field {...checks.field('board')} label="Board resolution reference">
@@ -210,6 +217,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
         />
       </Field>
       <FileField
+        showUploadHint={false}
         {...checks.field('file')}
         label="Capital authority document"
         onFile={(chosen) => {

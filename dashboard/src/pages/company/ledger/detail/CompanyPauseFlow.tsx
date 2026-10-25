@@ -176,11 +176,10 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company pause change</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
-      <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       <PageAction
         label="Use current class details"
         disabled={!commands.canPrepare}
@@ -189,14 +188,16 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
           setCaptured(commands.source ? { ...commands.source } : undefined);
         }}
       />
-      <Choices
-        {...checks.field('paused')}
-        legend="Requested state"
-        options={STATES}
-        value={paused === null ? '' : paused ? 'paused' : 'unpaused'}
-        onChange={(state) => setPaused(state === 'paused')}
-      />
-      <Field {...checks.field('reason')} label="Pause reason">
+      <div className="sm:col-span-2">
+        <Choices
+          {...checks.field('paused')}
+          legend="Requested state"
+          options={STATES}
+          value={paused === null ? '' : paused ? 'paused' : 'unpaused'}
+          onChange={(state) => setPaused(state === 'paused')}
+        />
+      </div>
+      <Field {...checks.field('reason')} label="Pause reason" className="sm:col-span-2">
         <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
       <Field {...checks.field('reference')} label="Authority reference">
@@ -207,6 +208,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
         />
       </Field>
       <FileField
+        showUploadHint={false}
         {...checks.field('file')}
         label="Pause authority document"
         hint={termsValid ? undefined : 'Available once the requested state, reason and authority reference are given.'}

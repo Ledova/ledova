@@ -226,7 +226,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company paid issue</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
@@ -293,10 +293,11 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
           onChange={(event) => setReference(event.target.value)}
         />
       </Field>
-      <Field {...checks.field('reason')} label="Paid issue reason">
+      <Field {...checks.field('reason')} label="Paid issue reason" className="sm:col-span-2">
         <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
       <FileField
+        showUploadHint={false}
         key={selections}
         {...checks.field('file')}
         label="Paid issue authority document"
