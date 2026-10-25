@@ -650,7 +650,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   that class's own entries. Active web
   reads follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
-  Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders (with member access),
+  Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders (with separate
+  Member access and Member requests cards),
   Employee share scheme (ESS) and Documents views by hash.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the

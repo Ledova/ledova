@@ -175,16 +175,18 @@ under **Record details**; requests without a matching visible entry remain under
 requests**, with their own actions. A class chooser is only shown when there is more than one class.
 Particulars requests stay in Company-recorded details in Settings.
 
-Member access and requests follows the same records-first pattern on Shareholders. Show compact
-invitation, access and request records only when present, with private metadata under Details.
-All four families use the same summary typography and heading-to-row spacing, with separators only
-between visible families. On wider screens, use a left-aligned 12rem status column beside the member;
-names and emails wrap, summaries stack on phones, and expanded rows retain the shared disclosure
-inset and right-aligned actions.
-A confirmed empty collection has one empty state and an Invite a member action beneath the card.
-Invitation preparation opens inline with member and email fields in the existing responsive grid,
-Cancel and Send invitation together at the bottom right. Keep invitation tokens out of visible
-fields: the email link opens one focused Member invitation page, continuing through sign-in or
+Shareholders separates **Member access** (invitations and current or revoked access) from
+**Member requests** (particulars updates and certificate requests) in two sibling `Section` cards.
+Use equal columns at `xl` and stack them below that breakpoint, with shared heading, row and
+disclosure spacing. Keep names, email addresses, status and relevant dates together; request details
+show the requested particulars or share class. Put account, member and entry references, fingerprints
+and file sizes under **Technical details**. A certificate request does not supply a share quantity;
+do not substitute the member's current holding. Keep unavailable reads and their retries distinct
+from confirmed empty collections.
+Invite a member sits in a right-aligned row beneath Member access. Invitation preparation replaces
+the collection with a focused view across the workspace, with member and email fields in the existing
+responsive grid and Cancel and Send invitation together at the bottom right. Keep invitation tokens
+out of visible fields: the email link opens one focused Member invitation page, continuing through sign-in or
 signup in the same tab. Show company, shareholder, intended email and expiry before an explicit
 Accept invitation action; opening the link must never accept it. The company sees acceptance status
 and an honest sending result, with a retry on failure; provider acceptance is not inbox delivery.
@@ -196,8 +198,8 @@ Selecting a certificate request replaces the collection with focused **Prepare c
 request date and unsigned single-recipient PDF summary together. The preparation owns the required
 **Company instruction** field; the review keeps its captured instruction, entry and register
 sequence and source fingerprint under **Record details**. Keep the privacy and signing reminder
-visible, with one right-aligned Cancel/Preview or Cancel/Create certificate row. Other invitation,
-access and request rows return when the task closes.
+visible, with one right-aligned Cancel/Preview or Cancel/Create certificate row. The focused views
+span the workspace; both collection cards return when the task closes.
 
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep company and class context once, then the issue or transfer summary, ownership

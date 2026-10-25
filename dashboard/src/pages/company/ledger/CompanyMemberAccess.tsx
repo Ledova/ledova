@@ -140,19 +140,12 @@ export function CompanyMemberAccess({
     setCertificateRequest('');
     checks.reset();
   };
-  const hasRecords = invitations.length + associations.length + particulars.length + certificates.length > 0;
+  const hasAccess = invitations.length + associations.length > 0;
+  const hasRequests = particulars.length + certificates.length > 0;
   const selectedRequest = particulars.find((item) => item.uuid === request && item.status === 'submitted');
   return (
     <>
-      <Section
-        title={
-          certificateOpen
-            ? certificateTarget
-              ? 'Review certificate'
-              : 'Prepare certificate'
-            : 'Member access and requests'
-        }
-      >
+      <div className="space-y-4">
         <ErrorSummary {...checks.summary} />
         {access.readFailed && (
           <LoadError retry={() => track('refresh', refresh())} busy={running === 'refresh' || access.busy || uploading}>
@@ -172,183 +165,429 @@ export function CompanyMemberAccess({
             onClick={() => void access.recover()}
           />
         )}
-        {certificateOpen && (
-          <div className="space-y-4">
-            {selectedCertificate ? (
-              <>
-                <h3
-                  ref={certificateHeading}
-                  tabIndex={-1}
-                  className="scroll-mt-6 text-base font-medium focus:outline-none"
-                >
-                  {memberName(selectedCertificate.member)}
-                </h3>
-                <div className="grid gap-4 text-sm sm:grid-cols-3">
-                  <div>
-                    <p className="text-text-muted">Share class</p>
-                    <p className="mt-1 font-medium">
-                      {certificateClass ? `${certificateClass.name} · ${certificateClass.symbol}` : 'Not available'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-text-muted">Requested</p>
-                    <p className="mt-1">{formatDate(selectedCertificate.createdAt)}</p>
-                  </div>
-                  <div>
-                    <p className="text-text-muted">Document</p>
-                    <p className="mt-1">
-                      Unsigned certificate{certificateTarget ? ` · ${certificateTarget.preview.pageCount} page` : ''}
-                    </p>
-                  </div>
-                </div>
-                {certificateTarget ? (
+        <div hidden={!certificateOpen}>
+          <Section title={certificateTarget ? 'Review certificate' : 'Prepare certificate'}>
+            {certificateOpen && (
+              <div className="space-y-4">
+                {selectedCertificate ? (
                   <>
-                    <Disclosure summary="Record details">
-                      <Rows>
-                        <Row label="Entry">{certificateTarget.preview.sequence}</Row>
-                        <Row label="Register sequence">{certificateTarget.preview.registerSequence}</Row>
-                        <Row label="Company instruction">{certificateTarget.command.payload.instruction}</Row>
-                        <Row label="Request reference">{shortReference(selectedCertificate.uuid)}</Row>
-                        <Row label="Entry reference">{shortReference(certificateTarget.preview.entry)}</Row>
-                        <Row label="Appointment reference">{shortReference(certificateTarget.preview.appointment)}</Row>
-                        <Row label="Source fingerprint">{certificateTarget.preview.sourceDigest}</Row>
-                      </Rows>
-                    </Disclosure>
-                    <p className="text-sm text-text-muted">
-                      Unsigned PDF for this recipient only. The company arranges signing and permitted use.
-                    </p>
-                    <FormActions>
-                      <PageAction label="Cancel" disabled={held} onClick={closeCertificate} />
-                      <PageAction
-                        label="Create certificate"
-                        primary
-                        busy={running === 'fulfil'}
-                        busyLabel="Creating…"
-                        disabled={held || selectedCertificate.status !== 'requested'}
-                        onClick={() => track('fulfil', access.fulfilCertificate())}
-                      />
-                    </FormActions>
-                  </>
-                ) : (
-                  <form
-                    noValidate
-                    className="space-y-4"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      if (!held && selectedCertificate.status === 'requested' && checks.check(['instruction']))
-                        track(
-                          `preview:${selectedCertificate.uuid}`,
-                          access.previewCertificate(selectedCertificate.uuid, certificateInstruction.trim()),
-                        );
-                    }}
-                  >
-                    <Field {...checks.field('instruction')} label="Company instruction">
-                      <TextInput
-                        value={certificateInstruction}
-                        maxLength={FIELD_LIMITS.REFERENCE}
-                        disabled={held}
-                        onChange={(event) => setCertificateInstruction(event.target.value)}
-                      />
-                    </Field>
-                    <FormActions>
-                      <PageAction label="Cancel" disabled={held} onClick={closeCertificate} />
-                      <PageAction
-                        label="Preview"
-                        type="submit"
-                        primary
-                        busy={running === `preview:${selectedCertificate.uuid}`}
-                        busyLabel="Previewing…"
-                        disabled={held || selectedCertificate.status !== 'requested'}
-                      />
-                    </FormActions>
-                  </form>
-                )}
-              </>
-            ) : (
-              !access.readFailed && <Loading>Loading the current certificate request…</Loading>
-            )}
-          </div>
-        )}
-        <div hidden={(inviting && !!access.admin) || certificateOpen} className="space-y-4">
-          {!access.readFailed && !access.requests && <Loading>Loading member access and requests…</Loading>}
-          {!access.readFailed && access.requests && !hasRecords && (
-            <p className="text-sm text-text-muted">
-              {access.access ? 'No member access or requests yet.' : 'No member requests yet.'}
-            </p>
-          )}
-          {invitations.length > 0 && (
-            <div>
-              <h3 className="text-base font-medium">Invitations</h3>
-              <div className="divide-y divide-border-subtle">
-                {invitations.map((item) => (
-                  <Disclosure
-                    key={item.uuid}
-                    summary={
-                      <span className="grid min-w-0 gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_12rem] sm:gap-4">
-                        <span className="min-w-0 break-words font-medium">
-                          {memberName(item.member)}
-                          <span className="block font-normal text-text-muted">{item.intendedEmail}</span>
-                        </span>
-                        <span className="min-w-0 break-words text-text-muted">
-                          {MEMBER_INVITATION_STATUS_LABELS[item.status]}
-                        </span>
-                      </span>
-                    }
-                  >
-                    <Rows>
-                      <Row label="Accept before">{formatDateTime(item.acceptanceDeadline)}</Row>
-                      <Row label="Invitation reference">{shortReference(item.uuid)}</Row>
-                      <Row label="Member reference">{shortReference(item.member)}</Row>
-                    </Rows>
-                  </Disclosure>
-                ))}
-              </div>
-            </div>
-          )}
-          {associations.length > 0 && (
-            <div className={invitations.length ? 'border-t border-border-subtle pt-4' : ''}>
-              <h3 className="text-base font-medium">Current member access</h3>
-              <div className="divide-y divide-border-subtle">
-                {associations.map((association) => (
-                  <Disclosure
-                    key={association.uuid}
-                    summary={
-                      <span className="grid min-w-0 gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_12rem] sm:gap-4">
-                        <span className="min-w-0 break-words font-medium">{memberName(association.member)}</span>
-                        <span className="min-w-0 break-words text-text-muted">
-                          {association.current ? 'Current access' : 'Revoked access'}
-                        </span>
-                      </span>
-                    }
-                  >
-                    <Rows>
-                      <Row label="Member reference">{shortReference(association.member)}</Row>
-                      <Row label="Account reference">{shortReference(association.userAccount)}</Row>
-                      <Row label="Access reference">{shortReference(association.uuid)}</Row>
-                    </Rows>
-                    {association.current && revokeMember !== association.uuid && (
-                      <FormActions>
-                        <PageAction
-                          label={`Revoke access for ${memberName(association.member)}`}
-                          disabled={held}
-                          onClick={() => {
-                            checks.reset();
-                            setRequest('');
-                            setRevokeMember(association.uuid);
-                          }}
-                        />
-                      </FormActions>
-                    )}
-                    {association.current && revokeMember === association.uuid && (
+                    <h3
+                      ref={certificateHeading}
+                      tabIndex={-1}
+                      className="scroll-mt-6 text-base font-medium focus:outline-none"
+                    >
+                      {memberName(selectedCertificate.member)}
+                    </h3>
+                    <div className="grid gap-4 text-sm sm:grid-cols-3">
+                      <div>
+                        <p className="text-text-muted">Share class</p>
+                        <p className="mt-1 font-medium">
+                          {certificateClass ? `${certificateClass.name} · ${certificateClass.symbol}` : 'Not available'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-text-muted">Requested</p>
+                        <p className="mt-1">{formatDate(selectedCertificate.createdAt)}</p>
+                      </div>
+                      <div>
+                        <p className="text-text-muted">Document</p>
+                        <p className="mt-1">
+                          Unsigned certificate
+                          {certificateTarget ? ` · ${certificateTarget.preview.pageCount} page` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    {certificateTarget ? (
+                      <>
+                        <Disclosure summary="Record details">
+                          <Rows>
+                            <Row label="Entry">{certificateTarget.preview.sequence}</Row>
+                            <Row label="Register sequence">{certificateTarget.preview.registerSequence}</Row>
+                            <Row label="Company instruction">{certificateTarget.command.payload.instruction}</Row>
+                            <Row label="Request reference">{shortReference(selectedCertificate.uuid)}</Row>
+                            <Row label="Entry reference">{shortReference(certificateTarget.preview.entry)}</Row>
+                            <Row label="Appointment reference">
+                              {shortReference(certificateTarget.preview.appointment)}
+                            </Row>
+                            <Row label="Source fingerprint">{certificateTarget.preview.sourceDigest}</Row>
+                          </Rows>
+                        </Disclosure>
+                        <p className="text-sm text-text-muted">
+                          Unsigned PDF for this recipient only. The company arranges signing and permitted use.
+                        </p>
+                        <FormActions>
+                          <PageAction label="Cancel" disabled={held} onClick={closeCertificate} />
+                          <PageAction
+                            label="Create certificate"
+                            primary
+                            busy={running === 'fulfil'}
+                            busyLabel="Creating…"
+                            disabled={held || selectedCertificate.status !== 'requested'}
+                            onClick={() => track('fulfil', access.fulfilCertificate())}
+                          />
+                        </FormActions>
+                      </>
+                    ) : (
                       <form
                         noValidate
                         className="space-y-4"
                         onSubmit={(event) => {
                           event.preventDefault();
-                          if (!held && checks.check(['reason']))
-                            setRevoking({ uuid: association.uuid, name: memberName(association.member) });
+                          if (!held && selectedCertificate.status === 'requested' && checks.check(['instruction']))
+                            track(
+                              `preview:${selectedCertificate.uuid}`,
+                              access.previewCertificate(selectedCertificate.uuid, certificateInstruction.trim()),
+                            );
                         }}
                       >
+                        <Field {...checks.field('instruction')} label="Company instruction">
+                          <TextInput
+                            value={certificateInstruction}
+                            maxLength={FIELD_LIMITS.REFERENCE}
+                            disabled={held}
+                            onChange={(event) => setCertificateInstruction(event.target.value)}
+                          />
+                        </Field>
+                        <FormActions>
+                          <PageAction label="Cancel" disabled={held} onClick={closeCertificate} />
+                          <PageAction
+                            label="Preview"
+                            type="submit"
+                            primary
+                            busy={running === `preview:${selectedCertificate.uuid}`}
+                            busyLabel="Previewing…"
+                            disabled={held || selectedCertificate.status !== 'requested'}
+                          />
+                        </FormActions>
+                      </form>
+                    )}
+                  </>
+                ) : (
+                  !access.readFailed && <Loading>Loading the current certificate request…</Loading>
+                )}
+              </div>
+            )}
+          </Section>
+        </div>
+        <div className={`grid items-start gap-4 ${!inviting && access.access ? 'xl:grid-cols-2' : ''}`}>
+          <div hidden={certificateOpen || (!access.access && !inviting)} className="min-w-0">
+            <Section title="Member access">
+              <div hidden={inviting} className="space-y-4">
+                {!access.readFailed && access.access && !hasAccess && (
+                  <p className="text-sm text-text-muted">No member access yet.</p>
+                )}
+                {invitations.length > 0 && (
+                  <div>
+                    <h3 className="text-base font-medium">Invitations</h3>
+                    <div className="divide-y divide-border-subtle">
+                      {invitations.map((item) => (
+                        <Disclosure
+                          key={item.uuid}
+                          summary={
+                            <span className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 text-sm">
+                              <span className="min-w-0 grow basis-40 break-words font-medium">
+                                {memberName(item.member)}
+                                <span className="block font-normal text-text-muted">{item.intendedEmail}</span>
+                              </span>
+                              <span className="min-w-0 break-words text-text-muted">
+                                {MEMBER_INVITATION_STATUS_LABELS[item.status]}
+                              </span>
+                            </span>
+                          }
+                        >
+                          <Rows>
+                            <Row label="Invitation date">{formatDate(item.createdAt)}</Row>
+                            <Row label="Accept before">{formatDateTime(item.acceptanceDeadline)}</Row>
+                          </Rows>
+                          <Disclosure summary="Technical details">
+                            <Rows>
+                              <Row label="Invitation reference">{shortReference(item.uuid)}</Row>
+                              <Row label="Member reference">{shortReference(item.member)}</Row>
+                            </Rows>
+                          </Disclosure>
+                        </Disclosure>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {associations.length > 0 && (
+                  <div className={invitations.length ? 'border-t border-border-subtle pt-4' : ''}>
+                    <h3 className="text-base font-medium">Current member access</h3>
+                    <div className="divide-y divide-border-subtle">
+                      {associations.map((association) => (
+                        <Disclosure
+                          key={association.uuid}
+                          summary={
+                            <span className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 text-sm">
+                              <span className="min-w-0 grow basis-40 break-words font-medium">
+                                {memberName(association.member)}
+                                <span className="block font-normal text-text-muted">{association.acceptedEmail}</span>
+                              </span>
+                              <span className="min-w-0 break-words text-text-muted">
+                                {association.current ? 'Current access' : 'Revoked access'}
+                              </span>
+                            </span>
+                          }
+                        >
+                          <Rows>
+                            <Row label="Linked on">{formatDate(association.createdAt)}</Row>
+                          </Rows>
+                          <Disclosure summary="Technical details">
+                            <Rows>
+                              <Row label="Member reference">{shortReference(association.member)}</Row>
+                              <Row label="Account reference">{shortReference(association.userAccount)}</Row>
+                              <Row label="Access reference">{shortReference(association.uuid)}</Row>
+                            </Rows>
+                          </Disclosure>
+                          {association.current && revokeMember !== association.uuid && (
+                            <FormActions>
+                              <PageAction
+                                label={`Revoke access for ${memberName(association.member)}`}
+                                disabled={held}
+                                onClick={() => {
+                                  checks.reset();
+                                  setRequest('');
+                                  setRevokeMember(association.uuid);
+                                }}
+                              />
+                            </FormActions>
+                          )}
+                          {association.current && revokeMember === association.uuid && (
+                            <form
+                              noValidate
+                              className="space-y-4"
+                              onSubmit={(event) => {
+                                event.preventDefault();
+                                if (!held && checks.check(['reason']))
+                                  setRevoking({ uuid: association.uuid, name: memberName(association.member) });
+                              }}
+                            >
+                              <Field {...checks.field('reason')} label="Company action reason">
+                                <TextArea
+                                  maxLength={FIELD_LIMITS.REASON}
+                                  value={reason}
+                                  disabled={held}
+                                  onChange={(event) => setReason(event.target.value)}
+                                />
+                              </Field>
+                              <FormActions>
+                                <PageAction
+                                  label="Cancel"
+                                  disabled={held}
+                                  onClick={() => {
+                                    checks.reset();
+                                    setRevokeMember('');
+                                  }}
+                                />
+                                <PageAction label="Revoke access" type="submit" disabled={held} />
+                              </FormActions>
+                            </form>
+                          )}
+                        </Disclosure>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {access.admin && (
+                <form
+                  noValidate
+                  hidden={!inviting || certificateOpen}
+                  className="space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!held && recipientsReady && checks.check(INVITATION_FIELDS) && member)
+                      track('invite', access.invite(member.uuid, email.trim()));
+                  }}
+                >
+                  <h3 ref={invite} tabIndex={-1} className="scroll-mt-6 text-base font-medium focus:outline-none">
+                    Invite a member
+                  </h3>
+                  <div className="grid items-start gap-4 sm:grid-cols-2">
+                    <PersonSelect
+                      {...checks.field('member')}
+                      label="Member or award recipient"
+                      people={candidates.map((candidate) => ({
+                        member: candidate.uuid,
+                        name: candidate.name,
+                        residentialAddress: '',
+                        walletless: true,
+                        particularsRetained: true,
+                        currentShares: '0',
+                        lastCeasedOn: null,
+                        awardOnly: candidate.sources.length === 1 && candidate.sources[0] === 'Award recipient',
+                      }))}
+                      value={member?.uuid ?? ''}
+                      onChange={(value) => setInvitation({ company, member: value, email })}
+                      allowNew={false}
+                      disabled={held || !recipientsReady}
+                      context={(person) => {
+                        const candidate = candidateOf.get(person.member);
+                        return candidate
+                          ? [
+                              candidate.classes.join(', '),
+                              ...(person.awardOnly ? [] : [candidate.sources.join(', ')]),
+                            ].join(' · ')
+                          : '';
+                      }}
+                    />
+                    <Field {...checks.field('email')} label="Intended recipient email">
+                      <TextInput
+                        maxLength={FIELD_LIMITS.EMAIL}
+                        type="email"
+                        value={email}
+                        disabled={held}
+                        onChange={(event) =>
+                          setInvitation({ company, member: member?.uuid ?? '', email: event.target.value })
+                        }
+                      />
+                    </Field>
+                  </div>
+                  {awards.isPending && <Loading>Loading company recipients…</Loading>}
+                  {awards.isError ? (
+                    <LoadError retry={() => awards.refetch()} busy={awards.isFetching}>
+                      The company recipients could not be loaded.
+                    </LoadError>
+                  ) : (
+                    recipientsError && (
+                      <p role="alert" className="text-sm text-error-light">
+                        {recipientsError}
+                      </p>
+                    )
+                  )}
+                  {recipientsReady && candidates.length === 0 && (
+                    <p className="text-sm text-text-muted">
+                      Record a member or employee award before inviting its recipient.
+                    </p>
+                  )}
+                  {member && (
+                    <Disclosure summary="Technical details">
+                      <Rows>
+                        <Row label="Member reference">{shortReference(member.uuid)}</Row>
+                      </Rows>
+                    </Disclosure>
+                  )}
+                  <p className="text-sm text-text-muted">
+                    Emails this person a link to accept access to their own shares and employee awards.
+                  </p>
+                  <FormActions>
+                    <PageAction
+                      label="Cancel"
+                      disabled={held}
+                      onClick={() => {
+                        checks.reset();
+                        restoreInviteFocus.current = true;
+                        setInviting(false);
+                      }}
+                    />
+                    <PageAction
+                      label="Send invitation"
+                      type="submit"
+                      primary
+                      busy={running === 'invite'}
+                      busyLabel="Sending invitation…"
+                      disabled={held || !recipientsReady}
+                    />
+                  </FormActions>
+                </form>
+              )}
+            </Section>
+            {access.admin && !inviting && !certificateOpen && (
+              <div ref={inviteAction} className="mt-4 flex flex-wrap justify-end gap-2">
+                <PageAction
+                  label="Invite a member"
+                  primary
+                  disabled={held}
+                  onClick={() => {
+                    checks.reset();
+                    setInviting(true);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <div hidden={certificateOpen || inviting} className="min-w-0">
+            <Section title="Member requests">
+              {!access.readFailed && !access.requests && <Loading>Loading member requests…</Loading>}
+              {!access.readFailed && access.requests && !hasRequests && (
+                <p className="text-sm text-text-muted">No member requests yet.</p>
+              )}
+              {particulars.length > 0 && (
+                <div>
+                  <h3 className="text-base font-medium">Particulars requests</h3>
+                  <div className="divide-y divide-border-subtle">
+                    {particulars.map((item) => (
+                      <Disclosure
+                        key={item.uuid}
+                        summary={
+                          <span className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 text-sm">
+                            <span className="min-w-0 grow basis-40 break-words font-medium">{item.name}</span>
+                            <span className="min-w-0 break-words text-text-muted">
+                              {MEMBER_PARTICULARS_STATUS_LABELS[item.status]}
+                            </span>
+                          </span>
+                        }
+                      >
+                        <Rows>
+                          <Row label="Requested on">{formatDate(item.createdAt)}</Row>
+                          <Row label="Residential address">{item.residentialAddress}</Row>
+                        </Rows>
+                        <Disclosure summary="Technical details">
+                          <Rows>
+                            <Row label="Request reference">{shortReference(item.uuid)}</Row>
+                            <Row label="Member reference">{shortReference(item.member)}</Row>
+                            {item.change && <Row label="Company instruction">{shortReference(item.change)}</Row>}
+                          </Rows>
+                        </Disclosure>
+                        {item.status === 'submitted' && access.prepare && (
+                          <FormActions>
+                            <PageAction
+                              label={`Prepare particulars update for ${item.name}`}
+                              disabled={held}
+                              onClick={() => {
+                                checks.reset();
+                                setRevokeMember('');
+                                setRequest(item.uuid);
+                              }}
+                            />
+                          </FormActions>
+                        )}
+                      </Disclosure>
+                    ))}
+                  </div>
+                  {access.prepare && (
+                    <form
+                      noValidate
+                      hidden={!selectedRequest}
+                      className="space-y-4 border-t border-border-subtle pt-4"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (selectedRequest && !held && checks.check(PARTICULARS_FIELDS))
+                          track('particulars', prepare());
+                      }}
+                    >
+                      <h4 className="text-base font-medium">
+                        Prepare {selectedRequest?.name}&apos;s particulars update
+                      </h4>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FileField
+                          {...checks.field('file')}
+                          label="Company supporting document"
+                          showUploadHint={false}
+                          disabled={held}
+                          onFile={selectFile}
+                        />
+                        <Field {...checks.field('asAt')} label="As-at date (UTC)">
+                          <TextInput
+                            type="date"
+                            max={utcToday()}
+                            value={asAt}
+                            disabled={held}
+                            onChange={(event) => setAsAt(event.target.value)}
+                          />
+                        </Field>
+                      </div>
+                      {selectedRequest && (
                         <Field {...checks.field('reason')} label="Company action reason">
                           <TextArea
                             maxLength={FIELD_LIMITS.REASON}
@@ -357,304 +596,109 @@ export function CompanyMemberAccess({
                             onChange={(event) => setReason(event.target.value)}
                           />
                         </Field>
-                        <FormActions>
-                          <PageAction
-                            label="Cancel"
-                            disabled={held}
-                            onClick={() => {
-                              checks.reset();
-                              setRevokeMember('');
-                            }}
-                          />
-                          <PageAction label="Revoke access" type="submit" disabled={held} />
-                        </FormActions>
-                      </form>
-                    )}
-                  </Disclosure>
-                ))}
-              </div>
-            </div>
-          )}
-          {particulars.length > 0 && (
-            <div className={invitations.length || associations.length ? 'border-t border-border-subtle pt-4' : ''}>
-              <h3 className="text-base font-medium">Particulars requests</h3>
-              <div className="divide-y divide-border-subtle">
-                {particulars.map((item) => (
-                  <Disclosure
-                    key={item.uuid}
-                    summary={
-                      <span className="grid min-w-0 gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_12rem] sm:gap-4">
-                        <span className="min-w-0 break-words font-medium">{item.name}</span>
-                        <span className="min-w-0 break-words text-text-muted">
-                          {MEMBER_PARTICULARS_STATUS_LABELS[item.status]}
-                        </span>
-                      </span>
-                    }
-                  >
-                    <Rows>
-                      <Row label="Residential address">{item.residentialAddress}</Row>
-                      <Row label="Request reference">{shortReference(item.uuid)}</Row>
-                      <Row label="Member reference">{shortReference(item.member)}</Row>
-                      {item.change && <Row label="Company instruction">{shortReference(item.change)}</Row>}
-                    </Rows>
-                    {item.status === 'submitted' && access.prepare && (
-                      <FormActions>
-                        <PageAction
-                          label={`Prepare particulars update for ${item.name}`}
-                          disabled={held}
-                          onClick={() => {
-                            checks.reset();
-                            setRevokeMember('');
-                            setRequest(item.uuid);
-                          }}
-                        />
-                      </FormActions>
-                    )}
-                  </Disclosure>
-                ))}
-              </div>
-              {access.prepare && (
-                <form
-                  noValidate
-                  hidden={!selectedRequest}
-                  className="space-y-4 border-t border-border-subtle pt-4"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (selectedRequest && !held && checks.check(PARTICULARS_FIELDS)) track('particulars', prepare());
-                  }}
-                >
-                  <h4 className="text-base font-medium">Prepare {selectedRequest?.name}&apos;s particulars update</h4>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FileField
-                      {...checks.field('file')}
-                      label="Company supporting document"
-                      showUploadHint={false}
-                      disabled={held}
-                      onFile={selectFile}
-                    />
-                    <Field {...checks.field('asAt')} label="As-at date (UTC)">
-                      <TextInput
-                        type="date"
-                        max={utcToday()}
-                        value={asAt}
-                        disabled={held}
-                        onChange={(event) => setAsAt(event.target.value)}
-                      />
-                    </Field>
-                  </div>
-                  {selectedRequest && (
-                    <Field {...checks.field('reason')} label="Company action reason">
-                      <TextArea
-                        maxLength={FIELD_LIMITS.REASON}
-                        value={reason}
-                        disabled={held}
-                        onChange={(event) => setReason(event.target.value)}
-                      />
-                    </Field>
-                  )}
-                  <p className="text-sm text-text-muted">
-                    This records the company instruction. Review and approve it separately in Ledger, Corrections.
-                  </p>
-                  {uploadError && (
-                    <p role="alert" className="text-sm text-error-light">
-                      {uploadError}
-                    </p>
-                  )}
-                  <FormActions>
-                    <PageAction
-                      label="Cancel"
-                      disabled={held}
-                      onClick={() => {
-                        checks.reset();
-                        setRequest('');
-                      }}
-                    />
-                    <PageAction
-                      label="Record company particulars instruction"
-                      type="submit"
-                      primary
-                      busy={running === 'particulars'}
-                      busyLabel="Recording instruction…"
-                      disabled={held}
-                    />
-                  </FormActions>
-                </form>
-              )}
-            </div>
-          )}
-          {certificates.length > 0 && (
-            <div
-              className={
-                invitations.length || associations.length || particulars.length
-                  ? 'border-t border-border-subtle pt-4'
-                  : ''
-              }
-            >
-              <h3 className="text-base font-medium">Certificate requests</h3>
-              <div className="divide-y divide-border-subtle">
-                {certificates.map((item) => (
-                  <Disclosure
-                    key={item.uuid}
-                    summary={
-                      <span className="grid min-w-0 gap-1 text-sm sm:grid-cols-[minmax(0,1fr)_12rem] sm:gap-4">
-                        <span className="min-w-0 break-words font-medium">{memberName(item.member)}</span>
-                        <span className="min-w-0 break-words text-text-muted">
-                          {MEMBER_CERTIFICATE_STATUS_LABELS[item.status]}
-                        </span>
-                      </span>
-                    }
-                  >
-                    <Rows>
-                      <Row label="Request reference">{shortReference(item.uuid)}</Row>
-                      <Row label="Member reference">{shortReference(item.member)}</Row>
-                      <Row label="Entry reference">{shortReference(item.entry)}</Row>
-                      {item.fulfilment && (
-                        <>
-                          <Row label="Unsigned PDF">{shortReference(item.fulfilment.uuid)}</Row>
-                          <Row label="SHA-256">{item.fulfilment.digest}</Row>
-                          <Row label="File size">{item.fulfilment.fileSize} bytes</Row>
-                        </>
                       )}
-                    </Rows>
-                    {item.status === 'requested' && (
+                      <p className="text-sm text-text-muted">
+                        This records the company instruction. Review and approve it separately in Ledger, Corrections.
+                      </p>
+                      {uploadError && (
+                        <p role="alert" className="text-sm text-error-light">
+                          {uploadError}
+                        </p>
+                      )}
                       <FormActions>
                         <PageAction
-                          ref={(element) => {
-                            if (element) certificateOpeners.current.set(item.uuid, element);
-                            else certificateOpeners.current.delete(item.uuid);
-                          }}
-                          label="Prepare certificate"
-                          context={memberName(item.member)}
+                          label="Cancel"
                           disabled={held}
                           onClick={() => {
                             checks.reset();
-                            certificateReturnFocus.current = item.uuid;
-                            setCertificateRequest(item.uuid);
+                            setRequest('');
                           }}
                         />
+                        <PageAction
+                          label="Record company particulars instruction"
+                          type="submit"
+                          primary
+                          busy={running === 'particulars'}
+                          busyLabel="Recording instruction…"
+                          disabled={held}
+                        />
                       </FormActions>
-                    )}
-                  </Disclosure>
-                ))}
-              </div>
-            </div>
-          )}
+                    </form>
+                  )}
+                </div>
+              )}
+              {certificates.length > 0 && (
+                <div className={particulars.length ? 'border-t border-border-subtle pt-4' : ''}>
+                  <h3 className="text-base font-medium">Certificate requests</h3>
+                  <div className="divide-y divide-border-subtle">
+                    {certificates.map((item) => {
+                      const shareClass = registers.find((register) => register.token.uuid === item.token)?.token;
+                      return (
+                        <Disclosure
+                          key={item.uuid}
+                          summary={
+                            <span className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 text-sm">
+                              <span className="min-w-0 grow basis-40 break-words font-medium">
+                                {memberName(item.member)}
+                                {shareClass && (
+                                  <span className="block font-normal text-text-muted">
+                                    {shareClass.name} · {shareClass.symbol}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="min-w-0 break-words text-text-muted">
+                                {MEMBER_CERTIFICATE_STATUS_LABELS[item.status]}
+                              </span>
+                            </span>
+                          }
+                        >
+                          <Rows>
+                            <Row label="Requested on">{formatDate(item.createdAt)}</Row>
+                            <Row label="Document">Unsigned certificate</Row>
+                            {item.fulfilment && <Row label="Created on">{formatDate(item.fulfilment.createdAt)}</Row>}
+                          </Rows>
+                          <Disclosure summary="Technical details">
+                            <Rows>
+                              <Row label="Request reference">{shortReference(item.uuid)}</Row>
+                              <Row label="Member reference">{shortReference(item.member)}</Row>
+                              <Row label="Entry reference">{shortReference(item.entry)}</Row>
+                              {item.fulfilment && (
+                                <>
+                                  <Row label="Unsigned PDF">{shortReference(item.fulfilment.uuid)}</Row>
+                                  <Row label="SHA-256">{item.fulfilment.digest}</Row>
+                                  <Row label="File size">{item.fulfilment.fileSize} bytes</Row>
+                                </>
+                              )}
+                            </Rows>
+                          </Disclosure>
+                          {item.status === 'requested' && (
+                            <FormActions>
+                              <PageAction
+                                ref={(element) => {
+                                  if (element) certificateOpeners.current.set(item.uuid, element);
+                                  else certificateOpeners.current.delete(item.uuid);
+                                }}
+                                label="Prepare certificate"
+                                context={memberName(item.member)}
+                                disabled={held}
+                                onClick={() => {
+                                  checks.reset();
+                                  certificateReturnFocus.current = item.uuid;
+                                  setCertificateRequest(item.uuid);
+                                }}
+                              />
+                            </FormActions>
+                          )}
+                        </Disclosure>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </Section>
+          </div>
         </div>
-        {access.admin && (
-          <form
-            noValidate
-            hidden={!inviting || certificateOpen}
-            className="space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!held && recipientsReady && checks.check(INVITATION_FIELDS) && member)
-                track('invite', access.invite(member.uuid, email.trim()));
-            }}
-          >
-            <h3 ref={invite} tabIndex={-1} className="scroll-mt-6 text-base font-medium focus:outline-none">
-              Invite a member
-            </h3>
-            <div className="grid items-start gap-4 sm:grid-cols-2">
-              <PersonSelect
-                {...checks.field('member')}
-                label="Member or award recipient"
-                people={candidates.map((candidate) => ({
-                  member: candidate.uuid,
-                  name: candidate.name,
-                  residentialAddress: '',
-                  walletless: true,
-                  particularsRetained: true,
-                  currentShares: '0',
-                  lastCeasedOn: null,
-                  awardOnly: candidate.sources.length === 1 && candidate.sources[0] === 'Award recipient',
-                }))}
-                value={member?.uuid ?? ''}
-                onChange={(value) => setInvitation({ company, member: value, email })}
-                allowNew={false}
-                disabled={held || !recipientsReady}
-                context={(person) => {
-                  const candidate = candidateOf.get(person.member);
-                  return candidate
-                    ? [candidate.classes.join(', '), ...(person.awardOnly ? [] : [candidate.sources.join(', ')])].join(
-                        ' · ',
-                      )
-                    : '';
-                }}
-              />
-              <Field {...checks.field('email')} label="Intended recipient email">
-                <TextInput
-                  maxLength={FIELD_LIMITS.EMAIL}
-                  type="email"
-                  value={email}
-                  disabled={held}
-                  onChange={(event) =>
-                    setInvitation({ company, member: member?.uuid ?? '', email: event.target.value })
-                  }
-                />
-              </Field>
-            </div>
-            {awards.isPending && <Loading>Loading company recipients…</Loading>}
-            {awards.isError ? (
-              <LoadError retry={() => awards.refetch()} busy={awards.isFetching}>
-                The company recipients could not be loaded.
-              </LoadError>
-            ) : (
-              recipientsError && (
-                <p role="alert" className="text-sm text-error-light">
-                  {recipientsError}
-                </p>
-              )
-            )}
-            {recipientsReady && candidates.length === 0 && (
-              <p className="text-sm text-text-muted">
-                Record a member or employee award before inviting its recipient.
-              </p>
-            )}
-            {member && (
-              <Disclosure summary="Selected member record">
-                <Rows>
-                  <Row label="Member reference">{shortReference(member.uuid)}</Row>
-                </Rows>
-              </Disclosure>
-            )}
-            <p className="text-sm text-text-muted">
-              Emails this person a link to accept access to their own shares and employee awards.
-            </p>
-            <FormActions>
-              <PageAction
-                label="Cancel"
-                disabled={held}
-                onClick={() => {
-                  checks.reset();
-                  restoreInviteFocus.current = true;
-                  setInviting(false);
-                }}
-              />
-              <PageAction
-                label="Send invitation"
-                type="submit"
-                primary
-                busy={running === 'invite'}
-                busyLabel="Sending invitation…"
-                disabled={held || !recipientsReady}
-              />
-            </FormActions>
-          </form>
-        )}
-      </Section>
-      {access.admin && !inviting && !certificateOpen && (
-        <div ref={inviteAction} className="mt-4 flex flex-wrap justify-end gap-2">
-          <PageAction
-            label="Invite a member"
-            primary
-            disabled={held}
-            onClick={() => {
-              checks.reset();
-              setInviting(true);
-            }}
-          />
-        </div>
-      )}
+      </div>
       {revoking && (
         <Confirmation
           isOpen
