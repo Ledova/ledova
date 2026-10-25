@@ -79,8 +79,12 @@ function RegisterPage({
                     : hash === '#documents'
                       ? 'Prepare permitted register copies, certificates and company packs.'
                       : hash === '#shareholders'
-                        ? 'Who holds shares, what they hold in each class, and their access to their own records.'
-                        : 'Share classes and current ownership.'
+                        ? 'Who holds shares and what they hold in each class.'
+                        : hash === '#member-access'
+                          ? 'Invite people to their records and manage their access.'
+                          : hash === '#member-requests'
+                            ? 'Review particulars updates and certificate requests.'
+                            : 'Share classes and current ownership.'
         }
       >
         {selection}
@@ -141,8 +145,11 @@ function OwnRegister({
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
   const { setState: setLedgerNavigation } = useLedgerNavigation();
-  const [memberHeld, setMemberHeld] = useState(false);
-  const [memberEditing, setMemberEditing] = useState(false);
+  const [memberHeldView, setMemberHeldView] = useState<'access' | 'requests' | null>(null);
+  const memberHeld = memberHeldView !== null;
+  const memberHeldChange = useCallback((held: boolean, view: 'access' | 'requests') => {
+    setMemberHeldView(held ? view : null);
+  }, []);
   const [personHeld, setPersonHeld] = useState(false);
   const [documentTask, setDocumentTask] = useState<string | null>(null);
   const documentEditing = useCallback((task: string, open: boolean) => {
@@ -150,7 +157,7 @@ function OwnRegister({
   }, []);
   const location = useLocation();
   const { hash } = location;
-  const includeEmptyCompanies = hash === '#shareholders';
+  const includeEmptyCompanies = ['#shareholders', '#member-access', '#member-requests'].includes(hash);
   const [heldClasses, setHeldClasses] = useState<ReadonlySet<string>>(() => new Set());
   const [editingAwards, setEditingAwards] = useState<ReadonlySet<string>>(() => new Set());
   const awardEditing = useCallback((token: string, editing: boolean) => {
@@ -314,7 +321,18 @@ function OwnRegister({
         ? 'documents'
         : hash === '#shareholders'
           ? 'shareholders'
-          : 'register';
+          : hash === '#member-access'
+            ? 'member-access'
+            : hash === '#member-requests'
+              ? 'member-requests'
+              : 'register';
+  const heldShareholderView = personHeld
+    ? 'shareholders'
+    : memberHeldView === 'access'
+      ? 'member-access'
+      : memberHeldView === 'requests'
+        ? 'member-requests'
+        : undefined;
   const requestedToken =
     scope && scope.company.uuid === registerCompany && scope.registers.some(({ token }) => token.uuid === registerToken)
       ? registerToken
@@ -357,10 +375,11 @@ function OwnRegister({
       company: scope?.company.uuid,
       token: selectedToken,
       task: selectedTask,
+      shareholderView: heldShareholderView,
       blocked: held || !sourceReady,
     });
     return () => setLedgerNavigation(null);
-  }, [setLedgerNavigation, scope?.company.uuid, selectedToken, selectedTask, held, sourceReady]);
+  }, [setLedgerNavigation, scope?.company.uuid, selectedToken, selectedTask, heldShareholderView, held, sourceReady]);
   const classSections = useRef(new Map<string, HTMLLIElement>());
   const focusedContext = useRef('');
   useEffect(() => {
@@ -368,7 +387,7 @@ function OwnRegister({
       focusedContext.current === location.key ||
       held ||
       !sourceReady ||
-      view === 'shareholders' ||
+      includeEmptyCompanies ||
       (view === 'register' && !selectedTask) ||
       !registerToken ||
       scope?.company.uuid !== registerCompany ||
@@ -382,7 +401,18 @@ function OwnRegister({
       section.scrollIntoView?.({ block: 'start' });
     }
     focusedContext.current = location.key;
-  }, [location.key, held, sourceReady, view, selectedTask, registerToken, registerRecord, registerCompany, scope]);
+  }, [
+    location.key,
+    held,
+    sourceReady,
+    view,
+    includeEmptyCompanies,
+    selectedTask,
+    registerToken,
+    registerRecord,
+    registerCompany,
+    scope,
+  ]);
 
   return (
     <RegisterPage
@@ -408,17 +438,21 @@ function OwnRegister({
       sections={
         scope && (
           <>
-            <div hidden={view !== 'shareholders'}>
+            <div
+              hidden={
+                (view !== 'member-access' && view !== 'member-requests') || (memberHeld && view !== heldShareholderView)
+              }
+            >
               <CompanyMemberAccess
                 key={`members/${scope.company.uuid}`}
+                view={view === 'member-requests' ? 'requests' : 'access'}
                 owner={owner}
                 guard={guard}
                 company={scope.company.uuid}
                 registers={scope.registers}
                 sourceReady={sourceReady}
                 inviteMember={inviteMember}
-                onHeldChange={setMemberHeld}
-                onEditingChange={setMemberEditing}
+                onHeldChange={memberHeldChange}
               />
             </div>
             <div hidden={view !== 'register' || !['history', 'corrections'].includes(selectedTask ?? '')}>
@@ -508,8 +542,20 @@ function OwnRegister({
           />
         </div>
       )}
-      {scope && ((view === 'shareholders' && ownershipReady) || personHeld) && (
-        <div hidden={view !== 'shareholders' || memberEditing}>
+      {scope && memberHeld && view !== heldShareholderView && (
+        <div className="space-y-3">
+          <p role="status" className="text-sm text-text-muted">
+            A member action is unfinished. Return to its original form to finish it.
+          </p>
+          <PageLink
+            to={`${DESTINATIONS.companyRegister.path}#${heldShareholderView}`}
+            state={{ registerCompany: scope.company.uuid }}
+            label="Return to member action"
+          />
+        </div>
+      )}
+      {scope && ((includeEmptyCompanies && ownershipReady) || personHeld) && (
+        <div hidden={view !== 'shareholders'}>
           <CompanyPeople
             key={scope.company.uuid}
             owner={owner}
@@ -581,7 +627,7 @@ function OwnRegister({
         </>
       )}
       {scope && (
-        <ul hidden={view === 'shareholders'} className="space-y-6">
+        <ul hidden={includeEmptyCompanies} className="space-y-6">
           {scope.registers.map((register) => (
             <li
               key={register.token.uuid}

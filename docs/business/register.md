@@ -614,9 +614,9 @@ The Shareholders view lists Current shareholders: one row per shareholder across
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
 and flagging an identity that needs review. The search, the filter and the page stay in the address.
 Details opens the shareholder's page. Former shareholders follows, holding each class's
-Former-member history 25 at a time, with Details for a former member the register names. Member
-access and requests then holds invitations, current access and members' particulars and
-certificate requests ([member records](member-records.md)). While register work is unfinished,
+Former-member history 25 at a time, with Details for a former member the register names.
+Shareholders' sidebar submenus open Member access for invitations and access, and Member requests
+for particulars and certificate requests ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
 Mobile's Shareholders view lists the same current shareholders, with the search and class filter,
@@ -653,7 +653,7 @@ reached from Recipient details on their award. It shows:
   to Employee share scheme;
 - Documents: the shareholder's retained supporting files, with their category and share class;
   someone who can prepare the register can add more for a recorded holding;
-- requests from them waiting for the company, with a link to Member access and requests;
+- requests from them waiting for the company, with a link to Member requests;
 - for an administrator, whether they can see their own records, with **Invite to their records**
   when they cannot.
 

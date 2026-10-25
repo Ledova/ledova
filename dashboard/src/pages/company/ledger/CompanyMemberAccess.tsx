@@ -22,6 +22,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 import { INVITATION_FIELDS, PARTICULARS_FIELDS, useCompanyMemberRequests } from './useCompanyMemberRequests';
 
 export function CompanyMemberAccess({
+  view,
   company,
   owner,
   guard,
@@ -29,16 +30,15 @@ export function CompanyMemberAccess({
   sourceReady = true,
   inviteMember,
   onHeldChange,
-  onEditingChange,
 }: {
+  view: 'access' | 'requests';
   company: string;
   owner: OrderSubmissionOwner;
   guard: () => void;
   registers: TokenHoldersResponse[];
   sourceReady?: boolean;
   inviteMember?: string;
-  onHeldChange?: (held: boolean) => void;
-  onEditingChange?: (editing: boolean) => void;
+  onHeldChange?: (held: boolean, view: 'access' | 'requests') => void;
 }) {
   const {
     access,
@@ -65,10 +65,19 @@ export function CompanyMemberAccess({
     problems,
     refresh,
     prepare,
-  } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember, onHeldChange });
+  } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember });
+  const checks = useErrorSummary(problems);
+  const [heldView, setHeldView] = useState(view);
+  if (!held && heldView !== view) {
+    setHeldView(view);
+    checks.reset();
+  }
+  useEffect(() => {
+    onHeldChange?.(held, heldView);
+    return () => onHeldChange?.(false, heldView);
+  }, [held, heldView, onHeldChange]);
   const candidateOf = new Map(candidates.map((candidate) => [candidate.uuid, candidate]));
   const { running, track } = useRunningAction();
-  const checks = useErrorSummary(problems);
   const [invitationView, setInvitationView] = useState({
     open: false,
     target: '',
@@ -95,6 +104,7 @@ export function CompanyMemberAccess({
   if (shown && invitationView.target !== target)
     setInvitationView({ open: true, target, receipt: access.invitationReceipt });
   useEffect(() => {
+    if (view !== 'access') return;
     if (inviting) {
       invite.current?.focus();
       invite.current?.scrollIntoView?.({ block: 'start' });
@@ -102,7 +112,7 @@ export function CompanyMemberAccess({
       restoreInviteFocus.current = false;
       inviteAction.current?.querySelector('button')?.focus();
     }
-  }, [inviting]);
+  }, [inviting, view]);
   const invitations = access.access?.invitations ?? [];
   const associations = access.access?.associations ?? [];
   const particulars = access.requests?.particulars ?? [];
@@ -116,10 +126,7 @@ export function CompanyMemberAccess({
   );
   const certificateClass = registers.find((item) => item.token.uuid === selectedCertificate?.token)?.token;
   useEffect(() => {
-    onEditingChange?.(certificateOpen);
-    return () => onEditingChange?.(false);
-  }, [certificateOpen, onEditingChange]);
-  useEffect(() => {
+    if (view !== 'requests') return;
     if (certificateOpen) {
       certificateHeading.current?.focus();
       certificateHeading.current?.scrollIntoView?.({ block: 'start' });
@@ -127,7 +134,7 @@ export function CompanyMemberAccess({
       certificateOpeners.current.get(certificateReturnFocus.current)?.focus();
       certificateReturnFocus.current = '';
     }
-  }, [certificateOpen, certificatePreviewing]);
+  }, [certificateOpen, certificatePreviewing, view]);
   const selectedCertificateId = certificateTarget?.preview.memberRequest ?? certificateRequest;
   if (selectedCertificateId && access.requests && selectedCertificate?.status !== 'requested' && !held) {
     editCertificate();
@@ -165,7 +172,7 @@ export function CompanyMemberAccess({
             onClick={() => void access.recover()}
           />
         )}
-        <div hidden={!certificateOpen}>
+        <div hidden={view !== 'requests' || !certificateOpen}>
           <Section title={certificateTarget ? 'Review certificate' : 'Prepare certificate'}>
             {certificateOpen && (
               <div className="space-y-4">
@@ -269,10 +276,17 @@ export function CompanyMemberAccess({
             )}
           </Section>
         </div>
-        <div className={`grid items-start gap-4 ${!inviting && access.access ? 'xl:grid-cols-2' : ''}`}>
-          <div hidden={certificateOpen || (!access.access && !inviting)} className="min-w-0">
+        <div>
+          <div hidden={view !== 'access'}>
             <Section title="Member access">
               <div hidden={inviting} className="space-y-4">
+                {!access.readFailed &&
+                  !access.access &&
+                  (access.readable && !access.canAdminister ? (
+                    <p className="text-sm text-text-muted">A company administrator manages member access.</p>
+                  ) : (
+                    <Loading>Loading member access…</Loading>
+                  ))}
                 {!access.readFailed && access.access && !hasAccess && (
                   <p className="text-sm text-text-muted">No member access yet.</p>
                 )}
@@ -392,7 +406,7 @@ export function CompanyMemberAccess({
               {access.admin && (
                 <form
                   noValidate
-                  hidden={!inviting || certificateOpen}
+                  hidden={!inviting}
                   className="space-y-4"
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -492,7 +506,7 @@ export function CompanyMemberAccess({
                 </form>
               )}
             </Section>
-            {access.admin && !inviting && !certificateOpen && (
+            {access.admin && !inviting && (
               <div ref={inviteAction} className="mt-4 flex flex-wrap justify-end gap-2">
                 <PageAction
                   label="Invite a member"
@@ -506,7 +520,7 @@ export function CompanyMemberAccess({
               </div>
             )}
           </div>
-          <div hidden={certificateOpen || inviting} className="min-w-0">
+          <div hidden={view !== 'requests' || certificateOpen}>
             <Section title="Member requests">
               {!access.readFailed && !access.requests && <Loading>Loading member requests…</Loading>}
               {!access.readFailed && access.requests && !hasRequests && (

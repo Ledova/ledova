@@ -307,10 +307,13 @@ refused row.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
 `companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
-`#documents`, `/home#documents`). Ledger's label opens its overview; a separate caret expands
+`#documents`, `/home#documents`). The web also names Shareholders' `#member-access` and
+`#member-requests` views. Ledger's label opens its overview; a separate caret expands
 Issue shares (`#issue`), Transfer shares (`#transfer`), History (`#history`) and Corrections
 (`#corrections`), marking the active
-child and opening the group on Ledger routes. Shareholders, ESS and Documents stay siblings. Its
+child and opening the group on Ledger routes. Shareholders' label opens its people list, with the
+same caret pattern for Member access and Member requests. Each group opens on its routes and marks
+the active destination. Ledger, Shareholders, ESS and Documents stay siblings. Its
 company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). A page that isn't an item marks its nearest
@@ -608,7 +611,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------- |
 | [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                    | everyone  |
 | [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                | everyone  |
-| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/ledger` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
+| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#documents`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/ledger/members/:member?company=`                                         | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                              | `/company/ledger/:uuid`                                                            | everyone  |
 | [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`    | everyone  |
@@ -650,28 +653,30 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   that class's own entries. Active web
   reads follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
-  Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders (with separate
-  Member access and Member requests cards),
-  Employee share scheme (ESS) and Documents views by hash.
+  Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders, Member access,
+  Member requests, Employee share scheme (ESS) and Documents views by hash.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
   cards, including the empty collection card. The default internal quantity ceiling is omitted from
   these summaries; finite class limits remain visible. Task views show their selected workflow rather than the
   ownership overview or header task switches. It keeps every class's
   controllers mounted, merely hidden, so changing view, task or class (the Share class selector)
-  keeps an unfinished request with its class, payload and retry key. Controllers
+  keeps an unfinished request with its class, payload and retry key. People and member controllers
+  also stay mounted across the three Shareholders views. Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
   their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
   scope, disables the company and class selectors and other sidebar tasks, and pins held task
   work to its task and class. The held task's sidebar link remains available from a sibling view
   so its original request can be resumed. `dashboard/src/components/LedgerNavigation.ts` carries
-  this scope and navigation readiness between the page and frame. A selection lasts one navigation
+  this scope and navigation readiness between the page and frame, including `shareholderView` for
+  held person saves and member actions. Direct navigation elsewhere offers a link back to the
+  original form or action. A selection lasts one navigation
   (`location.key`). Links built by
   `registerPlace` (`dashboard/src/pages/company/ledger/shared/registerPlace.ts`) pick the company
   (or the class's company), class and task hash and focuses that class; with a record it focuses that
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
-  Shareholders.
+  Member access.
   History shows recorded entries and retained supporting records with read-only detail and permitted
   downloads on demand. Corrections holds their maintenance actions; Documents holds certificate
   preparation and opens only one focused output form at a time from compact choices. ESS uses the
