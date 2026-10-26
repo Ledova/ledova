@@ -58,7 +58,8 @@ export function InvitationScreen() {
   const shown = valid && preview.isSuccess ? preview.data : null;
   const accepted =
     !!shown &&
-    (shown.status === 'accepted' || read.records.some((record) => record.company.uuid === shown.company.uuid));
+    (shown.status === 'accepted' ||
+      read.records.some((record) => record.company.uuid === shown.company.uuid && record.member === shown.member.uuid));
   const held = read.busy || !!read.retry;
   return (
     <Page testID="invitation-scroll" title="Invitation">
