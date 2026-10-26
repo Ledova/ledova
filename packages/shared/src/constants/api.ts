@@ -83,6 +83,8 @@ export const COMPANY_ENDPOINTS = {
 } as const;
 
 export const COMPANY_TOKEN_ENDPOINTS = {
+  OWNERSHIP: '/api/v1/tokens/ownership/',
+  OWNERSHIP_HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/ownership-holders/` as const,
   CLASS_RIGHTS: (uuid: string) => `/api/v1/tokens/${uuid}/class-rights/` as const,
   CLASS_RIGHTS_FILE: (uuid: string) => `/api/v1/tokens/${uuid}/class-rights-file/` as const,
   REGISTER_CERTIFICATE: (uuid: string) => `/api/v1/tokens/${uuid}/register/certificate/` as const,

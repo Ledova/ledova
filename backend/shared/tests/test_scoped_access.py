@@ -303,6 +303,13 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         own = self.client.get(f"/api/v1/tokens/{token.pk}/holders/")
         self.assertEqual(own.status_code, 200, own.content)
         self.assertIn("Synthetic Member", str(own.json()))
+        summary = self.client.get("/api/v1/tokens/ownership/", {"company": str(self.company.pk)})
+        self.assertEqual(summary.status_code, 200, summary.content)
+        self.assertNotIn(str(foreign_token.pk), str(summary.json()))
+        hidden_summary = self.client.get("/api/v1/tokens/ownership/", {"company": str(self.foreign_company.pk)})
+        self.assertEqual(hidden_summary.status_code, 404, hidden_summary.content)
+        hidden_holders = self.client.get(f"/api/v1/tokens/{foreign_token.pk}/ownership-holders/", {"sequence": 1})
+        self.assertEqual(hidden_holders.status_code, 404, hidden_holders.content)
         rights_endpoint = f"/api/v1/tokens/{token.pk}/class-rights/"
         class_document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.CLASS_RIGHTS)
         rights_payload = {

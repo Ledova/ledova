@@ -5,6 +5,9 @@ import type {
   CompanyShareTokenListItem,
   TokenCreate,
   TokenHoldersResponse,
+  CompanyOwnershipSummary,
+  ClassOwnershipHolders,
+  ClassOwnershipQuery,
   RegisterCertificatePreview,
   RegisterCertificateRequest,
   RegisterInspectionPreview,
@@ -40,6 +43,16 @@ export const getCompanyTokenHolders = (apiClient: AxiosInstance, uuid: string, c
   config === undefined
     ? apiClient.get<TokenHoldersResponse>(COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid))
     : apiClient.get<TokenHoldersResponse>(COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid), config);
+
+export const getCompanyOwnership = (apiClient: AxiosInstance, company: string, config: AxiosRequestConfig = {}) =>
+  apiClient.get<CompanyOwnershipSummary>(COMPANY_TOKEN_ENDPOINTS.OWNERSHIP, { ...config, params: { company } });
+
+export const getClassOwnershipHolders = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  params: ClassOwnershipQuery,
+  config: AxiosRequestConfig = {},
+) => apiClient.get<ClassOwnershipHolders>(COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS(uuid), { ...config, params });
 
 export const downloadTokenRegister = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
   apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT(uuid), { ...config, responseType: 'blob' });
