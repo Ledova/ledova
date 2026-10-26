@@ -319,8 +319,8 @@ the legacy company `#documents` hash opens Certificates too. A group without a m
 opens its default child, without a separate Overview page or duplicate page navigation.
 Settings uses the same one-level pattern for Profile, Documents, Team, Activation and
 Company-recorded details. Its default is Profile (`/settings#profile`), combining personal details,
-identity checks, authorised company information, Security, Preferences and Data and privacy in one
-workspace. These sections keep their separate records, editors and authority checks. Existing
+authorised company information and one compact Account card for relevant identity status, password,
+appearance and notifications. These sections keep their separate records, editors and authority checks. Existing
 `/user-profile`, `/company` and `/settings#account` links redirect to Profile; company source documents
 remain at `/company#documents`, separate from the generated outputs in the top-level Documents group.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
@@ -630,7 +630,7 @@ with its `theme-color`) only when `ledova.theme` (`THEME_STORAGE_KEY`) in browse
 earlier, removed switch is not read. The choice is written only when someone picks a theme and stays
 in that browser, not on the account, through reloads and sign-out.
 
-The dashboard's switches (Settings > Profile > Preferences > Dark theme, and the `ThemeToggle` icon in the
+The dashboard's switches (Settings > Profile > Account > Dark theme, and the `ThemeToggle` icon in the
 signed-out and sign-up header, the desktop sidebar's account footer and the small-screen signed-in
 header) use `dashboard/src/hooks/useTheme.ts`. The site's navbar toggle uses `site/src/theme.ts`,
 which repeats the key, parsing rule and theme colours because the site cannot import
@@ -806,8 +806,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Activity: the history read does not depend on the wallet filter read; filters use only supported
   API fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
-  personal, company and account sections, keeping each editor's data and authority separate. Documents
-  and Team stay focused pages; Activation keeps its existing company workflow. Signup and native
+  personal, company and account sections, keeping each editor's data and authority separate. One Account
+  card holds relevant identity status, password, appearance and notifications; Manage account contains
+  export and deletion. Payslip evidence lives with investor classification claims. Documents and Team
+  stay focused pages; Activation keeps its existing company workflow. Signup and native
   Settings keep their own navigation.
 - Profile on web, Settings on mobile: transaction alerts are the `transactionAlerts`
   field of the one preferences record (`useUserPreferences`, saved with a partial `POST` to `/api/user-preferences/`); mobile

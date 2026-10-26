@@ -1,13 +1,23 @@
 import { Field, TextInput } from '@components/Field';
 import { useState } from 'react';
-import { FIELD_LIMITS, failureSentence, readApiError } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  failureSentence,
+  readApiError,
+  formatDate,
+  formatDateTime,
+  getUserVerificationStatus,
+  VERIFICATION_TONES,
+} from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
-import { Outcome, Section, SwitchRow, LoadError, Loading } from '@components/Ledger';
+import { Disclosure, Outcome, Row, Rows, Section, Status, SwitchRow, LoadError, Loading } from '@components/Ledger';
 import { setTheme } from '@hooks/useTheme';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
+import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
+import type { useUserProfile } from '@hooks/useUserProfile';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
@@ -62,7 +72,9 @@ function PasswordInput({
   );
 }
 
-export function AccountSettings() {
+export function AccountSettings({ profile }: { profile: ReturnType<typeof useUserProfile> }) {
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const verification = getUserVerificationStatus(profile.userProfile);
   const {
     preferences,
     theme,
@@ -98,8 +110,21 @@ export function AccountSettings() {
   };
   return (
     <>
-      <Section title="Security">
+      <Section title="Account">
         <div className="divide-y divide-border-subtle">
+          {profile.userProfile && (
+            <div className="grid items-center gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <p className="text-sm text-text-muted">
+                Identity check{' '}
+                <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
+              </p>
+              <PageAction
+                label="Review identity check"
+                disabled={profile.isFetching}
+                onClick={() => setVerificationOpen(true)}
+              />
+            </div>
+          )}
           <ActionRow
             description="Choose a new password for your account."
             label="Change password"
@@ -108,11 +133,7 @@ export function AccountSettings() {
               setModal('password');
             }}
           />
-        </div>
-        <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
-      </Section>
-      <Section title="Preferences">
-        <div className="divide-y divide-border-subtle">
+          <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
           <SwitchRow
             label="Dark theme"
             description="Saved in this browser."
@@ -144,27 +165,42 @@ export function AccountSettings() {
             )}
           </div>
         </div>
+        <Disclosure summary="Manage account">
+          {profile.userProfile && (
+            <Rows>
+              <Row label="Member since">{formatDate(profile.userProfile.dateJoined, 'Not available')}</Row>
+              <Row label="Last login">{formatDateTime(profile.userProfile.lastLogin)}</Row>
+            </Rows>
+          )}
+          <div className="divide-y divide-border-subtle">
+            <ActionRow
+              description="Download a copy of your account data."
+              label="Export data"
+              onClick={() => {
+                exportMutation.reset();
+                setModal('export');
+              }}
+            />
+            <ActionRow
+              description="Deactivate your account and remove personal details. Some records are retained."
+              label="Delete account"
+              onClick={() => {
+                deleteMutation.reset();
+                setModal('delete');
+              }}
+            />
+          </div>
+        </Disclosure>
       </Section>
-      <Section title="Data and privacy">
-        <div className="divide-y divide-border-subtle">
-          <ActionRow
-            description="Download a copy of your account data."
-            label="Export data"
-            onClick={() => {
-              exportMutation.reset();
-              setModal('export');
-            }}
-          />
-          <ActionRow
-            description="Deactivate your account and remove personal details. Some records are retained."
-            label="Delete account"
-            onClick={() => {
-              deleteMutation.reset();
-              setModal('delete');
-            }}
-          />
-        </div>
-      </Section>
+      {verificationOpen && profile.userProfile && (
+        <IdentityVerificationModal
+          isOpen={verificationOpen}
+          onClose={() => {
+            setVerificationOpen(false);
+            profile.refreshProfile();
+          }}
+        />
+      )}
       <Modal
         isOpen={modal === 'password'}
         onClose={() => {

@@ -5,6 +5,7 @@ import { Page } from '@components/Page';
 import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
+import { useUserProfile } from '@hooks/useUserProfile';
 import { CompanyRecordedDetails } from './CompanyRecordedDetails';
 import { PersonalProfile } from './PersonalProfile';
 import { CompanyProfile } from './CompanyProfile';
@@ -20,6 +21,7 @@ export default function SettingsPage() {
 
 function Profile() {
   const navigation = useSettingsNavigation();
+  const profile = useUserProfile();
   const { owner } = useSubmissionOwner();
   const [companyOwner, setCompanyOwner] = useState<typeof owner>(null);
   const admittedOwner = navigation.canManageCompany
@@ -44,8 +46,8 @@ function Profile() {
           <Loading>Loading company access…</Loading>
         ) : null}
         {showCompany && <CompanyProfile />}
-        <PersonalProfile />
-        <AccountSettings />
+        <PersonalProfile profile={profile} />
+        <AccountSettings profile={profile} />
       </Page>
     </PageTitle.Provider>
   );

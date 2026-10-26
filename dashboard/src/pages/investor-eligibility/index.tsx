@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { DESTINATIONS, formatDate, refusalSentences, failureSentence } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, Status, type Tone, LoadError } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Status, type Tone, LoadError, Loading } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { useInvestorWithdrawal } from './useInvestorWithdrawal';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from './useInvestorEligibility';
+import { DocumentsPanel } from './DocumentsPanel';
 
 const CLASSIFICATION_TONES = new Map<string, Tone>([['submitted', 'moving']]);
 const READINESS_TONES = new Map<boolean, Tone>([
@@ -45,8 +46,10 @@ export default function InvestorEligibilityPage() {
 
   return (
     <>
-      <Page narrow loading={isLoading}>
-        {hasError ? (
+      <Page narrow>
+        {isLoading ? (
+          <Loading>Loading your verification…</Loading>
+        ) : hasError ? (
           <LoadError retry={retry} busy={isRefreshing}>
             Your verification could not be loaded.
           </LoadError>
@@ -147,6 +150,9 @@ export default function InvestorEligibilityPage() {
             </Section>
           </>
         )}
+        <Section title="Supporting payslips">
+          <DocumentsPanel />
+        </Section>
       </Page>
       {withdrawing && (
         <Confirmation
