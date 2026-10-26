@@ -358,7 +358,9 @@ it('lists certificates from every member association in Documents, refuses a lis
       </ApiClientProvider>
     </QueryClientProvider>
   );
-  await render(<DocumentsScreen route={{ key: 'documents', name: 'Documents', params: undefined }} />, { wrapper });
+  const view = await render(<DocumentsScreen route={{ key: 'documents', name: 'Documents', params: undefined }} />, {
+    wrapper,
+  });
   const own = `${MEMBER_RECORD.company.name}: Ordinary · 10, Issue · Not recorded, Ready`;
   expect(await screen.findByRole('button', { name: own })).toBeTruthy();
   expect(
@@ -378,4 +380,9 @@ it('lists certificates from every member association in Documents, refuses a lis
       { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
     ),
   );
+  await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
+  await fireEvent.press(screen.getByRole('button', { name: SECOND.company.name }));
+  await view.rerender(<DocumentsScreen route={{ key: 'documents', name: 'Documents', params: { show: 'notices' } }} />);
+  expect(await screen.findByText('No notices yet.')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'All', selected: true })).toBeTruthy();
 });

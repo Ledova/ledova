@@ -79,11 +79,13 @@ export function DocumentsScreen({ route }: { route: RouteProp<TabParamList, 'Doc
   const [open, setOpen] = useState<MemberCertificate | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const preset = route.params?.company;
+  const show = route.params?.show;
   useEffect(() => {
-    if (!preset) return;
-    setCompany(preset);
-    navigation.setParams({ company: undefined });
-  }, [preset, navigation]);
+    if (!preset && !show) return;
+    if (show) setKind(show);
+    setCompany(preset ?? null);
+    navigation.setParams({ company: undefined, show: undefined });
+  }, [preset, show, navigation]);
   const { refetch } = certificates;
   const seen = useRef(false);
   useFocusEffect(

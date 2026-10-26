@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import type { NavigationProp } from '@react-navigation/native';
+import type { NavigationProp, NavigatorScreenParams } from '@react-navigation/native';
 import { XIcon } from 'phosphor-react-native';
 import { formatDateTime, PUBLICATION_NOTICE, useNotifications } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
@@ -16,9 +16,11 @@ interface NotificationsModalProps {
   onClose: () => void;
 }
 
-const DESTINATIONS: Record<string, keyof TabParamList> = { [PUBLICATION_NOTICE]: 'Documents' };
+const DESTINATIONS: Record<string, NavigatorScreenParams<TabParamList>> = {
+  [PUBLICATION_NOTICE]: { screen: 'Documents', params: { show: 'notices' } },
+};
 
-export function destinationOf(notification: Notification): keyof TabParamList | undefined {
+export function destinationOf(notification: Notification): NavigatorScreenParams<TabParamList> | undefined {
   const type = (notification.data as { type?: unknown } | null | undefined)?.type;
   return typeof type === 'string' ? DESTINATIONS[type] : undefined;
 }
@@ -141,7 +143,7 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
     const destination = destinationOf(notification);
     if (!destination) return;
     onClose();
-    navigation.navigate('MainApp', { screen: 'Main', params: { screen: destination } });
+    navigation.navigate('MainApp', { screen: 'Main', params: destination });
   };
 
   return (

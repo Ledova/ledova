@@ -81,7 +81,7 @@ each read for that member association alone, and the notices, with a chip per co
 both; a company's Documents row opens it filtered to that company. A certificate opens its sheet to
 share or withdraw it through the same member-records state. Account
 holds the account settings, Profile and Sign out. Each tab's header has the notifications bell, and
-a notice's notification opens Documents. Screens set their own titles inside the page; a pushed
+a notice's notification opens Documents on Notices for every company. Screens set their own titles inside the page; a pushed
 screen's back button names the tab or screen it came from.
 
 ## Theme and appearance

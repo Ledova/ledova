@@ -22,7 +22,7 @@ import { getMainHeaderStyle, MainHeader } from './headers';
 
 export type TabParamList = {
   Holdings: undefined;
-  Documents: { company?: string } | undefined;
+  Documents: { company?: string; show?: 'certificates' | 'notices' } | undefined;
   Account: undefined;
 };
 
