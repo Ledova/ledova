@@ -86,8 +86,11 @@ both; a company's Documents row opens it filtered to that company. A certificate
 share or withdraw it through the same member-records state. Account
 opens Profile from its profile card and Invitation from Accept an invitation. It holds the sign-in
 and app lock switches, Notifications (the notifications list), the dark theme, password and data,
-the app actions and Sign out. Holdings and Documents have the notifications bell in their header, and
-a notice's notification opens Documents on Notices for every company. Screens set their own titles inside the page; a pushed
+the app actions and Sign out. Holdings and Documents have the notifications bell in their header.
+A notification, tapped in that list or as a push, opens its screen: a notice opens Documents on
+Notices for every company, a ready certificate Documents on Certificates for that company, vested
+shares the award, issued shares the class, and a decided particulars change the company's details.
+Screens set their own titles inside the page; a pushed
 screen's back button names the tab or screen it came from.
 
 ## Theme and appearance

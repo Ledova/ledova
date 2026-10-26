@@ -27,6 +27,7 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.models.choices import ShareTokenStatus
+from tokens.services.member_events import shares_vested
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_events import create_member, retained_particulars
 from tokens.services.register_evidence import (
@@ -307,6 +308,7 @@ def record_award_vesting(*, actor, operation_id, appointment, award, shares, ves
                 vesting.save(force_insert=True)
             except IntegrityError:
                 raise RegisterChangeConflict() from None
+            shares_vested(vesting)
             return vesting, True
     except BaseException:
         if vesting is not None:

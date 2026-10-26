@@ -6,7 +6,7 @@ import { getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FolderIcon, HouseIcon, UserIcon } from 'phosphor-react-native';
 import { useNotifications } from '@ledova/shared';
-import { NotificationsModal } from '../components/notifications';
+import { NotificationsModal, useFollowPush } from '../components/notifications';
 import { useAppTheme } from '../contexts';
 import { DocumentsScreen } from '../screens/documents/DocumentsScreen';
 import { AwardScreen } from '../screens/holdings/AwardScreen';
@@ -103,6 +103,7 @@ export function SignedInNavigator() {
   const theme = useAppTheme();
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
+  useFollowPush();
   return (
     <MemberRecordsProvider>
       <View style={{ flex: 1 }}>

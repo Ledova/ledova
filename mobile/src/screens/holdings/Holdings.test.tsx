@@ -414,7 +414,14 @@ it('lists certificates from every member association in Documents, refuses a lis
   await view.rerender(<DocumentsScreen route={{ key: 'documents', name: 'Documents', params: { show: 'notices' } }} />);
   expect(await screen.findByText('No notices yet.')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'All', selected: true })).toBeTruthy();
-  const notice = { data: { type: PUBLICATION_NOTICE } } as unknown as Parameters<typeof destinationOf>[0];
-  expect(destinationOf(notice)).toEqual({ screen: 'Documents', params: { show: 'notices' } });
+  const notice = { type: PUBLICATION_NOTICE };
+  expect(destinationOf(notice)).toEqual({
+    screen: 'Main',
+    params: { screen: 'Documents', params: { show: 'notices' } },
+  });
   expect(destinationOf(notice)).not.toBe(destinationOf(notice));
+  const award = 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5';
+  const vested = { type: 'award', event: 'vested', record: MEMBER_RECORD.uuid, award };
+  expect(destinationOf(vested)).toEqual({ screen: 'Award', params: { record: MEMBER_RECORD.uuid, award } });
+  expect(destinationOf({ ...vested, award: undefined })).toBeUndefined();
 });

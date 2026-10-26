@@ -122,6 +122,14 @@ requested certificates from every company, filtered by company, each opening its
 or withdraw it. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 
+### Share-event notifications
+
+A member with a current association receives an ordinary notification when a certificate they
+requested is ready, when shares vest under their award, when the company records an issue of
+shares to them, and when the company applies or declines their particulars change. Each one names
+the company; on mobile it opens the matching screen. Nothing is sent for a revoked association, for
+changes recorded before the member accepted an invitation, or for transfers.
+
 ### Revoking member access
 
 A company administrator opens **Shareholders** → **Member access** in the web sidebar, then the

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp, NavigatorScreenParams } from '@react-navigation/native';
+import { clearLastNotificationResponse, useLastNotificationResponse } from 'expo-notifications';
 import { XIcon } from 'phosphor-react-native';
 import { formatDateTime, PUBLICATION_NOTICE, useNotifications } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
@@ -9,20 +10,49 @@ import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Action, Rows } from '../Ledger';
 import { CustomModal, useDialogStyles } from '../modal';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import type { TabParamList } from '../../navigation/SignedInNavigator';
+import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 
 interface NotificationsModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-const DESTINATIONS: Record<string, () => NavigatorScreenParams<TabParamList>> = {
-  [PUBLICATION_NOTICE]: () => ({ screen: 'Documents', params: { show: 'notices' } }),
-};
+type Destination = NavigatorScreenParams<SignedInStackParamList>;
 
-export function destinationOf(notification: Notification): NavigatorScreenParams<TabParamList> | undefined {
-  const type = (notification.data as { type?: unknown } | null | undefined)?.type;
-  return typeof type === 'string' ? DESTINATIONS[type]?.() : undefined;
+export function destinationOf(value: unknown): Destination | undefined {
+  const data = (value ?? {}) as Record<string, unknown>;
+  const { record, company, award, token } = data;
+  switch (data.type) {
+    case PUBLICATION_NOTICE:
+      return { screen: 'Main', params: { screen: 'Documents', params: { show: 'notices' } } };
+    case 'certificate':
+      return typeof company === 'string'
+        ? { screen: 'Main', params: { screen: 'Documents', params: { company, show: 'certificates' } } }
+        : undefined;
+    case 'award':
+      return typeof record === 'string' && typeof award === 'string'
+        ? { screen: 'Award', params: { record, award } }
+        : undefined;
+    case 'holding':
+      return typeof record === 'string' && typeof token === 'string'
+        ? { screen: 'Class', params: { record, token } }
+        : undefined;
+    case 'particulars':
+      return typeof record === 'string' ? { screen: 'Details', params: { record } } : undefined;
+    default:
+      return undefined;
+  }
+}
+
+export function useFollowPush() {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const response = useLastNotificationResponse();
+  useEffect(() => {
+    if (!response) return;
+    clearLastNotificationResponse();
+    const destination = destinationOf(response.notification.request.content.data);
+    if (destination) navigation.navigate('MainApp', destination);
+  }, [response, navigation]);
 }
 
 function NotificationItem({
@@ -140,10 +170,10 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
   }, [visible, fetchNotifications]);
 
   const follow = (notification: Notification) => {
-    const destination = destinationOf(notification);
+    const destination = destinationOf(notification.data);
     if (!destination) return;
     onClose();
-    navigation.navigate('MainApp', { screen: 'Main', params: destination });
+    navigation.navigate('MainApp', destination);
   };
 
   return (

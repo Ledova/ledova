@@ -15,6 +15,7 @@ from tokens.models import (
     RegisterExportKind,
 )
 from tokens.services.member_access import _query, company_readable, request_readable
+from tokens.services.member_events import certificate_ready
 from tokens.services.register import _certificate_source
 from tokens.services.register_authority import (
     current_register_reader,
@@ -147,6 +148,7 @@ def fulfil_member_certificate(*, actor, request_id, operation_id, appointment, s
                 raise RegisterChangeConflict() from None
             register_reader_appointment(company, current, profile, operator, source.pk)
             _require_source(request)
+            certificate_ready(request)
             return request, True
     except BaseException:
         if output is not None:

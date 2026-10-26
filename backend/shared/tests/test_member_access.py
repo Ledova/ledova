@@ -125,6 +125,7 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
             self.client.post(preview_endpoint, {"code": invitation_code}, format="json").json()["status"], "accepted"
         )
         association = accepted.json()["uuid"]
+        told = self.enterContext(patch("tokens.services.member_events.defer"))
         self.assertEqual(
             self.client.post("/api/v1/tokens/member-invitations/accept/", acceptance, format="json").json()["uuid"],
             association,
@@ -180,6 +181,16 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "approve")
         applied, _ = self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "apply")
         issue_entry = applied.json()["registerEntry"]
+        self.assertEqual(
+            [(call.kwargs["user_id"], call.kwargs["title"], call.kwargs["data"]) for call in told.call_args_list],
+            [
+                (
+                    str(self.foreign.pk),
+                    "Shares issued",
+                    {"type": "holding", "event": "issued", "token": str(self.token.pk), "record": association},
+                )
+            ],
+        )
         supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
         self.client.force_authenticate(self.foreign)
         own = self.client.get(record_endpoint).json()
@@ -205,6 +216,17 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(change.json()["memberRequest"], request_id)
         self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "approve")
         self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "apply")
+        self.assertEqual(
+            told.call_args.kwargs["data"], {"type": "particulars", "event": "applied", "record": association}
+        )
+        later = self.vesting_payload(award["operation_id"], shares="1")
+        self.assertEqual(
+            self.client.post("/api/v1/tokens/register-award-vestings/", later, format="json").status_code, 201
+        )
+        self.assertEqual(
+            told.call_args.kwargs["data"],
+            {"type": "award", "event": "vested", "award": award["operation_id"], "record": association},
+        )
         self.client.force_authenticate(self.foreign)
         status = self.client.get(f"/api/v1/tokens/member-particulars-requests/{request_id}/")
         self.assertEqual(status.json()["status"], "applied")
@@ -238,6 +260,11 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(revoked.status_code, 200, revoked.content)
         self.assertFalse(revoked.json()["current"])
+        after = self.vesting_payload(award["operation_id"], shares="1")
+        self.assertEqual(
+            self.client.post("/api/v1/tokens/register-award-vestings/", after, format="json").status_code, 201
+        )
+        self.assertEqual(told.call_count, 3)
         with use_operator():
             self.assertEqual(MemberAssociation.objects.count(), 1)
             self.assertEqual(MemberInvitation.objects.count(), 1)
