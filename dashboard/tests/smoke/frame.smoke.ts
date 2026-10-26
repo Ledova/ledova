@@ -120,7 +120,7 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(aside.getByRole('link', { name: 'ESS', exact: true })).toHaveCount(0);
     await aside.getByRole('button', { name: 'Expand Shareholders navigation' }).click();
     const shareholders = aside.getByRole('link', { name: 'Shareholders', exact: true }).locator('../..');
-    const awards = shareholders.getByRole('link', { name: 'ESS', exact: true });
+    const awards = shareholders.getByRole('link', { name: 'ESS', exact: true, includeHidden: true });
     await expect(awards).toHaveAttribute('href', '/company/ledger#awards');
     await expect(awards).toHaveAttribute('title', 'Employee share scheme');
     await expect(aside.getByRole('link', { name: 'ESS', exact: true })).toHaveCount(1);
@@ -139,6 +139,60 @@ async function openTheSidebar(page: Page, role: Role) {
       'aria-expanded',
       'true',
     );
+    const documents = aside.getByRole('link', { name: 'Documents', exact: true }).locator('../..');
+    const documentsLink = documents.getByRole('link', { name: 'Documents', exact: true });
+    await expect(documentsLink).toHaveAttribute('href', '/company/ledger#certificates');
+    await expect(documents.getByRole('button', { name: 'Expand Documents navigation' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    await documentsLink.click();
+    await expect(page).toHaveURL(/\/company\/ledger#certificates$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Certificates', exact: true })).toBeVisible();
+    if (phone) {
+      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+      await page.getByRole('button', { name: 'Open navigation' }).click();
+    }
+    const certificates = documents.getByRole('link', { name: 'Certificates', exact: true });
+    const exports = documents.getByRole('link', { name: 'Ledger exports', exact: true });
+    const pack = documents.getByRole('link', { name: 'Company pack', exact: true });
+    await expect(certificates).toHaveAttribute('href', '/company/ledger#certificates');
+    await expect(exports).toHaveAttribute('href', '/company/ledger#ledger-exports');
+    await expect(pack).toHaveAttribute('href', '/company/ledger#company-pack');
+    await expect(certificates).toHaveAttribute('aria-current', 'page');
+    await expect(documentsLink).not.toHaveAttribute('aria-current');
+    await expect(awards).not.toHaveAttribute('aria-current');
+    await documents.getByRole('button', { name: 'Collapse Documents navigation' }).click();
+    await expect(documents.getByRole('button', { name: 'Expand Documents navigation' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    await expect(certificates).not.toBeVisible();
+    await expect(page).toHaveURL(/\/company\/ledger#certificates$/);
+    await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
+    await expect(documents.getByRole('button', { name: 'Collapse Documents navigation' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    await exports.click();
+    await expect(page).toHaveURL(/\/company\/ledger#ledger-exports$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Ledger exports', exact: true })).toBeVisible();
+    if (phone) {
+      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+      await page.getByRole('button', { name: 'Open navigation' }).click();
+    }
+    await expect(exports).toHaveAttribute('aria-current', 'page');
+    await expect(certificates).not.toHaveAttribute('aria-current');
+    await pack.click();
+    await expect(page).toHaveURL(/\/company\/ledger#company-pack$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Company pack', exact: true })).toBeVisible();
+    if (phone) {
+      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+      await page.getByRole('button', { name: 'Open navigation' }).click();
+    }
+    await expect(pack).toHaveAttribute('aria-current', 'page');
+    await expect(exports).not.toHaveAttribute('aria-current');
+    await expect(documentsLink).not.toHaveAttribute('aria-current');
   }
   await aside.locator('summary').filter({ hasText: 'More' }).click();
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();

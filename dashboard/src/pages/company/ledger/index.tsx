@@ -15,7 +15,7 @@ import {
 } from '@ledova/shared';
 import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
-import { ledgerTask, pageTitle, type LedgerTask } from '@utils/destinations';
+import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
@@ -57,6 +57,7 @@ function RegisterPage({
 }) {
   const { hash } = useLocation();
   const hashTask = hash.slice(1);
+  const documents = documentView(hashTask);
   const shownTask = task ?? ledgerTask(hashTask);
   const title = pageTitle('companyRegister', shownTask ?? hashTask);
   return (
@@ -71,15 +72,19 @@ function RegisterPage({
                 ? 'Prepare and review changes while preserving the original records.'
                 : hash === '#awards'
                   ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
-                  : hash === '#documents'
-                    ? 'Prepare permitted register copies, certificates and company packs.'
-                    : hash === '#shareholders'
-                      ? 'Who holds shares and what they hold in each class.'
-                      : hash === '#member-access'
-                        ? 'Invite people to their records and manage their access.'
-                        : hash === '#member-requests'
-                          ? 'Review requests to update details or prepare certificates.'
-                          : 'Share classes and current ownership.'
+                  : documents === 'certificates'
+                    ? 'Prepare unsigned certificates for recorded share changes.'
+                    : documents === 'ledger-exports'
+                      ? 'Download ledger records or prepare an inspection copy.'
+                      : documents === 'company-pack'
+                        ? 'Prepare a package of the company’s records.'
+                        : hash === '#shareholders'
+                          ? 'Who holds shares and what they hold in each class.'
+                          : hash === '#member-access'
+                            ? 'Invite people to their records and manage their access.'
+                            : hash === '#member-requests'
+                              ? 'Review requests to update details or prepare certificates.'
+                              : 'Share classes and current ownership.'
         }
       >
         {selection}
@@ -94,15 +99,17 @@ function RegisterPage({
 function RegisterDownload({ register }: { register: TokenHoldersResponse }) {
   const download = useRegisterDownload(register.token.uuid, register.token.symbol);
   return (
-    <div className="flex flex-col items-start gap-2 border-b border-border-subtle py-3">
+    <div className="space-y-3">
       <p className="text-sm text-text-muted">{REGISTER_COPY.PRIVACY_NOTE}</p>
-      <PageAction
-        label={REGISTER_COPY.DOWNLOAD}
-        onClick={() => download.mutate()}
-        disabled={!register.initialized}
-        busy={download.isPending}
-        busyLabel="Downloading…"
-      />
+      <div className="flex flex-wrap justify-end gap-2">
+        <PageAction
+          label={REGISTER_COPY.DOWNLOAD}
+          onClick={() => download.mutate()}
+          disabled={!register.initialized}
+          busy={download.isPending}
+          busyLabel="Downloading…"
+        />
+      </div>
       {download.isError && (
         <p role="alert" className="text-sm text-error-light">
           {REGISTER_COPY.DOWNLOAD_FAILED}
@@ -157,6 +164,7 @@ function OwnRegister({
   const location = useLocation();
   const navigate = useNavigate();
   const { hash } = location;
+  const documents = documentView(hash.slice(1));
   useEffect(() => {
     if (location.hash !== '#history') return;
     navigate(
@@ -164,7 +172,8 @@ function OwnRegister({
       { replace: true, state: location.state },
     );
   }, [location, navigate]);
-  const includeEmptyCompanies = ['#shareholders', '#member-access', '#member-requests'].includes(hash);
+  const includeEmptyCompanies =
+    ['#shareholders', '#member-access', '#member-requests'].includes(hash) || documents === 'company-pack';
   const [heldClasses, setHeldClasses] = useState<ReadonlySet<string>>(() => new Set());
   const [editingAwards, setEditingAwards] = useState<ReadonlySet<string>>(() => new Set());
   const awardEditing = useCallback((token: string, editing: boolean) => {
@@ -179,7 +188,7 @@ function OwnRegister({
   const [taskSelection, setTaskSelection] = useState<{
     company: string;
     token: string;
-    task: LedgerTask | 'awards';
+    task: LedgerTask | 'awards' | DocumentView;
     locationKey: string;
   } | null>(null);
   const [retainedScope, setRetainedScope] = useState<{
@@ -321,7 +330,7 @@ function OwnRegister({
   const view =
     hash === '#awards'
       ? 'awards'
-      : hash === '#documents'
+      : documents
         ? 'documents'
         : hash === '#shareholders'
           ? 'shareholders'
@@ -346,7 +355,10 @@ function OwnRegister({
   const taskToken =
     requestedToken ??
     (scope &&
-    (ledgerTask(hashTask) || hashTask === 'awards' || (registerTask && scope.company.uuid === registerCompany))
+    (ledgerTask(hashTask) ||
+      hashTask === 'awards' ||
+      documents ||
+      (registerTask && scope.company.uuid === registerCompany))
       ? scope.registers[0]?.token.uuid
       : undefined);
   const localSelection =
@@ -491,13 +503,13 @@ function OwnRegister({
                 />
               </div>
             </div>
-            <div hidden={view !== 'documents' || (!!documentTask && documentTask !== `pack/${scope.company.uuid}`)}>
+            <div hidden={documents !== 'company-pack'}>
               {readable && (
                 <CompanyPack
                   owner={owner}
                   guard={guard}
                   company={scope.company.uuid}
-                  sourceReady={sourceReady && view === 'documents'}
+                  sourceReady={sourceReady && documents === 'company-pack'}
                   onEditingChange={documentEditing}
                 />
               )}
@@ -582,72 +594,86 @@ function OwnRegister({
           />
         </div>
       )}
-      {scope && (view === 'register' || view === 'awards') && (
-        <>
-          {view === 'register' &&
-            !selectedTask &&
-            ownershipReady &&
-            scope.registers.map((register) => (
-              <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
-                <ClassRegister register={register} former={false} />
-                {held ? (
-                  <PageAction label="Class details" context={register.token.name} disabled onClick={() => undefined} />
-                ) : (
-                  <PageLink
-                    to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
-                    label="Class details"
-                    context={register.token.name}
-                  />
-                )}
-              </Section>
-            ))}
-          {view === 'register' && !selectedTask && canAddClass && (
-            <div className="flex flex-wrap justify-end gap-2">
-              <PageLink
-                primary
-                to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
-                label="Add share class"
-              />
-            </div>
-          )}
-          <section aria-label="Ledger tasks" hidden={reviewingParticulars} className="space-y-4">
-            {(selectedTask || view === 'awards') && sourceReady && scope.registers.length === 1 && (
-              <p className="text-sm text-text-muted">
-                {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
-              </p>
-            )}
-            {(selectedTask || view === 'awards') && sourceReady && scope.registers.length > 1 && (
-              <div className="max-w-sm">
-                <SelectField
-                  label="Share class"
-                  options={scope.registers.map(({ token }) => ({
-                    value: token.uuid,
-                    label: `${token.name} · ${token.symbol}`,
-                  }))}
-                  value={selectedToken}
-                  disabled={held || (view === 'awards' && editingAwards.size > 0)}
-                  onChange={(token) => {
-                    if (!held && (view !== 'awards' || editingAwards.size === 0) && sourceReady)
-                      setTaskSelection({
-                        company: scope.company.uuid,
-                        token,
-                        task: view === 'awards' ? 'awards' : selectedTask!,
-                        locationKey: location.key,
-                      });
-                  }}
+      {scope &&
+        (view === 'register' ||
+          view === 'awards' ||
+          documents === 'certificates' ||
+          documents === 'ledger-exports') && (
+          <>
+            {view === 'register' &&
+              !selectedTask &&
+              ownershipReady &&
+              scope.registers.map((register) => (
+                <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
+                  <ClassRegister register={register} former={false} />
+                  {held ? (
+                    <PageAction
+                      label="Class details"
+                      context={register.token.name}
+                      disabled
+                      onClick={() => undefined}
+                    />
+                  ) : (
+                    <PageLink
+                      to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
+                      label="Class details"
+                      context={register.token.name}
+                    />
+                  )}
+                </Section>
+              ))}
+            {view === 'register' && !selectedTask && canAddClass && (
+              <div className="flex flex-wrap justify-end gap-2">
+                <PageLink
+                  primary
+                  to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
+                  label="Add share class"
                 />
               </div>
             )}
-          </section>
-        </>
-      )}
+            <section
+              aria-label={documents ? 'Document scope' : 'Ledger tasks'}
+              hidden={reviewingParticulars}
+              className="space-y-4"
+            >
+              {(selectedTask || view === 'awards' || documents) && sourceReady && scope.registers.length === 1 && (
+                <p className="text-sm text-text-muted">
+                  {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
+                </p>
+              )}
+              {(selectedTask || view === 'awards' || documents) && sourceReady && scope.registers.length > 1 && (
+                <div className="max-w-sm">
+                  <SelectField
+                    label="Share class"
+                    options={scope.registers.map(({ token }) => ({
+                      value: token.uuid,
+                      label: `${token.name} · ${token.symbol}`,
+                    }))}
+                    value={selectedToken}
+                    disabled={held || (view === 'awards' && editingAwards.size > 0)}
+                    onChange={(token) => {
+                      if (!held && (view !== 'awards' || editingAwards.size === 0) && sourceReady)
+                        setTaskSelection({
+                          company: scope.company.uuid,
+                          token,
+                          task: documents ?? (view === 'awards' ? 'awards' : selectedTask!),
+                          locationKey: location.key,
+                        });
+                    }}
+                  />
+                </div>
+              )}
+            </section>
+          </>
+        )}
       {scope && (
         <ul hidden={includeEmptyCompanies || reviewingParticulars} className="space-y-6">
           {scope.registers.map((register) => (
             <li
               key={register.token.uuid}
               hidden={
-                (view === 'awards' && selectedToken !== register.token.uuid) ||
+                ((view === 'awards' || view === 'documents') && selectedToken !== register.token.uuid) ||
+                documents === 'company-pack' ||
                 (view === 'documents' &&
                   !!documentTask &&
                   documentTask !== `inspection/${register.token.uuid}` &&
@@ -664,7 +690,7 @@ function OwnRegister({
                 data-register-tasks
                 hidden={view === 'register' && (!selectedTask || selectedToken !== register.token.uuid)}
                 className={
-                  (view === 'register' && selectedTask) || view === 'awards'
+                  (view === 'register' && selectedTask) || view === 'awards' || view === 'documents'
                     ? 'space-y-5'
                     : 'space-y-5 rounded-xl border border-border bg-surface-raised p-4 sm:p-5'
                 }
@@ -672,6 +698,7 @@ function OwnRegister({
                 <h2
                   hidden={
                     view === 'awards' ||
+                    view === 'documents' ||
                     (sourceReady && view === 'register' && (selectedTask === 'issue' || selectedTask === 'transfer'))
                   }
                   className={
@@ -795,7 +822,12 @@ function OwnRegister({
                     />
                   </div>
                   <div hidden={view !== 'documents'} className="space-y-5">
-                    <div hidden={!!documentTask && !documentTask.startsWith(`certificate/${register.token.uuid}/`)}>
+                    <div
+                      hidden={
+                        documents !== 'certificates' ||
+                        (!!documentTask && !documentTask.startsWith(`certificate/${register.token.uuid}/`))
+                      }
+                    >
                       <ClassCertificates
                         owner={owner}
                         guard={guard}
@@ -803,7 +835,8 @@ function OwnRegister({
                         register={register}
                         sourceReady={sourceReady}
                         visible={
-                          view === 'documents' &&
+                          documents === 'certificates' &&
+                          selectedToken === register.token.uuid &&
                           sourceReady &&
                           (!documentTask || documentTask.startsWith(`certificate/${register.token.uuid}/`))
                         }
@@ -813,20 +846,30 @@ function OwnRegister({
                     </div>
                     {readable && (
                       <>
-                        <div hidden={!!documentTask}>
-                          <RegisterDownload register={register} />
+                        <div hidden={documents !== 'ledger-exports' || !!documentTask}>
+                          <Section title="CSV download">
+                            <RegisterDownload register={register} />
+                          </Section>
                         </div>
-                        <div hidden={!!documentTask && documentTask !== `inspection/${register.token.uuid}`}>
-                          <ClassInspectionCopy
-                            register={register}
-                            guard={guard}
-                            sourceReady={
-                              sourceReady &&
-                              view === 'documents' &&
-                              (!documentTask || documentTask === `inspection/${register.token.uuid}`)
-                            }
-                            onEditingChange={documentEditing}
-                          />
+                        <div
+                          hidden={
+                            documents !== 'ledger-exports' ||
+                            (!!documentTask && documentTask !== `inspection/${register.token.uuid}`)
+                          }
+                        >
+                          <Section title="Inspection copy">
+                            <ClassInspectionCopy
+                              register={register}
+                              guard={guard}
+                              sourceReady={
+                                sourceReady &&
+                                documents === 'ledger-exports' &&
+                                selectedToken === register.token.uuid &&
+                                (!documentTask || documentTask === `inspection/${register.token.uuid}`)
+                              }
+                              onEditingChange={documentEditing}
+                            />
+                          </Section>
                         </div>
                       </>
                     )}

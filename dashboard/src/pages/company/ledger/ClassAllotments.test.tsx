@@ -456,7 +456,15 @@ it('preserves original preparation and combined approval recovery through refres
   expect(taskClass().value).toBe(REGISTER.token.uuid);
   expect(allotments.getByRole('button', { name: /^Recover approve receipt/ })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: /^Documents$/ }));
-  expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { level: 1, name: 'Certificates' })).toBeTruthy();
+  expect(screen.getAllByRole('list', { name: 'Certificate records' })).toHaveLength(1);
+  fireEvent.click(screen.getByRole('link', { name: 'Ledger exports' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Ledger exports' })).toBeTruthy();
+  expect(screen.getAllByRole('button', { name: 'Download CSV' })).toHaveLength(1);
+  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Company pack' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Company pack' })).toBeTruthy();
+  expect(screen.queryByLabelText('Share class')).toBeNull();
   await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
   expect(transferTask.getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(investorTask);
@@ -853,7 +861,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(transferClass().disabled).toBe(true);
   expect(issueLink.getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(screen.getByRole('link', { name: /^Documents$/ }));
-  expect(await screen.findByRole('heading', { level: 1, name: 'Documents' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { level: 1, name: 'Certificates' })).toBeTruthy();
   expect(transferLink.getAttribute('aria-disabled')).toBeNull();
   fireEvent.click(transferLink);
   expect(await screen.findByRole('heading', { level: 1, name: 'Transfer shares' })).toBeTruthy();

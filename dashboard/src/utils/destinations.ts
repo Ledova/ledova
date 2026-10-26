@@ -37,6 +37,19 @@ export const SHAREHOLDER_VIEWS = {
   'member-requests': 'Member requests',
 } as const;
 
+export const DOCUMENT_VIEWS = [
+  { key: 'certificates', label: 'Certificates' },
+  { key: 'ledger-exports', label: 'Ledger exports' },
+  { key: 'company-pack', label: 'Company pack' },
+] as const;
+
+export type DocumentView = (typeof DOCUMENT_VIEWS)[number]['key'];
+
+export function documentView(value: unknown): DocumentView | undefined {
+  const view = value === 'documents' ? 'certificates' : value;
+  return DOCUMENT_VIEWS.find(({ key }) => key === view)?.key;
+}
+
 const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   ...DESTINATION_PARENTS,
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
@@ -51,6 +64,8 @@ function viewName(key: DestinationKey, view: string): string | undefined {
   if (key === 'companyRegister') {
     const task = ledgerTask(view);
     if (task) return LEDGER_TASKS[task];
+    const output = documentView(view);
+    if (output) return DOCUMENT_VIEWS.find(({ key }) => key === output)?.label;
   }
   if (key === 'companyRegister' && Object.prototype.hasOwnProperty.call(SHAREHOLDER_VIEWS, view))
     return SHAREHOLDER_VIEWS[view as keyof typeof SHAREHOLDER_VIEWS];
@@ -92,7 +107,7 @@ export function placesAt(pathname: string, hash: string): Place[] {
   const places: Place[] = [];
   let key = destinationAt(pathname);
   const hashView = hash.slice(1);
-  const view = key === 'companyRegister' ? (ledgerTask(hashView) ?? hashView) : hashView;
+  const view = key === 'companyRegister' ? (ledgerTask(hashView) ?? documentView(hashView) ?? hashView) : hashView;
   let current: Place | undefined = key ? { destination: key, view: viewName(key, view) ? view : undefined } : undefined;
   while (current && places.length < 8) {
     places.push(current);

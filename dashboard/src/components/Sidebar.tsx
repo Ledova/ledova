@@ -33,7 +33,9 @@ import {
   pageTitle,
   placesAt,
   SHAREHOLDER_VIEWS,
+  DOCUMENT_VIEWS,
   LEDGER_TASKS,
+  documentView,
   ledgerTask,
   type LedgerTask,
 } from '@utils/destinations';
@@ -58,7 +60,7 @@ const COMPANY: NavItem[] = [
   { destination: 'companyDashboard', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
   { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
-  { destination: 'companyRegister', view: 'documents', icon: FilesIcon },
+  { destination: 'companyRegister', view: 'certificates', icon: FilesIcon },
 ];
 
 const PERSONAL: NavItem[] = [
@@ -306,6 +308,77 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
   );
 }
 
+function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
+  const location = useLocation();
+  const { state } = useLedgerNavigation();
+  const path = DESTINATIONS.companyRegister.path;
+  const place = `${location.pathname}${location.hash}`;
+  const [shownPlace, setShownPlace] = useState(place);
+  const [expanded, setExpanded] = useState(active);
+  const id = useId();
+  const selected = location.pathname === path ? documentView(location.hash.slice(1)) : undefined;
+  const destination = destinationAt(location.pathname);
+  const classPath =
+    destination &&
+    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
+      ? DESTINATIONS[destination].path
+      : undefined;
+  const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
+  const company =
+    (location.pathname === path ? state?.company : classParams?.company) ??
+    (typeof location.state?.registerCompany === 'string'
+      ? location.state.registerCompany
+      : (new URLSearchParams(location.search).get('company') ?? undefined));
+  const token = location.pathname === path ? state?.token : classParams?.uuid;
+  const context = company || token ? { registerCompany: company, registerToken: token } : undefined;
+  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+
+  if (shownPlace !== place) {
+    setShownPlace(place);
+    if (active) setExpanded(true);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <Link
+          to={`${path}#certificates`}
+          state={context}
+          onClick={onNavigate}
+          className={`${ITEM_CLASS} min-w-0 flex-1 ${IDLE_CLASS}`}
+        >
+          <FilesIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
+          <span>Documents</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} Documents navigation`}
+          aria-expanded={expanded}
+          aria-controls={id}
+          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
+        >
+          <Caret size={16} />
+        </button>
+      </div>
+      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
+        {DOCUMENT_VIEWS.map(({ key, label }) => (
+          <Link
+            key={key}
+            to={`${path}#${key}`}
+            state={context}
+            onClick={onNavigate}
+            aria-current={selected === key ? 'page' : undefined}
+            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface SidebarProps {
   onNavigate?: () => void;
   withNotifications?: boolean;
@@ -359,6 +432,9 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
               Object.prototype.hasOwnProperty.call(SHAREHOLDER_VIEWS, place.view ?? '')
                 ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'shareholders')
                 : undefined) ??
+              (place.destination === 'companyRegister' && documentView(place.view)
+                ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'certificates')
+                : undefined) ??
               allItems.find((item) => item.destination === place.destination && !item.view),
           )
           .find(Boolean);
@@ -385,6 +461,8 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                     active={itemPath(item) === activePath}
                     onNavigate={onNavigate}
                   />
+                ) : item.destination === 'companyRegister' && item.view === 'certificates' ? (
+                  <DocumentsGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
                 ) : (
                   <NavLink
                     key={itemPath(item)}

@@ -2074,6 +2074,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       <CompanyRegisterPage />
       <Link to="/#transfer">Transfer shares</Link>
       <Link to="/#documents">Open Documents</Link>
+      <Link to="/#ledger-exports">Open Ledger exports</Link>
+      <Link to="/#company-pack">Open Company pack</Link>
       <Link
         to="/#history"
         state={{ registerCompany: company.uuid, registerToken: token.uuid, registerTask: 'history', preserved: true }}
@@ -2157,6 +2159,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByRole('button', { name: /^Details for entry 3:/ })).toBeTruthy();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Certificates' })).toBeTruthy();
   const certificateRecords = await screen.findByRole('list', { name: 'Certificate records' });
   expect(within(certificateRecords).getByText('Taylor Demo: +100')).toBeTruthy();
   pauseHistory = true;
@@ -2194,8 +2197,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     within(certificateEntry).getByRole('button', { name: 'Preview (unsigned certificate for entry 3)' }),
   ).toBeTruthy();
   fireEvent.click(within(certificateEntry).getByRole('button', { name: 'Cancel (unsigned certificate for entry 3)' }));
-  expect(await screen.findByRole('button', { name: 'Prepare inspection copy' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Prepare unsigned certificate (entry 3)' })).toBeTruthy();
   expect(screen.queryByRole('form', { name: 'Unsigned certificate for entry 3' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Open Ledger exports' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Ledger exports' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Prepare inspection copy' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Download CSV' })).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Open Company pack' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Company pack' })).toBeTruthy();
+  expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
   const correctionDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
   if (correctionDetails.getAttribute('aria-expanded') !== 'true') fireEvent.click(correctionDetails);

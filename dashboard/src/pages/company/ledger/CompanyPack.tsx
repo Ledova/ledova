@@ -72,12 +72,14 @@ function PackForm({
   const checks = useErrorSummary(problems);
   if (!open)
     return (
-      <PageAction
-        ref={opener}
-        label="Prepare company pack"
-        disabled={busy || !sourceReady}
-        onClick={() => setOpen(true)}
-      />
+      <FormActions>
+        <PageAction
+          ref={opener}
+          label="Prepare company pack"
+          disabled={busy || !sourceReady}
+          onClick={() => setOpen(true)}
+        />
+      </FormActions>
     );
   return (
     <div className="flex flex-col gap-4">
