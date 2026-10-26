@@ -95,8 +95,7 @@ the manual native build checks the result.
 
 The lockfile keeps registry URLs and npm integrity values; the shared workspace is the intentional
 local link. Native CI installs with `--ignore-scripts`; the locked packages declaring install
-scripts are watcher, fsevents, unrs-resolver and secp256k1 (through Keystone's hdkey). There is no
-full transitive source audit.
+scripts are watcher, fsevents and unrs-resolver. There is no full transitive source audit.
 
 Each native run records the resolved Android release dependency graph and repository configuration
 (Google Maven, Maven Central, JitPack) or the resolved Podfile.lock and generated iOS protocol

@@ -109,6 +109,7 @@ export function YourDetailsScreen() {
   const targets = change ? companies.filter((record) => !has(record, change)) : [];
   const send = () => {
     if (!change) return;
+    select('');
     setBatch({
       ...change,
       queue: targets.map((record) => ({ uuid: record.uuid, name: shortName(record.company.name) })),
@@ -195,7 +196,8 @@ export function YourDetailsScreen() {
               />
             </>
           ) : (
-            shown && (
+            shown &&
+            !particulars.fetching && (
               <>
                 <Text accessibilityLiveRegion="polite" style={styles.text}>
                   This change is now waiting or recorded at {companies.filter((record) => has(record, batch)).length} of{' '}

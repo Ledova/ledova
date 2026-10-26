@@ -1,4 +1,3 @@
-import '../crypto-polyfill';
 import { registerRootComponent } from 'expo';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';

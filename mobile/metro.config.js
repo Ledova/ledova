@@ -16,16 +16,7 @@ const mobileCopies = Object.fromEntries(
   ]),
 );
 
-config.resolver.extraNodeModules = {
-  ...mobileCopies,
-  crypto: require.resolve('crypto-browserify'),
-  stream: require.resolve('stream-browserify'),
-  buffer: require.resolve('buffer'),
-  process: require.resolve('process/browser'),
-  events: require.resolve('events'),
-  assert: require.resolve('assert'),
-  util: require.resolve('util'),
-};
+config.resolver.extraNodeModules = mobileCopies;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   const sharedPeer = /^(react|@tanstack\/react-query)(\/.*)?$/.test(moduleName);

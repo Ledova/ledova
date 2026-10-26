@@ -2,7 +2,6 @@ import type { ApiRequest, ApiSchema } from '../contracts';
 
 export type MemberAssociation = ApiSchema<'MemberAssociation'>;
 export type MemberInvitation = ApiSchema<'MemberInvitation'>;
-export type MemberInvitationIssued = ApiSchema<'MemberInvitationIssued'>;
 export type MemberInvitationEmailed = ApiSchema<'MemberInvitationEmail'>;
 export type MemberInvitationPreview = ApiSchema<'MemberInvitationPreview'>;
 export type OwnMemberRecord = ApiSchema<'MemberRecord'>;

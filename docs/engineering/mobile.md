@@ -209,10 +209,11 @@ passcode changes can invalidate gated items
 
 ## Native dependencies and randomness
 
-The RNG entry shim (`mobile/crypto-polyfill.js`) uses Expo Crypto's native `getRandomValues`
-directly and throws when it is unavailable; there is no `Math.random` fallback. The entry also loads
-Buffer, process, crypto-browserify, stream, events, assert and util shims; the resolution check and
-the manual native probe cover their use.
+Operation keys come from Expo Crypto's native `randomUUID`, and nothing falls back to `Math.random`.
+The app loads no Node shims: the wallet libraries that needed Buffer, process, crypto, stream,
+events, assert and util went with the screens that used them, and `buffer` remains only as a
+development dependency of the manual native probe. The resolution check confirms that every bundled
+import reaches a declared runtime dependency.
 
 ## Document view copies
 
