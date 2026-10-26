@@ -473,7 +473,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const groups: NavGroup[] = [
     ...(companyWorkspace ? [{ id: 'company', items: companyItems }] : []),
     ...(!companyWorkspace ? [{ id: 'shares', items: PERSONAL }] : []),
-    { id: 'yours', label: 'Configuration', items: YOURS },
+    { id: 'yours', items: YOURS },
   ];
   const secondaryGroups: NavGroup[] = companyWorkspace
     ? [
