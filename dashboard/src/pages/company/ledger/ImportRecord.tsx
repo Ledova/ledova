@@ -13,7 +13,7 @@ import {
   type RegisterImportDecisionPreview,
 } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { type RegisterSteps } from '@pages/company/shared/proposals';
@@ -73,7 +73,6 @@ export function ImportRecord({
   onDecided,
   onRefused,
   visible = true,
-  readOnly = false,
   onHeldChange,
 }: {
   proposal: RegisterImport;
@@ -82,19 +81,39 @@ export function ImportRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
-  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useImportRecordDownload(proposal, check);
   const totals = registerImportTotals(proposal.members);
+  const downloadActions = (
+    <>
+      {(proposal.registerEvidence || proposal.sourceDocument) && (
+        <PageAction
+          label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
+          busy={download.isPending && download.variables === 'register'}
+          busyLabel="Downloading…"
+          disabled={download.isPending}
+          onClick={() => download.mutate('register')}
+        />
+      )}
+      {proposal.asicEvidence !== null && (
+        <PageAction
+          label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
+          busy={download.isPending && download.variables === 'asic'}
+          busyLabel="Downloading…"
+          disabled={download.isPending}
+          onClick={() => download.mutate('asic')}
+        />
+      )}
+    </>
+  );
   return (
     <RecordShell hidden={!visible}>
       {visible && (
         <Disclosure
           summary={`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}
-          defaultOpen={!readOnly && proposal.status === 'submitted'}
+          defaultOpen={proposal.status === 'submitted'}
         >
           <Rows>
             <RecordStage stage={proposal.stage}>
@@ -133,48 +152,31 @@ export function ImportRecord({
             {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
           </p>
           <MemberRecords members={proposal.members} />
-          <div className="flex flex-wrap gap-2">
-            {(proposal.registerEvidence || proposal.sourceDocument) && (
-              <PageAction
-                label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
-                busy={download.isPending && download.variables === 'register'}
-                busyLabel="Downloading…"
-                disabled={download.isPending}
-                onClick={() => download.mutate('register')}
-              />
-            )}
-            {proposal.asicEvidence !== null && (
-              <PageAction
-                label={REGISTER_IMPORT_COPY.DOWNLOAD_ASIC}
-                busy={download.isPending && download.variables === 'asic'}
-                busyLabel="Downloading…"
-                disabled={download.isPending}
-                onClick={() => download.mutate('asic')}
-              />
-            )}
-          </div>
-          {download.isError && <RecordDownloadFailure error={download.error} />}
         </Disclosure>
       )}
-      <RegisterDecisions
-        family={REGISTER_IMPORT_DECISIONS}
-        copy={REGISTER_IMPORT_COPY}
-        noun="import"
-        proposal={proposal}
-        steps={steps}
-        guard={guard}
-        newEffectGuard={decide}
-        visible={visible && !readOnly}
-        onHeldChange={onHeldChange}
-        onDecided={onDecided}
-        onRefused={onRefused}
-        note={(kind, preview) =>
-          kind === 'apply' &&
-          preview.opensRegister && <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</p>
-        }
-      >
-        {(preview) => <ImportPreview preview={preview} />}
-      </RegisterDecisions>
+      <FormActions>
+        {downloadActions}
+        <RegisterDecisions
+          family={REGISTER_IMPORT_DECISIONS}
+          copy={REGISTER_IMPORT_COPY}
+          noun="import"
+          proposal={proposal}
+          steps={steps}
+          guard={guard}
+          newEffectGuard={check}
+          visible={visible}
+          onHeldChange={onHeldChange}
+          onDecided={onDecided}
+          onRefused={onRefused}
+          note={(kind, preview) =>
+            kind === 'apply' &&
+            preview.opensRegister && <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE}</p>
+          }
+        >
+          {(preview) => <ImportPreview preview={preview} />}
+        </RegisterDecisions>
+      </FormActions>
+      {download.isError && <RecordDownloadFailure error={download.error} />}
     </RecordShell>
   );
 }

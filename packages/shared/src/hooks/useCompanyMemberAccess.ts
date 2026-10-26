@@ -396,6 +396,7 @@ export function useCompanyMemberAccess(
     },
     fulfilCertificate: () => certificateTarget && execute(certificateTarget.command),
     admin: accessReady ? admin : undefined,
+    canAdminister: readable && !!admin,
     prepare: queueReady ? prepare : undefined,
     requests: queueReady ? queue.data : null,
     access: accessReady ? access.data : null,

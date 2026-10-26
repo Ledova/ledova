@@ -13,12 +13,11 @@ import {
   HandCoinsIcon,
   BookOpenIcon,
   FilesIcon,
-  UsersIcon,
   UsersThreeIcon,
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
-import { DESTINATIONS, useFeatureFlags, type DestinationKey, type LedgerTask } from '@ledova/shared';
+import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@hooks/useUserProfile';
@@ -29,7 +28,15 @@ import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useRegisterEntry } from '@hooks/useRegisterAccess';
 import { COMPANY_DASHBOARD_PATH, SITE_PATHS } from '@utils/paths';
-import { destinationAt, pageTitle, placesAt } from '@utils/destinations';
+import {
+  destinationAt,
+  pageTitle,
+  placesAt,
+  SHAREHOLDER_VIEWS,
+  LEDGER_TASKS,
+  ledgerTask,
+  type LedgerTask,
+} from '@utils/destinations';
 import { useLedgerNavigation } from './LedgerNavigation';
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
@@ -39,7 +46,6 @@ interface NavItem {
   icon: Icon;
   view?: string;
   label?: string;
-  short?: string;
 }
 
 interface NavGroup {
@@ -52,7 +58,6 @@ const COMPANY: NavItem[] = [
   { destination: 'companyDashboard', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
   { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
-  { destination: 'companyRegister', view: 'awards', short: 'ESS', icon: UsersIcon },
   { destination: 'companyRegister', view: 'documents', icon: FilesIcon },
 ];
 
@@ -105,12 +110,11 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
     <Link
       to={itemPath(item)}
       onClick={onNavigate}
-      title={item.short ? title : undefined}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-      <span>{item.short ?? item.label ?? title}</span>
+      <span>{item.label ?? title}</span>
     </Link>
   );
 }
@@ -124,9 +128,9 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const [shownPlace, setShownPlace] = useState(place);
   const [expanded, setExpanded] = useState(current);
   const id = useId();
-  const tasks = Object.entries(DESTINATIONS.companyRegister.tasks);
+  const tasks = Object.entries(LEDGER_TASKS);
   const hashTask = location.pathname === path ? location.hash.slice(1) : '';
-  const routedTask = tasks.some(([key]) => key === hashTask) ? hashTask : undefined;
+  const routedTask = ledgerTask(hashTask);
   const destination = destinationAt(location.pathname);
   const task =
     active && location.pathname === path
@@ -211,6 +215,97 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   );
 }
 
+function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
+  const location = useLocation();
+  const { state } = useLedgerNavigation();
+  const path = DESTINATIONS.companyRegister.path;
+  const place = `${location.pathname}${location.hash}`;
+  const [shownPlace, setShownPlace] = useState(place);
+  const [expanded, setExpanded] = useState(active);
+  const id = useId();
+  const children = Object.entries(SHAREHOLDER_VIEWS);
+  const routedView = location.pathname === path ? location.hash.slice(1) : '';
+  const selected = state?.blocked && state.shareholderView ? state.shareholderView : routedView;
+  const selectedChild = children.some(([key]) => key === selected);
+  const blocked = location.pathname === path && (!state || state.blocked);
+  const blocks = (view: string) => blocked && view !== (state?.shareholderView ?? selected);
+  const destination = destinationAt(location.pathname);
+  const classPath =
+    destination &&
+    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
+      ? DESTINATIONS[destination].path
+      : undefined;
+  const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
+  const company =
+    (location.pathname === path ? state?.company : classParams?.company) ??
+    (typeof location.state?.registerCompany === 'string'
+      ? location.state.registerCompany
+      : (new URLSearchParams(location.search).get('company') ?? undefined));
+  const token = location.pathname === path ? state?.token : classParams?.uuid;
+  const context = company || token ? { registerCompany: company, registerToken: token } : undefined;
+  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+
+  if (shownPlace !== place) {
+    setShownPlace(place);
+    if (active) setExpanded(true);
+  }
+
+  const navigate = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (blocks(event.currentTarget.hash.slice(1))) event.preventDefault();
+    else onNavigate?.();
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <Link
+          to={`${path}#shareholders`}
+          state={context}
+          onClick={navigate}
+          onAuxClick={(event) => {
+            if (blocks('shareholders')) event.preventDefault();
+          }}
+          aria-current={active && !selectedChild ? 'page' : undefined}
+          aria-disabled={blocks('shareholders') || undefined}
+          className={`${ITEM_CLASS} min-w-0 flex-1 ${active && !selectedChild ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocks('shareholders') ? 'cursor-not-allowed opacity-50' : ''}`}
+        >
+          <UsersThreeIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
+          <span>{pageTitle('companyRegister', 'shareholders')}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} Shareholders navigation`}
+          aria-expanded={expanded}
+          aria-controls={id}
+          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
+        >
+          <Caret size={16} />
+        </button>
+      </div>
+      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
+        {children.map(([key, label]) => (
+          <Link
+            key={key}
+            to={`${path}#${key}`}
+            state={context}
+            title={key === 'awards' ? label : undefined}
+            onClick={navigate}
+            onAuxClick={(event) => {
+              if (blocks(key)) event.preventDefault();
+            }}
+            aria-current={selected === key ? 'page' : undefined}
+            aria-disabled={blocks(key) || undefined}
+            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocks(key) ? 'cursor-not-allowed opacity-50' : ''}`}
+          >
+            {key === 'awards' ? 'ESS' : label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface SidebarProps {
   onNavigate?: () => void;
   withNotifications?: boolean;
@@ -260,6 +355,10 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
           .map(
             (place) =>
               allItems.find((item) => item.destination === place.destination && item.view === place.view) ??
+              (place.destination === 'companyRegister' &&
+              Object.prototype.hasOwnProperty.call(SHAREHOLDER_VIEWS, place.view ?? '')
+                ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'shareholders')
+                : undefined) ??
               allItems.find((item) => item.destination === place.destination && !item.view),
           )
           .find(Boolean);
@@ -280,6 +379,12 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
               {group.items.map((item) =>
                 item.destination === 'companyRegister' && !item.view ? (
                   <LedgerGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
+                ) : item.destination === 'companyRegister' && item.view === 'shareholders' ? (
+                  <ShareholdersGroup
+                    key={itemPath(item)}
+                    active={itemPath(item) === activePath}
+                    onNavigate={onNavigate}
+                  />
                 ) : (
                   <NavLink
                     key={itemPath(item)}

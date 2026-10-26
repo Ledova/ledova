@@ -45,7 +45,6 @@ export const REGISTER_IMPORT_COPY = {
   STAFF_VERIFIED: 'Verified by Ledova staff before imports were company-run',
   READ_ONLY_NOTE:
     'You can read these records. Bringing, reviewing and confirming records needs the company appointment for that step.',
-  NO_HOLDERS: 'The stored register lists no current members, so this class has none to import.',
   NOT_ON_CHAIN_NOTE:
     'Confirming records mirrors shares the company has already issued. It does not issue shares, replace its legal ' +
     'register or require shareholder accounts or wallets.',

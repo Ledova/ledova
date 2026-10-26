@@ -23,7 +23,6 @@ export function ClassImports({
   register,
   company,
   visible = true,
-  readOnly = false,
   onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
@@ -31,7 +30,6 @@ export function ClassImports({
   register: TokenHoldersResponse;
   company: string;
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
   const token = register.token.uuid;
@@ -74,8 +72,7 @@ export function ClassImports({
           <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>
         )
       )}
-      {!readOnly &&
-        privateReady &&
+      {privateReady &&
         steps?.prepare &&
         (register.initialized || register.token.status === 'draft') &&
         imports.isSuccess &&
@@ -107,7 +104,6 @@ export function ClassImports({
             key={proposal.uuid}
             proposal={proposal}
             visible={privateReady}
-            readOnly={readOnly}
             onHeldChange={recordHeld}
             steps={steps ?? {}}
             guard={guard}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getRegisterAwards,
@@ -31,7 +31,6 @@ export function useCompanyMemberRequests({
   registers,
   sourceReady = true,
   inviteMember = '',
-  onHeldChange,
 }: {
   company: string;
   owner: OrderSubmissionOwner;
@@ -39,7 +38,6 @@ export function useCompanyMemberRequests({
   registers: TokenHoldersResponse[];
   sourceReady?: boolean;
   inviteMember?: string;
-  onHeldChange?: (held: boolean) => void;
 }) {
   const access = useCompanyMemberAccess(
     company,
@@ -114,10 +112,6 @@ export function useCompanyMemberRequests({
     asAt: preparing && (!isCalendarDate(asAt) || asAt > utcToday()) && 'Enter an as-at date no later than today (UTC).',
     instruction: !certificateInstruction.trim() && 'Give the certificate instruction reference.',
   };
-  useEffect(() => {
-    onHeldChange?.(held);
-    return () => onHeldChange?.(false);
-  }, [held, onHeldChange]);
   const refresh = async () => {
     await access.refresh();
     await awards.refetch();

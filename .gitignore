@@ -70,7 +70,6 @@ __pycache__/
 **/*.dump
 **/*.sql
 !backend/tokens/database_people.sql
-!backend/*/baseline.sql
 **/*.sql.gz
 **/*secret*.zip
 **/*secret*.tar

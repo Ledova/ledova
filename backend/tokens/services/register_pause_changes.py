@@ -5,14 +5,13 @@ from uuid import UUID
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, OperationalError
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import ValidationError
 
 from blockchain.models import OutgoingOperation, OutgoingStatus
 from companies.models import Company, CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation, lock_company_actor
-from companies.services.authority_requests import _requester_principal
 from operators.models import Operator
-from shared.db import atomic, use_operator
+from shared.db import atomic
 from tokens.exceptions import (
     InvalidTokenStateException,
     PauseChangeConflict,
@@ -28,7 +27,10 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.services import pause_changes
-from tokens.services.register_authority import register_appointment
+from tokens.services.register_authority import (
+    readable_token_company_id,
+    register_appointment,
+)
 from tokens.services.register_decisions import DecisionFamily, _scalar, decide, preview
 from tokens.services.register_evidence import (
     discard,
@@ -41,16 +43,6 @@ from users.models import UserProfile
 
 def _busy(exception):
     return getattr(exception.__cause__, "sqlstate", None) == "55P03"
-
-
-def _company_of(actor, token):
-    with use_operator(), _requester_principal(actor.pk):
-        company_id = (
-            ShareToken.objects.register_readable_by(actor).filter(pk=token).values_list("company_id", flat=True).first()
-        )
-    if company_id is None:
-        raise NotFound("Share class not found.")
-    return company_id
 
 
 def _approval(proposal):
@@ -167,7 +159,7 @@ def prepare_pause_change(
     ):
         raise ValidationError("Retain the company's reason and authority reference within their limits.")
     reason, authority_reference = reason.strip(), authority_reference.strip()
-    company_id = _company_of(actor, token)
+    company_id = readable_token_company_id(actor, token)
     proposal = None
     try:
         with company_operation(actor, company_id, "register_pause_prepare"), atomic(durable=True):

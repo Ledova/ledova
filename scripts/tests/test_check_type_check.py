@@ -25,6 +25,7 @@ class _Workspace(unittest.TestCase):
 
     def write(self, name: str, config: dict | str) -> Path:
         path = self.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(config if isinstance(config, str) else json.dumps(config))
         return path
 
@@ -35,9 +36,14 @@ class TruthTableFromTsc(_Workspace):
         config = self.write("a.json", {"files": [], "references": REFERENCES})
         self.assertTrue(gate.examines_nothing(config))
 
-    def test_an_include_beside_empty_files_examines_everything(self):
-        config = self.write("e.json", {"files": [], "include": ["**/*"], "references": REFERENCES})
+    def test_nonempty_workspace_is_discovered_without_private_copies(self):
+        config = self.write("new-client/tsconfig.json", {"files": [], "include": ["**/*"], "references": REFERENCES})
         self.assertFalse(gate.examines_nothing(config))
+        self.write("new-client/package.json", {})
+        for directory in (".claude/worktrees/private-client", ".codex/private-client", "node_modules/private-client"):
+            self.write(f"{directory}/package.json", {})
+            self.write(f"{directory}/tsconfig.json", {"files": []})
+        self.assertEqual(gate.undeclared_workspaces(), ["new-client"])
 
 
 if __name__ == "__main__":

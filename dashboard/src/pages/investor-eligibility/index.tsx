@@ -7,7 +7,7 @@ import { Confirmation } from '@components/Modal';
 import { useInvestorWithdrawal } from './useInvestorWithdrawal';
 import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
 import { ClaimModal } from './ClaimModal';
-import { useInvestorEligibility } from '@hooks/useInvestorEligibility';
+import { useInvestorEligibility } from './useInvestorEligibility';
 
 const CLASSIFICATION_TONES = new Map<string, Tone>([['submitted', 'moving']]);
 const READINESS_TONES = new Map<boolean, Tone>([
@@ -144,7 +144,6 @@ export default function InvestorEligibilityPage() {
                 After adding evidence, request eligibility for the exact company or offering and consent to sharing it.
                 The company records its own decision; new investment actions recheck that decision and its scope.
               </p>
-              <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
             </Section>
           </>
         )}

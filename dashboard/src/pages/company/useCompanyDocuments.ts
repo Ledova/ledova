@@ -32,7 +32,6 @@ export function useCompanyDocuments({
   useEffect(() => {
     if (documentsRequested && read.canAdmin) documentsSection.current?.scrollIntoView({ block: 'start' });
   }, [documentsRequested, read.canAdmin, company.uuid]);
-  const [selectedType, setSelectedType] = useState<DocumentType>('other');
   const [upload, setUpload] = useState<{ type: DocumentType; label: string } | null>(null);
   const [removing, setRemoving] = useState<CompanyDocument | null>(null);
   const confirmationRef = useRef<CompanyDocument | null>(null);
@@ -125,9 +124,10 @@ export function useCompanyDocuments({
     documents: company.documents.filter((document) => document.documentType === item.type),
   }));
   const populatedTypes = documentTypes.filter((item) => item.documents.length > 0);
-  const availableTypes = documentTypes.filter((item) => item.type === 'other' || item.documents.length === 0);
-  const uploadChoice =
-    availableTypes.find((item) => item.type === selectedType) ?? availableTypes.find((item) => item.type === 'other');
+  const availableTypes = documentTypes.filter(
+    (item) => item.type === upload?.type || item.type === 'other' || item.documents.length === 0,
+  );
+  const uploadChoice = availableTypes.find((item) => item.type === 'other');
   return {
     documentsSection,
     error,
@@ -139,7 +139,6 @@ export function useCompanyDocuments({
     populatedTypes,
     availableTypes,
     uploadChoice,
-    setSelectedType,
     viewDocument,
     removeDocument,
     upload,

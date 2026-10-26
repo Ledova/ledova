@@ -1,6 +1,7 @@
+import { useEffect, useRef, useState } from 'react';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { Outcome, Section, LoadError, Loading } from '@components/Ledger';
-import { Page, PageAction } from '@components/Page';
+import { FormActions, Page, PageAction } from '@components/Page';
 import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, failureSentence } from '@ledova/shared';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
@@ -55,93 +56,124 @@ function OwnAuthorityRequests({
     owner,
     currentOwner,
   });
+  const [preparing, setPreparing] = useState(false);
+  const form = useRef<HTMLDivElement>(null);
+  const opener = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (preparing) form.current?.focus();
+  }, [preparing]);
+  const close = () => {
+    setPreparing(false);
+    requestAnimationFrame(() => opener.current?.focus());
+  };
   return (
-    <Page narrow>
-      <p className="text-sm text-text-muted">
-        Establish your representative appointment by accepting an authorisation declaration for your company. Company
-        information is provided by the company. Submitting evidence alone grants no authority.
-      </p>
-      <Section title="New authority request">
-        {companies.isLoading ? (
-          <Loading>Loading your companies…</Loading>
-        ) : companies.isError ? (
-          <LoadError retry={() => companies.refetch()} busy={companies.isFetching}>
-            Your companies could not be loaded.
-          </LoadError>
-        ) : drafts.length === 0 ? (
-          <p className="text-sm text-text-muted">No draft company is available for an authority request.</p>
-        ) : (
-          <CompanyPicker
-            companies={drafts.map((item) => ({ uuid: item.uuid, name: item.name, detail: `Draft · ACN ${item.acn}` }))}
-            value={selected}
-            disabled={companies.isFetching}
-            onChange={(uuid) => {
-              setSelected(uuid);
-              setRecorded(null);
-            }}
-          />
-        )}
-        <Outcome>{recorded && `Request recorded. ${recorded.verificationMessage}`}</Outcome>
-        {recorded ? (
-          <PageAction label="Start another request" onClick={() => setRecorded(null)} />
-        ) : (
-          company && (
+    <Page lede="Manage your own company appointment and its authorisation declaration.">
+      <Outcome>{recorded && `Request recorded. ${recorded.verificationMessage}`}</Outcome>
+      <div hidden={preparing}>
+        <Section title="Authority requests">
+          {history.isLoading ? (
+            <Loading>Loading your requests…</Loading>
+          ) : history.isError ? (
+            <LoadError retry={() => history.refetch()} busy={history.isFetching}>
+              Your authority requests could not be loaded.
+            </LoadError>
+          ) : (history.data ?? []).length === 0 ? (
+            <p className="text-sm text-text-muted">No authority requests yet.</p>
+          ) : (
+            <ul className="divide-y divide-border-subtle">
+              {(history.data ?? []).map((request) => (
+                <AuthorityRequestRecord
+                  key={request.uuid}
+                  request={request}
+                  blocked={lifecycle.isPending || history.isFetching}
+                  opening={opening.isPending}
+                  downloading={opening.isPending && opening.variables?.uuid === request.uuid}
+                  action={
+                    lifecycle.isPending && lifecycle.variables?.request.uuid === request.uuid
+                      ? lifecycle.variables.action
+                      : undefined
+                  }
+                  onDownload={() => opening.mutate(request)}
+                  onWithdraw={() => lifecycle.mutateAsync({ request, action: 'withdraw' })}
+                  onAdmit={() => lifecycle.mutate({ request, action: 'admit' })}
+                  onRevoke={() => lifecycle.mutateAsync({ request, action: 'revoke' })}
+                />
+              ))}
+            </ul>
+          )}
+          {opening.isError && (
+            <p role="alert" className="text-sm text-error-light">
+              {failureSentence(opening.error, 'Your evidence could not be downloaded.')}
+            </p>
+          )}
+          {lifecycle.isError && (
+            <p role="alert" className="text-sm text-error-light">
+              {failureSentence(lifecycle.error, 'Your request outcome could not be confirmed. Refresh or retry.')}
+            </p>
+          )}
+        </Section>
+      </div>
+      <div ref={form} tabIndex={-1} hidden={!preparing} className="focus:outline-none">
+        <Section title="New authority request">
+          {companies.isLoading ? (
+            <Loading>Loading your companies…</Loading>
+          ) : companies.isError ? (
+            <LoadError retry={() => companies.refetch()} busy={companies.isFetching}>
+              Your companies could not be loaded.
+            </LoadError>
+          ) : drafts.length === 0 ? (
+            <p className="text-sm text-text-muted">No draft company is available for an authority request.</p>
+          ) : (
+            <CompanyPicker
+              companies={drafts.map((item) => ({
+                uuid: item.uuid,
+                name: item.name,
+                detail: `Draft · ACN ${item.acn}`,
+              }))}
+              value={selected}
+              disabled={companies.isFetching}
+              onChange={(uuid) => {
+                setSelected(uuid);
+                setRecorded(null);
+              }}
+            />
+          )}
+          {!recorded && company && (
             <AuthorityRequestForm
               key={company.uuid}
               company={company}
               disabled={companies.isFetching}
               guard={guard}
+              onCancel={close}
               onSuccess={(request) => {
                 guard();
                 setRecorded(request);
+                close();
                 void history.refetch();
               }}
             />
-          )
-        )}
-      </Section>
-      <Section title="Your request history">
-        {history.isLoading ? (
-          <Loading>Loading your requests…</Loading>
-        ) : history.isError ? (
-          <LoadError retry={() => history.refetch()} busy={history.isFetching}>
-            Your authority requests could not be loaded.
-          </LoadError>
-        ) : (history.data ?? []).length === 0 ? (
-          <p className="text-sm text-text-muted">No authority requests yet.</p>
-        ) : (
-          <ul className="divide-y divide-border-subtle">
-            {(history.data ?? []).map((request) => (
-              <AuthorityRequestRecord
-                key={request.uuid}
-                request={request}
-                blocked={lifecycle.isPending || history.isFetching}
-                opening={opening.isPending}
-                downloading={opening.isPending && opening.variables?.uuid === request.uuid}
-                action={
-                  lifecycle.isPending && lifecycle.variables?.request.uuid === request.uuid
-                    ? lifecycle.variables.action
-                    : undefined
-                }
-                onDownload={() => opening.mutate(request)}
-                onWithdraw={() => lifecycle.mutateAsync({ request, action: 'withdraw' })}
-                onAdmit={() => lifecycle.mutate({ request, action: 'admit' })}
-                onRevoke={() => lifecycle.mutateAsync({ request, action: 'revoke' })}
-              />
-            ))}
-          </ul>
-        )}
-        {opening.isError && (
-          <p role="alert" className="text-sm text-error-light">
-            {failureSentence(opening.error, 'Your evidence could not be downloaded.')}
-          </p>
-        )}
-        {lifecycle.isError && (
-          <p role="alert" className="text-sm text-error-light">
-            {failureSentence(lifecycle.error, 'Your request outcome could not be confirmed. Refresh or retry.')}
-          </p>
-        )}
-      </Section>
+          )}
+          {!company && (
+            <FormActions>
+              <PageAction label="Cancel" onClick={close} />
+            </FormActions>
+          )}
+        </Section>
+      </div>
+      {!preparing && (
+        <div className="flex flex-wrap justify-end gap-2">
+          <PageAction
+            ref={opener}
+            label="Request authority"
+            primary
+            disabled={lifecycle.isPending}
+            onClick={() => {
+              setRecorded(null);
+              setPreparing(true);
+            }}
+          />
+        </div>
+      )}
     </Page>
   );
 }

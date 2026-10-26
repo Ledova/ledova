@@ -7,10 +7,24 @@ from rest_framework.exceptions import NotFound
 from companies.exceptions import IssuerIdentityVerificationRequiredException
 from companies.models import REGISTER_READERS, CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation, lock_company_actor
-from shared.db import atomic
+from companies.services.authority_requests import _requester_principal
+from shared.db import atomic, use_operator
 from tokens.models import ShareRegister, ShareToken
 
 APPOINTMENT_NOT_FOUND = "Company appointment not found or no longer effective."
+
+
+def readable_token_company_id(actor, token_id):
+    with use_operator(), _requester_principal(actor.pk):
+        company_id = (
+            ShareToken.objects.register_readable_by(actor)
+            .filter(pk=token_id)
+            .values_list("company_id", flat=True)
+            .first()
+        )
+    if company_id is None:
+        raise NotFound("Share class not found.")
+    return company_id
 
 
 @contextmanager

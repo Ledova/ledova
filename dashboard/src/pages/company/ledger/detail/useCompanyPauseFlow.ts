@@ -11,7 +11,7 @@ import {
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import type { Problems } from '@hooks/useErrorSummary';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export type Commands = ReturnType<typeof useCompanyPauseChanges>;
 export function usePauseRecord({ record, commands }: { record: RegisterPauseChange; commands: Commands }) {
@@ -118,7 +118,12 @@ export function usePausePreparation({ commands }: { commands: Commands }) {
       if (mounted.current) setBusy(false);
     }
   };
+  const draft = useMemo(
+    () => ({ active: paused !== null || !!reason || !!reference || !!file }),
+    [paused, reason, reference, file],
+  );
   return {
+    draft,
     setCaptured,
     paused,
     setPaused,

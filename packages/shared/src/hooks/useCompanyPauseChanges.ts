@@ -32,6 +32,9 @@ export function useCompanyPauseChanges(
     tokenKey: QueryKey;
     newKey: () => string;
     session?: OrderSubmissionSession;
+    coordinatedReads?: boolean;
+    paused?: boolean;
+    onPrepared?: () => void;
   },
 ) {
   const api = useApiClient();
@@ -47,7 +50,9 @@ export function useCompanyPauseChanges(
         ? current.current.company
         : '';
   const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0, tokenUuid, company];
-  const scopeKey = scope.join('/');
+  const [view, setView] = useState({ owner, generation: 0 });
+  if (view.owner !== owner) setView({ owner, generation: view.generation + 1 });
+  const scopeKey = [...scope, view.generation].join('/');
   const appointmentKey = ['company-pause-appointments', ...scope];
   const increaseKey = ['company-pause-changes', ...scope];
   const [kept, setKept] = useState<{ owner: typeof owner; company: string; records: RegisterPauseChange[] }>({
@@ -55,10 +60,22 @@ export function useCompanyPauseChanges(
     company,
     records: [],
   });
-  const [original, setOriginal] = useState<{ owner: typeof owner; company: string; operation: Original } | null>(null);
+  const [original, setOriginal] = useState<{
+    owner: typeof owner;
+    company: string;
+    token: string;
+    operation: Original;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [workingOwner, setWorkingOwner] = useState<typeof owner>(null);
   const [error, setError] = useState<string | null>(null);
   const [, setClock] = useState(0);
+  const readingPaused =
+    !!options.paused ||
+    (busy && workingOwner === owner) ||
+    (original?.owner === owner && original.company === company && original.token === tokenUuid);
+  const reading = !options.coordinatedReads || !readingPaused;
+  const timing = options.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
   useLayoutEffect(() => {
     current.current = { owner, tokenUuid, company };
   }, [owner, tokenUuid, company]);
@@ -97,7 +114,8 @@ export function useCompanyPauseChanges(
   });
   const appointments = useQuery({
     queryKey: appointmentKey,
-    enabled: !!owner && !!company,
+    enabled: !!owner && !!company && reading,
+    ...timing,
     queryFn: () =>
       readEveryPage(async (page) => {
         ownerGuard();
@@ -139,7 +157,8 @@ export function useCompanyPauseChanges(
     }));
   const instructions = useQuery({
     queryKey: increaseKey,
-    enabled: visible,
+    enabled: visible && reading,
+    ...timing,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
@@ -253,13 +272,31 @@ export function useCompanyPauseChanges(
         'The captured company, class or exact pause terms changed. Refresh before a new pause decision.',
       );
   };
-  const refresh = async () => {
+  const refresh = async (available?: () => boolean) => {
+    const currentRead = () =>
+      !available || (available() && !readingPaused && !(pending.current && workingOwner === owner));
+    if (!currentRead()) return;
+    if (
+      available &&
+      [appointmentKey, increaseKey, options.tokenKey, USER_PREFERENCES_QUERY_KEY, AUTH_QUERY_KEY].some((queryKey) =>
+        client.isFetching({ queryKey, exact: true }),
+      )
+    )
+      return false;
     setError(null);
     try {
       ownerGuard();
-      if ((await appointments.refetch()).isError) return;
+      if ((await appointments.refetch({ cancelRefetch: false })).isError || !currentRead()) return;
       guard();
-      await instructions.refetch();
+      if (available) {
+        await client.refetchQueries({ queryKey: options.tokenKey, exact: true }, { cancelRefetch: false });
+        if (!currentRead()) return;
+        guard();
+        const source = client.getQueryState(options.tokenKey);
+        if (source?.status !== 'success' || source.fetchStatus !== 'idle') return;
+      }
+      await instructions.refetch({ cancelRefetch: false });
+      if (!currentRead()) return;
       guard();
     } catch (failure) {
       if (mounted.current && boundary.get() === owner)
@@ -289,6 +326,7 @@ export function useCompanyPauseChanges(
     )
       return;
     pending.current = true;
+    setWorkingOwner(owner);
     setBusy(true);
     setError(null);
     let dispatched = false;
@@ -314,13 +352,14 @@ export function useCompanyPauseChanges(
         return data;
       };
       requestConfig.transformRequest = [...prior, mark];
-      setOriginal({ owner, company, operation });
+      setOriginal({ owner, company, token: tokenUuid, operation });
       const response = await prepareRegisterPauseChange(api, operation.body, requestConfig);
       guard();
       if (!isPreparedRegisterPauseChange(response.data, operation.body, company))
         throw createUserFriendlyError('The pause receipt could not be confirmed. Recover its original request.');
       setOriginal(null);
       await accept(response.data);
+      options.onPrepared?.();
     } catch (failure) {
       const cause = (failure as { originalError?: unknown }).originalError ?? failure;
       const status = failureStatus(cause);
@@ -344,7 +383,10 @@ export function useCompanyPauseChanges(
       false,
     );
   const recovery =
-    original?.owner === owner && original.company === company && original.operation.body.token === tokenUuid
+    original?.owner === owner &&
+    original.company === company &&
+    original.token === tokenUuid &&
+    original.operation.body.token === tokenUuid
       ? original.operation
       : null;
   const recover = async () => {
@@ -362,9 +404,11 @@ export function useCompanyPauseChanges(
     classState.data?.chain === 'base' &&
     !!classState.data.contractAddress;
   return {
+    working: busy && workingOwner === owner,
     owner,
     company,
     scopeKey,
+    readingPaused,
     visible,
     canPrepare,
     steps,

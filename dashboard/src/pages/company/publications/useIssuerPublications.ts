@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
@@ -19,20 +19,27 @@ import {
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
+import { useAutomaticReads } from '@hooks/useAutomaticReads';
 
 function openingFailure(error: unknown) {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
   return failureStatus(cause) === 503 ? PUBLICATION_COPY.UNDELIVERABLE : PUBLICATION_COPY.FAILED;
 }
 
-export function useIssuerPublications(companyUuid: string | undefined, read: CompanyActionRead) {
+export function useIssuerPublications(
+  companyUuid: string | undefined,
+  read: CompanyActionRead,
+  onOpeningChange: (opening: boolean) => void,
+) {
   const client = useQueryClient();
   const mounted = useRef(true);
   const pending = useRef(false);
+  const [openingBusy, setOpeningBusy] = useState(false);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      onOpeningChange(false);
     };
   }, []);
   const key = [...PUBLICATIONS_QUERY_KEY, 'issuer', companyUuid, read.scopeKey];
@@ -42,7 +49,9 @@ export function useIssuerPublications(companyUuid: string | undefined, read: Com
   };
   const listing = useInfiniteQuery({
     queryKey: key,
-    enabled: !!companyUuid,
+    enabled: !!companyUuid && !read.error && !read.isRefreshing && !openingBusy,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
     queryFn: async ({ pageParam }) => {
       guard();
@@ -65,7 +74,7 @@ export function useIssuerPublications(companyUuid: string | undefined, read: Com
           state.fetchStatus !== 'idle' ||
           !state.data?.pages.some((page) => page.results.some((item) => item.uuid === uuid))
         )
-          throw createUserFriendlyError('Refresh company publications before continuing.');
+          throw createUserFriendlyError('Company publications must be current before continuing. Try again.');
       };
       try {
         current();
@@ -74,7 +83,22 @@ export function useIssuerPublications(companyUuid: string | undefined, read: Com
         saveFile(data, publicationFilename(uuid, data.type));
       } finally {
         pending.current = false;
+        if (mounted.current) setOpeningBusy(false);
+        onOpeningChange(false);
       }
+    },
+  });
+  useAutomaticReads({
+    scope: read.scopeKey,
+    paused: opening.isPending || listing.isFetchingNextPage,
+    refresh: async (available) => {
+      if (pending.current) return;
+      if (read.isRefreshing || listing.isFetching) return false;
+      await read.refetch();
+      if (!available() || pending.current || !companyUuid) return;
+      guard();
+      await listing.refetch({ cancelRefetch: false });
+      guard();
     },
   });
   return {
@@ -89,6 +113,8 @@ export function useIssuerPublications(companyUuid: string | undefined, read: Com
     open: (uuid: string) => {
       if (!pending.current) {
         pending.current = true;
+        setOpeningBusy(true);
+        onOpeningChange(true);
         opening.mutate(uuid);
       }
     },

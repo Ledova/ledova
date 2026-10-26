@@ -44,7 +44,7 @@ export function useAcceptInvitationForm({
       const { data } = await acceptCompanyTeamInvitation(apiClient, code, { ledovaSubmissionGuard: check });
       check();
       if (!appointmentReceipt(data) || data.source !== 'invitation')
-        throw new Error('The appointment outcome could not be confirmed. Retry the same code or refresh.');
+        throw new Error('The appointment outcome could not be confirmed. Retry the same code.');
       setCode('');
       setAccepted(false);
       setReceipt(`Appointment recorded for ${data.companyName}.`);

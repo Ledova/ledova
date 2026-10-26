@@ -43,10 +43,6 @@ test-results
 .env.local
 .env.*.local
 
-# Committed env files (public config, no secrets - baked into JS at build time):
-#   .env.production - production URLs, feature flags
-#   .env.development - local dev URLs, feature flags
-
 # TypeScript
 *.tsbuildinfo
 

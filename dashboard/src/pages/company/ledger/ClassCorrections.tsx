@@ -32,7 +32,6 @@ export function ClassCorrections({
   register,
   sourceReady = true,
   visible = true,
-  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -43,7 +42,6 @@ export function ClassCorrections({
   register: TokenHoldersResponse;
   sourceReady?: boolean;
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (token: string, uuid: string, held: boolean) => void;
 }) {
   const client = useQueryClient();
@@ -86,7 +84,7 @@ export function ClassCorrections({
         company={company}
         register={register}
         sourceReady={sourceReady}
-        visible={visible && !readOnly}
+        visible={visible}
         renderAction={(entry, ready) =>
           ready && privateReady && steps?.prepare && entry.correctable ? (
             <PageLink
@@ -124,7 +122,6 @@ export function ClassCorrections({
               landed={landed?.record === correction.proposal.uuid ? landed : undefined}
               correction={correction}
               visible={privateReady}
-              readOnly={readOnly}
               onHeldChange={recordHeld}
               steps={steps ?? {}}
               guard={guard}

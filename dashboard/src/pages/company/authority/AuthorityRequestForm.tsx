@@ -17,11 +17,13 @@ export function AuthorityRequestForm({
   disabled,
   guard,
   onSuccess,
+  onCancel,
 }: {
   company: CompanyListItem;
   disabled: boolean;
   guard: () => void;
   onSuccess: (request: CompanyAuthorityRequest) => void;
+  onCancel: () => void;
 }) {
   const {
     setFile,
@@ -101,7 +103,7 @@ export function AuthorityRequestForm({
           </p>
         )}
       </div>
-      <Field {...checks.field('expiry')} label="Requested expiry date (UTC, optional)">
+      <Field {...checks.field('expiry')} label="Expiry date (UTC)">
         <TextInput
           type="date"
           min={utcToday()}
@@ -113,7 +115,7 @@ export function AuthorityRequestForm({
       </Field>
       <FileField
         label="Supporting document"
-        optional
+        showUploadHint={false}
         hint="Supporting documents can also be uploaded later in Company settings."
         disabled={disabled || busy}
         onFile={(file) => change(() => setFile(file))}
@@ -124,6 +126,7 @@ export function AuthorityRequestForm({
         </p>
       )}
       <FormActions>
+        <PageAction label="Cancel" disabled={disabled || busy} onClick={onCancel} />
         <PageAction
           type="submit"
           label="Submit authority request"

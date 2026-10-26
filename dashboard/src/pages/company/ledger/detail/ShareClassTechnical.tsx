@@ -38,29 +38,44 @@ function ReadResult({ query, label, children }: { query: ReadState; label: strin
 }
 
 export function ShareClassTechnical({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Disclosure summary="Technical details and chain workflows" keepMounted>
+    <Disclosure
+      summary="Technical details and chain workflows"
+      open={open}
+      onToggle={() => setOpen((value) => !value)}
+      keepMounted
+    >
       <TechnicalRecord data={data} />
-      <DeploymentFlow key={`${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`} uuid={uuid} data={data} />
+      <DeploymentFlow
+        key={`${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
+        uuid={uuid}
+        data={data}
+        active={open}
+      />
       <CompanyIssueFlow
         key={`issues/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
         uuid={uuid}
         data={data}
+        active={open}
       />
       <CompanyCapitalFlow
         key={`capital/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
         uuid={uuid}
         data={data}
+        active={open}
       />
       <CompanyPaidIssueFlow
         key={`paid-issue/${uuid}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
         uuid={uuid}
         data={data}
+        active={open}
       />
       <CompanyPauseFlow
         key={`pause/${uuid}/${data.owner?.userUuid}/${data.owner?.ownerAccountUuid}`}
         uuid={uuid}
         data={data}
+        active={open}
       />
     </Disclosure>
   );

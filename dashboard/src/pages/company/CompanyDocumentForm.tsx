@@ -1,14 +1,18 @@
 import { FileField } from '@components/Field';
-import { Modal } from '@components/Modal';
+import { SelectField } from '@components/SelectField';
+import { useEffect, useRef } from 'react';
+import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { apiErrorSentence, type DocumentType } from '@ledova/shared';
 import { useCompanyDocumentUpload } from './useCompanyDocumentUpload';
 import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
 
-export function UploadModal({
+export function CompanyDocumentForm({
   companyUuid,
   documentType,
+  documentTypes,
+  onTypeChange,
   label,
   canUpload,
   read,
@@ -17,6 +21,8 @@ export function UploadModal({
 }: {
   companyUuid: string;
   documentType: DocumentType;
+  documentTypes: { type: DocumentType; label: string }[];
+  onTypeChange: (type: DocumentType) => void;
   label: string;
   canUpload: boolean;
   read: CompanyActionRead;
@@ -32,22 +38,22 @@ export function UploadModal({
     onSuccess,
   });
   const checks = useErrorSummary(problems);
+  const form = useRef<HTMLFormElement>(null);
+  useEffect(() => form.current?.focus(), []);
   return (
-    <Modal
-      isOpen
-      title={`Upload ${label}`}
-      showFooter
-      confirmLabel="Upload"
-      busy={upload.isPending}
-      busyLabel="Uploading…"
-      confirmDisabled={!available}
-      onConfirm={() => {
+    <form
+      aria-label={`Upload ${label}`}
+      ref={form}
+      tabIndex={-1}
+      noValidate
+      className="space-y-4 focus:outline-none"
+      onSubmit={(event) => {
+        event.preventDefault();
         if (available && checks.check() && !pendingRef.current) {
           pendingRef.current = true;
           upload.mutate();
         }
       }}
-      onClose={onClose}
     >
       <fieldset
         disabled={upload.isPending}
@@ -73,8 +79,26 @@ export function UploadModal({
             )}
           </p>
         )}
-        <FileField {...checks.field('file')} label="Document file" onFile={setFile} />
+        <SelectField
+          label="Category"
+          options={documentTypes.map(({ type, label: name }) => ({ value: type, label: name }))}
+          value={documentType}
+          disabled={!available}
+          onChange={(type) => onTypeChange(type as DocumentType)}
+        />
+        <FileField {...checks.field('file')} label="File" showUploadHint={false} onFile={setFile} />
       </fieldset>
-    </Modal>
+      <FormActions>
+        <PageAction label="Cancel" disabled={upload.isPending} onClick={onClose} />
+        <PageAction
+          type="submit"
+          primary
+          label="Upload"
+          busy={upload.isPending}
+          busyLabel="Uploading…"
+          disabled={!available}
+        />
+      </FormActions>
+    </form>
   );
 }

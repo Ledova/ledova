@@ -15,6 +15,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { APPOINTMENT, REGISTER } from '../../../testSupport/company';
@@ -198,13 +199,15 @@ it('preserves original preparation and combined approval recovery through refres
     <LedgerNavigationProvider>
       <Sidebar />
       <CompanyRegisterPage />
+      <Link to="/company/ledger#history">Open old History link</Link>
+      <Link to="/company/ledger#issue">Return to Issue link</Link>
     </LedgerNavigationProvider>,
     'Ledger',
     { entry: '/company/ledger', path: '/company/ledger' },
   );
   const investorTask = await screen.findByRole('link', { name: 'Issue shares' });
   const transferTask = screen.getByRole('link', { name: 'Transfer shares' });
-  const historyTask = screen.getByRole('link', { name: 'History' });
+  expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
   const correctionsTask = screen.getByRole('link', { name: 'Corrections' });
   await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
   fireEvent.click(investorTask);
@@ -335,7 +338,6 @@ it('preserves original preparation and combined approval recovery through refres
   expect(taskClass().disabled).toBe(true);
   expect(investorTask.getAttribute('aria-disabled')).toBe('true');
   expect(transferTask.getAttribute('aria-disabled')).toBe('true');
-  expect(historyTask.getAttribute('aria-disabled')).toBe('true');
   expect(correctionsTask.getAttribute('aria-disabled')).toBe('true');
   const preparedAllotment = rows[0];
   rows = [{ ...preparedAllotment, companyEventOn: null }];
@@ -350,9 +352,16 @@ it('preserves original preparation and combined approval recovery through refres
   expect(allotments.getByLabelText(COPY.COMPANY_EVENT_ON)).toBeTruthy();
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   rows = [preparedAllotment];
-  fireEvent.click(historyTask);
+  fireEvent.click(correctionsTask);
   expect(taskClass().value).toBe(REGISTER.token.uuid);
   expect(allotments.getByLabelText(COPY.CONSIDERATION)).toBeTruthy();
+  const beforeOldLink = api.post.mock.calls.length;
+  fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
+  expect(taskClass().value).toBe(REGISTER.token.uuid);
+  expect(allotments.getByLabelText(COPY.CONSIDERATION)).toBeTruthy();
+  expect(api.post.mock.calls).toHaveLength(beforeOldLink);
+  fireEvent.click(screen.getByRole('link', { name: 'Return to Issue link' }));
   failedRead = true;
   await refreshAllotments();
   await allotments.findByText(/External allotments could not be loaded/);
@@ -442,7 +451,6 @@ it('preserves original preparation and combined approval recovery through refres
   await allotments.findByRole('button', { name: /^Recover approve receipt/ });
   expect(taskClass().disabled).toBe(true);
   expect(transferTask.getAttribute('aria-disabled')).toBe('true');
-  expect(historyTask.getAttribute('aria-disabled')).toBe('true');
   expect(correctionsTask.getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(transferTask);
   expect(taskClass().value).toBe(REGISTER.token.uuid);
@@ -551,9 +559,9 @@ it('preserves original preparation and combined approval recovery through refres
   expect(rows[0].registerEntry).toBe('entry-a');
   expect(rows[0].decisions).toHaveLength(2);
   await waitFor(() => expect(taskClass().disabled).toBe(false));
-  await waitFor(() => expect(historyTask.getAttribute('aria-disabled')).toBeNull());
+  await waitFor(() => expect(correctionsTask.getAttribute('aria-disabled')).toBeNull());
   expect(correctionsTask.getAttribute('aria-disabled')).toBeNull();
-  fireEvent.click(historyTask);
+  fireEvent.click(correctionsTask);
   fireEvent.change(taskClass(), { target: { value: preference.token.uuid } });
   expect(
     (await screen.findAllByRole('heading', { name: `${preference.token.name} · ${preference.token.symbol}` })).find(
@@ -800,7 +808,8 @@ it('preserves original preparation and combined approval recovery through refres
   const transferClass = () => screen.getByLabelText('Share class') as HTMLSelectElement;
   const transferLink = await screen.findByRole('link', { name: 'Transfer shares' });
   const issueLink = screen.getByRole('link', { name: 'Issue shares' });
-  const historyLink = screen.getByRole('link', { name: 'History' });
+  const correctionsLink = screen.getByRole('link', { name: 'Corrections' });
+  expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
   const openTransfer = () => screen.getByRole('button', { name: /^Review and approve [(]transfer/ });
   await screen.findByRole('button', { name: /^Review and approve [(]transfer/ });
   expect(screen.queryByRole('button', { name: /^Apply [(]transfer/ })).toBeNull();
@@ -819,7 +828,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(document.activeElement).toBe(within(transferReview).getByRole('heading', { name: 'Review share transfer' }));
   expect(transferClass().disabled).toBe(true);
   expect(issueLink.getAttribute('aria-disabled')).toBe('true');
-  expect(historyLink.getAttribute('aria-disabled')).toBe('true');
+  expect(correctionsLink.getAttribute('aria-disabled')).toBe('true');
   expect(transferDecisionCalls()).toHaveLength(0);
   expect(transfer.registerEntry).toBeNull();
   fireEvent.click(within(transferReview).getByRole('button', { name: 'Cancel' }));
