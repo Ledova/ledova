@@ -3,6 +3,7 @@ import {
   AUTH_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   PUBLICATION_ENDPOINTS,
+  PUBLICATION_NOTICE,
   USER_PREFERENCES_QUERY_KEY,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -15,6 +16,7 @@ import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/tests/fixtures/register-outputs';
 import { cache, resetFiles } from '../../testSupport/documentFiles';
+import { destinationOf } from '../../components/notifications/NotificationsModal';
 import { DocumentsScreen } from '../documents/DocumentsScreen';
 import { AwardScreen } from './AwardScreen';
 import { ClassScreen } from './ClassScreen';
@@ -385,4 +387,7 @@ it('lists certificates from every member association in Documents, refuses a lis
   await view.rerender(<DocumentsScreen route={{ key: 'documents', name: 'Documents', params: { show: 'notices' } }} />);
   expect(await screen.findByText('No notices yet.')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'All', selected: true })).toBeTruthy();
+  const notice = { data: { type: PUBLICATION_NOTICE } } as unknown as Parameters<typeof destinationOf>[0];
+  expect(destinationOf(notice)).toEqual({ screen: 'Documents', params: { show: 'notices' } });
+  expect(destinationOf(notice)).not.toBe(destinationOf(notice));
 });

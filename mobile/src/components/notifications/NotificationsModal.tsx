@@ -16,13 +16,13 @@ interface NotificationsModalProps {
   onClose: () => void;
 }
 
-const DESTINATIONS: Record<string, NavigatorScreenParams<TabParamList>> = {
-  [PUBLICATION_NOTICE]: { screen: 'Documents', params: { show: 'notices' } },
+const DESTINATIONS: Record<string, () => NavigatorScreenParams<TabParamList>> = {
+  [PUBLICATION_NOTICE]: () => ({ screen: 'Documents', params: { show: 'notices' } }),
 };
 
 export function destinationOf(notification: Notification): NavigatorScreenParams<TabParamList> | undefined {
   const type = (notification.data as { type?: unknown } | null | undefined)?.type;
-  return typeof type === 'string' ? DESTINATIONS[type] : undefined;
+  return typeof type === 'string' ? DESTINATIONS[type]?.() : undefined;
 }
 
 function NotificationItem({
