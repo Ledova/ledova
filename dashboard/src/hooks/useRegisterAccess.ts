@@ -44,11 +44,12 @@ export function useRegisterEntryAccess(enabled = true) {
   });
 }
 
-export function useRegisterEntry() {
-  const access = useRegisterEntryAccess();
+export function useRegisterEntryState(enabled = true) {
+  const access = useRegisterEntryAccess(enabled);
   const { owner } = useSubmissionOwner();
-  const appointments = useSignedInAppointments(access.isSuccess && !access.isFetching && !access.data);
-  return (
+  const needsAppointments = enabled && access.isSuccess && !access.isFetching && !access.data;
+  const appointments = useSignedInAppointments(needsAppointments);
+  const canOpen =
     access.isSuccess &&
     !access.isFetching &&
     (access.data ||
@@ -58,6 +59,15 @@ export function useRegisterEntry() {
         appointments.data.some(
           (appointment) =>
             !appointment.revokedAt && appointmentForRegisterStep([appointment], appointment.company, 'prepare'),
-        )))
-  );
+        )));
+  return {
+    canOpen,
+    isLoading:
+      enabled &&
+      (access.isPending ||
+        access.isFetching ||
+        (needsAppointments && (appointments.isPending || appointments.isFetching))),
+    isError: access.isError || (needsAppointments && appointments.isError),
+    refetch: () => Promise.all([access.refetch(), ...(needsAppointments ? [appointments.refetch()] : [])]),
+  };
 }

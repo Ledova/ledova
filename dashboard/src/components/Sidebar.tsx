@@ -27,7 +27,8 @@ import { Logo } from './Logo';
 import { NotificationBell } from './NotificationBell';
 import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
-import { useRegisterEntry } from '@hooks/useRegisterAccess';
+import { useWorkspace } from '@hooks/useWorkspace';
+import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { COMPANY_DASHBOARD_PATH, SITE_PATHS } from '@utils/paths';
 import {
   destinationAt,
@@ -391,13 +392,19 @@ function SettingsGroup({
   navigation: ReturnType<typeof useSettingsNavigation>;
   onNavigate?: () => void;
 }) {
+  const workspace = useWorkspace();
   const location = useLocation();
   const place = `${location.pathname}${location.hash}`;
   const [shownPlace, setShownPlace] = useState(place);
   const [expanded, setExpanded] = useState(active);
   const id = useId();
   const selected = settingsView(location.pathname, location.hash);
-  const items = SETTINGS_VIEWS.filter((item) => selected === item.key || navigation.items.includes(item));
+  const items = SETTINGS_VIEWS.filter((item) => {
+    const inWorkspace =
+      item.key === 'profile' ||
+      (item.key === 'company-recorded-details' ? workspace?.mode !== 'company' : workspace?.mode !== 'my-shares');
+    return inWorkspace && (selected === item.key || navigation.items.includes(item));
+  });
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
 
   if (shownPlace !== place) {
@@ -453,44 +460,43 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const location = useLocation();
   const tradingEnabled = useFeatureFlags().isEnabled('trading_enabled');
   const { isInvestor, isCompany } = useRole();
-  const settings = useSettingsNavigation();
-  const registerAccess = useRegisterEntry();
-  const hasCompanyWorkspace = registerAccess;
+  const workspace = useWorkspace();
+  const standaloneSettings = useSettingsNavigation();
+  const settings = workspace?.settings ?? standaloneSettings;
+  const companyWorkspace = workspace?.mode === 'company';
+  const companyItems = workspace?.canRegister
+    ? COMPANY
+    : COMPANY.filter((item) => item.destination === 'companyDashboard');
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
 
   const groups: NavGroup[] = [
-    ...(hasCompanyWorkspace ? [{ id: 'company', label: DESTINATIONS.company.title, items: COMPANY }] : []),
-    ...(hasCompanyWorkspace
-      ? [
-          {
-            id: 'shares',
-            label: 'Personal',
-            items: [{ destination: 'home' as const, label: 'Your shares', icon: HouseIcon }],
-          },
-        ]
-      : [{ id: 'shares', items: PERSONAL }]),
+    ...(companyWorkspace ? [{ id: 'company', items: companyItems }] : []),
+    ...(!companyWorkspace ? [{ id: 'shares', items: PERSONAL }] : []),
     { id: 'yours', label: 'Configuration', items: YOURS },
   ];
-  const secondaryGroups: NavGroup[] = [
-    { id: 'history', items: HISTORY },
-    ...(isInvestor
-      ? [{ id: 'invest', label: 'Invest', items: INVEST.filter((item) => item !== MARKET || tradingEnabled) }]
-      : []),
-    {
-      id: 'yours',
-      items: [
-        ...(settings.canReviewEligibility
-          ? [{ destination: 'companyEligibility' as const, icon: ShieldCheckIcon }]
+  const secondaryGroups: NavGroup[] = companyWorkspace
+    ? [
+        {
+          id: 'company-more',
+          items: [
+            ...(settings.canReviewEligibility
+              ? [{ destination: 'companyEligibility' as const, icon: ShieldCheckIcon }]
+              : []),
+            ...(settings.hasOwnedCompany && isCompany
+              ? [{ destination: 'companyPublications' as const, icon: NewspaperIcon }]
+              : []),
+            ...(isCompany ? [{ destination: 'companyOffering' as const, icon: MegaphoneIcon }] : []),
+          ],
+        },
+      ]
+    : [
+        { id: 'history', items: HISTORY },
+        ...(isInvestor
+          ? [{ id: 'invest', label: 'Invest', items: INVEST.filter((item) => item !== MARKET || tradingEnabled) }]
           : []),
-        ...(settings.hasOwnedCompany && isCompany
-          ? [{ destination: 'companyPublications' as const, icon: NewspaperIcon }]
-          : []),
-        ...(isCompany ? [{ destination: 'companyOffering' as const, icon: MegaphoneIcon }] : []),
-        { destination: 'wallets', icon: WalletIcon },
-      ],
-    },
-  ];
+        { id: 'personal-more', items: [{ destination: 'wallets', icon: WalletIcon }] },
+      ];
 
   const allItems = [...groups, ...secondaryGroups].flatMap((group) => group.items);
   const activeItem =
@@ -519,6 +525,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         {withNotifications && <NotificationBell align="start" />}
       </div>
 
+      <WorkspaceSwitcher onNavigate={onNavigate} />
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <nav aria-label="Main" className="space-y-6">
           {groups.map((group) => (
@@ -553,24 +560,26 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
               )}
             </div>
           ))}
-          <details open={secondaryGroups.some((group) => group.items.some((item) => itemPath(item) === activePath))}>
-            <summary className={`${ITEM_CLASS} ${IDLE_CLASS} cursor-pointer`}>More</summary>
-            <div className="space-y-4 pt-2">
-              {secondaryGroups.map((group) => (
-                <div key={group.id} className="space-y-1">
-                  {group.label && <GroupLabel>{group.label}</GroupLabel>}
-                  {group.items.map((item) => (
-                    <NavLink
-                      key={itemPath(item)}
-                      item={item}
-                      active={itemPath(item) === activePath}
-                      onNavigate={onNavigate}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </details>
+          {secondaryGroups.some((group) => group.items.length > 0) && (
+            <details open={secondaryGroups.some((group) => group.items.some((item) => itemPath(item) === activePath))}>
+              <summary className={`${ITEM_CLASS} ${IDLE_CLASS} cursor-pointer`}>More</summary>
+              <div className="space-y-4 pt-2">
+                {secondaryGroups.map((group) => (
+                  <div key={group.id} className="space-y-1">
+                    {group.label && <GroupLabel>{group.label}</GroupLabel>}
+                    {group.items.map((item) => (
+                      <NavLink
+                        key={itemPath(item)}
+                        item={item}
+                        active={itemPath(item) === activePath}
+                        onNavigate={onNavigate}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </nav>
         <a
           href={`${SITE_URL}${SITE_PATHS.contact}`}

@@ -221,8 +221,8 @@ confirmed, and a confirmed one is not yet final ([chain](../engineering/chain.md
 
 The web dashboard reaches the records and workflows described here. The mobile app is for
 shareholders and holds only their own records, notices and account
-([decision](../decisions.md#mobile-app-for-shareholders)). The account type chosen
-at signup selects navigation only; company actions follow the person's current appointments, and
+([decision](../decisions.md#mobile-app-for-shareholders)). Account audience retains its existing route checks;
+company actions follow the person's current appointments, and
 the server decides what each person may read. Every page withholds stale records and their actions
 after a failed read, keeps an open draft without submitting it until a read succeeds, and closes
 open forms when the account, session or selected company changes, so an old confirmation or late
@@ -230,21 +230,22 @@ reply never acts for the new one
 ([clients](../engineering/frontend.md#clients-and-the-shared-package);
 [lists and forms](../engineering/frontend.md#lists-figures-and-currency)).
 
-On the web, the sidebar shows:
+On the web, the selector below the logo separates two workspaces under one login:
 
-- Company, for a person who can read a company's register: Dashboard, Ledger, Shareholders and
-  Documents. Ledger opens the share-class overview; its separate caret
-  expands Issue shares, Transfer shares and Corrections. Shareholders opens the people list;
-  its caret expands ESS (Employee share scheme), Member access and Member requests. Personal holds Your shares.
-- For everyone else: Dashboard and Documents, both personal.
-- Configuration: Settings ([Profile and Settings](participants.md#profile-and-settings)).
-- More: Notices and Activity; for investing accounts an Invest group with Directory, Applications,
-  Market (when trading is enabled) and Verification; Offerings for company accounts; and Wallets.
-- Help & Support, the signed-in person's name, Sign out and the theme switch.
+- Company: Dashboard, Ledger, Shareholders and Documents. Ledger opens the class overview, with
+  Issue shares, Transfer shares and Corrections beneath it. Shareholders opens the people list,
+  with ESS, Member access and Member requests. Company More retains permitted eligibility,
+  publication and Offering workflows. Company settings holds source Documents, Team and Activation.
+- My shares: the person's own Dashboard and Documents. Its More holds Notices, Activity, Wallets
+  and, for investing accounts, Directory, Applications, Market (when enabled) and Verification.
+- Both keep Settings → Profile, Help & Support, the person's name, Sign out and the theme switch.
+  Profile shares personal and account settings; Company details appear only in Company.
 
-Signing in opens the company Dashboard for a person who can read a company's register, and the
-personal Dashboard otherwise. Account preference alone does not choose a company workspace; if the
-access check fails, the page offers a retry rather than guessing.
+Company access follows current appointments and existing owner/read rules; selecting a workspace
+changes no permissions. My shares can be empty before a member invitation is accepted. Sign-in opens
+the valid remembered workspace, defaulting to Company when available and My shares otherwise.
+Direct links and member invitations open the appropriate context. Failed access checks offer retry;
+switching an edited form asks before discarding it.
 
 The company Dashboard opens with one line naming the company and its status. Until setup is
 complete, a personal administrator also sees **Getting started**: **Verify and activate your

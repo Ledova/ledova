@@ -11,6 +11,7 @@ import { AuthLayoutAction } from './auth';
 import { InSignedInFrame } from './InSignedInFrame';
 import { SignOutButton } from './SignOutButton';
 import { LedgerNavigationProvider } from './LedgerNavigationProvider';
+import { WorkspaceProvider } from './WorkspaceProvider';
 
 interface LayoutProps {
   children: ReactNode;
@@ -60,33 +61,35 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <InSignedInFrame.Provider value>
       <LedgerNavigationProvider>
-        <BuyCryptoProvider>
-          <SendTransferProvider>
-            <div className="min-h-screen bg-surface-base text-text-primary">
-              <a
-                href="#main"
-                onClick={(event) => {
-                  event.preventDefault();
-                  document.querySelector<HTMLElement>('#main h1')?.focus();
-                }}
-                className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface-raised focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-text-primary"
-              >
-                Skip to main content
-              </a>
-              <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">
-                <Sidebar withNotifications />
-              </div>
+        <WorkspaceProvider>
+          <BuyCryptoProvider>
+            <SendTransferProvider>
+              <div className="min-h-screen bg-surface-base text-text-primary">
+                <a
+                  href="#main"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    document.querySelector<HTMLElement>('#main h1')?.focus();
+                  }}
+                  className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface-raised focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-text-primary"
+                >
+                  Skip to main content
+                </a>
+                <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">
+                  <Sidebar withNotifications />
+                </div>
 
-              <div className="fixed inset-x-0 top-0 z-40 lg:hidden">
-                <MobileHeader />
-              </div>
+                <div className="fixed inset-x-0 top-0 z-40 lg:hidden">
+                  <MobileHeader />
+                </div>
 
-              <main id="main" className="pt-14 lg:ml-52 lg:pt-0">
-                {children}
-              </main>
-            </div>
-          </SendTransferProvider>
-        </BuyCryptoProvider>
+                <main id="main" className="pt-14 lg:ml-52 lg:pt-0">
+                  {children}
+                </main>
+              </div>
+            </SendTransferProvider>
+          </BuyCryptoProvider>
+        </WorkspaceProvider>
       </LedgerNavigationProvider>
     </InSignedInFrame.Provider>
   );

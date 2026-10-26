@@ -42,6 +42,26 @@ async function serveASignedInAccount(page: Page, role: Role) {
     administrativeAccess: { draftSetup: role !== 'investor', capabilities: role === 'both' ? ['admin'] : [] },
     documents: [],
   };
+  const memberRecord = {
+    uuid: 'own-record',
+    member: 'investor',
+    company,
+    name: 'Ada Lovelace',
+    residentialAddress: 'Demo address',
+    identitySource: 'company_recorded',
+    classes: [
+      {
+        uuid: 'ordinary',
+        name: 'Ordinary shares',
+        symbol: 'ORD',
+        shares: '35',
+        enteredOn: '2026-10-11',
+        ceasedOn: null,
+        amountPaid: '350.00',
+      },
+    ],
+    awards: [],
+  };
   await page.route('**/api/**', (route) => {
     const answer = (body: unknown) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
@@ -69,11 +89,12 @@ async function serveASignedInAccount(page: Page, role: Role) {
       return answer({ ...EMPTY, count: 1, results: [company] });
     }
     if (path === '/api/v1/companies/company/') return answer(company);
-    if (path === '/api/v1/tokens/member-records/' && role === 'investor')
+    if (path === '/api/v1/tokens/member-records/own-record/') return answer(memberRecord);
+    if (path === '/api/v1/tokens/member-records/')
       return answer({
         ...EMPTY,
         count: 1,
-        results: [{ uuid: 'own-record', member: 'investor', company, name: 'Ada Lovelace', classes: [], awards: [] }],
+        results: [memberRecord],
       });
     if (path === '/api/v1/company-authority/appointments/' && role === 'both')
       return answer({
@@ -111,7 +132,7 @@ async function serveASignedInAccount(page: Page, role: Role) {
 async function openTheSidebar(page: Page, role: Role) {
   const reads = await serveASignedInAccount(page, role);
   await page.goto('/');
-  await expect(page).toHaveURL(new RegExp(role === 'company' ? '/home$' : '/company/dashboard$'));
+  await expect(page).toHaveURL(/\/company\/dashboard$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
   if (role !== 'company') {
     const summary = page.getByRole('region', { name: 'Company ownership summary' });
@@ -131,6 +152,8 @@ async function openTheSidebar(page: Page, role: Role) {
   await expect(aside.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
   await expect(aside.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
   await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(role === 'company' ? 0 : 1);
+  await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveValue('company');
+  await expect(aside.getByRole('link', { name: 'Your shares', exact: true })).toHaveCount(0);
   await expect(aside.getByText(LONG_NAME)).toHaveCount(0);
   if (role !== 'company') {
     const toggle = aside.getByRole('button', { name: 'Expand Ledger navigation' });
@@ -252,9 +275,7 @@ async function openTheSidebar(page: Page, role: Role) {
   const profile = settings.getByRole('link', { name: 'Profile', exact: true });
   await expect(profile).toHaveAttribute('href', '/settings#profile');
   await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveAttribute('href', '/company/team');
-  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(
-    role === 'investor' ? 1 : 0,
-  );
+  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(0);
   await expect(settings.getByRole('link', { name: 'Company', exact: true })).toHaveCount(0);
   await expect(settings.getByRole('link', { name: 'Account', exact: true })).toHaveCount(0);
   await expect(settings.getByRole('link', { name: 'Documents', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
@@ -284,7 +305,28 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(alerts).toHaveAttribute('aria-checked', 'true');
     await expect(page.getByRole('form', { name: 'Edit company', exact: true })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Trading name', exact: true })).toHaveValue('Unsent company draft');
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
+    await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('my-shares');
+    const leave = page.getByRole('dialog', { name: 'Leave this workspace?', exact: true });
+    await expect(leave.getByRole('heading', { name: 'Leave this workspace?', exact: true })).toBeVisible();
+    await leave.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(leave.getByRole('heading', { name: 'Leave this workspace?', exact: true })).not.toBeVisible();
+    if (phone) {
+      const closeNavigation = page.getByRole('button', { name: 'Close navigation', exact: true });
+      await closeNavigation.click();
+      await expect(closeNavigation).not.toBeVisible();
+    }
+    await expect(page.getByRole('textbox', { name: 'Trading name', exact: true })).toHaveValue('Unsent company draft');
+    if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
+    await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('my-shares');
+    await leave.getByRole('button', { name: 'Leave workspace', exact: true }).click();
+    await expect(page).toHaveURL(/\/home$/);
+    if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
+    await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveValue('my-shares');
+    await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('company');
+    await expect(page).toHaveURL(/\/company\/dashboard$/);
+    await page.goto('/settings#profile');
+    await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
   }
   if (phone) {
     await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
@@ -340,6 +382,29 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveAttribute('aria-current', 'page');
     expect(reads).toEqual(cachedReads);
   }
+  await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('my-shares');
+  await expect(page).toHaveURL(/\/home$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
+  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
+  await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveValue('my-shares');
+  await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(0);
+  await expect(aside.getByRole('link', { name: 'Shareholders', exact: true })).toHaveCount(0);
+  await aside.getByRole('link', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(0);
+  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
+  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(1);
+  for (const label of ['Team', 'Documents', 'Activation'])
+    await expect(settings.getByRole('link', { name: label, exact: true })).toHaveCount(0);
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/home$/);
+  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
+  await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('company');
+  await expect(page).toHaveURL(/\/company\/dashboard$/);
+  await page.goto('/home#documents');
+  await expect(page.getByRole('heading', { level: 1, name: 'Documents', exact: true })).toBeVisible();
+  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
+  await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveValue('my-shares');
   await aside.locator('summary').filter({ hasText: 'More' }).click();
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();
   return aside;
@@ -386,6 +451,31 @@ test.describe('the signed-in sidebar when its list is longer than the screen', (
         await page.setViewportSize(layout.viewport);
 
         await checkTheCutEdge(await openTheSidebar(page, role));
+        if (role === 'investor') {
+          for (const endpoint of [
+            '/api/v1/tokens/register/',
+            '/api/v1/companies/',
+            '/api/v1/company-authority/appointments/',
+          ])
+            await page.route(`**${endpoint}*`, (route) =>
+              route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(EMPTY) }),
+            );
+          await page.goto('/settings#profile');
+          await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
+          const workspace = page
+            .locator('aside')
+            .filter({ visible: true })
+            .getByRole('combobox', { name: 'Workspace' });
+          await expect(workspace).toHaveValue('my-shares');
+          await expect(workspace.locator('option[value="company"]')).toHaveCount(0);
+          await page.getByRole('button', { name: 'Close navigation', exact: true }).click();
+          await page.getByRole('button', { name: 'Manage account', exact: true }).click();
+          const invitation = page.getByRole('link', { name: 'Accept a company invitation', exact: true });
+          await expect(invitation).toHaveAttribute('href', '/company/team');
+          await invitation.click();
+          await page.getByRole('button', { name: 'Accept a company invitation', exact: true }).click();
+          await expect(page.getByRole('textbox', { name: 'Invitation code', exact: true })).toBeVisible();
+        }
       });
     }
   }

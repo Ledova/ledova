@@ -280,11 +280,9 @@ non-company account that opens a sign-up step.
 
 `/` (`RootRedirect`) sends a signed-out visitor to sign in and an unfinished account into sign-up:
 to `/signup/company-registration` when the account may open company pages and its full name has more
-than one word, otherwise to `SIGNUP_RESUMES_AT`. A finished account opens `/company/dashboard` when
-`useRegisterEntryAccess` (`dashboard/src/hooks/useRegisterAccess.ts`) confirms
-readable register access (the first page of readable register classes is not empty, or the person
-may personally administer one of their companies, read across every page) and `/home` otherwise; a
-failed check offers Try again. Sign-in navigates to `/`.
+than one word, otherwise to `SIGNUP_RESUMES_AT`. A finished account opens the valid remembered workspace's Dashboard,
+or Company when current access permits it and My shares otherwise; a failed check offers Try again.
+Pending member invitations take precedence. Sign-in navigates to `/`.
 
 `ProtectedRoute` (`dashboard/src/routes/ProtectedRoute.tsx`) guards each signed-in route with its
 entry's audience:
@@ -302,6 +300,18 @@ entry's audience:
 The guard decides pages, not data: the API decides which rows a person sees, answering 404 for a
 refused row.
 
+The web frame separates Company and My shares through the selector below the sidebar logo,
+also in the phone drawer. `WorkspaceProvider` (`dashboard/src/components/WorkspaceProvider.tsx`)
+shares the selected context with the frame and pages; `useWorkspace` (`dashboard/src/hooks/useWorkspace.ts`)
+reads it. Browser storage (`dashboard/src/services/workspace.ts`) remembers only the mode, keyed by
+current person and account. Company availability follows current register, appointment and company
+access; My shares remains an own-records view, including its empty state. Choosing a workspace changes
+neither account audience nor authority. Explicit routes (`dashboard/src/utils/workspace.ts`) select
+company or personal context; shared Profile keeps the active choice. Temporary access reads preserve
+the selected context, and a settled refusal invalidates a remembered Company choice.
+Switching confirms before discarding an edited, still-open form; held Ledger work prevents switching.
+The confirmation is bound to the current account and location.
+
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
 `companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
 `#certificates`, `#ledger-exports`, `#company-pack`, `/home#documents`). The web also names
@@ -314,20 +324,22 @@ same caret pattern for ESS, Member access and Member requests. Documents uses th
 Certificates, Ledger exports and Company pack. Its label opens Certificates, the default child;
 the legacy company `#documents` hash opens Certificates too. A group without a meaningful overview
 opens its default child, without a separate Overview page or duplicate page navigation.
-Settings uses the same one-level pattern for Profile, Documents, Team, Activation and
-Company-recorded details. Its default is Profile (`/settings#profile`), combining personal details,
-authorised company information and one compact Account card for relevant identity status, password,
+Settings uses the same one-level pattern: Profile in both workspaces, company Documents, Team and
+Activation in Company, and Company-recorded details in My shares when linked. Its default is Profile (`/settings#profile`), combining personal details,
+company information in Company and one shared compact Account card for identity status, password,
 appearance and notifications. These sections keep their separate records, editors and authority checks. Existing
 `/user-profile`, `/company` and `/settings#account` links redirect to Profile; company source documents
 remain at `/company#documents`, separate from the generated outputs in the top-level Documents group.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
-Team remains available for company-invitation acceptance, and company-recorded member particulars
-stay at `/settings#company-recorded-details`. Company eligibility and Published to your members
-are under More. Team keeps Representative authority as a contextual task, with its existing owner
+Team remains available for company-invitation acceptance; My shares Profile keeps an acceptance
+entry under Manage account before Company access is granted. Company-recorded member particulars
+stay at `/settings#company-recorded-details`. Company eligibility, Published to your members and
+Offerings stay under Company More; personal Notices, Activity, Wallets and permitted investing pages
+stay under My shares More. Team keeps Representative authority as a contextual task, with its existing owner
 and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
-stay siblings. The company group follows `useRegisterEntry`, its investing group the investing
-role and Market `trading_enabled` ([the app at a
+stay siblings in Company. My shares shows only its personal Dashboard, Documents and Settings;
+its investing group follows the investing role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). Direct Settings children have their own active item
 and omit Back to Settings; a contextual page marks its nearest sidebar parent, such as Team
 on Representative authority and Shareholders on a shareholder's page. The register hashes switch the
