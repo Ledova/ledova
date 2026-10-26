@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { useAuth, useUserPreferences } from '@ledova/shared';
@@ -17,6 +17,12 @@ export function SignupCompletionGate() {
   const { isCompany, isLoading: roleLoading } = useRole();
   const { userProfile, profile } = useUserProfile();
   const waiting = auth.isLoading || auth.isFetching || profile.isLoading || profile.isFetching || roleLoading;
+  const completed = !waiting && !profile.isError && !!userProfile?.isSignupCompleted;
+  const [opened, setOpened] = useState(false);
+  if (completed && !opened) setOpened(true);
+  const rereading = auth.isFetching || preferences.isFetching || profile.isFetching;
+  const kept =
+    opened && auth.isAuthenticated && !profile.isError && (userProfile ? userProfile.isSignupCompleted : rereading);
   useEffect(() => {
     if (auth.isLoading || auth.isFetching) return;
     if (!auth.isAuthenticated) {
@@ -34,7 +40,7 @@ export function SignupCompletionGate() {
     isCompany,
     navigation,
   ]);
-  if (!waiting && !profile.isError && userProfile?.isSignupCompleted) return <DrawerNavigator />;
+  if (completed || kept) return <DrawerNavigator />;
   return (
     <View
       style={{

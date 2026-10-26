@@ -9,6 +9,7 @@ const mockComplete = jest.fn();
 const mockResidentialAddress = '17 Example Street,\nSydney NSW 2000, Australia';
 let mockProfileComplete = false;
 let mockProfileError = false;
+let mockRereading = false;
 let mockSavedRequest: {
   originalFilename: string;
   requestedCapabilities: string[];
@@ -29,16 +30,17 @@ jest.mock('../../../hooks/useRole', () => ({
 }));
 jest.mock('../../../hooks/useUserProfile', () => ({
   useUserProfile: () => ({
-    userProfile: mockProfileError ? null : { uuid: 'profile-one', isSignupCompleted: mockProfileComplete },
-    profile: { isLoading: false, isFetching: false, isError: mockProfileError, refetch: jest.fn() },
+    userProfile:
+      mockProfileError || mockRereading ? null : { uuid: 'profile-one', isSignupCompleted: mockProfileComplete },
+    profile: { isLoading: false, isFetching: mockRereading, isError: mockProfileError, refetch: jest.fn() },
   }),
 }));
 jest.mock('@ledova/shared', () => {
   const { useState } = jest.requireActual<typeof import('react')>('react');
   return {
     ...jest.requireActual('@ledova/shared'),
-    useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: false, refetch: jest.fn() }),
-    useUserPreferences: () => ({ refetch: jest.fn() }),
+    useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: mockRereading, refetch: jest.fn() }),
+    useUserPreferences: () => ({ isFetching: mockRereading, refetch: jest.fn() }),
     useSignupReview: (_role: string, onComplete: (guard: () => void) => Promise<void>) => {
       const [request, setRequest] = useState(mockSavedRequest);
       const [ready, setReady] = useState(false);
@@ -126,6 +128,10 @@ it('accepts company authority and Terms through explicit completion without uplo
   mockProfileComplete = true;
   await gate.rerender(<SignupCompletionGate />);
   expect(gate.getByText('Completed account')).toBeTruthy();
+  mockRereading = true;
+  await gate.rerender(<SignupCompletionGate />);
+  expect(gate.getByText('Completed account')).toBeTruthy();
+  mockRereading = false;
   mockProfileError = true;
   await gate.rerender(<SignupCompletionGate />);
   expect(gate.queryByText('Completed account')).toBeNull();
