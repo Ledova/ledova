@@ -443,6 +443,7 @@ it('sends one particulars change to every company from Your details, skipping a 
     createdAt: '2026-10-20T00:00:00Z',
   };
   let second: Record<string, unknown>[] = [];
+  let firstReads = 0;
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -456,8 +457,11 @@ it('sends one particulars change to every company from Your details, skipping a 
     if (url === URLS.MEMBER_RECORDS) return page([MEMBER_RECORD, SECOND]);
     if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
     if (url === URLS.MEMBER_RECORD(SECOND.uuid)) return { data: SECOND };
-    if (url === URLS.MEMBER_PARTICULARS_REQUESTS)
-      return page(association === MEMBER_RECORD.uuid ? [WAITING] : association === SECOND.uuid ? second : []);
+    if (url === URLS.MEMBER_PARTICULARS_REQUESTS && association === MEMBER_RECORD.uuid) {
+      if (++firstReads === 1) throw new Error('Synthetic interrupted particulars read');
+      return page([WAITING]);
+    }
+    if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(association === SECOND.uuid ? second : []);
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page([]);
     throw new Error(`Unexpected GET ${url}`);
   });
@@ -490,13 +494,13 @@ it('sends one particulars change to every company from Your details, skipping a 
   );
   await render(<YourDetailsScreen />, { wrapper });
   expect(
-    await screen.findByRole('button', { name: new RegExp(`^${MEMBER_RECORD.company.name}: .*, change waiting$`) }),
+    await screen.findByText('Some change requests could not be loaded. Refresh before relying on this list.'),
   ).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Change at every company' }));
   await fireEvent.changeText(screen.getByLabelText('Requested name'), NAME);
   await fireEvent.changeText(screen.getByLabelText('Requested residential address'), ADDRESS);
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Share these particulars with each company for review' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Send to 1 company' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Send to 2 companies' }));
   expect(await screen.findByText(/^Stopped at Zeta Holding Company\./)).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Continue with the remaining companies' })).toBeDisabled();
   await fireEvent.press(screen.getByRole('button', { name: 'Retry original member action' }));
@@ -507,4 +511,12 @@ it('sends one particulars change to every company from Your details, skipping a 
   expect(posts).toHaveLength(2);
   expect(posts[0][1]).toEqual(posts[1][1]);
   expect(posts[0][1]).toMatchObject({ association: SECOND.uuid, name: NAME, residentialAddress: ADDRESS });
+  expect(
+    screen.getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.company.name}: .*, change waiting$`) }),
+  ).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Change at every company' }));
+  await fireEvent.changeText(screen.getByLabelText('Requested name'), NAME);
+  await fireEvent.changeText(screen.getByLabelText('Requested residential address'), ADDRESS);
+  expect(screen.getByRole('button', { name: 'Already waiting at every company' })).toBeDisabled();
 });

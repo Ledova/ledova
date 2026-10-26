@@ -12,7 +12,7 @@ import { CertificatePill } from './CertificatePill';
 import { Avatar } from './CompanyHoldings';
 import { shortName } from './holdings';
 import { MemberNotice, useMemberRecordsState } from './MemberRecordsProvider';
-import { useMemberParticulars } from './useMemberParticulars';
+import { isWaiting, useMemberParticulars } from './useMemberParticulars';
 
 interface Batch {
   name: string;
@@ -61,6 +61,15 @@ export function YourDetailsScreen() {
       return;
     }
     if (read.record?.uuid !== next || !read.requests) return;
+    if (
+      read.requests.particulars.some(
+        (request) => isWaiting(request) && request.name === batch.name && request.residentialAddress === batch.address,
+      )
+    ) {
+      setBatch((current) => current && { ...current, queue: current.queue.slice(1) });
+      void refetch();
+      return;
+    }
     sending.current = true;
     void requestParticulars(batch.name, batch.address).then((confirmed) => {
       sending.current = false;

@@ -13,7 +13,7 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 
 type Read = ReturnType<typeof useMemberRecords>;
 
-const waiting = (request: MemberParticularsRequest) =>
+export const isWaiting = (request: MemberParticularsRequest) =>
   request.status === 'submitted' || request.status === 'prepared' || request.status === 'approved';
 
 export function useMemberParticulars(read: Read) {
@@ -44,7 +44,7 @@ export function useMemberParticulars(read: Read) {
   });
   const waitingAt = (uuid: string) => {
     const query = lists[read.records.findIndex((record) => record.uuid === uuid)];
-    return query && !query.isError ? (query.data ?? []).filter(waiting) : [];
+    return query && !query.isError ? (query.data ?? []).filter(isWaiting) : [];
   };
   const refetch = useCallback(
     () => client.refetchQueries({ queryKey: [scope, profile, account, epoch, 'particulars'] }),
