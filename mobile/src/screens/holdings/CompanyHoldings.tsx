@@ -2,7 +2,8 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { CaretRightIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
 import { Row, Rows, useCardStyles } from '../../components/Ledger';
 import { useAppTheme, useThemedStyles } from '../../contexts';
-import { awardParts, awardQuantity, initials, shareQuantity, type CompanyHolding, type MemberAward } from './holdings';
+import { AwardBar } from './AwardBar';
+import { awardQuantity, initials, shareQuantity, type CompanyHolding, type MemberAward } from './holdings';
 
 function useHoldingStyles() {
   return useThemedStyles((theme) => ({
@@ -22,17 +23,6 @@ function useHoldingStyles() {
     line: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, gap: theme.spacing.sm },
     label: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
     value: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.primary },
-    bar: {
-      flexDirection: 'row' as const,
-      height: 6,
-      borderRadius: 3,
-      overflow: 'hidden' as const,
-      backgroundColor: theme.colors.surface.tertiary,
-    },
-    issued: { backgroundColor: theme.colors.brand.mid },
-    available: { backgroundColor: theme.colors.brand.mid, opacity: 0.45 },
-    unvested: { backgroundColor: theme.colors.text.muted, opacity: 0.35 },
-    ended: { backgroundColor: theme.colors.text.muted, opacity: 0.7 },
     search: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -71,23 +61,13 @@ function Avatar({ name }: { name: string }) {
 
 function AwardLine({ award }: { award: MemberAward }) {
   const styles = useHoldingStyles();
-  const parts = awardParts(award);
   return (
     <View style={styles.award}>
       <View style={styles.line}>
         <Text style={styles.label}>Award</Text>
         <Text style={styles.value}>{awardQuantity(award)}</Text>
       </View>
-      {parts && (
-        <View style={styles.bar} accessible={false}>
-          {parts.map(({ part, width }) => (
-            <View
-              key={part}
-              style={[styles[part as 'issued' | 'available' | 'unvested' | 'ended'], { width: `${width}%` }]}
-            />
-          ))}
-        </View>
-      )}
+      <AwardBar award={award} />
     </View>
   );
 }

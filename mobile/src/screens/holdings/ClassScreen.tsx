@@ -20,6 +20,7 @@ import {
   entryKind,
   type Certificate,
 } from './CertificateSheet';
+import { Figure } from './Figure';
 import { shareQuantity } from './holdings';
 import { MemberNotice, RecordGate, useCompanyRecord, useMemberRefresh } from './MemberRecordsProvider';
 
@@ -31,8 +32,6 @@ const PILLS: Record<Exclude<Certificate, null | 'other'>, string> = {
 
 function useClassStyles() {
   return useThemedStyles((theme) => ({
-    figure: { gap: 2 },
-    big: { fontFamily: theme.fontFamily.display, fontSize: 40, color: theme.colors.text.primary },
     row: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.smd, paddingVertical: 12 },
     text: { flex: 1, gap: 2 },
     change: { fontFamily: theme.fontFamily.medium, fontSize: 14, color: theme.colors.text.primary },
@@ -106,12 +105,10 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
           <Text style={styles.muted}>This share class is no longer recorded for you.</Text>
         ) : (
           <>
-            <View style={look.figure}>
-              <Text style={look.big}>{shareQuantity(item.shares)}</Text>
-              <Text style={styles.muted}>
-                {item.ceasedOn ? `shares · ceased ${formatDate(item.ceasedOn)}` : 'shares held'}
-              </Text>
-            </View>
+            <Figure
+              value={shareQuantity(item.shares)}
+              caption={item.ceasedOn ? `shares · ceased ${formatDate(item.ceasedOn)}` : 'shares held'}
+            />
             <Section title="History">
               {!showing && read.retry ? (
                 <Text style={styles.muted}>Retry or finish your pending request to see this history.</Text>
