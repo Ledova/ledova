@@ -49,6 +49,15 @@
   --shadow-xl: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
 }
 
+@theme static {
+  --color-chart-1: #286b55;
+  --color-chart-2: #4e6b91;
+  --color-chart-3: #8b632b;
+  --color-chart-4: #74608f;
+  --color-chart-5: #99523f;
+  --color-chart-6: #466f6c;
+}
+
 :root[data-theme='dark'] {
   color-scheme: dark;
   --color-surface-base: #151410;
@@ -87,4 +96,11 @@
   --color-warning: #9c600f;
   --color-info-light: #8fbbdb;
   --color-info: #3f7cab;
+
+  --color-chart-1: #78baa1;
+  --color-chart-2: #8ca9cc;
+  --color-chart-3: #cba66a;
+  --color-chart-4: #b8a1ce;
+  --color-chart-5: #d39782;
+  --color-chart-6: #85b3b1;
 }

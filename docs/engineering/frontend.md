@@ -499,19 +499,24 @@ amounts carry their offering's currency
 ([offerings](../business/issuing-shares.md#creating-and-submitting-an-offering)), and every amount
 names its currency (`formatMoney`).
 
-The company ownership map uses Apache ECharts, with only its treemap, tooltip and SVG renderer
-loaded when the desktop overview is visible. Keep the existing design tokens, a bounded chart area
-and a labelled class selector; narrow screens use the shared table. Other delivered charts retain
-their existing SVG implementation. Do not add a second chart library or a general chart framework.
-Visible quantities and percentages use exact share arithmetic; only normalised drawing coordinates
-use JavaScript numbers. A map represents issued share counts, not voting power or economic value.
+The company ownership ring uses Apache ECharts, with only its pie chart, tooltip and SVG renderer
+loaded when the desktop overview is visible. Use one ring and a linked class list, with the existing
+design tokens and a bounded chart area. Hover or keyboard focus links each list row to its segment;
+the centre shows the exact total or highlighted class quantity. Keep class colours consistent across
+the ring and the list, including search and paging. Every class remains selectable in the list,
+including classes with no issued shares; do not merge small classes into an artificial Other class.
+Long class lists use the shared search and 25-row pager. Narrow screens and a failed chart load keep
+the same list without the ring. Other delivered charts retain their existing SVG implementation.
+Do not add a second chart library or a general chart framework. Visible quantities and percentages
+use exact share arithmetic; only normalised drawing coordinates use JavaScript numbers. The ring
+represents issued share counts, not voting power or economic value.
 
 Ownership overviews read company-scoped aggregates, then fetch the selected class's holders with
 server-side search and paging. Do not fetch every shareholder in every class to draw an overview.
 Bind detail reads to the overview's register sequence; a changed sequence rereads the overview.
 Account, company and appointment guards, incomplete-read states and ordinary query invalidation
 remain in force. Do not introduce periodic dashboard polling. Unopened classes withhold company
-totals and the map; an inconsistent read withholds the overview. These rules are checked in review
+totals and the ring; an inconsistent read withholds the overview. These rules are checked in review
 and the existing company-dashboard journey, within the dashboard suite cap.
 
 ## Recovering a submitted company request
@@ -620,7 +625,7 @@ keys, held work, specialised refusal states and the import title remain with the
 
 `packages/shared/src/constants/ui/design-tokens.ts` is the single source of design tokens.
 `buildColors()` turns a palette into the semantic colours the dashboard, the site and mobile all use
-(`surface`, `text`, `brand`, `border` and the status colours), building both themes with the same
+(`surface`, `text`, `brand`, `border`, chart and status colours), building both themes with the same
 names: `THEMES.paper` (from a private paper palette) and `THEMES.dark`. Components need no per-theme
 classes, and every colour must read in both Paper and Dark.
 
@@ -633,8 +638,9 @@ roles ([mobile theme](mobile.md#theme-and-appearance)).
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with `tsx` and writes
 `dashboard/src/styles/tokens.css` and `site/src/tokens.css` (raw output, prettier-ignored). Their
 `@theme` block holds the Paper semantic colours, spacing steps and `lg` and `xl` shadows, from which
-Tailwind v4 derives the utilities; web radii, type sizes and font weights are Tailwind's defaults. A
-following `:root[data-theme='dark']` block sets `color-scheme: dark` and each colour variable's Dark
+Tailwind v4 derives the utilities; web radii, type sizes and font weights are Tailwind's defaults.
+A separate `@theme static` block retains the six chart colours selected dynamically by chart code.
+The following `:root[data-theme='dark']` block sets `color-scheme: dark` and each colour variable's Dark
 value; the generator fails if the themes would emit different variables. The site also uses
 `border-border-faint` and `brand-tint`. Never edit either file: `make check`, which CI runs, fails
 when they differ from the generator's `--check` output.
@@ -687,7 +693,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 
 - Company dashboard: `dashboard/src/pages/company/dashboard/useOwnership.ts` reads the selected
   company's exact ownership summary and sequence-bound holder pages. `OwnershipExplorer.tsx` in
-  that folder opens one class inline; `ownershipChart.ts` draws the lazy ownership map. The person's
+  that folder opens one class inline; `OwnershipRing.tsx` loads `ownershipChart.ts` for the ring.
+  The linked class list keeps every class accessible, with search and paging for long lists. The person's
   own appointments (`useOwnAppointments`) give the status line and Getting
   started, which reads the register step from the selected company's opened registers. Web tasks
   render only while incomplete; the existing parent condition hides the card when both tasks are
