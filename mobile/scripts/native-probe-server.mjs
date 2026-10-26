@@ -181,13 +181,7 @@ const counts = {
   untrusted: 0,
 };
 let destination;
-const failureCategories = new Set([
-  'assertion',
-  'native-keychain',
-  'native-function',
-  'native-view-not-found',
-  'unknown',
-]);
+const failureCategories = new Set(['assertion', 'native-keychain', 'native-function', 'unknown']);
 const failureStages = new Set([
   'check',
   'initial-sign-out',

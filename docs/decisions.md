@@ -1574,9 +1574,9 @@ agreed the screens through [mockups](https://claude.ai/artifact/CHeXcDVycP9csCT3
 - **Documents** gathers every company's certificates and notices, filtered by company. **Account**
   holds the profile, the details each company records (one change can go to every company),
   invitations, app lock, notifications and appearance.
-- **Removed from mobile:** company administration, registration and activation, and the deferred
+- **Removed from mobile:** company administration, registration and activation, the deferred
   investing screens (wallets, buying and sending crypto, trading, activity, Directory, Applications
-  and eligibility), with their code. Mobile signup creates individual accounts. A company account
+  and eligibility), identity verification, Help and the QR scanner, with their code. Mobile signup creates individual accounts. A company account
   that has not finished signup is told the app is for shareholders.
 - **Notifications for share events** (a certificate ready, shares vested or issued, a details
   change decided) need new server notifications; today members are notified of notices only.

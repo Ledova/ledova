@@ -888,8 +888,6 @@ This section covers how a form reports a problem: when it is submitted, and when
   reading. A code the map lacks reads as "Another requirement is not met. Refresh before
   continuing.", or as the caller's fallback for a refused register decision. `readApiError` never
   reads a code list as a sentence, so a code never reaches the screen.
-- **Enforcement.** ESLint refuses `getErrorMessage` in the dashboard (`no-restricted-imports`) and in
-  the shared package (`no-restricted-syntax`).
 
 ## Dates, numbers and identifiers
 

@@ -11,6 +11,7 @@ let mockProfileComplete = false;
 let mockProfileError = false;
 let mockRereading = false;
 let mockCompany = false;
+let mockPreferencesError = false;
 let mockInterrupted = true;
 
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset, navigate: jest.fn() }) }));
@@ -35,7 +36,7 @@ jest.mock('@ledova/shared', () => {
   return {
     ...jest.requireActual('@ledova/shared'),
     useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: mockRereading, refetch: jest.fn() }),
-    useUserPreferences: () => ({ isFetching: mockRereading, refetch: jest.fn() }),
+    useUserPreferences: () => ({ isFetching: mockRereading, isError: mockPreferencesError, refetch: jest.fn() }),
     useSignupReview: (_role: string, onComplete: (guard: () => void) => Promise<void>) => {
       const [error, setError] = useState<string | null>(null);
       return {
@@ -68,7 +69,7 @@ afterEach(async () => {
   jest.clearAllMocks();
 });
 
-it('completes individual signup only through explicit Terms acceptance, resumes after an interrupted response, keeps unfinished profiles outside the account and sends unfinished company accounts to the shareholders-only notice', async () => {
+it('completes individual signup only through explicit Terms acceptance, resumes after an interrupted response, keeps unfinished profiles outside the account, waits for a readable role and sends unfinished company accounts to the shareholders-only notice', async () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -100,6 +101,13 @@ it('completes individual signup only through explicit Terms acceptance, resumes 
   const gate = await render(<SignupCompletionGate />);
   expect(gate.queryByText('Completed account')).toBeNull();
   mockRereading = false;
+  mockPreferencesError = true;
+  await gate.rerender(<SignupCompletionGate />);
+  expect(
+    gate.getByText('Your signup progress could not be checked. Try again before opening your account.'),
+  ).toBeTruthy();
+  expect(mockReset).not.toHaveBeenCalledWith({ index: 0, routes: [{ name: 'AccountType' }] });
+  mockPreferencesError = false;
   await gate.rerender(<SignupCompletionGate />);
   await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'AccountType' }] }));
   mockCompany = true;
