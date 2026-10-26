@@ -124,6 +124,44 @@ async function serveASignedInAccount(page: Page, role: Role) {
         results: [{ uuid: 'ordinary', companyUuid: 'company', companyName: LONG_NAME }],
       });
     if (path === '/api/v1/tokens/ordinary/holders/' && role !== 'company') return answer(ORDINARY);
+    if (path === '/api/v1/tokens/ownership/' && role !== 'company')
+      return answer({
+        company: company.uuid,
+        companyName: LONG_NAME,
+        asAt: '2026-10-26T00:00:00Z',
+        complete: true,
+        issuedSupply: ORDINARY.issuedSupply,
+        totalHolders: ORDINARY.totalHolders,
+        classes: [
+          {
+            uuid: ORDINARY.token.uuid,
+            name: ORDINARY.token.name,
+            symbol: ORDINARY.token.symbol,
+            tokenType: 'ordinary',
+            initialized: true,
+            issuedSupply: ORDINARY.issuedSupply,
+            totalHolders: ORDINARY.totalHolders,
+            sequence: 1,
+            recordedAt: '2026-10-26T00:00:00Z',
+          },
+        ],
+      });
+    if (path === '/api/v1/tokens/ordinary/ownership-holders/' && role !== 'company')
+      return answer({
+        count: ORDINARY.totalHolders,
+        next: null,
+        previous: null,
+        token: ORDINARY.token.uuid,
+        sequence: 1,
+        issuedSupply: ORDINARY.issuedSupply,
+        asAt: '2026-10-26T00:00:00Z',
+        results: ORDINARY.holders.map(({ member, name, balance, percentage }) => ({
+          member,
+          name,
+          balance,
+          percentage: percentage.toFixed(2),
+        })),
+      });
     return answer(EMPTY);
   });
   return reads;
@@ -138,10 +176,12 @@ async function openTheSidebar(page: Page, role: Role) {
     const summary = page.getByRole('region', { name: 'Company ownership summary' });
     await expect(summary).toContainText('Issued shares135');
     await expect(summary).toContainText('Current shareholders2');
-    const ownership = page.getByRole('table', { name: 'Largest shareholders in Ordinary shares' });
+    await page.getByRole('combobox', { name: 'Explore a class' }).selectOption('ordinary');
+    const ownership = page.getByRole('table', { name: 'Ordinary shares shareholders' });
     await expect(ownership.getByRole('row', { name: 'Founder 100 74.07%' })).toBeVisible();
     await expect(ownership.getByRole('row', { name: 'Investor 35 25.93%' })).toBeVisible();
-    await expect(page.getByRole('img', { name: /Ordinary shares share ownership/ })).toBeVisible();
+    await page.getByRole('button', { name: 'All classes', exact: true }).click();
+    await expect(page.getByRole('combobox', { name: 'Explore a class' })).toBeFocused();
   }
   expect(await page.locator('html').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   const phone = page.viewportSize()!.width < 1024;
