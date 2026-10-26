@@ -65,6 +65,7 @@ export function renderOwnershipMap(container: HTMLDivElement, { classes, issuedS
           id: item.uuid,
           name: item.name,
           value: Number((BigInt(item.issuedSupply!) * 1000000000n) / BigInt(issuedSupply)),
+          itemStyle: { color: color(item.tokenType === 'ordinary' ? 'brand-tint' : 'surface-tertiary') },
         })),
       },
     ],
