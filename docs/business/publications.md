@@ -314,7 +314,7 @@ see [verifying stored records](../operations/recovery.md#verifying-stored-record
 
 ## The Published page
 
-**Published to your members**, opened from **More** on web or **Company** on mobile, is the company owner's
+**Published to your members**, opened from **More** on web, is the company owner's
 read-only view of the selected owned company's publications, newest first, in one **Publications**
 card whose title carries the complete count; the web loads older ones on request. Each shows its
 title, kind, the company and class names as frozen,
@@ -325,12 +325,12 @@ and payment date. There are no ballot or publishing controls.
 
 ## The Notices page
 
-**Notices** (under **More** on both clients) lists, newest first, what was published to the
-signed-in person as a member, with older items loaded on request. Each notice shows its title,
-company, class, kind and record date, and opens the stored document. A resolution shows the
-question, the basis, the person's votes, the window and, while voting is open, the ballot choices;
-afterwards it shows the person's ballot and the result. A dividend shows the declared rate, the
-payment date, the person's entitlement and what the company has recorded.
+**Notices** (under **More** on the web, and the **Documents** tab on mobile) lists, newest first,
+what was published to the signed-in person as a member, with older items loaded on request. Each
+notice shows its title, company, class, kind and record date, and opens the stored document. A
+resolution shows the question, the basis, the person's votes, the window and, while voting is
+open, the ballot choices; afterwards it shows the person's ballot and the result. A dividend shows
+the declared rate, the payment date, the person's entitlement and what the company has recorded.
 
 What waits on the person as a member is counted on
 [the Wallet shares page](member-records.md#the-wallet-shares-page): open resolutions on which one of

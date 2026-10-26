@@ -38,14 +38,14 @@ On web, company **Documents** opens **Certificates**, with **Ledger exports** an
 alongside it in the sidebar. Certificates and Ledger exports use one selected share class; the
 **Share class** selector appears only when there is more than one. Company pack covers the company.
 Supporting attachments stay with the person, share class or company Settings, and member requests
-stay under Shareholders. Personal Documents and mobile keep their existing layouts.
+stay under Shareholders. Personal Documents keeps its existing layout.
 
 | Output               | Who prepares it                            | Where                                                   | What Ledova keeps                                        |
 | -------------------- | ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
-| Register CSV         | The company owner or a register reader     | **Documents** → **Ledger exports**: **Download CSV**     | Who took it, the class, the entry it runs to, row counts |
-| Inspection copy      | A register reader                          | **Documents** → **Ledger exports**: **Inspection copy**  | SHA-256, instruction, request date, recipient, late flag |
-| Certificate          | A register reader                          | **Documents** → **Certificates**                       | SHA-256 and instruction                                  |
-| Member's certificate | A register reader, on the member's request | **Shareholders** → **Member requests**                   | The PDF itself, as a certificate record                  |
+| Register CSV         | The company owner or a register reader     | **Documents** → **Ledger exports**: **Download CSV**    | Who took it, the class, the entry it runs to, row counts |
+| Inspection copy      | A register reader                          | **Documents** → **Ledger exports**: **Inspection copy** | SHA-256, instruction, request date, recipient, late flag |
+| Certificate          | A register reader                          | **Documents** → **Certificates**                        | SHA-256 and instruction                                  |
+| Member's certificate | A register reader, on the member's request | **Shareholders** → **Member requests**                  | The PDF itself, as a certificate record                  |
 | Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**                             | SHA-256, period and instruction                          |
 | Core company pack    | A company administrator                    | **Documents** → **Company pack**                        | Manifest SHA-256, instruction, recipient, per class      |
 | Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**                                | As for a core pack                                       |
@@ -74,9 +74,7 @@ investment eligibility ([decision](../decisions.md#member-invitations-and-accoun
    accepted the email for sending. A sending failure offers a retry of the same invitation; a lost
    reply can result in another copy of the same email, without another invitation or access grant.
 
-The invitation expires at the displayed deadline, 7 days by default and never more than 30. Mobile
-remains unchanged: under **Company**, create the invitation and share its one-time code privately.
-That code is shown once and is unavailable on a retry. Mobile email invitations are deferred.
+The invitation expires at the displayed deadline, 7 days by default and never more than 30.
 
 ### Accepting an invitation
 
@@ -84,8 +82,8 @@ The email's **View invitation** link opens **Member invitation** on the web. The
 or creates an account, then returns to the invitation in the same tab. They review the company,
 shareholder and intended email before choosing **Accept invitation**; opening a link never grants
 access. Their verified email must match, and acceptance binds one current account to one member
-in that company. Mobile still accepts a privately shared code under **My shares**, with an explicit
-confirmation and **Accept member invitation**.
+in that company. Mobile still accepts a privately shared code under **My shares** (the Holdings
+tab), with an explicit confirmation and **Accept member invitation**.
 An expired invitation, a changed recorded identity for the member, a revoked appointment of the
 inviting administrator, another person's account or a conflicting association is refused.
 
@@ -109,7 +107,8 @@ breakdown and terms under **Award details**. This read-only overview is the whol
 **Your details** card, separate from the personal Profile. Pending requests show the requested
 particulars, status and date together;
 completed requests open on demand. Share history, certificates and certificate requests
-are in web **Documents**, without duplicate particulars status. Mobile also shows certificates. Wallet holdings are on
+are in web **Documents**, without duplicate particulars status. Mobile **My shares** also shows
+them. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access
@@ -186,12 +185,11 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
 2. On web, open **Documents** → **Ledger exports**, select the company and share class, then
-   choose **Prepare inspection copy**. On mobile, find the same action under the share class in
-   **Documents**. Enter the reference, recipient and request date.
+   choose **Prepare inspection copy**. Enter the reference, recipient and request date.
 3. Choose **Preview inspection copy**, check the request and register sequence, then **Confirm and
-   download inspection copy** (web) or **Confirm and share inspection copy** (mobile).
+   download inspection copy**.
 
-The web file is `register-<symbol>-inspection-copy.csv`; mobile shares `inspection-<class id>.csv`.
+The file is `register-<symbol>-inspection-copy.csv`.
 A register with no opening, a request date after today and a blank field are refused. If the
 register or the person's appointment changes after the preview, confirmation is refused and the
 person previews again. Editing, closing, changing account or class, and refreshing the register
@@ -226,16 +224,12 @@ register, or a correction has since reversed the entry (the refusal names the co
 
 1. On web, open **Documents** → **Certificates**, select the share class and choose the issue or
    transfer, identified by its date and share movements, then **Prepare unsigned certificate**.
-   On mobile, **Documents** lists the same issues and transfers under each class's **Certificates**.
 2. On web, choose **Preview**. Check the share class, share movements and PDF page count;
    **Record details** holds the entry and register sequence. Choose **Download PDF** to generate
    the unsigned file, or **Cancel** to close the form. The download action records the requester
    and an instruction linked to the exact ledger entry automatically; no reference needs typing.
    The form keeps the privacy and signing reminder visible; the company arranges execution and
    delivery.
-3. On mobile, keep the company's written instruction, enter its reference and choose
-   **Preview unsigned certificate**. Check the entry,
-   register sequence and page count, then choose **Confirm and share unsigned certificate**.
 
 A register change after the preview invalidates it, and the appointment is rechecked before the
 fingerprint is recorded.
@@ -250,8 +244,6 @@ fingerprint is recorded.
    holds the exact entry and register sequence, source fingerprint and captured instruction.
    Choose **Create certificate**, or **Cancel** to return without fulfilling the request. The privacy
    and signing reminder stays visible; the member-request records return after the task closes.
-3. Mobile keeps **Preview certificate for** the member and the company's written instruction
-   reference, then **Confirm recipient certificate fulfilment** after checking the preview.
 
 This keeps one unchangeable single-page PDF of that member's page only, with its request,
 producer, appointment, instruction and fingerprint, recorded as a certificate for the entry; no
@@ -413,8 +405,8 @@ without which it cannot be checked.
 
 A company administrator produces the pack in **Documents** → **Company pack**, at company scope.
 On web, choose **Prepare company pack** to open the form; enter the company's written instruction and the
-recipient, then choose **Prepare and download company pack**. Mobile keeps **Prepare and share
-company pack**. The appointment is checked again before the pack is recorded.
+recipient, then choose **Prepare and download company pack**. The appointment is checked again
+before the pack is recorded.
 
 This route produces only a complete core pack: every share class is an opened imported register
 never put on chain, and the company has no chain issues, subscriptions awaiting allotment,
@@ -490,7 +482,7 @@ What a recipient should know (the builder's own limits are in
 
 ## The Wallet shares page
 
-**Wallet shares** (from **Wallets** on both clients) lists the share-class tokens in the person's
+**Wallet shares** (from **Wallets** on the web) lists the share-class tokens in the person's
 own wallets, one row per company and class across networks, expanding into each network's and
 wallet's balance. A holding whose class details
 cannot be read is listed under the asset's name. Company-recorded shares, wallet or not, are on

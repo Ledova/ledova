@@ -33,10 +33,9 @@ issue ([the register](register.md#the-register-and-the-companys-records)).
 
 The class-creation API requires a current personal company administrator or preparer appointment,
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
-[Register setup](register.md#bringing-in-existing-records) on web and mobile lists companies from those
+[Register setup](register.md#bringing-in-existing-records) on the web lists companies from those
 appointments, including a preparer who is not the owner. Classes are created only through that
-setup: on the web **Ledger**, **Add share class**; on mobile
-**Set up your ledger** in Getting started or **Add share class** on the Ledger tab.
+setup: on the web **Ledger**, **Add share class**.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
@@ -46,7 +45,7 @@ should close is delisted, and a class is paused to stop transfers. Deployment, c
 pausing are company decisions; earlier direct actions by the owner or platform staff are retired,
 and their records stay readable. The register API can confirm a zero-issued opening for a genuinely
 unopened draft class without a contract or former members. It creates no shareholder, holding or
-ISSUE; a subsequent approved grant or investor allotment records the first shares. Both clients expose
+ISSUE; a subsequent approved grant or investor allotment records the first shares. Web setup exposes
 this empty-opening choice through the same draft, review and confirmation as copied holdings
 ([register setup](register.md#bringing-in-existing-records)).
 
@@ -93,8 +92,8 @@ The company's governing documents and valid company decisions determine its righ
 describe those terms; saving does not draft, establish or vary them, verify documents or change
 holdings, approvals, charts or calculations. Holder-specific agreements and employee-award
 conditions stay with their own records. Current rights display and exports are descriptive; a
-calculation or execution workflow needs its own reviewed rules. Member disclosure and mobile editing
-remain outside this increment.
+calculation or execution workflow needs its own reviewed rules. Member disclosure remains outside
+this increment.
 
 ### Deploying an empty class
 
@@ -174,15 +173,6 @@ was entered in each form until it is closed or an issue is prepared, when the re
 A sibling group is hidden only after a current successful read proves it empty; loading and failed
 reads remain visible. For a deployed class the task links to Share class, where chain grants and
 paid issues stay.
-
-The mobile app's Issue shares lists the same records under **Share issues**, each with the web's
-summary of recipient and kind, shares and amount, company issue date and status, and Details and
-documents on demand. Review and approve opens the review in place of the list, as on the web, with
-the investor issue's single Approve and the non-paid issue's separate Record issue. **Prepare
-issue** asks **What kind of issue?** in place of the list, as on the web: the investor issue's form
-takes three steps (Person and shares, Agreement and receipt, then Company authority and review), and
-the non-paid grant form one. An award's **Issue vested shares** opens the non-paid form for that
-award, and a shareholder's **Issue shares to them** opens the investor form with them chosen.
 
 ### What each record changes
 
@@ -346,7 +336,7 @@ No deployment, application, payment or chain receipt is involved.
    separate Record issue action. It requires current approval and application authority; opening
    the review changes nothing. An older approval without an issue shows Ready to complete; the
    completed record shows Approved and the recorded shares. Rejection also uses a focused page
-   review. Mobile does the same, opening the review in place of the record list.
+   review.
 
 The web form shows one step at a time using the same step indicator and fields as Ledger setup.
 Back preserves entries and selected files; Continue validates that step without uploading or saving.
@@ -356,7 +346,7 @@ new approval nor an issue is recorded. Retrying the same command returns its ori
 without issuing twice. An earlier current approval is retained and reused; its history is not
 rewritten.
 
-On web and mobile, this forecast comes from one current class snapshot in the decision preview.
+On the web, this forecast comes from one current class snapshot in the decision preview.
 The recipient is visible first, with other shareholders available on demand for a longer list.
 Price is rounded half-up to four decimal places and percentages to two; the agreed total and whole
 share quantity stay exact. Percentages count shares in this class, not voting or economic rights,
@@ -463,7 +453,7 @@ invisible to them while submitted or under review.
 
 ### Offer documents
 
-The company uploads offer documents under **Settings → Documents** on web and Company documents on mobile
+The company uploads offer documents under **Settings → Documents** on web
 ([company information and documents](companies.md#company-information-and-documents)), and the
 offering form lists only the offer types: prospectus or information memorandum, risk disclosure,
 business plan, financial statements, auditor report, constitution and shareholder agreement.
@@ -664,7 +654,7 @@ mapped holding against final chain evidence before claiming a mirror.
 
 ## The Offerings page
 
-Offerings, under More in the web sidebar and in the mobile app, lists every offering of the selected
+Offerings, under More in the web sidebar, lists every offering of the selected
 company the person owns, with its applications, followed by Investor directory and What happens
 next. Each offering shows its terms, status, any rejection, previous rejection or closing reason,
 and the actions its status allows. On the web, an approved offering also shows its UUID in full, with
@@ -672,11 +662,11 @@ and the actions its status allows. On the web, an approved offering also shows i
 offering needs a deployed class; without one the page says to deploy a class first.
 
 The offering form checks the price, ordered bounds, dates and available settlement choices before
-sending, sets the window in the device's local time on mobile, requires a settlement asset that is
-no longer available to be removed explicitly, and keeps an edited offering's attachments until one
-is switched off. Quantities above 2,147,483,647 are refused. On an approved or closed offering, Add
-documents shows the attached documents ticked and locked and sends only new choices; if the offering
-has since left approved or closed, the dialog says so and sends nothing.
+sending, requires a settlement asset that is no longer available to be removed explicitly, and
+keeps an edited offering's attachments until one is switched off. Quantities above 2,147,483,647
+are refused. On an approved or closed offering, Add documents shows the attached documents ticked
+and locked and sends only new choices; if the offering has since left approved or closed, the
+dialog says so and sends nothing.
 
 Applications lists the chosen offering's applications 25 at a time, newest first. It searches by
 investor name, wallet address or payment reference and filters by status. Each application shows its

@@ -3,9 +3,11 @@
 [Business processes](README.md) · [Documentation](../README.md)
 
 How a company keeps the register of members of each share class in Ledova, and what the web Ledger
-page shows. It is for company representatives, product owners, support staff and engineers learning
-the domain. Issuing shares is in [share classes and issuing shares](issuing-shares.md); copies,
-certificates and member access are in [member records and register outputs](member-records.md).
+page shows; the mobile app has no register administration
+([decision](../decisions.md#mobile-app-for-shareholders)). It is for company representatives,
+product owners, support staff and engineers learning the domain. Issuing shares is in
+[share classes and issuing shares](issuing-shares.md); copies, certificates and member access are in
+[member records and register outputs](member-records.md).
 
 Contents:
 
@@ -231,16 +233,11 @@ Ledova, and its holdings must match the stored register. On the web:
    Confirm loads a fresh preview and records approval and application together; an appointee who may
    only review records the approval for another to apply.
 
-On mobile, setup starts on the Ledger tab: **Add share class** below the class cards (or **Set up
-your ledger** in Getting started) records the class's name, code and type, and **Bring records**
-under the class's Register mirror, in Corrections, prepares its records for review and confirmation.
-Once a class exists, the Getting started step opens that class in Corrections.
-
 The register API also accepts an empty opening with no current or former members for a genuinely
 unopened draft class without chain activity. It retains the same company confirmation and separate
 approval/application, records an empty Opening state and creates no shares or shareholders. It
 cannot replace a populated or chain opening or erase records through a correction. The first
-subsequent approved issue uses the same register. Web and mobile setup check current class and register
+subsequent approved issue uses the same register. Web setup checks current class and register
 metadata before allowing the empty draft; incomplete entered rows still need correction or removal.
 
 Inviting members is optional ([member access](member-records.md#member-access)). Unsaved edits are
@@ -257,14 +254,12 @@ foreign identities block preparation, review or application; names alone never j
 copied holding records an opening balance, not an award-linked issue.
 
 Web imports are attributed to "Company-provided share records", with a snapshot naming the company,
-record date and preparer; the mobile app asks for a source reference and keeps separate Review and
-Confirm mirror screens. Confirming is the company's confirmation that the records are its own, not a
+record date and preparer. Confirming is the company's confirmation that the records are its own, not a
 new director resolution. On the web, **Company source copies** optionally holds a register copy and ASIC
 extract, kept without being read. Fresh setup asks for neither former shareholders nor ASIC
 comparison figures. Earlier former-member records remain in saved snapshots, review and history;
 an inherited **Earlier ASIC comparison** is read-only, with **Leave out ASIC comparison** available
-when revising it. Mobile keeps its optional ASIC comparison fields;
-an extract may list only some shareholders. The Import button is marked Coming soon: document
+when revising it. The Import button is marked Coming soon: document
 extraction will later fill these forms for review. Earlier imports keep their evidence and
 authority, and fields their snapshots lack stay unknown.
 
@@ -288,7 +283,7 @@ fingerprint. One stored file can support several linked people without duplicati
 Current company register readers can download them; they are not shared automatically with members
 or published. A category describes the company's attachment: uploading a Share certificate neither
 generates nor verifies one, and an attachment does not replace an issue's required approval,
-agreement or receipt evidence. Mobile attachment entry is deferred.
+agreement or receipt evidence.
 
 ### Correcting the copied opening
 
@@ -397,8 +392,7 @@ account, payment, application or chain transaction.
 
 1. In Ledger choose Transfer shares, the class, then Prepare a non-paid transfer, or open
    **Transfer shares** on a holding on the shareholder page, which chooses the transferor. For a
-   tokenised class the task says its transfers use wallet and chain controls. Mobile follows the same
-   steps.
+   tokenised class the task says its transfers use wallet and chain controls.
 2. In **People and shares**, choose the transferor, recipient and shares
    ([choosing a person](#choosing-a-person)), and give the company transfer date. An
    existing company recipient keeps their member ID, including someone holding only another class,
@@ -422,9 +416,7 @@ account, payment, application or chain transaction.
    Success shows **Approved** and the recorded entry, without a separate Apply action. A failed
    transaction records no new approval or movement; retrying the same request cannot move the shares
    twice. Rejection also uses page review. The preparation action shares the final record's action
-   row, or stands alone when no transfers exist. Mobile Transfer shares works the same way, with
-   the review in place of its list (Cancel returns to the list) and **Prepare a non-paid transfer**
-   beneath it; the API keeps its separate decision steps.
+   row, or stands alone when no transfers exist. The API keeps its separate decision steps.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the
@@ -558,8 +550,8 @@ reason, the person, their appointment and the time, and the
 
 ## The Register page
 
-The destination is **Ledger** on the web and mobile; the web adds the subtitle **Share classes and
-current ownership.** On the web, Ledger is open to every signed-in account and shows the
+The destination is **Ledger** on the web, with the subtitle **Share classes and current
+ownership.** On the web, Ledger is open to every signed-in account and shows the
 registers of companies the person owns or where their appointment includes register access. With
 none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
 selector appears when several companies are readable. Ledger's sidebar label opens the share-class
@@ -576,9 +568,6 @@ The Ledger view shows:
   note when completed issues or transfers wait or cannot be checked;
 - **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
-
-Mobile's Ledger shows the same cards and **Add share class**, which opens its class form; mobile
-brings in a class's records from Corrections.
 
 Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the overview cards: Issue shares
@@ -613,10 +602,6 @@ shareholder list rather than implying holdings are zero.
 
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
-Mobile keeps its separate History and Corrections destinations and the same held-work lock under
-[#1201](https://github.com/Ledova/ledova/issues/1201). Its Issue shares and Transfer shares records
-follow the web's layout; the other tasks' records keep their earlier layout, and its History still
-offers each entry's correction. The web consolidation does not change mobile navigation.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
@@ -627,10 +612,6 @@ Shareholders' sidebar submenus open ESS for employee awards, Member access for i
 for particulars and certificate requests ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
-Mobile's Shareholders view lists the same current shareholders, with the search and class filter,
-25 more at a time, then People without shares and Former shareholders. Details and **Add person**
-work as on the web.
-
 The Employee share scheme view, ESS under Shareholders, shows one class's
 [awards](issuing-shares.md#employee-awards-and-vesting) at a time, chosen with Share class,
 each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
@@ -640,10 +621,7 @@ one preparation form at a time.
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.
 Steps follow [how a company decision works](README.md#how-a-company-decision-works); someone whose
-appointments allow none sees the history with a read-only note. On mobile, preparations outside Issue
-shares keep their own screens, and decisions outside Issue shares and Transfer shares keep their
-dialogs; mobile holds member access under Company and hides every register action while it cannot
-read the person's appointments ([page mechanics](../engineering/frontend.md#page-mechanics)).
+appointments allow none sees the history with a read-only note.
 
 ### A shareholder's page
 
@@ -669,17 +647,11 @@ Details show only while the account, the classes and the holdings read are curre
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger.
 
-The mobile app shows the same page, reached from Shareholders only, and adds one document at a
-time. Everything on it, holdings included, needs a current company register appointment; while
-their particulars, history, awards or documents refresh, each keeps what it last read. Its request
-and invitation links open Company, where mobile keeps member access.
-
 ### Choosing a person
 
 Every register flow chooses its person the same way: register setup, investor and non-paid issues,
-transfers, employee awards and member invitations. In the mobile app the list opens in a sheet from
-the field, and register setup adds each shareholder from it with **Add a shareholder**. One
-searchable list holds the company's members, named by their recorded particulars, and award recipients without shares, marked
+transfers, employee awards and member invitations. One searchable list holds the company's
+members, named by their recorded particulars, and award recipients without shares, marked
 as such. Typing part of a name or address narrows it, so a large register stays quick to search.
 Each option shows the name above the address, with a short record reference only when two people
 share both. Where a flow can add someone, **New person** is offered first and asks for a name and
@@ -689,12 +661,10 @@ Each flow keeps its own rule for who can be chosen:
 - issues and awards: people without a linked wallet whose particulars are retained;
 - a transfer: a transferor holding shares in the class, and a recipient without a linked wallet;
   on the web both must already be recorded by the company;
-- register setup: everyone on the list on the web; in the mobile app, award recipients and the
-  members without a linked wallet whose name and address are retained;
+- register setup: everyone on the list;
 - invitations: current and former members and award recipients.
 
-**Add person** on Shareholders, on the web and mobile, records a company person's name and
-residential address without
+**Add person** on Shareholders records a company person's name and residential address without
 a class, shares, an award, a login or an invitation. People without shares remain separate from
 current shareholders and can be found with the same search. Recording a person does not add them
 to the legal register; a later confirmed opening, share issue or transfer records their holding.

@@ -6,7 +6,8 @@ How investors hold assets in their own wallets, send them, and buy and sell exis
 experimental secondary market, and how those activities sit beside the company's register. The
 order, matching, settlement and transfer mechanisms are in
 [trading protocols](../engineering/trading-protocols.md#intent-and-settlement) and
-[wallet transfers](../engineering/wallet-protocols.md#transfer-lifecycle).
+[wallet transfers](../engineering/wallet-protocols.md#transfer-lifecycle). These pages are on the
+web; the mobile app is for shareholders ([decision](../decisions.md#mobile-app-for-shareholders)).
 
 Contents:
 
@@ -161,37 +162,31 @@ selling is unavailable rather than showing nothing held.
 **Trades awaiting signatures** lists matches the person must review and sign. Orders, cancellations,
 changes, signatures and approvals the person started are kept on the device for the signed-in
 account and shown below it under **Saved work** while anything is saved; one refresh rereads them.
-Work saved in another browser tab appears when Market is reopened on the web or pulled to refresh on
-mobile.
+Work saved in another browser tab appears when Market is reopened.
 
 ## The Wallets page
 
 **Wallets** lists the person's wallets on one card per network, each with its verification and
 signing preference, when it last synced, its native balance to at most eight decimal places and its
-value in AUD (**Value** on web, **Estimated value** on mobile). On the web each wallet has **Edit**,
-**Sync** and **Delete**, with **Verify** and **Derive address** where they apply, and **Add wallet**
-is a page action. On mobile each wallet opens its own screen with **Verify address**, **Sync
-balances**, **Derive address** and **Delete wallet**, and the page adds **Sync balances** for every
-wallet. Adding, editing, deriving and deleting keep what was entered and stay open until they
-succeed, and on mobile one in progress cannot be sent twice; an import of several addresses
+value in AUD (**Value**). Each wallet has **Edit**, **Sync** and **Delete**, with **Verify** and
+**Derive address** where they apply, and **Add wallet** is a page action. Adding, editing, deriving
+and deleting keep what was entered and stay open until they succeed; an import of several addresses
 remembers the ones already added if it is retried. A failed sync is reported in that wallet's row.
 
 **Send** opens its form directly, offering Cancel rather than Back, when the person has exactly one
-verified wallet on its networks (Ethereum, Bitcoin and Base), and otherwise asks which wallet; on
-mobile a lone Bitcoin wallet opens the Bitcoin send form. It offers crypto and payment tokens,
-including AUDY, never shares. **Buy crypto** goes straight to the provider when exactly one verified
-wallet is on the chosen asset's network. Each wallet chooser lists only the networks Wallets lists.
-When the purchase page cannot be opened, the page gives the server's reason or "The purchase page
-could not be opened. Try again." **Wallet shares** opens
+verified wallet on its networks (Ethereum, Bitcoin and Base), and otherwise asks which wallet. It
+offers crypto and payment tokens, including AUDY, never shares. **Buy crypto** goes straight to the
+provider when exactly one verified wallet is on the chosen asset's network. Each wallet chooser
+lists only the networks Wallets lists. When the purchase page cannot be opened, the page gives the
+server's reason or "The purchase page could not be opened. Try again." **Wallet shares** opens
 [the Wallet shares page](member-records.md#the-wallet-shares-page).
 
 ## The Activity page
 
 **Activity** lists recorded wallet transfers, read-only, with exact amounts, network fees and
-status. A share transfer's amount carries its class's own symbol. Filters cover whole local days (on
-mobile by block time, leaving out records without one), and each entry opens in place to its detail
-and a block-explorer link. Dividends are not transfers and do not appear here; they are on
-[Notices](publications.md#the-notices-page).
+status. A share transfer's amount carries its class's own symbol. Filters cover whole local days,
+and each entry opens in place to its detail and a block-explorer link. Dividends are not transfers
+and do not appear here; they are on [Notices](publications.md#the-notices-page).
 
 Next: [the register of members](register.md),
 [investors and eligibility](participants.md) and
