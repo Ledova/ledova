@@ -104,7 +104,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   independently through `useOpenRows` from `@ledova/shared`), Activity's filter and Wallets' sort
   hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
   so unfinished input survives. Saved issue and transfer records start with their details closed. The
-  sidebar's Ledger caret is a separate navigation-group button; More keeps its native toggle.
+  sidebar's group caret is a separate navigation button; More keeps its native toggle.
   Activity's filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
   naming what it applies; applying or clearing closes it and every open entry and returns focus to
   its button. Substantial record reviews use the main page; brief confirmations and signing steps
@@ -171,8 +171,11 @@ Details start closed and hold the full list, entry number, separate company, led
 dates, and correction or reversal references. Entries stay immutable; current register readers can
 inspect retained supporting records and permitted downloads. The same view holds capability-guarded
 correction, opening, reconciliation acknowledgement, particulars and wallet-link workflows. Certificate
-preparation belongs in Documents. Keep their controllers mounted so unfinished work and original-request recovery
-survive navigation. Documents starts with compact output choices and opens one focused inline
+preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
+survive navigation. Company Documents has **Certificates**, **Ledger exports** and **Company pack** views.
+Certificates and Ledger exports show one selected class, with one **Share class** selector only when
+there is more than one class. Company pack stays at company scope. Each view keeps the existing
+workspace frame, cards, responsive field grid and action footer, opening one focused inline
 preparation at a time. Certificate choices show the issue or transfer's date and share movements;
 the form uses the existing labelled summary rows for share movements, company date and PDF page
 count after preview. No manual certificate reference is needed: the server records the exact-entry
@@ -306,11 +309,14 @@ is open, and Escape or a choice closes it. The first Tab on a signed-in page rea
 content", which moves focus to the page's heading.
 
 The sidebar owns navigation between sections. A related group has one level of children: its label
-opens the overview and a separate caret expands the children, without an extra Overview item.
+opens a meaningful overview or the default child, and a separate caret expands the children, without
+an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
-opening the people list. Each group opens on its routes and marks the current destination.
-Ledger, Shareholders and Documents remain siblings. Both web groups appear in the small-screen
+opening the people list. Documents uses the same pattern for **Certificates** (the default),
+**Ledger exports** and **Company pack**, with its label opening Certificates. Each group opens on
+its routes and marks the current destination.
+Ledger, Shareholders and Documents remain siblings. All three web groups appear in the small-screen
 drawer; native navigation is documented [separately](mobile.md#navigation).
 Page controls start or complete work for that page or record: Add person, Invite a member,
 Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer

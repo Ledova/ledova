@@ -307,15 +307,18 @@ refused row.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
 `companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
-`#documents`, `/home#documents`). The web also names Shareholders' `#member-access` and
-`#member-requests` views. Ledger's label opens its overview; a separate caret expands
+`#certificates`, `#ledger-exports`, `#company-pack`, `/home#documents`). The web also names
+Shareholders' `#member-access` and `#member-requests` views. Ledger's label opens its overview; a separate caret expands
 Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`), marking the active
 child and opening the group on Ledger routes. The web replaces an incoming `#history` with `#corrections`
 without dropping company/class navigation state or remounting its controllers; shared task names and mobile
 retain History. Shareholders' label opens its people list, with the
-same caret pattern for ESS, Member access and Member requests. Each group opens on its routes and marks
-the active destination. Ledger, Shareholders and Documents stay siblings. Its
-company group follows `useRegisterEntry`, its investing group the investing
+same caret pattern for ESS, Member access and Member requests. Documents uses that pattern for
+Certificates, Ledger exports and Company pack. Its label opens Certificates, the default child;
+the legacy company `#documents` hash opens Certificates too. A group without a meaningful overview
+opens its default child, without a separate Overview page or duplicate page navigation.
+Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
+stay siblings. Its company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). A page that isn't an item marks its nearest
 parent that is ([navigation](frontend-ux.md#navigation)): Settings on the Company pages, Activation
@@ -637,7 +640,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------- |
 | [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                    | everyone  |
 | [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                | everyone  |
-| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#documents`; preparation routes | everyone  |
+| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#certificates`, `#ledger-exports`, `#company-pack`; legacy `#documents`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/ledger/members/:member?company=`                                         | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                              | `/company/ledger/:uuid`                                                            | everyone  |
 | [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`    | everyone  |
@@ -680,13 +683,13 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   reads follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
-  Member requests, Employee share scheme (ESS) and Documents views by hash.
+  Member requests, Employee share scheme (ESS), Certificates, Ledger exports and Company pack views by hash.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
   cards, including the empty collection card. The default internal quantity ceiling is omitted from
   these summaries; finite class limits remain visible. Task views show their selected workflow rather than the
-  ownership overview or header task switches. It keeps every class's
-  controllers mounted, merely hidden, so changing view, task or class (the Share class selector)
+  ownership overview or header task switches. It keeps every class's controllers for register
+  decisions mounted, merely hidden, so changing view, task or class (the Share class selector)
   keeps an unfinished request with its class, payload and retry key. People and member controllers
   also stay mounted across the three Shareholders views. Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
@@ -705,8 +708,14 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   Member access.
   Corrections shows immutable recorded entries and retained supporting records with details and permitted
   downloads on demand, alongside their capability-guarded append-only maintenance workflows. Register-read
-  access alone grants no mutation. Documents holds certificate preparation and opens only one focused
-  output form at a time from compact choices. ESS uses the
+  access alone grants no mutation. Documents separates certificate preparation, ledger CSV and
+  inspection-copy exports, and the company pack. Certificates and Ledger exports show one selected
+  class, with the Share class selector only when there is more than one; Company pack has no class
+  selector. `documentTask` isolates one focused output form in the existing frame. Its keyed forms
+  retire previews when their context or source readiness changes; draft retention depends on each
+  form's lifetime. Current appointment and exact-source validation still apply.
+  Supporting attachments stay with their person, class or company Settings; member requests stay
+  under Shareholders and personal Documents keeps its own view. ESS uses the
   shared class-card spacing and shows only the selected class, with one preparation action below its records.
   The Share class selector locks while any award editor or recovery is open; all class controllers stay
   mounted. Preparation replaces that class's record list while preserving its controllers. A section whose
