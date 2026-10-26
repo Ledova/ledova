@@ -1,17 +1,16 @@
 import { useState } from 'react';
-import { RefreshControl, Text } from 'react-native';
+import { Text } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import type { useMemberRecords } from '@ledova/shared';
 import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
-import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { CompanyCard, CompanyList } from './CompanyHoldings';
 import { holdingsOf, holdingsSummary, LIST_ABOVE } from './holdings';
 import { MemberInvitation } from './MemberInvitation';
-import { useMemberRecordsState } from './MemberRecordsProvider';
+import { MemberNotice, useMemberRecordsState, useMemberRefresh } from './MemberRecordsProvider';
 
 export function HoldingsScreen() {
   const { read } = useMemberRecordsState();
@@ -24,10 +23,9 @@ export function HoldingsScreen() {
 }
 
 function Holdings({ read }: { read: ReturnType<typeof useMemberRecords> }) {
-  const theme = useAppTheme();
   const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
-  const [refreshing, setRefreshing] = useState(false);
+  const refresh = useMemberRefresh(read, 'holdings-refresh');
   const [query, setQuery] = useState('');
   const [invitationOpen, setInvitationOpen] = useState(false);
   const held = read.busy || !!read.retry;
@@ -38,27 +36,9 @@ function Holdings({ read }: { read: ReturnType<typeof useMemberRecords> }) {
       testID="holdings-scroll"
       title="Holdings"
       lede={current.length > 0 ? holdingsSummary(current) : undefined}
-      refreshControl={
-        <RefreshControl
-          testID="holdings-refresh"
-          refreshing={refreshing}
-          tintColor={theme.colors.interactive.active}
-          onRefresh={() => {
-            if (read.busy || refreshing) return;
-            setRefreshing(true);
-            void read.refresh().finally(() => setRefreshing(false));
-          }}
-        />
-      }
+      refreshControl={refresh}
     >
-      {read.error && (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {read.error}
-        </Text>
-      )}
-      {read.retry && (
-        <Action label="Retry original member action" disabled={read.busy} onPress={() => void read.recover()} />
-      )}
+      <MemberNotice read={read} />
       {!read.owner ? (
         <Text style={styles.muted}>Check your signed-in account before opening your holdings.</Text>
       ) : read.loading || (!read.listReady && !read.error) ? (

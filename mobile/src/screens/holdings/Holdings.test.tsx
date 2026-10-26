@@ -14,7 +14,10 @@ import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/tests/fixtures/register-outputs';
 import { cache, resetFiles } from '../../testSupport/documentFiles';
+import { AwardScreen } from './AwardScreen';
+import { ClassScreen } from './ClassScreen';
 import { CompanyScreen } from './CompanyScreen';
+import { DetailsScreen } from './DetailsScreen';
 import { HoldingsScreen } from './HoldingsScreen';
 import { MemberRecordsProvider } from './MemberRecordsProvider';
 
@@ -22,7 +25,8 @@ const mockNavigate = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({ navigate: mockNavigate }),
+  useNavigation: () => ({ navigate: mockNavigate, setOptions: jest.fn() }),
+  useIsFocused: () => true,
 }));
 jest.mock('expo-crypto', () => ({
   randomUUID: jest.fn(),
@@ -60,8 +64,28 @@ const PAST_RECORD = {
   ],
   awards: [],
 };
+const OPEN_REQUEST = {
+  ...FULFILLED_CERTIFICATE,
+  uuid: '17171717-1717-4717-8717-171717171717',
+  status: 'requested',
+  fulfilment: null,
+  createdAt: '2026-10-02T00:00:00Z',
+};
+const WITHDRAWN_REQUEST = {
+  ...OPEN_REQUEST,
+  uuid: '18181818-1818-4818-8818-181818181818',
+  status: 'withdrawn',
+  createdAt: '2026-10-03T00:00:00Z',
+};
+const SECOND_ENTRY = {
+  ...MEMBER_ENTRY,
+  uuid: '19191919-1919-4919-8919-191919191919',
+  sequence: 2,
+  kind: 'TRANSFER',
+  delta: '5',
+};
 
-it('associates a member by invitation code, opens their company from Holdings, keeps one exact request recoverable after leaving the company and refuses cached records and a late action after current read loss', async () => {
+it('associates a member by invitation code, opens their company, award, details and share history from Holdings, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -73,7 +97,7 @@ it('associates a member by invitation code, opens their company from Holdings, k
   let associated = false;
   let refused = false;
   let particulars: Record<string, unknown>[] = [];
-  let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE];
+  let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE, OPEN_REQUEST, WITHDRAWN_REQUEST];
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
@@ -83,7 +107,7 @@ it('associates a member by invitation code, opens their company from Holdings, k
     }
     if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: ownRecord };
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
-      return { data: { entries: [{ ...MEMBER_ENTRY, companyEventOn: null }] } };
+      return { data: { entries: [{ ...MEMBER_ENTRY, companyEventOn: null }, SECOND_ENTRY] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
     if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid))
@@ -156,10 +180,20 @@ it('associates a member by invitation code, opens their company from Holdings, k
   expect(mockNavigate).toHaveBeenCalledWith('Company', { record: MEMBER_RECORD.uuid });
   expect(screen.getByText('1 company · 1 share class · 1 award')).toBeTruthy();
   expect(screen.getByText('2 of 5 vested')).toBeTruthy();
+  const record = MEMBER_RECORD.uuid;
+  const award = MEMBER_RECORD.awards[0].uuid;
+  const token = MEMBER_RECORD.classes[0].uuid;
+  const awardPage = <AwardScreen route={{ key: 'award', name: 'Award', params: { record, award } }} />;
+  const classPage = <ClassScreen route={{ key: 'class', name: 'Class', params: { record, token } }} />;
+  const details = <DetailsScreen route={{ key: 'details', name: 'Details', params: { record } }} />;
   await view.rerender(company);
   await screen.findByRole('header', { name: MEMBER_RECORD.company.name });
-  await screen.findByText('Ordinary · 10 issued shares');
-  expect(screen.getByText(/5 awarded · 2 vested · 0 issued/)).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Employee award, 2 of 5 vested' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Award', { record, award });
+  await fireEvent.press(screen.getByRole('button', { name: 'Ordinary shares, 10' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Class', { record, token });
+  await fireEvent.press(screen.getByRole('button', { name: `Your details: ${MEMBER_RECORD.name}` }));
+  expect(mockNavigate).toHaveBeenCalledWith('Details', { record });
   ownRecord = {
     ...MEMBER_RECORD,
     awards: [
@@ -196,27 +230,27 @@ it('associates a member by invitation code, opens their company from Holdings, k
       },
     ],
   };
-  await act(async () => screen.getByTestId('company-scroll').props.refreshControl.props.onRefresh());
+  await view.rerender(awardPage);
+  await act(async () => screen.getByTestId('award-scroll').props.refreshControl.props.onRefresh());
   await screen.findByText(/5 awarded · 3 vested · 1 issued · 1 available/);
-  await fireEvent.press(
-    screen.getByRole('button', { name: `Award terms and recorded vesting ${ownRecord.awards[0].uuid}` }),
-  );
   expect(screen.getByText(/Company selected reduction/)).toBeTruthy();
   expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   ownRecord = MEMBER_RECORD;
-  expect(screen.queryByLabelText('Requested name')).toBeNull();
+  await view.rerender(classPage);
   await fireEvent.press(
-    await screen.findByRole('button', { name: `Share own unsigned certificate ${FULFILLED_CERTIFICATE.uuid}` }),
+    await screen.findByRole('button', { name: /^Entry 1: Issue \+10, Not recorded, certificate Requested$/ }),
   );
+  await fireEvent.press(screen.getByRole('button', { name: `Share certificate PDF ${FULFILLED_CERTIFICATE.uuid}` }));
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenCalledWith(
       `${cache}ledova-document-views-v1/member-certificate-${FULFILLED_CERTIFICATE.uuid}.pdf`,
       { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
     ),
   );
-  await fireEvent.press(screen.getByRole('button', { name: 'Open member details' }));
-  expect(screen.getByText(MEMBER_RECORD.name)).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Close dialog' }));
+  await view.rerender(details);
+  expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
   await fireEvent.changeText(screen.getByLabelText('Requested name'), 'Requested Member Name');
   await fireEvent.changeText(screen.getByLabelText('Requested residential address'), 'Requested synthetic address');
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Share these particulars with this company for review' }));
@@ -225,27 +259,22 @@ it('associates a member by invitation code, opens their company from Holdings, k
   expect(screen.getByLabelText('Requested name')).toBeDisabled();
   await view.rerender(<HoldingsScreen />);
   expect(await screen.findByRole('button', { name: 'Retry original member action' })).toBeEnabled();
-  await view.rerender(company);
-  expect(screen.getByRole('button', { name: 'Open member details' })).toBeDisabled();
+  expect(screen.getByText(`Your request to ${MEMBER_RECORD.company.name} is waiting to be retried.`)).toBeTruthy();
+  await view.rerender(<DetailsScreen route={{ key: 'past', name: 'Details', params: { record: PAST_RECORD.uuid } }} />);
+  expect(screen.getByText('Retry or finish your pending request before opening this company.')).toBeTruthy();
+  expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
+  await view.rerender(details);
+  expect(screen.getByLabelText('Requested name')).toBeDisabled();
   await fireEvent.press(screen.getByRole('button', { name: 'Retry original member action' }));
-  await waitFor(() => {
-    expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Read own entries for Ordinary' })).toBeEnabled();
-  });
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull());
   const commands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS);
   expect(commands).toHaveLength(2);
   expect(commands[0][1]).toEqual(commands[1][1]);
-  await fireEvent.press(screen.getByRole('button', { name: 'Open member details' }));
-  expect(screen.getByText(MEMBER_RECORD.name)).toBeTruthy();
-  expect(screen.getByLabelText('Requested name').props.value).toBe('Requested Member Name');
-  await fireEvent.press(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
-  await screen.findByRole('button', { name: 'Request certificate for entry 1' });
-  expect(screen.getByText('Company event date Not recorded')).toBeTruthy();
-  expect(screen.getByText(`Ledger effective date ${MEMBER_ENTRY.effectiveOn}`)).toBeTruthy();
-  await act(async () => screen.getByTestId('company-scroll').props.refreshControl.props.onRefresh());
-  expect(await screen.findByRole('button', { name: 'Request certificate for entry 1' })).toBeEnabled();
-  expect(screen.getByLabelText('Requested name').props.value).toBe('Requested Member Name');
-  await fireEvent.press(await screen.findByRole('button', { name: 'Request certificate for entry 1' }));
+  expect((await screen.findByLabelText('Requested name')).props.value).toBe('Requested Member Name');
+  await view.rerender(classPage);
+  await act(async () => screen.getByTestId('class-scroll').props.refreshControl.props.onRefresh());
+  await fireEvent.press(await screen.findByRole('button', { name: /^Entry 2:/ }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Request certificate' }));
   await waitFor(() => expect(typeof release).toBe('function'));
   refused = true;
   await act(async () => {
@@ -254,10 +283,10 @@ it('associates a member by invitation code, opens their company from Holdings, k
       exact: true,
     });
   });
-  await waitFor(() => expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull());
-  expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request certificate for entry 1' })).toBeNull();
+  await waitFor(() => expect(screen.queryByRole('button', { name: /^Entry 2:/ })).toBeNull());
+  expect(screen.queryByRole('button', { name: 'Request certificate' })).toBeNull();
+  expect(screen.queryByText('History')).toBeNull();
   await act(async () => release!());
-  expect(screen.queryByText(/Certificate request.*requested/)).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Entry 2:/ })).toBeNull();
   expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS)).toHaveLength(1);
 });

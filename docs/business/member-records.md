@@ -110,8 +110,10 @@ breakdown and terms under **Award details**. This read-only overview is the whol
 **Your details** card, separate from the personal Profile. Pending requests show the requested
 particulars, status and date together;
 completed requests open on demand. Share history, certificates and certificate requests
-are in web **Documents**, without duplicate particulars status. On mobile, each company's page
-shows them. Wallet holdings are on
+are in web **Documents**, without duplicate particulars status. On mobile, each share class's page,
+opened from the company's page, shows its history; a change's certificate status opens a sheet to
+request, withdraw or share it, with that change's other requests and their actions, and requests
+for changes not in the history are listed below it. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access
@@ -141,7 +143,7 @@ original request
 A member, including an award recipient before any shares are issued, asks the company to change
 their recorded name and residential address: **Settings** → **Company-recorded details** →
 **Request update** on web, then **Send request** (**Request a particulars change**, then
-**Send particulars request** on the company's page on mobile). Sending changes nothing on the register.
+**Send particulars request** under **Your details** on the company's page on mobile). Sending changes nothing on the register.
 On web, the form closes after successful submission and the request appears under **Update requests**.
 Cancel closes an unfinished form without sending it; its draft stays in memory for the same signed-in
 account and company, including navigation through Dashboard and Documents.
@@ -158,11 +160,12 @@ A revoked association or a changed source record blocks a new change or its appl
 ### Certificate requests
 
 A member can request a certificate for an uncorrected issue or transfer that gave them shares
-(**Request certificate** in web Documents; **Request certificate for entry** in mobile share history),
-and withdraw it (**Withdraw certificate request**) until the company
+(**Request certificate** in web Documents and in the mobile certificate sheet, **Request a new
+certificate** there once one is ready), and withdraw it (**Withdraw certificate request** on web,
+**Withdraw request** on mobile) until the company
 [fulfils it](#fulfilling-a-members-certificate-request).
 It reads **fulfilled** only once a real file exists, which the member downloads or shares
-(**Download unsigned certificate** on web, **Share unsigned certificate** on mobile) through their
+(**Download unsigned certificate** on web, **Share PDF** on mobile) through their
 current access, checked against its record. Nothing is signed automatically and no legal
 recognition is claimed.
 
