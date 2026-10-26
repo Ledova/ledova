@@ -61,6 +61,7 @@ class SendGridClient:
             "from": {"email": sender},
             "subject": subject,
             "content": content,
+            "tracking_settings": {"click_tracking": {"enable": False, "enable_text": False}},
         }
 
         try:
