@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   failureStatus,
   getClassOwnershipHolders,
@@ -10,7 +10,7 @@ import {
 } from '@ledova/shared';
 import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
-import { PAGE_SIZE, useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
+import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
 import apiClient from '@services/apiClient';
 
 const WHOLE = /^(0|[1-9][0-9]*)$/;
@@ -73,8 +73,10 @@ function checkHolders(
 }
 
 export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
+  const client = useQueryClient();
   const classes = useRegisterClasses(owner, guard);
   const [chosen, setChosen] = useState('');
+  const [unconfirmed, setUnconfirmed] = useState<string | null>(null);
   const list = useListParams(['class']);
   const listed = classes.data ?? [];
   const companies = [...new Map(listed.map((item) => [item.companyUuid, item.companyName])).entries()].map(
@@ -95,6 +97,7 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
   });
   const ready = classes.isSuccess && !classes.isFetching && overview.isSuccess && !overview.isFetching;
   const selected = ready ? overview.data.classes.find(({ uuid }) => uuid === list.filters.class) : undefined;
+  const held = !!company && unconfirmed === company.uuid;
   const holders = useQuery({
     queryKey: [
       ...registerKey(owner),
@@ -105,7 +108,7 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
       list.search,
       list.page,
     ],
-    enabled: ready && !!selected?.initialized && selected.issuedSupply !== null && selected.sequence !== null,
+    enabled: ready && !held && !!selected?.initialized && selected.issuedSupply !== null && selected.sequence !== null,
     queryFn: async () => {
       guard();
       const { data } = await getClassOwnershipHolders(
@@ -120,10 +123,15 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
     ...READ_TIMING,
     retry: false,
   });
-  useFirstPageWhenGone(list, holders.error);
+  const denied = [401, 403, 404].includes(failureStatus(holders.error) ?? 0);
   useEffect(() => {
     if (failureStatus(holders.error) === 409) void overview.refetch();
-  }, [holders.error]);
+    if (denied && company && !held) {
+      setUnconfirmed(company.uuid);
+      void classes.refetch();
+      void overview.refetch();
+    }
+  }, [holders.error, denied, company?.uuid, held]);
   const select = (uuid: string | null) => {
     list.clear();
     list.setFilter('class', uuid ?? '');
@@ -132,11 +140,30 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
     classes,
     companies,
     company,
+    adoptCompany: setChosen,
     selectCompany: (uuid: string) => {
       setChosen(uuid);
       select(null);
     },
     overview,
+    scopeError: held || denied,
+    recover: async () => {
+      try {
+        guard();
+        const refreshed = await classes.refetch();
+        if (!refreshed.isSuccess) return;
+        if (!company) return;
+        const snapshot = await overview.refetch();
+        guard();
+        if (!snapshot.isSuccess || snapshot.data.company !== company.uuid) return;
+        await client.resetQueries({ queryKey: [...registerKey(owner), 'ownership-holders', company.uuid] });
+        guard();
+        if (failureStatus(holders.error) === 404 && list.page > 1) list.setPage(1, true);
+        setUnconfirmed(null);
+      } catch {
+        return;
+      }
+    },
     selected,
     select,
     holders,

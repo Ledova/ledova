@@ -145,8 +145,10 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       const data = overview([mode === 'zero' ? empty : ordinary, mode === 'unopened' ? unopened : preference]);
       return { data: mode === 'inconsistent' ? { ...data, issuedSupply: '5' } : data };
     }
-    if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('ordinary'))
+    if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('ordinary')) {
+      if (mode === 'denied') throw { response: { status: 404 } };
       return holderPage(mode === 'zero' ? empty : ordinary, config?.params ?? {});
+    }
     if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('preference'))
       return holderPage(preference, config?.params ?? {});
     return paged([]);
@@ -177,6 +179,21 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   });
   expect(await screen.findByText('1–1 of 1 shareholder')).toBeTruthy();
   expect(screen.queryByText('Example Shareholder')).toBeNull();
+  mode = 'denied';
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: [...registerKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }), 'ownership-holders'],
+      type: 'active',
+    });
+  });
+  expect(await screen.findByText('The register could not be loaded.')).toBeTruthy();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
+  expect(screen.queryByText('Small holder 27')).toBeNull();
+  mode = 'complete';
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByRole('region', { name: 'Company ownership summary' })).toBeTruthy();
+  expect(await screen.findByText('Small holder 27')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
   expect((screen.getByRole('combobox', { name: 'Explore a class' }) as HTMLSelectElement).value).toBe('');
 
