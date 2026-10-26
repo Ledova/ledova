@@ -232,8 +232,9 @@ provider's results, scores and callbacks are read is in
 | `SENDGRID_TIMEOUT`   | `10` seconds                                        | No                                                                                                                                             |
 | `DASHBOARD_BASE_URL` | `http://localhost:5173` in `DEBUG`, empty otherwise | Required for member invitation emails; a trusted dashboard origin, HTTPS outside local debug use, without credentials, path, query or fragment |
 
-With `SENDGRID_API_KEY` set, mail goes to SendGrid, and an invalid or missing `SENDGRID_API_URL`
-fails each send and logs the error. Without a key, mail goes through Django's email backend: the
+With `SENDGRID_API_KEY` set, mail goes to SendGrid with click tracking turned off for each
+message, so a link keeps its `#` fragment (the member invitation code) whatever the account's
+tracking setting, and an invalid or missing `SENDGRID_API_URL` fails each send and logs the error. Without a key, mail goes through Django's email backend: the
 console backend with `DEBUG=true`, which prints sign-up verification and member invitation emails
 to the private backend log, and SMTP with Django's defaults otherwise. Local walkthroughs use this
 mailbox without sending to external recipients. Keep its invitation links private. Member
