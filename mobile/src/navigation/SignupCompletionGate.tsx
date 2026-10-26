@@ -28,7 +28,7 @@ export function SignupCompletionGate() {
     if (!auth.isAuthenticated) {
       navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
     } else if (!waiting && !profile.isError && userProfile && !userProfile.isSignupCompleted) {
-      navigation.reset({ index: 0, routes: [{ name: isCompany ? 'CompanyRegistration' : 'AccountType' }] });
+      navigation.reset({ index: 0, routes: [{ name: isCompany ? 'CompanyOnWeb' : 'AccountType' }] });
     }
   }, [
     auth.isAuthenticated,

@@ -1,14 +1,15 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { XIcon } from 'phosphor-react-native';
-import { formatDateTime, PUBLICATION_NOTICE, useNotifications } from '@ledova/shared';
+import { DESTINATIONS as PAGES, formatDateTime, PUBLICATION_NOTICE, useNotifications } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Action, Rows } from '../Ledger';
 import { CustomModal, useDialogStyles } from '../modal';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { WEB_APP_URL } from '../../config/publicLinks';
 
 interface NotificationsModalProps {
   visible: boolean;
@@ -16,10 +17,19 @@ interface NotificationsModalProps {
 }
 
 const DESTINATIONS: Record<string, string> = { [PUBLICATION_NOTICE]: 'Publications' };
+const WEB_PAGES: Record<string, string> = {
+  company: PAGES.companyListing.path,
+  offering: PAGES.companyOffering.path,
+};
+
+function typeOf(notification: Notification): string | undefined {
+  const type = (notification.data as { type?: unknown } | null | undefined)?.type;
+  return typeof type === 'string' ? type : undefined;
+}
 
 export function destinationOf(notification: Notification): string | undefined {
-  const type = (notification.data as { type?: unknown } | null | undefined)?.type;
-  return typeof type === 'string' ? DESTINATIONS[type] : undefined;
+  const type = typeOf(notification);
+  return type ? DESTINATIONS[type] : undefined;
 }
 
 function NotificationItem({
@@ -137,6 +147,13 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
   }, [visible, fetchNotifications]);
 
   const follow = (notification: Notification) => {
+    const type = typeOf(notification);
+    const page = type ? WEB_PAGES[type] : undefined;
+    if (page) {
+      onClose();
+      void Linking.openURL(`${WEB_APP_URL}${page}`);
+      return;
+    }
     const destination = destinationOf(notification);
     if (!destination) return;
     onClose();

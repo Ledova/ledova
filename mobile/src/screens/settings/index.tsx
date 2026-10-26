@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { ActivityIndicator, Alert, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Text, TextInput, View } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPreferences } from '@ledova/shared';
 import { Action, Section, SwitchRow } from '../../components/Ledger';
@@ -9,13 +7,15 @@ import { Page } from '../../components/Page';
 import { useAppLock, useThemeChoice } from '../../contexts';
 import { apiClient } from '../../services/apiClient';
 import { CustomModal } from '../../components/modal';
+import { WEB_APP_URL } from '../../config/publicLinks';
 import { useAccountStyles } from '../../hooks/useAccountStyles';
+import { useRole } from '../../hooks/useRole';
 import { useSettings } from './useSettings';
 import { Verification } from './Verification';
 
 export function SettingsScreen() {
   const styles = useAccountStyles();
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { isCompany } = useRole();
   const lock = useAppLock();
   const appearance = useThemeChoice();
   const preferences = useUserPreferences();
@@ -114,29 +114,14 @@ export function SettingsScreen() {
     <>
       <Page title="Settings">
         <Verification />
-        <Section title="Company settings">
-          <Text style={styles.muted}>
-            Company details and optional supporting documents can be managed after signup.
-          </Text>
-          <Action
-            label="Company details and documents"
-            onPress={() =>
-              navigation.navigate('MainApp', {
-                screen: 'Main',
-                params: { screen: 'Company', params: { screen: 'CompanyDetails' } },
-              } as never)
-            }
-          />
-          <Action
-            label="Team and appointments"
-            onPress={() =>
-              navigation.navigate('MainApp', {
-                screen: 'Main',
-                params: { screen: 'Company', params: { screen: 'CompanyTeam' } },
-              } as never)
-            }
-          />
-        </Section>
+        {isCompany && (
+          <Section title="Company">
+            <Text style={styles.muted}>
+              Company details, documents, team and activation are managed in Ledova on the web.
+            </Text>
+            <Action label="Open Ledova on the web" onPress={() => void Linking.openURL(WEB_APP_URL)} />
+          </Section>
+        )}
         <Section title="Security">
           <SwitchRow
             label={`${lock.biometricType} sign in`}

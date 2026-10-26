@@ -76,30 +76,33 @@ stays mounted while the account and profile reread, so a pull to refresh that su
 screen and any unfinished work), the drawer
 (`DrawerNavigator`), the bottom tabs (`BottomTabNavigator`) and a stack per area; the dashboard's
 routes and guards do not apply. Labels come from the `DESTINATIONS` titles, but screens set their
-own titles, so a few differ from the web (Eligibility requests). A company account with readable
-classes (`useRegisterAccess().hasClasses` in `mobile/src/hooks/useCompanyRegister.ts`) starts on the
-Ledger tab, others on Home (My shares). Its `allowed` result also lets current personal company
-administrators and preparers reach Ledger before their first class, without changing that landing.
-The tab bar shows only Home, Ledger (with that access) and Wallets; other destinations are hidden tab
-routes (`tabBarItemStyle: { display: 'none' }`) opened from the drawer, Market only for an investing
-account while `trading_enabled` is on, under Invest. Routes and business sections are in
-[Pages](frontend.md#pages).
+own titles, so a few differ from the web (Eligibility requests). Mobile is for shareholders (owner,
+26 October 2026, in [decisions](../decisions.md)): every account starts on Home (My shares), and the
+tab bar shows only Home and Wallets; other destinations are hidden tab routes
+(`tabBarItemStyle: { display: 'none' }`) opened from the drawer, Market only for an investing account
+while `trading_enabled` is on, under Invest. Company administration, signup and activation are on
+the web, at `EXPO_PUBLIC_WEB_APP_URL`:
 
-The drawer's Company group uses the web sidebar's overview and caret pattern
-([navigation](frontend-ux.md#navigation)), retaining its separate History item. Ledger
-opens the share-class overview, and a separate caret shows Issue shares, Transfer shares, History
-and Corrections; Shareholders, ESS (read aloud as Employee share scheme), Documents and Company
-follow. Each opens a section of the one Ledger screen
-(`mobile/src/screens/company-register/CompanyRegisterScreen.tsx`), which keeps the sections that can
+- a company account has **Company on the web** in the drawer, and an **Open Ledova on the web** card
+  on My shares and in Settings;
+- choosing a company account at sign-up, or opening the app with an unfinished company account,
+  shows `CompanyOnWebScreen`, which opens the web and offers Sign out;
+- Settings' activation step and company and offering notifications open the matching web page.
+
+Routes and business sections are in [Pages](frontend.md#pages).
+
+The company screens described from here to [Theme and appearance](#theme-and-appearance) are no
+longer linked from the app and are being removed under #1201. The Ledger screen
+(`mobile/src/screens/company-register/CompanyRegisterScreen.tsx`) has sections for the class
+overview, Issue shares, Transfer shares, History, Corrections, Shareholders, ESS (read aloud as
+Employee share scheme), Documents and Company. It keeps the sections that can
 hold unfinished work mounted, so the work survives switching; History's entries and Documents reload
 with the screen's data. Issue shares, Transfer shares, History and Corrections show one class at a
 time, chosen under **Share class**; Shareholders, ESS and Documents list every class, Documents
-with each class's certificates, and Company holds member access. The drawer marks the current page.
+with each class's certificates, and Company holds member access.
 While work is held, the screen publishes it through `mobile/src/navigation/LedgerNavigation.tsx`: as
-on the web, the held task stays on screen whichever task or overview is opened, the class and
-company choices lock, and the drawer disables the Ledger overview and the other tasks, leaving the
-held task available from a sibling section. The Ledger tab then returns to the screen without
-changing its section.
+on the web, the held task stays on screen whichever task or overview is opened, and the class and
+company choices lock.
 
 The overview gives each class a card titled with its name and code: issued shares, current
 shareholders, authorised shares where set and whether its ledger is opened, with **Class details**

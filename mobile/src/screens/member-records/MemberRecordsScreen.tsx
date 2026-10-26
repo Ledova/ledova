@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Crypto from 'expo-crypto';
-import { Text, View } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 import {
   DESTINATIONS,
   REGISTER_AWARD_COPY as AWARD_COPY,
@@ -12,6 +12,8 @@ import {
 } from '@ledova/shared';
 import { Action, Choice, Section, Row, Rows } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { WEB_APP_URL } from '../../config/publicLinks';
+import { useRole } from '../../hooks/useRole';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { Field } from '../../components/register/RegisterFields';
@@ -47,6 +49,7 @@ function MemberRecords({
   select: (uuid: string) => void;
 }) {
   const styles = useCompanyStyles();
+  const { isCompany } = useRole();
   const [code, setCode] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [name, setName] = useState('');
@@ -103,6 +106,14 @@ function MemberRecords({
         />
       }
     >
+      {isCompany && (
+        <Section title="Your company">
+          <Text style={styles.muted}>
+            Company administration, signup and activation are in Ledova on the web. This app shows your own shares.
+          </Text>
+          <Action label="Open Ledova on the web" onPress={() => void Linking.openURL(WEB_APP_URL)} />
+        </Section>
+      )}
       {read.error && (
         <Text accessibilityRole="alert" style={styles.error}>
           {read.error}

@@ -1470,6 +1470,16 @@ focus/reconnect reads. Entry, explicit error recovery and post-change reads rema
 revalidation is unchanged. Award records use compact recipient/date and quantity rows, with charts,
 documents and actions on demand. This supersedes ESS's automatic refresh policy above.
 
+On 26 October 2026 the owner made the mobile app shareholder-only: "make mobile shareholder-only.
+Company administration, registration and activation stay on the web; keep notifications that open the
+web for company tasks" ([#1201](https://github.com/Ledova/ledova/issues/1201)). Mobile keeps what
+members need: their shares and employee awards, documents and certificate requests, company-recorded
+details, invitations, profile and security. A company account signs in to its own records and opens
+the web for the company. Company signup and activation continue on the web, and notifications about
+company tasks open the matching web page. This supersedes the mobile parts of the decisions above,
+including the 24 October mobile resumption and the mobile History note; mobile's company screens are
+removed under #1201.
+
 ## Paper and Dark themes
 
 On 14 October 2026 the owner directed under

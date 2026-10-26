@@ -10,6 +10,7 @@ import { FinancialProfileScreen } from '../screens/signup/financial-profile';
 import { ReviewScreen } from '../screens/signup/review';
 import { AccountTypeScreen } from '../screens/signup/account-type';
 import { CompanyRegistrationScreen } from '../screens/signup/company-registration';
+import { CompanyOnWebScreen } from '../screens/signup/company-on-web';
 import { SignupCompletionGate } from './SignupCompletionGate';
 import { useAppTheme } from '../contexts';
 
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   UserProfile: undefined;
   FinancialProfile: undefined;
   CompanyRegistration: undefined;
+  CompanyOnWeb: undefined;
   Review: undefined;
   MainApp: undefined;
 };
@@ -121,6 +123,14 @@ export const AppNavigator = () => {
           component={CompanyRegistrationScreen}
           options={{
             headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="CompanyOnWeb"
+          component={CompanyOnWebScreen}
+          options={{
+            headerShown: false,
+            gestureEnabled: false,
           }}
         />
         <Stack.Screen

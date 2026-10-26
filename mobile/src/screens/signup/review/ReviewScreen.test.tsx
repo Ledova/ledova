@@ -127,7 +127,7 @@ it('accepts company authority and Terms through explicit completion without uplo
   expect(gate.queryByText('Completed account')).toBeNull();
   mockRereading = false;
   await gate.rerender(<SignupCompletionGate />);
-  await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'CompanyRegistration' }] }));
+  await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'CompanyOnWeb' }] }));
   expect(gate.queryByText('Completed account')).toBeNull();
   mockProfileComplete = true;
   await gate.rerender(<SignupCompletionGate />);

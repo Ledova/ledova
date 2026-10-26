@@ -26,7 +26,7 @@ const ACCOUNT_TYPES: AccountTypeOption[] = [
   {
     role: 'company',
     title: 'Company Representative',
-    description: 'Register your company and manage its share register.',
+    description: 'Register your company and run its share register in Ledova on the web.',
     icon: BuildingsIcon,
   },
 ];
@@ -128,7 +128,7 @@ export function AccountTypeScreen() {
       if (role === 'investor') {
         navigation.navigate('PreScreening');
       } else {
-        navigation.navigate('UserProfile');
+        navigation.reset({ index: 0, routes: [{ name: 'CompanyOnWeb' }] });
       }
     });
 

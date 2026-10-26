@@ -1,5 +1,5 @@
 import React from 'react';
-import { DESTINATIONS, useUserPreferences } from '@ledova/shared';
+import { DESTINATIONS } from '@ledova/shared';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,7 +23,6 @@ import type { TradingStackParamList } from './TradingStackNavigator';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useRole } from '../hooks/useRole';
 import { useAppTheme } from '../contexts';
-import { useRegisterAccess } from '../hooks/useCompanyRegister';
 import { useLedgerNavigation } from './LedgerNavigation';
 
 export type BottomTabParamList = {
@@ -51,19 +50,17 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const { isEnabled } = useFeatureFlags();
-  const { isCompany, isInvestor, isLoading: isLoadingRole } = useRole();
-  const preferences = useUserPreferences();
-  const access = useRegisterAccess(!preferences.isLoading && !preferences.isError && !!preferences.userAccount);
+  const { isInvestor, isLoading: isLoadingRole } = useRole();
   const showTrading = isInvestor && isEnabled('trading_enabled');
   const { state: ledger } = useLedgerNavigation();
 
-  if (isLoadingRole || access.loading) {
+  if (isLoadingRole) {
     return null;
   }
 
   return (
     <Tab.Navigator
-      initialRouteName={isCompany && access.hasClasses ? 'Company' : 'Home'}
+      initialRouteName="Home"
       screenOptions={() => ({
         ...getMainHeaderStyle(theme),
         ...MainHeader({ theme, onNotifications, unreadCount }),
@@ -109,7 +106,7 @@ export function BottomTabNavigator({ onNotifications, unreadCount }: BottomTabNa
           headerShown: false,
           tabBarLabel: DESTINATIONS.companyRegister.title,
           tabBarIcon: ({ color, size }) => <BuildingsIcon size={size} color={color} weight="regular" />,
-          tabBarItemStyle: access.allowed ? undefined : { display: 'none' },
+          tabBarItemStyle: { display: 'none' },
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
