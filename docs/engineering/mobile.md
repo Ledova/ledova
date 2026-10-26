@@ -69,7 +69,9 @@ company opens the Company screen: a row per share class and per award, and Your 
 opens its history, newest change first, with each change's certificate status (Request, Requested
 or Certificate), taken from its newest open or fulfilled request. The status opens a certificate
 sheet that requests, withdraws (after a confirmation) or shares the unsigned PDF, and lists the
-change's other requests with the same actions. An award opens its terms and recorded vesting, and Your
+change's other requests with the same actions. An award opens its page: the vested figure out of the
+promise, the award bar with issued, vested not yet issued, still to vest and any ended quantities, the
+schedule and terms, and the history of vestings, ended rights and reversals. Your
 details opens the company-recorded particulars and the particulars request. These screens share one member-records
 state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
 original operation, after leaving the company, and the screens show a loading line rather than an

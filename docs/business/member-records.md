@@ -101,7 +101,9 @@ issued-share total, share-class count and a chart
 of their shares by class. This counts shares, not company ownership, voting power or value; different
 classes can carry different rights. Mobile **Holdings** shows a card per company, with a line per
 share class and each award's vested quantity and bar; with more than six companies it becomes a
-searchable list, and classes no longer held sit under **Past holdings**. Both keep employee awards
+searchable list, and classes no longer held sit under **Past holdings**. On mobile an award opens
+its own page with the vested quantity, the issued, vested but unissued, still-to-vest and ended
+parts, the schedule and terms, and the award's history. Both keep employee awards
 separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full

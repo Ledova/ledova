@@ -199,19 +199,20 @@ it('associates a member by invitation code, opens their company, award, details 
     awards: [
       {
         ...MEMBER_RECORD.awards[0],
-        vestedShares: '3',
+        shares: '10',
+        vestedShares: '5',
         issuedShares: '1',
-        availableShares: '1',
-        endedUnvestedShares: '1',
-        endedVestedShares: '1',
-        unvestedRemainingShares: '1',
-        remainingUnissuedShares: '2',
-        vestings: [{ ...MEMBER_RECORD.awards[0].vestings[0], shares: '4' }],
+        availableShares: '2',
+        endedUnvestedShares: '2',
+        endedVestedShares: '2',
+        unvestedRemainingShares: '3',
+        remainingUnissuedShares: '5',
+        vestings: [{ ...MEMBER_RECORD.awards[0].vestings[0], shares: '6' }],
         ends: [
           {
             uuid: 'own-end',
-            unvestedShares: '1',
-            vestedShares: '1',
+            unvestedShares: '2',
+            vestedShares: '2',
             companyEventOn: '2026-10-03',
             reason: 'Company selected reduction',
             createdAt: '2026-10-05T00:00:00Z',
@@ -232,7 +233,12 @@ it('associates a member by invitation code, opens their company, award, details 
   };
   await view.rerender(awardPage);
   await act(async () => screen.getByTestId('award-scroll').props.refreshControl.props.onRefresh());
-  await screen.findByText(/5 awarded · 3 vested · 1 issued · 1 available/);
+  await screen.findByLabelText('Rights ended: 4');
+  expect(screen.getByText('5')).toBeTruthy();
+  expect(screen.getByText('of 10 vested')).toBeTruthy();
+  expect(screen.getByLabelText('Issued to you: 1')).toBeTruthy();
+  expect(screen.getByLabelText('Vested, not yet issued: 2')).toBeTruthy();
+  expect(screen.getByLabelText('Still to vest: 3')).toBeTruthy();
   expect(screen.getByText(/Company selected reduction/)).toBeTruthy();
   expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
