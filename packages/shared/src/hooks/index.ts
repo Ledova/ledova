@@ -122,7 +122,7 @@ export { useCompanyPauseChanges } from './useCompanyPauseChanges';
 
 export { useCompanyPaidIssues } from './useCompanyPaidIssues';
 
-export { useMemberRecords } from './useMemberRecords';
+export { ownMemberRecordsKey, useMemberRecords } from './useMemberRecords';
 
 export { useCompanyMemberAccess } from './useCompanyMemberAccess';
 

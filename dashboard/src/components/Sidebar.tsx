@@ -21,6 +21,7 @@ import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shar
 import { ICON_MD } from './iconSizes';
 import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@hooks/useUserProfile';
+import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { SITE_URL } from '@utils/siteUrl';
 import { Logo } from './Logo';
 import { NotificationBell } from './NotificationBell';
@@ -37,6 +38,8 @@ import {
   LEDGER_TASKS,
   documentView,
   ledgerTask,
+  SETTINGS_VIEWS,
+  settingsView,
   type LedgerTask,
 } from '@utils/destinations';
 import { useLedgerNavigation } from './LedgerNavigation';
@@ -379,6 +382,68 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   );
 }
 
+function SettingsGroup({
+  active,
+  navigation,
+  onNavigate,
+}: {
+  active: boolean;
+  navigation: ReturnType<typeof useSettingsNavigation>;
+  onNavigate?: () => void;
+}) {
+  const location = useLocation();
+  const place = `${location.pathname}${location.hash}`;
+  const [shownPlace, setShownPlace] = useState(place);
+  const [expanded, setExpanded] = useState(active);
+  const id = useId();
+  const selected = settingsView(location.pathname, location.hash);
+  const items = SETTINGS_VIEWS.filter((item) => selected === item.key || navigation.items.includes(item));
+  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+
+  if (shownPlace !== place) {
+    setShownPlace(place);
+    if (active) setExpanded(true);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <Link
+          to={navigation.isLoading || navigation.isError ? DESTINATIONS.settings.path : navigation.defaultPath}
+          onClick={onNavigate}
+          className={`${ITEM_CLASS} min-w-0 flex-1 ${IDLE_CLASS}`}
+        >
+          <GearIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
+          <span>Settings</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} Settings navigation`}
+          aria-expanded={expanded}
+          aria-controls={id}
+          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
+        >
+          <Caret size={16} />
+        </button>
+      </div>
+      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
+        {items.map(({ key, label, to }) => (
+          <Link
+            key={key}
+            to={to}
+            onClick={onNavigate}
+            aria-current={selected === key ? 'page' : undefined}
+            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface SidebarProps {
   onNavigate?: () => void;
   withNotifications?: boolean;
@@ -388,6 +453,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const location = useLocation();
   const tradingEnabled = useFeatureFlags().isEnabled('trading_enabled');
   const { isInvestor, isCompany } = useRole();
+  const settings = useSettingsNavigation();
   const registerAccess = useRegisterEntry();
   const hasCompanyWorkspace = registerAccess;
   const { userProfile } = useUserProfile();
@@ -414,6 +480,12 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     {
       id: 'yours',
       items: [
+        ...(settings.canReviewEligibility
+          ? [{ destination: 'companyEligibility' as const, icon: ShieldCheckIcon }]
+          : []),
+        ...(settings.hasOwnedCompany && isCompany
+          ? [{ destination: 'companyPublications' as const, icon: NewspaperIcon }]
+          : []),
         ...(isCompany ? [{ destination: 'companyOffering' as const, icon: MegaphoneIcon }] : []),
         { destination: 'wallets', icon: WalletIcon },
       ],
@@ -463,6 +535,13 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                   />
                 ) : item.destination === 'companyRegister' && item.view === 'certificates' ? (
                   <DocumentsGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
+                ) : item.destination === 'settings' ? (
+                  <SettingsGroup
+                    key={itemPath(item)}
+                    active={itemPath(item) === activePath}
+                    navigation={settings}
+                    onNavigate={onNavigate}
+                  />
                 ) : (
                   <NavLink
                     key={itemPath(item)}

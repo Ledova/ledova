@@ -157,8 +157,7 @@ attached to it. You can withdraw a pending or accepted request; a refusal stays 
 
 ### Deciding, withdrawing and revoking
 
-Company approvers open **Company eligibility** from the Company page or Company team (on mobile,
-from Company team).
+Company approvers open **More → Company eligibility** on web, or **Company team** on mobile.
 
 1. Choose your exact appointment and the company, then read the request queue and a request's
    summary. On the web the queue shows 25 requests a page, newest first, and can be filtered by
@@ -375,16 +374,17 @@ payslip never establishes eligibility.
 
 ### Settings
 
-Settings opens with Verification and activation: **Verify and activate your company** for a
-company's personal administrators, marked To do or Done
-([activation](companies.md#activation-and-the-registry-check)), and **Verify your identity**,
-which shows the identity check status and opens Profile. For anyone else the section is Identity,
-with the identity row only. On the web, member access is on
-[Shareholders](register.md#the-register-page), and Settings then holds Company settings (Company,
-Company documents and Company team;
-[company setup](companies.md)), Profile and security (Profile and **Change password**), Appearance
-(**Dark theme**, remembered in this browser or on this device; Paper is the default), Notifications
-(**Transaction alerts** for transaction status changes) and Data and privacy:
+On web, Settings is one sidebar group with Company, Company documents, Company team, Activation,
+Profile, Company-recorded details and Account. Its label opens Company for a current personal company
+administrator and Account otherwise. Company and member destinations follow current access and context;
+Company team remains available for accepting a company invitation. Existing page and API checks
+still decide what the person can read or change. Member access stays under
+[Shareholders](register.md#the-register-page).
+
+**Profile** holds personal details and identity verification. **Activation** retains the
+[company activation workflow](companies.md#activation-and-the-registry-check). **Account** groups
+Security (**Change password**), Preferences (**Dark theme**, remembered in this browser with Paper as
+the default, and **Transaction alerts** for transaction status changes), and Data and privacy:
 
 - **Export data** downloads the person's account data as a JSON file
   ([account-data export](../engineering/records.md#account-data-export)).
@@ -397,9 +397,12 @@ Web Settings also opens **Company-recorded details**: the person's name and resi
 held by each linked company, with a company-reviewed update request and its status. These are
 separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
 
-On mobile, Company settings reaches company details, documents and the team, and Settings also
-offers biometric sign-in, **App lock** (biometrics after the app goes into the background), **Rate
-the app** and **Share with friends**, and groups password, export and deletion under Account.
+Mobile Settings keeps Verification and activation: **Verify and activate your company** for personal
+company administrators, marked To do or Done, and **Verify your identity**, which shows identity status
+and opens Profile. Other users see the identity row only. Company settings reaches company details,
+documents and the team. Native Settings also offers biometric sign-in, **App lock** (biometrics after
+the app goes into the background), **Rate the app** and **Share with friends**, and groups password,
+export and deletion under Account.
 
 Next: [company setup](companies.md) ·
 [issuing shares](issuing-shares.md) ·

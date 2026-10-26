@@ -1,20 +1,37 @@
 import { Field, TextInput } from '@components/Field';
 import { useState } from 'react';
-import { FIELD_LIMITS, DESTINATIONS, failureSentence, readApiError } from '@ledova/shared';
+import { FIELD_LIMITS, failureSentence, readApiError } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
-import { LinkRow, Outcome, Section, SwitchRow, LoadError, Loading } from '@components/Ledger';
+import { Outcome, Section, SwitchRow, LoadError, Loading } from '@components/Ledger';
+import { PageTitle } from '@components/PageTitle';
 import { setTheme } from '@hooks/useTheme';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
-import { Verification } from './Verification';
-import { useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { CompanyRecordedDetails } from './CompanyRecordedDetails';
 
 export default function SettingsPage() {
   const { hash } = useLocation();
-  return hash === '#company-recorded-details' ? <CompanyRecordedDetails /> : <Settings />;
+  if (hash === '#company-recorded-details') return <CompanyRecordedDetails />;
+  if (hash === '#account') return <Account />;
+  return <SettingsLanding />;
+}
+
+function SettingsLanding() {
+  const navigation = useSettingsNavigation();
+  if (navigation.isError)
+    return (
+      <Page>
+        <LoadError retry={() => void navigation.retry()} busy={navigation.isFetching}>
+          Your settings could not be loaded.
+        </LoadError>
+      </Page>
+    );
+  if (navigation.isLoading) return <Page loading />;
+  return <Navigate to={navigation.defaultPath} replace />;
 }
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
@@ -70,7 +87,7 @@ function PasswordInput({
   );
 }
 
-function Settings() {
+function Account() {
   const {
     preferences,
     theme,
@@ -105,194 +122,176 @@ function Settings() {
     return { id: check.id, error: check.error ?? passwordReading?.fieldErrors?.[key]?.join(' ') ?? null };
   };
   return (
-    <Page narrow>
-      <Verification />
-      <Section title="Company settings">
-        <div className="divide-y divide-border-subtle">
-          <LinkRow to={DESTINATIONS.company.path} label={DESTINATIONS.company.title}>
-            <p className="text-text-muted">Company information and administration.</p>
-          </LinkRow>
-          <LinkRow to={`${DESTINATIONS.company.path}#documents`} label="Company documents">
-            <p className="text-text-muted">Upload optional supporting documents after company setup.</p>
-          </LinkRow>
-          <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title}>
-            <p className="text-text-muted">
-              Invite company users, accept an invitation and manage permitted appointments.
+    <PageTitle.Provider value="Account">
+      <Page>
+        <Section title="Security">
+          <div className="divide-y divide-border-subtle">
+            <ActionRow
+              description="Choose a new password for your account."
+              label="Change password"
+              onClick={() => {
+                setPasswordChanged(false);
+                setModal('password');
+              }}
+            />
+          </div>
+          <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
+        </Section>
+        <Section title="Preferences">
+          <div className="divide-y divide-border-subtle">
+            <SwitchRow
+              label="Dark theme"
+              description="Saved in this browser."
+              checked={theme === 'dark'}
+              onChange={(dark) => setTheme(dark ? 'dark' : 'paper')}
+            />
+            <div>
+              {preferences.isError ? (
+                <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+                  Notification preferences could not be loaded.
+                </LoadError>
+              ) : preferences.isLoading ? (
+                <Loading>Loading notification preferences…</Loading>
+              ) : transactionAlerts === undefined ? (
+                <p className="text-sm text-text-muted">Notification preferences are unavailable.</p>
+              ) : (
+                <SwitchRow
+                  label="Transaction alerts"
+                  description="Notifications for transaction status changes."
+                  checked={transactionAlerts}
+                  disabled={alerts.isPending}
+                  onChange={(value) => alerts.mutate(value)}
+                />
+              )}
+              {alerts.isError && (
+                <p role="alert" className="text-sm text-error-light">
+                  Your notification preference could not be saved. Try again.
+                </p>
+              )}
+            </div>
+          </div>
+        </Section>
+        <Section title="Data and privacy">
+          <div className="divide-y divide-border-subtle">
+            <ActionRow
+              description="Download a copy of your account data."
+              label="Export data"
+              onClick={() => {
+                exportMutation.reset();
+                setModal('export');
+              }}
+            />
+            <ActionRow
+              description="Deactivate your account and remove personal details. Some records are retained."
+              label="Delete account"
+              onClick={() => {
+                deleteMutation.reset();
+                setModal('delete');
+              }}
+            />
+          </div>
+        </Section>
+        <Modal
+          isOpen={modal === 'password'}
+          onClose={() => {
+            passwordChecks.reset();
+            closePassword();
+          }}
+          title="Change password"
+          showFooter
+          confirmLabel="Change password"
+          formId="change-password"
+          busy={passwordMutation.isPending}
+          busyLabel="Changing password…"
+        >
+          {modal === 'password' && (
+            <form
+              id="change-password"
+              className="space-y-4"
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (passwordChecks.check()) savePassword();
+              }}
+            >
+              <ErrorSummary {...passwordChecks.summary} />
+              <PasswordInput
+                {...passwordField('currentPassword')}
+                label="Current password"
+                value={currentPassword}
+                onChange={setCurrentPassword}
+                autoComplete="current-password"
+                disabled={passwordMutation.isPending}
+              />
+              <PasswordInput
+                {...passwordField('newPassword')}
+                label="New password"
+                value={newPassword}
+                onChange={setNewPassword}
+                autoComplete="new-password"
+                disabled={passwordMutation.isPending}
+              />
+              <PasswordInput
+                {...passwordField('newPasswordConfirm')}
+                label="Confirm new password"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                autoComplete="new-password"
+                disabled={passwordMutation.isPending}
+              />
+              {passwordReading && (
+                <p role="alert" className="text-sm text-error-light">
+                  {passwordReading.generalError ?? 'The password was not changed. Check the fields above.'}
+                </p>
+              )}
+            </form>
+          )}
+        </Modal>
+        <Modal
+          isOpen={modal === 'export'}
+          onClose={() => setModal(null)}
+          title="Export data"
+          showFooter
+          confirmLabel="Export"
+          onConfirm={() => exportMutation.mutate()}
+          busy={exportMutation.isPending}
+          busyLabel="Exporting…"
+        >
+          <p className="text-sm text-text-muted">
+            Download your account data as a JSON file. The download starts when the export is ready.
+          </p>
+          {exportMutation.isError && (
+            <p role="alert" className="mt-3 text-sm text-error-light">
+              {failureSentence(exportMutation.error, 'Your data could not be exported. Try again.')}
             </p>
-          </LinkRow>
-        </div>
-      </Section>
-      <Section title="Profile and security">
-        <div className="divide-y divide-border-subtle">
-          <LinkRow to={`${DESTINATIONS.settings.path}#company-recorded-details`} label="Company-recorded details">
-            <p className="text-text-muted">View your company-recorded details and request an update.</p>
-          </LinkRow>
-          <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title}>
-            <p className="text-text-muted">View and edit your personal information.</p>
-          </LinkRow>
-          <ActionRow
-            description="Choose a new password for your account."
-            label="Change password"
-            onClick={() => {
-              setPasswordChanged(false);
-              setModal('password');
-            }}
-          />
-        </div>
-        <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
-      </Section>
-      <Section title="Appearance">
-        <SwitchRow
-          label="Dark theme"
-          description="Saved in this browser."
-          checked={theme === 'dark'}
-          onChange={(dark) => setTheme(dark ? 'dark' : 'paper')}
-        />
-      </Section>
-      <Section title="Notifications">
-        {preferences.isError ? (
-          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-            Notification preferences could not be loaded.
-          </LoadError>
-        ) : preferences.isLoading ? (
-          <Loading>Loading notification preferences…</Loading>
-        ) : transactionAlerts === undefined ? (
-          <p className="text-sm text-text-muted">Notification preferences are unavailable.</p>
-        ) : (
-          <SwitchRow
-            label="Transaction alerts"
-            description="Notifications for transaction status changes."
-            checked={transactionAlerts}
-            disabled={alerts.isPending}
-            onChange={(value) => alerts.mutate(value)}
-          />
-        )}
-        {alerts.isError && (
-          <p role="alert" className="text-sm text-error-light">
-            Your notification preference could not be saved. Try again.
+          )}
+        </Modal>
+        <Modal
+          isOpen={modal === 'delete'}
+          onClose={() => setModal(null)}
+          title="Delete account"
+          showFooter
+          confirmLabel="Delete account"
+          destructive
+          onConfirm={() => deleteMutation.mutate()}
+          busy={deleteMutation.isPending}
+          busyLabel="Deleting account…"
+        >
+          <p className="mb-3 text-sm font-medium">This action cannot be undone.</p>
+          <p className="text-sm text-text-muted">
+            This deactivates your account and removes your name, date of birth, phone number and address. Your country
+            of citizenship, financial profile, wallets, verification records and share register entries are kept.
           </p>
-        )}
-      </Section>
-      <Section title="Data and privacy">
-        <div className="divide-y divide-border-subtle">
-          <ActionRow
-            description="Download a copy of your account data."
-            label="Export data"
-            onClick={() => {
-              exportMutation.reset();
-              setModal('export');
-            }}
-          />
-          <ActionRow
-            description="Deactivate your account and remove personal details. Some records are retained."
-            label="Delete account"
-            onClick={() => {
-              deleteMutation.reset();
-              setModal('delete');
-            }}
-          />
-        </div>
-      </Section>
-      <Modal
-        isOpen={modal === 'password'}
-        onClose={() => {
-          passwordChecks.reset();
-          closePassword();
-        }}
-        title="Change password"
-        showFooter
-        confirmLabel="Change password"
-        formId="change-password"
-        busy={passwordMutation.isPending}
-        busyLabel="Changing password…"
-      >
-        {modal === 'password' && (
-          <form
-            id="change-password"
-            className="space-y-4"
-            noValidate
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (passwordChecks.check()) savePassword();
-            }}
-          >
-            <ErrorSummary {...passwordChecks.summary} />
-            <PasswordInput
-              {...passwordField('currentPassword')}
-              label="Current password"
-              value={currentPassword}
-              onChange={setCurrentPassword}
-              autoComplete="current-password"
-              disabled={passwordMutation.isPending}
-            />
-            <PasswordInput
-              {...passwordField('newPassword')}
-              label="New password"
-              value={newPassword}
-              onChange={setNewPassword}
-              autoComplete="new-password"
-              disabled={passwordMutation.isPending}
-            />
-            <PasswordInput
-              {...passwordField('newPasswordConfirm')}
-              label="Confirm new password"
-              value={confirmPassword}
-              onChange={setConfirmPassword}
-              autoComplete="new-password"
-              disabled={passwordMutation.isPending}
-            />
-            {passwordReading && (
-              <p role="alert" className="text-sm text-error-light">
-                {passwordReading.generalError ?? 'The password was not changed. Check the fields above.'}
-              </p>
-            )}
-          </form>
-        )}
-      </Modal>
-      <Modal
-        isOpen={modal === 'export'}
-        onClose={() => setModal(null)}
-        title="Export data"
-        showFooter
-        confirmLabel="Export"
-        onConfirm={() => exportMutation.mutate()}
-        busy={exportMutation.isPending}
-        busyLabel="Exporting…"
-      >
-        <p className="text-sm text-text-muted">
-          Download your account data as a JSON file. The download starts when the export is ready.
-        </p>
-        {exportMutation.isError && (
-          <p role="alert" className="mt-3 text-sm text-error-light">
-            {failureSentence(exportMutation.error, 'Your data could not be exported. Try again.')}
-          </p>
-        )}
-      </Modal>
-      <Modal
-        isOpen={modal === 'delete'}
-        onClose={() => setModal(null)}
-        title="Delete account"
-        showFooter
-        confirmLabel="Delete account"
-        destructive
-        onConfirm={() => deleteMutation.mutate()}
-        busy={deleteMutation.isPending}
-        busyLabel="Deleting account…"
-      >
-        <p className="mb-3 text-sm font-medium">This action cannot be undone.</p>
-        <p className="text-sm text-text-muted">
-          This deactivates your account and removes your name, date of birth, phone number and address. Your country of
-          citizenship, financial profile, wallets, verification records and share register entries are kept.
-        </p>
-        {deleteMutation.isError && (
-          <p role="alert" className="mt-3 text-sm text-error-light">
-            {failureSentence(
-              deleteMutation.error,
-              'Your account could not be deleted. Try again or contact the deployment operator.',
-            )}
-          </p>
-        )}
-      </Modal>
-    </Page>
+          {deleteMutation.isError && (
+            <p role="alert" className="mt-3 text-sm text-error-light">
+              {failureSentence(
+                deleteMutation.error,
+                'Your account could not be deleted. Try again or contact the deployment operator.',
+              )}
+            </p>
+          )}
+        </Modal>
+      </Page>
+    </PageTitle.Provider>
   );
 }

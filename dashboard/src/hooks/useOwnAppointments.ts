@@ -32,6 +32,7 @@ export function useOwnAppointments(
     enabled?: boolean;
     timing?: Partial<Pick<typeof READ_TIMING, 'staleTime' | 'gcTime'>>;
     coordinatedReads?: boolean;
+    passive?: boolean;
   } = {},
 ) {
   return useQuery({
@@ -47,6 +48,7 @@ export function useOwnAppointments(
     refetchOnWindowFocus: READ_TIMING.refetchOnWindowFocus,
     refetchOnReconnect: READ_TIMING.refetchOnReconnect,
     ...(policy.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {}),
+    ...(policy.passive ? { refetchOnMount: false, retryOnMount: false, retry: false } : {}),
     ...(policy.enabled === undefined ? {} : { enabled: policy.enabled }),
   });
 }

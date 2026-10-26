@@ -2,7 +2,8 @@ import { SelectField } from '@components/SelectField';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { Row, Rows, Section, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { Modal } from '@components/Modal';
-import { FormActions, Page, PageAction } from '@components/Page';
+import { FormActions, Page, PageAction, PageLink } from '@components/Page';
+import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { useEffect, useRef, useState } from 'react';
 import {
   formatDate,
@@ -12,6 +13,7 @@ import {
   type OwnCompanyAppointment,
   formatDateTime,
   shortReference,
+  DESTINATIONS,
 } from '@ledova/shared';
 import { scopeLabels } from '@pages/company/shared/appointments';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
@@ -44,6 +46,7 @@ function OwnTeam({
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
+  const settings = useSettingsNavigation();
   const [task, setTask] = useState<'accept' | 'invite' | null>(null);
   const [returnFocus, setReturnFocus] = useState<'accept' | 'invite' | null>(null);
   const [draftSource, setDraftSource] = useState<OwnCompanyAppointment | null>(null);
@@ -128,6 +131,9 @@ function OwnTeam({
             ))}
         </Section>
         <div className="flex flex-wrap justify-end gap-2">
+          {settings.hasOwnedCompany && (
+            <PageLink to={DESTINATIONS.companyAuthority.path} label="Representative authority" />
+          )}
           <PageAction
             ref={acceptOpener}
             label="Accept a company invitation"

@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { DESTINATIONS, type Company, useCompanySelection } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { Disclosure, LinkRow, Row, Rows, Section } from '@components/Ledger';
+import { Disclosure, Row, Rows, Section } from '@components/Ledger';
 import { CopyButton } from '@components/CopyButton';
 import { TOKENS_QUERY_KEY } from '@pages/company/shared/useTokensList';
 import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
@@ -115,19 +115,6 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                   />
                 </FormActions>
               )}
-            </Section>
-            <Section title="Company administration">
-              <div className="divide-y divide-border-subtle">
-                <LinkRow to={`${DESTINATIONS.company.path}#documents`} label="Company documents" />
-                {data.ownerBusiness && (
-                  <LinkRow to={DESTINATIONS.companyAuthority.path} label={DESTINATIONS.companyAuthority.title} />
-                )}
-                <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title} />
-                <LinkRow to={DESTINATIONS.companyEligibility.path} label={DESTINATIONS.companyEligibility.title} />
-                {data.ownerBusiness && (
-                  <LinkRow to={DESTINATIONS.companyPublications.path} label={DESTINATIONS.companyPublications.title} />
-                )}
-              </div>
             </Section>
           </>
         )}

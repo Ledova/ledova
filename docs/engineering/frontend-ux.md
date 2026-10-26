@@ -28,7 +28,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 `mobile/src/components/Page.tsx`) under the page's title. Web form fields use `Field`
 ([forms](#forms)). `Page narrow` bounds
-simple task forms, settings and most detailed records, including compact tables. Ownership dashboards,
+simple task forms and most detailed records, including compact tables. Account settings, Profile, ownership dashboards,
 company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
 invitation reviews, company-recorded member details and wide tables take the standard workspace width. Inline preparation, review
 and result states retain their collection's frame. Tables scroll within their card on small screens.
@@ -314,13 +314,21 @@ an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Ledger exports** and **Company pack**, with its label opening Certificates. Each group opens on
-its routes and marks the current destination.
-Ledger, Shareholders and Documents remain siblings. All three web groups appear in the small-screen
-drawer; native navigation is documented [separately](mobile.md#navigation).
+**Ledger exports** and **Company pack**, with its label opening Certificates. Settings uses the same
+one-level group for **Company**, **Company documents**, **Company team**, **Activation**, **Profile**,
+**Company-recorded details** and **Account**. Its label opens Company for a current personal company
+administrator and Account otherwise, without an extra overview page. Show company and member destinations
+from current access and context; Company team stays available for accepting a company invitation.
+Account keeps password, appearance, notification and privacy controls together, while personal identity
+checks stay in Profile and company-recorded particulars stay separate.
+Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
+remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
+[separately](mobile.md#navigation). Company eligibility and Published to your members stay under More,
+distinct from personal Notices. Representative authority remains a contextual task in Company team.
 Page controls start or complete work for that page or record: Add person, Invite a member,
 Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
-actions remain beside their records. Do not repeat section navigation in page headers.
+actions remain beside their records. Keep section navigation in the sidebar rather than repeating it
+in page headers or a Company administration link card.
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages for
 both clients, including Ledger, its views (Shareholders, Employee share scheme, Documents) and tasks
@@ -331,11 +339,12 @@ page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. The company
 dashboard is also Dashboard, so the company workspace lists Home as Your shares. The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
-and the web parent overrides give each page below a sidebar destination its parent. `Page` puts one
-link back to it in the title row, "Back to <parent's title>": Back to Settings on Company team, Back to
-Company on Representative authority, Back to Shareholders on a shareholder's page, and Back to
-Corrections for ledger maintenance. Once a particulars change has found its shareholder, its
-contextual link goes back to that shareholder by name. Register setup has none, on purpose
+and the web parent overrides give each contextual task its parent. Direct Settings children omit
+Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
+link in the title row for a contextual task: Back to Company team on Representative authority,
+Back to Shareholders on a shareholder's page, and Back to Corrections for ledger maintenance.
+Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
+by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
 
 A way back to a Ledger class or task carries the place it means, built by `registerPlace`
