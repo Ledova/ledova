@@ -127,9 +127,9 @@ or withdraw it. Wallet holdings are on
 A member with a current association receives an ordinary notification when a certificate they
 requested is ready, when shares vest under their award, when the company applies a grant or
 allotment that issues shares to them (an award's shares included), and when the company applies or
-declines their particulars change. Each one names the company, and the class where there is one,
-but no quantities, because notifications can show on a locked screen; on mobile it opens the
-matching screen. Nothing is sent for a revoked association, for changes recorded before the member
+declines their particulars change. Each one names the company (and the class, for a certificate or
+an issue) but no quantities, because notifications can show on a locked screen; on mobile it opens
+the matching screen. Nothing is sent for a revoked association, for changes recorded before the member
 accepted an invitation, for transfers, or for shares recorded from the chain.
 
 ### Revoking member access
