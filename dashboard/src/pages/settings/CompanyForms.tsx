@@ -4,7 +4,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { readApiError } from '@ledova/shared';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
+import { CompanyReadNotice } from '@components/CompanyState';
 import { EDIT_FIELDS, useEditCompanyForm, type FormProps } from './useCompanyForms';
 
 export function EditCompanyForm(props: FormProps) {

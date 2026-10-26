@@ -374,17 +374,21 @@ payslip never establishes eligibility.
 
 ### Settings
 
-On web, Settings is one sidebar group with Company, Company documents, Company team, Activation,
-Profile, Company-recorded details and Account. Its label opens Company for a current personal company
-administrator and Account otherwise. Company and member destinations follow current access and context;
-Company team remains available for accepting a company invitation. Existing page and API checks
-still decide what the person can read or change. Member access stays under
+On web, Settings is one sidebar group with Profile (the default), Documents, Team, Activation and
+Company-recorded details. Company and member destinations follow current access and context;
+Team remains available for accepting a company invitation. Existing page and API checks still decide
+what the person can read or change. Member access stays under
 [Shareholders](register.md#the-register-page).
 
-**Profile** holds personal details and identity verification. **Activation** retains the
-[company activation workflow](companies.md#activation-and-the-registry-check). **Account** groups
+**Profile** combines personal details, identity verification and authorised company information with
 Security (**Change password**), Preferences (**Dark theme**, remembered in this browser with Paper as
-the default, and **Transaction alerts** for transaction status changes), and Data and privacy:
+the default, and **Transaction alerts** for transaction status changes), and Data and privacy. Each
+section retains its own editor and permissions; changing personal details does not update a company's
+records. **Documents** holds company source files; generated certificates and exports stay under the
+top-level Documents group. **Activation** retains the
+[company activation workflow](companies.md#activation-and-the-registry-check).
+
+Data and privacy offers:
 
 - **Export data** downloads the person's account data as a JSON file
   ([account-data export](../engineering/records.md#account-data-export)).

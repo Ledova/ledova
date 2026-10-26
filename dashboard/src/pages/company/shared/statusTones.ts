@@ -1,16 +1,6 @@
 import type { CapitalIncreaseStatus } from '@ledova/shared';
 import type { Tone } from '@components/Ledger';
 
-export const COMPANY_STATUS_TONES = new Map<string, Tone>([
-  ['active', 'done'],
-  ['approved', 'done'],
-  ['submitted', 'moving'],
-  ['review', 'moving'],
-  ['draft', 'waiting'],
-  ['info_required', 'waiting'],
-  ['warning', 'waiting'],
-]);
-
 export const SHARE_CLASS_STATUS_TONES = new Map<string, Tone>([
   ['deployed', 'done'],
   ['deploying', 'moving'],

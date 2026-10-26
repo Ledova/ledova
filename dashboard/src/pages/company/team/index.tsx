@@ -141,7 +141,7 @@ function OwnTeam({
             onClick={() => setTask('accept')}
           />
         </div>
-        <Section title="Company team">
+        <Section title="Team">
           {companies.length === 1 ? (
             <p className="text-sm text-text-muted">{companyName || companies[0][1]}</p>
           ) : (

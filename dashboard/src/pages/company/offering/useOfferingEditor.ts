@@ -5,7 +5,7 @@ import {
   type Company,
   type OfferingInput,
 } from '@ledova/shared';
-import { type CompanyActionRead } from '@pages/company/shared/CompanyState';
+import { type CompanyActionRead } from '@components/CompanyState';
 import apiClient from '@services/apiClient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';

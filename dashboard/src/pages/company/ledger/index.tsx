@@ -18,7 +18,7 @@ import { PageTitle } from '@components/PageTitle';
 import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { Page, PageAction, PageLink } from '@components/Page';
-import { CompanySelection } from '@pages/company/shared/CompanySelection';
+import { CompanySelection } from '@components/CompanySelection';
 
 import { ClassCorrections } from './ClassCorrections';
 import { ClassCertificates } from './ClassCertificates';

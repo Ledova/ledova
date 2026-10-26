@@ -28,13 +28,13 @@ and [mobile](mobile.md); what each page does is in the business section.
 Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 `mobile/src/components/Page.tsx`) under the page's title. Web form fields use `Field`
 ([forms](#forms)). `Page narrow` bounds
-simple task forms and most detailed records, including compact tables. Account settings, Profile, ownership dashboards,
+simple task forms and most detailed records, including compact tables. Profile, ownership dashboards,
 company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
 invitation reviews, company-recorded member details and wide tables take the standard workspace width. Inline preparation, review
 and result states retain their collection's frame. Tables scroll within their card on small screens.
 Company information, company documents, authority records and company team use this workspace frame too.
 Team invitations and acceptance replace their collection with one focused inline task, retaining its
-mounted editors and drafts. Company documents has its own view, with Category and File in the inline upload.
+mounted editors and drafts. Settings → Documents has its own view, with Category and File in the inline upload.
 The remaining offering, publication, directory, application, wallet, activity and eligibility collections
 use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
 keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
@@ -91,7 +91,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such
   as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid
   transfer", are named for the step or the task; a record's row, such as a share class in Directory,
-  for the record; and a row that opens a section of a page, such as "Company documents", for that
+  for the record; and a row that opens a section of a page, such as "Documents", for that
   section. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
   or opens an external resource.
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
@@ -315,16 +315,18 @@ Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way
 Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
 **Ledger exports** and **Company pack**, with its label opening Certificates. Settings uses the same
-one-level group for **Company**, **Company documents**, **Company team**, **Activation**, **Profile**,
-**Company-recorded details** and **Account**. Its label opens Company for a current personal company
-administrator and Account otherwise, without an extra overview page. Show company and member destinations
-from current access and context; Company team stays available for accepting a company invitation.
-Account keeps password, appearance, notification and privacy controls together, while personal identity
-checks stay in Profile and company-recorded particulars stay separate.
+one-level group for **Profile** (the default), **Documents**, **Team**, **Activation** and
+**Company-recorded details**, without an extra overview page. Profile brings personal, company and
+account settings into one workspace with clearly named sections and their existing editors. Company
+sections require current company access; personal edits never change company-recorded particulars.
+Keep Security, Preferences and Data and privacy together below the profile details. Documents holds
+company source files, distinct from the top-level Documents group for generated outputs. Show company
+and member destinations from current access and context; Team stays available for accepting a company
+invitation. Company-recorded particulars stay on their separate member page.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
 [separately](mobile.md#navigation). Company eligibility and Published to your members stay under More,
-distinct from personal Notices. Representative authority remains a contextual task in Company team.
+distinct from personal Notices. Representative authority remains a contextual task in Team.
 Page controls start or complete work for that page or record: Add person, Invite a member,
 Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
 actions remain beside their records. Keep section navigation in the sidebar rather than repeating it
@@ -341,7 +343,7 @@ dashboard is also Dashboard, so the company workspace lists Home as Your shares.
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
-link in the title row for a contextual task: Back to Company team on Representative authority,
+link in the title row for a contextual task: Back to Team on Representative authority,
 Back to Shareholders on a shareholder's page, and Back to Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
 by name. Register setup has none, on purpose
@@ -593,11 +595,11 @@ Every web page that asks which company to work on uses `CompanyPicker`
 [choosing a person](#choosing-a-person), labelled **Company**, showing each company's name and, where
 it helps, a muted detail such as a draft company's ACN, never an internal identifier.
 
-- **Pages that keep their own choice:** Ledger, Dashboard, Company, Activation, Offerings, Published to
-  your members and register setup each keep their own choice through `CompanySelection`. It hides the
+- **Pages that keep their own choice:** Ledger, Dashboard, Profile’s company details, Settings Documents,
+  Activation, Offerings, Published to your members and register setup each keep their own choice through `CompanySelection`. It hides the
   list when the account has one company and it is already chosen.
 - **Your shares** shows it when the person holds records in more than one company.
-- **Pages that always show it:** Company team, Representative authority (which lists only draft
+- **Pages that always show it:** Team, Representative authority (which lists only draft
   companies), Company eligibility and its wallet approvals show it whenever they ask for a company.
   Wallet approvals label theirs **Wallet approval company**, since the page has two.
 

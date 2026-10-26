@@ -6,7 +6,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { apiErrorSentence, type DocumentType } from '@ledova/shared';
 import { useCompanyDocumentUpload } from './useCompanyDocumentUpload';
-import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from '@components/CompanyState';
 
 export function CompanyDocumentForm({
   companyUuid,

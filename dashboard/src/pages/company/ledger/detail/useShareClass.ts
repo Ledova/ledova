@@ -1,5 +1,5 @@
 import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
-import { TOKENS_QUERY_KEY } from '@pages/company/shared/useTokensList';
+import { TOKENS_QUERY_KEY } from '@hooks/useTokensList';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {

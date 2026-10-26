@@ -1,6 +1,15 @@
-import { COMPANY_STATUS_TONES } from './statusTones';
 import type { CompanyStatus, useCompanySelection } from '@ledova/shared';
-import { Status, LoadError } from '@components/Ledger';
+import { Status, LoadError, type Tone } from '@components/Ledger';
+
+const COMPANY_STATUS_TONES = new Map<string, Tone>([
+  ['active', 'done'],
+  ['approved', 'done'],
+  ['submitted', 'moving'],
+  ['review', 'moving'],
+  ['draft', 'waiting'],
+  ['info_required', 'waiting'],
+  ['warning', 'waiting'],
+]);
 
 type CompanyRead = Pick<ReturnType<typeof useCompanySelection>, 'error' | 'isRefreshing' | 'refetch'>;
 export type CompanyActionRead = CompanyRead &

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { createUserFriendlyError, uploadCompanyDocument, type DocumentType } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
+import type { CompanyActionRead } from '@components/CompanyState';
 import type { Problems } from '@hooks/useErrorSummary';
 
 export function useCompanyDocumentUpload({

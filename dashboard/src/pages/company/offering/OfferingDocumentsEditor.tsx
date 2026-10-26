@@ -1,7 +1,7 @@
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { OFFER_DOCUMENT_COPY, apiErrorSentence, type Company } from '@ledova/shared';
-import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from '@components/CompanyState';
 import { DocumentChoices } from './DocumentChoices';
 import { type useOfferings } from './useOffering';
 import { useOfferingDocumentsEditor } from './useOfferingDocumentsEditor';

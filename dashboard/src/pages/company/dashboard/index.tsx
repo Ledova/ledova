@@ -10,7 +10,7 @@ import {
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
-import { CompanySelection } from '@pages/company/shared/CompanySelection';
+import { CompanySelection } from '@components/CompanySelection';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
