@@ -9,6 +9,13 @@ import { setTheme } from '@hooks/useTheme';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { Verification } from './Verification';
+import { useLocation } from 'react-router-dom';
+import { CompanyRecordedDetails } from './CompanyRecordedDetails';
+
+export default function SettingsPage() {
+  const { hash } = useLocation();
+  return hash === '#company-recorded-details' ? <CompanyRecordedDetails /> : <Settings />;
+}
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
@@ -63,7 +70,7 @@ function PasswordInput({
   );
 }
 
-function SettingsPage() {
+function Settings() {
   const {
     preferences,
     theme,
@@ -117,6 +124,9 @@ function SettingsPage() {
       </Section>
       <Section title="Profile and security">
         <div className="divide-y divide-border-subtle">
+          <LinkRow to={`${DESTINATIONS.settings.path}#company-recorded-details`} label="Company-recorded details">
+            <p className="text-text-muted">View your company-recorded details and request an update.</p>
+          </LinkRow>
           <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title}>
             <p className="text-text-muted">View and edit your personal information.</p>
           </LinkRow>
@@ -286,5 +296,3 @@ function SettingsPage() {
     </Page>
   );
 }
-
-export default SettingsPage;

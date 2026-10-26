@@ -356,7 +356,9 @@ and ask for changes separately ([member profile](participants.md#member-profile)
 2. Upload one supporting document, such as a deed poll or the member's notice of a new address, and
    give the new name and residential address, the "as at" date the company's register records (today
    in UTC or earlier) and a reason.
-3. Approve, then Apply.
+3. In **Ledger** → **Corrections**, choose **Approve**. On web, compare the current and proposed
+   particulars on the main page before confirming; **Cancel** returns to the prepared record.
+   **Apply** records the approved update separately.
 
 The latest "as at" date wins between imports and changes
 ([identity order](#members-holder-types-and-identity)). A change is refused if dated before the
@@ -561,8 +563,8 @@ current ownership.** On the web, Ledger is open to every signed-in account and s
 registers of companies the person owns or where their appointment includes register access. With
 none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
 selector appears when several companies are readable. Ledger's sidebar label opens the share-class
-overview; its separate caret expands Issue shares, Transfer shares, History and Corrections.
-Shareholders, ESS and Documents remain beside Ledger. These are views of one page, so switching between them keeps
+overview; its separate caret expands Issue shares, Transfer shares and Corrections.
+Shareholders and Documents remain beside Ledger; ESS is under Shareholders. These are views of one page, so switching between them keeps
 unfinished forms and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
 company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
@@ -578,12 +580,12 @@ The Ledger view shows:
 Mobile's Ledger shows the same cards and **Add share class**, which opens its class form; mobile
 brings in a class's records from Corrections.
 
-Ledger's four sidebar sub-items each open their own focused view, with a shared share-class
+Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the overview cards: Issue shares
 ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
-([non-paid transfers](#non-paid-transfers-between-members)), History and Corrections.
+([non-paid transfers](#non-paid-transfers-between-members)) and Corrections.
 
-History starts with a full-width Changes card, newest entries first, with compact rows aligned under
+Corrections starts with a full-width Changes card, newest entries first, with compact rows aligned under
 Change, Date and Share movements. On smaller screens, the kind and date sit above the movements.
 Each entry shows its company date for an issue or transfer (ledger effective date for other kinds),
 and its first two signed shareholder movements plus a count of the rest. Select the row to expand
@@ -592,10 +594,12 @@ recording dates, and correction or reversal references. An older issue or transf
 date says Date not recorded in its summary and Not
 recorded in its details. Retained source imports, chain openings, corrections, reconciliation,
 particulars and wallet-link records remain available on demand, with permitted evidence downloads.
-History has no preparation, approval, correction or acknowledgement forms. Certificates are prepared
-in [Documents](member-records.md#preparing-a-certificate).
+Entries remain immutable. Current register readers can inspect the records; preparation, approval,
+application and acknowledgement controls still require their respective company appointments.
+The former web History address opens Corrections with the same company and class. Certificates are
+prepared in [Documents](member-records.md#preparing-a-certificate).
 
-Corrections holds the existing append-only correction and maintenance workflows: source opening
+The same view holds the existing append-only correction and maintenance workflows: source opening
 corrections, chain openings, reconciliation acknowledgements, particulars and wallet links. Their
 supporting records open on demand to their snapshot, documents and decision trail; a prepared record
 starts open. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
@@ -609,26 +613,26 @@ shareholder list rather than implying holdings are zero.
 
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
-Mobile has the same Ledger navigation, task views and held-work lock under
+Mobile keeps its separate History and Corrections destinations and the same held-work lock under
 [#1201](https://github.com/Ledova/ledova/issues/1201). Its Issue shares and Transfer shares records
 follow the web's layout; the other tasks' records keep their earlier layout, and its History still
-offers each entry's correction.
+offers each entry's correction. The web consolidation does not change mobile navigation.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
 and flagging an identity that needs review. The search, the filter and the page stay in the address.
 Details opens the shareholder's page. Former shareholders follows, holding each class's
-Former-member history 25 at a time, with Details for a former member the register names. Member
-access and requests then holds invitations, current access and members' particulars and
-certificate requests ([member records](member-records.md)). While register work is unfinished,
+Former-member history 25 at a time, with Details for a former member the register names.
+Shareholders' sidebar submenus open ESS for employee awards, Member access for invitations and access, and Member requests
+for particulars and certificate requests ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
 Mobile's Shareholders view lists the same current shareholders, with the search and class filter,
 25 more at a time, then People without shares and Former shareholders. Details and **Add person**
 work as on the web.
 
-The Employee share scheme view, ESS in the sidebar, holds each class's
-[awards](issuing-shares.md#employee-awards-and-vesting),
+The Employee share scheme view, ESS under Shareholders, shows one class's
+[awards](issuing-shares.md#employee-awards-and-vesting) at a time, chosen with Share class,
 each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
 inspection copy, unsigned certificate preparation and the company pack as compact choices, opening
 one preparation form at a time.
@@ -657,7 +661,7 @@ reached from Recipient details on their award. It shows:
   to Employee share scheme;
 - Documents: the shareholder's retained supporting files, with their category and share class;
   someone who can prepare the register can add more for a recorded holding;
-- requests from them waiting for the company, with a link to Member access and requests;
+- requests from them waiting for the company, with a link to Member requests;
 - for an administrator, whether they can see their own records, with **Invite to their records**
   when they cannot.
 

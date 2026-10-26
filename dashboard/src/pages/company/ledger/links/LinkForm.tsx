@@ -43,23 +43,16 @@ export function LinkForm({
     >
       <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy} className="space-y-5">
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Evidence provided by the company</legend>
-          <FileField
-            {...checks.field('file')}
-            label={COPY.AUTHORITY_DOCUMENT}
-            hint={COPY.AUTHORITY_DOCUMENT_NOTE}
-            onFile={(file) => update({ file })}
-          />
-        </fieldset>
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Authority and reason</legend>
-          <Choices
-            legend={COPY.AUTHORITY}
-            options={AUTHORITIES}
-            value={draft.authority}
-            onChange={(authority) => update({ authority })}
-          />
+        <fieldset className="grid gap-4 sm:grid-cols-2">
+          <legend className="mb-3 text-sm font-medium text-text-primary">Company authority</legend>
+          <div className="sm:col-span-2">
+            <Choices
+              legend={COPY.AUTHORITY}
+              options={AUTHORITIES}
+              value={draft.authority}
+              onChange={(authority) => update({ authority })}
+            />
+          </div>
           {draft.authority === 'director_resolution' && (
             <Field {...checks.field('director')} label={COPY.APPROVING_DIRECTOR}>
               <TextInput
@@ -76,7 +69,16 @@ export function LinkForm({
               onChange={(event) => update({ reference: event.target.value })}
             />
           </Field>
-          <Field {...checks.field('reason')} label={COPY.REASON}>
+          <div className="sm:col-span-2">
+            <FileField
+              {...checks.field('file')}
+              label={COPY.AUTHORITY_DOCUMENT}
+              hint={COPY.AUTHORITY_DOCUMENT_NOTE}
+              showUploadHint={false}
+              onFile={(file) => update({ file })}
+            />
+          </div>
+          <Field {...checks.field('reason')} label={COPY.REASON} className="sm:col-span-2">
             <TextArea
               rows={3}
               value={draft.reason}

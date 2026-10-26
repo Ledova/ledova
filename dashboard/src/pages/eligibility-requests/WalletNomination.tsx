@@ -2,7 +2,8 @@ import { SelectField } from '@components/SelectField';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAutomaticReads } from '@hooks/useAutomaticReads';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
   useWalletNomination,
@@ -11,8 +12,9 @@ import {
   type WalletNominationPreview,
   refusalSentences,
   shortReference,
+  type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
 
@@ -31,8 +33,30 @@ function Facts({ preview }: { preview: WalletNominationPreview }) {
   );
 }
 
-export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: string; guardRequest: () => void }) {
-  const data = useWalletNomination({ requestUuid, newKey: () => crypto.randomUUID(), guardRequest });
+export function WalletNomination({
+  requestUuid,
+  guardRequest,
+  onHeldChange,
+  active = true,
+}: {
+  requestUuid: string;
+  guardRequest: () => void;
+  onHeldChange: (held: boolean) => void;
+  active?: boolean;
+}) {
+  const [verifying, setVerifying] = useState<{
+    owner: OrderSubmissionOwner | null;
+    wallet: string;
+    scope: string;
+  } | null>(null);
+  const data = useWalletNomination({
+    requestUuid,
+    newKey: () => crypto.randomUUID(),
+    guardRequest,
+    coordinatedReads: true,
+    paused: !active,
+    pausedScope: verifying?.scope,
+  });
   const { running, track } = useRunningAction();
   const reads = [data.request, data.nominations, data.wallets];
   const readFailed = reads.some((read) => read.isError);
@@ -40,13 +64,21 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
     preview: null,
     accepted: false,
   });
-  const [verifying, setVerifying] = useState<{ owner: typeof data.owner; wallet: string } | null>(null);
   const wallets = data.wallets.isSuccess ? data.wallets.data : [];
   const wallet = wallets.find((row) => row.uuid === data.walletUuid);
   const blocked = data.busy || data.request.isFetching || data.wallets.isFetching;
   const preview = data.preview;
   const accepted = consent.preview === preview && consent.accepted;
   const proofOpen = verifying?.owner === data.owner && verifying.wallet === wallet?.uuid;
+  useEffect(() => {
+    onHeldChange(active && (data.readingPaused || !!proofOpen));
+    return () => onHeldChange(false);
+  }, [active, data.readingPaused, proofOpen, onHeldChange]);
+  useAutomaticReads({
+    scope: active && data.owner ? data.scopeKey : null,
+    paused: data.readingPaused || !!proofOpen,
+    refresh: data.refresh,
+  });
   const checks = useErrorSummary({
     wallet: !wallet && 'Choose one of your own Base wallets.',
     consent: !accepted && 'Agree to share the selected address with this company.',
@@ -59,15 +91,6 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
         evidence sharing does not share your wallets.
       </p>
       <ErrorSummary {...checks.summary} />
-      {!readFailed && (
-        <PageAction
-          label="Refresh wallet nomination"
-          busy={running === 'refresh'}
-          busyLabel="Refreshing…"
-          disabled={data.busy}
-          onClick={() => track('refresh', data.refresh())}
-        />
-      )}
       {data.original && (
         <div className="space-y-3">
           <p role="status">This original nomination is unconfirmed. Recover its receipt with the same body and key.</p>
@@ -112,29 +135,6 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
           {data.wallets.isSuccess && wallets.length === 0 && (
             <p className="text-sm text-text-muted">No own Base wallets yet.</p>
           )}
-          {wallet && (
-            <PageAction
-              label="Refresh selected wallet possession proof"
-              disabled={blocked}
-              onClick={() => {
-                try {
-                  data.guardWallet();
-                  setVerifying({ owner: data.owner, wallet: wallet.uuid });
-                } catch {
-                  return;
-                }
-              }}
-            />
-          )}
-          <PageAction
-            label="Review wallet nomination"
-            busy={running === 'review'}
-            busyLabel="Reviewing…"
-            disabled={blocked}
-            onClick={() => {
-              if (checks.check(['wallet'])) track('review', data.review());
-            }}
-          />
           {preview && (
             <div className="space-y-3">
               <Facts preview={preview} />
@@ -150,6 +150,33 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
                 disabled={blocked}
                 onChange={(event) => setConsent({ preview, accepted: event.target.checked })}
               />
+            </div>
+          )}
+          <FormActions>
+            {wallet && (
+              <PageAction
+                label="Refresh selected wallet possession proof"
+                disabled={blocked}
+                onClick={() => {
+                  try {
+                    data.guardWallet();
+                    setVerifying({ owner: data.owner, wallet: wallet.uuid, scope: data.scopeKey });
+                  } catch {
+                    return;
+                  }
+                }}
+              />
+            )}
+            <PageAction
+              label="Review wallet nomination"
+              busy={running === 'review'}
+              busyLabel="Reviewing…"
+              disabled={blocked}
+              onClick={() => {
+                if (checks.check(['wallet'])) track('review', data.review());
+              }}
+            />
+            {preview && (
               <PageAction
                 label="Submit wallet nomination"
                 primary
@@ -158,8 +185,8 @@ export function WalletNomination({ requestUuid, guardRequest }: { requestUuid: s
                   if (checks.check(['consent'])) void data.confirm();
                 }}
               />
-            </div>
-          )}
+            )}
+          </FormActions>
         </>
       )}
       <WalletVerificationModal

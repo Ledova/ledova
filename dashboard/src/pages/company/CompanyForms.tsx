@@ -1,5 +1,6 @@
 import { Field, TextInput } from '@components/Field';
-import { Modal } from '@components/Modal';
+import { useEffect, useRef } from 'react';
+import { FormActions, PageAction } from '@components/Page';
 import { readApiError } from '@ledova/shared';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -7,21 +8,11 @@ import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { EDIT_FIELDS, useEditCompanyForm, type FormProps } from './useCompanyForms';
 
 export function EditCompanyForm(props: FormProps) {
-  const {
-    company,
-    target,
-    read,
-    onClose,
-    draft,
-    setDraft,
-    pendingRef,
-    canChangeName,
-    changed,
-    available,
-    problems,
-    save,
-  } = useEditCompanyForm(props);
+  const { company, target, read, onClose, draft, setDraft, pendingRef, canChangeName, available, problems, save } =
+    useEditCompanyForm(props);
   const checks = useErrorSummary(problems);
+  const firstField = useRef<HTMLInputElement>(null);
+  useEffect(() => firstField.current?.focus(), []);
   const reading = save.isError
     ? readApiError(save.error, {
         fallback: 'Company changes could not be saved. Try again.',
@@ -30,22 +21,17 @@ export function EditCompanyForm(props: FormProps) {
       })
     : null;
   return (
-    <Modal
-      isOpen
-      title="Edit company"
-      size="lg"
-      showFooter
-      confirmLabel="Save changes"
-      busy={save.isPending}
-      busyLabel="Saving changes…"
-      confirmDisabled={!available}
-      onConfirm={() => {
+    <form
+      aria-label="Edit company"
+      noValidate
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
         if (available && checks.check() && !pendingRef.current) {
           pendingRef.current = true;
           save.mutate();
         }
       }}
-      onClose={onClose}
     >
       <fieldset disabled={save.isPending} className="space-y-4">
         <ErrorSummary {...checks.summary} />
@@ -75,6 +61,7 @@ export function EditCompanyForm(props: FormProps) {
               className={['name', 'addressLine1', 'addressLine2'].includes(key) ? 'sm:col-span-2' : undefined}
             >
               <TextInput
+                ref={key === (canChangeName ? 'name' : 'tradingName') ? firstField : undefined}
                 maxLength={maxLength}
                 value={draft[key]}
                 disabled={key === 'name' && !canChangeName}
@@ -83,8 +70,18 @@ export function EditCompanyForm(props: FormProps) {
             </Field>
           ))}
         </div>
-        {!changed && <p className="text-sm text-text-muted">Change a detail to save.</p>}
       </fieldset>
-    </Modal>
+      <FormActions>
+        <PageAction label="Cancel" disabled={save.isPending} onClick={onClose} />
+        <PageAction
+          type="submit"
+          label="Save changes"
+          primary
+          disabled={!available}
+          busy={save.isPending}
+          busyLabel="Saving changes…"
+        />
+      </FormActions>
+    </form>
   );
 }

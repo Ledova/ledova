@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
 import { registerKey } from '@hooks/useRegisterAccess';
+import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
+import { CompanyRecordedDetails } from '@pages/settings/CompanyRecordedDetails';
 
 import {
   ApiClientProvider,
@@ -10,9 +12,9 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { Link, MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -102,6 +104,11 @@ it('invites and associates a walletless member, recovers one exact request and r
     },
   ];
   let certificates: Record<string, unknown>[] = [{ ...FULFILLED_CERTIFICATE, status: 'requested', fulfilment: null }];
+  const otherCertificate = {
+    ...FULFILLED_CERTIFICATE,
+    uuid: '56565656-5656-4565-8565-565656565656',
+    token: '78787878-7878-4787-8787-787878787878',
+  };
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') {
       if (preferencesRefused)
@@ -125,7 +132,8 @@ it('invites and associates a walletless member, recovers one exact request and r
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
-    if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid)) return { data: pdf };
+    if ([FULFILLED_CERTIFICATE.uuid, otherCertificate.uuid].some((uuid) => url === URLS.MEMBER_CERTIFICATE_FILE(uuid)))
+      return { data: pdf };
     if (url === URLS.MEMBER_CERTIFICATE_PREVIEW(FULFILLED_CERTIFICATE.uuid))
       return {
         data: {
@@ -235,33 +243,53 @@ it('invites and associates a walletless member, recovers one exact request and r
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <MemoryRouter>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={['/home']}>{children}</MemoryRouter>
       </ApiClientProvider>
     </QueryClientProvider>
   );
-  const company = render(
+  const memberHeld = vi.fn();
+  const companyView = (view: 'access' | 'requests') => (
     <CompanyMemberAccess
+      view={view}
       owner={{ userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount.uuid }}
       company={MEMBER_RECORD.company.uuid}
       guard={() => {}}
       registers={[memberRegister]}
-    />,
-    { wrapper },
+      onHeldChange={memberHeld}
+    />
   );
+  const company = render(companyView('access'), { wrapper });
   expect(screen.queryByRole('button', { name: 'Refresh member access' })).toBeNull();
   fireEvent.click(await screen.findByRole('button', { name: 'Invite a member' }));
   await choose('Member or award recipient', 'Company Recorded Member', 'recorded member');
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
   fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Retry original company member action' }));
+  await screen.findByRole('button', { name: 'Retry original company member action' });
+  company.rerender(companyView('requests'));
+  expect(memberHeld).toHaveBeenLastCalledWith(true, 'access');
+  company.rerender(companyView('access'));
+  expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('member@example.test');
+  fireEvent.click(screen.getByRole('button', { name: 'Retry original company member action' }));
   await screen.findByText(/The invitation email was accepted for sending/);
   const mailCommands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_INVITATION_SEND_EMAIL);
   expect(mailCommands).toHaveLength(2);
   expect(mailCommands[0][1]).toEqual(mailCommands[1][1]);
   expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
+  company.rerender(companyView('requests'));
   fireEvent.click(screen.getByRole('button', { name: /^Private queued member name/ }));
   expect(screen.getByText('Private queued member address')).toBeTruthy();
   expect(screen.getByText(/member@example.test/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare update (Private queued member name)' }));
+  expect(document.activeElement).toBe(
+    screen.getByRole('heading', { name: "Prepare Private queued member name's particulars update" }),
+  );
+  expect(screen.queryByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() =>
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Prepare update (Private queued member name)' }),
+    ),
+  );
   preferencesRefused = true;
   await act(async () => {
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
@@ -274,12 +302,34 @@ it('invites and associates a walletless member, recovers one exact request and r
   preferencesRefused = false;
   particulars = [];
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
-  fireEvent.change(await screen.findByLabelText('Certificate instruction reference'), {
+  fireEvent.click(await screen.findByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }));
+  const prepareCertificate = screen.getByRole('button', { name: `Prepare certificate (${MEMBER_RECORD.name})` });
+  expect(screen.queryByRole('textbox', { name: 'Company instruction' })).toBeNull();
+  fireEvent.click(prepareCertificate);
+  await screen.findByRole('heading', { name: 'Prepare certificate' });
+  expect(screen.queryByRole('heading', { name: 'Invitations' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'People' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Invite a member' })).toBeNull();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Company instruction' }), {
     target: { value: 'Synthetic recipient instruction' },
   });
-  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }));
-  fireEvent.click(screen.getByRole('button', { name: `Preview certificate for ${MEMBER_RECORD.name}` }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Confirm recipient certificate fulfilment' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(document.activeElement).toBe(prepareCertificate));
+  expect(
+    api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_FULFIL(FULFILLED_CERTIFICATE.uuid)),
+  ).toHaveLength(0);
+  fireEvent.click(prepareCertificate);
+  fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+  const certificateReview = (await screen.findByRole('heading', { name: 'Review certificate' })).closest('section')!;
+  expect(
+    within(certificateReview).getByText(`${memberRegister.token.name} · ${memberRegister.token.symbol}`),
+  ).toBeTruthy();
+  expect(screen.getByText('Unsigned certificate · 1 page')).toBeTruthy();
+  expect(screen.queryByRole('textbox', { name: 'Company instruction' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Invite a member' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Record details' }));
+  expect(screen.getByText('Synthetic recipient instruction')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Create certificate' }));
   await screen.findByText(/The unsigned recipient certificate is recorded/);
   expect(api.post).toHaveBeenCalledWith(
     URLS.MEMBER_CERTIFICATE_FULFIL(FULFILLED_CERTIFICATE.uuid),
@@ -324,37 +374,107 @@ it('invites and associates a walletless member, recovers one exact request and r
   await screen.findByText(/Invitation accepted/);
   expect(sessionStorage).toHaveLength(0);
   recipient.unmount();
+  particulars = [
+    {
+      uuid: '13131313-1313-4313-8313-131313131313',
+      association: MEMBER_RECORD.uuid,
+      company: MEMBER_RECORD.company.uuid,
+      member: MEMBER_RECORD.member,
+      name: MEMBER_RECORD.name,
+      residentialAddress: MEMBER_RECORD.residentialAddress,
+      status: 'applied',
+      change: '14141414-1414-4414-8414-141414141414',
+    },
+  ];
+  certificates.push(
+    {
+      ...FULFILLED_CERTIFICATE,
+      uuid: '67676767-6767-4676-8676-676767676767',
+      createdAt: '2026-10-03T00:00:00Z',
+      status: 'requested',
+      fulfilment: null,
+    },
+    {
+      ...FULFILLED_CERTIFICATE,
+      uuid: '89898989-8989-4898-8898-898989898989',
+      createdAt: '2026-10-02T00:00:00Z',
+      status: 'withdrawn',
+      fulfilment: null,
+    },
+    otherCertificate,
+  );
   render(
-    <>
+    <MemberRecordsProvider>
       <nav>
         <Link to="/home">Dashboard</Link>
         <Link to="/home#documents">Documents</Link>
+        <Link to="/settings#company-recorded-details">Settings</Link>
       </nav>
-      <MemberRecordsPage />
-    </>,
+      <Routes>
+        <Route path="/home" element={<MemberRecordsPage />} />
+        <Route path="/settings" element={<CompanyRecordedDetails />} />
+      </Routes>
+    </MemberRecordsProvider>,
     { wrapper },
   );
-  await screen.findByRole('button', { name: 'Read own entries for Ordinary' });
+  await screen.findByText('10 issued shares');
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
   expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Company-recorded particulars' }));
-  await screen.findByText(MEMBER_RECORD.name);
-  expect(await screen.findByText('Issue · Company date not recorded')).toBeTruthy();
-  expect(screen.getByText(/Ledger .*Issue.*Own change \+10/)).toBeTruthy();
+  expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
+  expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Read own entries for Ordinary' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Update requests' })).toBeNull();
+  expect(screen.queryByText('Recent changes · Ordinary')).toBeNull();
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Withdraw certificate request/ })).toBeNull();
   expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+  const detailsCard = (await screen.findByRole('heading', { name: 'Current details' })).closest('section')!;
+  expect(
+    within(detailsCard)
+      .getAllByRole('definition')
+      .map((item) => item.textContent),
+  ).toEqual([MEMBER_RECORD.name, MEMBER_RECORD.residentialAddress]);
+  const previousParticulars = await screen.findByRole('button', { name: 'Previous requests' });
+  expect(previousParticulars.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(previousParticulars);
+  expect(
+    within(screen.getByRole('heading', { name: 'Update requests' }).closest('section')!).getByText('Applied'),
+  ).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
+  const certificatesCard = (await screen.findByRole('heading', { name: 'Certificates' })).closest('section')!;
+  expect(within(certificatesCard).getByRole('heading', { name: '+10 ORD shares' })).toBeTruthy();
+  expect(within(certificatesCard).getByText('Requested', { exact: true, selector: 'p.font-medium' })).toBeTruthy();
+  expect(within(certificatesCard).getByText('Not recorded')).toBeTruthy();
+  expect(within(certificatesCard).getByRole('button', { name: /Withdraw certificate request/ })).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Share history' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Your request status' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Update requests' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
+  fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Record details' }));
+  expect(within(certificatesCard).getByRole('heading', { name: 'Previous requests' })).toBeTruthy();
+  expect(within(certificatesCard).getByText('Ordinary · Withdrawn')).toBeTruthy();
+  expect(within(certificatesCard).getByText('Ordinary · Fulfilled')).toBeTruthy();
   fireEvent.click(await screen.findByRole('button', { name: /Download unsigned certificate/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
-  fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Company-recorded particulars' }));
-  fireEvent.click(screen.getByText('Request a particulars update'));
+  expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid), expect.anything());
+  fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Record details' }));
+  fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Other certificate requests' }));
+  expect(within(certificatesCard).getByText('Share certificate · Fulfilled')).toBeTruthy();
+  fireEvent.click(within(certificatesCard).getByRole('button', { name: /Download unsigned certificate/ }));
+  await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(2));
+  expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(otherCertificate.uuid), expect.anything());
+  fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+  fireEvent.click(screen.getByText('Request update'));
   fireEvent.change(screen.getByLabelText('Requested name'), { target: { value: 'Requested Member Name' } });
   fireEvent.change(screen.getByLabelText('Requested residential address'), {
     target: { value: 'Requested synthetic address' },
   });
   fireEvent.click(screen.getByRole('checkbox', { name: /Share these requested particulars/ }));
-  fireEvent.click(screen.getByRole('button', { name: 'Send particulars request' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send request' }));
   await screen.findByRole('button', { name: 'Retry original member action' });
   expect(screen.getByLabelText('Requested name').matches(':disabled')).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Retry original member action' }));
@@ -362,8 +482,41 @@ it('invites and associates a walletless member, recovers one exact request and r
   const commands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS);
   expect(commands).toHaveLength(2);
   expect(commands[0][1]).toEqual(commands[1][1]);
+  expect(commands[0][1]).toEqual({
+    operationId: expect.any(String),
+    association: MEMBER_RECORD.uuid,
+    name: 'Requested Member Name',
+    residentialAddress: 'Requested synthetic address',
+    confirmation: true,
+  });
   expect(screen.getByText(MEMBER_RECORD.name)).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
+  expect(screen.getByTitle(MEMBER_RECORD.residentialAddress)).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Update requests' })).toBeTruthy();
+  expect(
+    within(screen.getByRole('heading', { name: 'Update requests' }).closest('section')!).getByText('Submitted'),
+  ).toBeTruthy();
+  expect(screen.queryByRole('textbox')).toBeNull();
+  const updateRequests = screen.getByRole('heading', { name: 'Update requests' }).closest('section')!;
+  expect(within(updateRequests).getByText('Requested Member Name')).toBeTruthy();
+  expect(within(updateRequests).getByTitle('Requested synthetic address')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Request update' }));
+  expect((screen.getByLabelText('Requested name') as HTMLInputElement).value).toBe('');
+  expect((screen.getByLabelText('Requested residential address') as HTMLTextAreaElement).value).toBe('');
+  expect(
+    (screen.getByRole('checkbox', { name: /Share these requested particulars/ }) as HTMLInputElement).checked,
+  ).toBe(false);
+  fireEvent.change(screen.getByLabelText('Requested name'), { target: { value: 'Second requested name' } });
+  fireEvent.change(screen.getByLabelText('Requested residential address'), {
+    target: { value: 'Second requested address' },
+  });
+  fireEvent.click(screen.getByRole('checkbox', { name: /Share these requested particulars/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send request' }));
+  await screen.findByRole('heading', { name: 'Current details' });
+  expect(screen.queryByRole('textbox')).toBeNull();
+  expect(screen.getByTitle('Second requested address')).toBeTruthy();
+  const finalCommand = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS).at(-1)![1];
+  expect(finalCommand.operationId).not.toBe(commands[0][1].operationId);
+  fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' }));
   await waitFor(() => expect(release).toBeTypeOf('function'));
   refused = true;
@@ -432,6 +585,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
         <CompanyMemberAccess
+          view="access"
           owner={owner}
           company={uuid}
           registers={registers}
@@ -472,7 +626,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     expect.objectContaining({ company, member: awardMember, intendedEmail: 'employee@example.test' }),
     expect.any(Object),
   );
-  expect(onHeldChange).toHaveBeenCalledWith(true);
+  expect(onHeldChange).toHaveBeenCalledWith(true, 'access');
   expect(api.post).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole('combobox', { name: 'Member or award recipient' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Invite a member' }));

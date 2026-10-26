@@ -4,6 +4,7 @@ import { awardsKey } from '@pages/company/ledger/shared/useRegisterAwards';
 import { registerKey } from '@hooks/useRegisterAccess';
 import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
 import {
   REGISTER_PARTICULARS_COPY,
   hasCurrentRegisterReadAuthority,
@@ -27,8 +28,8 @@ export function RegisterParticulars({
   company,
   registers,
   visible = true,
-  readOnly = false,
   onHeldChange,
+  onReviewChange,
 }: {
   landed?: Landed;
   owner: OrderSubmissionOwner;
@@ -36,9 +37,18 @@ export function RegisterParticulars({
   company: string;
   registers: TokenHoldersResponse[];
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
+  onReviewChange?: (company: string, open: boolean) => void;
 }) {
+  const [reviewing, setReviewing] = useState<string | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<HTMLDivElement | null>(null);
+  const reviewChanged = useCallback(
+    (uuid: string, open: boolean) => {
+      setReviewing((current) => (open ? uuid : current === uuid ? null : current));
+      onReviewChange?.(company, open);
+    },
+    [company, onReviewChange],
+  );
   const client = useQueryClient();
   const changes = useRegisterParticulars(owner, company, guard);
   const appointments = useOwnAppointments(owner, guard);
@@ -80,8 +90,8 @@ export function RegisterParticulars({
     );
   };
   if (changes.isSuccess && changes.data.length === 0) return null;
-  return (
-    <Section title={COPY.TITLE}>
+  const status = (
+    <>
       {appointments.isError ? (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.
@@ -96,23 +106,37 @@ export function RegisterParticulars({
           Particulars changes could not be loaded.
         </LoadError>
       ) : null}
-      <ul className="divide-y divide-border-subtle">
-        {(changes.data ?? []).map((change) => (
-          <ParticularsRecord
-            key={change.uuid}
-            landed={landed?.record === change.uuid ? landed : undefined}
-            change={change}
-            visible={privateReady}
-            readOnly={readOnly}
-            onHeldChange={onHeldChange}
-            member={nameOf(change.member)}
-            steps={steps ?? {}}
-            guard={guard}
-            onDecided={refresh}
-            onRefused={refresh}
-          />
-        ))}
-      </ul>
-    </Section>
+    </>
+  );
+  return (
+    <>
+      <div hidden={!!reviewing}>
+        <Section title={COPY.TITLE}>
+          {!reviewing && status}
+          <ul className="divide-y divide-border-subtle">
+            {(changes.data ?? []).map((change) => (
+              <ParticularsRecord
+                key={change.uuid}
+                landed={landed?.record === change.uuid ? landed : undefined}
+                change={change}
+                visible={privateReady}
+                onHeldChange={onHeldChange}
+                member={nameOf(change.member)}
+                steps={steps ?? {}}
+                guard={guard}
+                onDecided={refresh}
+                onRefused={refresh}
+                reviewTarget={reviewTarget}
+                onReviewChange={reviewChanged}
+              />
+            ))}
+          </ul>
+        </Section>
+      </div>
+      <div hidden={!reviewing} className="space-y-5">
+        {reviewing && status}
+        <div ref={setReviewTarget} />
+      </div>
+    </>
   );
 }

@@ -22,9 +22,9 @@ export function useOpeningHolders(
         throw failure;
       }
     },
+    ...READ_TIMING,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    ...READ_TIMING,
   });
   return holders;
 }

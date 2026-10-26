@@ -20,6 +20,7 @@ export function TeamInvitationForm({
   guard,
   onRecorded,
   onBusy,
+  onCancel,
 }: {
   source: OwnCompanyAppointment;
   available: CompanyCapability[];
@@ -27,6 +28,7 @@ export function TeamInvitationForm({
   guard: () => void;
   onRecorded: () => void;
   onBusy: (value: boolean) => void;
+  onCancel: () => void;
 }) {
   const {
     personal,
@@ -77,19 +79,22 @@ export function TeamInvitationForm({
           ) : (
             <p>No code is available on this retry. Use the original code, or create a new invitation if it was lost.</p>
           )}
-          <PageAction
-            label="Create another invitation"
-            disabled={disabled}
-            onClick={() => {
-              keyRef.current = null;
-              setRecorded(null);
-              setPersonal([]);
-              setDelegatable([]);
-              setDeadline('');
-              setExpiry('');
-              checks.reset();
-            }}
-          />
+          <FormActions>
+            <PageAction label="Done" disabled={disabled} onClick={onCancel} />
+            <PageAction
+              label="Create another invitation"
+              disabled={disabled}
+              onClick={() => {
+                keyRef.current = null;
+                setRecorded(null);
+                setPersonal([]);
+                setDelegatable([]);
+                setDeadline('');
+                setExpiry('');
+                checks.reset();
+              }}
+            />
+          </FormActions>
         </div>
       </>
     );
@@ -145,7 +150,7 @@ export function TeamInvitationForm({
           )}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field {...checks.field('deadline')} label="Invitation deadline (UTC, optional)">
+          <Field {...checks.field('deadline')} label="Invitation deadline (UTC)">
             <TextInput
               type="date"
               min={utcToday()}
@@ -156,7 +161,7 @@ export function TeamInvitationForm({
               onChange={(event) => change(() => setDeadline(event.target.value))}
             />
           </Field>
-          <Field {...checks.field('expiry')} label="Appointment expiry (UTC, optional)">
+          <Field {...checks.field('expiry')} label="Appointment expiry (UTC)">
             <TextInput
               type="date"
               min={utcToday()}
@@ -176,6 +181,7 @@ export function TeamInvitationForm({
           </p>
         )}
         <FormActions>
+          <PageAction label="Cancel" disabled={busy} onClick={onCancel} />
           <PageAction
             type="submit"
             label="Create invitation"

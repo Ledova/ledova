@@ -117,13 +117,6 @@ class Round:
     notes: str = ""
     applications: tuple = ()
 
-    @property
-    def scaled_back(self):
-        return any(
-            application.allotted is not None and application.allotted < application.quantity
-            for application in self.applications
-        )
-
 
 @dataclass(frozen=True)
 class Request:

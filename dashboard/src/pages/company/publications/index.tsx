@@ -1,44 +1,49 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
 import { Section, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
-import { Page, PageAction } from '@components/Page';
+import { Page } from '@components/Page';
 import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
 import { CompanySelection } from '@pages/company/shared/CompanySelection';
 import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
 
 export default function IssuerPublicationsPage() {
-  const companyRead = useCompanySelection({ ownedOnly: true });
+  const [opening, setOpening] = useState<{ scope: string; company: string | undefined } | null>(null);
+  const companyRead = useCompanySelection({ ownedOnly: true, coordinatedReads: true, pausedScope: opening?.scope });
   return (
-    <CompanyPublications key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`} companyRead={companyRead} />
+    <CompanyPublications
+      key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`}
+      companyRead={companyRead}
+      onOpeningChange={(busy) =>
+        setOpening((current) =>
+          busy
+            ? { scope: companyRead.scopeKey, company: companyRead.companyUuid }
+            : current?.scope === companyRead.scopeKey && current.company === companyRead.companyUuid
+              ? null
+              : current,
+        )
+      }
+    />
   );
 }
 
-function CompanyPublications({ companyRead }: { companyRead: ReturnType<typeof useCompanySelection> }) {
+function CompanyPublications({
+  companyRead,
+  onOpeningChange,
+}: {
+  companyRead: ReturnType<typeof useCompanySelection>;
+  onOpeningChange: (opening: boolean) => void;
+}) {
   const { company } = companyRead;
   const { listing, publications, count, hasError, moreFailed, loadMore, open, openingUuid, openError } =
-    useIssuerPublications(company?.uuid, companyRead);
+    useIssuerPublications(company?.uuid, companyRead, onOpeningChange);
   const blocked = !!companyRead.error || companyRead.isRefreshing || listing.isError || listing.isFetching;
   return (
     <Page
-      narrow
       lede="Staff prepare and publish these records on your company's written instruction."
       loading={companyRead.isLoading || listing.isLoading}
-      actions={
-        <>
-          <PageAction
-            label="Refresh publications"
-            onClick={() => {
-              void companyRead.refetch();
-              if (company) void listing.refetch();
-            }}
-            busy={companyRead.isRefreshing || (listing.isFetching && !listing.isFetchingNextPage)}
-            busyLabel="Refreshing…"
-            disabled={listing.isFetchingNextPage}
-          />
-        </>
-      }
     >
       <CompanySelection read={companyRead} />
       {companyRead.error ? (

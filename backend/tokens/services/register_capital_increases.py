@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, OperationalError
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import ValidationError
 
 from blockchain.models import OutgoingOperation, OutgoingStatus
 from companies.models import Company, CompanyAppointment, CompanyCapability
@@ -30,7 +30,11 @@ from tokens.models import (
     RequestStatus,
     ShareToken,
 )
-from tokens.services.register_authority import register_appointment, register_command
+from tokens.services.register_authority import (
+    readable_token_company_id,
+    register_appointment,
+    register_command,
+)
 from tokens.services.register_decisions import DecisionFamily, _scalar, decide, preview
 from tokens.services.register_evidence import (
     discard,
@@ -45,16 +49,6 @@ INTENT_FIELDS = ("chain_id", "sender", "to", "value", "data")
 
 def _busy(exception):
     return getattr(exception.__cause__, "sqlstate", None) == "55P03"
-
-
-def _company_of(actor, token):
-    with use_operator(), _requester_principal(actor.pk):
-        company_id = (
-            ShareToken.objects.register_readable_by(actor).filter(pk=token).values_list("company_id", flat=True).first()
-        )
-    if company_id is None:
-        raise NotFound("Share class not found.")
-    return company_id
 
 
 def _approval(proposal):
@@ -227,7 +221,7 @@ def prepare_capital_increase(
             "Retain the company's purpose and board reference, with its optional shareholder reference."
         )
     values = {key: value.strip() for key, value in values.items()}
-    company_id = _company_of(actor, token)
+    company_id = readable_token_company_id(actor, token)
     with use_operator(), _requester_principal(actor.pk):
         prior = RegisterCapitalIncrease.objects.filter(pk=operation_id).first()
         captured = ShareToken.objects.get(pk=token, company_id=company_id)

@@ -9,6 +9,7 @@ export function AwardStatus({
   endedVestedShares,
   unvestedRemainingShares,
   remainingUnissuedShares,
+  compact = false,
 }: {
   shares: string;
   vestedShares: string;
@@ -18,6 +19,7 @@ export function AwardStatus({
   endedVestedShares: string;
   unvestedRemainingShares: string;
   remainingUnissuedShares: string;
+  compact?: boolean;
 }) {
   if (
     !hasValidRegisterAwardTotals({
@@ -43,7 +45,8 @@ export function AwardStatus({
   return (
     <div className="space-y-3">
       <p className="text-sm text-text-muted">
-        {shareCount(shares)} promised · {formatShareCount(vestedShares)} company-recorded vested
+        {shareCount(shares)} promised
+        {!compact && ` · ${formatShareCount(vestedShares)} company-recorded vested`}
       </p>
       <div
         role="img"
@@ -60,16 +63,19 @@ export function AwardStatus({
         ))}
       </div>
       <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-        {parts.map((part) => (
-          <div key={part.label} className="min-w-0">
-            <dt className="text-text-muted">{part.label}</dt>
-            <dd className="break-words font-medium tabular-nums">{shareCount(String(part.quantity))}</dd>
-          </div>
-        ))}
+        {parts
+          .filter((part) => !compact || part.quantity > 0n)
+          .map((part) => (
+            <div key={part.label} className="min-w-0">
+              <dt className="text-text-muted">{part.label}</dt>
+              <dd className="break-words font-medium tabular-nums">{shareCount(String(part.quantity))}</dd>
+            </div>
+          ))}
       </dl>
       <p className="text-xs text-text-muted">
-        {shareCount(remainingUnissuedShares)} {remainingUnissuedShares === '1' ? 'remains' : 'remain'} unissued. Issued
-        award shares are already included in the holding.
+        {!compact &&
+          `${shareCount(remainingUnissuedShares)} ${remainingUnissuedShares === '1' ? 'remains' : 'remain'} unissued. `}
+        Issued award shares are already included in the holding.
       </p>
     </div>
   );

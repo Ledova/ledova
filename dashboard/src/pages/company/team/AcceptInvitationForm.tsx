@@ -17,11 +17,13 @@ export function AcceptInvitationForm({
   guard,
   onRecorded,
   onBusy,
+  onCancel,
 }: {
   disabled: boolean;
   guard: () => void;
   onRecorded: () => void;
   onBusy: (value: boolean) => void;
+  onCancel: () => void;
 }) {
   const { code, setCode, accepted, setAccepted, busy, error, setError, receipt, setReceipt, send } =
     useAcceptInvitationForm({
@@ -85,6 +87,7 @@ export function AcceptInvitationForm({
       )}
       <Outcome>{receipt}</Outcome>
       <FormActions>
+        <PageAction label={receipt ? 'Done' : 'Cancel'} disabled={busy} onClick={onCancel} />
         <PageAction
           type="submit"
           label="Accept invitation"

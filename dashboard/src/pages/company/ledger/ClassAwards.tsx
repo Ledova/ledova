@@ -12,7 +12,7 @@ import {
 import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
 import { AwardRecord } from './AwardRecord';
-import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
+import { ownAppointmentsKey, READ_TIMING, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { registerKey } from '@hooks/useRegisterAccess';
 import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import {
@@ -24,7 +24,6 @@ import {
 } from '@pages/company/ledger/shared/useRegisterAwards';
 import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
 import { LoadError, Loading, Section } from '@components/Ledger';
-import { useAwardFreshness } from './useAwardFreshness';
 
 export function ClassAwards({
   owner,
@@ -35,7 +34,6 @@ export function ClassAwards({
   active = true,
   onHeldChange,
   onEditingChange,
-  pauseFreshness = false,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
@@ -45,7 +43,6 @@ export function ClassAwards({
   active?: boolean;
   onHeldChange?: (token: string, held: boolean) => void;
   onEditingChange?: (token: string, editing: boolean) => void;
-  pauseFreshness?: boolean;
 }) {
   const client = useQueryClient();
   const [editing, setEditing] = useState(false);
@@ -57,6 +54,7 @@ export function ClassAwards({
   const preparation = useRef<HTMLDivElement>(null);
   const prepareAction = useRef<HTMLButtonElement>(null);
   const live = useRef(true);
+  const entered = useRef(false);
   const heldCallback = useRef(onHeldChange);
   const editingCallback = useRef(onEditingChange);
   useLayoutEffect(() => {
@@ -101,6 +99,10 @@ export function ClassAwards({
     !appointments.isError;
   const held = formHeld || Object.values(recordHolds).some(Boolean);
   const editorOpen = editing || Object.values(recordEdits).some(Boolean);
+  const entryRead = useRef({ active, sourceReady, held, editorOpen });
+  useLayoutEffect(() => {
+    entryRead.current = { active, sourceReady, held, editorOpen };
+  }, [active, sourceReady, held, editorOpen]);
   useLayoutEffect(() => {
     editingCallback.current = onEditingChange;
     onEditingChange?.(token, editorOpen);
@@ -120,6 +122,7 @@ export function ClassAwards({
   }, [onHeldChange, token, held]);
   useLayoutEffect(() => () => heldCallback.current?.(token, false), [token]);
   const refresh = async (throwOnError = false, available?: () => boolean) => {
+    if (available && !available()) return;
     await appointments.refetch({ cancelRefetch: false, throwOnError });
     guard();
     const current = client.getQueryState<OwnCompanyAppointment[]>(ownAppointmentsKey(owner));
@@ -154,15 +157,41 @@ export function ClassAwards({
       client.invalidateQueries({ queryKey: grantsKey(owner, token) }),
     ]);
   };
-  useAwardFreshness({
-    owner,
-    token,
-    guard,
-    active,
-    sourceReady,
-    held,
-    editing: editorOpen || pauseFreshness,
-    refreshRecords: (available) => refresh(true, available),
+  useEffect(() => {
+    if (!active) {
+      entered.current = false;
+      return;
+    }
+    if (
+      entered.current ||
+      !sourceReady ||
+      held ||
+      editorOpen ||
+      [appointments, awards, grants].some((read) => read.isFetching || read.isPending)
+    )
+      return;
+    entered.current = true;
+    const keys = [
+      ownAppointmentsKey(owner),
+      awardsKey(owner, token),
+      grantsKey(owner, token),
+      ...(awards.data ?? []).flatMap((award) => [
+        awardVestingsKey(owner, award.uuid),
+        awardEndsKey(owner, award.uuid),
+        awardVestingReversalsKey(owner, award.uuid),
+      ]),
+    ];
+    const stale = keys.some((queryKey) => {
+      const query = client.getQueryCache().find({ queryKey, exact: true });
+      return query?.state.status === 'success' && query.isStaleByTime(READ_TIMING.staleTime);
+    });
+    const available = () =>
+      live.current &&
+      entryRead.current.active &&
+      entryRead.current.sourceReady &&
+      !entryRead.current.held &&
+      !entryRead.current.editorOpen;
+    if (stale) void refresh(true, available).catch(() => {});
   });
   const status = (
     <>
@@ -174,7 +203,8 @@ export function ClassAwards({
       {appointments.isSuccess && readable && !appointment && (
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
-      {appointments.isError ? null : !appointments.isSuccess || (readable && awards.isPending) ? (
+      {appointments.isError ? null : !appointments.isSuccess ||
+        (readable && (awards.isPending || awards.isFetching || appointments.isFetching)) ? (
         <Loading>Loading employee awards…</Loading>
       ) : !readable ? (
         <p className="text-sm text-text-muted">
@@ -212,7 +242,18 @@ export function ClassAwards({
         {status}
         <div hidden={editing} className="space-y-4">
           {visible && awards.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
-          <ul hidden={!awards.data?.length} className="space-y-4">
+          {visible && !!awards.data?.length && (
+            <div
+              aria-hidden="true"
+              className="hidden grid-cols-[minmax(0,1fr)_repeat(3,7rem)] gap-6 pl-7 text-xs font-medium text-text-muted md:grid"
+            >
+              <span>Recipient</span>
+              <span className="text-right">Promised</span>
+              <span className="text-right">Vested</span>
+              <span className="text-right">Issued</span>
+            </div>
+          )}
+          <ul aria-label="Employee awards" hidden={!awards.data?.length}>
             {awards.data?.map((award) => (
               <AwardRecord
                 key={award.uuid}

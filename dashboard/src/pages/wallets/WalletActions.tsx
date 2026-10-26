@@ -28,7 +28,7 @@ export function WalletActions({
   onDelete,
 }: WalletActionsProps) {
   return (
-    <div role="group" aria-label={label} className="flex flex-wrap items-center gap-2">
+    <div role="group" aria-label={label} className="flex flex-wrap items-center justify-end gap-2">
       <PageAction label="Edit" onClick={onEdit} />
       {canVerify && <PageAction label={refreshProof ? 'Refresh possession proof' : 'Verify'} onClick={onVerify} />}
       {canDerive && <PageAction label="Derive address" onClick={onDerive} />}

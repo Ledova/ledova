@@ -25,6 +25,7 @@ import { OrdersPanel } from './OrdersPanel';
 import { PlaceOrderPanel } from './PlaceOrderPanel';
 import { useTradingEvents } from './useTradingEvents';
 import { Page, PageAction } from '@components/Page';
+import { useAutomaticReads } from '@hooks/useAutomaticReads';
 import { Outcome, Section, LoadError } from '@components/Ledger';
 
 function TradingPage() {
@@ -32,6 +33,15 @@ function TradingPage() {
   const submissions = useOrderSubmissions(orderSubmissionStore);
   const actions = useOrderActions(orderActionStore);
   const settlements = useSwapSettlements(swapSettlementStore, swapSettlementCrypto);
+  const savedWorkReading = submissions.isLoading || actions.isLoading || settlements.isLoading;
+  const refreshSavedWork = () => Promise.all([submissions.refresh(), actions.refresh(), settlements.refresh()]);
+  useAutomaticReads({
+    scope: submissions.owner ? `${submissions.owner.userUuid}/${submissions.owner.ownerAccountUuid}` : null,
+    paused: submissions.isStarting || !!submissions.active || !!actions.active || !!settlements.active,
+    refresh: async (available) => {
+      if (available()) await refreshSavedWork();
+    },
+  });
   const closeSettlement = useRef(settlements.close);
   useLayoutEffect(() => {
     closeSettlement.current = settlements.close;
@@ -206,11 +216,17 @@ function TradingPage() {
     handleCloseOrderSigningFlow();
   };
 
-  const savedWorkAlerts = [submissions.error, actions.error, swapSelectionError, settlements.error].filter(
+  const savedReadErrors = [submissions.error, actions.error, settlements.error].filter(
     (message): message is string => !!message,
   );
+  const savedWorkAlerts = [swapSelectionError].filter((message): message is string => !!message);
   const hasSavedWork =
-    submissions.pending.length + actions.pending.length + settlements.pending.length + savedWorkAlerts.length > 0;
+    submissions.pending.length +
+      actions.pending.length +
+      settlements.pending.length +
+      savedWorkAlerts.length +
+      savedReadErrors.length >
+    0;
 
   return (
     <Page>
@@ -346,16 +362,11 @@ function TradingPage() {
               </div>
             </>
           )}
-          <PageAction
-            label="Refresh saved work"
-            busy={submissions.isLoading || actions.isLoading || settlements.isLoading}
-            busyLabel="Refreshing…"
-            onClick={() => {
-              void submissions.refresh();
-              void actions.refresh();
-              void settlements.refresh();
-            }}
-          />
+          {savedReadErrors.length > 0 && (
+            <LoadError retry={refreshSavedWork} busy={savedWorkReading}>
+              {savedReadErrors.join(' ')}
+            </LoadError>
+          )}
         </Section>
       )}
       {selectedToken && (

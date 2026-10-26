@@ -1,12 +1,11 @@
-import { SelectField } from '@components/SelectField';
-import type { MouseEvent } from 'react';
+import { useRef, type MouseEvent } from 'react';
 import { apiErrorSentence, formatDate, type Company, type CompanyDocument } from '@ledova/shared';
 import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { Modal } from '@components/Modal';
 import { useCompanyDocuments } from './useCompanyDocuments';
 import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
-import { UploadModal } from './UploadModal';
+import { CompanyDocumentForm } from './CompanyDocumentForm';
 
 function DocumentRecord({
   document,
@@ -22,12 +21,14 @@ function DocumentRecord({
   onRemove: (document: CompanyDocument) => void;
 }) {
   return (
-    <div className="space-y-2 text-sm">
-      <p className="break-all text-text-primary">{document.name}</p>
-      <p className="text-text-muted">
-        Uploaded {formatDate(document.createdAt)} · {document.isVerified ? 'Verified' : 'Not verified'}
-      </p>
-      <div className="flex flex-wrap items-center gap-2 break-all">
+    <div className="grid items-start gap-3 text-sm sm:grid-cols-[minmax(0,1fr)_auto]">
+      <div className="space-y-1">
+        <p className="break-all text-text-primary">{document.name}</p>
+        <p className="text-text-muted">
+          Uploaded {formatDate(document.createdAt)} · {document.isVerified ? 'Verified' : 'Not verified'}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center justify-end gap-2 break-all">
         {document.fileUrl && (
           <a
             href={document.fileUrl}
@@ -36,11 +37,11 @@ function DocumentRecord({
             className="break-all text-brand-light underline"
             onClick={(event) => onView(document, event)}
           >
-            View {document.name}
+            View <span className="sr-only">{document.name}</span>
           </a>
         )}
         {editable && (
-          <PageAction label={`Remove ${document.name}`} disabled={!ready} onClick={() => onRemove(document)} />
+          <PageAction label="Remove" context={document.name} disabled={!ready} onClick={() => onRemove(document)} />
         )}
       </div>
     </div>
@@ -71,13 +72,17 @@ export function CompanyDocuments({
     populatedTypes,
     availableTypes,
     uploadChoice,
-    setSelectedType,
     viewDocument,
     removeDocument,
     upload,
     setUpload,
     setRemoving,
   } = useCompanyDocuments({ company, read, editable, refresh, onAction });
+  const uploadAction = useRef<HTMLButtonElement>(null);
+  const closeUpload = () => {
+    setUpload(null);
+    requestAnimationFrame(() => uploadAction.current?.focus());
+  };
   return (
     <>
       {!read.error && !read.isRefreshing && !read.canAdmin && (
@@ -85,56 +90,62 @@ export function CompanyDocuments({
           Current company administration is required to access company documents.
         </p>
       )}
-      {!read.error && read.canAdmin && (
+      {((!read.error && read.canAdmin) || upload) && (
         <div ref={documentsSection} id="documents" className="scroll-mt-4">
-          <Section title="Company documents">
-            <p className="text-sm text-text-muted">
-              Upload supporting documents when needed. Company setup does not require an upload; use Other documents for
-              representative authority records. Company administrators can access them; they do not change your
-              appointment or permissions.
-            </p>
-            {populatedTypes.length === 0 ? (
-              <p className="text-sm text-text-muted">No supporting documents yet.</p>
-            ) : (
-              <ul className="divide-y divide-border-subtle">
-                {populatedTypes.map(({ type, label, documents }) => (
-                  <li key={type} className="space-y-4 py-4">
-                    <h3 className="text-sm font-medium text-text-primary">{label}</h3>
-                    {documents.map((document) => (
-                      <DocumentRecord
-                        key={document.uuid}
-                        document={document}
-                        editable={editable}
-                        ready={ready}
-                        onView={viewDocument}
-                        onRemove={removeDocument}
-                      />
-                    ))}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {editable && (
-              <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <SelectField
-                  label="Document type"
-                  options={availableTypes.map(({ type, label }) => ({ value: type, label }))}
-                  value={uploadChoice?.type ?? 'other'}
-                  disabled={!ready}
-                  onChange={(value) => {
-                    const choice = availableTypes.find((item) => item.type === value);
-                    if (choice) setSelectedType(choice.type);
-                  }}
-                />
-                <PageAction
-                  label="Upload document"
-                  primary
-                  disabled={!ready || !uploadChoice}
-                  onClick={() => uploadChoice && setUpload({ type: uploadChoice.type, label: uploadChoice.label })}
-                />
-              </div>
+          <Section title={upload ? 'Upload document' : 'Supporting documents'}>
+            <div hidden={!!upload} className="space-y-4">
+              <p className="text-sm text-text-muted">Private supporting documents for company administrators.</p>
+              {populatedTypes.length === 0 ? (
+                <p className="text-sm text-text-muted">No supporting documents yet.</p>
+              ) : (
+                <ul className="divide-y divide-border-subtle">
+                  {populatedTypes.map(({ type, label, documents }) => (
+                    <li key={type} className="space-y-4 py-4">
+                      <h3 className="text-sm font-medium text-text-primary">{label}</h3>
+                      {documents.map((document) => (
+                        <DocumentRecord
+                          key={document.uuid}
+                          document={document}
+                          editable={editable}
+                          ready={ready}
+                          onView={viewDocument}
+                          onRemove={removeDocument}
+                        />
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {upload && (
+              <CompanyDocumentForm
+                key={company.uuid}
+                companyUuid={company.uuid}
+                documentType={upload.type}
+                documentTypes={availableTypes}
+                onTypeChange={(type) => {
+                  const choice = availableTypes.find((item) => item.type === type);
+                  if (choice) setUpload({ type: choice.type, label: choice.label });
+                }}
+                label={upload.label}
+                canUpload={ready}
+                read={read}
+                onClose={closeUpload}
+                onSuccess={refresh}
+              />
             )}
           </Section>
+          {editable && !upload && (
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <PageAction
+                ref={uploadAction}
+                label="Upload document"
+                primary
+                disabled={!ready || !uploadChoice}
+                onClick={() => uploadChoice && setUpload({ type: uploadChoice.type, label: uploadChoice.label })}
+              />
+            </div>
+          )}
         </div>
       )}
       {error && (
@@ -174,18 +185,6 @@ export function CompanyDocuments({
             </p>
           )}
         </Modal>
-      )}
-      {upload && (
-        <UploadModal
-          key={`${company.uuid}/${upload.type}`}
-          companyUuid={company.uuid}
-          documentType={upload.type}
-          label={upload.label}
-          canUpload={ready}
-          read={read}
-          onClose={() => setUpload(null)}
-          onSuccess={refresh}
-        />
       )}
     </>
   );

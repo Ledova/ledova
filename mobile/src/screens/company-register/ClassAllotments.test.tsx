@@ -436,8 +436,13 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   await fireEvent.press(view.getByRole('button', { name: 'Retry external allotments' }));
   await view.findByText('entry-a');
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
+  const privateReads = () =>
+    get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS || url === URLS.REGISTER_GRANTS).length;
+  const readsBefore = privateReads();
   await returnToApp();
   await waitFor(() => expect(view.queryByText('entry-a')).toBeNull());
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(privateReads()).toBe(readsBefore);
   expect(view.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
   appointments = [
     { ...APPOINTMENT, capabilities: ['approve', 'read_register'] },

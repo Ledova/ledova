@@ -42,6 +42,7 @@ line, which nobody diffs between runs.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -55,25 +56,26 @@ WORKSPACES = ("dashboard", "site", "mobile", "packages/shared")
 # coverage. Discovery closes that end, and NOT_A_WORKSPACE states the exceptions rather
 # than leaving them to the list's silence.
 NOT_A_WORKSPACE = {
-    "contracts": "Hardhat's own TypeScript, type-checked by `npm --prefix contracts run compile`.",
+    "contracts": "Type-checked after Hardhat generates typings by `npm --prefix contracts run compile` in `make build`.",
 }
 
-SKIPPED_DIRECTORIES = frozenset({"node_modules", ".git", "dist", "build", ".next", "coverage"})
+SKIPPED_DIRECTORIES = frozenset({"node_modules", ".git", ".claude", ".codex", "dist", "build", ".next", "coverage"})
 
 
 def undeclared_workspaces() -> list[str]:
     """Directories that look like a type-checked workspace and are not in WORKSPACES."""
     found = []
-    for manifest in sorted(ROOT.rglob("package.json")):
-        if any(part in SKIPPED_DIRECTORIES for part in manifest.parts):
+    for current, directories, files in os.walk(ROOT):
+        directories[:] = sorted(name for name in directories if name not in SKIPPED_DIRECTORIES)
+        if "package.json" not in files:
             continue
-        directory = manifest.parent
+        directory = Path(current)
         if directory == ROOT or not (directory / "tsconfig.json").exists():
             continue
         name = directory.relative_to(ROOT).as_posix()
         if name not in WORKSPACES and name not in NOT_A_WORKSPACE:
             found.append(name)
-    return found
+    return sorted(found)
 BUILD_MODE = re.compile(r"(^|\s)(-b|--build)(\s|$)")
 LINE_COMMENT = re.compile(r"(^|\s)//.*$", re.MULTILINE)
 BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)

@@ -1,6 +1,8 @@
+import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useCallback, useEffect } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
-import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { Disclosure, Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
+import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
@@ -47,7 +49,15 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterCapitalIncreaseSnapshot 
   );
 }
 
-function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; commands: Commands }) {
+function CapitalRecord({
+  record,
+  commands,
+  onHeldChange,
+}: {
+  record: RegisterCapitalIncrease;
+  commands: Commands;
+  onHeldChange: (uuid: string, held: boolean) => void;
+}) {
   const { error, busy, download, execution } = useCapitalRecord({ record, commands });
   return (
     <div className="space-y-3 border-t border-border py-4">
@@ -112,6 +122,7 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
+        onHeldChange={onHeldChange}
         context={`capital ${shortReference(record.uuid)}`}
       >
         {(preview) => (
@@ -125,8 +136,9 @@ function CapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; 
   );
 }
 
-function Preparation({ commands }: { commands: Commands }) {
+function Preparation({ commands, onEditingChange }: { commands: Commands; onEditingChange: (held: boolean) => void }) {
   const {
+    draft,
     before,
     setBefore,
     additional,
@@ -148,15 +160,26 @@ function Preparation({ commands }: { commands: Commands }) {
     submit,
   } = useCapitalPreparation({ commands });
   const checks = useErrorSummary(problems);
+  useEffect(() => {
+    onEditingChange(draft.active);
+    return () => onEditingChange(false);
+  }, [draft, onEditingChange]);
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company capital increase</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
-      <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      <p className="text-sm">Captured authorised cap: {formatShareCount(before)}</p>
+      <div className="min-w-0 sm:col-span-2">
+        <Disclosure summary="Record details">
+          <Rows>
+            <Row label="Captured authorised cap">
+              <span className="min-w-0 break-all">{formatShareCount(before)}</span>
+            </Row>
+          </Rows>
+        </Disclosure>
+      </div>
       {commands.source?.totalSupply !== before && (
         <PageAction
           label="Use current authorised cap"
@@ -175,8 +198,8 @@ function Preparation({ commands }: { commands: Commands }) {
           onChange={(event) => setAdditional(event.target.value)}
         />
       </Field>
-      {total !== null && <p className="text-sm">New authorised cap: {formatShareCount(total)}</p>}
-      <Field {...checks.field('purpose')} label="Purpose">
+      {total !== null && <p className="min-w-0 break-all text-sm">New authorised cap: {formatShareCount(total)}</p>}
+      <Field {...checks.field('purpose')} label="Purpose" className="sm:col-span-2">
         <TextArea value={purpose} onChange={(event) => setPurpose(event.target.value)} />
       </Field>
       <Field {...checks.field('board')} label="Board resolution reference">
@@ -194,6 +217,7 @@ function Preparation({ commands }: { commands: Commands }) {
         />
       </Field>
       <FileField
+        showUploadHint={false}
         {...checks.field('file')}
         label="Capital authority document"
         onFile={(chosen) => {
@@ -207,38 +231,59 @@ function Preparation({ commands }: { commands: Commands }) {
           {error}
         </p>
       )}
-      <PageAction
-        label="Prepare capital increase"
-        busy={busy}
-        busyLabel="Preparing…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery}
-        onClick={() => {
-          if (checks.check()) void submit();
-        }}
-      />
+      <div className="sm:col-span-2">
+        <FormActions>
+          <PageAction
+            label="Prepare capital increase"
+            busy={busy}
+            busyLabel="Preparing…"
+            disabled={waiting || !commands.canPrepare || !!commands.recovery}
+            onClick={() => {
+              if (checks.check()) void submit();
+            }}
+          />
+        </FormActions>
+      </div>
     </fieldset>
   );
 }
 
-export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
+export function CompanyCapitalFlow({
+  uuid,
+  data,
+  active = true,
+}: {
+  uuid: string;
+  data: ReturnType<typeof useShareClass>;
+  active?: boolean;
+}) {
+  const onEditingChange = useCallback((held: boolean) => data.holdReads('capital/draft', held), [data.holdReads]);
+  const onHeldChange = useCallback(
+    (uuid: string, held: boolean) => data.holdReads('capital/decision/' + uuid, held),
+    [data.holdReads],
+  );
   const commands = useCompanyCapitalIncreases(uuid, {
     token: data.token.data,
     tokenKey: data.tokenKey,
     newKey: () => crypto.randomUUID(),
+    coordinatedReads: true,
+    paused: data.readingPaused,
+    onPrepared: () => onEditingChange(false),
+  });
+  useEffect(() => {
+    data.holdReads('capital/request', commands.working || !!commands.recovery);
+    return () => data.holdReads('capital/request', false);
+  }, [commands.working, commands.recovery, data.holdReads]);
+  useAutomaticReads({
+    scope: active && commands.owner ? data.scopeKey + '/capital' : null,
+    paused: data.readingPaused || commands.readingPaused,
+    refresh: commands.refresh,
   });
   if (!commands.owner) return null;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      {!(commands.appointments.isError || (commands.visible && commands.instructions.isError)) && (
-        <PageAction
-          label="Refresh company capital records"
-          busy={commands.instructions.isFetching || commands.appointments.isFetching}
-          busyLabel="Refreshing…"
-          disabled={commands.busy}
-          onClick={() => void commands.refresh()}
-        />
-      )}
+
       {commands.appointments.isError ? (
         <LoadError retry={() => commands.refresh()} busy={commands.appointments.isFetching}>
           Your appointments could not be loaded.
@@ -271,7 +316,7 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
       )}
       {!!commands.company && (
         <div hidden={!commands.visible || !commands.steps.prepare}>
-          <Preparation key={commands.scopeKey} commands={commands} />
+          <Preparation key={commands.scopeKey} commands={commands} onEditingChange={onEditingChange} />
         </div>
       )}
       {commands.visible && commands.recovery && (
@@ -289,7 +334,7 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
       )}
       {commands.visible && commands.error && <p role="alert">{commands.error}</p>}
       {commands.records.map((record) => (
-        <CapitalRecord key={record.uuid} record={record} commands={commands} />
+        <CapitalRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
       ))}
     </Section>
   );
