@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import {
@@ -47,9 +47,18 @@ export function useMemberParticulars(read: Read) {
     return query && !query.isError ? (query.data ?? []).filter(isWaiting) : [];
   };
   const refetch = useCallback(
-    () => client.refetchQueries({ queryKey: [scope, profile, account, epoch, 'particulars'] }),
+    (uuid?: string) =>
+      client.refetchQueries({
+        queryKey: [scope, profile, account, epoch, 'particulars', ...(uuid ? [uuid] : [])],
+      }),
     [client, scope, profile, account, epoch],
   );
+  const { busy, selectedUuid } = read;
+  const acting = useRef(busy);
+  useEffect(() => {
+    if (acting.current && !busy && selectedUuid) void refetch(selectedUuid);
+    acting.current = busy;
+  }, [busy, selectedUuid, refetch]);
   const seen = useRef(false);
   useFocusEffect(
     useCallback(() => {

@@ -142,6 +142,7 @@ export function SettingsScreen({ onNotifications }: { onNotifications: () => voi
             {read.records.length > 0 && (
               <LinkRow
                 label="Details at each company"
+                accessibilityLabel={`Details at each company${particulars.waitingCount > 0 ? `, ${particulars.waitingCount} ${particulars.waitingCount === 1 ? 'change' : 'changes'} waiting` : ''}`}
                 onPress={() => navigation.navigate('MainApp', { screen: 'YourDetails' })}
               >
                 {particulars.waitingCount > 0 && (

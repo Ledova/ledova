@@ -14,12 +14,23 @@ import { shortName } from './holdings';
 import { MemberNotice, useMemberRecordsState } from './MemberRecordsProvider';
 import { isWaiting, useMemberParticulars } from './useMemberParticulars';
 
-interface Batch {
+interface Change {
   name: string;
   address: string;
-  queue: string[];
-  stopped: string | null;
 }
+
+interface Company {
+  uuid: string;
+  name: string;
+}
+
+interface Batch extends Change {
+  queue: Company[];
+  stopped: Company | null;
+}
+
+const matches = (particulars: { name: string; residentialAddress: string }, change: Change) =>
+  particulars.name === change.name && particulars.residentialAddress === change.address;
 
 export function YourDetailsScreen() {
   const theme = useAppTheme();
@@ -40,34 +51,32 @@ export function YourDetailsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const sending = useRef(false);
   const companies = [...read.records].sort((a, b) => a.company.name.localeCompare(b.company.name));
-  const nameOf = (uuid: string | null | undefined) =>
-    shortName(read.records.find((record) => record.uuid === uuid)?.company.name ?? 'this company');
   const { requestParticulars, selectedUuid } = read;
   const { refetch } = particulars;
   useEffect(() => {
     if (!batch || batch.stopped || sending.current || !focused) return;
     const next = batch.queue[0];
     if (!next || read.busy || read.retry || !read.listReady) return;
-    if (!read.records.some((record) => record.uuid === next)) {
-      setBatch((current) => current && { ...current, queue: current.queue.slice(1) });
+    const skip = () => setBatch((current) => current && { ...current, queue: current.queue.slice(1) });
+    if (!read.records.some((record) => record.uuid === next.uuid)) {
+      skip();
       return;
     }
-    if (selectedUuid !== next) {
-      select(next);
+    if (selectedUuid !== next.uuid) {
+      select(next.uuid);
       return;
     }
     if (read.readFailed) {
       setBatch((current) => current && { ...current, stopped: next });
       return;
     }
-    if (read.record?.uuid !== next || !read.requests) return;
+    if (read.record?.uuid !== next.uuid || !read.requests) return;
     if (
-      read.requests.particulars.some(
-        (request) => isWaiting(request) && request.name === batch.name && request.residentialAddress === batch.address,
-      )
+      matches(read.record, batch) ||
+      read.requests.particulars.some((request) => isWaiting(request) && matches(request, batch))
     ) {
-      setBatch((current) => current && { ...current, queue: current.queue.slice(1) });
-      void refetch();
+      skip();
+      void refetch(next.uuid);
       return;
     }
     sending.current = true;
@@ -77,7 +86,6 @@ export function YourDetailsScreen() {
         (current) =>
           current && (confirmed ? { ...current, queue: current.queue.slice(1) } : { ...current, stopped: next }),
       );
-      void refetch();
     });
   }, [
     batch,
@@ -95,17 +103,15 @@ export function YourDetailsScreen() {
     refetch,
   ]);
   const held = read.busy || !!read.retry;
-  const waitsAt = (uuid: string, name: string, address: string) =>
-    particulars.waitingAt(uuid).some((request) => request.name === name && request.residentialAddress === address);
-  const targets = form
-    ? companies.filter((record) => !waitsAt(record.uuid, form.name.trim(), form.address.trim()))
-    : [];
+  const has = (record: (typeof companies)[number], change: Change) =>
+    matches(record, change) || particulars.waitingAt(record.uuid).some((request) => matches(request, change));
+  const change = form && { name: form.name.trim(), address: form.address.trim() };
+  const targets = change ? companies.filter((record) => !has(record, change)) : [];
   const send = () => {
-    if (!form) return;
+    if (!change) return;
     setBatch({
-      name: form.name.trim(),
-      address: form.address.trim(),
-      queue: targets.map((record) => record.uuid),
+      ...change,
+      queue: targets.map((record) => ({ uuid: record.uuid, name: shortName(record.company.name) })),
       stopped: null,
     });
     setForm(null);
@@ -115,9 +121,8 @@ export function YourDetailsScreen() {
     setRefreshing(true);
     void Promise.all([read.refresh(), refetch()]).finally(() => setRefreshing(false));
   };
-  const running = !!batch && !batch.stopped && batch.queue.length > 0;
-  const matching = ({ name, address }: Batch) =>
-    companies.filter((record) => waitsAt(record.uuid, name, address)).length;
+  const shown = !!read.owner && read.listReady && !particulars.loading && companies.length > 0;
+  const next = batch && !batch.stopped ? batch.queue[0] : undefined;
   return (
     <Page
       testID="your-details-scroll"
@@ -128,11 +133,11 @@ export function YourDetailsScreen() {
       }
     >
       <MemberNotice read={read} />
-      {read.loading || (!read.listReady && !read.error) || particulars.loading ? (
+      {!read.owner ? (
+        <Text style={styles.muted}>Check your signed-in account before opening your details.</Text>
+      ) : read.loading || (!read.listReady && !read.error) || particulars.loading ? (
         <Text style={styles.muted}>Loading your details…</Text>
-      ) : companies.length === 0 ? (
-        <Text style={styles.muted}>No company records you as a member yet.</Text>
-      ) : (
+      ) : companies.length > 0 ? (
         <>
           {particulars.failed && (
             <Text accessibilityRole="alert" style={styles.error}>
@@ -165,80 +170,89 @@ export function YourDetailsScreen() {
               })}
             </Rows>
           </View>
-          {batch ? (
-            <View style={look.group}>
-              {running ? (
-                <Text style={styles.text}>Sending to {nameOf(batch.queue[0])}…</Text>
-              ) : batch.stopped ? (
-                <>
-                  <Text style={styles.text}>
-                    Stopped at {nameOf(batch.stopped)}.{' '}
-                    {read.retry ? 'Retry the interrupted request, then continue.' : 'Continue with the others.'}
-                  </Text>
-                  <Action
-                    label="Continue with the remaining companies"
-                    disabled={held}
-                    onPress={() => {
-                      void refetch();
-                      setBatch((current) => current && { ...current, queue: current.queue.slice(1), stopped: null });
-                    }}
-                  />
-                </>
-              ) : (
-                <>
-                  <Text style={styles.text}>
-                    This change is now waiting at {matching(batch)} of {companies.length}{' '}
-                    {companies.length === 1 ? 'company' : 'companies'}.
-                  </Text>
-                  <Action label="Done" onPress={() => setBatch(null)} />
-                </>
-              )}
-            </View>
-          ) : form ? (
-            <View style={[card.card, look.group]}>
-              <Text style={styles.muted}>
-                Each company reviews the change separately. Sending it changes no holding or register particulars.
-              </Text>
-              <Field
-                label="Requested name"
-                value={form.name}
-                editable={!held}
-                onChange={(value) => setForm((current) => current && { ...current, name: value, confirmed: false })}
-              />
-              <Field
-                label="Requested residential address"
-                value={form.address}
-                editable={!held}
-                multiline
-                onChange={(value) => setForm((current) => current && { ...current, address: value, confirmed: false })}
-              />
-              <Choice
-                accessibilityRole="checkbox"
-                selected={form.confirmed}
-                disabled={held}
-                label="Share these particulars with each company for review"
-                onPress={() => setForm((current) => current && { ...current, confirmed: !current.confirmed })}
-              />
-              <Action
-                label={
-                  targets.length === 0
-                    ? 'Already waiting at every company'
-                    : `Send to ${targets.length} ${targets.length === 1 ? 'company' : 'companies'}`
-                }
-                primary
-                disabled={held || targets.length === 0 || !form.confirmed || !form.name.trim() || !form.address.trim()}
-                onPress={send}
-              />
-              <Action label="Cancel" disabled={read.busy} onPress={() => setForm(null)} />
-            </View>
-          ) : (
-            <Action
-              label="Change at every company"
-              disabled={held}
-              onPress={() => setForm({ name: '', address: '', confirmed: false })}
-            />
-          )}
         </>
+      ) : (
+        !read.error && <Text style={styles.muted}>No company records you as a member yet.</Text>
+      )}
+      {batch ? (
+        <View style={look.group}>
+          {next ? (
+            <Text accessibilityLiveRegion="polite" style={styles.text}>
+              Sending to {next.name}…
+            </Text>
+          ) : batch.stopped ? (
+            <>
+              <Text accessibilityLiveRegion="polite" style={styles.text}>
+                Stopped at {batch.stopped.name}.{' '}
+                {read.retry ? 'Retry the interrupted request, then continue.' : 'Continue with the others.'}
+              </Text>
+              <Action
+                label="Continue with the remaining companies"
+                disabled={held}
+                onPress={() =>
+                  setBatch((current) => current && { ...current, queue: current.queue.slice(1), stopped: null })
+                }
+              />
+            </>
+          ) : (
+            shown && (
+              <>
+                <Text accessibilityLiveRegion="polite" style={styles.text}>
+                  This change is now waiting or recorded at {companies.filter((record) => has(record, batch)).length} of{' '}
+                  {companies.length} {companies.length === 1 ? 'company' : 'companies'}.
+                </Text>
+                <Action label="Done" onPress={() => setBatch(null)} />
+              </>
+            )
+          )}
+        </View>
+      ) : form ? (
+        shown && (
+          <View style={[card.card, look.group]}>
+            <Text style={styles.muted}>
+              Each company reviews the change separately. Sending it changes no holding or register particulars.
+            </Text>
+            <Field
+              label="Requested name"
+              value={form.name}
+              editable={!held}
+              onChange={(value) => setForm((current) => current && { ...current, name: value, confirmed: false })}
+            />
+            <Field
+              label="Requested residential address"
+              value={form.address}
+              editable={!held}
+              multiline
+              onChange={(value) => setForm((current) => current && { ...current, address: value, confirmed: false })}
+            />
+            <Choice
+              accessibilityRole="checkbox"
+              selected={form.confirmed}
+              disabled={held}
+              label="Share these particulars with each company for review"
+              onPress={() => setForm((current) => current && { ...current, confirmed: !current.confirmed })}
+            />
+            <Action
+              label={
+                targets.length === 0
+                  ? 'Every company already has this change'
+                  : `Send to ${targets.length} ${targets.length === 1 ? 'company' : 'companies'}`
+              }
+              primary
+              disabled={held || targets.length === 0 || !form.confirmed || !change?.name || !change.address}
+              onPress={send}
+            />
+            <Action label="Cancel" disabled={read.busy} onPress={() => setForm(null)} />
+          </View>
+        )
+      ) : (
+        shown && (
+          <Action
+            label="Change at every company"
+            disabled={held}
+            onPress={() => setForm({ name: '', address: '', confirmed: false })}
+          />
+        )
       )}
     </Page>
   );
