@@ -110,8 +110,9 @@ breakdown and terms under **Award details**. This read-only overview is the whol
 **Your details** card, separate from the personal Profile. Pending requests show the requested
 particulars, status and date together;
 completed requests open on demand. Share history, certificates and certificate requests
-are in web **Documents**, without duplicate particulars status. On mobile, each company's page
-shows them. Wallet holdings are on
+are in web **Documents**, without duplicate particulars status. On mobile, each share class's history
+on the company's page shows them, and a change's certificate opens a sheet to request, withdraw or
+share it. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access
@@ -141,7 +142,7 @@ original request
 A member, including an award recipient before any shares are issued, asks the company to change
 their recorded name and residential address: **Settings** → **Company-recorded details** →
 **Request update** on web, then **Send request** (**Request a particulars change**, then
-**Send particulars request** on the company's page on mobile). Sending changes nothing on the register.
+**Send particulars request** under **Your details** on the company's page on mobile). Sending changes nothing on the register.
 On web, the form closes after successful submission and the request appears under **Update requests**.
 Cancel closes an unfinished form without sending it; its draft stays in memory for the same signed-in
 account and company, including navigation through Dashboard and Documents.

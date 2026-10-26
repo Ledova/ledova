@@ -8,7 +8,10 @@ import { FolderIcon, HouseIcon, UserIcon } from 'phosphor-react-native';
 import { useNotifications } from '@ledova/shared';
 import { NotificationsModal } from '../components/notifications';
 import { useAppTheme } from '../contexts';
+import { AwardScreen } from '../screens/holdings/AwardScreen';
+import { ClassScreen } from '../screens/holdings/ClassScreen';
 import { CompanyScreen } from '../screens/holdings/CompanyScreen';
+import { DetailsScreen } from '../screens/holdings/DetailsScreen';
 import { HoldingsScreen } from '../screens/holdings/HoldingsScreen';
 import { MemberRecordsProvider } from '../screens/holdings/MemberRecordsProvider';
 import { PastHoldingsScreen } from '../screens/holdings/PastHoldingsScreen';
@@ -26,6 +29,9 @@ export type TabParamList = {
 export type SignedInStackParamList = {
   Main: NavigatorScreenParams<TabParamList> | undefined;
   Company: { record: string };
+  Class: { record: string; token: string };
+  Award: { record: string; award: string };
+  Details: { record: string };
   PastHoldings: undefined;
   Profile: undefined;
 };
@@ -110,6 +116,9 @@ export function SignedInNavigator() {
             {() => <Tabs onNotifications={() => setShowNotifications(true)} unreadCount={unreadCount} />}
           </Stack.Screen>
           <Stack.Screen name="Company" component={CompanyScreen} options={{ title: '' }} />
+          <Stack.Screen name="Class" component={ClassScreen} options={{ title: '' }} />
+          <Stack.Screen name="Award" component={AwardScreen} options={{ title: '' }} />
+          <Stack.Screen name="Details" component={DetailsScreen} options={{ title: '' }} />
           <Stack.Screen name="PastHoldings" component={PastHoldingsScreen} options={{ title: 'Past holdings' }} />
           <Stack.Screen name="Profile" component={UserProfileScreen} options={{ title: '' }} />
         </Stack.Navigator>

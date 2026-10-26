@@ -61,12 +61,15 @@ pull to refresh that succeeds keeps the screen and any unfinished work. Sign-up'
 the individual role, then pre-screening, personal details, financial profile and review follow; the
 dashboard's routes and guards do not apply.
 
-The signed-in app (`SignedInNavigator`) is a stack holding three bottom tabs and the Company, Past
-holdings and Profile screens. Holdings (`mobile/src/screens/holdings`) shows a card per company with
+The signed-in app (`SignedInNavigator`) is a stack holding three bottom tabs and the Company, Class,
+Award, Details, Past holdings and Profile screens. Holdings (`mobile/src/screens/holdings`) shows a card per company with
 a line per share class and each award's vesting bar, the award parts matching the web's; above six
 companies it becomes a searchable list. Classes with no shares left sit under Past holdings. A
-company opens the Company screen, which keeps the member record's details: entries, awards,
-certificates, requests and the company-recorded particulars. These screens share one member-records
+company opens the Company screen: a row per share class and per award, and Your details. A class
+opens its history, newest change first, with each change's certificate status (Request, Requested
+or Certificate). The status opens a certificate sheet that requests, withdraws (after a
+confirmation) or shares the unsigned PDF. An award opens its terms and recorded vesting, and Your
+details opens the company-recorded particulars and the particulars request. These screens share one member-records
 state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
 original operation, after leaving the company, and the screens show a loading line rather than an
 empty one while the list rereads. Documents opens Notices and Account

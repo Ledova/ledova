@@ -359,6 +359,7 @@ export function useMemberRecords(
     listReady,
     records: listReady ? list.data : [],
     record: ready ? detail.data : null,
+    entriesReady: ready && entries.isSuccess && entries.fetchStatus === 'idle',
     entries: ready && entries.isSuccess && entries.fetchStatus === 'idle' ? entries.data : [],
     requests: ready && requests.isSuccess && requests.fetchStatus === 'idle' ? requests.data : null,
     guardCertificate: (uuid: string) => {

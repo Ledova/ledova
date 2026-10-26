@@ -1,0 +1,119 @@
+import { useState } from 'react';
+import { Text, View } from 'react-native';
+import {
+  REGISTER_CORRECTION_COPY,
+  formatDate,
+  shareChange,
+  type MemberCertificateRequest,
+  type RegisterEntryKind,
+  type useMemberRecords,
+} from '@ledova/shared';
+import { Action } from '../../components/Ledger';
+import { CustomModal } from '../../components/modal';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { CertificateCopy } from './CertificateCopy';
+
+type Read = ReturnType<typeof useMemberRecords>;
+export type Entry = Read['entries'][number];
+
+export type Certificate = 'ready' | 'requested' | 'request' | 'other' | null;
+
+const issueOrTransfer = (entry: Entry) => ['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase());
+
+export const receiving = (entry: Entry) => issueOrTransfer(entry) && BigInt(entry.delta) > 0n;
+
+export const entryKind = (entry: Entry) =>
+  REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind.toLowerCase() as RegisterEntryKind] ?? 'Register change';
+
+export const entryDate = (entry: Entry) =>
+  issueOrTransfer(entry) ? formatDate(entry.companyEventOn, 'Not recorded') : formatDate(entry.effectiveOn);
+
+export function certificateOf(entry: Entry | undefined, latest: MemberCertificateRequest | undefined): Certificate {
+  if (latest?.status === 'fulfilled' && latest.fulfilment) return 'ready';
+  if (latest?.status === 'requested') return 'requested';
+  if (entry && receiving(entry)) return 'request';
+  return latest ? 'other' : null;
+}
+
+export function CertificateSheet({
+  read,
+  className,
+  entry,
+  request,
+  onClose,
+}: {
+  read: Read;
+  className: string;
+  entry?: Entry;
+  request?: MemberCertificateRequest;
+  onClose: () => void;
+}) {
+  const styles = useCompanyStyles();
+  const [confirming, setConfirming] = useState(false);
+  const held = read.busy || !!read.retry;
+  const certificate = certificateOf(entry, request);
+  const finish = (action: Promise<unknown> | null | undefined) => void Promise.resolve(action).finally(onClose);
+  return (
+    <CustomModal
+      visible
+      title="Certificate"
+      busy={read.busy}
+      onClose={onClose}
+      cancelLabel={confirming ? 'Keep request' : 'Close'}
+      onCancel={confirming ? () => setConfirming(false) : undefined}
+      actions={
+        certificate === 'ready' && request ? (
+          <>
+            {entry && receiving(entry) && (
+              <Action
+                label="Request a new certificate"
+                disabled={held}
+                onPress={() => finish(read.requestCertificate(entry.uuid))}
+              />
+            )}
+            <CertificateCopy read={read} request={request} />
+          </>
+        ) : certificate === 'requested' && request ? (
+          confirming ? (
+            <Action
+              label="Withdraw request"
+              primary
+              disabled={held}
+              onPress={() => finish(read.withdraw(request.uuid))}
+            />
+          ) : (
+            <Action label="Withdraw request" disabled={held} onPress={() => setConfirming(true)} />
+          )
+        ) : certificate === 'request' && entry ? (
+          <Action
+            label="Request certificate"
+            primary
+            disabled={held}
+            onPress={() => finish(read.requestCertificate(entry.uuid))}
+          />
+        ) : null
+      }
+    >
+      <View style={styles.group}>
+        <Text style={styles.text}>
+          {entry
+            ? `${className} · ${entryKind(entry)} of ${shareChange(entry.delta)} · ${entryDate(entry)}`
+            : `${className} · requested ${formatDate(request?.createdAt)}`}
+        </Text>
+        <Text style={styles.muted}>
+          {confirming
+            ? 'Withdraw this certificate request? The company stops preparing it.'
+            : certificate === 'ready'
+              ? 'Ready to share. It is an unsigned copy; the company is responsible for executing it.'
+              : certificate === 'requested'
+                ? `Requested ${formatDate(request?.createdAt)}. The company prepares the certificate.`
+                : certificate === 'request'
+                  ? request?.status === 'withdrawn'
+                    ? 'Your earlier request was withdrawn. You can request it again.'
+                    : 'Not requested yet. The company prepares an unsigned copy on request.'
+                  : 'No certificate is available for this change.'}
+        </Text>
+      </View>
+    </CustomModal>
+  );
+}
