@@ -44,6 +44,7 @@ record-management details, with awards separate from issued shares. The company 
 ownership ring beside a linked class list: select a segment or class row to open the existing ranked,
 searchable holder table in the same panel. Hover and keyboard focus highlight the matching segment
 and its exact class quantity in the ring's centre; otherwise the centre shows the company total.
+Keep the ring aligned at the top beside its list, so a long list never pushes it below the overview.
 Keep class colours consistent in both views and through list search and paging. Long class lists
 use shared search and a 25-row pager; small and zero-share classes remain directly selectable.
 **All classes** returns to the overview and restores focus to the class row or class search.

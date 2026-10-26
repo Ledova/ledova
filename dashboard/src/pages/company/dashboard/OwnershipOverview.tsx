@@ -37,7 +37,7 @@ export function OwnershipOverview({ classes, complete, issuedSupply, onSelect, l
       ) : issuedSupply === '0' ? (
         <p className="text-sm text-text-muted">No issued shares yet.</p>
       ) : null}
-      <div className={hasRing ? 'grid min-w-0 gap-6 md:grid-cols-2 md:items-center' : 'min-w-0'}>
+      <div className={hasRing ? 'grid min-w-0 gap-6 md:grid-cols-2 md:items-start' : 'min-w-0'}>
         {hasRing && (
           <OwnershipRing
             classes={classes}
