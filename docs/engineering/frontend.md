@@ -625,7 +625,7 @@ keys, held work, specialised refusal states and the import title remain with the
 
 `packages/shared/src/constants/ui/design-tokens.ts` is the single source of design tokens.
 `buildColors()` turns a palette into the semantic colours the dashboard, the site and mobile all use
-(`surface`, `text`, `brand`, `border` and the status colours), building both themes with the same
+(`surface`, `text`, `brand`, `border`, chart and status colours), building both themes with the same
 names: `THEMES.paper` (from a private paper palette) and `THEMES.dark`. Components need no per-theme
 classes, and every colour must read in both Paper and Dark.
 
@@ -638,8 +638,9 @@ roles ([mobile theme](mobile.md#theme-and-appearance)).
 `make generate-tokens` runs `packages/scripts/generate-css-tokens.mjs` with `tsx` and writes
 `dashboard/src/styles/tokens.css` and `site/src/tokens.css` (raw output, prettier-ignored). Their
 `@theme` block holds the Paper semantic colours, spacing steps and `lg` and `xl` shadows, from which
-Tailwind v4 derives the utilities; web radii, type sizes and font weights are Tailwind's defaults. A
-following `:root[data-theme='dark']` block sets `color-scheme: dark` and each colour variable's Dark
+Tailwind v4 derives the utilities; web radii, type sizes and font weights are Tailwind's defaults.
+A separate `@theme static` block retains the six chart colours selected dynamically by chart code.
+The following `:root[data-theme='dark']` block sets `color-scheme: dark` and each colour variable's Dark
 value; the generator fails if the themes would emit different variables. The site also uses
 `border-border-faint` and `brand-tint`. Never edit either file: `make check`, which CI runs, fails
 when they differ from the generator's `--check` output.
