@@ -5,8 +5,8 @@ import { Disclosure, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent }
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { CompanyReadNotice, CompanyStatusMark } from '@pages/company/shared/CompanyState';
-import { CompanySelection } from '@pages/company/shared/CompanySelection';
+import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
+import { CompanySelection } from '@components/CompanySelection';
 
 export default function ListingPage() {
   const read = useCompanySelection({ personalOnly: true });

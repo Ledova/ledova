@@ -1,6 +1,6 @@
 import { Modal } from '@components/Modal';
 import { apiErrorSentence, type Company } from '@ledova/shared';
-import { CompanyReadNotice, type CompanyActionRead } from '@pages/company/shared/CompanyState';
+import { CompanyReadNotice, type CompanyActionRead } from '@components/CompanyState';
 import { OfferingForm } from './OfferingForm';
 import { type useOfferings } from './useOffering';
 import { useOfferingEditor } from './useOfferingEditor';

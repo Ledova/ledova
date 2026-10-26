@@ -11,7 +11,7 @@ import {
   type DocumentType,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
+import type { CompanyActionRead } from '@components/CompanyState';
 
 export function useCompanyDocuments({
   company,

@@ -53,8 +53,8 @@ The initial appointment gives you Manage company information and team personally
 capabilities as delegatable so that you can build the team afterwards. It records you, the company,
 the declaration version and text and the admission time.
 
-After signup, add optional supporting files at **Settings → Company documents** and invite users at
-**Settings → Company team**; mobile reaches both from **Settings → Company settings**.
+After signup, add optional supporting files at **Settings → Documents** and invite users at
+**Settings → Team**; mobile reaches both from **Settings → Company settings**.
 Later documents do not alter the retained signup request. The company remains Draft until
 activation passes the registry check: registration does not incorporate a company with ASIC,
 appoint a director, activate the company or issue shares. Until then, the **Getting started** list
@@ -87,7 +87,7 @@ Resuming an unfinished signup:
 ## Representative authority requests
 
 An owner of a draft company can also request initial authority outside signup, from
-**Settings → Company team → Representative authority** on web or **Representative authority** on
+**Settings → Team → Representative authority** on web or **Representative authority** on
 the Company page on mobile.
 
 1. Use your verified account and the draft company you own, selecting it explicitly if you own
@@ -111,7 +111,7 @@ the Company page on mobile.
 
 ## Team invitations and appointments
 
-Open the team from **Settings → Company team** on web, or **Company → Company team** or
+Open the team from **Settings → Team** on web, or **Company → Company team** or
 **Settings → Company settings** on mobile. Investor-only accounts can open it too: accepting an
 invitation or reading your appointments needs no company workspace. The web page starts with
 appointments, the selected company's team and issued invitations; **Invite a company user** and
@@ -216,7 +216,7 @@ rechecks the captured details.
 ## Company information and documents
 
 A current company administrator reads and edits the company's basic information at
-**Settings → Company**, and manages supporting files at **Settings → Company documents** on web.
+**Settings → Profile**, and manages supporting files at **Settings → Documents** on web.
 Mobile reaches both from **Settings → Company settings**
 ([Settings](participants.md#profile-and-settings)). If several companies are available, select the
 company explicitly first.
@@ -224,7 +224,7 @@ company explicitly first.
 1. Select the company and read its name, address, contact details and status.
 2. Choose **Edit company** to change the permitted fields inline on web, save, and wait for the confirmed receipt
    and refreshed information.
-3. In **Company documents**, a separate view on web, view a retained file, upload a document of a chosen type, or confirm
+3. In **Documents**, a separate Settings page on web, view a retained file, upload a document of a chosen type, or confirm
    removal of an eligible document. Documents are optional; use Other documents for representative
    authority records.
 
@@ -353,15 +353,16 @@ requirement is separate ([participants](participants.md#account-readiness)).
 
 ## The Company page
 
-Company shows the selected company's details as provided by the company: status, trading name,
-type, ACN, ABN, email (administrators only), phone and address. Administrators see **Edit company**.
+The company section of web **Settings → Profile**, and the native Company page, show the selected
+company's details as provided by the company: status, trading name, type, ACN, ABN, email
+(administrators only), phone and address. Administrators see **Edit company**.
 On the web it also shows the company's UUID in full, with **Copy company UUID**, to give investors
 for their eligibility requests and claims ([requesting a decision](participants.md#requesting-a-decision)).
 
-On web, the Settings sidebar owns navigation to Company, Company documents, Company team and
-Activation, without a repeated Company administration link card. Representative authority is a
-contextual task in Company team. Company eligibility and **Published to your members** remain under
-More, retaining their existing access rules
+On web, Settings opens Profile, combining personal, company and account sections with separate
+editors and permissions. Documents, Team and Activation have their own sidebar items, without a
+repeated Company administration link card. Representative authority is a contextual task in Team.
+Company eligibility and **Published to your members** remain under More, retaining their existing access rules
 ([the Published page](publications.md#the-published-page)).
 
 Mobile keeps its Company administration links to Representative authority, Company team and

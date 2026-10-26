@@ -4,7 +4,7 @@ import { Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { Modal } from '@components/Modal';
 import { useCompanyDocuments } from './useCompanyDocuments';
-import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
+import type { CompanyActionRead } from '@components/CompanyState';
 import { CompanyDocumentForm } from './CompanyDocumentForm';
 
 function DocumentRecord({

@@ -96,13 +96,13 @@ export function useSettingsNavigation() {
     );
   const hasMemberRecords = current && members.isSuccess && members.data.length > 0;
   const items = SETTINGS_VIEWS.filter(({ key }) => {
-    if (key === 'company' || key === 'company-documents') return canManageCompany;
+    if (key === 'company-documents') return canManageCompany;
     if (key === 'activation') return canActivate;
     if (key === 'company-recorded-details') return hasMemberRecords || members.isError;
     return true;
   });
   return {
-    defaultPath: canActivate ? DESTINATIONS.company.path : `${DESTINATIONS.settings.path}#account`,
+    defaultPath: `${DESTINATIONS.settings.path}#profile`,
     isLoading:
       !owner ||
       preferences.isLoading ||

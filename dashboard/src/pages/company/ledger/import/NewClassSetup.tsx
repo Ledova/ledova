@@ -18,7 +18,7 @@ import {
   type RegisterTransferMembers,
 } from '@ledova/shared';
 
-import { CompanySelection } from '@pages/company/shared/CompanySelection';
+import { CompanySelection } from '@components/CompanySelection';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';

@@ -21,8 +21,8 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { PAGE_SIZE, keepWithin } from '@hooks/useListParams';
-import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
-import { useTokensList, companyTokensKey } from '@pages/company/shared/useTokensList';
+import type { CompanyActionRead } from '@components/CompanyState';
+import { useTokensList, companyTokensKey } from '@hooks/useTokensList';
 
 type OfferingAction = 'submit' | 'withdraw' | 'remove' | 'edit' | 'documents';
 

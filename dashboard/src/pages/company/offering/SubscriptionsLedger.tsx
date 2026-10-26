@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { companySubscriptionTone } from '@components/statusTones';
-import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
+import { CompanyReadNotice } from '@components/CompanyState';
 import {
   COMPANY_SUBSCRIPTION_STATUS_LABELS as STATUSES,
   formatDate,
@@ -15,7 +15,7 @@ import { Section, Status, Loading } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { useCompanyOfferingSubscriptions } from './useOffering';
-import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
+import type { CompanyActionRead } from '@components/CompanyState';
 
 const NOUN: Noun = ['application', 'applications'];
 

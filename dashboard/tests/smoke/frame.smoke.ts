@@ -30,6 +30,7 @@ const ORDINARY = {
 
 async function serveASignedInAccount(page: Page, role: Role) {
   const reads = { memberLists: 0, appointments: 0, companies: 0 };
+  let transactionAlerts = false;
   const company = {
     uuid: 'company',
     name: LONG_NAME,
@@ -50,8 +51,10 @@ async function serveASignedInAccount(page: Page, role: Role) {
     if (path === '/api/v1/companies/') reads.companies += 1;
     if (path === '/api/auth/verify/') return answer({ valid: true });
     if (path === '/api/user-accounts/') return answer({ uuid: 'account', role });
-    if (path === '/api/user-preferences/')
-      return answer({ userProfile: 'profile', userAccount: { uuid: 'account', role } });
+    if (path === '/api/user-preferences/') {
+      if (route.request().method() === 'POST') transactionAlerts = route.request().postDataJSON().transactionAlerts;
+      return answer({ userProfile: 'profile', userAccount: { uuid: 'account', role }, transactionAlerts });
+    }
     if (path === '/api/user-profiles/') {
       return answer({
         ...EMPTY,
@@ -66,6 +69,12 @@ async function serveASignedInAccount(page: Page, role: Role) {
       return answer({ ...EMPTY, count: 1, results: [company] });
     }
     if (path === '/api/v1/companies/company/') return answer(company);
+    if (path === '/api/v1/tokens/member-records/' && role === 'investor')
+      return answer({
+        ...EMPTY,
+        count: 1,
+        results: [{ uuid: 'own-record', member: 'investor', company, name: 'Ada Lovelace', classes: [], awards: [] }],
+      });
     if (path === '/api/v1/company-authority/appointments/' && role === 'both')
       return answer({
         ...EMPTY,
@@ -234,61 +243,80 @@ async function openTheSidebar(page: Page, role: Role) {
   }
   const settings = aside.getByRole('link', { name: 'Settings', exact: true }).locator('../..');
   const settingsLink = settings.getByRole('link', { name: 'Settings', exact: true });
-  await expect(settingsLink).toHaveAttribute('href', role === 'both' ? '/company' : '/settings#account');
+  await expect(settingsLink).toHaveAttribute('href', '/settings#profile');
   await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
   await expect(settings.getByRole('button', { name: 'Collapse Settings navigation' })).toHaveAttribute(
     'aria-expanded',
     'true',
   );
-  await expect(settings.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute('href', '/user-profile');
-  await expect(settings.getByRole('link', { name: 'Company team', exact: true })).toHaveAttribute(
-    'href',
-    '/company/team',
+  const profile = settings.getByRole('link', { name: 'Profile', exact: true });
+  await expect(profile).toHaveAttribute('href', '/settings#profile');
+  await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveAttribute('href', '/company/team');
+  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(
+    role === 'investor' ? 1 : 0,
   );
-  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(0);
-  await expect(settings.getByRole('link', { name: 'Company', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
+  await expect(settings.getByRole('link', { name: 'Company', exact: true })).toHaveCount(0);
+  await expect(settings.getByRole('link', { name: 'Account', exact: true })).toHaveCount(0);
+  await expect(settings.getByRole('link', { name: 'Documents', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
   await expect(settings.getByRole('link', { name: 'Activation', exact: true })).toHaveCount(role === 'both' ? 1 : 0);
   await settingsLink.click();
-  await expect(
-    page.getByRole('heading', { level: 1, name: role === 'both' ? 'Company' : 'Account', exact: true }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/settings#profile$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
+  for (const name of ['Personal information', 'Security', 'Preferences', 'Data and privacy'])
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(
+    role === 'investor' ? 0 : 1,
+  );
   await expect(page.getByRole('link', { name: 'Back to Settings', exact: true })).toHaveCount(0);
+  if (role === 'both') {
+    await page.getByRole('button', { name: 'Edit company', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Trading name', exact: true }).fill('Unsent company draft');
+    const alerts = page.getByRole('switch', { name: 'Transaction alerts', exact: true });
+    await alerts.click();
+    await expect(alerts).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByRole('form', { name: 'Edit company', exact: true })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Trading name', exact: true })).toHaveValue('Unsent company draft');
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  }
   if (phone) {
     await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
     await page.getByRole('button', { name: 'Open navigation' }).click();
   }
-  if (role === 'both') {
-    await expect(settings.getByRole('link', { name: 'Company', exact: true })).toHaveAttribute('aria-current', 'page');
-    await settings.getByRole('link', { name: 'Company documents', exact: true }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Company documents', exact: true })).toBeVisible();
+  await expect(profile).toHaveAttribute('aria-current', 'page');
+  if (role !== 'investor') {
+    const sourceDocuments = settings.getByRole('link', { name: 'Documents', exact: true });
+    await sourceDocuments.click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Documents', exact: true })).toBeVisible();
     if (phone) {
       await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
       await page.getByRole('button', { name: 'Open navigation' }).click();
     }
-    await expect(settings.getByRole('link', { name: 'Company documents', exact: true })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    await expect(settings.getByRole('link', { name: 'Company', exact: true })).not.toHaveAttribute('aria-current');
-    await settings.getByRole('link', { name: 'Account', exact: true }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
+    await expect(sourceDocuments).toHaveAttribute('aria-current', 'page');
+    await expect(profile).not.toHaveAttribute('aria-current');
+    await profile.click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
     if (phone) {
       await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
       await page.getByRole('button', { name: 'Open navigation' }).click();
     }
   }
-  await expect(settings.getByRole('link', { name: 'Account', exact: true })).toHaveAttribute('aria-current', 'page');
-  await settings.getByRole('link', { name: 'Company team', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Company team', exact: true })).toBeVisible();
+  await expect(profile).toHaveAttribute('aria-current', 'page');
+  for (const alias of ['/company', '/user-profile', '/settings#account']) {
+    await page.goto(alias);
+    await expect(page).toHaveURL(/\/settings#profile$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Security', exact: true })).toBeVisible();
+  }
+  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
+  await expect(profile).toHaveAttribute('aria-current', 'page');
+  await settings.getByRole('link', { name: 'Team', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Team', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Accept a company invitation', exact: true })).toBeVisible();
   if (phone) {
     await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
     await page.getByRole('button', { name: 'Open navigation' }).click();
   }
-  await expect(settings.getByRole('link', { name: 'Company team', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
+  await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveAttribute('aria-current', 'page');
   if (phone) {
     const cachedReads = { ...reads };
     expect(cachedReads.memberLists).toBeGreaterThan(0);
@@ -301,10 +329,7 @@ async function openTheSidebar(page: Page, role: Role) {
       'false',
     );
     await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
-    await expect(settings.getByRole('link', { name: 'Company team', exact: true })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveAttribute('aria-current', 'page');
     expect(reads).toEqual(cachedReads);
   }
   await aside.locator('summary').filter({ hasText: 'More' }).click();

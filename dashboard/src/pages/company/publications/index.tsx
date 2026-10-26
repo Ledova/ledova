@@ -4,8 +4,8 @@ import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
 import { Section, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { Page } from '@components/Page';
-import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
-import { CompanySelection } from '@pages/company/shared/CompanySelection';
+import { CompanyReadNotice } from '@components/CompanyState';
+import { CompanySelection } from '@components/CompanySelection';
 import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
 

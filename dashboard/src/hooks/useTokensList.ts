@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { getCompanyTokens, readEveryPage } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import type { CompanyActionRead } from './CompanyState';
+import type { useCompanySelection } from '@ledova/shared';
+
+type CompanyActionRead = Pick<
+  ReturnType<typeof useCompanySelection>,
+  'scopeKey' | 'error' | 'isRefreshing' | 'assertCurrent'
+>;
 
 export const TOKENS_QUERY_KEY = ['tokens'] as const;
 

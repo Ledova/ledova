@@ -2945,10 +2945,10 @@ it('shows an account without register access a calm empty state, reads no member
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   cleanup();
   show('investor', <SettingsPage />, 'Settings', { entry: '/settings', path: '/settings' });
-  expect(await screen.findByRole('heading', { level: 1, name: 'Account' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { level: 1, name: 'Profile' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Change password' })).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORDS]);
+  expect(readUrls().sort()).toEqual([REGISTER, APPOINTMENTS, COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORDS, PROFILES].sort());
   expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
 
   cleanup();
@@ -2960,15 +2960,17 @@ it('shows an account without register access a calm empty state, reads no member
       if (preferencesUnavailable) throw new Error('The preferences read failed.');
       return { data: companyPreferences('investor') };
     }
-    if ([APPOINTMENTS, COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORDS].includes(url)) return page([]);
+    if ([APPOINTMENTS, COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORDS, PROFILES].includes(url)) return page([]);
     throw new Error(`Unexpected settings recovery read ${url}`);
   });
   renderCompanyPage(client, <SettingsPage />, 'Settings', { entry: '/settings', path: '/settings' });
-  const retry = await screen.findByRole('button', { name: 'Try again' });
+  const settingsError = await screen.findByText('Your company access could not be loaded.');
+  const retry = within(settingsError.closest('[role="alert"]')!).getByRole('button', { name: 'Try again' });
   await waitFor(() => expect(retry.matches(':disabled')).toBe(false));
   preferencesUnavailable = false;
   fireEvent.click(retry);
-  expect(await screen.findByRole('heading', { level: 1, name: 'Account' })).toBeTruthy();
+  await waitFor(() => expect(screen.queryByText('Your company access could not be loaded.')).toBeNull());
+  expect(await screen.findByRole('heading', { level: 1, name: 'Profile' })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
 });
 

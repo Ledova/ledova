@@ -1,5 +1,5 @@
 import { FIELD_LIMITS, createUserFriendlyError, updateCompany, type Company, type CompanyUpdate } from '@ledova/shared';
-import { type CompanyActionRead } from '@pages/company/shared/CompanyState';
+import { type CompanyActionRead } from '@components/CompanyState';
 import apiClient from '@services/apiClient';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';

@@ -15,7 +15,8 @@ import {
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { CompanyProfile } from '@pages/settings/CompanyProfile';
 import CompanyPage from '.';
 import CompanyTeamPage from './team';
 import CompanyEligibilityPage from './eligibility';
@@ -30,14 +31,17 @@ const scrollIntoView = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 's
 let client: QueryClient;
 let company: Company;
 let failed: string | null;
+function CompanyView() {
+  return useLocation().hash === '#documents' ? <CompanyPage /> : <CompanyProfile />;
+}
 function show() {
   return renderCompanyPage(
     client,
     <>
-      <CompanyPage />
+      <CompanyView />
       <Link to="/company#documents">Open company documents</Link>
     </>,
-    'Company',
+    'Profile',
     { entry: '/company', path: '/company' },
   );
 }

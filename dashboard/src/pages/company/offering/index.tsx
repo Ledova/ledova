@@ -16,8 +16,8 @@ import {
   type OfferingListItem,
   formatDateTime,
 } from '@ledova/shared';
-import { CompanySelection } from '@pages/company/shared/CompanySelection';
-import { CompanyReadNotice } from '@pages/company/shared/CompanyState';
+import { CompanySelection } from '@components/CompanySelection';
+import { CompanyReadNotice } from '@components/CompanyState';
 import { OfferingDocumentsEditor } from './OfferingDocumentsEditor';
 import { OfferingEditor } from './OfferingEditor';
 import { SubscriptionsLedger } from './SubscriptionsLedger';

@@ -18,7 +18,7 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
-import type { CompanyActionRead } from '@pages/company/shared/CompanyState';
+import type { CompanyActionRead } from '@components/CompanyState';
 import { useAutomaticReads } from '@hooks/useAutomaticReads';
 
 function openingFailure(error: unknown) {

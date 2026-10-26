@@ -101,7 +101,7 @@ existing code is being brought in line under [#1065](https://github.com/Ledova/l
 | Route table and guards (`routes/`)     | `PAGES` keyed by `DESTINATIONS`, the sign-up and public routes, guards with their waiting and failure states, where an account lands         | A page's files other than its entry; page content; reads beyond the session and access checks | `dashboard/src/routes/pages.tsx`                                                                      |
 | Page entry (`index.tsx`)               | One route: its parameters, hash and navigation state, the owner boundary, and `Page` with its title row and sections fed by hooks            | `useQuery`, `useMutation`, `apiClient` or a service call; another page's files                | `dashboard/src/pages/publications/index.tsx`                                                          |
 | Page files (beside the entry)          | The page's sections and dialogs, its hooks and its pure helpers, told apart by file name                                                     | `components/` or `hooks/` subfolders; a file a second page imports                            | `dashboard/src/pages/publications/Resolution.tsx`, `dashboard/src/pages/transactions/presentation.ts` |
-| Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                   | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/shared/CompanyState.tsx`                                                 |
+| Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                   | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/shared/RegisterDecisions.tsx`                                            |
 | UI kit and frame (`components/`)       | The kit, the frame and public layout with their contexts, and group folders or single components for UI that several areas or the frame show | Imports of `pages/` or `routes/`; in kit files, queries or domain rules                       | `dashboard/src/components/Ledger.tsx`, `dashboard/src/components/qr/`                                 |
 | Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `packages/shared/src/hooks/useSubscriptions.ts`                                                       |
 | Services (`services/`)                 | `apiClient` (CSRF retry, the submission guard, friendly network errors) and the browser device stores                                        | API call functions; React                                                                     | `dashboard/src/services/apiClient.ts`                                                                 |
@@ -317,20 +317,22 @@ same caret pattern for ESS, Member access and Member requests. Documents uses th
 Certificates, Ledger exports and Company pack. Its label opens Certificates, the default child;
 the legacy company `#documents` hash opens Certificates too. A group without a meaningful overview
 opens its default child, without a separate Overview page or duplicate page navigation.
-Settings uses the same one-level pattern for Company, Company documents, Company team, Activation,
-Profile, Company-recorded details and Account. `useSettingsNavigation`
-(`dashboard/src/hooks/useSettingsNavigation.ts`) supplies its current access and default: Company for
-an effective personal company administrator, Account otherwise. Company team remains available for
-company-invitation acceptance; member particulars use the person's own record context. Existing page
-and API authority checks still decide what may be read or changed. Account is `/settings#account`;
-`/settings#company-recorded-details` keeps the member view and bare `/settings` opens the applicable default.
-Company eligibility and Published to your members are under More. Company team keeps Representative
-authority as a contextual task, with its existing owner and audience checks.
+Settings uses the same one-level pattern for Profile, Documents, Team, Activation and
+Company-recorded details. Its default is Profile (`/settings#profile`), combining personal details,
+identity checks, authorised company information, Security, Preferences and Data and privacy in one
+workspace. These sections keep their separate records, editors and authority checks. Existing
+`/user-profile`, `/company` and `/settings#account` links redirect to Profile; company source documents
+remain at `/company#documents`, separate from the generated outputs in the top-level Documents group.
+`useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
+Team remains available for company-invitation acceptance, and company-recorded member particulars
+stay at `/settings#company-recorded-details`. Company eligibility and Published to your members
+are under More. Team keeps Representative authority as a contextual task, with its existing owner
+and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
 stay siblings. The company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). Direct Settings children have their own active item
-and omit Back to Settings; a contextual page marks its nearest sidebar parent, such as Company team
+and omit Back to Settings; a contextual page marks its nearest sidebar parent, such as Team
 on Representative authority and Shareholders on a shareholder's page. The register hashes switch the
 visible view without unmounting register forms or their recovery ([page mechanics](#page-mechanics)).
 The sidebar and phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a
@@ -437,7 +439,7 @@ unchanged. Current authority, source and account checks still gate every command
 The member Dashboard, Documents and Company-recorded details views also recheck member associations
 before their dependent records every 60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
 not an instantaneous update guarantee.
-Company team also reads appointments before dependent team records on focus, reconnect and a visible,
+Team on web also reads appointments before dependent team records on focus, reconnect and a visible,
 online 60-second interval, deferring those cycles while a team editor or revocation is open.
 
 The remaining web eligibility and company-publication views use `dashboard/src/hooks/useAutomaticReads.ts`
@@ -628,7 +630,7 @@ with its `theme-color`) only when `ledova.theme` (`THEME_STORAGE_KEY`) in browse
 earlier, removed switch is not read. The choice is written only when someone picks a theme and stays
 in that browser, not on the account, through reloads and sign-out.
 
-The dashboard's switches (Settings > Account > Preferences > Dark theme, and the `ThemeToggle` icon in the
+The dashboard's switches (Settings > Profile > Preferences > Dark theme, and the `ThemeToggle` icon in the
 signed-out and sign-up header, the desktop sidebar's account footer and the small-screen signed-in
 header) use `dashboard/src/hooks/useTheme.ts`. The site's navbar toggle uses `site/src/theme.ts`,
 which repeats the key, parsing rule and theme colours because the site cannot import
@@ -646,25 +648,25 @@ display text and Instrument Sans for everything else (`@fontsource-variable`).
 Each page links to its business section; the audience is the `DESTINATIONS` audience
 ([guards](#routes-audiences-and-guards)).
 
-| Page and business section                                                                                | Routes                                                                             | Audience  |
-| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------- |
-| [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                    | everyone  |
-| [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                | everyone  |
-| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#certificates`, `#ledger-exports`, `#company-pack`; legacy `#documents`; preparation routes | everyone  |
-| [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/ledger/members/:member?company=`                                         | everyone  |
-| [Share class](../business/register.md#the-share-class-page)                                              | `/company/ledger/:uuid`                                                            | everyone  |
-| [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`    | everyone  |
-| [Company eligibility](../business/participants.md#company-eligibility-decisions)                         | `/company/eligibility`                                                             | everyone  |
-| [Offerings](../business/issuing-shares.md#the-offerings-page)                                            | `/company/offering`                                                                | company   |
-| [Published to your members](../business/publications.md#the-published-page)                              | `/company/publications`                                                            | company   |
-| [Notices](../business/publications.md#the-notices-page)                                                  | `/publications`                                                                    | everyone  |
-| [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                    | `/wallets/holdings`                                                                | everyone  |
-| [Verification, Your company eligibility](../business/participants.md#the-verification-page)              | `/investor-eligibility`, `/eligibility-requests`                                   | investing |
-| [Directory, Applications](../business/participants.md#the-directory-page)                                | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`         | investing |
-| [Market](../business/trading.md#the-market-page)                                                         | `/trading`                                                                         | investing |
-| [Wallets](../business/trading.md#the-wallets-page)                                                       | `/wallets`                                                                         | everyone  |
-| [Activity](../business/trading.md#the-activity-page)                                                     | `/transactions`                                                                    | everyone  |
-| [Profile, Account and member settings](../business/participants.md#profile-and-settings)                 | `/user-profile`, `/settings` (default), `/settings#account`, `/settings#company-recorded-details` | everyone  |
+| Page and business section                                                                           | Routes                                                                                                                                                                               | Audience  |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| [Company dashboard](../business/README.md#the-app-at-a-glance)                                      | `/company/dashboard` (web only)                                                                                                                                                      | everyone  |
+| [Personal dashboard](../business/member-records.md#what-a-member-can-read)                          | `/home`, `/home#documents`, alias `/member-records`                                                                                                                                  | everyone  |
+| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#certificates`, `#ledger-exports`, `#company-pack`; legacy `#documents`; preparation routes | everyone  |
+| [A shareholder's page](../business/register.md#a-shareholders-page)                                 | `/company/ledger/members/:member?company=`                                                                                                                                           | everyone  |
+| [Share class](../business/register.md#the-share-class-page)                                         | `/company/ledger/:uuid`                                                                                                                                                              | everyone  |
+| [Company information, Documents, Team, Activation](../business/companies.md#the-company-page)       | `/settings#profile`, `/company#documents`, `/company/authority` (company), `/company/team`, `/company/listing`                                                                       | everyone  |
+| [Company eligibility](../business/participants.md#company-eligibility-decisions)                    | `/company/eligibility`                                                                                                                                                               | everyone  |
+| [Offerings](../business/issuing-shares.md#the-offerings-page)                                       | `/company/offering`                                                                                                                                                                  | company   |
+| [Published to your members](../business/publications.md#the-published-page)                         | `/company/publications`                                                                                                                                                              | company   |
+| [Notices](../business/publications.md#the-notices-page)                                             | `/publications`                                                                                                                                                                      | everyone  |
+| [Wallet shares](../business/member-records.md#the-wallet-shares-page)                               | `/wallets/holdings`                                                                                                                                                                  | everyone  |
+| [Verification, Your company eligibility](../business/participants.md#the-verification-page)         | `/investor-eligibility`, `/eligibility-requests`                                                                                                                                     | investing |
+| [Directory, Applications](../business/participants.md#the-directory-page)                           | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`                                                                                                           | investing |
+| [Market](../business/trading.md#the-market-page)                                                    | `/trading`                                                                                                                                                                           | investing |
+| [Wallets](../business/trading.md#the-wallets-page)                                                  | `/wallets`                                                                                                                                                                           | everyone  |
+| [Activity](../business/trading.md#the-activity-page)                                                | `/transactions`                                                                                                                                                                      | everyone  |
+| [Profile and member settings](../business/participants.md#profile-and-settings)                     | `/settings#profile` (default), `/settings#company-recorded-details`; aliases `/user-profile`, `/company`, `/settings#account`                                                        | everyone  |
 
 ### Page mechanics
 
@@ -765,8 +767,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   same links for its class. **Change particulars** and adding documents recheck current preparation
   authority, and attachment downloads require current register-read authority. While register work
   is held, Shareholders' Details links are disabled.
-- Register reads on both clients: the web reads the person's appointments through Company team's
-  account-bound cache; mobile reads them itself. Both reread them after a revocation on Company team
+- Register reads on both clients: the web reads the person's appointments through Team's
+  account-bound cache; mobile reads them itself. Both reread them after a revocation on Team (Company team on mobile)
   or Representative authority, a refused decision, preview or acknowledgement, a waiting-wallets
   read refused as not found, a recorded decision other than an import's (which refreshes the
   imports, the register and its entries) and, on mobile, a pull to refresh. Entries load newest
@@ -803,14 +805,15 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   unavailable until the chosen wallet's balances are read.
 - Activity: the history read does not depend on the wallet filter read; filters use only supported
   API fields.
-- Settings on web: the sidebar owns its destinations; Company shows details rather than a repeated
-  administration link list. Account and Profile use the standard workspace frame. Account groups
-  Security, Preferences and Data and privacy; personal identity verification stays in Profile.
-  Activation keeps its existing company workflow. Signup and native Settings keep their own navigation.
-- Account on web, Settings on mobile: transaction alerts are the `transactionAlerts`
+- Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
+  personal, company and account sections, keeping each editor's data and authority separate. Documents
+  and Team stay focused pages; Activation keeps its existing company workflow. Signup and native
+  Settings keep their own navigation.
+- Profile on web, Settings on mobile: transaction alerts are the `transactionAlerts`
   field of the one preferences record (`useUserPreferences`, saved with a partial `POST` to `/api/user-preferences/`); mobile
-  distinguishes an unavailable record from disabled alerts. Account deletion clears cached account
-  data after the server confirms.
+  distinguishes an unavailable record from disabled alerts. On web, a confirmed preference save updates
+  the current account cache without remounting Profile or discarding open edits. Account deletion clears
+  cached account data after the server confirms.
 
 Next: [frontend UX standards](frontend-ux.md), [mobile](mobile.md), [authentication](security.md#authentication-and-sessions),
 [company workflow API](backend.md#company-workflow-api) and [testing](testing.md).
