@@ -1,15 +1,21 @@
-import { ActivityIndicator, RefreshControl, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { PUBLICATION_COPY, PUBLICATION_KIND_LABELS, formatDate, formatShareCount } from '@ledova/shared';
 import type { Publication } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
-import { Page } from '../../components/Page';
+import { Action, Row, Section, useCardStyles } from '../../components/Ledger';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
-import { usePublications } from './usePublications';
+import type { usePublications } from './usePublications';
 
-export function PublicationsScreen() {
+export function NoticeList({
+  notices,
+  publications,
+}: {
+  notices: ReturnType<typeof usePublications>;
+  publications: Publication[];
+}) {
   const theme = useAppTheme();
+  const card = useCardStyles();
   const styles = useThemedStyles((theme) => ({
     message: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.muted },
     kind: {
@@ -31,7 +37,6 @@ export function PublicationsScreen() {
     state: { gap: 14, paddingVertical: 12 },
   }));
   const {
-    publications,
     isLoading,
     listFailed,
     moreFailed,
@@ -46,7 +51,7 @@ export function PublicationsScreen() {
     cast,
     castingUuid,
     castError,
-  } = usePublications();
+  } = notices;
 
   const renderRow = (publication: Publication) => (
     <Section key={publication.uuid} title={publication.title}>
@@ -83,16 +88,7 @@ export function PublicationsScreen() {
   );
 
   return (
-    <Page
-      title="Notices"
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefreshing && !isLoading && !isLoadingMore}
-          onRefresh={retry}
-          tintColor={theme.colors.interactive.active}
-        />
-      }
-    >
+    <>
       {openError && (
         <Text accessibilityRole="alert" style={styles.error}>
           {openError}
@@ -115,9 +111,9 @@ export function PublicationsScreen() {
       ) : (
         <>
           {publications.length === 0 && !hasMore && !moreFailed ? (
-            <Section title="Your notices">
+            <View style={card.card}>
               <Text style={styles.message}>{PUBLICATION_COPY.EMPTY}</Text>
-            </Section>
+            </View>
           ) : (
             publications.map(renderRow)
           )}
@@ -140,6 +136,6 @@ export function PublicationsScreen() {
           {publications.length > 0 && <Text style={styles.help}>{PUBLICATION_COPY.FROZEN_HELP}</Text>}
         </>
       )}
-    </Page>
+    </>
   );
 }

@@ -115,7 +115,9 @@ completed requests open on demand. Share history, certificates and certificate r
 are in web **Documents**, without duplicate particulars status. On mobile, each share class's page,
 opened from the company's page, shows its history; a change's certificate status opens a sheet to
 request, withdraw or share it, with that change's other requests and their actions, and requests
-for changes not in the history are listed below it. Wallet holdings are on
+for changes not in the history are listed below it. Mobile **Documents** lists the ready and
+requested certificates from every company, filtered by company, each opening its sheet to share
+or withdraw it. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access

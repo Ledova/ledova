@@ -8,6 +8,7 @@ import { FolderIcon, HouseIcon, UserIcon } from 'phosphor-react-native';
 import { useNotifications } from '@ledova/shared';
 import { NotificationsModal } from '../components/notifications';
 import { useAppTheme } from '../contexts';
+import { DocumentsScreen } from '../screens/documents/DocumentsScreen';
 import { AwardScreen } from '../screens/holdings/AwardScreen';
 import { ClassScreen } from '../screens/holdings/ClassScreen';
 import { CompanyScreen } from '../screens/holdings/CompanyScreen';
@@ -15,14 +16,13 @@ import { DetailsScreen } from '../screens/holdings/DetailsScreen';
 import { HoldingsScreen } from '../screens/holdings/HoldingsScreen';
 import { MemberRecordsProvider } from '../screens/holdings/MemberRecordsProvider';
 import { PastHoldingsScreen } from '../screens/holdings/PastHoldingsScreen';
-import { PublicationsScreen } from '../screens/publications';
 import { SettingsScreen } from '../screens/settings';
 import { UserProfileScreen } from '../screens/user-profile';
 import { getMainHeaderStyle, MainHeader } from './headers';
 
 export type TabParamList = {
   Holdings: undefined;
-  Documents: undefined;
+  Documents: { company?: string; show?: 'certificates' | 'notices' } | undefined;
   Account: undefined;
 };
 
@@ -77,7 +77,7 @@ function Tabs({ onNotifications, unreadCount }: { onNotifications: () => void; u
       />
       <Tab.Screen
         name="Documents"
-        component={PublicationsScreen}
+        component={DocumentsScreen}
         options={{
           tabBarLabel: 'Documents',
           tabBarIcon: ({ color, size }) => <FolderIcon size={size} color={color} weight="regular" />,

@@ -65,7 +65,7 @@ The signed-in app (`SignedInNavigator`) is a stack holding three bottom tabs and
 Award, Details, Past holdings and Profile screens. Holdings (`mobile/src/screens/holdings`) shows a card per company with
 a line per share class and each award's vesting bar, the award parts matching the web's; above six
 companies it becomes a searchable list. Classes with no shares left sit under Past holdings. A
-company opens the Company screen: a row per share class and per award, and Your details. A class
+company opens the Company screen: a row per share class and per award, Documents and Your details. A class
 opens its history, newest change first, with each change's certificate status (Request, Requested
 or Certificate), taken from its newest open or fulfilled request. The status opens a certificate
 sheet that requests, withdraws (after a confirmation) or shares the unsigned PDF, and lists the
@@ -75,9 +75,13 @@ schedule and terms, and the history of vestings, ended rights and reversals. You
 details opens the company-recorded particulars and the particulars request. These screens share one member-records
 state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
 original operation, after leaving the company, and the screens show a loading line rather than an
-empty one while the list rereads. Only the focused screen selects its record and class. Documents opens Notices and Account
+empty one while the list rereads. Only the focused screen selects its record and class. Documents
+(`mobile/src/screens/documents`) lists the ready and requested certificates from every company,
+each read for that member association alone, and the notices, with a chip per company to filter
+both; a company's Documents row opens it filtered to that company. A certificate opens its sheet to
+share or withdraw it through the same member-records state. Account
 holds the account settings, Profile and Sign out. Each tab's header has the notifications bell, and
-a notice's notification opens Documents. Screens set their own titles inside the page; a pushed
+a notice's notification opens Documents on Notices for every company. Screens set their own titles inside the page; a pushed
 screen's back button names the tab or screen it came from.
 
 ## Theme and appearance

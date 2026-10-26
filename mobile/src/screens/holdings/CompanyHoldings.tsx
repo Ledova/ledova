@@ -50,7 +50,7 @@ function useHoldingStyles() {
   }));
 }
 
-function Avatar({ name }: { name: string }) {
+export function Avatar({ name }: { name: string }) {
   const styles = useHoldingStyles();
   return (
     <View style={styles.avatar} accessible={false}>

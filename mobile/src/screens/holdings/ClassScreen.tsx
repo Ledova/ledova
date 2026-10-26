@@ -20,6 +20,7 @@ import {
   entryKind,
   type Certificate,
 } from './CertificateSheet';
+import { CertificatePill } from './CertificatePill';
 import { Figure } from './Figure';
 import { shareQuantity } from './holdings';
 import { MemberNotice, RecordGate, useCompanyRecord, useMemberRefresh } from './MemberRecordsProvider';
@@ -35,33 +36,11 @@ function useClassStyles() {
     row: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.smd, paddingVertical: 12 },
     text: { flex: 1, gap: 2 },
     change: { fontFamily: theme.fontFamily.medium, fontSize: 14, color: theme.colors.text.primary },
-    pill: {
-      borderRadius: 999,
-      borderWidth: 1,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: 2,
-    },
-    ready: { backgroundColor: theme.colors.brand.tint, borderColor: theme.colors.brand.tint },
-    requested: { borderColor: theme.colors.warning.default },
-    request: { borderColor: theme.colors.border.default },
-    other: { borderColor: theme.colors.border.subtle },
-    readyText: { color: theme.colors.brand.light },
-    requestedText: { color: theme.colors.status.warning.text },
-    requestText: { color: theme.colors.text.primary },
-    otherText: { color: theme.colors.text.muted },
-    label: { fontFamily: theme.fontFamily.medium, fontSize: 12 },
   }));
 }
 
-function Pill({ certificate, request }: { certificate: Certificate; request?: MemberCertificateRequest }) {
-  const styles = useClassStyles();
-  if (!certificate) return null;
-  const label = certificate === 'other' ? MEMBER_CERTIFICATE_STATUS_LABELS[request!.status] : PILLS[certificate];
-  return (
-    <View style={[styles.pill, styles[certificate]]}>
-      <Text style={[styles.label, styles[`${certificate}Text`]]}>{label}</Text>
-    </View>
-  );
+function pillLabel(certificate: Exclude<Certificate, null>, request?: MemberCertificateRequest) {
+  return certificate === 'other' ? MEMBER_CERTIFICATE_STATUS_LABELS[request!.status] : PILLS[certificate];
 }
 
 type Sheet = { entry?: string; request?: string };
@@ -130,18 +109,16 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
                           <Text style={styles.muted}>{entryDate(entry)}</Text>
                         </View>
                         <Text style={look.change}>{shareChange(entry.delta)}</Text>
-                        <Pill certificate={certificate} request={latest} />
+                        {certificate && (
+                          <CertificatePill certificate={certificate} label={pillLabel(certificate, latest)} />
+                        )}
                       </>
                     );
                     return certificate ? (
                       <Pressable
                         key={entry.uuid}
                         accessibilityRole="button"
-                        accessibilityLabel={`Entry ${entry.sequence}: ${entryKind(entry)} ${shareChange(entry.delta)}, ${entryDate(entry)}, certificate ${
-                          certificate === 'other'
-                            ? MEMBER_CERTIFICATE_STATUS_LABELS[latest!.status]
-                            : PILLS[certificate]
-                        }`}
+                        accessibilityLabel={`Entry ${entry.sequence}: ${entryKind(entry)} ${shareChange(entry.delta)}, ${entryDate(entry)}, certificate ${pillLabel(certificate, latest)}`}
                         onPress={() => setSheet({ entry: entry.uuid })}
                         style={look.row}
                       >
@@ -170,7 +147,10 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
                       <View style={look.text}>
                         <Text style={styles.text}>Requested {formatDate(request.createdAt)}</Text>
                       </View>
-                      <Pill certificate={certificateOf(undefined, request)} request={request} />
+                      <CertificatePill
+                        certificate={certificateOf(undefined, request) ?? 'other'}
+                        label={pillLabel(certificateOf(undefined, request) ?? 'other', request)}
+                      />
                     </Pressable>
                   ))}
                 </Rows>

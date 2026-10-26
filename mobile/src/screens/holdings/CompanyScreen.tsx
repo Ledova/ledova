@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { Text } from 'react-native';
-import { useNavigation, type NavigationProp, type RouteProp } from '@react-navigation/native';
+import { Text, View } from 'react-native';
+import { useNavigation, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { formatDate } from '@ledova/shared';
-import { LinkRow, Rows, Section } from '../../components/Ledger';
+import { LinkRow, Rows, Section, useCardStyles } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
@@ -11,7 +12,8 @@ import { MemberNotice, RecordGate, useCompanyRecord, useMemberRefresh } from './
 
 export function CompanyScreen({ route }: { route: RouteProp<SignedInStackParamList, 'Company'> }) {
   const styles = useCompanyStyles();
-  const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
+  const card = useCardStyles();
+  const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const uuid = route.params.record;
   const { read, record } = useCompanyRecord(uuid);
   const refresh = useMemberRefresh(read, 'company-refresh');
@@ -59,17 +61,27 @@ export function CompanyScreen({ route }: { route: RouteProp<SignedInStackParamLi
                 </Rows>
               )}
             </Section>
-            <Section title="Your details">
+            <View style={card.card}>
               <Rows>
                 <LinkRow
-                  label={record.name}
+                  label="Documents"
+                  onPress={() =>
+                    navigation.popTo('Main', { screen: 'Documents', params: { company: record.company.uuid } })
+                  }
+                >
+                  <Text style={styles.muted}>Certificates and notices</Text>
+                </LinkRow>
+                <LinkRow
+                  label="Your details"
                   accessibilityLabel={`Your details: ${record.name}`}
                   onPress={() => navigation.navigate('Details', { record: uuid })}
                 >
-                  <Text style={styles.muted}>{record.residentialAddress}</Text>
+                  <Text style={styles.muted}>
+                    {record.name} · {record.residentialAddress}
+                  </Text>
                 </LinkRow>
               </Rows>
-            </Section>
+            </View>
           </>
         )}
       </RecordGate>
