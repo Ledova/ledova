@@ -4,10 +4,12 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_ALLOTMENT_COPY as COPY,
+  REGISTER_TRANSFER_COPY as TRANSFER_COPY,
   type RegisterAllotment,
   type OwnCompanyAppointment,
   type RegisterAllotmentPreparation,
   type RegisterAllotmentDecideRequest,
+  type Person,
   type RegisterTransfer,
   type RegisterTransferDecideRequest,
 } from '@ledova/shared';
@@ -34,6 +36,7 @@ import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { pickedFile, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyRegisterScreen } from './CompanyRegisterScreen';
+import { TransferForm } from './TransferForm';
 import { registerKey } from '../../hooks/useCompanyRegister';
 
 let mockSection = 'issue';
@@ -83,7 +86,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it('recovers the fully paid company allotment once, approves and issues it in one recovered decision, hides private sources after appointment loss, and approves a transfer the same way', async () => {
+it('recovers the fully paid company allotment once, approves and issues it in one recovered decision, hides private sources after appointment loss, approves a transfer the same way and recovers a stepped transfer preparation', async () => {
   mockSection = 'issue';
   resetFiles();
   let keys = 0;
@@ -494,4 +497,97 @@ it('recovers the fully paid company allotment once, approves and issues it in on
   });
   await view.findByText('Ready to complete');
   expect(view.getByRole('button', { name: /^Review and approve for non-paid transfer/ })).toBeTruthy();
+  await cleanup();
+  const earlierPost = post.getMockImplementation()!;
+  post.mockImplementation(async (url, body, config) => {
+    if (url === URLS.REGISTER_TRANSFERS) throw new Error('Synthetic interrupted transfer preparation');
+    return earlierPost(url, body, config);
+  });
+  const preparations = () =>
+    post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFERS).map(([, preparation]) => preparation);
+  const transferPeople: Person[] = [
+    {
+      member: 'transferor',
+      name: 'Synthetic Transferor',
+      residentialAddress: '1 Example Street',
+      currentShares: '100',
+      lastCeasedOn: null,
+      walletless: true,
+      particularsRetained: true,
+      awardOnly: false,
+    },
+    {
+      member: 'recipient',
+      name: 'Synthetic Recipient',
+      residentialAddress: '2 Example Street',
+      currentShares: '0',
+      lastCeasedOn: null,
+      walletless: true,
+      particularsRetained: true,
+      awardOnly: false,
+      onRegister: false,
+    },
+  ];
+  const form = await render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <TransferForm
+          company={APPOINTMENT.company}
+          token={REGISTER.token.uuid}
+          epoch={getSessionEpoch()}
+          classLabel="Ordinary shares (ORD)"
+          people={transferPeople}
+          appointment={APPOINTMENT}
+          current={() => APPOINTMENT}
+          blocked={false}
+          onRefused={async () => {}}
+          onPrepared={() => {}}
+          onCancel={() => {}}
+        />
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  await fireEvent.press(form.getByRole('button', { name: `${TRANSFER_COPY.FROM}: none chosen` }));
+  await fireEvent.press(await form.findByRole('radio', { name: /^Synthetic Transferor/ }));
+  await fireEvent.press(form.getByRole('button', { name: `${TRANSFER_COPY.TO}: none chosen` }));
+  expect(form.queryByRole('radio', { name: 'New person' })).toBeNull();
+  await fireEvent.press(await form.findByRole('radio', { name: /^Synthetic Recipient/ }));
+  expect(form.queryByLabelText('Name')).toBeNull();
+  await fireEvent.changeText(form.getByLabelText(TRANSFER_COPY.SHARES), '10');
+  await fireEvent.press(form.getByRole('button', { name: 'Continue' }));
+  expect(form.getAllByText(/Enter the company transfer date as YYYY-MM-DD/)).toHaveLength(2);
+  await fireEvent.changeText(form.getByLabelText(TRANSFER_COPY.COMPANY_EVENT_ON), '2026-10-03');
+  await fireEvent.press(form.getByRole('button', { name: 'Continue' }));
+  await fireEvent.changeText(form.getByLabelText(TRANSFER_COPY.SIGNED_ON), '2026-10-01');
+  await fireEvent.changeText(form.getByLabelText(TRANSFER_COPY.LODGED_ON), '2026-10-02');
+  await fireEvent.changeText(form.getByLabelText(TRANSFER_COPY.TERMS), 'Non-paid transfer');
+  await fireEvent.press(form.getByRole('button', { name: 'Choose the signed transfer instrument' }));
+  await fireEvent.press(await form.findByRole('button', { name: 'Back' }));
+  expect(form.getByLabelText(TRANSFER_COPY.SHARES).props.value).toBe('10');
+  await fireEvent.press(form.getByRole('button', { name: 'Continue' }));
+  await fireEvent.press(form.getByRole('button', { name: 'Continue' }));
+  await fireEvent.changeText(form.getByLabelText(TRANSFER_COPY.DIRECTOR), 'Synthetic Director');
+  await fireEvent.changeText(form.getByLabelText(TRANSFER_COPY.AUTHORITY_REFERENCE), 'Synthetic resolution');
+  await fireEvent.changeText(form.getByLabelText(TRANSFER_COPY.REASON), 'Record company transfer');
+  expect(form.getByText('Synthetic Recipient')).toBeTruthy();
+  await fireEvent.press(form.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
+  expect(form.getAllByText(/Choose the director authority/)).toHaveLength(2);
+  expect(preparations()).toHaveLength(0);
+  await fireEvent.press(form.getByRole('button', { name: 'Choose the authority document' }));
+  await fireEvent.press(await form.findByRole('button', { name: TRANSFER_COPY.SUBMIT }));
+  await form.findByText('The preparation response could not be confirmed. Retry with the same details.');
+  expect(form.getByRole('button', { name: 'Back' })).toBeDisabled();
+  await fireEvent.press(form.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
+  await waitFor(() => expect(preparations()).toHaveLength(2));
+  expect(preparations()[1]).toEqual(preparations()[0]);
+  expect(preparations()[0]).toMatchObject({
+    fromMember: 'transferor',
+    toMember: 'recipient',
+    newMember: false,
+    shares: '10',
+    companyEventOn: '2026-10-03',
+    signedOn: '2026-10-01',
+    lodgedOn: '2026-10-02',
+  });
+  expect(preparations()[0]).not.toHaveProperty('name');
 });

@@ -22,7 +22,13 @@ import { MainHeader } from './headers';
 
 export type CompanyStackParamList = {
   CompanyMain:
-    | { section?: CompanyRegisterSection; companyUuid?: string; tokenUuid?: string; issue?: IssueRequest }
+    | {
+        section?: CompanyRegisterSection;
+        companyUuid?: string;
+        tokenUuid?: string;
+        issue?: IssueRequest;
+        select?: string;
+      }
     | undefined;
   CompanyDetails: undefined;
   CompanyPublications: undefined;
@@ -36,7 +42,7 @@ export type CompanyStackParamList = {
   PrepareRegisterImport: { tokenUuid: string; companyUuid: string; correctionOf?: string };
   PrepareRegisterCorrection: { tokenUuid: string; companyUuid: string; entryUuid: string };
   PrepareRegisterParticulars: { tokenUuid: string; companyUuid: string; memberUuid: string };
-  PrepareRegisterTransfer: { tokenUuid: string; companyUuid: string };
+  PrepareRegisterTransfer: { tokenUuid: string; companyUuid: string; fromMember?: string };
   PrepareRegisterLink: { company: string };
 };
 

@@ -137,7 +137,11 @@ place of the list, titled Review share transfer, and its Approve records the tra
 (`completeTransfer` with the apply appointment): an approved transfer still waiting for its entry
 shows **Ready to complete**, and Approve finishes it. Reject transfer uses the same review.
 **Prepare a non-paid transfer** sits beneath the list and opens the separate preparation screen
-(`PrepareRegisterTransferScreen.tsx`), which still takes a new recipient and keeps its single page.
+(`PrepareRegisterTransferScreen.tsx`) with the web's three steps (`TransferForm.tsx`): People and
+shares between existing company people only, Transfer documents, then Company authority and review.
+It checks each step on Continue and the whole form on Prepare transfer, words a refusal, keeps an
+interrupted request to resend unchanged, and returns to Transfer shares on that class, as Cancel
+does.
 
 Shareholders (`CompanyPeople.tsx` and `CompanyShareholders.tsx` beside the screen) follows the web
 after the same figures check, and only while the person can still read the register: Current
@@ -148,12 +152,13 @@ residential address form; `usePersonRegistration.ts` keeps the web's original-sa
 unfinished save stays mounted while the other sections say so.
 
 Details, beside each current shareholder and each former shareholder the register names, opens
-`CompanyShareholderScreen.tsx`: the web's shareholder page without the Transfer shares link yet. It
-reads the company's registers with the Ledger's query key,
-their recorded particulars, their entries and their awards, and shows any of it only with a current
-company register appointment, holdings included. **Change particulars** stays for someone who can
-prepare the register, and the particulars screen also finds a person without shares. Request and
-invitation links open Company, where mobile keeps member access. Its Documents
+`CompanyShareholderScreen.tsx`: the web's shareholder page. For someone who can prepare, each
+holding with no linked wallet in an opened draft class offers **Transfer shares**, which opens the
+preparation with the transferor chosen. It reads the company's registers with the Ledger's query
+key, their recorded particulars, their entries and their awards, and shows any of it only with a
+current company register appointment, holdings included. **Change particulars** stays for someone
+who can prepare the register, and the particulars screen also finds a person without shares. Request
+and invitation links open Company, where mobile keeps member access. Its Documents
 (`MemberDocuments.tsx`) list the person's retained files with their category and class, share each
 through the share sheet, and add one at a time: the upload reuses `useRegisterEvidence`, and an
 interrupted save is recovered through its idempotency key before anything is sent again.

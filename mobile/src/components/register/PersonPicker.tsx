@@ -17,6 +17,7 @@ export function PersonSelect({
   disabledMembers = NONE,
   context,
   disabled = false,
+  error,
 }: {
   label: string;
   people: Person[];
@@ -26,6 +27,7 @@ export function PersonSelect({
   disabledMembers?: string[];
   context?: (person: Person) => string;
   disabled?: boolean;
+  error?: string | null;
 }) {
   const choices = useMemo(() => {
     const added = new Set(disabledMembers);
@@ -43,6 +45,7 @@ export function PersonSelect({
       placeholder="Type a name or address"
       disabled={disabled}
       noun={PEOPLE}
+      error={error}
     />
   );
 }
@@ -53,7 +56,6 @@ export function PersonFields({
   onName,
   onResidentialAddress,
   editable,
-  readOnly = false,
   nameError,
   addressError,
 }: {
@@ -62,24 +64,16 @@ export function PersonFields({
   onName: (value: string) => void;
   onResidentialAddress: (value: string) => void;
   editable: boolean;
-  readOnly?: boolean;
   nameError?: string | null;
   addressError?: string | null;
 }) {
   return (
     <>
-      <Field
-        label="Name"
-        value={name}
-        editable={editable && !readOnly}
-        maxLength={255}
-        error={nameError}
-        onChange={onName}
-      />
+      <Field label="Name" value={name} editable={editable} maxLength={255} error={nameError} onChange={onName} />
       <Field
         label="Residential address"
         value={residentialAddress}
-        editable={editable && !readOnly}
+        editable={editable}
         multiline
         maxLength={1000}
         error={addressError}

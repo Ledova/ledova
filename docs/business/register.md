@@ -395,16 +395,18 @@ A company can record a genuine non-paid transfer between members of an imported 
 has no contract, when neither has a linked wallet anywhere in the company. It creates no wallet,
 account, payment, application or chain transaction.
 
-1. On the web, in Ledger choose Transfer shares, the class, then Prepare a non-paid transfer. For a
-   tokenised class the task says its transfers use wallet and chain controls.
+1. In Ledger choose Transfer shares, the class, then Prepare a non-paid transfer, or open
+   **Transfer shares** on a holding on the shareholder page, which chooses the transferor. For a
+   tokenised class the task says its transfers use wallet and chain controls. Mobile follows the same
+   steps.
 2. In **People and shares**, choose the transferor, recipient and shares
    ([choosing a person](#choosing-a-person)), and give the company transfer date. An
    existing company recipient keeps their member ID, including someone holding only another class,
    a former member returning from zero, or someone without shares. Register a first-time recipient
    through **Add person** on Shareholders before preparing the transfer. This creates particulars,
    not shares or member access. If a returning member's particulars were lawfully purged, the
-   company supplies current ones against the same existing identity. The API and mobile retain
-   their existing new-recipient path; mobile changes remain deferred.
+   company supplies current ones against the same existing identity. The API keeps its existing
+   new-recipient path.
 3. In **Transfer documents**, give the separate dates the instrument was signed and lodged,
    the non-paid terms and the signed transfer instrument.
 4. In **Company authority and review**, check the transfer summary, choose the approving director,
@@ -640,8 +642,8 @@ keeps an uploaded document if the response is interrupted.
 Steps follow [how a company decision works](README.md#how-a-company-decision-works); someone whose
 appointments allow none sees the history with a read-only note. On mobile, preparations outside Issue
 shares keep their own screens, and decisions outside Issue shares and Transfer shares keep their
-dialogs; it holds member access under Company and hides every register action while it cannot read the person's appointments
-([page mechanics](../engineering/frontend.md#page-mechanics)).
+dialogs; mobile holds member access under Company and hides every register action while it cannot
+read the person's appointments ([page mechanics](../engineering/frontend.md#page-mechanics)).
 
 ### A shareholder's page
 
@@ -667,11 +669,10 @@ Details show only while the account, the classes and the holdings read are curre
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger.
 
-The mobile app shows the same page, reached from Shareholders only, without the Transfer shares link
-yet, and adds one document at a time. Everything on it, holdings
-included, needs a current company register appointment; while their particulars, history, awards or
-documents refresh, each keeps what it last read. Its request and invitation links open Company, where
-mobile keeps member access.
+The mobile app shows the same page, reached from Shareholders only, and adds one document at a
+time. Everything on it, holdings included, needs a current company register appointment; while
+their particulars, history, awards or documents refresh, each keeps what it last read. Its request
+and invitation links open Company, where mobile keeps member access.
 
 ### Choosing a person
 
