@@ -82,8 +82,8 @@ The email's **View invitation** link opens **Member invitation** on the web. The
 or creates an account, then returns to the invitation in the same tab. They review the company,
 shareholder and intended email before choosing **Accept invitation**; opening a link never grants
 access. Their verified email must match, and acceptance binds one current account to one member
-in that company. Mobile still accepts a privately shared code under **My shares** (the Holdings
-tab), with an explicit confirmation and **Accept member invitation**.
+in that company. Mobile still accepts a privately shared code at the end of **Holdings**, with an
+explicit confirmation and **Accept member invitation**.
 An expired invitation, a changed recorded identity for the member, a revoked appointment of the
 inviting administrator, another person's account or a conflicting association is refused.
 
@@ -98,8 +98,10 @@ only a [particulars request](#particulars-requests) can.
 
 **Dashboard** (web) starts with the member's own issued-share total, share-class count and a chart
 of their shares by class. This counts shares, not company ownership, voting power or value; different
-classes can carry different rights. **My shares** (mobile) lists issued shares by class. Both keep
-employee awards separate, with the original promise and its remaining and ended quantities. The
+classes can carry different rights. Mobile **Holdings** shows a card per company, with a line per
+share class and each award's vested quantity and bar; with more than six companies it becomes a
+searchable list, and classes no longer held sit under **Past holdings**. Both keep employee awards
+separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
 breakdown and terms under **Award details**. This read-only overview is the whole web Dashboard.
@@ -107,8 +109,8 @@ breakdown and terms under **Award details**. This read-only overview is the whol
 **Your details** card, separate from the personal Profile. Pending requests show the requested
 particulars, status and date together;
 completed requests open on demand. Share history, certificates and certificate requests
-are in web **Documents**, without duplicate particulars status. Mobile **My shares** also shows
-them. Wallet holdings are on
+are in web **Documents**, without duplicate particulars status. On mobile, each company's page
+shows them. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access
@@ -138,7 +140,7 @@ original request
 A member, including an award recipient before any shares are issued, asks the company to change
 their recorded name and residential address: **Settings** → **Company-recorded details** →
 **Request update** on web, then **Send request** (**Request a particulars change**, then
-**Send particulars request** on mobile **My shares**). Sending changes nothing on the register.
+**Send particulars request** on the company's page on mobile). Sending changes nothing on the register.
 On web, the form closes after successful submission and the request appears under **Update requests**.
 Cancel closes an unfinished form without sending it; its draft stays in memory for the same signed-in
 account and company, including navigation through Dashboard and Documents.
@@ -486,7 +488,7 @@ What a recipient should know (the builder's own limits are in
 own wallets, one row per company and class across networks, expanding into each network's and
 wallet's balance. A holding whose class details
 cannot be read is listed under the asset's name. Company-recorded shares, wallet or not, are on
-**Dashboard** or **My shares**.
+**Dashboard** or mobile **Holdings**.
 
 Below the shares:
 

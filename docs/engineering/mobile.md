@@ -61,10 +61,15 @@ pull to refresh that succeeds keeps the screen and any unfinished work. Sign-up'
 the individual role, then pre-screening, personal details, financial profile and review follow; the
 dashboard's routes and guards do not apply.
 
-The signed-in app (`SignedInNavigator`) is a stack holding three bottom tabs and the Profile screen.
-Holdings opens My shares, Documents opens Notices and Account holds the account settings, Profile
-and Sign out. Each tab's header has the notifications bell, and a notice's notification opens
-Documents. Screens set their own titles inside the page.
+The signed-in app (`SignedInNavigator`) is a stack holding three bottom tabs and the Company, Past
+holdings and Profile screens. Holdings (`mobile/src/screens/holdings`) shows a card per company with
+a line per share class and each award's vesting bar, the award parts matching the web's; above six
+companies it becomes a searchable list. Classes with no shares left sit under Past holdings. A
+company opens the Company screen, which keeps the member record's details: entries, awards,
+certificates, requests and the company-recorded particulars. Documents opens Notices and Account
+holds the account settings, Profile and Sign out. Each tab's header has the notifications bell, and
+a notice's notification opens Documents. Screens set their own titles inside the page; a pushed
+screen's back button names the tab it came from.
 
 ## Theme and appearance
 

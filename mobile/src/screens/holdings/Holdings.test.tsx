@@ -14,8 +14,15 @@ import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/tests/fixtures/register-outputs';
 import { cache, resetFiles } from '../../testSupport/documentFiles';
-import { MemberRecordsScreen } from './MemberRecordsScreen';
+import { CompanyScreen } from './CompanyScreen';
+import { HoldingsScreen } from './HoldingsScreen';
 
+const mockNavigate = jest.fn();
+
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useNavigation: () => ({ navigate: mockNavigate }),
+}));
 jest.mock('expo-crypto', () => ({
   randomUUID: jest.fn(),
   CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
@@ -43,7 +50,7 @@ afterEach(async () => {
 });
 const page = (results: unknown[]) => ({ data: { results, next: null, count: results.length } });
 
-it('associates a member by invitation code, recovers one exact request and refuses cached records and a late action after current read loss', async () => {
+it('associates a member by invitation code, opens their company from Holdings, recovers one exact request and refuses cached records and a late action after current read loss', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -122,11 +129,19 @@ it('associates a member by invitation code, recovers one exact request and refus
       <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
     </QueryClientProvider>
   );
-  await render(<MemberRecordsScreen />, { wrapper });
+  const holdings = await render(<HoldingsScreen />, { wrapper });
   await fireEvent.changeText(await screen.findByLabelText('Member invitation code'), MEMBER_CODE);
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept access using my signed-in account' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Accept member invitation' }));
-  await screen.findByRole('header', { name: 'My shares' });
+  await fireEvent.press(await screen.findByRole('button', { name: `${MEMBER_RECORD.company.name}: Ordinary · Award` }));
+  expect(mockNavigate).toHaveBeenCalledWith('Company', { record: MEMBER_RECORD.uuid });
+  expect(screen.getByText('1 company · 1 share class · 1 award')).toBeTruthy();
+  expect(screen.getByText('2 of 5 vested')).toBeTruthy();
+  await holdings.unmount();
+  await render(<CompanyScreen route={{ key: 'company', name: 'Company', params: { record: MEMBER_RECORD.uuid } }} />, {
+    wrapper,
+  });
+  await screen.findByRole('header', { name: MEMBER_RECORD.company.name });
   await screen.findByText('Ordinary · 10 issued shares');
   expect(screen.getByText(/5 awarded · 2 vested · 0 issued/)).toBeTruthy();
   ownRecord = {
@@ -165,7 +180,7 @@ it('associates a member by invitation code, recovers one exact request and refus
       },
     ],
   };
-  await fireEvent.press(screen.getByRole('button', { name: 'Refresh member records' }));
+  await act(async () => screen.getByTestId('company-scroll').props.refreshControl.props.onRefresh());
   await screen.findByText(/5 awarded · 3 vested · 1 issued · 1 available/);
   await fireEvent.press(
     screen.getByRole('button', { name: `Award terms and recorded vesting ${ownRecord.awards[0].uuid}` }),
@@ -205,7 +220,7 @@ it('associates a member by invitation code, recovers one exact request and refus
   await screen.findByRole('button', { name: 'Request certificate for entry 1' });
   expect(screen.getByText('Company event date Not recorded')).toBeTruthy();
   expect(screen.getByText(`Ledger effective date ${MEMBER_ENTRY.effectiveOn}`)).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Refresh member records' }));
+  await act(async () => screen.getByTestId('company-scroll').props.refreshControl.props.onRefresh());
   expect(await screen.findByRole('button', { name: 'Request certificate for entry 1' })).toBeEnabled();
   expect(screen.getByLabelText('Requested name').props.value).toBe('Requested Member Name');
   await fireEvent.press(await screen.findByRole('button', { name: 'Request certificate for entry 1' }));

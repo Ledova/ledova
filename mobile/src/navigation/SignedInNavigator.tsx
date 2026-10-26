@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import type { NavigatorScreenParams } from '@react-navigation/native';
+import { getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FolderIcon, HouseIcon, UserIcon } from 'phosphor-react-native';
 import { useNotifications } from '@ledova/shared';
 import { NotificationsModal } from '../components/notifications';
 import { useAppTheme } from '../contexts';
-import { MemberRecordsScreen } from '../screens/member-records/MemberRecordsScreen';
+import { CompanyScreen } from '../screens/holdings/CompanyScreen';
+import { HoldingsScreen } from '../screens/holdings/HoldingsScreen';
+import { PastHoldingsScreen } from '../screens/holdings/PastHoldingsScreen';
 import { PublicationsScreen } from '../screens/publications';
 import { SettingsScreen } from '../screens/settings';
 import { UserProfileScreen } from '../screens/user-profile';
@@ -22,6 +24,8 @@ export type TabParamList = {
 
 export type SignedInStackParamList = {
   Main: NavigatorScreenParams<TabParamList> | undefined;
+  Company: { record: string };
+  PastHoldings: undefined;
   Profile: undefined;
 };
 
@@ -58,7 +62,7 @@ function Tabs({ onNotifications, unreadCount }: { onNotifications: () => void; u
     >
       <Tab.Screen
         name="Holdings"
-        component={MemberRecordsScreen}
+        component={HoldingsScreen}
         options={{
           tabBarLabel: 'Holdings',
           tabBarIcon: ({ color, size }) => <HouseIcon size={size} color={color} weight="regular" />,
@@ -97,9 +101,14 @@ export function SignedInNavigator() {
           ...getMainHeaderStyle(theme),
         }}
       >
-        <Stack.Screen name="Main" options={{ headerShown: false, title: 'Account' }}>
+        <Stack.Screen
+          name="Main"
+          options={({ route }) => ({ headerShown: false, title: getFocusedRouteNameFromRoute(route) ?? 'Holdings' })}
+        >
           {() => <Tabs onNotifications={() => setShowNotifications(true)} unreadCount={unreadCount} />}
         </Stack.Screen>
+        <Stack.Screen name="Company" component={CompanyScreen} options={{ title: '' }} />
+        <Stack.Screen name="PastHoldings" component={PastHoldingsScreen} options={{ title: '' }} />
         <Stack.Screen name="Profile" component={UserProfileScreen} options={{ title: '' }} />
       </Stack.Navigator>
       <NotificationsModal visible={showNotifications} onClose={() => setShowNotifications(false)} />
