@@ -81,8 +81,8 @@ export function awardParts(award: MemberAward) {
   return parts.map(({ part, quantity }) => ({ part, quantity, width: Number((quantity * 10000n) / promised) / 100 }));
 }
 
-export function shareTotal(...quantities: string[]) {
-  return quantities.every((quantity) => /^\d+$/.test(quantity))
-    ? shareQuantity(String(quantities.reduce((sum, quantity) => sum + BigInt(quantity), 0n)))
+export function shareTotal(first: string, second: string) {
+  return /^\d+$/.test(first) && /^\d+$/.test(second)
+    ? shareQuantity(String(BigInt(first) + BigInt(second)))
     : 'Unavailable';
 }

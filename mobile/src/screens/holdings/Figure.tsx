@@ -9,7 +9,7 @@ export function Figure({ value, caption }: { value: string; caption: string }) {
     big: { fontFamily: theme.fontFamily.display, fontSize: 40, color: theme.colors.text.primary },
   }));
   return (
-    <View style={look.figure}>
+    <View style={look.figure} accessible accessibilityLabel={`${value} ${caption}`}>
       <Text style={look.big}>{value}</Text>
       <Text style={styles.muted}>{caption}</Text>
     </View>

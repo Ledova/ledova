@@ -32,20 +32,6 @@ function useAwardStyles() {
 function historyOf(award: MemberAward) {
   const vestedOn = (uuid: string) => award.vestings.find((event) => event.uuid === uuid)?.vestedOn;
   return [
-    ...award.vestings.map((event) => ({
-      uuid: event.uuid,
-      on: event.vestedOn,
-      kind: 'Vested',
-      quantity: formatShareCount(event.shares),
-      detail: null,
-    })),
-    ...award.ends.map((event) => ({
-      uuid: event.uuid,
-      on: event.companyEventOn,
-      kind: 'Rights ended',
-      quantity: shareTotal(event.unvestedShares, event.vestedShares),
-      detail: `${formatShareCount(event.unvestedShares)} unvested and ${formatShareCount(event.vestedShares)} vested not yet issued · ${event.reason}`,
-    })),
     ...award.vestingReversals.map((event) => {
       const original = vestedOn(event.vesting);
       return {
@@ -56,6 +42,20 @@ function historyOf(award: MemberAward) {
         detail: original ? `Corrects the vesting of ${formatDate(original)} · ${event.reason}` : event.reason,
       };
     }),
+    ...award.ends.map((event) => ({
+      uuid: event.uuid,
+      on: event.companyEventOn,
+      kind: 'Rights ended',
+      quantity: shareTotal(event.unvestedShares, event.vestedShares),
+      detail: `${formatShareCount(event.unvestedShares)} unvested and ${formatShareCount(event.vestedShares)} vested not yet issued · ${event.reason}`,
+    })),
+    ...award.vestings.map((event) => ({
+      uuid: event.uuid,
+      on: event.vestedOn,
+      kind: 'Vested',
+      quantity: formatShareCount(event.shares),
+      detail: null,
+    })),
   ].sort((a, b) => b.on.localeCompare(a.on));
 }
 
@@ -90,7 +90,7 @@ export function AwardScreen({ route }: { route: RouteProp<SignedInStackParamList
                   caption={`of ${formatShareCount(award.shares)} vested`}
                 />
                 <AwardBar award={award} height={8} />
-                <View>
+                <Rows>
                   {parts
                     .filter(({ part, quantity }) => part !== 'ended' || quantity > 0n)
                     .map(({ part, quantity }) => (
@@ -105,7 +105,7 @@ export function AwardScreen({ route }: { route: RouteProp<SignedInStackParamList
                         <Text style={look.quantity}>{formatShareCount(String(quantity))}</Text>
                       </View>
                     ))}
-                </View>
+                </Rows>
               </View>
             ) : (
               <Text style={styles.muted}>Award quantities are unavailable. Refresh the current record.</Text>
@@ -134,7 +134,10 @@ export function AwardScreen({ route }: { route: RouteProp<SignedInStackParamList
                     <View
                       key={event.uuid}
                       accessible
-                      accessibilityLabel={`${event.kind}, ${formatDate(event.on)}, ${event.quantity}${event.detail ? `, ${event.detail}` : ''}`}
+                      accessibilityLabel={[event.kind, formatDate(event.on), event.quantity, event.detail]
+                        .filter(Boolean)
+                        .join(', ')
+                        .replaceAll(' · ', ', ')}
                       style={look.row}
                     >
                       <View style={look.grow}>

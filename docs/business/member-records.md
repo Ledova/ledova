@@ -103,7 +103,7 @@ classes can carry different rights. Mobile **Holdings** shows a card per company
 share class and each award's vested quantity and bar; with more than six companies it becomes a
 searchable list, and classes no longer held sit under **Past holdings**. On mobile an award opens
 its own page with the vested quantity, the issued, vested but unissued, still-to-vest and ended
-parts, the schedule and terms, and the award's history. Both keep employee awards
+parts, the schedule and terms, and the award's history. The web and mobile both keep employee awards
 separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
