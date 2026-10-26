@@ -87,7 +87,8 @@ Resuming an unfinished signup:
 ## Representative authority requests
 
 An owner of a draft company can also request initial authority outside signup, from
-**Representative authority** on the Company page on web or mobile.
+**Settings → Company team → Representative authority** on web or **Representative authority** on
+the Company page on mobile.
 
 1. Use your verified account and the draft company you own, selecting it explicitly if you own
    several.
@@ -110,12 +111,14 @@ An owner of a draft company can also request initial authority outside signup, f
 
 ## Team invitations and appointments
 
-Open the team from **Company → Company team** or **Settings → Company team** (on mobile,
-under **Settings → Company settings**). Investor-only accounts can open it too: accepting an
+Open the team from **Settings → Company team** on web, or **Company → Company team** or
+**Settings → Company settings** on mobile. Investor-only accounts can open it too: accepting an
 invitation or reading your appointments needs no company workspace. The web page starts with
 appointments, the selected company's team and issued invitations; **Invite a company user** and
-**Accept a company invitation** open focused inline forms. Mobile keeps its separate sections.
-[Company eligibility](participants.md#company-eligibility-decisions) is reached from Company settings.
+**Accept a company invitation** open focused inline forms. It also keeps the owner's contextual
+Representative authority task. Mobile keeps its separate sections.
+[Company eligibility](participants.md#company-eligibility-decisions) is under More on web and
+Company team on mobile.
 
 1. To invite someone, select the company and one of your current appointments that can delegate.
    Choose the personal capabilities and, separately, any onward delegation for the invitee. Set an
@@ -212,8 +215,9 @@ rechecks the captured details.
 
 ## Company information and documents
 
-A current company administrator reads and edits the company's basic information and manages its
-documents from Company settings on web and mobile
+A current company administrator reads and edits the company's basic information at
+**Settings → Company**, and manages supporting files at **Settings → Company documents** on web.
+Mobile reaches both from **Settings → Company settings**
 ([Settings](participants.md#profile-and-settings)). If several companies are available, select the
 company explicitly first.
 
@@ -273,10 +277,11 @@ chain deployments and issues, paid issues, capital increases and company wallet 
 for an Active company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
-2. Open Activation, shown only to personal administrators, from **Settings → Verify and activate
-   your company** or the same step in Getting started (the Dashboard on the web, the Ledger tab
-   on mobile). Refresh the company details and your appointment. A company account role or an
-   owned draft does not substitute for an appointment; an appointed investor can use the same page.
+2. Open **Settings → Activation** on web or **Settings → Verify and activate your company** on
+   mobile, shown only to personal administrators, or use the same step in Getting started (the
+   Dashboard on web, the Ledger tab on mobile). Refresh the company details and your appointment.
+   A company account role or an owned draft does not substitute for an appointment; an appointed
+   investor can use the same page.
 3. Choose **Review activation**, read the company and the exact declaration on the main page on web, tick **I accept this
    declaration for this company** and choose **Confirm activation** once.
 4. Read the retained outcome. A passing attempt makes the company Active. A pending, failed or
@@ -340,9 +345,9 @@ default. When it is on, the person's verified identity is required for every act
 authority: initial admission, accepting an invitation, activation, company administration,
 eligibility decisions, member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
-configured identity provider, from **Verify your identity** at signup review or later from Profile
-(also **Settings → Verify your identity**) with **Review identity check**; with the
-requirement on and no provider, every company decision is refused
+configured identity provider, from **Verify your identity** at signup review or later from
+**Settings → Profile** on web (**Settings → Verify your identity** on mobile) with
+**Review identity check**. With the requirement on and no provider, every company decision is refused
 ([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
 requirement is separate ([participants](participants.md#account-readiness)).
 
@@ -353,17 +358,16 @@ type, ACN, ABN, email (administrators only), phone and address. Administrators s
 On the web it also shows the company's UUID in full, with **Copy company UUID**, to give investors
 for their eligibility requests and claims ([requesting a decision](participants.md#requesting-a-decision)).
 
-Its Company administration section links to:
+On web, the Settings sidebar owns navigation to Company, Company documents, Company team and
+Activation, without a repeated Company administration link card. Representative authority is a
+contextual task in Company team. Company eligibility and **Published to your members** remain under
+More, retaining their existing access rules
+([the Published page](publications.md#the-published-page)).
 
-- **Representative authority**, for the company's owner on the web and for everyone on mobile;
-- **Company team** and **Company eligibility** (on mobile, Company eligibility is reached from
-  Company team);
-- **Published to your members**, for the company's owner
-  ([the Published page](publications.md#the-published-page)).
-
-Activation is at the top of Settings, and share classes are listed and added only in
-[Ledger](register.md#bringing-in-existing-records). Company documents
-follow for administrators.
+Mobile keeps its Company administration links to Representative authority, Company team and
+Published to your members; Company eligibility is reached from Company team. Activation remains at
+the top of native Settings. On both clients, share classes are listed and added only in
+[Ledger](register.md#bringing-in-existing-records).
 
 Next: [participants and eligibility](participants.md) ·
 [register of members](register.md) ·

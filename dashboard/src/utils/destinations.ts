@@ -50,8 +50,44 @@ export function documentView(value: unknown): DocumentView | undefined {
   return DOCUMENT_VIEWS.find(({ key }) => key === view)?.key;
 }
 
+export const SETTINGS_VIEWS = [
+  { key: 'company', label: 'Company', to: DESTINATIONS.company.path },
+  { key: 'company-documents', label: 'Company documents', to: `${DESTINATIONS.company.path}#documents` },
+  { key: 'company-team', label: 'Company team', to: DESTINATIONS.companyTeam.path },
+  { key: 'activation', label: 'Activation', to: DESTINATIONS.companyListing.path },
+  { key: 'profile', label: 'Profile', to: DESTINATIONS.userProfile.path },
+  {
+    key: 'company-recorded-details',
+    label: 'Company-recorded details',
+    to: `${DESTINATIONS.settings.path}#company-recorded-details`,
+  },
+  { key: 'account', label: 'Account', to: `${DESTINATIONS.settings.path}#account` },
+] as const;
+
+export type SettingsView = (typeof SETTINGS_VIEWS)[number]['key'];
+
+export function settingsView(pathname: string, hash: string): SettingsView | undefined {
+  if (pathname === DESTINATIONS.company.path) return hash === '#documents' ? 'company-documents' : 'company';
+  if (pathname === DESTINATIONS.companyTeam.path || pathname === DESTINATIONS.companyAuthority.path)
+    return 'company-team';
+  if (pathname === DESTINATIONS.companyListing.path) return 'activation';
+  if (pathname === DESTINATIONS.userProfile.path) return 'profile';
+  if (pathname === DESTINATIONS.settings.path) {
+    if (hash === '#company-recorded-details') return 'company-recorded-details';
+    if (hash === '#account') return 'account';
+  }
+  return undefined;
+}
+
 const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   ...DESTINATION_PARENTS,
+  company: { destination: 'settings', back: false },
+  companyTeam: { destination: 'settings', back: false },
+  companyListing: { destination: 'settings', back: false },
+  userProfile: { destination: 'settings', back: false },
+  companyAuthority: { destination: 'companyTeam' },
+  companyEligibility: { destination: 'settings', back: false },
+  companyPublications: { destination: 'settings', back: false },
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
   companyRegisterOpening: { destination: 'companyRegister', view: 'corrections' },
   companyRegisterLinks: { destination: 'companyRegister', view: 'corrections' },
@@ -59,6 +95,8 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
 };
 
 function viewName(key: DestinationKey, view: string): string | undefined {
+  if (key === 'settings' && view === 'account') return 'Account';
+  if (key === 'settings' && view === 'company-recorded-details') return 'Company-recorded details';
   const destination: Destination = DESTINATIONS[key];
   const views = destination.views;
   if (key === 'companyRegister') {

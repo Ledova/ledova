@@ -17,6 +17,7 @@ import {
   TECHNICAL_SHARE_LIMIT,
   formatDate,
   USER_PREFERENCES_QUERY_KEY,
+  AUTH_QUERY_KEY,
   USER_PREFERENCES_ENDPOINTS,
   type AccountRole,
   type TokenHoldersResponse,
@@ -2931,7 +2932,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
 
 it('shows an account without register access a calm empty state, reads no members and offers no entry', async () => {
   api.get.mockImplementation(async (url: string) => {
-    if ([REGISTER, COMPANY_ENDPOINTS.BASE, APPOINTMENTS, PROFILES].includes(url)) return page([]);
+    if (
+      [REGISTER, COMPANY_ENDPOINTS.BASE, APPOINTMENTS, PROFILES, COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORDS].includes(url)
+    )
+      return page([]);
     throw new Error(`Unexpected read ${url}`);
   });
   show('investor');
@@ -2940,11 +2944,32 @@ it('shows an account without register access a calm empty state, reads no member
   expect(screen.queryByRole('button', { name: /shares/ })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   cleanup();
-  show('investor', <SettingsPage />, 'Settings');
-  expect(await screen.findByRole('link', { name: 'Company team' })).toBeTruthy();
+  show('investor', <SettingsPage />, 'Settings', { entry: '/settings', path: '/settings' });
+  expect(await screen.findByRole('heading', { level: 1, name: 'Account' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Change password' })).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, PROFILES]);
+  expect(readUrls()).toEqual([REGISTER, APPOINTMENTS, COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORDS]);
   expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
+
+  cleanup();
+  client.clear();
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  let preferencesUnavailable = true;
+  api.get.mockImplementation(async (url: string) => {
+    if (url === USER_PREFERENCES_ENDPOINTS.BASE) {
+      if (preferencesUnavailable) throw new Error('The preferences read failed.');
+      return { data: companyPreferences('investor') };
+    }
+    if ([APPOINTMENTS, COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORDS].includes(url)) return page([]);
+    throw new Error(`Unexpected settings recovery read ${url}`);
+  });
+  renderCompanyPage(client, <SettingsPage />, 'Settings', { entry: '/settings', path: '/settings' });
+  const retry = await screen.findByRole('button', { name: 'Try again' });
+  await waitFor(() => expect(retry.matches(':disabled')).toBe(false));
+  preferencesUnavailable = false;
+  fireEvent.click(retry);
+  expect(await screen.findByRole('heading', { level: 1, name: 'Account' })).toBeTruthy();
+  expect(api.post).not.toHaveBeenCalled();
 });
 
 it("retains a dashboard's validated company/class context and reads only the chosen company's members", async () => {

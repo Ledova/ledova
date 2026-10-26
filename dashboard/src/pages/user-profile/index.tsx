@@ -63,10 +63,10 @@ function UserProfilePage() {
     setEditing({ source: sourceKey, owner: ownerKey });
   }
 
-  if (isLoading) return <Page narrow loading />;
+  if (isLoading) return <Page loading />;
   if (isError) {
     return (
-      <Page narrow>
+      <Page>
         <LoadError retry={refreshProfile} busy={isFetching}>
           Your profile could not be loaded.
         </LoadError>
@@ -75,7 +75,7 @@ function UserProfilePage() {
   }
   if (!userProfile)
     return (
-      <Page narrow>
+      <Page>
         <p className="text-sm text-text-muted">No profile data is available.</p>
       </Page>
     );
@@ -86,7 +86,7 @@ function UserProfilePage() {
     : 'Not provided';
 
   return (
-    <Page narrow>
+    <Page>
       <Section title="Personal information">
         <Rows>
           {!isEditing && (

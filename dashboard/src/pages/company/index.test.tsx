@@ -15,6 +15,7 @@ import {
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { Link } from 'react-router-dom';
 import CompanyPage from '.';
 import CompanyTeamPage from './team';
 import CompanyEligibilityPage from './eligibility';
@@ -30,7 +31,15 @@ let client: QueryClient;
 let company: Company;
 let failed: string | null;
 function show() {
-  return renderCompanyPage(client, <CompanyPage />, 'Company', { entry: '/company', path: '/company' });
+  return renderCompanyPage(
+    client,
+    <>
+      <CompanyPage />
+      <Link to="/company#documents">Open company documents</Link>
+    </>,
+    'Company',
+    { entry: '/company', path: '/company' },
+  );
 }
 beforeEach(() => {
   vi.resetAllMocks();
@@ -60,16 +69,13 @@ afterEach(() => {
   else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
 });
 
-it('shows company details and destinations without share classes, and uploads documents to the selected company and type', async () => {
+it('shows focused company details without share classes, and uploads documents to the selected company and type', async () => {
   show();
   await screen.findByText(company.name);
   expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
-  expect(screen.getByRole('link', { name: /Company team/ }).getAttribute('href')).toBe('/company/team');
+  expect(screen.queryByRole('heading', { name: 'Company administration' })).toBeNull();
   expect(screen.getByText('company@example.invalid')).toBeTruthy();
   expect(screen.queryByRole('link', { name: 'Activation' })).toBeNull();
-  expect(screen.getByRole('link', { name: 'Published to your members' }).getAttribute('href')).toBe(
-    '/company/publications',
-  );
   expect(screen.getByRole('button', { name: 'Edit company' })).toBeTruthy();
   expect(screen.queryByText(/Share classes/)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Create share class' })).toBeNull();
@@ -95,7 +101,7 @@ it('shows company details and destinations without share classes, and uploads do
     company = { ...company, documents: [...company.documents, companyDocument] };
     return { data: companyDocument };
   });
-  fireEvent.click(screen.getByRole('link', { name: 'Company documents' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Open company documents' }));
   const uploadOpener = await screen.findByRole('button', { name: 'Upload document' });
   fireEvent.click(uploadOpener);
   let uploadForm = await screen.findByRole('form', { name: 'Upload Other documents' });

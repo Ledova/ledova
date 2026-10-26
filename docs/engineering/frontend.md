@@ -317,16 +317,26 @@ same caret pattern for ESS, Member access and Member requests. Documents uses th
 Certificates, Ledger exports and Company pack. Its label opens Certificates, the default child;
 the legacy company `#documents` hash opens Certificates too. A group without a meaningful overview
 opens its default child, without a separate Overview page or duplicate page navigation.
+Settings uses the same one-level pattern for Company, Company documents, Company team, Activation,
+Profile, Company-recorded details and Account. `useSettingsNavigation`
+(`dashboard/src/hooks/useSettingsNavigation.ts`) supplies its current access and default: Company for
+an effective personal company administrator, Account otherwise. Company team remains available for
+company-invitation acceptance; member particulars use the person's own record context. Existing page
+and API authority checks still decide what may be read or changed. Account is `/settings#account`;
+`/settings#company-recorded-details` keeps the member view and bare `/settings` opens the applicable default.
+Company eligibility and Published to your members are under More. Company team keeps Representative
+authority as a contextual task, with its existing owner and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
-stay siblings. Its company group follows `useRegisterEntry`, its investing group the investing
+stay siblings. The company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
-glance](../business/README.md#the-app-at-a-glance)). A page that isn't an item marks its nearest
-parent that is ([navigation](frontend-ux.md#navigation)): Settings on the Company pages, Activation
-and Profile, Shareholders on a shareholder's page. The register hashes switch the visible view without
-unmounting register forms or their recovery ([page mechanics](#page-mechanics)). The sidebar and
-phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a bounded grid. Its
-items are links, and below `lg` the drawer is a dialog ([navigation](frontend-ux.md#navigation)).
-Native navigation is declared separately ([navigation](mobile.md#navigation)).
+glance](../business/README.md#the-app-at-a-glance)). Direct Settings children have their own active item
+and omit Back to Settings; a contextual page marks its nearest sidebar parent, such as Company team
+on Representative authority and Shareholders on a shareholder's page. The register hashes switch the
+visible view without unmounting register forms or their recovery ([page mechanics](#page-mechanics)).
+The sidebar and phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a
+bounded grid. Its items are links, and below `lg` the drawer is a dialog
+([navigation](frontend-ux.md#navigation)). Native navigation is declared separately
+([navigation](mobile.md#navigation)).
 
 ### Sign-up routes
 
@@ -618,7 +628,7 @@ with its `theme-color`) only when `ledova.theme` (`THEME_STORAGE_KEY`) in browse
 earlier, removed switch is not read. The choice is written only when someone picks a theme and stays
 in that browser, not on the account, through reloads and sign-out.
 
-The dashboard's switches (Settings > Appearance > Dark theme, and the `ThemeToggle` icon in the
+The dashboard's switches (Settings > Account > Preferences > Dark theme, and the `ThemeToggle` icon in the
 signed-out and sign-up header, the desktop sidebar's account footer and the small-screen signed-in
 header) use `dashboard/src/hooks/useTheme.ts`. The site's navbar toggle uses `site/src/theme.ts`,
 which repeats the key, parsing rule and theme colours because the site cannot import
@@ -654,7 +664,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | [Market](../business/trading.md#the-market-page)                                                         | `/trading`                                                                         | investing |
 | [Wallets](../business/trading.md#the-wallets-page)                                                       | `/wallets`                                                                         | everyone  |
 | [Activity](../business/trading.md#the-activity-page)                                                     | `/transactions`                                                                    | everyone  |
-| [Profile, Settings](../business/participants.md#profile-and-settings)                                    | `/user-profile`, `/settings`, `/settings#company-recorded-details`                   | everyone  |
+| [Profile, Account and member settings](../business/participants.md#profile-and-settings)                 | `/user-profile`, `/settings` (default), `/settings#account`, `/settings#company-recorded-details` | everyone  |
 
 ### Page mechanics
 
@@ -793,8 +803,12 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   unavailable until the chosen wallet's balances are read.
 - Activity: the history read does not depend on the wallet filter read; filters use only supported
   API fields.
-- Profile and Settings: transaction alerts are the `transactionAlerts` field of the one preferences
-  record (`useUserPreferences`, saved with a partial `POST` to `/api/user-preferences/`); mobile
+- Settings on web: the sidebar owns its destinations; Company shows details rather than a repeated
+  administration link list. Account and Profile use the standard workspace frame. Account groups
+  Security, Preferences and Data and privacy; personal identity verification stays in Profile.
+  Activation keeps its existing company workflow. Signup and native Settings keep their own navigation.
+- Account on web, Settings on mobile: transaction alerts are the `transactionAlerts`
+  field of the one preferences record (`useUserPreferences`, saved with a partial `POST` to `/api/user-preferences/`); mobile
   distinguishes an unavailable record from disabled alerts. Account deletion clears cached account
   data after the server confirms.
 

@@ -29,10 +29,25 @@ const ORDINARY = {
 };
 
 async function serveASignedInAccount(page: Page, role: Role) {
+  const reads = { memberLists: 0, appointments: 0, companies: 0 };
+  const company = {
+    uuid: 'company',
+    name: LONG_NAME,
+    status: 'draft',
+    statusDisplay: 'Draft',
+    companyTypeDisplay: 'Proprietary Limited (Pty Ltd)',
+    acn: '929000000',
+    isOwner: role !== 'investor',
+    administrativeAccess: { draftSetup: role !== 'investor', capabilities: role === 'both' ? ['admin'] : [] },
+    documents: [],
+  };
   await page.route('**/api/**', (route) => {
     const answer = (body: unknown) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
     const path = new URL(route.request().url()).pathname;
+    if (path === '/api/v1/tokens/member-records/') reads.memberLists += 1;
+    if (path === '/api/v1/company-authority/appointments/') reads.appointments += 1;
+    if (path === '/api/v1/companies/') reads.companies += 1;
     if (path === '/api/auth/verify/') return answer({ valid: true });
     if (path === '/api/user-accounts/') return answer({ uuid: 'account', role });
     if (path === '/api/user-preferences/')
@@ -48,8 +63,30 @@ async function serveASignedInAccount(page: Page, role: Role) {
       return answer({ ...EMPTY, count: 1, results: [{ name: 'trading_enabled', enabled: true }] });
     }
     if (path === '/api/v1/companies/') {
-      return answer({ ...EMPTY, count: 1, results: [{ uuid: 'company', name: LONG_NAME }] });
+      return answer({ ...EMPTY, count: 1, results: [company] });
     }
+    if (path === '/api/v1/companies/company/') return answer(company);
+    if (path === '/api/v1/company-authority/appointments/' && role === 'both')
+      return answer({
+        ...EMPTY,
+        count: 1,
+        results: [
+          {
+            uuid: 'appointment',
+            company: 'company',
+            companyName: LONG_NAME,
+            companyStatus: 'draft',
+            companyStatusDisplay: 'Draft',
+            capabilities: ['admin'],
+            delegatableCapabilities: ['admin'],
+            status: 'active',
+            isEffective: true,
+            revokedAt: null,
+            expiresAt: null,
+            source: 'initial',
+          },
+        ],
+      });
     if (path === '/api/v1/tokens/register/' && role !== 'company')
       return answer({
         ...EMPTY,
@@ -59,10 +96,11 @@ async function serveASignedInAccount(page: Page, role: Role) {
     if (path === '/api/v1/tokens/ordinary/holders/' && role !== 'company') return answer(ORDINARY);
     return answer(EMPTY);
   });
+  return reads;
 }
 
 async function openTheSidebar(page: Page, role: Role) {
-  await serveASignedInAccount(page, role);
+  const reads = await serveASignedInAccount(page, role);
   await page.goto('/');
   await expect(page).toHaveURL(new RegExp(role === 'company' ? '/home$' : '/company/dashboard$'));
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
@@ -193,6 +231,81 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(pack).toHaveAttribute('aria-current', 'page');
     await expect(exports).not.toHaveAttribute('aria-current');
     await expect(documentsLink).not.toHaveAttribute('aria-current');
+  }
+  const settings = aside.getByRole('link', { name: 'Settings', exact: true }).locator('../..');
+  const settingsLink = settings.getByRole('link', { name: 'Settings', exact: true });
+  await expect(settingsLink).toHaveAttribute('href', role === 'both' ? '/company' : '/settings#account');
+  await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
+  await expect(settings.getByRole('button', { name: 'Collapse Settings navigation' })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  );
+  await expect(settings.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute('href', '/user-profile');
+  await expect(settings.getByRole('link', { name: 'Company team', exact: true })).toHaveAttribute(
+    'href',
+    '/company/team',
+  );
+  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(0);
+  await expect(settings.getByRole('link', { name: 'Company', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
+  await expect(settings.getByRole('link', { name: 'Activation', exact: true })).toHaveCount(role === 'both' ? 1 : 0);
+  await settingsLink.click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: role === 'both' ? 'Company' : 'Account', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Back to Settings', exact: true })).toHaveCount(0);
+  if (phone) {
+    await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+  }
+  if (role === 'both') {
+    await expect(settings.getByRole('link', { name: 'Company', exact: true })).toHaveAttribute('aria-current', 'page');
+    await settings.getByRole('link', { name: 'Company documents', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Company documents', exact: true })).toBeVisible();
+    if (phone) {
+      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+      await page.getByRole('button', { name: 'Open navigation' }).click();
+    }
+    await expect(settings.getByRole('link', { name: 'Company documents', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(settings.getByRole('link', { name: 'Company', exact: true })).not.toHaveAttribute('aria-current');
+    await settings.getByRole('link', { name: 'Account', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
+    if (phone) {
+      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+      await page.getByRole('button', { name: 'Open navigation' }).click();
+    }
+  }
+  await expect(settings.getByRole('link', { name: 'Account', exact: true })).toHaveAttribute('aria-current', 'page');
+  await settings.getByRole('link', { name: 'Company team', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Company team', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Accept a company invitation', exact: true })).toBeVisible();
+  if (phone) {
+    await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+  }
+  await expect(settings.getByRole('link', { name: 'Company team', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  if (phone) {
+    const cachedReads = { ...reads };
+    expect(cachedReads.memberLists).toBeGreaterThan(0);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await settings.getByRole('button', { name: 'Collapse Settings navigation' }).click();
+    await expect(settings.getByRole('button', { name: 'Expand Settings navigation' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
+    await expect(settings.getByRole('link', { name: 'Company team', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(reads).toEqual(cachedReads);
   }
   await aside.locator('summary').filter({ hasText: 'More' }).click();
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();

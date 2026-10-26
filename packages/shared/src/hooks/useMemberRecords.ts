@@ -17,6 +17,7 @@ import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionOwner } from '../utils/order-submission-storage';
 import { useApiClient } from './useApiClient';
 
 type Command =
@@ -31,6 +32,10 @@ type Command =
     }
   | { kind: 'certificate'; operationId: string; association: string; token: string; entry: string }
   | { kind: 'withdraw'; uuid: string; idempotencyKey: string };
+
+export function ownMemberRecordsKey(owner: OrderSubmissionOwner | null, epoch = 0) {
+  return ['member-records', owner?.userUuid, owner?.ownerAccountUuid, epoch] as const;
+}
 
 export function useMemberRecords(
   newKey: () => string,
@@ -50,7 +55,7 @@ export function useMemberRecords(
   const live = useRef(true);
   const current = useRef({ selected, token, owner });
   current.current = { selected, token, owner };
-  const key = ['member-records', owner?.userUuid, owner?.ownerAccountUuid, session?.getEpoch() ?? 0];
+  const key = ownMemberRecordsKey(owner, session?.getEpoch() ?? 0);
   const detailKey = [...key, selected];
   const requestsKey = [...detailKey, 'requests'];
   const entriesKey = [...detailKey, 'entries', token];
