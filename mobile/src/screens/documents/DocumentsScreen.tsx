@@ -41,6 +41,7 @@ function DocumentSheet({ certificate, onClose }: { certificate: MemberCertificat
   const { read } = useCompanyRecord(certificate.record.uuid);
   const loaded = read.record?.uuid === certificate.record.uuid ? read.requests : null;
   const request = loaded?.certificates.find((row) => row.uuid === certificate.request.uuid);
+  const gone = read.listReady && !read.records.some((row) => row.uuid === certificate.record.uuid);
   if (request)
     return (
       <CertificateSheet
@@ -57,7 +58,7 @@ function DocumentSheet({ certificate, onClose }: { certificate: MemberCertificat
           ? 'Retry or finish your pending request before opening this certificate.'
           : read.readFailed
             ? 'This certificate could not be loaded. Refresh and try again.'
-            : loaded
+            : loaded || gone
               ? 'This certificate is no longer recorded for you.'
               : 'Loading certificate…'}
       </Text>
@@ -100,6 +101,7 @@ export function DocumentsScreen({ route }: { route: RouteProp<TabParamList, 'Doc
   const chosen = companies.find((item) => item.uuid === company);
   const rows = certificates.certificates.filter((row) => !chosen || row.record.company.uuid === chosen.uuid);
   const shown = notices.publications.filter((publication) => !chosen || publication.companyName === chosen.name);
+  const listing = read.loading || (!read.listReady && !read.error) || certificates.loading;
   const refresh = () => {
     if (read.busy || refreshing) return;
     setRefreshing(true);
@@ -118,7 +120,7 @@ export function DocumentsScreen({ route }: { route: RouteProp<TabParamList, 'Doc
         <Choice label="Certificates" selected={kind === 'certificates'} onPress={() => setKind('certificates')} />
         <Choice label="Notices" selected={kind === 'notices'} onPress={() => setKind('notices')} />
       </View>
-      {companies.length > 1 && (
+      {(companies.length > 1 || chosen) && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={look.chips}>
           <Choice label="All" selected={!chosen} onPress={() => setCompany(null)} />
           {companies.map((item) => (
@@ -142,12 +144,22 @@ export function DocumentsScreen({ route }: { route: RouteProp<TabParamList, 'Doc
               Some certificates could not be loaded. Refresh before relying on this list.
             </Text>
           )}
-          <View style={card.card}>
-            {read.loading || certificates.loading ? (
+          {listing ? (
+            <View style={card.card}>
               <Text style={styles.muted}>Loading certificates…</Text>
-            ) : rows.length === 0 ? (
-              <Text style={styles.muted}>{"No certificates yet. Request one from a share class's history."}</Text>
-            ) : (
+            </View>
+          ) : !read.listReady ? null : rows.length === 0 ? (
+            certificates.failed ? null : (
+              <View style={card.card}>
+                <Text style={styles.muted}>
+                  {chosen
+                    ? 'No certificates from this company.'
+                    : "No certificates yet. Request one from a share class's history."}
+                </Text>
+              </View>
+            )
+          ) : (
+            <View style={card.card}>
               <Rows>
                 {rows.map((row) => {
                   const { title, detail, status } = describe(row);
@@ -169,8 +181,8 @@ export function DocumentsScreen({ route }: { route: RouteProp<TabParamList, 'Doc
                   );
                 })}
               </Rows>
-            )}
-          </View>
+            </View>
+          )}
         </>
       )}
       {open && (

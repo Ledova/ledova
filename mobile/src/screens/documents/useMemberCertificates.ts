@@ -53,7 +53,7 @@ export function useMemberCertificates(read: Read) {
     })),
   });
   const found = read.records.flatMap((record, index) =>
-    (lists[index]?.data ?? []).filter(listed).map((request) => ({ record, request })),
+    (lists[index]?.isError ? [] : (lists[index]?.data ?? [])).filter(listed).map((request) => ({ record, request })),
   );
   const classes = [
     ...new Map(

@@ -25,11 +25,10 @@ import { Figure } from './Figure';
 import { shareQuantity } from './holdings';
 import { MemberNotice, RecordGate, useCompanyRecord, useMemberRefresh } from './MemberRecordsProvider';
 
-const PILLS: Record<Exclude<Certificate, null>, string> = {
+const PILLS: Record<Exclude<Certificate, null | 'other'>, string> = {
   ready: 'Certificate',
   requested: 'Requested',
   request: 'Request',
-  other: 'Certificate request',
 };
 
 function useClassStyles() {
@@ -41,7 +40,7 @@ function useClassStyles() {
 }
 
 function pillLabel(certificate: Exclude<Certificate, null>, request?: MemberCertificateRequest) {
-  return certificate === 'other' && request ? MEMBER_CERTIFICATE_STATUS_LABELS[request.status] : PILLS[certificate];
+  return certificate === 'other' ? MEMBER_CERTIFICATE_STATUS_LABELS[request!.status] : PILLS[certificate];
 }
 
 type Sheet = { entry?: string; request?: string };
