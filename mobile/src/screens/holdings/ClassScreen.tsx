@@ -80,12 +80,13 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
     if (focused && selected && !read.busy && !read.retry && selectedToken !== token) selectToken(token);
   }, [focused, selected, read.busy, read.retry, selectedToken, selectToken, token]);
   const showing = !!selected && selectedToken === token;
-  const entries = showing ? [...read.entries].sort((a, b) => b.sequence - a.sequence) : [];
+  const loaded = showing && read.entriesReady && !!read.requests;
+  const entries = loaded ? [...read.entries].sort((a, b) => b.sequence - a.sequence) : [];
   const requests = [...(read.requests?.certificates ?? [])]
     .filter((request) => request.token === token)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const entryIds = new Set(entries.map((entry) => entry.uuid));
-  const unlisted = showing && read.entriesReady ? requests.filter((request) => !entryIds.has(request.entry)) : [];
+  const unlisted = loaded ? requests.filter((request) => !entryIds.has(request.entry)) : [];
   const sheetEntry = sheet?.entry ? entries.find((entry) => entry.uuid === sheet.entry) : undefined;
   const forEntry = (uuid: string) => requests.filter((request) => request.entry === uuid);
   const sheetRequests = sheetEntry ? forEntry(sheetEntry.uuid) : [];
@@ -114,7 +115,7 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
             <Section title="History">
               {!showing && read.retry ? (
                 <Text style={styles.muted}>Retry or finish your pending request to see this history.</Text>
-              ) : !showing || !read.entriesReady ? (
+              ) : !loaded ? (
                 read.readFailed ? null : (
                   <Text style={styles.muted}>Loading history…</Text>
                 )
