@@ -158,6 +158,10 @@ A member, including an award recipient before any shares are issued, asks the co
 their recorded name and residential address: **Settings** → **Company-recorded details** →
 **Request update** on web, then **Send request** (**Request a particulars change**, then
 **Send particulars request** under **Your details** on the company's page on mobile). Sending changes nothing on the register.
+On mobile, **Account** → **Details at each company** lists each company's recorded name and address
+and sends one change to all of them (**Change at every company**, then **Send to** each company).
+Each company receives its own request; a company that already records the change, or where the same
+change already waits, is skipped.
 On web, the form closes after successful submission and the request appears under **Update requests**.
 Cancel closes an unfinished form without sending it; its draft stays in memory for the same signed-in
 account and company, including navigation through Dashboard and Documents.

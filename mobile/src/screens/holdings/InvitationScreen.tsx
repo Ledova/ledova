@@ -68,10 +68,10 @@ export function InvitationScreen() {
   });
   const refetchPreview = preview.refetch;
   useEffect(() => {
-    if (valid && !read.busy) void refetchPreview({ cancelRefetch: false });
-  }, [valid, read.busy, refetchPreview]);
-  const shown = valid && preview.isSuccess ? preview.data : null;
-  const accepted = shown?.status === 'accepted';
+    if (read.owner && valid && !read.busy) void refetchPreview({ cancelRefetch: false });
+  }, [read.owner, valid, read.busy, refetchPreview]);
+  const shown = read.owner && valid && preview.isSuccess ? preview.data : null;
+  const accepted = shown?.status === 'accepted' && read.retry?.kind !== 'accept';
   const held = read.busy || !!read.retry;
   return (
     <Page testID="invitation-scroll" title="Invitation">

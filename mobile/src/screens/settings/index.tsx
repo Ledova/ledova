@@ -12,6 +12,8 @@ import { useAccountStyles } from '../../hooks/useAccountStyles';
 import { useSignOut } from '../../hooks/useSignOut';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { Avatar } from '../holdings/CompanyHoldings';
+import { useMemberRecordsState } from '../holdings/MemberRecordsProvider';
+import { useMemberParticulars } from '../holdings/useMemberParticulars';
 import { useSettings } from './useSettings';
 
 export function SettingsScreen({ onNotifications }: { onNotifications: () => void }) {
@@ -27,6 +29,8 @@ export function SettingsScreen({ onNotifications }: { onNotifications: () => voi
   const lock = useAppLock();
   const appearance = useThemeChoice();
   const { userProfile } = useUserProfile();
+  const { read } = useMemberRecordsState();
+  const particulars = useMemberParticulars(read);
   const name = userProfile?.fullName || 'Your profile';
   const { signOut, signingOut } = useSignOut();
   const [signingOutOpen, setSigningOutOpen] = useState(false);
@@ -135,6 +139,19 @@ export function SettingsScreen({ onNotifications }: { onNotifications: () => voi
         </View>
         <View style={card.card}>
           <Rows>
+            {read.records.length > 0 && (
+              <LinkRow
+                label="Details at each company"
+                accessibilityLabel={`Details at each company${particulars.waitingCount > 0 ? `, ${particulars.waitingCount} ${particulars.waitingCount === 1 ? 'change' : 'changes'} waiting` : ''}`}
+                onPress={() => navigation.navigate('MainApp', { screen: 'YourDetails' })}
+              >
+                {particulars.waitingCount > 0 && (
+                  <Text style={styles.muted}>
+                    {particulars.waitingCount} {particulars.waitingCount === 1 ? 'change' : 'changes'} waiting
+                  </Text>
+                )}
+              </LinkRow>
+            )}
             <LinkRow
               label="Accept an invitation"
               onPress={() => navigation.navigate('MainApp', { screen: 'Invitation' })}

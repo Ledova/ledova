@@ -229,8 +229,9 @@ export function useMemberRecords(
     }
   };
   const execute = async (command: Command) => {
-    if (pending.current) return;
+    if (pending.current) return false;
     pending.current = true;
+    let confirmed = false;
     setBusy(true);
     setError(null);
     try {
@@ -326,6 +327,7 @@ export function useMemberRecords(
           throw new Error('The withdrawal could not be confirmed. Retry the unchanged request.');
       }
       setRetry(null);
+      confirmed = true;
       await refresh();
     } catch (failure) {
       const status = failureStatus(failure);
@@ -338,6 +340,7 @@ export function useMemberRecords(
       pending.current = false;
       if (live.current) setBusy(false);
     }
+    return confirmed;
   };
   const available =
     !!owner &&
