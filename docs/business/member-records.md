@@ -96,7 +96,8 @@ company decisions, financial documents and other members' parts of an entry are 
 award is an entitlement, not a holding. Editing the personal Profile does not change the register;
 only a [particulars request](#particulars-requests) can.
 
-**Dashboard** (web) starts with the member's own issued-share total, share-class count and a chart
+Choose **My shares** below the sidebar logo on web. Its **Dashboard** starts with the member's own
+issued-share total, share-class count and a chart
 of their shares by class. This counts shares, not company ownership, voting power or value; different
 classes can carry different rights. Mobile **Holdings** shows a card per company, with a line per
 share class and each award's vested quantity and bar; with more than six companies it becomes a

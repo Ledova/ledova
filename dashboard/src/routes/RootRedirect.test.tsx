@@ -17,6 +17,8 @@ import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
 import { APPOINTMENT, companyPreferences, prepareCompanyClient } from '../testSupport/company';
 import { Sidebar } from '@components/Sidebar';
+import { WorkspaceProvider } from '@components/WorkspaceProvider';
+import type { ReactNode } from 'react';
 import { RootRedirect } from './RootRedirect';
 import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';
@@ -24,7 +26,8 @@ import { SIGNUP_RESUMES_AT } from '@utils/paths';
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 
-it('waits for actual register access, offers retry on refusal, and lands each account by access rather than preference', async () => {
+it('keeps dashboard access and remembered workspaces bound to the current account', async () => {
+  localStorage.clear();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   prepareCompanyClient(client, 'investor');
   let reject!: (reason: Error) => void;
@@ -42,7 +45,10 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
   api.get.mockImplementation((url: string, config) => {
     if (url === '/api/user-preferences/') return Promise.resolve({ data: companyPreferences('investor') });
     if (url === USER_ACCOUNT_ENDPOINTS.BASE)
-      return Promise.resolve({ data: companyPreferences('company').userAccount });
+      return Promise.resolve({
+        data: client.getQueryData<{ data: ReturnType<typeof companyPreferences> }>(USER_PREFERENCES_QUERY_KEY)?.data
+          .userAccount,
+      });
     if (url === FEATURE_FLAG_ENDPOINTS.BASE) return Promise.resolve({ data: { results: [], next: null, count: 0 } });
     if (url === '/api/v1/company-authority/appointments/') {
       appointmentGuard = config.ledovaSubmissionGuard;
@@ -72,6 +78,8 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
           count: 1,
         },
       });
+    if (url === '/api/v1/tokens/member-records/')
+      return Promise.resolve({ data: { results: [], next: null, previous: null, count: 0 } });
     if (url === COMPANY_ENDPOINTS.BASE)
       return Promise.resolve({ data: { results: [], next: null, previous: null, count: 0 } });
     if (url !== COMPANY_TOKEN_ENDPOINTS.REGISTER) throw new Error(`Unexpected read ${url}`);
@@ -87,43 +95,59 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
       },
     });
   });
-  const showRoot = () =>
+  const Frame = ({ children }: { children: ReactNode }) =>
+    withSidebar ? <WorkspaceProvider>{children}</WorkspaceProvider> : children;
+  const showRoot = (entry = '/') =>
     render(
       <QueryClientProvider client={client}>
         <ApiClientProvider client={api as unknown as AxiosInstance}>
-          <MemoryRouter>
-            <Routes>
-              <Route path="/" element={<RootRedirect />} />
-              <Route
-                path={COMPANY_DASHBOARD_PATH}
-                element={
-                  <>
-                    <p>Company overview</p>
-                    <Link to="/">Check access</Link>
-                  </>
-                }
-              />
-              <Route
-                path="/home"
-                element={
-                  <>
-                    {withSidebar && <Sidebar />}
-                    <p>Personal overview</p>
-                    <Link to="/">Check access</Link>
-                  </>
-                }
-              />
-              <Route
-                path={SIGNUP_RESUMES_AT}
-                element={
-                  <>
-                    <p>Resume signup</p>
-                    <Link to="/">Check signup progress</Link>
-                  </>
-                }
-              />
-              <Route path="/signup/company-registration" element={<p>Resume company setup</p>} />
-            </Routes>
+          <MemoryRouter initialEntries={[entry]}>
+            <Frame>
+              <Routes>
+                <Route path="/" element={<RootRedirect />} />
+                <Route
+                  path={COMPANY_DASHBOARD_PATH}
+                  element={
+                    <>
+                      {withSidebar && <Sidebar />}
+                      <p>Company overview</p>
+                      <Link to="/settings#profile">Profile settings</Link>
+                      <Link to="/">Check access</Link>
+                    </>
+                  }
+                />
+                <Route
+                  path="/home"
+                  element={
+                    <>
+                      {withSidebar && <Sidebar />}
+                      <p>Personal overview</p>
+                      <Link to="/">Check access</Link>
+                    </>
+                  }
+                />
+                <Route
+                  path={SIGNUP_RESUMES_AT}
+                  element={
+                    <>
+                      <p>Resume signup</p>
+                      <Link to="/">Check signup progress</Link>
+                    </>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <>
+                      <Sidebar />
+                      <p>Shared profile</p>
+                      <Link to="/">Check access</Link>
+                    </>
+                  }
+                />
+                <Route path="/signup/company-registration" element={<p>Resume company setup</p>} />
+              </Routes>
+            </Frame>
           </MemoryRouter>
         </ApiClientProvider>
       </QueryClientProvider>,
@@ -176,14 +200,16 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
     withSidebar = true;
     prepareCompanyClient(client, 'investor');
     showRoot();
-    expect(await screen.findByText('Personal overview')).toBeTruthy();
-    expect(screen.queryByText('Company overview')).toBeNull();
-    expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Your shares' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
     expect(await screen.findByText('Company overview')).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Your shares' })).toBeNull();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace' }), { target: { value: 'my-shares' } });
+    expect(await screen.findByText('Personal overview')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
     fireEvent.click(screen.getByRole('link', { name: 'Check access' }));
     expect(await screen.findByText('Personal overview')).toBeTruthy();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace' }), { target: { value: 'company' } });
+    expect(await screen.findByText('Company overview')).toBeTruthy();
     const currentAppointment = appointment;
     for (const patch of [
       { status: 'revoked' as const, isEffective: false, revokedAt: '2026-10-14T00:00:00Z' },
@@ -193,10 +219,16 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
       appointment = { ...currentAppointment, ...patch };
       await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
       await waitFor(() => expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull());
-      expect(screen.getByText('Personal overview')).toBeTruthy();
+      fireEvent.click(screen.getByRole('link', { name: 'Check access' }));
+      expect(await screen.findByText('Personal overview')).toBeTruthy();
     }
     appointment = currentAppointment;
     await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Workspace' }).querySelector('option[value="company"]')).toBeTruthy(),
+    );
+    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('my-shares');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace' }), { target: { value: 'company' } });
     expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
     appointmentsRefused = true;
     await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
@@ -205,9 +237,12 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
     await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
     expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
     await waitFor(() => expect(client.isFetching()).toBe(0));
+    fireEvent.click(screen.getByRole('link', { name: 'Profile settings' }));
+    expect(await screen.findByText('Shared profile')).toBeTruthy();
     holdAppointmentRead = true;
     const staleRead = client.refetchQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY });
     await waitFor(() => expect(releaseAppointmentRead).toBeTypeOf('function'));
+    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('company');
     const staleGuard = appointmentGuard;
     appointmentsVisible = false;
     const foreign = companyPreferences('investor');
@@ -227,10 +262,33 @@ it('waits for actual register access, offers retry on refusal, and lands each ac
     });
     await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
-    expect(screen.getByText('Personal overview')).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Company' })).toBeNull();
+    fireEvent.click(screen.getByRole('link', { name: 'Check access' }));
+    expect(await screen.findByText('Personal overview')).toBeTruthy();
+    cleanup();
+    client.clear();
+    localStorage.clear();
+    appointmentsVisible = true;
+    appointment = currentAppointment;
+    releaseAppointmentRead = undefined;
+    prepareCompanyClient(client, 'investor');
+    showRoot('/settings#profile');
+    expect(await screen.findByText('Shared profile')).toBeTruthy();
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('company');
+    holdAppointmentRead = true;
+    const defaultRead = client.refetchQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY });
+    await waitFor(() => expect(releaseAppointmentRead).toBeTypeOf('function'));
+    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('company');
+    await act(async () => {
+      releaseAppointmentRead!();
+      await defaultRead;
+    });
+    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('company');
   } finally {
     cleanup();
     client.clear();
     api.get.mockReset();
+    localStorage.clear();
   }
 });

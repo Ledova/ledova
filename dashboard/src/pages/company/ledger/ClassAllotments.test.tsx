@@ -2,6 +2,7 @@
 
 import { Sidebar } from '@components/Sidebar';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
+import { WorkspaceProvider } from '@components/WorkspaceProvider';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 import {
@@ -25,6 +26,7 @@ import { choose, companyPreferences, renderCompanyPage } from '../../../testSupp
 
 import { allotmentsKey } from './useRegisterAllotments';
 import { TransferForm } from './transfer/TransferForm';
+import { registerClassesKey } from '@pages/company/shared/useCompanyRegister';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const save = vi.hoisted(() => vi.fn());
@@ -50,6 +52,7 @@ it('preserves original preparation and combined approval recovery through refres
   let rows: RegisterAllotment[] = [];
   let appointments: OwnCompanyAppointment[] = [APPOINTMENT];
   let failedRead = false;
+  let failedRegisterRead = false;
   let interruptedAbsentPreparation = false;
   let absentPreparation: Record<string, unknown> | null = null;
   let pauseRead = false;
@@ -78,6 +81,7 @@ it('preserves original preparation and combined approval recovery through refres
       return { data: companyPreferences() };
     }
     if (url === URLS.REGISTER) {
+      if (failedRegisterRead) throw new Error('Synthetic register source unavailable');
       return {
         data: {
           results: [
@@ -197,10 +201,12 @@ it('preserves original preparation and combined approval recovery through refres
   renderCompanyPage(
     client,
     <LedgerNavigationProvider>
-      <Sidebar />
-      <CompanyRegisterPage />
-      <Link to="/company/ledger#history">Open old History link</Link>
-      <Link to="/company/ledger#issue">Return to Issue link</Link>
+      <WorkspaceProvider>
+        <Sidebar />
+        <CompanyRegisterPage />
+        <Link to="/company/ledger#history">Open old History link</Link>
+        <Link to="/company/ledger#issue">Return to Issue link</Link>
+      </WorkspaceProvider>
     </LedgerNavigationProvider>,
     'Ledger',
     { entry: '/company/ledger', path: '/company/ledger' },
@@ -209,6 +215,13 @@ it('preserves original preparation and combined approval recovery through refres
   const transferTask = screen.getByRole('link', { name: 'Transfer shares' });
   expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
   const correctionsTask = screen.getByRole('link', { name: 'Corrections' });
+  await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
+  failedRegisterRead = true;
+  await act(async () => client.refetchQueries({ queryKey: registerClassesKey(owner), exact: true }));
+  await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBe('true'));
+  expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).disabled).toBe(false);
+  failedRegisterRead = false;
+  await act(async () => client.refetchQueries({ queryKey: registerClassesKey(owner), exact: true }));
   await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
   fireEvent.click(investorTask);
   expect(await screen.findByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
@@ -339,6 +352,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(investorTask.getAttribute('aria-disabled')).toBe('true');
   expect(transferTask.getAttribute('aria-disabled')).toBe('true');
   expect(correctionsTask.getAttribute('aria-disabled')).toBe('true');
+  expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).disabled).toBe(true);
   const preparedAllotment = rows[0];
   rows = [{ ...preparedAllotment, companyEventOn: null }];
   const originalReads = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT(rows[0].uuid)).length;
@@ -807,8 +821,10 @@ it('preserves original preparation and combined approval recovery through refres
   renderCompanyPage(
     client,
     <LedgerNavigationProvider>
-      <Sidebar />
-      <CompanyRegisterPage />
+      <WorkspaceProvider>
+        <Sidebar />
+        <CompanyRegisterPage />
+      </WorkspaceProvider>
     </LedgerNavigationProvider>,
     'Ledger',
     { entry: '/company/ledger#transfer', path: '/company/ledger' },
@@ -918,8 +934,10 @@ it('preserves original preparation and combined approval recovery through refres
   renderCompanyPage(
     client,
     <LedgerNavigationProvider>
-      <Sidebar />
-      <CompanyRegisterPage />
+      <WorkspaceProvider>
+        <Sidebar />
+        <CompanyRegisterPage />
+      </WorkspaceProvider>
     </LedgerNavigationProvider>,
     'Ledger',
     { entry: '/company/ledger#transfer', path: '/company/ledger' },

@@ -400,6 +400,7 @@ function OwnRegister({
       task: selectedTask,
       shareholderView: heldShareholderView,
       blocked: held || !sourceReady,
+      held,
     });
     return () => setLedgerNavigation(null);
   }, [setLedgerNavigation, scope?.company.uuid, selectedToken, selectedTask, heldShareholderView, held, sourceReady]);

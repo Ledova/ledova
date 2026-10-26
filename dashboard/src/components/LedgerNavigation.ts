@@ -7,6 +7,7 @@ export interface LedgerNavigationState {
   task?: LedgerTask;
   shareholderView?: 'shareholders' | 'awards' | 'member-access' | 'member-requests';
   blocked: boolean;
+  held?: boolean;
 }
 
 interface LedgerNavigationValue {

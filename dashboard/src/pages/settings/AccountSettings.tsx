@@ -2,6 +2,7 @@ import { Field, TextInput } from '@components/Field';
 import { useState } from 'react';
 import {
   FIELD_LIMITS,
+  DESTINATIONS,
   failureSentence,
   readApiError,
   formatDate,
@@ -11,13 +12,14 @@ import {
 } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
-import { PageAction } from '@components/Page';
+import { PageAction, PageLink } from '@components/Page';
 import { Disclosure, Outcome, Row, Rows, Section, Status, SwitchRow, LoadError, Loading } from '@components/Ledger';
 import { setTheme } from '@hooks/useTheme';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 import type { useUserProfile } from '@hooks/useUserProfile';
+import { useWorkspace } from '@hooks/useWorkspace';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
@@ -73,6 +75,7 @@ function PasswordInput({
 }
 
 export function AccountSettings({ profile }: { profile: ReturnType<typeof useUserProfile> }) {
+  const workspace = useWorkspace();
   const [verificationOpen, setVerificationOpen] = useState(false);
   const verification = getUserVerificationStatus(profile.userProfile);
   const {
@@ -173,6 +176,11 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
             </Rows>
           )}
           <div className="divide-y divide-border-subtle">
+            {workspace?.mode === 'my-shares' && (
+              <div className="flex justify-end py-3">
+                <PageLink to={DESTINATIONS.companyTeam.path} label="Accept a company invitation" />
+              </div>
+            )}
             <ActionRow
               description="Download a copy of your account data."
               label="Export data"
