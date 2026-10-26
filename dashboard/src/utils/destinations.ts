@@ -5,7 +5,6 @@ import {
   type Destination,
   type DestinationKey,
   type DestinationParent,
-  type LedgerTask,
 } from '@ledova/shared';
 
 export interface Place {
@@ -17,7 +16,26 @@ const WEB_TITLES: Partial<Record<DestinationKey, string>> = {
   home: 'Dashboard',
 };
 
-const LEDGER_TASKS = DESTINATIONS.companyRegister.tasks;
+export const LEDGER_TASKS = {
+  issue: DESTINATIONS.companyRegister.tasks.issue,
+  transfer: DESTINATIONS.companyRegister.tasks.transfer,
+  corrections: DESTINATIONS.companyRegister.tasks.corrections,
+} as const;
+
+export type LedgerTask = keyof typeof LEDGER_TASKS;
+
+export function ledgerTask(value: unknown): LedgerTask | undefined {
+  const task = value === 'history' ? 'corrections' : value;
+  return typeof task === 'string' && Object.prototype.hasOwnProperty.call(LEDGER_TASKS, task)
+    ? (task as LedgerTask)
+    : undefined;
+}
+
+export const SHAREHOLDER_VIEWS = {
+  awards: DESTINATIONS.companyRegister.views.awards,
+  'member-access': 'Member access',
+  'member-requests': 'Member requests',
+} as const;
 
 const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   ...DESTINATION_PARENTS,
@@ -30,8 +48,12 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
 function viewName(key: DestinationKey, view: string): string | undefined {
   const destination: Destination = DESTINATIONS[key];
   const views = destination.views;
-  if (key === 'companyRegister' && Object.prototype.hasOwnProperty.call(LEDGER_TASKS, view))
-    return LEDGER_TASKS[view as LedgerTask];
+  if (key === 'companyRegister') {
+    const task = ledgerTask(view);
+    if (task) return LEDGER_TASKS[task];
+  }
+  if (key === 'companyRegister' && Object.prototype.hasOwnProperty.call(SHAREHOLDER_VIEWS, view))
+    return SHAREHOLDER_VIEWS[view as keyof typeof SHAREHOLDER_VIEWS];
   return views && Object.prototype.hasOwnProperty.call(views, view) ? views[view] : undefined;
 }
 
@@ -69,7 +91,8 @@ export function destinationAt(pathname: string): DestinationKey | undefined {
 export function placesAt(pathname: string, hash: string): Place[] {
   const places: Place[] = [];
   let key = destinationAt(pathname);
-  const view = hash.slice(1);
+  const hashView = hash.slice(1);
+  const view = key === 'companyRegister' ? (ledgerTask(hashView) ?? hashView) : hashView;
   let current: Place | undefined = key ? { destination: key, view: viewName(key, view) ? view : undefined } : undefined;
   while (current && places.length < 8) {
     places.push(current);

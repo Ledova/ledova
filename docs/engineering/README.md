@@ -53,7 +53,9 @@ These apply to every area. Each area document adds only its own conventions.
   ([the comment gate](gates.md#the-comment-gate)). Configuration and
   documentation may carry comments, and root gate scripts document their algorithms and
   deliberate limits.
-- Dependencies need an importer. Endpoints need a client, a documented
+- Dependencies need a concrete consumer: an import, command, configuration, type declaration,
+  native integration or required peer or platform dependency. Check those uses before removing a
+  package. Endpoints need a client, a documented
   [external consumer](backend.md#external-api-consumers) or platform staff use.
   Search shared services before declaring a route unused.
 - Clients and shared types are API consumers: their keys, statuses and URLs are contracts

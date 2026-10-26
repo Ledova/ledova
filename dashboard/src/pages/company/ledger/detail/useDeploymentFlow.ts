@@ -33,16 +33,21 @@ export function useDeploymentFlow({ uuid, data }: { uuid: string; data: ReturnTy
   const company = token.data?.companyUuid;
   const key = deploymentKey(data.tokenKey);
   const [records, setRecords] = useState<RegisterDeployment[]>([]);
-  const original = useRef<{ request: RegisterDeploymentPreparation; company: string } | null>(null);
+  const original = useRef<{ owner: typeof owner; request: RegisterDeploymentPreparation; company: string } | null>(
+    null,
+  );
   const pending = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [uncertain, setUncertain] = useState(false);
+  const [workingOwner, setWorkingOwner] = useState<typeof owner>(null);
+  const [uncertain, setUncertain] = useState<{ owner: typeof owner; company: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const retain = (proposal: RegisterDeployment) =>
     setRecords((rows) => [proposal, ...rows.filter((row) => row.uuid !== proposal.uuid)]);
   const deployments = useQuery({
     queryKey: key,
-    enabled: !!owner && !!company,
+    enabled: !!owner && !!company && !data.readingPaused,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       const rows = await readEveryPage(async (page) => {
         guard();
@@ -66,11 +71,18 @@ export function useDeploymentFlow({ uuid, data }: { uuid: string; data: ReturnTy
     },
   });
   const appointmentKey = owner ? ownAppointmentsKey(owner) : [...COMPANY_QUERY_KEY, 'appointments', null];
-  const appointments = useOwnAppointments(owner!, guard, { queryKey: appointmentKey, enabled: !!owner, timing: {} });
+  const appointments = useOwnAppointments(owner!, guard, {
+    queryKey: appointmentKey,
+    enabled: !!owner && !data.readingPaused,
+    timing: {},
+    coordinatedReads: true,
+  });
   const steps =
     appointments.isSuccess && !appointments.isFetching && company ? registerSteps(appointments.data, company) : {};
   const fresh = token.isSuccess && !token.isFetching && token.data.uuid === uuid;
-  const canPrepare = fresh && token.data.status === 'draft' && !!steps.prepare && !uncertain;
+  const recovering = uncertain?.owner === owner && uncertain.company === company;
+  const working = busy && workingOwner === owner;
+  const canPrepare = fresh && token.data.status === 'draft' && !!steps.prepare && !recovering;
   const guardNewEffect = (kind: 'prepare' | RegisterDecisionKind) => {
     guard();
     const current = client.getQueryState(data.tokenKey);
@@ -96,28 +108,47 @@ export function useDeploymentFlow({ uuid, data }: { uuid: string; data: ReturnTy
     )
       throw createUserFriendlyError('Refresh the share class and your appointment before starting this decision.');
   };
-  const refresh = async () => {
+  const refresh = async (available?: () => boolean) => {
+    const currentRead = () => !available || (available() && !data.readingPaused && !working && !recovering);
+    if (!currentRead()) return;
+    if (
+      available &&
+      [key, appointmentKey, data.tokenKey].some((queryKey) => client.isFetching({ queryKey, exact: true }))
+    )
+      return false;
     guard();
-    await Promise.all([data.refresh(), deployments.refetch(), appointments.refetch()]);
+    if ((await appointments.refetch({ cancelRefetch: false })).isError || !currentRead()) return;
+    guard();
+    if (available) {
+      if ((await token.refetch({ cancelRefetch: false })).isError || !currentRead()) return;
+    } else await data.refresh();
+    guard();
+    if (!currentRead()) return;
+    await deployments.refetch({ cancelRefetch: false });
+    guard();
   };
   const prepare = async () => {
     if (pending.current) return;
-    let retained = original.current;
+    const recovery =
+      original.current?.owner === owner && original.current.company === company ? original.current : null;
+    let retained = recovery;
     if (!retained) {
       if (!canPrepare || !steps.prepare || !company) return;
       retained = {
+        owner,
         request: { operationId: crypto.randomUUID(), appointment: steps.prepare.uuid, token: uuid },
         company,
       };
     }
     pending.current = true;
+    setWorkingOwner(owner);
     setBusy(true);
     setError(null);
     try {
-      if (!original.current) guardNewEffect('prepare');
+      if (!recovery) guardNewEffect('prepare');
       else guard();
       original.current = retained;
-      const recovering = uncertain;
+      const recovering = !!recovery;
       const response = await prepareRegisterDeployment(apiClient, retained.request, {
         ledovaSubmissionGuard: recovering ? guard : () => guardNewEffect('prepare'),
       });
@@ -125,13 +156,13 @@ export function useDeploymentFlow({ uuid, data }: { uuid: string; data: ReturnTy
       if (!isPreparedRegisterDeployment(response.data, retained.request, retained.company))
         throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
       original.current = null;
-      setUncertain(false);
+      setUncertain(null);
       retain(response.data);
       await refresh();
     } catch (failure) {
       const status = failureStatus(failure);
       if (status === 400 || status === 409) original.current = null;
-      setUncertain(!!original.current);
+      setUncertain(original.current ? { owner: original.current.owner, company: original.current.company } : null);
       setError(
         refusalSentence(failure, REGISTER_DEPLOYMENT_UNMET_COPY) ??
           apiErrorSentence(failure, COPY.PREPARE_FAILED, COPY.PREPARATION_RECEIPT_FAILED),
@@ -148,7 +179,8 @@ export function useDeploymentFlow({ uuid, data }: { uuid: string; data: ReturnTy
     key,
     records,
     busy,
-    uncertain,
+    working,
+    uncertain: recovering,
     error,
     retain,
     deployments,

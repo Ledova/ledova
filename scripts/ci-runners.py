@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 
-def runners(environment):
+def runners():
     return {"checks": "ubuntu-latest", "backend": "ubuntu-latest"}
 
 
@@ -28,7 +28,7 @@ def main():
         passed = verdict(needs)
         print("CI jobs succeeded" if passed else "CI jobs did not all succeed")
         return 0 if passed else 1
-    chosen = runners(os.environ)
+    chosen = runners()
     encoded = json.dumps(chosen, separators=(",", ":"))
     print(encoded)
     if output := os.environ.get("GITHUB_OUTPUT"):

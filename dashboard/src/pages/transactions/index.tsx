@@ -50,7 +50,7 @@ const TransactionsPage = () => {
   };
 
   return (
-    <Page narrow>
+    <Page>
       <Section title="Transfers">
         <TransactionFilter
           ref={filterToggle}

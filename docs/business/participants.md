@@ -356,6 +356,8 @@ further payment with the operator
 Profile on web and mobile shows Personal information (full name, email, phone, date of birth,
 address and citizenship) and Account status (identity check, member since and last login) with
 **Review identity check**; the web adds Supporting payslips.
+Web personal-details editing and payslip upload open inline, with aligned Cancel and save/upload
+actions. Expanded payslip records keep extraction details on demand and any warnings visible.
 
 To change your full name, residential address or phone, choose **Edit personal details**, change
 them and choose **Save personal details**. These details are self-reported: editing them verifies
@@ -390,6 +392,10 @@ Company documents and Company team;
   number and address. Citizenship, financial profile, wallets, verification records and share
   register entries are kept. The confirmation says so, and the browser's copy of the account's data
   is cleared once the server confirms.
+
+Web Settings also opens **Company-recorded details**: the person's name and residential address
+held by each linked company, with a company-reviewed update request and its status. These are
+separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
 
 On mobile, Company settings reaches company details, documents and the team, and Settings also
 offers biometric sign-in, **App lock** (biometrics after the app goes into the background), **Rate

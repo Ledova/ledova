@@ -35,17 +35,12 @@ export const REGISTER_GRANT_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_GRANT_COPY = {
   SUBMIT: 'Prepare grant',
-  NOTE: 'Record a non-paid issue to a walletless member of an imported register for a draft share class, with the company’s terms and authority.',
   READ_ONLY_NOTE: 'Preparing, approving and applying a grant needs current company administration or that step.',
   RESIDENTIAL_ADDRESS: 'Residential address',
   SHARES: 'Shares to grant',
   TERMS_ON: 'Terms dated on',
   DIRECTOR: 'Approving director',
-  DIRECTOR_NOTE:
-    'The company supplies the approving director’s name. This director must be someone other than the recipient.',
   COMPANY_EVENT_ON: 'Company issue date',
-  EFFECTIVE_NOTE:
-    'The company supplies the issue date from its records. Ledova records preparation, decisions and application separately.',
   TERMS: 'Non-paid grant terms',
   AUTHORITY_REFERENCE: 'Company authority reference',
   REASON: 'Reason for grant',

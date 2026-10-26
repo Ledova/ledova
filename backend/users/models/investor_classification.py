@@ -204,10 +204,6 @@ class InvestorClassification(BaseModel):
         horizon = self.evidence_horizon
         return horizon is None or horizon > timezone.now()
 
-    @property
-    def default_expiry(self):
-        return plus_years(self.certificate_issued_at or timezone.now())
-
     def _require_status(self, allowed, to_status):
         if self.status not in allowed:
             raise InvalidClassificationTransitionException(

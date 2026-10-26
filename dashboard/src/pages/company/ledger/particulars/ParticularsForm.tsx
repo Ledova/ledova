@@ -38,42 +38,39 @@ export function ParticularsForm({
       }}
     >
       <ErrorSummary {...checks.summary} />
-      <fieldset disabled={busy} className="space-y-5">
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">Evidence provided by the company</legend>
+      <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
+        <Field {...checks.field('name')} label={COPY.NAME}>
+          <TextInput
+            value={draft.name}
+            maxLength={FIELD_LIMITS.NAME}
+            onChange={(event) => update({ name: event.target.value })}
+          />
+        </Field>
+        <Field {...checks.field('asAt')} label={COPY.AS_AT} hint={COPY.AS_AT_NOTE}>
+          <TextInput
+            type="date"
+            max={today}
+            value={draft.asAt}
+            onChange={(event) => update({ asAt: event.target.value })}
+          />
+        </Field>
+        <Field {...checks.field('address')} label={COPY.RESIDENTIAL_ADDRESS} className="sm:col-span-2">
+          <TextInput
+            value={draft.address}
+            maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
+            onChange={(event) => update({ address: event.target.value })}
+          />
+        </Field>
+        <div className="sm:col-span-2">
           <FileField
             {...checks.field('file')}
             label={COPY.SUPPORTING_DOCUMENT}
             hint={COPY.SUPPORTING_DOCUMENT_NOTE}
+            showUploadHint={false}
             onFile={(file) => update({ file })}
           />
-        </fieldset>
-        <fieldset className="space-y-3">
-          <legend className="text-sm font-medium text-text-primary">{COPY.PROPOSED_PARTICULARS}</legend>
-          <Field {...checks.field('name')} label={COPY.NAME}>
-            <TextInput
-              value={draft.name}
-              maxLength={FIELD_LIMITS.NAME}
-              onChange={(event) => update({ name: event.target.value })}
-            />
-          </Field>
-          <Field {...checks.field('address')} label={COPY.RESIDENTIAL_ADDRESS}>
-            <TextInput
-              value={draft.address}
-              maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
-              onChange={(event) => update({ address: event.target.value })}
-            />
-          </Field>
-          <Field {...checks.field('asAt')} label={COPY.AS_AT} hint={COPY.AS_AT_NOTE}>
-            <TextInput
-              type="date"
-              max={today}
-              value={draft.asAt}
-              onChange={(event) => update({ asAt: event.target.value })}
-            />
-          </Field>
-        </fieldset>
-        <Field {...checks.field('reason')} label={COPY.REASON}>
+        </div>
+        <Field {...checks.field('reason')} label={COPY.REASON} className="sm:col-span-2">
           <TextArea
             rows={3}
             value={draft.reason}

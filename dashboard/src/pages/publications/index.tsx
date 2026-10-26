@@ -1,7 +1,7 @@
 import { ArrowSquareOutIcon } from '@phosphor-icons/react';
 import { PUBLICATION_COPY, PUBLICATION_KIND_LABELS, formatDate, formatShareCount } from '@ledova/shared';
 import type { BallotChoice, Publication } from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
+import { FormActions, Page, PageAction } from '@components/Page';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { Distribution } from './Distribution';
@@ -36,13 +36,6 @@ function PublicationRow({
               {publication.tokenName} ({publication.tokenSymbol})
             </p>
           </div>
-          <PageAction
-            icon={<ArrowSquareOutIcon size={16} />}
-            label={PUBLICATION_COPY.OPEN}
-            busy={isOpening}
-            busyLabel={PUBLICATION_COPY.OPENING}
-            onClick={() => onOpen(publication.uuid)}
-          />
         </div>
         <Rows>
           <Row label={PUBLICATION_COPY.RECORD_DATE_LABEL}>{formatDate(publication.recordDate)}</Row>
@@ -59,6 +52,15 @@ function PublicationRow({
         )}
         <Resolution publication={publication} onCast={onCast} isCasting={isCasting} castError={castError} />
         <Distribution publication={publication} />
+        <FormActions>
+          <PageAction
+            icon={<ArrowSquareOutIcon size={16} />}
+            label={PUBLICATION_COPY.OPEN}
+            busy={isOpening}
+            busyLabel={PUBLICATION_COPY.OPENING}
+            onClick={() => onOpen(publication.uuid)}
+          />
+        </FormActions>
       </Section>
     </article>
   );
@@ -83,10 +85,10 @@ export default function PublicationsPage() {
     castError,
   } = usePublications();
 
-  if (isLoading) return <Page narrow loading />;
+  if (isLoading) return <Page loading />;
 
   return (
-    <Page narrow>
+    <Page>
       {openError && (
         <p role="alert" className="text-sm text-error-light">
           {openError}

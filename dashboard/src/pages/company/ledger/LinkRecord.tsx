@@ -9,7 +9,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { WalletStatus } from '@pages/company/ledger/shared/WalletStatus';
@@ -28,7 +28,6 @@ export function LinkRecord({
   onDecided,
   onRefused,
   visible = true,
-  readOnly = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -39,20 +38,27 @@ export function LinkRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
-  readOnly?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
-  const decide = useRegisterTaskGuard(visible && !readOnly, guard);
   const download = useLinkRecordDownload(link, check);
   const labels = registerLinkMemberLabels(link.mappingSummary, holders);
   const context = `wallet link prepared ${formatDateTime(link.createdAt)}`;
+  const downloadAction = (
+    <PageAction
+      label={COPY.DOWNLOAD}
+      context={context}
+      busy={download.isPending}
+      busyLabel="Downloading…"
+      onClick={() => download.mutate()}
+    />
+  );
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
         <Disclosure
           summary={`Wallet link · ${formatDateTime(link.createdAt)} · ${COPY.STAGES[link.stage] ?? link.stage}`}
-          defaultOpen={!readOnly && link.status === 'submitted'}
+          defaultOpen={link.status === 'submitted'}
         >
           <Rows>
             <RecordStage stage={link.stage}>{COPY.STAGES[link.stage] ?? link.stage}</RecordStage>
@@ -80,51 +86,45 @@ export function LinkRecord({
           <p className="text-sm text-text-muted">
             {link.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
           </p>
-          <div className="flex flex-wrap gap-2">
-            <PageAction
-              label={COPY.DOWNLOAD}
-              context={context}
-              busy={download.isPending}
-              busyLabel="Downloading…"
-              onClick={() => download.mutate()}
-            />
-          </div>
-          {download.isError && <RecordDownloadFailure error={download.error} />}
         </Disclosure>
       )}
-      <RegisterDecisions
-        family={REGISTER_LINK_DECISIONS}
-        copy={COPY}
-        noun="wallet link"
-        proposal={link}
-        steps={steps}
-        guard={guard}
-        newEffectGuard={decide}
-        visible={visible && !readOnly}
-        onHeldChange={onHeldChange}
-        context={context}
-        onDecided={onDecided}
-        onRefused={onRefused}
-        note={(kind) => kind === 'apply' && <p className="text-sm text-text-muted">{COPY.APPLY_NOTE}</p>}
-      >
-        {(preview) => {
-          const previewed = registerLinkMemberLabels(preview.links, holders);
-          return (
-            <div className="flex flex-col gap-1">
-              <p className="text-sm text-text-muted">{COPY.STATUS_NOTE}</p>
-              <ul className="divide-y divide-border-subtle">
-                {preview.links.map((row) => (
-                  <li key={row.address} className="flex flex-col gap-1 py-2">
-                    <span className="min-w-0 break-words text-sm text-text-primary">{previewed.get(row.member)}</span>
-                    <span className="break-all text-xs text-text-muted">{row.address}</span>
-                    <WalletStatus wallet={row} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        }}
-      </RegisterDecisions>
+      <FormActions>
+        {downloadAction}
+        <RegisterDecisions
+          family={REGISTER_LINK_DECISIONS}
+          copy={COPY}
+          noun="wallet link"
+          proposal={link}
+          steps={steps}
+          guard={guard}
+          newEffectGuard={check}
+          visible={visible}
+          onHeldChange={onHeldChange}
+          context={context}
+          onDecided={onDecided}
+          onRefused={onRefused}
+          note={(kind) => kind === 'apply' && <p className="text-sm text-text-muted">{COPY.APPLY_NOTE}</p>}
+        >
+          {(preview) => {
+            const previewed = registerLinkMemberLabels(preview.links, holders);
+            return (
+              <div className="flex flex-col gap-1">
+                <p className="text-sm text-text-muted">{COPY.STATUS_NOTE}</p>
+                <ul className="divide-y divide-border-subtle">
+                  {preview.links.map((row) => (
+                    <li key={row.address} className="flex flex-col gap-1 py-2">
+                      <span className="min-w-0 break-words text-sm text-text-primary">{previewed.get(row.member)}</span>
+                      <span className="break-all text-xs text-text-muted">{row.address}</span>
+                      <WalletStatus wallet={row} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          }}
+        </RegisterDecisions>
+      </FormActions>
+      {download.isError && <RecordDownloadFailure error={download.error} />}
     </RecordShell>
   );
 }

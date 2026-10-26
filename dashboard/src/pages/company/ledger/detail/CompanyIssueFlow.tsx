@@ -1,7 +1,8 @@
+import { useAutomaticReads } from '@hooks/useAutomaticReads';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { SearchSelect } from '@components/SearchSelect';
@@ -31,7 +32,7 @@ import {
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   LINK_FIELDS,
   useIssueLinkRecord,
@@ -75,7 +76,15 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
   );
 }
 
-function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Commands }) {
+function IssueRecord({
+  record,
+  commands,
+  onHeldChange,
+}: {
+  record: RegisterIssue;
+  commands: Commands;
+  onHeldChange: (uuid: string, held: boolean) => void;
+}) {
   const { error, downloading, download } = useIssueRecord({ record, commands });
   return (
     <div className="space-y-3 border-t border-border py-4">
@@ -156,6 +165,7 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
+        onHeldChange={onHeldChange}
         context={`grant ${shortReference(record.uuid)}`}
       >
         {(preview) => (
@@ -188,7 +198,15 @@ function IssueRecord({ record, commands }: { record: RegisterIssue; commands: Co
   );
 }
 
-function LinkRecord({ record, commands }: { record: RegisterLink; commands: Commands }) {
+function LinkRecord({
+  record,
+  commands,
+  onHeldChange,
+}: {
+  record: RegisterLink;
+  commands: Commands;
+  onHeldChange: (uuid: string, held: boolean) => void;
+}) {
   const { error, busy, download } = useIssueLinkRecord({ record, commands });
   return (
     <div className="space-y-3 border-t border-border py-4">
@@ -232,6 +250,7 @@ function LinkRecord({ record, commands }: { record: RegisterLink; commands: Comm
         onDecided={commands.acceptLink}
         onRefused={commands.refresh}
         visible={commands.visible}
+        onHeldChange={onHeldChange}
         context={`link ${shortReference(record.uuid)}`}
       >
         {(preview) => (
@@ -251,8 +270,9 @@ function LinkRecord({ record, commands }: { record: RegisterLink; commands: Comm
   );
 }
 
-function Preparation({ commands }: { commands: Commands }) {
+function Preparation({ commands, onEditingChange }: { commands: Commands; onEditingChange: (held: boolean) => void }) {
   const {
+    draft,
     nomination,
     setNomination,
     member,
@@ -286,6 +306,10 @@ function Preparation({ commands }: { commands: Commands }) {
     submit,
   } = useIssuePreparation({ commands });
   const checks = useErrorSummary(problems);
+  useEffect(() => {
+    onEditingChange(draft.active);
+    return () => onEditingChange(false);
+  }, [draft, onEditingChange]);
   const memberChoices = useMemo(
     () =>
       personChoices(
@@ -298,7 +322,7 @@ function Preparation({ commands }: { commands: Commands }) {
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <SearchSelect
@@ -348,10 +372,11 @@ function Preparation({ commands }: { commands: Commands }) {
           onChange={(event) => setReference(event.target.value)}
         />
       </Field>
-      <Field {...checks.field('reason')} label="Reason">
+      <Field {...checks.field('reason')} label="Reason" className="sm:col-span-2">
         <TextInput maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
       <FileField
+        showUploadHint={false}
         {...checks.field('authorityDocument')}
         label="Authority document"
         onFile={(file) => setFiles({ ...files, authority: file ?? undefined })}
@@ -360,15 +385,19 @@ function Preparation({ commands }: { commands: Commands }) {
         Apply the company documentary link before preparing the grant. It records this nominated address against the
         chosen stable member.
       </p>
-      <PageAction
-        label="Prepare nominated wallet link"
-        busy={preparing === 'link'}
-        busyLabel="Preparing wallet link…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery}
-        onClick={() => {
-          if (checks.check(LINK_FIELDS)) void submit('link');
-        }}
-      />
+      <div className="sm:col-span-2">
+        <FormActions>
+          <PageAction
+            label="Prepare nominated wallet link"
+            busy={preparing === 'link'}
+            busyLabel="Preparing wallet link…"
+            disabled={waiting || !commands.canPrepare || !!commands.recovery}
+            onClick={() => {
+              if (checks.check(LINK_FIELDS)) void submit('link');
+            }}
+          />
+        </FormActions>
+      </div>
       <SelectField
         {...checks.field('approval')}
         label="Company ADD"
@@ -396,15 +425,16 @@ function Preparation({ commands }: { commands: Commands }) {
       <Field {...checks.field('termsOn')} label="Terms date (UTC)">
         <TextInput type="date" max={utcToday()} value={termsOn} onChange={(event) => setTermsOn(event.target.value)} />
       </Field>
-      <Field {...checks.field('terms')} label="Non-paid terms">
+      <Field {...checks.field('terms')} label="Non-paid terms" className="sm:col-span-2">
         <TextArea maxLength={FIELD_LIMITS.TERMS} value={terms} onChange={(event) => setTerms(event.target.value)} />
       </Field>
       <FileField
+        showUploadHint={false}
         {...checks.field('termsDocument')}
         label="Terms document"
         onFile={(file) => setFiles({ ...files, terms: file ?? undefined })}
       />
-      <label className="flex gap-2 text-sm">
+      <label className="flex gap-2 text-sm sm:col-span-2">
         <input
           type="checkbox"
           checked={acceptanceRequired}
@@ -414,21 +444,26 @@ function Preparation({ commands }: { commands: Commands }) {
       </label>
       {acceptanceRequired && (
         <FileField
+          showUploadHint={false}
           {...checks.field('acceptanceDocument')}
           label="Acceptance document"
           onFile={(file) => setFiles({ ...files, acceptance: file ?? undefined })}
         />
       )}
-      <PageAction
-        primary
-        label={COPY.PREPARE}
-        busy={preparing === 'issue'}
-        busyLabel="Preparing non-paid grant…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery}
-        onClick={() => {
-          if (checks.check()) void submit('issue');
-        }}
-      />
+      <div className="sm:col-span-2">
+        <FormActions>
+          <PageAction
+            primary
+            label={COPY.PREPARE}
+            busy={preparing === 'issue'}
+            busyLabel="Preparing non-paid grant…"
+            disabled={waiting || !commands.canPrepare || !!commands.recovery}
+            onClick={() => {
+              if (checks.check()) void submit('issue');
+            }}
+          />
+        </FormActions>
+      </div>
       {error && (
         <p role="alert" className="text-sm text-error-light">
           {error}
@@ -438,11 +473,38 @@ function Preparation({ commands }: { commands: Commands }) {
   );
 }
 
-export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
+export function CompanyIssueFlow({
+  uuid,
+  data,
+  active = true,
+}: {
+  uuid: string;
+  data: ReturnType<typeof useShareClass>;
+  active?: boolean;
+}) {
+  const onEditingChange = useCallback((held: boolean) => data.holdReads('issue/draft', held), [data.holdReads]);
+  const onHeldChange = useCallback(
+    (uuid: string, held: boolean) => data.holdReads('issue/decision/' + uuid, held),
+    [data.holdReads],
+  );
   const commands = useCompanyIssueInstructions(uuid, {
     token: data.token.data,
     tokenKey: data.tokenKey,
     newKey: () => crypto.randomUUID(),
+    coordinatedReads: true,
+    paused: data.readingPaused,
+    onPrepared: (kind) => {
+      if (kind === 'issue') onEditingChange(false);
+    },
+  });
+  useEffect(() => {
+    data.holdReads('issue/request', commands.working || !!commands.recovery);
+    return () => data.holdReads('issue/request', false);
+  }, [commands.working, commands.recovery, data.holdReads]);
+  useAutomaticReads({
+    scope: active && commands.owner ? data.scopeKey + '/issue' : null,
+    paused: data.readingPaused || commands.readingPaused,
+    refresh: commands.refresh,
   });
   const [refreshError, setRefreshError] = useState('');
   const refresh = async () => {
@@ -471,15 +533,7 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      {!readFailed && !commands.appointments.isError && (
-        <PageAction
-          label="Refresh company grant records"
-          busy={reading}
-          busyLabel="Refreshing…"
-          disabled={commands.busy}
-          onClick={() => void refresh()}
-        />
-      )}
+
       {refreshError && <p role="alert">{refreshError}</p>}
       {commands.appointments.isError ? (
         <LoadError retry={refresh} busy={reading}>
@@ -492,7 +546,7 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
           <p className="text-sm text-text-muted">Current personal register read access is required.</p>
         )
       )}
-      <Preparation key={commands.scopeKey} commands={commands} />
+      <Preparation key={commands.scopeKey} commands={commands} onEditingChange={onEditingChange} />
       {commands.visible && commands.recovery && (
         <>
           <p className="text-sm text-text-muted">
@@ -508,10 +562,10 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       )}
       {commands.visible && commands.error && <p role="alert">{commands.error}</p>}
       {commands.linksRecords.map((record) => (
-        <LinkRecord key={record.uuid} record={record} commands={commands} />
+        <LinkRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
       ))}
       {commands.records.map((record) => (
-        <IssueRecord key={record.uuid} record={record} commands={commands} />
+        <IssueRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
       ))}
       {readFailed && (
         <LoadError retry={refresh} busy={reading}>

@@ -8,7 +8,7 @@ export default function HomePage() {
   const rows = useOpenRows();
 
   return (
-    <Page narrow lede="Wallet holdings. Company-recorded shares are shown in Your shares.">
+    <Page lede="Wallet holdings. Company-recorded shares are shown in Your shares.">
       <Section title="Shares in your wallets">
         {isPending ? (
           <Loading>Loading your holdings…</Loading>

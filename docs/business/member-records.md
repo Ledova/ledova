@@ -39,7 +39,7 @@ company owner may download the register CSV.
 | Register CSV         | The company owner or a register reader     | **Documents**: **Download CSV**                         | Who took it, the class, the entry it runs to, row counts |
 | Inspection copy      | A register reader                          | **Documents**: **Inspection copy**                      | SHA-256, instruction, request date, recipient, late flag |
 | Certificate          | A register reader                          | **Documents**                                          | SHA-256 and instruction                                  |
-| Member's certificate | A register reader, on the member's request | **Member access and requests**                          | The PDF itself, as a certificate record                  |
+| Member's certificate | A register reader, on the member's request | **Shareholders** → **Member requests**                   | The PDF itself, as a certificate record                  |
 | Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**                             | SHA-256, period and instruction                          |
 | Core company pack    | A company administrator                    | **Documents**: **Company pack**                         | Manifest SHA-256, instruction, recipient, per class      |
 | Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**                                | As for a core pack                                       |
@@ -58,7 +58,7 @@ investment eligibility ([decision](../decisions.md#member-invitations-and-accoun
 
 ### Inviting a member
 
-1. A company administrator opens **Member access and requests** on **Shareholders**, or chooses
+1. On web, a company administrator opens **Shareholders** → **Member access** in the sidebar, or chooses
    **Invite to their records** on a shareholder's page.
 2. Choose **Invite a member**, select a named member or award recipient, enter the recipient's email
    and choose **Send invitation**. An award recipient can be invited before any shares are issued
@@ -97,20 +97,29 @@ of their shares by class. This counts shares, not company ownership, voting powe
 classes can carry different rights. **My shares** (mobile) lists issued shares by class. Both keep
 employee awards separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
-already belong to the holding. Recent own changes and request status remain available, with
-particulars and longer history on demand. Web certificates and their requests are in **Documents**;
-mobile also shows certificates. Wallet holdings are on
+already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
+breakdown and terms under **Award details**. This read-only overview is the whole web Dashboard.
+**Company-recorded details** in Settings groups **Current details** and **Update requests** in one
+**Your details** card, separate from the personal Profile. Pending requests show the requested
+particulars, status and date together;
+completed requests open on demand. Share history, certificates and certificate requests
+are in web **Documents**, without duplicate particulars status. Mobile also shows certificates. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access
 
-A company administrator opens the relevant record under **Current member access** and chooses
-**Revoke access**, supplying a reason for that action; relinking needs a new invitation. Revocation
+A company administrator opens **Shareholders** → **Member access** in the web sidebar, then the
+relevant record under **People**, and chooses **Revoke access**, supplying a reason for that action;
+relinking needs a new invitation. Revocation
 stops the person's own-record access, file access and new requests, though they can still read the
 status of requests they made.
 
-The web view shows access and requests as records, opening task fields only when needed.
-An empty queue does not ask for a company reason or certificate reference. Reads update on entry,
+The web sidebar separates **Member access** from **Member requests** under Shareholders. Member access
+shows **People** and **Invitations**; Member requests is one list identifying each request's type, date
+and status. The rows keep names and relevant details together. Access, invitation and certificate
+records place technical references under **Technical details**.
+Task fields open only when needed;
+an empty queue does not ask for a company reason or certificate reference. Reads update on entry,
 focus and reconnect, and after a completed action; a failed read offers a retry.
 Every action rechecks the person's account, session, association and the company's authority; a
 failed refresh hides cached private records, and an uncertain reply is recovered against the
@@ -122,12 +131,18 @@ original request
 ### Particulars requests
 
 A member, including an award recipient before any shares are issued, asks the company to change
-their recorded name and residential address: **Request a particulars update** on **Dashboard**
-(**Request a particulars change** on **My shares**), then **Send particulars request**. Sending
-changes nothing on the register.
+their recorded name and residential address: **Settings** → **Company-recorded details** →
+**Request update** on web, then **Send request** (**Request a particulars change**, then
+**Send particulars request** on mobile **My shares**). Sending changes nothing on the register.
+On web, the form closes after successful submission and the request appears under **Update requests**.
+Cancel closes an unfinished form without sending it; its draft stays in memory for the same signed-in
+account and company, including navigation through Dashboard and Documents.
 
-The company sees it under **Particulars requests** (a current personal appointment is needed). A
-preparer adds evidence, a reason and an as-at date and records it as an ordinary
+The company sees it as **Details update** under **Shareholders** → **Member requests** on web
+(a current personal appointment is needed). Its row and preparation form show the requested particulars
+and company actions; internal request, member and instruction references remain in the audit records.
+A preparer adds evidence, a reason and an as-at date
+and records it as an ordinary
 [particulars change](register.md#changing-a-members-particulars). The request keeps the exact
 particulars asked for, and its status follows the change: prepared, approved, applied or rejected.
 A revoked association or a changed source record blocks a new change or its application.
@@ -142,6 +157,10 @@ It reads **fulfilled** only once a real file exists, which the member downloads 
 (**Download unsigned certificate** on web, **Share unsigned certificate** on mobile) through their
 current access, checked against its record. Nothing is signed automatically and no legal
 recognition is claimed.
+
+Web **Documents** keeps each share change, its latest request status and its certificate actions
+together. **Record details** holds previous requests; **Other certificate requests** keeps requests
+for other classes or entries not shown, including their permitted withdrawals and downloads.
 
 ## Inspection copies
 
@@ -216,9 +235,16 @@ fingerprint is recorded.
 
 ### Fulfilling a member's certificate request
 
-1. In **Member access and requests**, under **Certificate requests**, choose **Preview certificate
-   for** the member, entering the company's written instruction reference.
-2. Check the preview, then choose **Confirm recipient certificate fulfilment**.
+1. On web, open the member's **Unsigned certificate** request in **Shareholders** → **Member requests**,
+   then choose **Prepare certificate**. The focused view shows the member, share class
+   and request date. Enter the required
+   **Company instruction**, then choose **Preview**.
+2. Check **Review certificate** and its unsigned single-recipient PDF summary. **Record details**
+   holds the exact entry and register sequence, source fingerprint and captured instruction.
+   Choose **Create certificate**, or **Cancel** to return without fulfilling the request. The privacy
+   and signing reminder stays visible; the member-request records return after the task closes.
+3. Mobile keeps **Preview certificate for** the member and the company's written instruction
+   reference, then **Confirm recipient certificate fulfilment** after checking the preview.
 
 This keeps one unchangeable single-page PDF of that member's page only, with its request,
 producer, appointment, instruction and fingerprint, recorded as a certificate for the entry; no

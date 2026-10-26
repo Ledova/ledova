@@ -307,10 +307,14 @@ refused row.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
 `companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
-`#documents`, `/home#documents`). Ledger's label opens its overview; a separate caret expands
-Issue shares (`#issue`), Transfer shares (`#transfer`), History (`#history`) and Corrections
-(`#corrections`), marking the active
-child and opening the group on Ledger routes. Shareholders, ESS and Documents stay siblings. Its
+`#documents`, `/home#documents`). The web also names Shareholders' `#member-access` and
+`#member-requests` views. Ledger's label opens its overview; a separate caret expands
+Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`), marking the active
+child and opening the group on Ledger routes. The web replaces an incoming `#history` with `#corrections`
+without dropping company/class navigation state or remounting its controllers; shared task names and mobile
+retain History. Shareholders' label opens its people list, with the
+same caret pattern for ESS, Member access and Member requests. Each group opens on its routes and marks
+the active destination. Ledger, Shareholders and Documents stay siblings. Its
 company group follows `useRegisterEntry`, its investing group the investing
 role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). A page that isn't an item marks its nearest
@@ -405,19 +409,35 @@ cycles and stop periodic work while the view is hidden or the browser is offline
 need no polling. Issue shares rechecks the selected class's appointments and issue records every
 60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
 Mobile Issue shares does the same on entry, when the app or its screen comes back into view, and
-every 60 seconds while the task is on screen; another tab or a pushed screen counts as hidden
-(`mobile/src/screens/company-register/useTaskFreshness.ts`). It waits while a preparation or review
-is open, as Employee share scheme does, because a reread would disable the open form's fields and
-hide the review. Mobile Transfer shares uses the same hook without an interval, as the web's Transfer
-shares rereads only on entry, focus and reconnect; mobile waits while a review is open.
-Employee share scheme rechecks appointments before its class records on entry, focus and reconnect,
-and every 60 seconds while the view is active, visible and online. These coordinated cycles wait
-across all class cards while any award preparation, vesting or entitlement-change editor is open.
-Pending reads resume after Cancel or a successful save. Account, source and authority guards,
-explicit recovery and post-write refresh still apply.
-The personal dashboard also rechecks member associations before their dependent records every
-60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
+every 60 seconds while the task is on screen (`mobile/src/screens/company-register/useTaskFreshness.ts`).
+Another tab or a pushed screen counts as hidden (`ClassRecords.tsx`). Mobile has no offline signal,
+so a cycle that fails offline shows the read's error until the next cycle or Retry. It waits while a
+preparation or review is open, because a reread would disable the open form's fields and hide the
+review. Mobile Transfer shares uses the same hook without an interval, as the web's Transfer shares
+rereads only on entry, focus and reconnect; mobile waits while a review is open.
+Employee share scheme is the owner's explicit exception: no interval, focus, visibility or reconnect
+refreshes. It reads on entry and after the person's own changes, with explicit retries after errors.
+Stale entry rechecks appointments before dependent records, deferring that entry read while an editor
+or original-request recovery is open. The web register query policy and user-preferences defaults
+suppress native focus/reconnect refetches only at the ESS address; authentication revalidation stays
+unchanged. Current authority, source and account checks still gate every command and private read.
+The member Dashboard, Documents and Company-recorded details views also recheck member associations
+before their dependent records every 60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
 not an instantaneous update guarantee.
+Company team also reads appointments before dependent team records on focus, reconnect and a visible,
+online 60-second interval, deferring those cycles while a team editor or revocation is open.
+
+The remaining web eligibility and company-publication views use `dashboard/src/hooks/useAutomaticReads.ts`
+for the same visible, online entry/focus/reconnect and 60-second scheduling. Their callbacks retain ordered
+source and authority checks; edited drafts, decision reviews and original-request recovery defer those cycles.
+Trading uses it only to reread locally saved work, without replaying a saved command. Explicit possession-proof
+renewal and indexer synchronisation remain commands, and failed reads keep Try again.
+
+Class-operation records use the same scheduler only while Technical details is open. Class rights,
+class documents and technical preparation, decision or recovery tasks pause the class's coordinated reads
+and parent focus/reconnect reads; their holds are scoped to the current account, company and class.
+Closing Technical details stops its periodic reads while keeping its controllers mounted. Confirmation
+and execution stay explicit; a retained pending job can still be read after its dispatch finishes.
 
 Every read retains the account, company and appointment guards. A failed or inconsistent read
 withholds private records, decision controls and ownership totals as
@@ -510,12 +530,13 @@ receive the controller's original owner guard from `dashboard/src/pages/company/
 They check it before and after each request and pass it as `ledovaSubmissionGuard`, so a late reply
 after an account change or reauthentication is discarded. Query keys and cache timing stay unchanged.
 
-Each preparation is a page of its own (on mobile, in the same stack), a `companyRegister*` entry in
-`DESTINATIONS`: `/company/ledger/setup`; import, correction, opening, grant and transfer under
-`/company/ledger/:uuid/` (`import`, `correct/:entry`, `open`, `grant`, `transfer`); particulars
+The standalone preparations are `companyRegister*` entries in `DESTINATIONS` (on mobile, in the same
+stack): `/company/ledger/setup`; import, correction, opening and transfer under
+`/company/ledger/:uuid/` (`import`, `correct/:entry`, `open`, `transfer`); particulars
 changes at `/company/ledger/members/:member/particulars`; and wallet links at
 `/company/ledger/companies/:company/links`. Setup is the import page without a class in its
 address: it chooses or creates a share class, then prepares the mirror import.
+Non-paid and employee-award grants are prepared inline in Issue shares.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
 `dashboard/src/pages/company/ledger/shared/DocumentAttachments.tsx` for optional categorised
@@ -541,9 +562,9 @@ holdings-moved refusal by its `opening_holdings_moved` code
 (`REGISTER_OPENING_HOLDINGS_MOVED_CODE`). A wallet's proof is worded as the holder's own proof on
 Ledova, never as a verification by Ledova.
 
-Every decision uses the preview-first `useRegisterDecision`, in a dialog, the web investor
-allotment's or share transfer's main-page review, or mobile Issue shares' or Transfer shares' review
-in place of its list. It previews the
+Every decision uses the preview-first `useRegisterDecision`, in a dialog, the web's main-page
+issue, transfer and particulars reviews, or mobile Issue shares' or Transfer shares' review in place
+of its list. It previews the
 exact decision, its unmet requirements in words and its register effect, takes a rejection reason
 ([how a company decision works](../business/README.md#how-a-company-decision-works)), and confirms
 with a retry key reused only for the same preview while the step's appointment is still the one
@@ -616,7 +637,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------- |
 | [Company dashboard](../business/README.md#the-app-at-a-glance)                                           | `/company/dashboard` (web only)                                                    | everyone  |
 | [Personal dashboard](../business/member-records.md#what-a-member-can-read)                               | `/home`, `/home#documents`, alias `/member-records`                                | everyone  |
-| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/ledger` and `#shareholders`, `#awards`, `#documents`; preparation routes | everyone  |
+| [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page)      | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#documents`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                      | `/company/ledger/members/:member?company=`                                         | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                              | `/company/ledger/:uuid`                                                            | everyone  |
 | [Company, Representative authority, Company team, Activation](../business/companies.md#the-company-page) | `/company`, `/company/authority` (company), `/company/team`, `/company/listing`    | everyone  |
@@ -630,14 +651,14 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 | [Market](../business/trading.md#the-market-page)                                                         | `/trading`                                                                         | investing |
 | [Wallets](../business/trading.md#the-wallets-page)                                                       | `/wallets`                                                                         | everyone  |
 | [Activity](../business/trading.md#the-activity-page)                                                     | `/transactions`                                                                    | everyone  |
-| [Profile, Settings](../business/participants.md#profile-and-settings)                                    | `/user-profile`, `/settings`                                                       | everyone  |
+| [Profile, Settings](../business/participants.md#profile-and-settings)                                    | `/user-profile`, `/settings`, `/settings#company-recorded-details`                   | everyone  |
 
 ### Page mechanics
 
 - Company dashboard: reads the scoped register API for the selected company (`useCompanyRegister`)
   and computes issued-share totals, holders deduplicated across classes and each class's shares with
   `BigInt` (`ownershipSummary` in `packages/shared/src/utils/register-ownership.ts`, and each
-  class's segments in `dashboard/src/pages/company/shared/summary.ts`); it draws each class's donut
+  class's segments in `dashboard/src/pages/company/dashboard/summary.ts`); it draws each class's donut
   itself. The person's own appointments (`useOwnAppointments`) give the status line and Getting
   started, which reads the register step from the selected company's opened registers. Web tasks
   render only while incomplete; the existing parent condition hides the card when both tasks are
@@ -646,36 +667,49 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   company's registers alone.
 - Personal dashboard: reads the person's own member projection. Its overview sums issued shares
   with `BigInt` and charts the member's own shares by class, without company-wide totals or ownership
-  percentages. Awards remain separate entitlements. The first own class's history loads when a
-  member record opens, and choosing another class reads that class's own entries. Active web reads
-  follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
+  percentages. Its only other content is read-only awards: separate entitlements, with the promise
+  and nonzero lifecycle quantities above their full breakdown and terms in Award details.
+  Company-recorded details in Settings groups current particulars and update-request records in one
+  card, side by side on desktop and stacked on smaller screens, with one shared action footer.
+  Request update opens a focused inline form; successful submission closes it and clears consent,
+  while pending requests keep the requested particulars and status visible together. Documents
+  holds share history and certificate tracking. The views share an owner-bound member-records
+  controller, retaining an unfinished particulars draft in memory across their navigation within
+  the same account and company, without browser storage. Choosing another class in Documents reads
+  that class's own entries. Active web
+  reads follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
-  Ledger overview, Issue shares, Transfer shares, History, Corrections, Shareholders (with member access),
-  Employee share scheme (ESS) and Documents views by hash.
+  Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
+  Member requests, Employee share scheme (ESS) and Documents views by hash.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
   cards, including the empty collection card. The default internal quantity ceiling is omitted from
   these summaries; finite class limits remain visible. Task views show their selected workflow rather than the
   ownership overview or header task switches. It keeps every class's
   controllers mounted, merely hidden, so changing view, task or class (the Share class selector)
-  keeps an unfinished request with its class, payload and retry key. Controllers
+  keeps an unfinished request with its class, payload and retry key. People and member controllers
+  also stay mounted across the three Shareholders views. Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
   their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
   scope, disables the company and class selectors and other sidebar tasks, and pins held task
   work to its task and class. The held task's sidebar link remains available from a sibling view
   so its original request can be resumed. `dashboard/src/components/LedgerNavigation.ts` carries
-  this scope and navigation readiness between the page and frame. A selection lasts one navigation
+  this scope and navigation readiness between the page and frame, including `shareholderView` for
+  held person saves and member actions. Direct navigation elsewhere offers a link back to the
+  original form or action. A selection lasts one navigation
   (`location.key`). Links built by
   `registerPlace` (`dashboard/src/pages/company/ledger/shared/registerPlace.ts`) pick the company
   (or the class's company), class and task hash and focuses that class; with a record it focuses that
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
-  Shareholders.
-  History shows recorded entries and retained supporting records with read-only detail and permitted
-  downloads on demand. Corrections holds their maintenance actions; Documents holds certificate
-  preparation and opens only one focused output form at a time from compact choices. ESS uses the
-  shared class-card spacing and shows recorded awards before its preparation action; preparation
-  replaces that class's record list while preserving its controllers. A section whose
+  Member access.
+  Corrections shows immutable recorded entries and retained supporting records with details and permitted
+  downloads on demand, alongside their capability-guarded append-only maintenance workflows. Register-read
+  access alone grants no mutation. Documents holds certificate preparation and opens only one focused
+  output form at a time from compact choices. ESS uses the
+  shared class-card spacing and shows only the selected class, with one preparation action below its records.
+  The Share class selector locks while any award editor or recovery is open; all class controllers stay
+  mounted. Preparation replaces that class's record list while preserving its controllers. A section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current

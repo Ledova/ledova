@@ -83,7 +83,8 @@ routes (`tabBarItemStyle: { display: 'none' }`) opened from the drawer, Market o
 account while `trading_enabled` is on, under Invest. Routes and business sections are in
 [Pages](frontend.md#pages).
 
-The drawer's Company group mirrors the web sidebar ([navigation](frontend-ux.md#navigation)). Ledger
+The drawer's Company group uses the web sidebar's overview and caret pattern
+([navigation](frontend-ux.md#navigation)), retaining its separate History item. Ledger
 opens the share-class overview, and a separate caret shows Issue shares, Transfer shares, History
 and Corrections; Shareholders, ESS (read aloud as Employee share scheme), Documents and Company
 follow. Each opens a section of the one Ledger screen
@@ -115,10 +116,10 @@ title becomes Review share issue, and the other records and any open preparation
 mounted, so their held work survives; an open review is held work), recovery
 inside and outside the review and unmet requirements in words. An investor issue's Approve also
 records the issue (`completeIssue` with the apply appointment); a non-paid issue keeps Approve, then
-Record issue. There is no manual refresh: as on the web, it rereads authority, then its records,
+Record issue. There is no Refresh button: as on the web, it rereads authority, then its records,
 on entry, when the app or the screen comes back into view, and every minute while it is on screen
-(`useTaskFreshness.ts`, which treats another tab or a pushed screen as hidden), waiting while a
-preparation or review is open. **Prepare issue** opens Prepare share
+(`useTaskFreshness.ts`; `ClassRecords.tsx` treats another tab or a pushed screen as hidden),
+waiting while a preparation or review is open. **Prepare issue** opens Prepare share
 issue in place of the list, which stays mounted, and asks **What kind of issue?**: the investor form
 (`AllotmentForm.tsx`) takes the web's three steps under a step indicator
 (`mobile/src/components/FormSteps.tsx`), and the non-paid grant form (`GrantForm.tsx`) one.

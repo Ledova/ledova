@@ -7,7 +7,7 @@ import {
   shareCount,
 } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { ownershipSegments } from '@pages/company/shared/summary';
+import { ownershipSegments } from './summary';
 
 export function OwnershipMetrics({ summary }: { summary: ReturnType<typeof ownershipSummary> }) {
   return (

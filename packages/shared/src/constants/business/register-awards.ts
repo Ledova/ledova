@@ -10,7 +10,6 @@ export const REGISTER_AWARD_COPY = {
   TERMS: 'Agreement terms',
   SCHEDULE: 'Recorded vesting schedule',
   AGREEMENT_DOCUMENT: 'Agreement document',
-  VEST: 'Record a vesting event',
   VESTING_SHARES: 'Shares vested in this event',
   VESTED_ON: 'Company-recorded vesting date',
   VESTING_DOCUMENT: 'Vesting evidence',
@@ -39,7 +38,6 @@ export const REGISTER_AWARD_COPY = {
   ADJUSTMENT_FAILED:
     'The award adjustment response could not be confirmed. Recover the same request before recording another.',
   MEMBER_RECORDS_FAILED: 'Your award records could not be confirmed. Refresh before continuing.',
-  PREPARE_GRANT: 'Prepare a grant from this award',
   RECOVERY_NOTE: 'If the response is interrupted, retry the same recorded request before starting another.',
   RECORDING_FAILED: 'The award response could not be confirmed. Refresh the awards and retry the same request.',
   VESTING_FAILED: 'The vesting response could not be confirmed. Refresh the events and retry the same request.',

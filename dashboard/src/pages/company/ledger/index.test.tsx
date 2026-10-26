@@ -9,6 +9,7 @@ import {
   type RegisterImportPreparation,
   type RegisterEntry,
   type RegisterCorrection,
+  type RegisterParticularsChange,
   type RegisterDecideRequest,
   REGISTER_COPY,
   REGISTER_PARTICULARS_COPY,
@@ -31,10 +32,10 @@ import {
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
-import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyRegisterPage from '.';
 import CompanyShareholderPage from './member';
@@ -45,6 +46,9 @@ import { ClassReconciliation } from './ClassReconciliation';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
+import { useShareClass } from './detail/useShareClass';
+import { useDeploymentFlow } from './detail/useDeploymentFlow';
+import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, readPeople } from './shared/usePeople';
 import {
   blankAllotment,
@@ -143,6 +147,11 @@ function noCommands(url: string) {
     : null;
 }
 
+function LedgerLocation() {
+  const location = useLocation();
+  return <output aria-label="Ledger location">{JSON.stringify(location)}</output>;
+}
+
 function show(
   role: AccountRole = 'company',
   content: ReactNode = <CompanyRegisterPage />,
@@ -169,9 +178,12 @@ afterEach(() => {
   client.clear();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  focusManager.setFocused(undefined);
 });
 
 it('reads every class page and groups exact holdings by member identity with search, filtering, paging and private details', async () => {
+  vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+  vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
   const original = register();
   const shared = original.holders[0];
   const ordinary = register('ordinary', {
@@ -245,8 +257,9 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.getByRole('heading', { level: 1, name: 'Shareholders' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Current shareholders' })).toBeTruthy();
-  expect(screen.getByRole('heading', { name: 'Member access and requests' })).toBeTruthy();
-  for (const name of ['Issue shares', 'Transfer shares', 'History', 'Corrections'])
+  expect(screen.queryByRole('heading', { name: 'Member access' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Member requests' })).toBeNull();
+  for (const name of ['Issue shares', 'Transfer shares', 'Corrections'])
     expect(screen.queryByRole('button', { name })).toBeNull();
   const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;
   expect(within(formerSection).getByRole('heading', { name: /^Ordinary shares ·/ })).toBeTruthy();
@@ -465,7 +478,7 @@ it('reads every class page and groups exact holdings by member identity with sea
               company: 'harbour',
               companyUuid: 'harbour',
               companyName: 'Harbour Example Pty Ltd',
-              isOwner: false,
+              isOwner: true,
               statusDisplay: 'Deployed',
               tokenTypeDisplay: 'Ordinary shares',
               isTransferable: false,
@@ -513,6 +526,25 @@ it('reads every class page and groups exact holdings by member identity with sea
   });
   fireEvent.click(rightsForm.getByRole('button', { name: 'Add document' }));
   fireEvent.change(rightsForm.getByLabelText('File'), { target: { files: [rightsFile] } });
+  const technicalWhileEditing = screen.getByRole('button', { name: 'Technical details and chain workflows' });
+  fireEvent.click(technicalWhileEditing);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const editingForm = screen.getByRole('form', { name: 'Edit class rights' });
+  const termsControl = rightsForm.getByLabelText('Additional terms');
+  termsControl.focus();
+  const readsBeforeFocus = api.get.mock.calls.length;
+  await act(async () => {
+    focusManager.setFocused(false);
+    focusManager.setFocused(true);
+    window.dispatchEvent(new Event('focus'));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  });
+  expect(api.get.mock.calls).toHaveLength(readsBeforeFocus);
+  expect(screen.getByRole('form', { name: 'Edit class rights' })).toBe(editingForm);
+  expect(rightsForm.getByText(rightsFile.name)).toBeTruthy();
+  expect(document.activeElement).toBe(termsControl);
+  expect(screen.queryByRole('button', { name: /^Refresh / })).toBeNull();
+  fireEvent.click(technicalWhileEditing);
   api.post.mockImplementation(async (url: string, body: ClassRightsRequest | FormData, config) => {
     config?.ledovaSubmissionGuard();
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE) {
@@ -735,8 +767,16 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByRole('link', { name: 'Back to Ledger' }).getAttribute('href')).toBe('/company/ledger');
   const technical = screen.getByRole('button', { name: 'Technical details and chain workflows' });
   expect(technical.getAttribute('aria-expanded')).toBe('false');
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const readsBeforeTechnical = api.get.mock.calls.length;
+  const writesBeforeTechnical = api.post.mock.calls.length;
   fireEvent.click(technical);
   expect(technical.getAttribute('aria-expanded')).toBe('true');
+  await waitFor(() =>
+    expect(api.get.mock.calls.slice(readsBeforeTechnical).some(([url]) => url === APPOINTMENTS)).toBe(true),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(api.post.mock.calls).toHaveLength(writesBeforeTechnical);
   fireEvent.click(technical);
   expect(technical.getAttribute('aria-expanded')).toBe('false');
 
@@ -1195,6 +1235,75 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('button', { name: 'Recover original save' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(documentRows).toHaveLength(1);
+
+  cleanup();
+  client.clear();
+  prepareCompanyClient(client);
+  const deploymentToken = 'deployment-class';
+  api.get.mockReset().mockImplementation(async (url: string) => {
+    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(deploymentToken))
+      return {
+        data: {
+          ...ordinary.token,
+          uuid: deploymentToken,
+          company: 'harbour',
+          companyUuid: 'harbour',
+          status: 'draft',
+          isOwner: false,
+        },
+      };
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(deploymentToken)) return { data: register(deploymentToken) };
+    if (url === APPOINTMENTS)
+      return {
+        data: {
+          results: [{ ...CURRENT_APPOINTMENT, company: 'harbour', capabilities: ['prepare'] }],
+          count: 1,
+          next: null,
+          previous: null,
+        },
+      };
+    return { data: { results: [], count: 0, next: null, previous: null } };
+  });
+  api.post.mockReset().mockRejectedValue(new Error('Synthetic interrupted deployment preparation'));
+  const deployment = renderHook(
+    () => {
+      const data = useShareClass(deploymentToken);
+      return useDeploymentFlow({ uuid: deploymentToken, data });
+    },
+    {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>
+          <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+        </QueryClientProvider>
+      ),
+    },
+  );
+  await waitFor(() => expect(deployment.result.current.canPrepare).toBe(true));
+  await act(async () => {
+    await deployment.result.current.prepare();
+  });
+  expect(deployment.result.current.uncertain).toBe(true);
+  expect(api.post).toHaveBeenCalledTimes(1);
+  const replacement = companyPreferences();
+  act(() =>
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: {
+        ...replacement,
+        userProfile: 'replacement-profile',
+        userAccount: { ...replacement.userAccount!, uuid: 'replacement-account' },
+      },
+    }),
+  );
+  await waitFor(() => expect(deployment.result.current.owner?.ownerAccountUuid).toBe('replacement-account'));
+  await waitFor(() => expect(deployment.result.current.canPrepare).toBe(true));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(deployment.result.current.uncertain).toBe(false);
+  await act(async () => {
+    client.setQueryData(ownAppointmentsKey(deployment.result.current.owner!), []);
+    await deployment.result.current.prepare();
+  });
+  expect(api.post).toHaveBeenCalledTimes(1);
+  expect(deployment.result.current.error).toMatch(/appointment before starting this decision/);
 });
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
@@ -1309,6 +1418,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let proposal: RegisterImport | undefined;
   let historyEntries: RegisterEntry[] = [];
   let historyCorrections: RegisterCorrection[] = [];
+  let historyParticulars: RegisterParticularsChange[] = [];
   let pauseHistory = false;
   let releaseHistory!: () => void;
   const attachment = new File(['%PDF-1.4 synthetic certificate'], 'share-certificate.pdf', { type: 'application/pdf' });
@@ -1385,6 +1495,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     if (url === CORRECTIONS) return dataPage(historyCorrections);
+    if (url === PARTICULARS) return dataPage(historyParticulars);
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)) {
       if (pauseHistory)
         return new Promise((resolve) => {
@@ -1496,6 +1607,30 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     const request = body as RegisterDecideRequest;
     expect(request.appointment).toBe(appointment.uuid);
     expect(appointment.capabilities).toContain(request.kind);
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGE_PREVIEW('retained-particulars-change'))
+      return {
+        data: {
+          canDecide: true,
+          unmetRequirements: [],
+          previewDigest: 'd'.repeat(64),
+          member: historyParticulars[0].member,
+          name: historyParticulars[0].name,
+          residentialAddress: historyParticulars[0].residentialAddress,
+          asAt: historyParticulars[0].asAt,
+          current: {
+            name: 'Example Shareholder',
+            residentialAddress: '1 Example Street, Sydney NSW 2000',
+            asAt: '2026-10-21',
+            sourceImport: proposal!.uuid,
+            sourceChange: null,
+            sourceGrant: null,
+            sourceTransfer: null,
+            sourceAllotment: null,
+            sourceAward: null,
+            sourceRegistration: null,
+          },
+        },
+      };
     if (url.endsWith('/decision-preview/')) {
       if (failNextPreview) {
         failNextPreview = false;
@@ -1903,6 +2038,34 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       submittedBy: 1,
     },
   ];
+  historyParticulars = [
+    {
+      uuid: 'retained-particulars-change',
+      company: company.uuid,
+      member: proposal!.members[0].member,
+      memberRequest: null,
+      name: 'Example Shareholder',
+      residentialAddress: '2 Example Street, Sydney NSW 2000',
+      asAt: '2026-10-22',
+      reason: 'Address update requested by the member',
+      preparingAppointment: appointment.uuid,
+      preparedByName: 'Example Director',
+      providedBy: 'company',
+      status: 'submitted',
+      stage: 'submitted',
+      decisions: [],
+      evidenceFingerprint: 'd'.repeat(64),
+      evidenceSnapshot: {},
+      supportingEvidence: 'retained-supporting-document',
+      rejectionReason: '',
+      reviewedAt: null,
+      reviewedBy: null,
+      submittedBy: 1,
+      createdAt: '2026-10-22T02:00:00Z',
+    },
+  ];
+  const decisionAppointment = appointment;
+  appointment = { ...appointment, capabilities: ['read_register'] };
   cleanup();
   client.clear();
   show(
@@ -1911,13 +2074,24 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       <CompanyRegisterPage />
       <Link to="/#transfer">Transfer shares</Link>
       <Link to="/#documents">Open Documents</Link>
-      <Link to="/#history">Open History</Link>
+      <Link
+        to="/#history"
+        state={{ registerCompany: company.uuid, registerToken: token.uuid, registerTask: 'history', preserved: true }}
+      >
+        Open old History link
+      </Link>
+      <LedgerLocation />
       <Link to="/#corrections">Open Corrections</Link>
     </>,
     'Ledger',
-    { entry: '/#history' },
+    { entry: '/?audit=1#history' },
   );
   expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
+  expect(screen.getByRole('heading', { level: 1, name: 'Corrections' })).toBeTruthy();
+  expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!)).toMatchObject({
+    hash: '#corrections',
+    search: '?audit=1',
+  });
   const entryDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
   expect(within(entryDetails).getByText('Transfer')).toBeTruthy();
   const transferEntry = entryDetails.closest('li')!;
@@ -1937,6 +2111,36 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(await screen.findByRole('button', { name: /^Correction of entry 3/ }));
   expect(screen.getByText('Retained correction reason')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Example Shareholder · Prepared' }));
+  expect(screen.getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
+  appointment = decisionAppointment;
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ['company-appointments'] });
+  });
+  fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
+  const particularsApproval = await screen.findByRole('button', { name: /^Approve \(change for Example Shareholder/ });
+  const beforeParticularsReview = api.post.mock.calls.filter(([url]) => url.endsWith('/decide/')).length;
+  fireEvent.click(particularsApproval);
+  const particularsReview = await screen.findByRole('region', { name: 'Review particulars change' });
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(within(particularsReview).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
+  expect(within(particularsReview).getByText('2 Example Street, Sydney NSW 2000')).toBeTruthy();
+  expect(within(particularsReview).getByText(formatDate('2026-10-22'))).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Particulars changes' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Details for entry 3:/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Approve \(correction of entry 3/ })).toBeNull();
+  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(beforeParticularsReview);
+  fireEvent.click(within(particularsReview).getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(document.activeElement).toBe(particularsApproval));
+  expect(screen.queryByRole('region', { name: 'Review particulars change' })).toBeNull();
+  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(beforeParticularsReview);
+  fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
+  await screen.findByRole('heading', { name: 'Changes' });
+  expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!)).toMatchObject({
+    hash: '#corrections',
+    state: { registerCompany: company.uuid, registerToken: token.uuid, registerTask: 'history', preserved: true },
+  });
   const beforeHistoryRead = api.post.mock.calls.length;
   pauseHistory = true;
   let refreshingHistory!: Promise<void>;
@@ -1994,12 +2198,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('form', { name: 'Unsigned certificate for entry 3' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
   const correctionDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
-  fireEvent.click(correctionDetails);
+  if (correctionDetails.getAttribute('aria-expanded') !== 'true') fireEvent.click(correctionDetails);
   expect(within(correctionDetails.closest('li')!).getByRole('link', { name: /^Correct this entry/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Prepare unsigned certificate/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Approve (correction of entry 3)' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('link', { name: 'Open History' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
   expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
