@@ -1,15 +1,14 @@
 import { useState } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import type { useMemberRecords } from '@ledova/shared';
-import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
+import { Action, LinkRow, Rows, useCardStyles } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { CompanyCard, CompanyList } from './CompanyHoldings';
 import { holdingsOf, holdingsSummary, LIST_ABOVE } from './holdings';
-import { MemberInvitation } from './MemberInvitation';
 import { MemberNotice, useMemberRecordsState, useMemberRefresh } from './MemberRecordsProvider';
 
 export function HoldingsScreen() {
@@ -24,11 +23,10 @@ export function HoldingsScreen() {
 
 function Holdings({ read }: { read: ReturnType<typeof useMemberRecords> }) {
   const styles = useCompanyStyles();
+  const card = useCardStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const refresh = useMemberRefresh(read, 'holdings-refresh');
   const [query, setQuery] = useState('');
-  const [invitationOpen, setInvitationOpen] = useState(false);
-  const held = read.busy || !!read.retry;
   const { current, past } = holdingsOf(read.records);
   const open = (record: string) => navigation.navigate('Company', { record });
   return (
@@ -55,22 +53,14 @@ function Holdings({ read }: { read: ReturnType<typeof useMemberRecords> }) {
               <LinkRow label={`Past holdings (${past.length})`} onPress={() => navigation.navigate('PastHoldings')} />
             </Rows>
           )}
-          {!read.error && read.records.length === 0 ? (
-            <Section title="Get access to your shares">
+          {!read.error && read.records.length === 0 && (
+            <View style={card.card}>
+              <Text style={styles.heading}>No shares yet</Text>
               <Text style={styles.muted}>
-                Accept your company&apos;s invitation to see your shares and employee awards here.
+                When a company invites you to its share register, your shares, awards and documents appear here.
               </Text>
-              <MemberInvitation read={read} held={held} />
-            </Section>
-          ) : (
-            <Section title="Member invitation">
-              <Action
-                label={invitationOpen ? 'Hide member invitation' : 'Accept another member invitation'}
-                disabled={held}
-                onPress={() => setInvitationOpen((value) => !value)}
-              />
-              {invitationOpen && <MemberInvitation read={read} held={held} />}
-            </Section>
+              <Action label="Accept an invitation" primary onPress={() => navigation.navigate('Invitation')} />
+            </View>
           )}
         </>
       )}

@@ -23,6 +23,7 @@ import { ClassScreen } from './ClassScreen';
 import { CompanyScreen } from './CompanyScreen';
 import { DetailsScreen } from './DetailsScreen';
 import { HoldingsScreen } from './HoldingsScreen';
+import { InvitationScreen } from './InvitationScreen';
 import { MemberRecordsProvider } from './MemberRecordsProvider';
 
 const mockNavigate = jest.fn();
@@ -60,6 +61,8 @@ afterEach(async () => {
   resetFiles();
 });
 const page = (results: unknown[]) => ({ data: { results, next: null, count: results.length } });
+const OTHER_CODE = 'B'.repeat(43);
+const OTHER_MEMBER = '25252525-2525-4525-8525-252525252525';
 const PAST_RECORD = {
   ...MEMBER_RECORD,
   uuid: '13131313-1313-4313-8313-131313131313',
@@ -122,6 +125,18 @@ it('associates a member by invitation code, opens their company, award, details 
   });
   api.post.mockReset().mockImplementation(async (url, value) => {
     const body = value as Record<string, string>;
+    if (url === URLS.MEMBER_INVITATION_PREVIEW) {
+      const other = body.code === OTHER_CODE;
+      return {
+        data: {
+          company: { uuid: MEMBER_RECORD.company.uuid, name: MEMBER_RECORD.company.name },
+          member: { uuid: other ? OTHER_MEMBER : MEMBER_RECORD.member, name: MEMBER_RECORD.name },
+          intendedEmail: 'member@example.test',
+          acceptanceDeadline: '2026-11-30T00:00:00Z',
+          status: associated && !other ? 'accepted' : 'pending',
+        },
+      };
+    }
     if (url === URLS.MEMBER_INVITATION_ACCEPT) {
       associated = true;
       return {
@@ -174,15 +189,27 @@ it('associates a member by invitation code, opens their company, award, details 
   );
   const company = <CompanyScreen route={{ key: 'company', name: 'Company', params: { record: MEMBER_RECORD.uuid } }} />;
   const view = await render(<HoldingsScreen />, { wrapper });
-  await fireEvent.changeText(await screen.findByLabelText('Member invitation code'), MEMBER_CODE);
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept access using my signed-in account' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Accept member invitation' }));
-  const card = await screen.findByRole('button', {
-    name: `${MEMBER_RECORD.company.name}: Ordinary 10, Award 2 of 5 vested`,
-  });
+  await fireEvent.press(await screen.findByRole('button', { name: 'Accept an invitation' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Invitation');
+  await view.rerender(<InvitationScreen />);
+  await fireEvent.changeText(
+    screen.getByLabelText('Link or code from the email'),
+    ` https://ledova.example/member-invitation#${MEMBER_CODE} `,
+  );
+  expect(await screen.findByText(MEMBER_RECORD.company.name)).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation' }));
+  expect(await screen.findByText('Invitation accepted. Your company records are available.')).toBeTruthy();
+  await view.rerender(<HoldingsScreen />);
+  const cardName = `${MEMBER_RECORD.company.name}: Ordinary 10, Award 2 of 5 vested`;
+  expect(await screen.findByRole('button', { name: cardName })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Past holdings (1)' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: new RegExp(`^${PAST_RECORD.company.name}`) })).toBeNull();
-  await fireEvent.press(card);
+  await view.rerender(<InvitationScreen />);
+  await fireEvent.changeText(screen.getByLabelText('Link or code from the email'), OTHER_CODE);
+  expect(await screen.findByRole('button', { name: 'Accept invitation' })).toBeTruthy();
+  expect(screen.queryByText('Invitation accepted. Your company records are available.')).toBeNull();
+  await view.rerender(<HoldingsScreen />);
+  await fireEvent.press(await screen.findByRole('button', { name: cardName }));
   expect(mockNavigate).toHaveBeenCalledWith('Company', { record: MEMBER_RECORD.uuid });
   expect(screen.getByText('1 company · 1 share class · 1 award')).toBeTruthy();
   expect(screen.getByText('2 of 5 vested')).toBeTruthy();

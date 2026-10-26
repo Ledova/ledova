@@ -270,7 +270,7 @@ requests are in personal Documents on the web, and in Documents and each share c
 
 The mobile app has three tabs and a notifications bell, and opens on Holdings. **Holdings** lists
 the person's holdings by company, each opening the company's page, **Documents** lists their certificates and [notices](publications.md#the-notices-page) from every company and **Account** holds
-Profile and the app's settings ([Profile and Settings](participants.md#profile-and-settings)).
+Profile, accepting an invitation and the app's settings ([Profile and Settings](participants.md#profile-and-settings)).
 Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).
 
 Each page is described in the domain document for its process below;
