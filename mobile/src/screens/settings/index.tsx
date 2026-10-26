@@ -1,23 +1,33 @@
 import { useState } from 'react';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { Alert, Text, TextInput, View } from 'react-native';
-import { Action, LinkRow, Rows, Section, SwitchRow } from '../../components/Ledger';
+import { Alert, Pressable, Text, TextInput, View } from 'react-native';
+import { CaretRightIcon } from 'phosphor-react-native';
+import { Action, LinkRow, Rows, SwitchRow, useCardStyles } from '../../components/Ledger';
 import { SignOutModal } from '../../components/auth/SignOutModal';
 import { Page } from '../../components/Page';
-import { useAppLock, useThemeChoice } from '../../contexts';
+import { useAppLock, useAppTheme, useThemeChoice, useThemedStyles } from '../../contexts';
 import { CustomModal } from '../../components/modal';
 import { useAccountStyles } from '../../hooks/useAccountStyles';
 import { useSignOut } from '../../hooks/useSignOut';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { Avatar } from '../holdings/CompanyHoldings';
 import { useSettings } from './useSettings';
 
-export function SettingsScreen() {
+export function SettingsScreen({ onNotifications }: { onNotifications: () => void }) {
+  const theme = useAppTheme();
   const styles = useAccountStyles();
+  const card = useCardStyles();
+  const look = useThemedStyles((theme) => ({
+    profile: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.smd },
+    grow: { flex: 1, gap: 2 },
+    name: { fontFamily: theme.fontFamily.medium, fontSize: 16, color: theme.colors.text.primary },
+  }));
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const lock = useAppLock();
   const appearance = useThemeChoice();
   const { userProfile } = useUserProfile();
+  const name = userProfile?.fullName || 'Your profile';
   const { signOut, signingOut } = useSignOut();
   const [signingOutOpen, setSigningOutOpen] = useState(false);
   const settings = useSettings();
@@ -108,31 +118,53 @@ export function SettingsScreen() {
   return (
     <>
       <Page title="Account">
-        <Section title="Profile">
+        <View style={card.card}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Profile: ${name}`}
+            onPress={() => navigation.navigate('MainApp', { screen: 'Profile' })}
+            style={look.profile}
+          >
+            <Avatar name={name} />
+            <View style={look.grow}>
+              <Text style={look.name}>{name}</Text>
+              {userProfile?.email ? <Text style={styles.muted}>{userProfile.email}</Text> : null}
+            </View>
+            <CaretRightIcon size={16} color={theme.colors.text.muted} />
+          </Pressable>
+        </View>
+        <View style={card.card}>
           <Rows>
             <LinkRow
-              label={userProfile?.fullName || 'Your profile'}
-              onPress={() => navigation.navigate('MainApp', { screen: 'Profile' })}
-            >
-              {userProfile?.email ? <Text style={styles.muted}>{userProfile.email}</Text> : null}
-            </LinkRow>
+              label="Accept an invitation"
+              onPress={() => navigation.navigate('MainApp', { screen: 'Invitation' })}
+            />
           </Rows>
-        </Section>
-        <Section title="Security">
-          <SwitchRow
-            label={`${lock.biometricType} sign in`}
-            description={`Sign in with ${lock.biometricType} instead of your password.`}
-            checked={lock.hasBiometricLogin}
-            disabled={!lock.biometricsAvailable || securityPending}
-            onChange={biometricLogin}
-          />
-          <SwitchRow
-            label="App lock"
-            description={`Require ${lock.biometricType} after the app goes into the background.`}
-            checked={lock.isEnabled}
-            disabled={!lock.biometricsAvailable || securityPending}
-            onChange={(value) => void secure(() => lock.setEnabled(value))}
-          />
+        </View>
+        <View style={card.card}>
+          <Rows>
+            <SwitchRow
+              label={`${lock.biometricType} sign in`}
+              description={`Sign in with ${lock.biometricType} instead of your password.`}
+              checked={lock.hasBiometricLogin}
+              disabled={!lock.biometricsAvailable || securityPending}
+              onChange={biometricLogin}
+            />
+            <SwitchRow
+              label="App lock"
+              description={`Require ${lock.biometricType} after the app goes into the background.`}
+              checked={lock.isEnabled}
+              disabled={!lock.biometricsAvailable || securityPending}
+              onChange={(value) => void secure(() => lock.setEnabled(value))}
+            />
+            <LinkRow label="Notifications" onPress={onNotifications} />
+            <SwitchRow
+              label="Dark theme"
+              description="Saved on this device."
+              checked={appearance.mode === 'dark'}
+              onChange={(dark) => appearance.setMode(dark ? 'dark' : 'paper')}
+            />
+          </Rows>
           {!lock.biometricsAvailable && (
             <Text style={styles.muted}>Biometric security is not available on this device.</Text>
           )}
@@ -141,40 +173,47 @@ export function SettingsScreen() {
               {securityError}
             </Text>
           )}
-        </Section>
-        <Section title="Appearance">
-          <SwitchRow
-            label="Dark theme"
-            description="Saved on this device."
-            checked={appearance.mode === 'dark'}
-            onChange={(dark) => appearance.setMode(dark ? 'dark' : 'paper')}
-          />
-        </Section>
-        <Section title="Account">
-          <Action label="Change password" disabled={busy} onPress={() => open('password')} />
-          <Text style={styles.muted}>Save a private JSON copy of your account data.</Text>
-          <Action label="Export data" disabled={busy} onPress={() => open('export')} />
-          <Text style={styles.muted}>
-            Deactivate your account and remove personal details. Some records are retained.
-          </Text>
-          <Action label="Delete account" disabled={busy} onPress={() => open('delete')} />
-        </Section>
-        <Section title="App">
-          <Action
-            label="Rate the app"
-            onPress={() => {
-              setAppError(null);
-              void settings.rateApp().catch(() => setAppError('The app-store listing could not be opened.'));
-            }}
-          />
-          <Action label="Share with friends" onPress={() => void settings.shareApp()} />
+        </View>
+        <View style={card.card}>
+          <Rows>
+            <LinkRow label="Change password" onPress={() => open('password')} />
+            <LinkRow label="Export data" onPress={() => open('export')}>
+              <Text style={styles.muted}>Save a private JSON copy of your account data.</Text>
+            </LinkRow>
+            <LinkRow label="Delete account" onPress={() => open('delete')}>
+              <Text style={styles.muted}>
+                Deactivate your account and remove personal details. Some records are retained.
+              </Text>
+            </LinkRow>
+          </Rows>
+        </View>
+        <View style={card.card}>
+          <Rows>
+            <LinkRow
+              label="Rate the app"
+              onPress={() => {
+                setAppError(null);
+                void settings.rateApp().catch(() => setAppError('The app-store listing could not be opened.'));
+              }}
+            />
+            <LinkRow label="Share with friends" onPress={() => void settings.shareApp()} />
+          </Rows>
           {appError && (
             <Text accessibilityRole="alert" style={styles.error}>
               {appError}
             </Text>
           )}
-        </Section>
-        <Action label="Sign out" disabled={signingOut} onPress={() => setSigningOutOpen(true)} />
+        </View>
+        <View style={card.card}>
+          <Rows>
+            <LinkRow
+              label="Sign out"
+              onPress={() => {
+                if (!signingOut) setSigningOutOpen(true);
+              }}
+            />
+          </Rows>
+        </View>
       </Page>
       <SignOutModal
         visible={signingOutOpen}

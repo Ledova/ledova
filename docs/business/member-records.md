@@ -82,8 +82,9 @@ The email's **View invitation** link opens **Member invitation** on the web. The
 or creates an account, then returns to the invitation in the same tab. They review the company,
 shareholder and intended email before choosing **Accept invitation**; opening a link never grants
 access. Their verified email must match, and acceptance binds one current account to one member
-in that company. Mobile still accepts a privately shared code at the end of **Holdings**, with an
-explicit confirmation and **Accept member invitation**.
+in that company. On mobile, **Account** → **Accept an invitation** (also on Holdings before the
+first one) takes the code from the email, shows the company, shareholder, email and deadline,
+and accepts with **Accept invitation**.
 An expired invitation, a changed recorded identity for the member, a revoked appointment of the
 inviting administrator, another person's account or a conflicting association is refused.
 

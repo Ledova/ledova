@@ -11,7 +11,7 @@ const { ESLint } = require('eslint');
 test('a missing member press await is rejected by the real mobile lint config', async () => {
   const filePath = path.join(MOBILE, 'src/screens/holdings/Holdings.test.tsx');
   const source = await readFile(filePath, 'utf8');
-  const awaited = "await fireEvent.press(screen.getByRole('button', { name: 'Accept member invitation' }));";
+  const awaited = "await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation' }));";
   assert.equal(source.split(awaited).length, 2, 'the acceptance must await its press');
   const eslint = new ESLint({ cwd: MOBILE });
   const positive = await eslint.lintText(source, { filePath });

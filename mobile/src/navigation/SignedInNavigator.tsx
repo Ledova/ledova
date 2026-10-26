@@ -14,6 +14,7 @@ import { ClassScreen } from '../screens/holdings/ClassScreen';
 import { CompanyScreen } from '../screens/holdings/CompanyScreen';
 import { DetailsScreen } from '../screens/holdings/DetailsScreen';
 import { HoldingsScreen } from '../screens/holdings/HoldingsScreen';
+import { InvitationScreen } from '../screens/holdings/InvitationScreen';
 import { MemberRecordsProvider } from '../screens/holdings/MemberRecordsProvider';
 import { PastHoldingsScreen } from '../screens/holdings/PastHoldingsScreen';
 import { SettingsScreen } from '../screens/settings';
@@ -33,6 +34,7 @@ export type SignedInStackParamList = {
   Award: { record: string; award: string };
   Details: { record: string };
   PastHoldings: undefined;
+  Invitation: undefined;
   Profile: undefined;
 };
 
@@ -85,12 +87,14 @@ function Tabs({ onNotifications, unreadCount }: { onNotifications: () => void; u
       />
       <Tab.Screen
         name="Account"
-        component={SettingsScreen}
         options={{
+          headerRight: () => null,
           tabBarLabel: 'Account',
           tabBarIcon: ({ color, size }) => <UserIcon size={size} color={color} weight="regular" />,
         }}
-      />
+      >
+        {() => <SettingsScreen onNotifications={onNotifications} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
@@ -119,6 +123,7 @@ export function SignedInNavigator() {
           <Stack.Screen name="Class" component={ClassScreen} options={{ title: '' }} />
           <Stack.Screen name="Award" component={AwardScreen} options={{ title: '' }} />
           <Stack.Screen name="Details" component={DetailsScreen} options={{ title: '' }} />
+          <Stack.Screen name="Invitation" component={InvitationScreen} options={{ title: '' }} />
           <Stack.Screen name="PastHoldings" component={PastHoldingsScreen} options={{ title: 'Past holdings' }} />
           <Stack.Screen name="Profile" component={UserProfileScreen} options={{ title: '' }} />
         </Stack.Navigator>

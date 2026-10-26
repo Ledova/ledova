@@ -1,4 +1,4 @@
-import { Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
+import { Text, TextInput, View, type KeyboardTypeOptions, type TextInputProps } from 'react-native';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 export function Field({
@@ -10,6 +10,8 @@ export function Field({
   multiline,
   maxLength,
   clearable,
+  autoCapitalize,
+  autoCorrect,
   error,
   onChange,
 }: {
@@ -21,6 +23,8 @@ export function Field({
   multiline?: boolean;
   maxLength?: number;
   clearable?: boolean;
+  autoCapitalize?: TextInputProps['autoCapitalize'];
+  autoCorrect?: boolean;
   error?: string | null;
   onChange: (value: string) => void;
 }) {
@@ -37,6 +41,8 @@ export function Field({
         keyboardType={keyboardType}
         multiline={multiline}
         maxLength={maxLength}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={autoCorrect}
         accessibilityHint={error ?? undefined}
         onChangeText={onChange}
       />

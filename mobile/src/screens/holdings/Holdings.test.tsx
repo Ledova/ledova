@@ -23,6 +23,7 @@ import { ClassScreen } from './ClassScreen';
 import { CompanyScreen } from './CompanyScreen';
 import { DetailsScreen } from './DetailsScreen';
 import { HoldingsScreen } from './HoldingsScreen';
+import { InvitationScreen } from './InvitationScreen';
 import { MemberRecordsProvider } from './MemberRecordsProvider';
 
 const mockNavigate = jest.fn();
@@ -122,6 +123,16 @@ it('associates a member by invitation code, opens their company, award, details 
   });
   api.post.mockReset().mockImplementation(async (url, value) => {
     const body = value as Record<string, string>;
+    if (url === URLS.MEMBER_INVITATION_PREVIEW)
+      return {
+        data: {
+          company: { uuid: MEMBER_RECORD.company.uuid, name: MEMBER_RECORD.company.name },
+          member: { uuid: MEMBER_RECORD.member, name: MEMBER_RECORD.name },
+          intendedEmail: 'member@example.test',
+          acceptanceDeadline: '2026-11-30T00:00:00Z',
+          status: associated ? 'accepted' : 'pending',
+        },
+      };
     if (url === URLS.MEMBER_INVITATION_ACCEPT) {
       associated = true;
       return {
@@ -174,9 +185,14 @@ it('associates a member by invitation code, opens their company, award, details 
   );
   const company = <CompanyScreen route={{ key: 'company', name: 'Company', params: { record: MEMBER_RECORD.uuid } }} />;
   const view = await render(<HoldingsScreen />, { wrapper });
-  await fireEvent.changeText(await screen.findByLabelText('Member invitation code'), MEMBER_CODE);
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept access using my signed-in account' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Accept member invitation' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Accept an invitation' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Invitation');
+  await view.rerender(<InvitationScreen />);
+  await fireEvent.changeText(screen.getByLabelText('Code from the email'), ` ${MEMBER_CODE} `);
+  expect(await screen.findByText(MEMBER_RECORD.company.name)).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation' }));
+  expect(await screen.findByText('Invitation accepted. Your company records are available.')).toBeTruthy();
+  await view.rerender(<HoldingsScreen />);
   const card = await screen.findByRole('button', {
     name: `${MEMBER_RECORD.company.name}: Ordinary 10, Award 2 of 5 vested`,
   });

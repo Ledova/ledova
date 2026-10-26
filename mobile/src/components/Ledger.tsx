@@ -149,9 +149,14 @@ export function SwitchRow({
   onChange: (checked: boolean) => void;
 }) {
   const styles = useThemedStyles((theme) => ({
-    row: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 16 },
-    text: { flex: 1, gap: 5 },
-    label: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.body },
+    row: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 16,
+      paddingVertical: theme.spacing.smd,
+    },
+    text: { flex: 1, gap: theme.spacing.xs },
+    label: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     description: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 22, color: theme.colors.text.muted },
   }));
   return (

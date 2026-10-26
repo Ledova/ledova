@@ -864,11 +864,11 @@ This section covers how a form reports a problem: when it is submitted, and when
   - **In these forms submit stays enabled** unless the form is busy or the action is unavailable,
     such as without company authority or with nothing changed, and the page says why. An unchanged
     retry of an interrupted request is not checked again.
-  - **Shared wording.** A rule both clients apply has one sentence in `packages/shared`, which the
-    web uses now and mobile adopts in #1201: a new password (`PASSWORD_PROBLEMS`, which sign-up's
-    shared hook already gives both) and an invitation code
-    (`INVITATION_CODE_PROBLEM`). A pasted code is trimmed before its length limit applies; web member
-    invitations use email links instead of a code field. The web's new-person fields take their
+  - **Shared wording.** A rule both clients apply has one sentence in `packages/shared`: a new
+    password (`PASSWORD_PROBLEMS`, which sign-up's shared hook gives both) and an invitation code
+    (`INVITATION_CODE_PROBLEM`, used by the web's team invitations and mobile's Invitation screen).
+    A pasted code is trimmed before its length limit applies; web member invitations use email links
+    instead of a code field. The web's new-person fields take their
     sentences from `NEW_PERSON_PROBLEMS`.
   - **The summary keeps the last press.** It lists the problems found when submit was last pressed
     that still fail, so it shrinks as they are fixed, and it clears when a check passes or the form
