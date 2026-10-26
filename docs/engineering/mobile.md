@@ -84,7 +84,12 @@ empty one while the list rereads. Only the focused screen selects its record and
 each read for that member association alone, and the notices, with a chip per company to filter
 both; a company's Documents row opens it filtered to that company. A certificate opens its sheet to
 share or withdraw it through the same member-records state. Account
-opens Profile from its profile card and Invitation from Accept an invitation. It holds the sign-in
+opens Profile from its profile card, Your details from Details at each company (with the number of
+changes waiting) and Invitation from Accept an invitation. Your details lists each company's
+recorded name and address, marking those where a change waits, and sends one particulars change to
+every company in turn through the same member-records state. It skips a company where the same
+change already waits, stops at a send that is not confirmed until it is retried or skipped, and
+counts the companies where the change waits from the server's requests. Account holds the sign-in
 and app lock switches, Notifications (the notifications list), the dark theme, password and data,
 the app actions and Sign out. Holdings and Documents have the notifications bell in their header, and
 a notice's notification opens Documents on Notices for every company. Screens set their own titles inside the page; a pushed

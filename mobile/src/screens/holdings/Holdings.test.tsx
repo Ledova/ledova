@@ -25,6 +25,7 @@ import { DetailsScreen } from './DetailsScreen';
 import { HoldingsScreen } from './HoldingsScreen';
 import { InvitationScreen } from './InvitationScreen';
 import { MemberRecordsProvider } from './MemberRecordsProvider';
+import { YourDetailsScreen } from './YourDetailsScreen';
 
 const mockNavigate = jest.fn();
 
@@ -417,4 +418,93 @@ it('lists certificates from every member association in Documents, refuses a lis
   const notice = { data: { type: PUBLICATION_NOTICE } } as unknown as Parameters<typeof destinationOf>[0];
   expect(destinationOf(notice)).toEqual({ screen: 'Documents', params: { show: 'notices' } });
   expect(destinationOf(notice)).not.toBe(destinationOf(notice));
+});
+
+it('sends one particulars change to every company from Your details, skipping a company where it already waits and keeping an interrupted request recoverable', async () => {
+  const SECOND = {
+    ...MEMBER_RECORD,
+    uuid: 'f1f1f1f1-f1f1-4f1f-8f1f-f1f1f1f1f1f1',
+    member: 'f2f2f2f2-f2f2-4f2f-8f2f-f2f2f2f2f2f2',
+    company: { uuid: 'f3f3f3f3-f3f3-4f3f-8f3f-f3f3f3f3f3f3', name: 'Zeta Holding Company Pty Ltd', acn: '444555666' },
+    awards: [],
+  };
+  const NAME = 'Requested Member Name';
+  const ADDRESS = 'Requested synthetic address';
+  const WAITING = {
+    uuid: 'f4f4f4f4-f4f4-4f4f-8f4f-f4f4f4f4f4f4',
+    association: MEMBER_RECORD.uuid,
+    company: MEMBER_RECORD.company.uuid,
+    member: MEMBER_RECORD.member,
+    name: NAME,
+    residentialAddress: ADDRESS,
+    status: 'submitted',
+    change: null,
+    requestedBy: 1,
+    createdAt: '2026-10-20T00:00:00Z',
+  };
+  let second: Record<string, unknown>[] = [];
+  let keys = 0;
+  jest
+    .mocked(Crypto.randomUUID)
+    .mockImplementation(() => `00000000-0000-4000-8000-${String(++keys).padStart(12, '0')}`);
+  const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
+  api.get.mockReset().mockImplementation(async (url, config) => {
+    const association = (config as { params?: { association?: string } } | undefined)?.params?.association;
+    if (url === '/api/user-preferences/') return { data: preferences };
+    if (url === URLS.MEMBER_RECORDS) return page([MEMBER_RECORD, SECOND]);
+    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
+    if (url === URLS.MEMBER_RECORD(SECOND.uuid)) return { data: SECOND };
+    if (url === URLS.MEMBER_PARTICULARS_REQUESTS)
+      return page(association === MEMBER_RECORD.uuid ? [WAITING] : association === SECOND.uuid ? second : []);
+    if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page([]);
+    throw new Error(`Unexpected GET ${url}`);
+  });
+  api.post.mockReset().mockImplementation(async (url, value) => {
+    const body = value as Record<string, string>;
+    if (url === URLS.MEMBER_PARTICULARS_REQUESTS) {
+      const request = {
+        ...body,
+        uuid: body.operationId,
+        company: SECOND.company.uuid,
+        member: SECOND.member,
+        status: 'submitted',
+        change: null,
+        requestedBy: 1,
+        createdAt: '2026-10-27T00:00:00Z',
+      };
+      second = [request];
+      if (api.post.mock.calls.filter(([target]) => target === url).length === 1)
+        throw new Error('Synthetic interrupted request receipt');
+      return { data: request };
+    }
+    throw new Error(`Unexpected POST ${url}`);
+  });
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <MemberRecordsProvider>{children}</MemberRecordsProvider>
+      </ApiClientProvider>
+    </QueryClientProvider>
+  );
+  await render(<YourDetailsScreen />, { wrapper });
+  expect(
+    await screen.findByRole('button', { name: new RegExp(`^${MEMBER_RECORD.company.name}: .*, change waiting$`) }),
+  ).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Change at every company' }));
+  await fireEvent.changeText(screen.getByLabelText('Requested name'), NAME);
+  await fireEvent.changeText(screen.getByLabelText('Requested residential address'), ADDRESS);
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Share these particulars with each company for review' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Send to 1 company' }));
+  expect(await screen.findByText(/^Stopped at Zeta Holding Company\./)).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Continue with the remaining companies' })).toBeDisabled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Retry original member action' }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull());
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue with the remaining companies' }));
+  expect(await screen.findByText('This change is now waiting at 2 of 2 companies.')).toBeTruthy();
+  const posts = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS);
+  expect(posts).toHaveLength(2);
+  expect(posts[0][1]).toEqual(posts[1][1]);
+  expect(posts[0][1]).toMatchObject({ association: SECOND.uuid, name: NAME, residentialAddress: ADDRESS });
 });
