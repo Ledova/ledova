@@ -14,13 +14,13 @@ import { CustomModal, useDialogStyles } from '../../components/modal';
 import { CertificateCopy } from './CertificateCopy';
 
 type Read = ReturnType<typeof useMemberRecords>;
-export type Entry = Read['entries'][number];
+type Entry = Read['entries'][number];
 
 export type Certificate = 'ready' | 'requested' | 'request' | 'other' | null;
 
 const issueOrTransfer = (entry: Entry) => ['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase());
 
-export const receiving = (entry: Entry) => issueOrTransfer(entry) && BigInt(entry.delta) > 0n;
+const receiving = (entry: Entry) => issueOrTransfer(entry) && BigInt(entry.delta) > 0n;
 
 export const entryKind = (entry: Entry) =>
   REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind.toLowerCase() as RegisterEntryKind] ?? 'Register change';
@@ -29,6 +29,9 @@ export const entryDate = (entry: Entry) =>
   issueOrTransfer(entry) ? formatDate(entry.companyEventOn, 'Not recorded') : formatDate(entry.effectiveOn);
 
 const ready = (request: MemberCertificateRequest) => request.status === 'fulfilled' && !!request.fulfilment;
+
+export const currentRequest = (requests: MemberCertificateRequest[]) =>
+  requests.find((request) => request.status === 'requested' || ready(request)) ?? requests[0];
 
 export function certificateOf(entry: Entry | undefined, latest: MemberCertificateRequest | undefined): Certificate {
   if (latest && ready(latest)) return 'ready';
@@ -42,14 +45,14 @@ export function CertificateSheet({
   className,
   entry,
   request,
-  previous = [],
+  others = [],
   onClose,
 }: {
   read: Read;
   className: string;
   entry?: Entry;
   request?: MemberCertificateRequest;
-  previous?: MemberCertificateRequest[];
+  others?: MemberCertificateRequest[];
   onClose: () => void;
 }) {
   const styles = useDialogStyles();
@@ -124,10 +127,10 @@ export function CertificateSheet({
                   : 'No certificate is available for this change.'}
         </Text>
       </View>
-      {!confirming && previous.length > 0 && (
+      {!confirming && others.length > 0 && (
         <View style={styles.group}>
-          <Text style={styles.heading}>Previous requests</Text>
-          {previous.map((item) => (
+          <Text style={styles.heading}>Other requests</Text>
+          {others.map((item) => (
             <View key={item.uuid} style={styles.group}>
               <Text style={styles.muted}>
                 {MEMBER_CERTIFICATE_STATUS_LABELS[item.status]} · requested {formatDate(item.createdAt)}

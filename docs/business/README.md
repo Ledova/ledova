@@ -265,7 +265,7 @@ and charts rather than showing zero. Detailed history and every action are on th
 
 The personal Dashboard (Holdings on mobile) shows the person's own register records, with no
 wallet needed and never company totals or other shareholders. Their certificates and certificate
-requests are in personal Documents on the web and in each share class's history on mobile
+requests are in personal Documents on the web and on each share class's page on mobile
 ([member records](member-records.md)).
 
 The mobile app has three tabs and a notifications bell, and opens on Holdings. **Holdings** lists

@@ -12,7 +12,14 @@ import { Page } from '../../components/Page';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
-import { CertificateSheet, certificateOf, entryDate, entryKind, type Certificate } from './CertificateSheet';
+import {
+  CertificateSheet,
+  certificateOf,
+  currentRequest,
+  entryDate,
+  entryKind,
+  type Certificate,
+} from './CertificateSheet';
 import { shareQuantity } from './holdings';
 import { MemberNotice, RecordGate, useCompanyRecord, useMemberRefresh } from './MemberRecordsProvider';
 
@@ -64,24 +71,27 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
   const styles = useCompanyStyles();
   const look = useClassStyles();
   const { token } = route.params;
-  const state = useCompanyRecord(route.params.record);
-  const { read, record, selected, selectToken } = state;
+  const { read, record, selected, focused } = useCompanyRecord(route.params.record);
+  const { selectToken, selectedToken } = read;
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const refresh = useMemberRefresh(read, 'class-scroll-refresh');
   const item = (selected ?? record)?.classes.find((row) => row.uuid === token);
   useEffect(() => {
-    if (selected && !read.busy && !read.retry) selectToken(token);
-  }, [selected, read.busy, read.retry, selectToken, token]);
-  const showing = !!selected && state.token === token;
+    if (focused && selected && !read.busy && !read.retry && selectedToken !== token) selectToken(token);
+  }, [focused, selected, read.busy, read.retry, selectedToken, selectToken, token]);
+  const showing = !!selected && selectedToken === token;
   const entries = showing ? [...read.entries].sort((a, b) => b.sequence - a.sequence) : [];
   const requests = [...(read.requests?.certificates ?? [])]
     .filter((request) => request.token === token)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const entryIds = new Set(entries.map((entry) => entry.uuid));
-  const others = showing && read.entriesReady ? requests.filter((request) => !entryIds.has(request.entry)) : [];
+  const unlisted = showing && read.entriesReady ? requests.filter((request) => !entryIds.has(request.entry)) : [];
   const sheetEntry = sheet?.entry ? entries.find((entry) => entry.uuid === sheet.entry) : undefined;
-  const sheetRequests = sheetEntry ? requests.filter((request) => request.entry === sheetEntry.uuid) : [];
-  const sheetRequest = sheetEntry ? sheetRequests[0] : requests.find((request) => request.uuid === sheet?.request);
+  const forEntry = (uuid: string) => requests.filter((request) => request.entry === uuid);
+  const sheetRequests = sheetEntry ? forEntry(sheetEntry.uuid) : [];
+  const sheetRequest = sheetEntry
+    ? currentRequest(sheetRequests)
+    : requests.find((request) => request.uuid === sheet?.request);
   return (
     <Page
       testID="class-scroll"
@@ -102,14 +112,18 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
               </Text>
             </View>
             <Section title="History">
-              {!showing || (!read.entriesReady && !read.error) ? (
-                <Text style={styles.muted}>Loading history…</Text>
+              {!showing && read.retry ? (
+                <Text style={styles.muted}>Retry or finish your pending request to see this history.</Text>
+              ) : !showing || !read.entriesReady ? (
+                read.readFailed ? null : (
+                  <Text style={styles.muted}>Loading history…</Text>
+                )
               ) : entries.length === 0 ? (
                 <Text style={styles.muted}>No changes recorded for this class.</Text>
               ) : (
                 <Rows>
                   {entries.map((entry) => {
-                    const latest = requests.find((request) => request.entry === entry.uuid);
+                    const latest = currentRequest(forEntry(entry.uuid));
                     const certificate = certificateOf(entry, latest);
                     const content = (
                       <>
@@ -144,10 +158,10 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
                 </Rows>
               )}
             </Section>
-            {others.length > 0 && (
+            {unlisted.length > 0 && (
               <Section title="Other certificate requests">
                 <Rows>
-                  {others.map((request) => (
+                  {unlisted.map((request) => (
                     <Pressable
                       key={request.uuid}
                       accessibilityRole="button"
@@ -170,7 +184,7 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
                 className={item.name}
                 entry={sheetEntry}
                 request={sheetRequest}
-                previous={sheetRequests.slice(1)}
+                others={sheetRequests.filter((request) => request !== sheetRequest)}
                 onClose={() => setSheet(null)}
               />
             )}

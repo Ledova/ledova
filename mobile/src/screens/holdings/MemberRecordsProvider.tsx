@@ -2,7 +2,6 @@ import {
   createContext,
   useContext,
   useEffect,
-  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -10,6 +9,7 @@ import {
 } from 'react';
 import * as Crypto from 'expo-crypto';
 import { RefreshControl, Text } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { useMemberRecords } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { useAppTheme } from '../../contexts';
@@ -31,8 +31,6 @@ interface MemberRecords {
   draft: MemberDraft;
   setDraft: Dispatch<SetStateAction<MemberDraft>>;
   select: (uuid: string) => void;
-  token: string;
-  selectToken: (uuid: string) => void;
 }
 
 const MemberRecordsContext = createContext<MemberRecords | null>(null);
@@ -40,13 +38,7 @@ const MemberRecordsContext = createContext<MemberRecords | null>(null);
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
   const [draft, setDraft] = useState(EMPTY_DRAFT);
-  const [token, setToken] = useState('');
-  const selected = useRef('');
-  useEffect(() => {
-    selected.current = '';
-    setDraft(EMPTY_DRAFT);
-    setToken('');
-  }, [read.scopeOwner]);
+  useEffect(() => setDraft(EMPTY_DRAFT), [read.scopeOwner]);
   return (
     <MemberRecordsContext.Provider
       value={{
@@ -54,17 +46,9 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
         draft,
         setDraft,
         select: (uuid) => {
-          if (read.busy || read.retry || selected.current === uuid) return;
-          selected.current = uuid;
+          if (read.busy || read.retry || read.selectedUuid === uuid) return;
           setDraft(EMPTY_DRAFT);
-          setToken('');
           read.select(uuid);
-        },
-        token,
-        selectToken: (uuid) => {
-          if (read.busy || read.retry || token === uuid) return;
-          setToken(uuid);
-          read.selectToken(uuid);
         },
       }}
     >
@@ -82,11 +66,14 @@ export function useMemberRecordsState() {
 export function useCompanyRecord(uuid: string) {
   const state = useMemberRecordsState();
   const { read, select } = state;
+  const focused = useIsFocused();
   useEffect(() => {
-    if (read.owner && read.records.some((row) => row.uuid === uuid) && !read.busy && !read.retry) select(uuid);
-  }, [read.owner, read.records, read.busy, read.retry, select, uuid]);
+    if (focused && read.owner && read.records.some((row) => row.uuid === uuid) && !read.busy && !read.retry)
+      select(uuid);
+  }, [focused, read.owner, read.records, read.busy, read.retry, select, uuid]);
   return {
     ...state,
+    focused,
     record: read.records.find((row) => row.uuid === uuid),
     selected: read.record?.uuid === uuid ? read.record : null,
   };

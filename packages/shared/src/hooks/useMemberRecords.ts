@@ -356,6 +356,8 @@ export function useMemberRecords(
   return {
     scopeOwner: owner,
     owner: available ? owner : null,
+    selectedUuid: selected,
+    selectedToken: token,
     listReady,
     records: listReady ? list.data : [],
     record: ready ? detail.data : null,

@@ -26,6 +26,7 @@ const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => ({ navigate: mockNavigate, setOptions: jest.fn() }),
+  useIsFocused: () => true,
 }));
 jest.mock('expo-crypto', () => ({
   randomUUID: jest.fn(),
@@ -63,12 +64,25 @@ const PAST_RECORD = {
   ],
   awards: [],
 };
-const WITHDRAWN_REPLACEMENT = {
+const OPEN_REQUEST = {
   ...FULFILLED_CERTIFICATE,
   uuid: '17171717-1717-4717-8717-171717171717',
-  status: 'withdrawn',
+  status: 'requested',
   fulfilment: null,
   createdAt: '2026-10-02T00:00:00Z',
+};
+const WITHDRAWN_REQUEST = {
+  ...OPEN_REQUEST,
+  uuid: '18181818-1818-4818-8818-181818181818',
+  status: 'withdrawn',
+  createdAt: '2026-10-03T00:00:00Z',
+};
+const SECOND_ENTRY = {
+  ...MEMBER_ENTRY,
+  uuid: '19191919-1919-4919-8919-191919191919',
+  sequence: 2,
+  kind: 'TRANSFER',
+  delta: '5',
 };
 
 it('associates a member by invitation code, opens their company, award, details and share history from Holdings, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
@@ -83,7 +97,7 @@ it('associates a member by invitation code, opens their company, award, details 
   let associated = false;
   let refused = false;
   let particulars: Record<string, unknown>[] = [];
-  let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE, WITHDRAWN_REPLACEMENT];
+  let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE, OPEN_REQUEST, WITHDRAWN_REQUEST];
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
@@ -93,7 +107,7 @@ it('associates a member by invitation code, opens their company, award, details 
     }
     if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: ownRecord };
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
-      return { data: { entries: [{ ...MEMBER_ENTRY, companyEventOn: null }] } };
+      return { data: { entries: [{ ...MEMBER_ENTRY, companyEventOn: null }, SECOND_ENTRY] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
     if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid))
@@ -225,7 +239,7 @@ it('associates a member by invitation code, opens their company, award, details 
   ownRecord = MEMBER_RECORD;
   await view.rerender(classPage);
   await fireEvent.press(
-    await screen.findByRole('button', { name: /^Entry 1: Issue \+10, Not recorded, certificate Request$/ }),
+    await screen.findByRole('button', { name: /^Entry 1: Issue \+10, Not recorded, certificate Requested$/ }),
   );
   await fireEvent.press(screen.getByRole('button', { name: `Share certificate PDF ${FULFILLED_CERTIFICATE.uuid}` }));
   await waitFor(() =>
@@ -259,7 +273,7 @@ it('associates a member by invitation code, opens their company, award, details 
   expect((await screen.findByLabelText('Requested name')).props.value).toBe('Requested Member Name');
   await view.rerender(classPage);
   await act(async () => screen.getByTestId('class-scroll').props.refreshControl.props.onRefresh());
-  await fireEvent.press(await screen.findByRole('button', { name: /^Entry 1:/ }));
+  await fireEvent.press(await screen.findByRole('button', { name: /^Entry 2:/ }));
   await fireEvent.press(screen.getByRole('button', { name: 'Request certificate' }));
   await waitFor(() => expect(typeof release).toBe('function'));
   refused = true;
@@ -269,10 +283,10 @@ it('associates a member by invitation code, opens their company, award, details 
       exact: true,
     });
   });
-  await waitFor(() => expect(screen.queryByRole('button', { name: /^Entry 1:/ })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('button', { name: /^Entry 2:/ })).toBeNull());
   expect(screen.queryByRole('button', { name: 'Request certificate' })).toBeNull();
   expect(screen.queryByText('History')).toBeNull();
   await act(async () => release!());
-  expect(screen.queryByRole('button', { name: /^Entry 1:/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Entry 2:/ })).toBeNull();
   expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS)).toHaveLength(1);
 });
