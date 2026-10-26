@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   failureStatus,
@@ -77,6 +77,7 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
   const classes = useRegisterClasses(owner, guard);
   const [chosen, setChosen] = useState('');
   const [unconfirmed, setUnconfirmed] = useState<string | null>(null);
+  const handledDenial = useRef<unknown>(null);
   const list = useListParams(['class']);
   const listed = classes.data ?? [];
   const companies = [...new Map(listed.map((item) => [item.companyUuid, item.companyName])).entries()].map(
@@ -124,14 +125,15 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
     retry: false,
   });
   const denied = [401, 403, 404].includes(failureStatus(holders.error) ?? 0);
+  if (denied && company && !held) setUnconfirmed(company.uuid);
   useEffect(() => {
     if (failureStatus(holders.error) === 409) void overview.refetch();
-    if (denied && company && !held) {
-      setUnconfirmed(company.uuid);
+    if (denied && company && handledDenial.current !== holders.error) {
+      handledDenial.current = holders.error;
       void classes.refetch();
       void overview.refetch();
     }
-  }, [holders.error, denied, company?.uuid, held]);
+  }, [holders.error, denied, company?.uuid]);
   const select = (uuid: string | null) => {
     list.clear();
     list.setFilter('class', uuid ?? '');
