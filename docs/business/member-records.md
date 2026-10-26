@@ -34,14 +34,20 @@ administration or any register capability (read, prepare, approve or apply). Own
 shareholding, member access and staff permissions give no output authority, except that the
 company owner may download the register CSV.
 
+On web, company **Documents** opens **Certificates**, with **Ledger exports** and **Company pack**
+alongside it in the sidebar. Certificates and Ledger exports use one selected share class; the
+**Share class** selector appears only when there is more than one. Company pack covers the company.
+Supporting attachments stay with the person, share class or company Settings, and member requests
+stay under Shareholders. Personal Documents and mobile keep their existing layouts.
+
 | Output               | Who prepares it                            | Where                                                   | What Ledova keeps                                        |
 | -------------------- | ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
-| Register CSV         | The company owner or a register reader     | **Documents**: **Download CSV**                         | Who took it, the class, the entry it runs to, row counts |
-| Inspection copy      | A register reader                          | **Documents**: **Inspection copy**                      | SHA-256, instruction, request date, recipient, late flag |
-| Certificate          | A register reader                          | **Documents**                                          | SHA-256 and instruction                                  |
+| Register CSV         | The company owner or a register reader     | **Documents** → **Ledger exports**: **Download CSV**     | Who took it, the class, the entry it runs to, row counts |
+| Inspection copy      | A register reader                          | **Documents** → **Ledger exports**: **Inspection copy**  | SHA-256, instruction, request date, recipient, late flag |
+| Certificate          | A register reader                          | **Documents** → **Certificates**                       | SHA-256 and instruction                                  |
 | Member's certificate | A register reader, on the member's request | **Shareholders** → **Member requests**                   | The PDF itself, as a certificate record                  |
 | Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**                             | SHA-256, period and instruction                          |
-| Core company pack    | A company administrator                    | **Documents**: **Company pack**                         | Manifest SHA-256, instruction, recipient, per class      |
+| Core company pack    | A company administrator                    | **Documents** → **Company pack**                        | Manifest SHA-256, instruction, recipient, per class      |
 | Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**                                | As for a core pack                                       |
 
 Ledova keeps a fingerprint, not the file, except for a member's certificate. Output records cannot
@@ -179,8 +185,9 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
-2. Open **Documents**, select the company and find the share class. Choose **Prepare inspection copy**
-   and enter the reference, recipient and request date.
+2. On web, open **Documents** → **Ledger exports**, select the company and share class, then
+   choose **Prepare inspection copy**. On mobile, find the same action under the share class in
+   **Documents**. Enter the reference, recipient and request date.
 3. Choose **Preview inspection copy**, check the request and register sequence, then **Confirm and
    download inspection copy** (web) or **Confirm and share inspection copy** (mobile).
 
@@ -217,8 +224,8 @@ register, or a correction has since reversed the entry (the refusal names the co
 
 ### Preparing a certificate
 
-1. On web, in **Documents**, find the share class and choose the issue or transfer under
-   **Certificates**, identified by its date and share movements, then **Prepare unsigned certificate**.
+1. On web, open **Documents** → **Certificates**, select the share class and choose the issue or
+   transfer, identified by its date and share movements, then **Prepare unsigned certificate**.
    On mobile, **Documents** lists the same issues and transfers under each class's **Certificates**.
 2. On web, choose **Preview**. Check the share class, share movements and PDF page count;
    **Record details** holds the entry and register sequence. Choose **Download PDF** to generate
@@ -404,8 +411,8 @@ without which it cannot be checked.
 
 ### Producing a core pack
 
-A company administrator produces the pack in **Documents**, **Company pack**. On web, choose
-**Prepare company pack** to open the form; enter the company's written instruction and the
+A company administrator produces the pack in **Documents** → **Company pack**, at company scope.
+On web, choose **Prepare company pack** to open the form; enter the company's written instruction and the
 recipient, then choose **Prepare and download company pack**. Mobile keeps **Prepare and share
 company pack**. The appointment is checked again before the pack is recorded.
 

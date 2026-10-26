@@ -9,7 +9,7 @@ import {
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LoadError, Loading, Status } from '@components/Ledger';
+import { LoadError, Loading, Section, Status } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { RegisterChanges } from './shared/RegisterChanges';
@@ -69,10 +69,7 @@ export function ClassCertificates({
       throw new Error('Refresh current company register authority before preparing a certificate.');
   };
   return (
-    <div hidden={!visible} className="flex flex-col gap-3">
-      <h3 hidden={!!activeTask} className="text-sm font-medium text-text-primary">
-        Certificates
-      </h3>
+    <Section title="Share changes">
       {appointments.isError && (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
           Your appointments could not be loaded.
@@ -132,6 +129,6 @@ export function ClassCertificates({
           onLoad={history.loadMore}
         />
       </div>
-    </div>
+    </Section>
   );
 }
