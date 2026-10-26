@@ -263,13 +263,13 @@ register makes the company totals incomplete, and a failed or inconsistent read 
 and charts rather than showing zero. Detailed history and every action are on the
 [Ledger page](register.md#the-register-page).
 
-The personal Dashboard (My shares on mobile) shows the person's own register records, with no
+The personal Dashboard (Holdings on mobile) shows the person's own register records, with no
 wallet needed and never company totals or other shareholders. Their certificates and certificate
-requests are in personal Documents on the web and in My shares on mobile
+requests are in personal Documents on the web and on each company's page on mobile
 ([member records](member-records.md)).
 
-The mobile app has three tabs and a notifications bell, and opens on Holdings. **Holdings** opens
-My shares, **Documents** opens [Notices](publications.md#the-notices-page) and **Account** holds
+The mobile app has three tabs and a notifications bell, and opens on Holdings. **Holdings** lists
+the person's holdings by company, each opening the company's page, **Documents** opens [Notices](publications.md#the-notices-page) and **Account** holds
 Profile and the app's settings ([Profile and Settings](participants.md#profile-and-settings)).
 Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).
 

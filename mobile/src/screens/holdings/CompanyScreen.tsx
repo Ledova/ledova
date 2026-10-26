@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as Crypto from 'expo-crypto';
-import { Text, View } from 'react-native';
+import { RefreshControl, Text, View } from 'react-native';
+import type { RouteProp } from '@react-navigation/native';
 import {
-  DESTINATIONS,
   REGISTER_AWARD_COPY as AWARD_COPY,
   formatShareCount,
   formatDateTime,
@@ -12,91 +12,57 @@ import {
 } from '@ledova/shared';
 import { Action, Choice, Section, Row, Rows } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { useAppTheme } from '../../contexts';
+import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { Field } from '../../components/register/RegisterFields';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { RegisterCopy } from '../../components/register/RegisterCopy';
+import { useMemberRecordsState } from './MemberRecordsProvider';
 
-export function MemberRecordsScreen() {
-  const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
-  const selectionOwner = useRef<ReturnType<typeof useMemberRecords>['owner']>(null);
+export function CompanyScreen({ route }: { route: RouteProp<SignedInStackParamList, 'Company'> }) {
+  const uuid = route.params.record;
+  const { read, select } = useMemberRecordsState();
   useEffect(() => {
-    if (read.owner && selectionOwner.current !== read.owner && read.records.length === 1 && !read.busy && !read.retry) {
-      selectionOwner.current = read.owner;
-      read.select(read.records[0].uuid);
-    }
-  }, [read.owner, read.records, read.busy, read.retry, read.select]);
+    if (read.owner && read.records.some((row) => row.uuid === uuid) && !read.busy && !read.retry) select(uuid);
+  }, [read.owner, read.records, read.busy, read.retry, select, uuid]);
   return (
-    <MemberRecords
+    <Company
       key={`${read.owner?.userUuid}/${read.owner?.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}`}
       read={read}
-      select={(uuid) => {
-        selectionOwner.current = read.owner;
-        read.select(uuid);
-      }}
+      uuid={uuid}
     />
   );
 }
 
-function MemberRecords({
-  read,
-  select,
-}: {
-  read: ReturnType<typeof useMemberRecords>;
-  select: (uuid: string) => void;
-}) {
+function Company({ read, uuid }: { read: ReturnType<typeof useMemberRecords>; uuid: string }) {
+  const theme = useAppTheme();
   const styles = useCompanyStyles();
-  const [code, setCode] = useState('');
-  const [accepted, setAccepted] = useState(false);
-  const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
-  const [confirmed, setConfirmed] = useState(false);
+  const {
+    draft: { name, address, confirmed },
+    setDraft,
+  } = useMemberRecordsState();
   const [details, setDetails] = useState(false);
   const [history, setHistory] = useState(false);
   const [requests, setRequests] = useState(false);
-  const [invitationOpen, setInvitationOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [awardDetails, setAwardDetails] = useState<Record<string, boolean>>({});
   const held = read.busy || !!read.retry;
-  const invitation = (
-    <View style={styles.group}>
-      <Text style={styles.muted}>
-        Use the one-time code privately supplied by the company for your confirmed email. It grants access to your
-        member record, not company administration.
-      </Text>
-      <Field
-        label="Member invitation code"
-        value={code}
-        editable={!held}
-        onChange={(value) => {
-          setCode(value);
-          setAccepted(false);
-        }}
-      />
-      <Choice
-        accessibilityRole="checkbox"
-        selected={accepted}
-        disabled={held}
-        label="Accept access using my signed-in account"
-        onPress={() => setAccepted((value) => !value)}
-      />
-      <Action
-        label="Accept member invitation"
-        disabled={held || !accepted || !/^[A-Za-z0-9_-]{43}$/.test(code)}
-        onPress={() => void read.accept(code)}
-      />
-    </View>
-  );
+  const record = read.records.find((row) => row.uuid === uuid);
+  const selected = read.record?.uuid === uuid ? read.record : null;
   return (
     <Page
-      title={DESTINATIONS.home.title}
-      lede="Your company-recorded shares and employee awards. No wallet is needed."
-      actions={
-        <Action
-          label="Refresh member records"
-          disabled={read.busy || refreshing}
-          onPress={() => {
+      testID="company-scroll"
+      title={record?.company.name ?? 'Company'}
+      lede={record ? `ACN ${record.company.acn}` : undefined}
+      refreshControl={
+        <RefreshControl
+          testID="company-refresh"
+          refreshing={refreshing}
+          tintColor={theme.colors.interactive.active}
+          onRefresh={() => {
+            if (read.busy || refreshing) return;
             setRefreshing(true);
             void read.refresh().finally(() => setRefreshing(false));
           }}
@@ -113,104 +79,92 @@ function MemberRecords({
       )}
       {!read.owner ? (
         <Text style={styles.muted}>Check your signed-in account before opening member records.</Text>
-      ) : read.loading || refreshing || (read.busy && read.records.length === 0) ? (
+      ) : read.loading || (!read.listReady && !read.error) ? (
         <Text style={styles.muted}>Loading member records…</Text>
+      ) : !record ? (
+        !read.error && <Text style={styles.muted}>This company no longer records you as a member.</Text>
       ) : (
         <>
-          {read.records.map((record) => (
-            <Section key={record.uuid} title={record.company.name}>
-              {record.classes.length === 0 ? (
-                <Text style={styles.muted}>No issued shares recorded.</Text>
-              ) : (
-                record.classes.map((item) => (
-                  <View key={item.uuid} style={styles.entry}>
+          <Section title="Your shares">
+            {record.classes.length === 0 ? (
+              <Text style={styles.muted}>No issued shares recorded.</Text>
+            ) : (
+              record.classes.map((item) => (
+                <View key={item.uuid} style={styles.entry}>
+                  <Text style={styles.text}>
+                    {item.name} · {formatShareCount(item.shares)} issued shares
+                  </Text>
+                  {selected && (
+                    <Action
+                      label={`Read own entries for ${item.name}`}
+                      disabled={held}
+                      onPress={() => {
+                        read.selectToken(item.uuid);
+                        setHistory(true);
+                      }}
+                    />
+                  )}
+                </View>
+              ))
+            )}
+            {record.awards.length > 0 && (
+              <>
+                <Text accessibilityRole="header" style={styles.text}>
+                  Employee awards
+                </Text>
+                <Text style={styles.muted}>Promised and recorded vested shares are separate from issued shares.</Text>
+                {record.awards.map((award) => (
+                  <View key={award.uuid} style={styles.entry}>
                     <Text style={styles.text}>
-                      {item.name} · {formatShareCount(item.shares)} issued shares
+                      {formatShareCount(award.shares)} awarded · {formatShareCount(award.vestedShares)} vested ·{' '}
+                      {formatShareCount(award.issuedShares)} issued · {formatShareCount(award.availableShares)}{' '}
+                      available
                     </Text>
-                    {read.record?.uuid === record.uuid && (
-                      <Action
-                        label={`Read own entries for ${item.name}`}
-                        disabled={held}
-                        onPress={() => {
-                          read.selectToken(item.uuid);
-                          setHistory(true);
-                        }}
-                      />
+                    <Action
+                      label="Award terms and recorded vesting"
+                      accessibilityLabel={`Award terms and recorded vesting ${award.uuid}`}
+                      onPress={() => setAwardDetails((value) => ({ ...value, [award.uuid]: !value[award.uuid] }))}
+                    />
+                    {awardDetails[award.uuid] && (
+                      <View style={styles.group}>
+                        <Text style={styles.muted}>
+                          {award.termsOn} · {award.terms}
+                        </Text>
+                        <Text style={styles.muted}>{award.schedule}</Text>
+                        <Rows>
+                          <Row label={AWARD_COPY.ENDED_UNVESTED}>{award.endedUnvestedShares}</Row>
+                          <Row label={AWARD_COPY.ENDED_VESTED}>{award.endedVestedShares}</Row>
+                          <Row label={AWARD_COPY.UNVESTED_REMAINING}>{award.unvestedRemainingShares}</Row>
+                          <Row label={AWARD_COPY.REMAINING_UNISSUED}>{award.remainingUnissuedShares}</Row>
+                        </Rows>
+                        {award.vestings.map((event) => (
+                          <Text key={event.uuid} style={styles.muted}>
+                            {event.vestedOn} · {formatShareCount(event.shares)} recorded vested
+                          </Text>
+                        ))}
+                        {award.ends.map((event) => (
+                          <Text key={event.uuid} style={styles.muted}>
+                            {event.companyEventOn} · {formatShareCount(event.unvestedShares)} unvested and{' '}
+                            {formatShareCount(event.vestedShares)} vested unissued rights ended · {event.reason}
+                          </Text>
+                        ))}
+                        {award.vestingReversals.map((event) => (
+                          <Text key={event.uuid} style={styles.muted}>
+                            {event.companyEventOn} · {formatShareCount(event.reversedShares)} vesting reversed ·
+                            original {event.vesting} · {event.reason}
+                          </Text>
+                        ))}
+                      </View>
                     )}
                   </View>
-                ))
-              )}
-              {record.awards.length > 0 && (
-                <>
-                  <Text accessibilityRole="header" style={styles.text}>
-                    Employee awards
-                  </Text>
-                  <Text style={styles.muted}>Promised and recorded vested shares are separate from issued shares.</Text>
-                  {record.awards.map((award) => (
-                    <View key={award.uuid} style={styles.entry}>
-                      <Text style={styles.text}>
-                        {formatShareCount(award.shares)} awarded · {formatShareCount(award.vestedShares)} vested ·{' '}
-                        {formatShareCount(award.issuedShares)} issued · {formatShareCount(award.availableShares)}{' '}
-                        available
-                      </Text>
-                      <Action
-                        label="Award terms and recorded vesting"
-                        accessibilityLabel={`Award terms and recorded vesting ${award.uuid}`}
-                        onPress={() => setAwardDetails((value) => ({ ...value, [award.uuid]: !value[award.uuid] }))}
-                      />
-                      {awardDetails[award.uuid] && (
-                        <View style={styles.group}>
-                          <Text style={styles.muted}>
-                            {award.termsOn} · {award.terms}
-                          </Text>
-                          <Text style={styles.muted}>{award.schedule}</Text>
-                          <Rows>
-                            <Row label={AWARD_COPY.ENDED_UNVESTED}>{award.endedUnvestedShares}</Row>
-                            <Row label={AWARD_COPY.ENDED_VESTED}>{award.endedVestedShares}</Row>
-                            <Row label={AWARD_COPY.UNVESTED_REMAINING}>{award.unvestedRemainingShares}</Row>
-                            <Row label={AWARD_COPY.REMAINING_UNISSUED}>{award.remainingUnissuedShares}</Row>
-                          </Rows>
-                          {award.vestings.map((event) => (
-                            <Text key={event.uuid} style={styles.muted}>
-                              {event.vestedOn} · {formatShareCount(event.shares)} recorded vested
-                            </Text>
-                          ))}
-                          {award.ends.map((event) => (
-                            <Text key={event.uuid} style={styles.muted}>
-                              {event.companyEventOn} · {formatShareCount(event.unvestedShares)} unvested and{' '}
-                              {formatShareCount(event.vestedShares)} vested unissued rights ended · {event.reason}
-                            </Text>
-                          ))}
-                          {award.vestingReversals.map((event) => (
-                            <Text key={event.uuid} style={styles.muted}>
-                              {event.companyEventOn} · {formatShareCount(event.reversedShares)} vesting reversed ·
-                              original {event.vesting} · {event.reason}
-                            </Text>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </>
-              )}
-              {read.record?.uuid !== record.uuid && (
-                <Action
-                  label={`Open ${record.company.name} member record`}
-                  disabled={held}
-                  onPress={() => {
-                    select(record.uuid);
-                    setName('');
-                    setAddress('');
-                    setConfirmed(false);
-                    setDetails(false);
-                    setHistory(false);
-                    setRequests(false);
-                  }}
-                />
-              )}
-            </Section>
-          ))}
-          {read.record && (
+                ))}
+              </>
+            )}
+          </Section>
+          {!selected && read.retry && (
+            <Text style={styles.muted}>Retry or finish your pending request before opening this company.</Text>
+          )}
+          {selected && (
             <>
               {read.requests?.certificates.some((request) => request.status === 'fulfilled' && request.fulfilment) && (
                 <Section title="Documents">
@@ -232,13 +186,13 @@ function MemberRecords({
                 />
                 {details && (
                   <View style={styles.group}>
-                    <Text style={styles.text}>{read.record.name}</Text>
-                    <Text style={styles.text}>{read.record.residentialAddress}</Text>
+                    <Text style={styles.text}>{selected.name}</Text>
+                    <Text style={styles.text}>{selected.residentialAddress}</Text>
                     <Text style={styles.muted}>
                       Particulars provided by the company; not verified by Ledova. Profile edits do not change this
                       register.
                     </Text>
-                    {read.record.classes.map((item) => (
+                    {selected.classes.map((item) => (
                       <Text key={item.uuid} style={styles.muted}>
                         {item.name} · Entered {item.enteredOn ?? 'not recorded'}
                         {item.ceasedOn ? ` · Ceased ${item.ceasedOn}` : ''} · Amount paid{' '}
@@ -256,27 +210,21 @@ function MemberRecords({
                       label="Requested name"
                       value={name}
                       editable={!held}
-                      onChange={(value) => {
-                        setName(value);
-                        setConfirmed(false);
-                      }}
+                      onChange={(value) => setDraft((draft) => ({ ...draft, name: value, confirmed: false }))}
                     />
                     <Field
                       label="Requested residential address"
                       value={address}
                       editable={!held}
                       multiline
-                      onChange={(value) => {
-                        setAddress(value);
-                        setConfirmed(false);
-                      }}
+                      onChange={(value) => setDraft((draft) => ({ ...draft, address: value, confirmed: false }))}
                     />
                     <Choice
                       accessibilityRole="checkbox"
                       selected={confirmed}
                       disabled={held}
                       label="Share these particulars with this company for review"
-                      onPress={() => setConfirmed((value) => !value)}
+                      onPress={() => setDraft((draft) => ({ ...draft, confirmed: !draft.confirmed }))}
                     />
                     <Action
                       label="Send particulars request"
@@ -345,23 +293,6 @@ function MemberRecords({
                 )}
               </Section>
             </>
-          )}
-          {!read.error && read.records.length === 0 ? (
-            <Section title="Get access to your shares">
-              <Text style={styles.muted}>
-                Accept your company&apos;s invitation to see your shares and employee awards here.
-              </Text>
-              {invitation}
-            </Section>
-          ) : (
-            <Section title="Member invitation">
-              <Action
-                label={invitationOpen ? 'Hide member invitation' : 'Accept another member invitation'}
-                disabled={held}
-                onPress={() => setInvitationOpen((value) => !value)}
-              />
-              {invitationOpen && invitation}
-            </Section>
           )}
         </>
       )}
