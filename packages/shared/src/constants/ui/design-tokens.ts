@@ -7,6 +7,7 @@ function buildColors(p: {
   error: { light: string; default: string; dark: string; subtle: string; backgroundSubtle: string };
   warning: { light: string; default: string };
   info: { light: string; default: string };
+  chart: Record<1 | 2 | 3 | 4 | 5 | 6, string>;
 }) {
   const colors = {
     surface: p.surface,
@@ -17,6 +18,7 @@ function buildColors(p: {
     error: p.error,
     warning: p.warning,
     info: p.info,
+    chart: p.chart,
     utility: { white: '#ffffff', black: '#000000', transparent: 'transparent' },
 
     status: {
@@ -85,6 +87,7 @@ const PAPER_THEME = buildColors({
   },
   warning: { light: '#92400e', default: '#92400e' },
   info: { light: '#0369a1', default: '#0369a1' },
+  chart: { 1: '#286b55', 2: '#4e6b91', 3: '#8b632b', 4: '#74608f', 5: '#99523f', 6: '#466f6c' },
 });
 
 const DARK_THEME = buildColors({
@@ -96,6 +99,7 @@ const DARK_THEME = buildColors({
   error: { light: '#f0978b', default: '#bf4a3d', dark: '#973a31', subtle: '#3a1d19', backgroundSubtle: '#e0574a24' },
   warning: { light: '#e8a85e', default: '#9c600f' },
   info: { light: '#8fbbdb', default: '#3f7cab' },
+  chart: { 1: '#78baa1', 2: '#8ca9cc', 3: '#cba66a', 4: '#b8a1ce', 5: '#d39782', 6: '#85b3b1' },
 });
 
 export const THEMES = { paper: PAPER_THEME, dark: DARK_THEME } as const;
