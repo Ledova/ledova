@@ -304,6 +304,13 @@ as a Headless UI `Dialog`: the button reports `aria-expanded`, focus stays insid
 is open, and Escape or a choice closes it. The first Tab on a signed-in page reaches "Skip to main
 content", which moves focus to the page's heading.
 
+The workspace selector belongs below the sidebar logo and in the phone drawer, always showing
+Company or My shares. Keep company administration out of the personal menu and personal holdings
+out of the company menu. One person keeps one account, with separate company authority and member
+links; the selector grants neither. Remember the valid workspace per account, honour direct links
+and invitations, and protect edited forms before switching. Keep current context stable during an
+access reread and recheck it when confirming a switch.
+
 The sidebar owns navigation between sections. A related group has one level of children: its label
 opens a meaningful overview or the default child, and a separate caret expands the children, without
 an extra Overview page or item.
@@ -312,9 +319,10 @@ Shareholders uses the same web pattern for **ESS**, **Member access** and **Memb
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
 **Ledger exports** and **Company pack**, with its label opening Certificates. Settings uses the same
 one-level group for **Profile** (the default), **Documents**, **Team**, **Activation** and
-**Company-recorded details**, without an extra overview page. Profile brings personal, company and
-account settings into one workspace with clearly named sections and their existing editors. Company
-sections require current company access; personal edits never change company-recorded particulars.
+**Company-recorded details**, without an extra overview page. Company shows Profile, Documents,
+Team and Activation; My shares shows Profile and linked Company-recorded details. Profile keeps
+personal information and Account shared, with Company details only in Company and under current
+company access. Personal edits never change company-recorded particulars.
 Use one compact Account card for relevant identity status, password, appearance and notifications;
 keep export and deletion under Manage account, with their existing confirmations. Payslip evidence
 belongs alongside investor classification claims, not on Profile. Documents holds company source files, distinct from the top-level Documents group for generated outputs. Show company
@@ -336,7 +344,8 @@ Documents view. The web exposes only Issue shares, Transfer shares and Correctio
 replacing an incoming `#history` with `#corrections` while retaining company/class context. The web sidebar,
 page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. The company
-dashboard is also Dashboard, so the company workspace lists Home as Your shares. The sidebar shows
+dashboard is also Dashboard; each workspace shows its own Dashboard, without a Your shares link
+in the company menu. The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
