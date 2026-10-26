@@ -72,8 +72,8 @@ Metro resolutions from `App.tsx` and from a shared hook disagree. Run
 always opens at sign-in: a stored session is never resumed without a typed or biometric sign-in, and
 sign-in clears the query cache on focus),
 `SignupCompletionGate` (which returns an unfinished account to sign-up; once the app has opened, it
-stays mounted while the account and profile reread, so a pull to refresh keeps the screen and any
-unfinished work), the drawer
+stays mounted while the account and profile reread, so a pull to refresh that succeeds keeps the
+screen and any unfinished work), the drawer
 (`DrawerNavigator`), the bottom tabs (`BottomTabNavigator`) and a stack per area; the dashboard's
 routes and guards do not apply. Labels come from the `DESTINATIONS` titles, but screens set their
 own titles, so a few differ from the web (Eligibility requests). A company account with readable

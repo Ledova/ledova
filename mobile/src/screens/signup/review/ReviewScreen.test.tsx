@@ -122,7 +122,11 @@ it('accepts company authority and Terms through explicit completion without uplo
   expect(mockComplete).toHaveBeenCalledTimes(2);
   await resumed.unmount();
 
+  mockRereading = true;
   const gate = await render(<SignupCompletionGate />);
+  expect(gate.queryByText('Completed account')).toBeNull();
+  mockRereading = false;
+  await gate.rerender(<SignupCompletionGate />);
   await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'CompanyRegistration' }] }));
   expect(gate.queryByText('Completed account')).toBeNull();
   mockProfileComplete = true;
@@ -131,8 +135,10 @@ it('accepts company authority and Terms through explicit completion without uplo
   mockRereading = true;
   await gate.rerender(<SignupCompletionGate />);
   expect(gate.getByText('Completed account')).toBeTruthy();
-  mockRereading = false;
   mockProfileError = true;
+  await gate.rerender(<SignupCompletionGate />);
+  expect(gate.queryByText('Completed account')).toBeNull();
+  mockRereading = false;
   await gate.rerender(<SignupCompletionGate />);
   expect(gate.queryByText('Completed account')).toBeNull();
   expect(
