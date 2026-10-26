@@ -62,7 +62,7 @@ the individual role, then pre-screening, personal details, financial profile and
 dashboard's routes and guards do not apply.
 
 The signed-in app (`SignedInNavigator`) is a stack holding three bottom tabs and the Company, Class,
-Award, Details, Past holdings, Invitation and Profile screens. Holdings (`mobile/src/screens/holdings`) shows a card per company with
+Award, Details, Past holdings, Invitation, Your details and Profile screens. Holdings (`mobile/src/screens/holdings`) shows a card per company with
 a line per share class and each award's vesting bar, the award parts matching the web's; above six
 companies it becomes a searchable list. Classes with no shares left sit under Past holdings. With no
 member records it shows No shares yet and Accept an invitation. The Invitation screen takes the
@@ -84,7 +84,14 @@ empty one while the list rereads. Only the focused screen selects its record and
 each read for that member association alone, and the notices, with a chip per company to filter
 both; a company's Documents row opens it filtered to that company. A certificate opens its sheet to
 share or withdraw it through the same member-records state. Account
-opens Profile from its profile card and Invitation from Accept an invitation. It holds the sign-in
+opens Profile from its profile card, Your details from Details at each company (with the number of
+changes waiting) and Invitation from Accept an invitation. Your details lists each company's
+recorded name and address, marking those where a change waits, and sends one particulars change to
+every company in turn through the same member-records state. It skips a company that already
+records the change or where the same change already waits, checking that company's own requests
+again just before sending. A send that is refused or not confirmed stops the run until it is retried
+or skipped, and the summary counts the companies where the change waits or is recorded, from the
+server's records and requests. Account holds the sign-in
 and app lock switches, Notifications (the notifications list), the dark theme, password and data,
 the app actions and Sign out. Holdings and Documents have the notifications bell in their header, and
 a notice's notification opens Documents on Notices for every company. Screens set their own titles inside the page; a pushed
