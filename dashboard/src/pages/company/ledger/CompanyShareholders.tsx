@@ -11,7 +11,7 @@ import { Disclosure, Row, Rows, Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { PageAction, PageLink } from '@components/Page';
 import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
-import { shareholderPath } from './shareholders';
+import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 
 type Holding = { register: TokenHoldersResponse; holder: TokenHoldersResponse['holders'][number] };
 type Shareholder = { member: string; name: string; holdings: Holding[] };

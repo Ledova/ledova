@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { REGISTER_COPY, USER_PREFERENCES_QUERY_KEY, formatShareCount, useUserPreferences } from '@ledova/shared';
 import { Page } from '@components/Page';
@@ -34,7 +34,12 @@ function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClas
     uuid,
     data.token.isSuccess && data.token.fetchStatus === 'idle',
     data.token.data?.companyUuid,
+    data.readingPaused,
   );
+  useEffect(() => {
+    data.holdReads('class-rights', !!rights.editor || rights.pending || rights.busy);
+    return () => data.holdReads('class-rights', false);
+  }, [rights.editor, rights.pending, rights.busy, data.holdReads]);
   return (
     <ShareClassDetails
       key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
@@ -47,6 +52,7 @@ function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClas
 function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareClass>; rights: ReactNode }) {
   const preferences = useUserPreferences();
   const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
+  const onDocumentsHeld = useCallback((held: boolean) => data.holdReads('member-documents', held), [data.holdReads]);
   const registerReady =
     !!preferences.preferences &&
     preferencesRead?.status === 'success' &&
@@ -128,6 +134,9 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
       {data.owner && (
         <MemberDocuments
           title="Shareholder documents"
+          deferWhileEditing
+          readsPaused={data.readingPaused}
+          onHeldChange={onDocumentsHeld}
           owner={data.owner}
           guard={data.guard}
           company={token.companyUuid}

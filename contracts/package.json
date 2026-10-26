@@ -5,7 +5,7 @@
   "license": "SEE LICENSE IN LICENSE",
   "description": "Unaudited local and public-testnet token contract examples",
   "scripts": {
-    "compile": "hardhat compile",
+    "compile": "hardhat compile && tsc --noEmit",
     "test": "hardhat test",
     "test:coverage": "hardhat coverage",
     "deploy:testnet": "hardhat run scripts/deploy-all.ts --network baseSepolia",

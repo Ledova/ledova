@@ -26,9 +26,11 @@ export function companyTeamKey(owner: OrderSubmissionOwner, company: string) {
 export function useCompanyTeam({
   owner,
   currentOwner,
+  editing = false,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  editing?: boolean;
 }) {
   const client = useQueryClient();
   const mounted = useRef(true);
@@ -42,7 +44,7 @@ export function useCompanyTeam({
   }, [client, currentOwner, owner]);
   const ownKey = ownAppointmentsKey(owner);
   const invitationKey = teamInvitationsKey(owner);
-  const [company, setCompany] = useState('');
+  const [selectedCompany, setCompany] = useState('');
   const [sourceId, setSourceId] = useState('');
   const [formBusy, setFormBusy] = useState(false);
   const [revoking, setRevoking] = useState(false);
@@ -62,9 +64,13 @@ export function useCompanyTeam({
       ticket.current = null;
     };
   }, []);
-  const own = useOwnAppointments(owner, guard, { queryKey: ownKey, timing: {} });
+  const refreshReady = !editing && !formBusy && !revoking && !confirmation;
+  const own = useOwnAppointments(owner, guard, { queryKey: ownKey, timing: {}, enabled: refreshReady });
   const invitations = useQuery({
     queryKey: invitationKey,
+    enabled: refreshReady,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
@@ -75,6 +81,7 @@ export function useCompanyTeam({
   });
   const appointments = own.isError ? [] : (own.data ?? []);
   const companies = [...new Map(appointments.map((item) => [item.company, item.companyName])).entries()];
+  const company = selectedCompany || (companies.length === 1 ? companies[0][0] : '');
   const sources = appointments.filter(
     (item) => item.company === company && currentAppointment(item) && item.delegatableCapabilities.length > 0,
   );
@@ -88,7 +95,9 @@ export function useCompanyTeam({
   const teamKey = companyTeamKey(owner, company);
   const team = useQuery({
     queryKey: teamKey,
-    enabled: !!company && canAdmin,
+    enabled: !!company && canAdmin && refreshReady,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       guard();
       const result = await getCompanyTeam(apiClient, company, { ledovaSubmissionGuard: guard });
@@ -136,7 +145,8 @@ export function useCompanyTeam({
     try {
       const check = () => {
         guard();
-        if (!canRevoke(target)) throw new Error('Your company appointment changed. Refresh before revoking it.');
+        if (!canRevoke(target))
+          throw new Error('Your company appointment changed. Check the current record before revoking it.');
       };
       check();
       const { data } = await revokeCompanyAppointment(apiClient, target.uuid, { ledovaSubmissionGuard: check });
@@ -154,7 +164,7 @@ export function useCompanyTeam({
         data.createdAt !== target.createdAt ||
         data.expiresAt !== target.expiresAt
       )
-        throw new Error('The revocation outcome could not be confirmed. Refresh your appointments or retry.');
+        throw new Error('The revocation outcome could not be confirmed. Retry the same appointment.');
       await Promise.all([
         client.cancelQueries({ queryKey: ownKey, exact: true }),
         client.cancelQueries({ queryKey: teamKey, exact: true }),
@@ -175,7 +185,7 @@ export function useCompanyTeam({
     } catch (failure) {
       try {
         guard();
-        setError(failureSentence(failure, 'The appointment could not be revoked. Refresh or retry.'));
+        setError(failureSentence(failure, 'The appointment could not be revoked. Check the current record and retry.'));
       } catch {
         return;
       }
@@ -200,9 +210,54 @@ export function useCompanyTeam({
       !sameScope(current.delegatableCapabilities, source.delegatableCapabilities) ||
       (canAdmin && !administrator)
     )
-      throw new Error('Your company appointment changed. Refresh and select a current source.');
+      throw new Error('Your company appointment changed. Reopen the invitation and select a current source.');
   };
   const companyName = companies.find(([uuid]) => uuid === company)?.[1] ?? '';
+  useEffect(() => {
+    if (!refreshReady) return;
+    let live = true;
+    let running = false;
+    const available = () => live && !document.hidden && navigator.onLine !== false;
+    const refresh = async () => {
+      if (!available() || running) return;
+      running = true;
+      try {
+        guard();
+        await own.refetch({ cancelRefetch: false });
+        if (!available()) return;
+        guard();
+        const authority = client.getQueryState(ownAppointmentsKey(owner));
+        if (authority?.status !== 'success' || authority.fetchStatus !== 'idle') return;
+        await invitations.refetch({ cancelRefetch: false });
+        if (!available()) return;
+        guard();
+        const current = client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [];
+        if (
+          company &&
+          current.some(
+            (item) => item.company === company && currentAppointment(item) && item.capabilities.includes('admin'),
+          )
+        )
+          await team.refetch({ cancelRefetch: false });
+      } catch {
+        return;
+      } finally {
+        running = false;
+      }
+    };
+    const request = () => void refresh();
+    const interval = window.setInterval(request, 60_000);
+    window.addEventListener('focus', request);
+    window.addEventListener('online', request);
+    document.addEventListener('visibilitychange', request);
+    return () => {
+      live = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', request);
+      window.removeEventListener('online', request);
+      document.removeEventListener('visibilitychange', request);
+    };
+  }, [refreshReady, client, owner, company, guard, own.refetch, invitations.refetch, team.refetch]);
   return {
     guard,
     company,

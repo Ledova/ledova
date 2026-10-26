@@ -19,8 +19,6 @@ export const REGISTER_ALLOTMENT_COPY = {
   REASON: 'Reason for allotment',
   DOCUMENTS: { authority: 'Authority document', agreement: 'Agreement document', receipt: 'Receipt evidence' },
   COMPANY_EVENT_ON: 'Company issue date',
-  EFFECTIVE_NOTE:
-    'The company supplies the issue date from its records. Ledova records preparation, decisions and application separately.',
   RECOVERY_NOTE: 'If a response is interrupted, recover the same request before starting another allotment.',
   STAGES: { submitted: 'Prepared', approved: 'Approved', applied: 'Applied', rejected: 'Rejected' } as Record<
     string,

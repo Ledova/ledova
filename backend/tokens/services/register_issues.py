@@ -33,7 +33,10 @@ from tokens.models import (
 )
 from tokens.models.choices import IDENTITY_LIVE
 from tokens.services.register import member_identities
-from tokens.services.register_authority import register_appointment
+from tokens.services.register_authority import (
+    readable_token_company_id,
+    register_appointment,
+)
 from tokens.services.register_decisions import DecisionFamily, _scalar, decide, preview
 from tokens.services.register_evidence import (
     discard,
@@ -59,16 +62,6 @@ from whitelist.services.wallet_nominations import nomination_requirements
 
 def _busy(exception):
     return getattr(exception.__cause__, "sqlstate", None) == "55P03"
-
-
-def _company_of(actor, token):
-    with use_operator(), _requester_principal(actor.pk):
-        company = (
-            ShareToken.objects.register_readable_by(actor).filter(pk=token).values_list("company_id", flat=True).first()
-        )
-    if company is None:
-        raise NotFound("Share class not found.")
-    return company
 
 
 def _approval(proposal):
@@ -324,7 +317,7 @@ def prepare_issue(
         if not isinstance(values[name], str) or not values[name].strip() or len(values[name]) > limit:
             raise ValidationError("Retain the company's director, authority reference, reason and grant terms.")
         values[name] = values[name].strip()
-    company_id = _company_of(actor, token)
+    company_id = readable_token_company_id(actor, token)
     with use_operator(), _requester_principal(actor.pk):
         prior = RegisterInstruction.objects.filter(pk=operation_id, company_id=company_id).first()
         nominated = CompanyWalletNomination.objects.filter(pk=nomination, company_id=company_id).first()

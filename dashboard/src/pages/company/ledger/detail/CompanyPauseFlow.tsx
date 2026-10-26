@@ -1,7 +1,9 @@
+import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useCallback, useEffect } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
@@ -52,7 +54,15 @@ function SnapshotRows({
   );
 }
 
-function PauseRecord({ record, commands }: { record: RegisterPauseChange; commands: Commands }) {
+function PauseRecord({
+  record,
+  commands,
+  onHeldChange,
+}: {
+  record: RegisterPauseChange;
+  commands: Commands;
+  onHeldChange: (uuid: string, held: boolean) => void;
+}) {
   const { error, busy, download, execution } = usePauseRecord({ record, commands });
   return (
     <div className="space-y-3 border-t border-border py-4">
@@ -123,6 +133,7 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
         onDecided={commands.accept}
         onRefused={commands.refresh}
         visible={commands.visible}
+        onHeldChange={onHeldChange}
         context={`pause ${shortReference(record.uuid)}`}
       >
         {(preview) => (
@@ -136,8 +147,9 @@ function PauseRecord({ record, commands }: { record: RegisterPauseChange; comman
   );
 }
 
-function Preparation({ commands }: { commands: Commands }) {
+function Preparation({ commands, onEditingChange }: { commands: Commands; onEditingChange: (held: boolean) => void }) {
   const {
+    draft,
     setCaptured,
     paused,
     setPaused,
@@ -157,14 +169,17 @@ function Preparation({ commands }: { commands: Commands }) {
     submit,
   } = usePausePreparation({ commands });
   const checks = useErrorSummary(problems);
+  useEffect(() => {
+    onEditingChange(draft.active);
+    return () => onEditingChange(false);
+  }, [draft, onEditingChange]);
   return (
     <fieldset
       disabled={waiting}
-      className="grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
+      className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
       <h3 className="font-medium">Prepare a company pause change</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
-      <p className="text-sm text-text-muted">{COPY.NOTE}</p>
       <PageAction
         label="Use current class details"
         disabled={!commands.canPrepare}
@@ -173,14 +188,16 @@ function Preparation({ commands }: { commands: Commands }) {
           setCaptured(commands.source ? { ...commands.source } : undefined);
         }}
       />
-      <Choices
-        {...checks.field('paused')}
-        legend="Requested state"
-        options={STATES}
-        value={paused === null ? '' : paused ? 'paused' : 'unpaused'}
-        onChange={(state) => setPaused(state === 'paused')}
-      />
-      <Field {...checks.field('reason')} label="Pause reason">
+      <div className="sm:col-span-2">
+        <Choices
+          {...checks.field('paused')}
+          legend="Requested state"
+          options={STATES}
+          value={paused === null ? '' : paused ? 'paused' : 'unpaused'}
+          onChange={(state) => setPaused(state === 'paused')}
+        />
+      </div>
+      <Field {...checks.field('reason')} label="Pause reason" className="sm:col-span-2">
         <TextArea maxLength={FIELD_LIMITS.REASON} value={reason} onChange={(event) => setReason(event.target.value)} />
       </Field>
       <Field {...checks.field('reference')} label="Authority reference">
@@ -191,6 +208,7 @@ function Preparation({ commands }: { commands: Commands }) {
         />
       </Field>
       <FileField
+        showUploadHint={false}
         {...checks.field('file')}
         label="Pause authority document"
         hint={termsValid ? undefined : 'Available once the requested state, reason and authority reference are given.'}
@@ -211,38 +229,59 @@ function Preparation({ commands }: { commands: Commands }) {
           {error}
         </p>
       )}
-      <PageAction
-        label="Prepare pause change"
-        busy={busy}
-        busyLabel="Preparing…"
-        disabled={waiting || !commands.canPrepare || !!commands.recovery}
-        onClick={() => {
-          if (checks.check()) void submit();
-        }}
-      />
+      <div className="sm:col-span-2">
+        <FormActions>
+          <PageAction
+            label="Prepare pause change"
+            busy={busy}
+            busyLabel="Preparing…"
+            disabled={waiting || !commands.canPrepare || !!commands.recovery}
+            onClick={() => {
+              if (checks.check()) void submit();
+            }}
+          />
+        </FormActions>
+      </div>
     </fieldset>
   );
 }
 
-export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
+export function CompanyPauseFlow({
+  uuid,
+  data,
+  active = true,
+}: {
+  uuid: string;
+  data: ReturnType<typeof useShareClass>;
+  active?: boolean;
+}) {
+  const onEditingChange = useCallback((held: boolean) => data.holdReads('pause/draft', held), [data.holdReads]);
+  const onHeldChange = useCallback(
+    (uuid: string, held: boolean) => data.holdReads('pause/decision/' + uuid, held),
+    [data.holdReads],
+  );
   const commands = useCompanyPauseChanges(uuid, {
     token: data.token.data,
     tokenKey: data.tokenKey,
     newKey: () => crypto.randomUUID(),
+    coordinatedReads: true,
+    paused: data.readingPaused,
+    onPrepared: () => onEditingChange(false),
+  });
+  useEffect(() => {
+    data.holdReads('pause/request', commands.working || !!commands.recovery);
+    return () => data.holdReads('pause/request', false);
+  }, [commands.working, commands.recovery, data.holdReads]);
+  useAutomaticReads({
+    scope: active && commands.owner ? data.scopeKey + '/pause' : null,
+    paused: data.readingPaused || commands.readingPaused,
+    refresh: commands.refresh,
   });
   if (!commands.owner) return null;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      {!(commands.appointments.isError || (commands.visible && commands.instructions.isError)) && (
-        <PageAction
-          label="Refresh company pause records"
-          busy={commands.instructions.isFetching || commands.appointments.isFetching}
-          busyLabel="Refreshing…"
-          disabled={commands.busy}
-          onClick={() => void commands.refresh()}
-        />
-      )}
+
       {commands.appointments.isError ? (
         <LoadError retry={() => commands.refresh()} busy={commands.appointments.isFetching}>
           Your appointments could not be loaded.
@@ -274,7 +313,7 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       )}
       {!!commands.company && (
         <div hidden={!commands.visible || !commands.steps.prepare}>
-          <Preparation key={commands.scopeKey} commands={commands} />
+          <Preparation key={commands.scopeKey} commands={commands} onEditingChange={onEditingChange} />
         </div>
       )}
       {commands.visible && commands.recovery && (
@@ -292,7 +331,7 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       )}
       {commands.visible && commands.error && <p role="alert">{commands.error}</p>}
       {commands.records.map((record) => (
-        <PauseRecord key={record.uuid} record={record} commands={commands} />
+        <PauseRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
       ))}
     </Section>
   );

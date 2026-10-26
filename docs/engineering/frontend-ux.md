@@ -30,13 +30,33 @@ Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 ([forms](#forms)). `Page narrow` bounds
 simple task forms, settings and most detailed records, including compact tables. Ownership dashboards,
 company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
-invitation reviews and wide tables take the standard workspace width. Inline preparation, review
+invitation reviews, company-recorded member details and wide tables take the standard workspace width. Inline preparation, review
 and result states retain their collection's frame. Tables scroll within their card on small screens.
+Company information, company documents, authority records and company team use this workspace frame too.
+Team invitations and acceptance replace their collection with one focused inline task, retaining its
+mounted editors and drafts. Company documents has its own view, with Category and File in the inline upload.
+The remaining offering, publication, directory, application, wallet, activity and eligibility collections
+use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
+keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The member overview's shares and
 awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
-on smaller screens without fixed heights. Section spacing is scoped to
+on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
+quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
+included in the holding. The member Dashboard contains only the shares and read-only award overview.
+**Company-recorded details** in Settings uses one **Your details** card in the standard workspace
+frame. **Current details** and **Update requests** form equal desktop groups separated by a hairline,
+with aligned name and address rows; they stack on smaller screens without nested cards. Address previews
+stay on one line with an ellipsis when space runs out; **Ledger details** and **Record details** show
+the full original addresses without changing stored text. Each request's status and date use a labelled
+row aligned with the name and address values. **Request update** sits in the shared
+right-aligned footer. That action opens one focused inline form with **Cancel** and
+**Send request** together; a successful submission closes the form and clears sharing consent.
+Technical references and completed requests open on demand. Keep these company records distinct
+from personal Profile edits.
+Share history and certificate tracking belong in Documents, without duplicate particulars status.
+Section spacing is scoped to
 the frame; sign-up keeps its own presentation.
 
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
@@ -101,18 +121,26 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 
 On workflow collections, show the saved records first, with company and class context once above
 them. Keep each recipient, status and key facts together, its details on demand, and its next action
-in a right-aligned footer after secondary actions. Name a preview-opening action for that review,
-such as **Review and approve**; opening it is not approval. The collection's creation action opens
+in a right-aligned footer after secondary actions.
+Particulars changes keep supporting-document download and decision actions together in one right-aligned,
+wrapping footer, with download errors visible beside that action group.
+Name a preview-opening action for that review, such as **Review and approve**; opening it is not approval.
+The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
 Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
-keeps its class card and returns to its records after Cancel or a successful save. Its preparation,
+keeps the selected class card and returns to its records after Cancel or a successful save. ESS uses the
+existing Share class selector and one creation action; disable class selection while an award editor or
+recovery is open, keeping every class controller mounted. Its preparation,
 vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
 Award preparation groups the recipient and promised shares, with new-person details beneath. Agreement
 and vesting use the existing responsive two-column grid, stacking on smaller screens, with short
-contextual labels and one vesting explanation. Keep draft controls, selected-file display and focus
-stable by [deferring coordinated automatic reads](frontend.md#automatic-data-freshness) while an
-award editor is open.
+contextual labels and one vesting explanation. ESS has no background refresh; keep draft controls,
+selected-file display and focus stable through entry reads, explicit retries and post-save refreshes
+([read policy](frontend.md#automatic-data-freshness)). Its award list follows the existing aligned
+Disclosure rows: Recipient and agreement date, then Promised, Vested and Issued quantities. On small
+screens, the three quantities sit beneath the recipient with short labels. Charts, supporting records
+and actions open on demand; an open editor or uncertain action keeps its row open.
 Inline vesting uses one named field group with the event quantity, date and document, short contextual
 labels and the same responsive grid. While an award editor is open, its footer owns the actions;
 hide unrelated record actions instead of leaving a disabled row above the form.
@@ -135,15 +163,15 @@ collection keeps its own preparation row.
 Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 
-Web History uses one full-width `Section` titled **Changes**, with compact ruled rows aligned under
+Web Corrections starts with one full-width `Section` titled **Changes**, with compact ruled rows aligned under
 **Change**, **Date** and **Share movements**. Each whole row opens its details; on smaller screens,
 kind and date sit above the movements. Show the company date for an issue or transfer (ledger
 effective date for other kinds), and the first two signed movements plus a count of the rest.
 Details start closed and hold the full list, entry number, separate company, ledger and recording
-dates, and correction or reversal references. History is read-only, including retained supporting
-records and permitted file downloads. Certificate preparation belongs in Documents; correction,
-opening, reconciliation acknowledgement, particulars and wallet-link workflows belong in Ledger's
-Corrections view. Keep their controllers mounted so unfinished work and original-request recovery
+dates, and correction or reversal references. Entries stay immutable; current register readers can
+inspect retained supporting records and permitted downloads. The same view holds capability-guarded
+correction, opening, reconciliation acknowledgement, particulars and wallet-link workflows. Certificate
+preparation belongs in Documents. Keep their controllers mounted so unfinished work and original-request recovery
 survive navigation. Documents starts with compact output choices and opens one focused inline
 preparation at a time. Certificate choices show the issue or transfer's date and share movements;
 the form uses the existing labelled summary rows for share movements, company date and PDF page
@@ -151,25 +179,53 @@ count after preview. No manual certificate reference is needed: the server recor
 request when the file is generated. Keep technical metadata under **Record details** and one
 right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
 Inspection copy and Company pack open from their preparation actions; privacy and source guidance stays with the opened form
-or download. Keep current source and appointment validation and error retries, without routine
+or download. Inspection copy shows editable request fields before preview and captured summary rows afterwards,
+with its sequence under Record details. Correction, particulars, wallet-link and opening forms use the same
+responsive field grid; their records group document and decision actions in one wrapping footer. Keep current source and appointment validation and error retries, without routine
 refresh controls.
 
-Member Documents summarises each share change by quantity, class and company date, with a short
-Request certificate action. Entry numbers, ledger dates and recording timestamps open under
-Record details; a class chooser is only shown when there is more than one class.
+Member Documents uses one **Certificates** card. Each share change groups its quantity, class and
+company date with the latest certificate-request status and its request, withdrawal or unsigned
+download actions. Entry numbers, ledger dates, recording timestamps and previous requests open
+under **Record details**; requests without a matching visible entry remain under **Other certificate
+requests**, with their own actions. A class chooser is only shown when there is more than one class.
+Particulars requests stay in Company-recorded details in Settings.
 
-Member access and requests follows the same records-first pattern on Shareholders. Show compact
-invitation, access and request records only when present, with private metadata under Details. A
-confirmed empty collection has one empty state and an Invite a member action beneath the card.
-Invitation preparation opens inline with member and email fields in the existing responsive grid,
-Cancel and Send invitation together at the bottom right. Keep invitation tokens out of visible
-fields: the email link opens one focused Member invitation page, continuing through sign-in or
+The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
+Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order,
+with compact rows aligned under Person, Linked or Invited, and Status. People retains current and
+revoked access records; invitations remain separate records. **Member requests** uses one **Requests**
+card, with Person, Request, Requested and Status columns. Identify each request as a details update
+or an unsigned certificate, with the certificate's share class when available. Keep all retained
+statuses in the list. Both views use the standard workspace width and Ledger's aligned change-row pattern;
+headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
+or class context and genuine dates before expansion, without repeating the page title inside a card.
+Each whole row opens its details and relevant actions together, including the full requested particulars.
+Preparing a details update focuses its form heading and keeps the selected row and form together,
+with other rows mounted but hidden; Cancel restores the list and opener focus.
+Use only the form's top rule between the selected request and its form, suppressing the list divider.
+Details-update requests omit **Technical details**; their internal identifiers remain in the audit records.
+Access, invitation and certificate records put account, member and entry references, fingerprints
+and file sizes under **Technical details**. A certificate request does not supply a share quantity;
+do not substitute the member's current holding. Keep unavailable reads and their retries distinct
+from confirmed empty collections.
+Invite a member sits in a right-aligned row beneath the Invitations card. Invitation preparation replaces
+the collection with a focused view across the workspace, with member and email fields in the existing
+responsive grid and Cancel and Send invitation together at the bottom right. Keep invitation tokens
+out of visible fields: the email link opens one focused Member invitation page, continuing through sign-in or
 signup in the same tab. Show company, shareholder, intended email and expiry before an explicit
 Accept invitation action; opening the link must never accept it. The company sees acceptance status
 and an honest sending result, with a retry on failure; provider acceptance is not inbox delivery.
 Show an action reason only for a selected revocation or particulars update, and certificate
 instruction fields only with an actual request. Preserve drafts, current authority, failed-read
 retries and original-action recovery; there is no routine refresh control.
+Selecting a certificate request replaces the collection with focused **Prepare certificate** and
+**Review certificate** views, keeping its controllers mounted. Group the member, exact class,
+request date and unsigned single-recipient PDF summary together. The preparation owns the required
+**Company instruction** field; the review keeps its captured instruction, entry and register
+sequence and source fingerprint under **Record details**. Keep the privacy and signing reminder
+visible, with one right-aligned Cancel/Preview or Cancel/Create certificate row. The focused views
+span the workspace; the Member requests collection returns when the task closes.
 
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep company and class context once, then the issue or transfer summary, ownership
@@ -188,13 +244,21 @@ the recorded outcome, without a separate Record issue or Apply action. Keep appr
 distinct retained facts, with atomic failure and same-request recovery that cannot duplicate the
 effect. Non-paid and employee-award issues use the same page review, with award quantities, ownership
 impact and company authority grouped, and terms and documents on demand. Their approval remains separate from
-**Record issue**; approval alone changes no holding. Rejection also uses page review. Mobile's Issue
-shares and Transfer shares follow this review in place of their lists. Other decision families, separate API decisions and
-mobile's other tasks keep their existing workflow.
+**Record issue**; approval alone changes no holding. Rejection also uses page review.
+Web particulars changes use the same focused page review, with current and proposed name, address
+and as-at date in equal columns on wide screens and stacked on smaller screens. The reason and
+supporting document open on demand. Hide unrelated class records and selectors while reviewing,
+without unmounting their controllers. Approval and application remain separate company decisions.
+Mobile's Issue shares and Transfer shares follow this review in place of their lists. Other decision
+families, separate API decisions and mobile's other tasks keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
 field when editing opens and return focus to Edit when it ends, if that action is still available.
+Company information and personal Profile details follow this pattern. Activation reviews its current
+company and declaration on the main page before explicit confirmation. Supporting payslips use
+compact document records with extraction details on demand and warnings visible in the expanded record;
+uploading opens an inline form.
 Class rights follows this pattern: Edit replaces its read view and Previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
@@ -221,8 +285,7 @@ On mobile the backdrop closes it; a busy dialog holds the backdrop, Android Back
 Inside cards and dialogs nothing is boxed: fields share the card's surface with a hairline border
 (`rounded-lg border border-border bg-surface-raised`; `useDialogStyles` on mobile), steps are
 numbered lines, and warnings (beside an icon) and errors are coloured text, not tinted boxes. The
-exceptions are the tinted extraction-status pill beside a saved payslip on Profile, the dashed
-upload areas for a payslip and for a claim's evidence, and sign-in and the sign-up steps, which keep
+exceptions are the dashed upload area for a claim's evidence, and sign-in and the sign-up steps, which keep
 tinted fields and boxed outcomes within the same cards and titles. Addresses, hashes and signing summaries
 use the monospaced face (`font-mono`; `theme.fontFamily.mono`).
 
@@ -244,17 +307,21 @@ content", which moves focus to the page's heading.
 
 The sidebar owns navigation between sections. A related group has one level of children: its label
 opens the overview and a separate caret expands the children, without an extra Overview item.
-Ledger groups **Issue shares**, **Transfer shares**, **History** and **Corrections** this way, opens
-on a Ledger route and marks the current destination. Shareholders, ESS and Documents remain sibling items.
-The same group appears in the small-screen drawer and in the mobile app's drawer
-([mobile navigation](mobile.md#navigation)). Page controls start or complete work for that
-page or record: Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
+Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
+Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
+opening the people list. Each group opens on its routes and marks the current destination.
+Ledger, Shareholders and Documents remain siblings. Both web groups appear in the small-screen
+drawer; native navigation is documented [separately](mobile.md#navigation).
+Page controls start or complete work for that page or record: Add person, Invite a member,
+Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
 actions remain beside their records. Do not repeat section navigation in page headers.
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages for
 both clients, including Ledger, its views (Shareholders, Employee share scheme, Documents) and tasks
 (Issue shares, Transfer shares, History, Corrections), Set up your ledger, Ledger opening and Home's
-Documents view. The web sidebar, page titles and parent links use `pageTitle`
+Documents view. Mobile retains History; the web exposes only Issue shares, Transfer shares and Corrections,
+replacing an incoming `#history` with `#corrections` while retaining company/class context. The web sidebar,
+page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. The company
 dashboard is also Dashboard, so the company workspace lists Home as Your shares. The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
@@ -329,7 +396,7 @@ way:
 
 A load error's Try again and recovery actions keep their label while they run; a form's submit
 button that also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
-placeholder, the payslip upload area and Trading keep their own controls, and dialog footers use the
+placeholder and Trading keep their own controls, and dialog footers use the
 same order as `FormActions`. Mobile's `Action` has no busy or pressed form yet.
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
@@ -736,8 +803,8 @@ Some messages keep their own form:
   "PDF, PNG or JPEG, up to 10 MB." Compact forms such as
   Investor issue and employee awards may omit this routine hint with `showUploadHint={false}`. Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
-  of up to 10 MB." on the field. The payslip upload on Profile and the evidence in an eligibility claim keep their dashed
-  areas but apply the same rule. Mobile's pickers keep their own wording until
+  of up to 10 MB." on the field. The evidence in an eligibility claim keeps its dashed
+  area but applies the same rule. Mobile's pickers keep their own wording until
   [#1201](https://github.com/Ledova/ledova/issues/1201).
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.

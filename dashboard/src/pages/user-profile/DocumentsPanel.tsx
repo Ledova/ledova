@@ -1,42 +1,26 @@
-import { Field, TextInput } from '@components/Field';
+import { Field, FileField, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
-import { Choices } from '@components/Choices';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
   FIELD_LIMITS,
   DESTINATIONS,
-  UPLOAD_RULE,
-  uploadRefusal,
   formatCryptoBalance,
   formatMoney,
   shortReference,
-} from '@ledova/shared';
-import { useRef, useState } from 'react';
-import {
-  CloudArrowUpIcon,
-  FileTextIcon,
-  CheckCircleIcon,
-  WarningIcon,
-  XCircleIcon,
-  ClockIcon,
-  TrashIcon,
-} from '@phosphor-icons/react';
-
-import {
   apiErrorSentence,
   formatDate,
-  formatFileSize,
   useInvestorClassifications,
   type InvestorClassification,
+  type Document,
+  type UserDocumentType,
+  type ExtractionStatus,
 } from '@ledova/shared';
-import { ICON_SM, ICON_MD } from '@components/iconSizes';
-
+import { useEffect, useRef, useState } from 'react';
 import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
-import type { Document, UserDocumentType, ExtractionStatus } from '@ledova/shared';
-import { LoadError, Loading } from '@components/Ledger';
+import { Disclosure, LinkRow, LoadError, Loading, Row, Rows, Status } from '@components/Ledger';
 
 const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',
@@ -45,44 +29,16 @@ const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   other: 'Other',
 };
 
-const DOCUMENT_TYPES = [
-  ['payslip', 'Payslip'],
-  ['bank_statement', 'Bank statement (coming soon)'],
-  ['tax_return', 'Tax return (coming soon)'],
-] as const;
-
 const claimLabel = (claim: InvestorClassification) => `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}`;
 
 const documentMoney = (raw: string | null) =>
   raw && /^-?\d+(\.\d+)?$/.test(raw) ? formatMoney(formatCryptoBalance(raw, '', 2).trimEnd(), 'AUD') : raw || '—';
 
-function StatusPill({ status }: { status: ExtractionStatus | undefined }) {
-  if (!status || status === 'pending') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-tertiary text-xs text-text-muted">
-        <ClockIcon size={ICON_SM} /> Queued
-      </span>
-    );
-  }
-  if (status === 'running') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-brand-light/10 text-xs text-brand-light">
-        <ClockIcon size={ICON_SM} weight="bold" /> Extracting…
-      </span>
-    );
-  }
-  if (status === 'succeeded') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success/10 text-xs text-success-light">
-        <CheckCircleIcon size={ICON_SM} weight="fill" /> Extracted
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error/10 text-xs text-error-light">
-      <XCircleIcon size={ICON_SM} weight="fill" /> Failed
-    </span>
-  );
+function ExtractionState({ status }: { status: ExtractionStatus | undefined }) {
+  if (!status || status === 'pending') return <Status tone="waiting">Queued</Status>;
+  if (status === 'running') return <Status tone="moving">Extracting…</Status>;
+  if (status === 'succeeded') return <Status tone="done">Extracted</Status>;
+  return <Status tone="closed">Failed</Status>;
 }
 
 function PayslipResult({ data, durationMs }: { data: object; durationMs: number | null }) {
@@ -112,28 +68,22 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
   ];
 
   return (
-    <div className="mt-3 space-y-2">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-        {fields.map((f) => (
-          <div key={f.label} className="flex justify-between items-baseline text-sm gap-2 min-w-0">
-            <span className="text-text-muted">{f.label}</span>
-            <span className="text-text-primary text-right truncate">{f.value}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between pt-2 mt-2 border-t border-border-subtle text-xs text-text-muted">
-        <span>Confidence: {typeof confidence === 'number' ? `${(confidence * 100).toFixed(0)}%` : 'Unknown'}</span>
-        {durationMs != null && <span>Extracted in {(durationMs / 1000).toFixed(1)}s</span>}
-      </div>
-
-      {readableWarnings.length > 0 && (
-        <div className="mt-2 flex items-start gap-2 text-xs text-warning-light">
-          <WarningIcon size={ICON_SM} weight="bold" className="mt-0.5 flex-shrink-0" />
-          <span>{readableWarnings.join(' · ')}</span>
-        </div>
-      )}
-    </div>
+    <>
+      <Disclosure summary="Extraction details">
+        <Rows>
+          {fields.map((field) => (
+            <Row key={field.label} label={field.label}>
+              {field.value}
+            </Row>
+          ))}
+          <Row label="Confidence">
+            {typeof confidence === 'number' ? `${(confidence * 100).toFixed(0)}%` : 'Unknown'}
+          </Row>
+          {durationMs != null && <Row label="Extraction time">{(durationMs / 1000).toFixed(1)}s</Row>}
+        </Rows>
+      </Disclosure>
+      {readableWarnings.length > 0 && <p className="text-sm text-warning-light">{readableWarnings.join(' · ')}</p>}
+    </>
   );
 }
 
@@ -188,65 +138,66 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const attachment = useErrorSummary({
     classification: !classification && 'Choose the claim to attach this payslip to.',
   });
-
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const busy = attach.isPending || del.isPending;
 
   return (
-    <div className="border-t border-border-subtle pt-3">
-      <div className="flex items-center gap-3">
-        <FileTextIcon size={ICON_MD} className="text-text-muted flex-shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm text-text-primary truncate">{doc.originalFilename}</p>
-          <p className="text-xs text-text-muted">
-            {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt, '—')}
-          </p>
+    <Disclosure
+      summary={
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="break-words text-sm font-medium text-text-primary">{doc.originalFilename}</p>
+            <p className="text-sm text-text-muted">
+              {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt, '—')}
+            </p>
+          </div>
+          <ExtractionState status={extraction?.status} />
         </div>
-        <StatusPill status={extraction?.status} />
-        {!doc.classification && (
-          <button
-            type="button"
-            onClick={() => setConfirmingDelete(true)}
-            disabled={del.isPending}
-            title="Delete document"
-            className="p-1.5 text-text-muted hover:text-error-light transition-colors disabled:opacity-50 flex-shrink-0"
-          >
-            <TrashIcon size={ICON_SM} weight="regular" />
-          </button>
-        )}
-      </div>
-
+      }
+    >
       {doc.classification ? (
-        <p className="mt-3 text-xs text-text-muted">
-          Attached to claim {attachedLabel}. Retained{' '}
-          {doc.retentionUntil ? `until ${formatDate(doc.retentionUntil, '—')}` : 'with the claim'}.
-        </p>
+        <Rows>
+          <Row label="Classification claim">{attachedLabel}</Row>
+          <Row label="Retained">
+            {doc.retentionUntil ? `Until ${formatDate(doc.retentionUntil, '—')}` : 'With the claim'}
+          </Row>
+        </Rows>
       ) : (
-        <div className="mt-3 space-y-2">
+        <div className="space-y-4">
           <ErrorSummary {...attachment.summary} />
           <ClaimSelector
             {...attachment.field('classification')}
             claims={claims}
             value={classification}
             onChange={setClassification}
-            disabled={attach.isPending}
+            disabled={busy}
           />
-          <PageAction
-            primary
-            label="Attach to claim"
-            busy={attach.isPending}
-            busyLabel="Attaching…"
-            onClick={() => {
-              if (attachment.check()) attach.mutate({ uuid: doc.uuid, classification });
-            }}
-          />
-          <p className="text-xs text-text-muted">
+          <p className="text-sm text-text-muted">
             Unattached payslips are removed{' '}
             {doc.retentionUntil ? `on ${formatDate(doc.retentionUntil, '—')}` : 'according to the retention policy'}.
           </p>
+          <FormActions>
+            <PageAction
+              label="Delete document"
+              context={doc.originalFilename}
+              disabled={busy}
+              onClick={() => setConfirmingDelete(true)}
+            />
+            <PageAction
+              primary
+              label="Attach to claim"
+              busy={attach.isPending}
+              busyLabel="Attaching…"
+              disabled={del.isPending}
+              onClick={() => {
+                if (attachment.check()) attach.mutate({ uuid: doc.uuid, classification });
+              }}
+            />
+          </FormActions>
         </div>
       )}
       {(attach.error || del.error) && (
-        <p role="alert" className="mt-2 text-sm text-error-light">
+        <p role="alert" className="text-sm text-error-light">
           {apiErrorSentence(attach.error || del.error, 'The document could not be updated.')}
         </p>
       )}
@@ -263,142 +214,112 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           {doc.originalFilename} is deleted. This can&apos;t be undone.
         </Confirmation>
       )}
-
       {extraction?.status === 'succeeded' &&
         extraction.parsedJson !== null &&
         typeof extraction.parsedJson === 'object' &&
         !Array.isArray(extraction.parsedJson) && (
           <PayslipResult data={extraction.parsedJson} durationMs={extraction.durationMs} />
         )}
-
       {extraction?.status === 'failed' && extraction.error && (
-        <p className="mt-3 flex items-start gap-2 text-xs text-error-light">
-          <XCircleIcon size={ICON_SM} weight="fill" className="mt-0.5 flex-shrink-0" />
-          <span>{extraction.error}</span>
+        <p role="alert" className="text-sm text-error-light">
+          {extraction.error}
         </p>
       )}
-    </div>
+    </Disclosure>
   );
 }
 
 function UploadCard({ claims }: { claims: InvestorClassification[] }) {
+  const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [documentType, setDocumentType] = useState<UserDocumentType>('payslip');
+  const [selection, setSelection] = useState(0);
   const [note, setNote] = useState('');
   const [classification, setClassification] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const formHeading = useRef<HTMLHeadingElement>(null);
+  const opener = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef(false);
   const upload = useUploadDocument();
-
-  const [refusal, setRefusal] = useState<string | null>(null);
-  const handleSubmit = async () => {
+  useEffect(() => {
+    if (open) formHeading.current?.focus();
+    else if (returnFocus.current && !upload.isPending && opener.current) {
+      returnFocus.current = false;
+      opener.current.focus();
+    }
+  }, [open, upload.isPending]);
+  const close = () => {
+    returnFocus.current = true;
+    setOpen(false);
+  };
+  const handleSubmit = () => {
     if (!file) return;
     upload.mutate(
-      { file, documentType, note, classification: classification || undefined },
+      { file, documentType: 'payslip', note, classification: classification || undefined },
       {
         onSuccess: () => {
           setFile(null);
+          setSelection((current) => current + 1);
           setNote('');
           setClassification('');
-          if (fileInputRef.current) fileInputRef.current.value = '';
+          close();
         },
       },
     );
   };
 
   return (
-    <div className="border border-dashed border-border rounded-lg p-4 space-y-3">
-      {!file ? (
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full flex flex-col items-center justify-center py-6 text-text-muted hover:text-text-primary transition"
-        >
-          <CloudArrowUpIcon size={32} className="mb-2" />
-          <p className="text-sm">Click to upload a payslip</p>
-          <p className="text-xs mt-1">{UPLOAD_RULE.HINT}</p>
-        </button>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <FileTextIcon size={ICON_MD} className="text-brand-light flex-shrink-0" weight="regular" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm text-text-primary truncate">{file.name}</p>
-              <p className="text-xs text-text-muted">{formatFileSize(file.size)}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setFile(null);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }}
-              className="text-text-muted hover:text-text-primary p-1 flex-shrink-0"
+    <>
+      <div hidden={open}>
+        <FormActions>
+          <PageAction ref={opener} label="Upload a payslip" onClick={() => setOpen(true)} />
+        </FormActions>
+      </div>
+      <form
+        hidden={!open}
+        aria-label="Upload supporting payslip"
+        className="space-y-4 border-t border-border-subtle pt-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          handleSubmit();
+        }}
+      >
+        <h3 ref={formHeading} tabIndex={-1} className="text-sm font-medium text-text-primary focus:outline-none">
+          Upload a payslip
+        </h3>
+        <FileField key={selection} label="File" showUploadHint={false} disabled={upload.isPending} onFile={setFile} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Note">
+            <TextInput
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              maxLength={FIELD_LIMITS.NOTE}
               disabled={upload.isPending}
-              aria-label="Remove selected file"
-            >
-              <XCircleIcon size={20} />
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Choices<UserDocumentType>
-              legend="Document type"
-              options={DOCUMENT_TYPES}
-              value={documentType}
-              unavailable={['bank_statement', 'tax_return']}
-              disabled={upload.isPending}
-              onChange={setDocumentType}
             />
-            <Field label="Note" optional className="min-w-0 flex-1 basis-40">
-              <TextInput
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                maxLength={FIELD_LIMITS.NOTE}
-                disabled={upload.isPending}
-              />
-            </Field>
-          </div>
-
+          </Field>
           <ClaimSelector
             claims={claims}
             value={classification}
             onChange={setClassification}
             disabled={upload.isPending}
           />
+        </div>
+        {upload.error && (
+          <p role="alert" className="text-sm text-error-light">
+            {apiErrorSentence(upload.error, 'The payslip could not be uploaded.')}
+          </p>
+        )}
+        <FormActions>
+          <PageAction label="Cancel" context="payslip upload" disabled={upload.isPending} onClick={close} />
           <PageAction
+            type="submit"
             primary
-            label="Upload & extract"
+            label="Upload and extract"
             busy={upload.isPending}
             busyLabel="Uploading…"
-            onClick={() => void handleSubmit()}
+            disabled={!file}
           />
-        </div>
-      )}
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={UPLOAD_RULE.ACCEPT}
-        onChange={(e) => {
-          const chosen = e.target.files?.[0] ?? null;
-          const problem = chosen && uploadRefusal(chosen);
-          setRefusal(problem);
-          setFile(problem ? null : chosen);
-          if (problem) e.target.value = '';
-        }}
-        className="hidden"
-      />
-      {refusal && (
-        <p role="alert" className="text-sm text-error-light">
-          {refusal}
-        </p>
-      )}
-      {upload.error && (
-        <p role="alert" className="text-sm text-error-light">
-          {apiErrorSentence(upload.error, 'The payslip could not be uploaded.')}
-        </p>
-      )}
-    </div>
+        </FormActions>
+      </form>
+    </>
   );
 }
 
@@ -409,39 +330,34 @@ export function DocumentsPanel() {
   const list = docs.data ?? [];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <p className="text-sm text-text-muted">
-        Attach a payslip to an existing classification claim for human review. Uploading or extracting a payslip does
-        not establish eligibility.
+        Payslips support classification claims for human review; extraction does not establish eligibility. They are
+        private to you and permitted platform operations staff. Issuers cannot review them.
       </p>
-      <p className="text-sm text-text-muted">
-        Your payslips are private to you and permitted platform operations staff. Issuers cannot review them.
-      </p>
-      <UploadCard claims={claims} />
       {claimsQuery.isError && (
         <LoadError retry={() => claimsQuery.refetch()} busy={claimsQuery.isFetching}>
           Your classification claims could not be loaded.
         </LoadError>
       )}
       {claimsQuery.isSuccess && !claims.some((claim) => claim.status === 'submitted') && (
-        <a href={DESTINATIONS.investorEligibility.path} className="text-sm text-brand-light">
-          Submit a classification claim to attach supporting evidence.
-        </a>
+        <LinkRow to={DESTINATIONS.investorEligibility.path} label="Classification claims">
+          <p className="text-text-muted">Submit a claim before attaching supporting evidence.</p>
+        </LinkRow>
       )}
-
       {docs.isLoading && <Loading>Loading your documents…</Loading>}
-
       {docs.isError && (
         <LoadError retry={() => docs.refetch()} busy={docs.isFetching}>
           Your documents could not be loaded.
         </LoadError>
       )}
-
       {docs.isSuccess && list.length === 0 && <p className="text-sm text-text-muted">No documents yet.</p>}
-
-      {list.map((doc) => (
-        <DocumentCard key={doc.uuid} initialDoc={doc} claims={claims} />
-      ))}
+      <div className="divide-y divide-border-subtle">
+        {list.map((doc) => (
+          <DocumentCard key={doc.uuid} initialDoc={doc} claims={claims} />
+        ))}
+      </div>
+      <UploadCard claims={claims} />
     </div>
   );
 }

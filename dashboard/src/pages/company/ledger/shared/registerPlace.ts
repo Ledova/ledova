@@ -1,4 +1,5 @@
-import { DESTINATIONS, type LedgerTask } from '@ledova/shared';
+import { DESTINATIONS } from '@ledova/shared';
+import type { LedgerTask } from '@utils/destinations';
 
 export interface RegisterPlace {
   company?: string;

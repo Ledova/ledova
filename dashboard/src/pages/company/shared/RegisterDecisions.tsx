@@ -152,7 +152,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   const decisions = { approve, apply, reject };
   const decision = active ? decisions[active] : null;
   const busy = approve.busy || apply.busy || reject.busy;
-  const held = busy || !!approve.recovery || !!apply.recovery || !!reject.recovery || (!!pageReview && !!active);
+  const held = busy || !!approve.recovery || !!apply.recovery || !!reject.recovery || !!active;
   useEffect(() => {
     onHeldChange?.(proposal.uuid, held);
     return () => onHeldChange?.(proposal.uuid, false);

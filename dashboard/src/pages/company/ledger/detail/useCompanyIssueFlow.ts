@@ -16,7 +16,7 @@ import {
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export type Commands = ReturnType<typeof useCompanyIssueInstructions>;
 export type EvidenceKind = 'authority' | 'terms' | 'acceptance';
@@ -90,6 +90,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
   const [reason, setReason] = useState('');
   const [shares, setShares] = useState('');
   const [termsOn, setTermsOn] = useState(utcToday);
+  const [initialTermsOn] = useState(termsOn);
   const [terms, setTerms] = useState('');
   const [acceptanceRequired, setAcceptanceRequired] = useState(false);
   const [files, setFiles] = useState<Partial<Record<EvidenceKind, File>>>({});
@@ -214,7 +215,38 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
       if (mounted.current) setBusy(null);
     }
   };
+  const draft = useMemo(
+    () => ({
+      active:
+        !!nomination ||
+        member !== 'new' ||
+        !!approval ||
+        !!director ||
+        !!reference ||
+        !!reason ||
+        !!shares ||
+        !!terms ||
+        acceptanceRequired ||
+        Object.keys(files).length > 0 ||
+        termsOn !== initialTermsOn,
+    }),
+    [
+      nomination,
+      member,
+      approval,
+      director,
+      reference,
+      reason,
+      shares,
+      termsOn,
+      initialTermsOn,
+      terms,
+      acceptanceRequired,
+      files,
+    ],
+  );
   return {
+    draft,
     nomination,
     setNomination,
     member,

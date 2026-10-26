@@ -109,17 +109,24 @@ Use `tsc -b --noEmit` for a solution config with references; a config with no fi
 references must name its files. The checker resolves JSONC and inherited `files`/`include`
 independently, reports unreadable configuration, accounts for every discovered workspace or explicit
 exclusion, and distinguishes a successful empty check from a compiler error that already fails CI.
+Discovery skips dependencies, build output and per-developer `.claude/` and `.codex/` directories,
+including their private worktrees, before descending into them.
+Contracts are excluded from this discovery gate: `npm --prefix contracts run compile` generates
+TypeChain typings and then runs `tsc --noEmit` over the Hardhat configuration, deployment scripts
+and tests. `make build` runs it in CI, after `make check`.
 It does not replace compilation. Install the correct workspace dependencies before running
 `make check`; checks do not install missing tools.
 
 ## The layer gate
 
-`make check-layers` enforces the [backend layer table](backend.md#backend-layers): services
-orchestrate, querysets own queries, and views adapt HTTP. Follow the reference files named there.
-New/touched services use functions; existing class conversions are tracked debt. Stateful provider
-clients remain classes. The checker reads Python syntax and maintains rule-specific historical
-allowances; it is not a call graph, and a measured legacy site is not a general permission for new
-code.
+`make check-layers` enforces selected rules from the
+[backend layer table](backend.md#backend-layers): model queries, view ORM access, transactions,
+locking and logging, task transactions, admin row-action wrappers and Django signal imports.
+Follow the reference files named there. The convention that new/touched services use functions
+is enforced in review; historical class namespaces remain to be converted as touched, and stateful
+provider clients remain classes. The checker reads Python syntax and maintains rule-specific
+historical allowances; it does not enforce every layer rule or build a call graph, and a measured
+legacy site is not a general permission for new code.
 
 ## The connection-binding gate
 

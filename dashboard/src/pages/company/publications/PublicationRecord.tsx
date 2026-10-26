@@ -12,16 +12,21 @@ import {
   useResolutionStatus,
   type Publication,
 } from '@ledova/shared';
-import { Row, Rows, Status, type Tone } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { Disclosure, Row, Rows, Status, type Tone } from '@components/Ledger';
+import { FormActions, PageAction } from '@components/Page';
 
 const PUBLICATION_WINDOW_TONES = new Map<string, Tone>([
   ['open', 'moving'],
   ['upcoming', 'waiting'],
 ]);
 
-function ResolutionRecord({ publication }: { publication: Publication }) {
-  const status = useResolutionStatus(publication);
+function ResolutionRecord({
+  publication,
+  status,
+}: {
+  publication: Publication;
+  status: ReturnType<typeof useResolutionStatus>;
+}) {
   if (status === null) return null;
   return (
     <div className="space-y-3 py-2">
@@ -34,15 +39,6 @@ function ResolutionRecord({ publication }: { publication: Publication }) {
         <Row label="Voting opens">{formatDateTime(publication.opensAt)}</Row>
         <Row label="Voting closes">{formatDateTime(publication.closesAt)}</Row>
       </Rows>
-      <p className="text-sm text-text-primary">
-        <Status tone={PUBLICATION_WINDOW_TONES.get(status) ?? 'closed'}>
-          {status === 'upcoming'
-            ? PUBLICATION_COPY.NOT_OPEN_YET
-            : status === 'open'
-              ? 'Voting is open'
-              : PUBLICATION_COPY.CLOSED}
-        </Status>
-      </p>
       {publication.result ? (
         <>
           <p className="text-sm text-text-primary">
@@ -82,36 +78,58 @@ export function PublicationRecord({
   opening: boolean;
   blocked: boolean;
 }) {
+  const status = useResolutionStatus(publication);
   return (
-    <article className="flex min-w-0 flex-col gap-2 break-words py-4">
-      <h3 className="break-words text-sm font-medium text-text-primary">{publication.title}</h3>
-      <p className="text-xs uppercase tracking-wide text-text-muted">{PUBLICATION_KIND_LABELS[publication.kind]}</p>
-      <p className="text-sm text-text-primary">{publication.companyName}</p>
-      <p className="text-sm text-text-muted">
-        {publication.tokenName} ({publication.tokenSymbol})
-      </p>
-      <Rows>
-        <Row label={PUBLICATION_COPY.RECORD_DATE_LABEL}>{formatDate(publication.recordDate)}</Row>
-        <Row label="Published">{formatDate(publication.createdAt)}</Row>
-      </Rows>
-      <ResolutionRecord publication={publication} />
-      {publication.kind === 'distribution' && (
+    <article className="min-w-0 space-y-3 break-words py-3">
+      <Disclosure
+        summary={
+          <span className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <span className="min-w-0">
+              <span className="block break-words text-sm font-medium text-text-primary">{publication.title}</span>
+              <span className="block text-sm text-text-muted">
+                {PUBLICATION_KIND_LABELS[publication.kind]} · {publication.tokenName} ({publication.tokenSymbol})
+              </span>
+            </span>
+            <span className="space-y-1 text-sm text-text-muted sm:text-right">
+              {status !== null && (
+                <Status tone={PUBLICATION_WINDOW_TONES.get(status) ?? 'closed'}>
+                  {status === 'upcoming'
+                    ? PUBLICATION_COPY.NOT_OPEN_YET
+                    : status === 'open'
+                      ? 'Voting is open'
+                      : PUBLICATION_COPY.CLOSED}
+                </Status>
+              )}
+              <span className="block">Published {formatDate(publication.createdAt)}</span>
+            </span>
+          </span>
+        }
+      >
         <Rows>
-          <Row label="Rate per share">
-            <span className="break-all">{describeRate(publication)}</span>
-          </Row>
-          {publication.declaredOn && <Row label="Declared">{formatDate(publication.declaredOn)}</Row>}
-          {publication.paymentDate && <Row label="Payment date">{formatDate(publication.paymentDate)}</Row>}
+          <Row label="Company">{publication.companyName}</Row>
+          <Row label={PUBLICATION_COPY.RECORD_DATE_LABEL}>{formatDate(publication.recordDate)}</Row>
         </Rows>
-      )}
-      <PageAction
-        primary
-        label={PUBLICATION_COPY.OPEN}
-        busy={opening}
-        busyLabel={PUBLICATION_COPY.OPENING}
-        onClick={open}
-        disabled={blocked}
-      />
+        <ResolutionRecord publication={publication} status={status} />
+        {publication.kind === 'distribution' && (
+          <Rows>
+            <Row label="Rate per share">
+              <span className="break-all">{describeRate(publication)}</span>
+            </Row>
+            {publication.declaredOn && <Row label="Declared">{formatDate(publication.declaredOn)}</Row>}
+            {publication.paymentDate && <Row label="Payment date">{formatDate(publication.paymentDate)}</Row>}
+          </Rows>
+        )}
+      </Disclosure>
+      <FormActions>
+        <PageAction
+          primary
+          label={PUBLICATION_COPY.OPEN}
+          busy={opening}
+          busyLabel={PUBLICATION_COPY.OPENING}
+          onClick={open}
+          disabled={blocked}
+        />
+      </FormActions>
     </article>
   );
 }

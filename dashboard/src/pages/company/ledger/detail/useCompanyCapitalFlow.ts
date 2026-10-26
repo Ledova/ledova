@@ -13,7 +13,7 @@ import {
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export type Commands = ReturnType<typeof useCompanyCapitalIncreases>;
 export function useCapitalRecord({ record, commands }: { record: RegisterCapitalIncrease; commands: Commands }) {
@@ -125,7 +125,12 @@ export function useCapitalPreparation({ commands }: { commands: Commands }) {
       if (mounted.current) setBusy(false);
     }
   };
+  const draft = useMemo(
+    () => ({ active: !!additional || !!purpose || !!board || !!shareholder || !!file }),
+    [additional, purpose, board, shareholder, file],
+  );
   return {
+    draft,
     before,
     setBefore,
     additional,
