@@ -120,17 +120,25 @@ async function serveASignedInAccount(page: Page, role: Role) {
     if (path === '/api/v1/tokens/register/' && role !== 'company')
       return answer({
         ...EMPTY,
-        count: 1,
-        results: [{ uuid: 'ordinary', companyUuid: 'company', companyName: LONG_NAME }],
+        count: 2,
+        results: ['ordinary', 'preference'].map((uuid) => ({ uuid, companyUuid: 'company', companyName: LONG_NAME })),
       });
     if (path === '/api/v1/tokens/ordinary/holders/' && role !== 'company') return answer(ORDINARY);
+    if (path === '/api/v1/tokens/preference/holders/' && role !== 'company')
+      return answer({
+        ...ORDINARY,
+        token: { ...ORDINARY.token, uuid: 'preference', name: 'Preference shares', symbol: 'PRF' },
+        issuedSupply: '5',
+        totalHolders: 1,
+        holders: [{ ...ORDINARY.holders[0], balance: '5', percentage: 100, shareClass: 'PRF' }],
+      });
     if (path === '/api/v1/tokens/ownership/' && role !== 'company')
       return answer({
         company: company.uuid,
         companyName: LONG_NAME,
         asAt: '2026-10-26T00:00:00Z',
         complete: true,
-        issuedSupply: ORDINARY.issuedSupply,
+        issuedSupply: '140',
         totalHolders: ORDINARY.totalHolders,
         classes: [
           {
@@ -141,6 +149,17 @@ async function serveASignedInAccount(page: Page, role: Role) {
             initialized: true,
             issuedSupply: ORDINARY.issuedSupply,
             totalHolders: ORDINARY.totalHolders,
+            sequence: 1,
+            recordedAt: '2026-10-26T00:00:00Z',
+          },
+          {
+            uuid: 'preference',
+            name: 'Preference shares',
+            symbol: 'PRF',
+            tokenType: 'preference',
+            initialized: true,
+            issuedSupply: '5',
+            totalHolders: 1,
             sequence: 1,
             recordedAt: '2026-10-26T00:00:00Z',
           },
@@ -174,9 +193,24 @@ async function openTheSidebar(page: Page, role: Role) {
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
   if (role !== 'company') {
     const summary = page.getByRole('region', { name: 'Company ownership summary' });
-    await expect(summary).toContainText('Issued shares135');
+    await expect(summary).toContainText('Issued shares140');
     await expect(summary).toContainText('Current shareholders2');
-    await page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true }).click();
+    if (page.viewportSize()!.width >= 768) {
+      const ring = page
+        .locator('section')
+        .filter({ has: page.getByRole('heading', { name: 'Ownership overview', exact: true }) })
+        .locator('svg');
+      await expect(ring).toBeVisible();
+      await page.getByRole('button', { name: 'Explore Preference shares (PRF)', exact: true }).focus();
+      const box = await ring.boundingBox();
+      expect(box).not.toBeNull();
+      await page.mouse.click(
+        box!.x + box!.width / 2 + Math.min(box!.width, box!.height) * 0.38,
+        box!.y + box!.height / 2,
+      );
+    } else {
+      await page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true }).click();
+    }
     const ownership = page.getByRole('table', { name: 'Ordinary shares shareholders' });
     await expect(ownership.getByRole('row', { name: 'Founder 100 74.07%' })).toBeVisible();
     await expect(ownership.getByRole('row', { name: 'Investor 35 25.93%' })).toBeVisible();

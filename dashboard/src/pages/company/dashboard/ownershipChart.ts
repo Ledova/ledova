@@ -66,9 +66,10 @@ export function renderOwnershipRing(
   };
   let chart: EChartsType | undefined;
   let highlighted: string | null = null;
+  let nativeHover: string | null = null;
   const highlight = (uuid: string | null) => {
     highlighted = uuid;
-    if (!chart) return;
+    if (!chart || (nativeHover !== null && uuid === nativeHover)) return;
     chart.dispatchAction({ type: 'downplay', seriesIndex: 0 });
     const dataIndex = eligible.findIndex((item) => item.uuid === uuid);
     if (dataIndex >= 0) chart.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex });
@@ -84,10 +85,20 @@ export function renderOwnershipRing(
       });
       chart.on('mouseover', (parameters) => {
         const row = rowFrom(parameters);
-        if (row) onHighlight(row.uuid);
+        if (!row) return;
+        nativeHover = row.uuid;
+        if (highlighted && highlighted !== row.uuid) {
+          const dataIndex = eligible.findIndex((item) => item.uuid === highlighted);
+          if (dataIndex >= 0) chart?.dispatchAction({ type: 'downplay', seriesIndex: 0, dataIndex });
+        }
+        onHighlight(row.uuid);
       });
-      chart.on('mouseout', () => onHighlight(null));
-      chart.on('globalout', () => onHighlight(null));
+      const leave = () => {
+        nativeHover = null;
+        onHighlight(null);
+      };
+      chart.on('mouseout', leave);
+      chart.on('globalout', leave);
       highlight(highlighted);
     } else chart.resize();
   };
