@@ -412,11 +412,12 @@ cycles and stop periodic work while the view is hidden or the browser is offline
 need no polling. Issue shares rechecks the selected class's appointments and issue records every
 60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
 Mobile Issue shares does the same on entry, when the app or its screen comes back into view, and
-every 60 seconds while the task is on screen (`mobile/src/screens/company-register/useIssueFreshness.ts`).
+every 60 seconds while the task is on screen (`mobile/src/screens/company-register/useTaskFreshness.ts`).
 Another tab or a pushed screen counts as hidden (`ClassRecords.tsx`). Mobile has no offline signal,
 so a cycle that fails offline shows the read's error until the next cycle or Retry. It waits while a
 preparation or review is open, because a reread would disable the open form's fields and hide the
-review.
+review. Mobile Transfer shares uses the same hook without an interval, as the web's Transfer shares
+rereads only on entry, focus and reconnect; mobile waits while a review is open.
 Employee share scheme is the owner's explicit exception: no interval, focus, visibility or reconnect
 refreshes. It reads on entry and after the person's own changes, with explicit retries after errors.
 Stale entry rechecks appointments before dependent records, deferring that entry read while an editor

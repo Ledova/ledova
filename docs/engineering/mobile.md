@@ -118,7 +118,7 @@ inside and outside the review and unmet requirements in words. An investor issue
 records the issue (`completeIssue` with the apply appointment); a non-paid issue keeps Approve, then
 Record issue. There is no Refresh button: as on the web, it rereads authority, then its records,
 on entry, when the app or the screen comes back into view, and every minute while it is on screen
-(`useIssueFreshness.ts`; `ClassRecords.tsx` treats another tab or a pushed screen as hidden),
+(`useTaskFreshness.ts`; `ClassRecords.tsx` treats another tab or a pushed screen as hidden),
 waiting while a preparation or review is open. **Prepare issue** opens Prepare share
 issue in place of the list, which stays mounted, and asks **What kind of issue?**: the investor form
 (`AllotmentForm.tsx`) takes the web's three steps under a step indicator
@@ -135,7 +135,10 @@ each record (`TransferRecord.tsx`) leading with the web's From, To, Shares, Tran
 and its Details and documents. Review and approve opens the web's review (`TransferReview.tsx`) in
 place of the list, titled Review share transfer, and its Approve records the transfer too
 (`completeTransfer` with the apply appointment): an approved transfer still waiting for its entry
-shows **Ready to complete**, and Approve finishes it. Reject transfer uses the same review.
+shows **Ready to complete**, and Approve finishes it. Reject transfer uses the same review. There is
+no Refresh button: it rereads authority, then its transfers, on entry and when the app or the screen
+comes back into view (`useTaskFreshness.ts`, without the minute's interval), waiting while a review
+is open.
 **Prepare a non-paid transfer** sits beneath the list and opens the separate preparation screen
 (`PrepareRegisterTransferScreen.tsx`) with the web's three steps (`TransferForm.tsx`): People and
 shares between existing company people only, Transfer documents, then Company authority and review.

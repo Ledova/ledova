@@ -2,10 +2,13 @@ import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
 import type { OwnCompanyAppointment, RegisterStep, TokenHoldersResponse } from '@ledova/shared';
 import { Action, Choice, Section } from '../../components/Ledger';
+import { entriesKey, grantsKey, registerHoldersKey, transferMembersKey } from '../../hooks/useCompanyRegister';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useInvestorIssues } from './useInvestorIssues';
-import { useIssueFreshness } from './useIssueFreshness';
 import { useNonPaidIssues } from './useNonPaidIssues';
+import { allotmentsKey } from './useRegisterAllotments';
+import { awardsKey } from './useRegisterAwards';
+import { useTaskFreshness } from './useTaskFreshness';
 
 const HIDDEN = { display: 'none' } as const;
 
@@ -97,14 +100,22 @@ export function ClassIssues({
     reviewing,
     onReviewChange,
   });
-  useIssueFreshness({
+  const token = register.token.uuid;
+  useTaskFreshness({
     epoch,
     company,
-    token: register.token.uuid,
     visible,
     sourceReady,
     paused: preparing || !!reviewing,
+    records: [grantsKey(epoch, token), allotmentsKey(epoch, token)],
+    related: [
+      registerHoldersKey(epoch),
+      awardsKey(epoch, token),
+      entriesKey(epoch, token),
+      transferMembersKey(epoch, token),
+    ],
     refreshRecords: () => Promise.allSettled([investor.refreshRecords(), nonPaid.refreshRecords()]),
+    interval: 60_000,
   });
   const held = investor.held || nonPaid.held;
   if (request && answered !== request.key && !held) {

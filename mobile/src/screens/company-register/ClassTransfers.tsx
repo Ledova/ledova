@@ -11,7 +11,14 @@ import {
 import { Action, LinkRow, Section } from '../../components/Ledger';
 import { TransferRecord } from './TransferRecord';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { entriesKey, transfersKey, transferMembersKey, useRegisterTransfers } from '../../hooks/useCompanyRegister';
+import {
+  entriesKey,
+  registerHoldersKey,
+  transfersKey,
+  transferMembersKey,
+  useRegisterTransfers,
+} from '../../hooks/useCompanyRegister';
+import { useTaskFreshness } from './useTaskFreshness';
 
 export function ClassTransfers({
   epoch,
@@ -23,11 +30,15 @@ export function ClassTransfers({
   onPrepare,
   onSetUp,
   onOpenClass,
-  sourceReady = true,
+  sourceReady,
+  readReady,
+  visible,
   guard,
   onHeldChange,
 }: {
-  sourceReady?: boolean;
+  sourceReady: boolean;
+  readReady: boolean;
+  visible: boolean;
   guard?: () => void;
   onHeldChange?: (key: string, held: boolean) => void;
   epoch: number;
@@ -47,13 +58,24 @@ export function ClassTransfers({
     (uuid: string, open: boolean) => setReviewing((current) => (open ? uuid : current === uuid ? null : current)),
     [],
   );
-  const transfers = useRegisterTransfers(epoch, company, register.token.uuid);
-  const privateReady = sourceReady && transfers.isSuccess && !transfers.isFetching;
+  const token = register.token.uuid;
+  const transfers = useRegisterTransfers(epoch, company, token);
+  useTaskFreshness({
+    epoch,
+    company,
+    visible,
+    sourceReady,
+    paused: !!reviewing,
+    records: [transfersKey(epoch, token)],
+    related: [registerHoldersKey(epoch), entriesKey(epoch, token), transferMembersKey(epoch, token)],
+    refreshRecords: () => transfers.refetch({ cancelRefetch: false, throwOnError: true }),
+  });
+  const privateReady = readReady && transfers.isSuccess && !transfers.isFetching;
   const draft = register.token.status === 'draft';
   const supported = register.initialized && draft;
   const recordGuard = () => {
     guard?.();
-    const state = queryClient.getQueryState(transfersKey(epoch, register.token.uuid));
+    const state = queryClient.getQueryState(transfersKey(epoch, token));
     if (state?.status !== 'success' || state.fetchStatus !== 'idle')
       throw new Error('Refresh the register records before continuing.');
   };
@@ -62,8 +84,8 @@ export function ClassTransfers({
       transfers.refetch(),
       refreshHolders(),
       refreshAppointments(),
-      queryClient.refetchQueries({ queryKey: entriesKey(epoch, register.token.uuid), type: 'active' }),
-      queryClient.invalidateQueries({ queryKey: transferMembersKey(epoch, register.token.uuid) }),
+      queryClient.refetchQueries({ queryKey: entriesKey(epoch, token), type: 'active' }),
+      queryClient.invalidateQueries({ queryKey: transferMembersKey(epoch, token) }),
     ]);
   const records = transfers.data ?? [];
   return (
@@ -71,7 +93,7 @@ export function ClassTransfers({
       <Section title={reviewing ? 'Review share transfer' : 'Share transfers'}>
         {!supported && (
           <View style={styles.group}>
-            {sourceReady && (
+            {readReady && (
               <Text style={styles.muted}>
                 {draft
                   ? 'Set up this share register before recording a transfer.'
@@ -99,9 +121,6 @@ export function ClassTransfers({
         ) : privateReady && records.length === 0 ? (
           <Text style={styles.muted}>{COPY.EMPTY}</Text>
         ) : null}
-        {!reviewing && (
-          <Action label="Refresh transfers" disabled={transfers.isFetching} onPress={() => void settle()} />
-        )}
         {records.map((transfer, index) => (
           <TransferRecord
             key={transfer.uuid}
