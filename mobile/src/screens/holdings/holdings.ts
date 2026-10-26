@@ -54,10 +54,18 @@ export function holdingsSummary(current: CompanyHolding[]) {
   ].join(' · ');
 }
 
+export function shortName(name: string) {
+  return (
+    name
+      .replace(/\b(pty|ltd|limited|proprietary)\b\.?/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim() || name
+  );
+}
+
 export function initials(name: string) {
-  const words = name
-    .replace(/\b(pty|ltd|limited|proprietary)\b\.?/gi, '')
-    .split(/\s+/)
+  const words = shortName(name)
+    .split(' ')
     .filter((word) => /^[A-Za-z0-9]/.test(word));
   return (
     words
