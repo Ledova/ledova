@@ -84,6 +84,8 @@ export {
   createCompanyToken,
   getRegisterClasses,
   getCompanyTokenHolders,
+  getCompanyOwnership,
+  getClassOwnershipHolders,
   downloadTokenRegister,
   getRegisterInspectionPreview,
   createRegisterInspectionCopy,

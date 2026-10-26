@@ -1519,6 +1519,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/ownership-holders/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_ownership_holders_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/register/certificate/': {
     parameters: {
       query?: never;
@@ -1975,6 +1991,22 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_tokens_member_records_entries_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/ownership/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_ownership_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -4515,6 +4547,16 @@ export interface ApiComponents {
       newPassword: string;
       newPasswordConfirm: string;
     };
+    ClassOwnershipHolders: {
+      asAt: string;
+      count: number;
+      issuedSupply: string;
+      next: string | null;
+      previous: string | null;
+      results: ApiComponents['schemas']['OwnershipHolder'][];
+      sequence: number;
+      token: string;
+    };
     ClassRightsAttributes: {
       capital?: ApiComponents['schemas']['ClassRightsCapital'];
       conversion?: ApiComponents['schemas']['ClassRightsConversion'];
@@ -4987,6 +5029,15 @@ export interface ApiComponents {
       statusDisplay: string;
       tradingName: string;
       uuid: string;
+    };
+    CompanyOwnershipSummary: {
+      asAt: string;
+      classes: ApiComponents['schemas']['OwnershipClass'][];
+      company: string;
+      companyName: string;
+      complete: boolean;
+      issuedSupply: string | null;
+      totalHolders: number | null;
     };
     CompanyPackRequestRequest: {
       appointment: string;
@@ -6140,6 +6191,23 @@ export interface ApiComponents {
       source: ApiComponents['schemas']['CompanyAppointmentSourceEnum'];
       status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
       uuid: string;
+    };
+    OwnershipClass: {
+      initialized: boolean;
+      issuedSupply: string | null;
+      name: string;
+      recordedAt: string | null;
+      sequence: number | null;
+      symbol: string;
+      tokenType: string;
+      totalHolders: number | null;
+      uuid: string;
+    };
+    OwnershipHolder: {
+      balance: string;
+      member: string;
+      name: string | null;
+      percentage: string;
     };
     PaginatedAssetList: {
       count: number;
@@ -12186,6 +12254,32 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_ownership_holders_list: {
+    parameters: {
+      query: {
+        page?: number;
+        page_size?: number;
+        search?: string;
+        sequence: number;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['ClassOwnershipHolders'];
+        };
+      };
+    };
+  };
   api_v1_tokens_register_certificate_retrieve: {
     parameters: {
       query: {
@@ -13036,6 +13130,27 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['MemberRecordEntries'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_ownership_retrieve: {
+    parameters: {
+      query: {
+        company: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyOwnershipSummary'];
         };
       };
     };

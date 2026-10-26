@@ -78,6 +78,105 @@ def unfinished_signup(label, acn):
 
 
 class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
+    def test_company_ownership_summary_and_paged_holders_are_exact_and_current(self):
+        overview = "/api/v1/tokens/ownership/"
+        summary = self.client.get(overview, {"company": str(self.company.pk)})
+        self.assertEqual(summary.status_code, 200, summary.content)
+        self.assertEqual(
+            (summary.json()["complete"], summary.json()["issuedSupply"], summary.json()["totalHolders"]),
+            (True, "100", 1),
+        )
+        with use_operator():
+            second = ShareToken.objects.create(
+                company=self.company, name="Synthetic preference shares", symbol="PREF", total_supply="1000"
+            )
+        unopened = self.client.get(overview, {"company": str(self.company.pk)}).json()
+        self.assertEqual(
+            (unopened["complete"], unopened["issuedSupply"], unopened["totalHolders"]), (False, None, None)
+        )
+        payload = self.import_payload_for_ownership(second)
+        prepared = self.client.post("/api/v1/tokens/register-imports/", payload, format="json")
+        self.assertEqual(prepared.status_code, 201, prepared.content)
+        self.decision("/api/v1/tokens/register-imports/", prepared.json()["uuid"], "approve")
+        self.decision("/api/v1/tokens/register-imports/", prepared.json()["uuid"], "apply")
+        summary = self.client.get(overview, {"company": str(self.company.pk)}).json()
+        self.assertEqual((summary["complete"], summary["issuedSupply"], summary["totalHolders"]), (True, "200", 2))
+        self.assertEqual(sum(int(row["issuedSupply"]) for row in summary["classes"]), 200)
+        self.assertTrue(all(row["recordedAt"] and row["sequence"] == 1 for row in summary["classes"]))
+        endpoint = f"/api/v1/tokens/{second.pk}/ownership-holders/"
+        first = self.client.get(endpoint, {"sequence": 1, "page_size": 1})
+        self.assertEqual(first.status_code, 200, first.content)
+        self.assertEqual((first.json()["count"], len(first.json()["results"])), (2, 1))
+        self.assertEqual(
+            (first.json()["results"][0]["member"], first.json()["results"][0]["balance"]),
+            (str(self.member.pk), "60"),
+        )
+        self.assertEqual(first.json()["results"][0]["percentage"], "60.00")
+        self.assertTrue(first.json()["next"])
+        later = self.client.get(endpoint, {"sequence": 1, "page_size": 1, "page": 2}).json()
+        self.assertEqual((later["results"][0]["name"], later["results"][0]["balance"]), ("Synthetic Second", "40"))
+        found = self.client.get(endpoint, {"sequence": 1, "search": "SECOND synthetic"}).json()
+        self.assertEqual((found["count"], found["results"][0]["name"]), (1, "Synthetic Second"))
+        empty = self.client.get(endpoint, {"sequence": 1, "search": "missing"}).json()
+        self.assertEqual((empty["count"], empty["results"]), (0, []))
+        self.assertEqual(self.client.get(endpoint, {"sequence": 1, "search": "x" * 101}).status_code, 400)
+        self.assertEqual(self.client.get(endpoint, {"sequence": 1, "page": 0}).status_code, 404)
+        self.assertEqual(
+            self.client.get("/api/v1/tokens/not-a-class/ownership-holders/", {"sequence": 1}).status_code,
+            404,
+        )
+        identifier = self.prepare_grant()
+        self.decision("/api/v1/tokens/register-grants/", identifier, "approve")
+        self.decision("/api/v1/tokens/register-grants/", identifier, "apply")
+        stale = self.client.get(f"/api/v1/tokens/{self.token.pk}/ownership-holders/", {"sequence": 1})
+        self.assertEqual(stale.status_code, 409, stale.content)
+        reader, _ = person("ownership-reader")
+        _, code, _ = issue_team_invitation(
+            requester=self.owner,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.appointment.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.READ_REGISTER],
+        )
+        appointment = accept_team_invitation(
+            requester=reader,
+            code=code,
+            declaration_version=DECLARATION_VERSION,
+            accept_declaration=True,
+        )
+        self.client.force_authenticate(reader)
+        self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 200)
+        self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 200)
+        revoke_company_appointment(requester=self.owner, appointment_id=appointment.pk)
+        self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 404)
+        self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 404)
+        self.client.force_authenticate(self.owner)
+        revoke_company_appointment(
+            requester=self.owner,
+            appointment_id=self.appointment.pk,
+        )
+        self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 200)
+        self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 200)
+
+    def import_payload_for_ownership(self, token):
+        from shared.tests.core_fixtures import import_payload
+
+        payload = import_payload(self.owner, self.appointment, token, member_id=self.member.pk)
+        payload["asic_member_count"] = 2
+        first = payload["members"][0]
+        first["shares"] = "60"
+        first["allotments"] = []
+        payload["members"].append(
+            {
+                **first,
+                "member": str(uuid4()),
+                "name": "Synthetic Second",
+                "residential_address": "2 Example Street, Sydney NSW 2000",
+                "shares": "40",
+            }
+        )
+        return payload
+
     def test_unfinished_signup_restarts_with_a_new_email_only_before_company_setup(self):
         def sign_in(user):
             self.client.force_authenticate(user=None)
