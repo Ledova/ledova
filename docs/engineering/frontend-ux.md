@@ -40,7 +40,13 @@ use this workspace frame. Their creation and record actions use the same footer;
 keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
-record-management details, with awards separate from issued shares. The member overview's shares and
+record-management details, with awards separate from issued shares. The company Dashboard uses one
+ownership overview: select a share class in its map or labelled selector to open a ranked, searchable
+holder table in the same panel. **All classes** returns to the overview and restores focus to its
+selector. Narrow screens show the class table instead of squeezing a map. Percentages name their
+denominator; issued share counts do not imply voting power, economic value or a fully diluted
+option pool. Preserve the sidebar for navigation to other pages and keep record actions there.
+The member overview's shares and
 awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
 on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
 quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
