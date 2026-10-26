@@ -192,7 +192,10 @@ it('associates a member by invitation code, opens their company, award, details 
   await fireEvent.press(await screen.findByRole('button', { name: 'Accept an invitation' }));
   expect(mockNavigate).toHaveBeenCalledWith('Invitation');
   await view.rerender(<InvitationScreen />);
-  await fireEvent.changeText(screen.getByLabelText('Code from the email'), ` ${MEMBER_CODE} `);
+  await fireEvent.changeText(
+    screen.getByLabelText('Link or code from the email'),
+    ` https://ledova.example/member-invitation#${MEMBER_CODE} `,
+  );
   expect(await screen.findByText(MEMBER_RECORD.company.name)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation' }));
   expect(await screen.findByText('Invitation accepted. Your company records are available.')).toBeTruthy();
@@ -202,7 +205,7 @@ it('associates a member by invitation code, opens their company, award, details 
   expect(screen.getByRole('button', { name: 'Past holdings (1)' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: new RegExp(`^${PAST_RECORD.company.name}`) })).toBeNull();
   await view.rerender(<InvitationScreen />);
-  await fireEvent.changeText(screen.getByLabelText('Code from the email'), OTHER_CODE);
+  await fireEvent.changeText(screen.getByLabelText('Link or code from the email'), OTHER_CODE);
   expect(await screen.findByRole('button', { name: 'Accept invitation' })).toBeTruthy();
   expect(screen.queryByText('Invitation accepted. Your company records are available.')).toBeNull();
   await view.rerender(<HoldingsScreen />);

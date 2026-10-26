@@ -66,8 +66,9 @@ Award, Details, Past holdings, Invitation and Profile screens. Holdings (`mobile
 a line per share class and each award's vesting bar, the award parts matching the web's; above six
 companies it becomes a searchable list. Classes with no shares left sit under Past holdings. With no
 member records it shows No shares yet and Accept an invitation. The Invitation screen takes the
-code from the email (trimmed), previews the inviting company, the recorded shareholder, the
-invited email and the deadline, and accepts it through the member-records state. A
+pasted invitation link or its code (the text after the last `#`, trimmed), previews the inviting
+company, the recorded shareholder, the invited email and the deadline, and accepts it through the
+member-records state, reporting acceptance only once the server does. A
 company opens the Company screen: a row per share class and per award, Documents and Your details. A class
 opens its history, newest change first, with each change's certificate status (Request, Requested
 or Certificate), taken from its newest open or fulfilled request. The status opens a certificate

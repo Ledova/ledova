@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,6 +25,14 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { Avatar } from './CompanyHoldings';
 import { MemberNotice, useMemberRecordsState } from './MemberRecordsProvider';
 
+function codeOf(value: string) {
+  const text = value.trim();
+  return text
+    .slice(text.lastIndexOf('#') + 1)
+    .trim()
+    .slice(0, FIELD_LIMITS.INVITATION_CODE);
+}
+
 export function InvitationScreen() {
   const styles = useCompanyStyles();
   const card = useCardStyles();
@@ -48,39 +56,48 @@ export function InvitationScreen() {
       if (
         !data.company?.uuid ||
         !data.company.name ||
+        !data.member?.uuid ||
+        !data.member.name ||
         !data.intendedEmail ||
+        !data.acceptanceDeadline ||
         !['pending', 'accepted'].includes(data.status)
       )
         throw new Error('This invitation could not be confirmed. Check the code and try again.');
       return data;
     },
   });
+  const refetchPreview = preview.refetch;
+  useEffect(() => {
+    if (valid && !read.busy) void refetchPreview({ cancelRefetch: false });
+  }, [valid, read.busy, refetchPreview]);
   const shown = valid && preview.isSuccess ? preview.data : null;
-  const accepted =
-    !!shown &&
-    (shown.status === 'accepted' ||
-      read.records.some((record) => record.company.uuid === shown.company.uuid && record.member === shown.member.uuid));
+  const accepted = shown?.status === 'accepted';
   const held = read.busy || !!read.retry;
   return (
     <Page testID="invitation-scroll" title="Invitation">
       <MemberNotice read={read} />
       <Field
-        label="Code from the email"
+        label="Link or code from the email"
         value={code}
         editable={!held && !accepted}
         autoCapitalize="none"
         autoCorrect={false}
         error={code && !valid ? INVITATION_CODE_PROBLEM : null}
-        onChange={(value) => setCode(value.trim().slice(0, FIELD_LIMITS.INVITATION_CODE))}
+        onChange={(value) => setCode(codeOf(value))}
       />
-      {valid && preview.isPending ? (
-        <Text style={styles.muted}>Checking your invitation…</Text>
+      {!read.owner ? (
+        <Text style={styles.muted}>Check your signed-in account before accepting an invitation.</Text>
       ) : valid && preview.isError ? (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {failureStatus((preview.error as UserFriendlyError).originalError ?? preview.error) === 404
-            ? 'No invitation matches this code. Check it against the email.'
-            : failureSentence(preview.error, 'Your invitation could not be checked. Check the code and try again.')}
-        </Text>
+        <View style={look.actions}>
+          <Text accessibilityRole="alert" style={styles.error}>
+            {failureStatus((preview.error as UserFriendlyError).originalError ?? preview.error) === 404
+              ? 'No invitation matches this code. Check it against the email.'
+              : failureSentence(preview.error, 'Your invitation could not be checked. Check the code and try again.')}
+          </Text>
+          <Action label="Try again" disabled={preview.isFetching} onPress={() => void preview.refetch()} />
+        </View>
+      ) : valid && !shown ? (
+        <Text style={styles.muted}>Checking your invitation…</Text>
       ) : shown ? (
         <View style={[card.card, look.invite]}>
           <Avatar name={shown.company.name} />
@@ -95,7 +112,9 @@ export function InvitationScreen() {
       ) : null}
       {accepted ? (
         <View style={look.actions}>
-          <Text style={styles.text}>Invitation accepted. Your company records are available.</Text>
+          <Text accessibilityLiveRegion="polite" style={styles.text}>
+            Invitation accepted. Your company records are available.
+          </Text>
           <Action label="View my shares" primary onPress={() => navigation.popTo('Main', { screen: 'Holdings' })} />
         </View>
       ) : (

@@ -83,8 +83,9 @@ or creates an account, then returns to the invitation in the same tab. They revi
 shareholder and intended email before choosing **Accept invitation**; opening a link never grants
 access. Their verified email must match, and acceptance binds one current account to one member
 in that company. On mobile, **Account** → **Accept an invitation** (also on Holdings before the
-first one) takes the code from the email, shows the company, shareholder, email and deadline,
-and accepts with **Accept invitation**.
+first one) takes the pasted **View invitation** link (or its code), shows the company, shareholder,
+email and deadline, and accepts with **Accept invitation**; it reports acceptance only once the
+server does.
 An expired invitation, a changed recorded identity for the member, a revoked appointment of the
 inviting administrator, another person's account or a conflicting association is refused.
 

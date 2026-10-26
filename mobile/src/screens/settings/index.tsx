@@ -125,7 +125,7 @@ export function SettingsScreen({ onNotifications }: { onNotifications: () => voi
             onPress={() => navigation.navigate('MainApp', { screen: 'Profile' })}
             style={look.profile}
           >
-            <Avatar name={name} />
+            <Avatar name={userProfile?.fullName || userProfile?.email || ''} />
             <View style={look.grow}>
               <Text style={look.name}>{name}</Text>
               {userProfile?.email ? <Text style={styles.muted}>{userProfile.email}</Text> : null}
@@ -177,10 +177,18 @@ export function SettingsScreen({ onNotifications }: { onNotifications: () => voi
         <View style={card.card}>
           <Rows>
             <LinkRow label="Change password" onPress={() => open('password')} />
-            <LinkRow label="Export data" onPress={() => open('export')}>
+            <LinkRow
+              label="Export data"
+              accessibilityLabel="Export data. Save a private JSON copy of your account data."
+              onPress={() => open('export')}
+            >
               <Text style={styles.muted}>Save a private JSON copy of your account data.</Text>
             </LinkRow>
-            <LinkRow label="Delete account" onPress={() => open('delete')}>
+            <LinkRow
+              label="Delete account"
+              accessibilityLabel="Delete account. Deactivate your account and remove personal details. Some records are retained."
+              onPress={() => open('delete')}
+            >
               <Text style={styles.muted}>
                 Deactivate your account and remove personal details. Some records are retained.
               </Text>
