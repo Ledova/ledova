@@ -262,12 +262,20 @@ async function openTheSidebar(page: Page, role: Role) {
   await settingsLink.click();
   await expect(page).toHaveURL(/\/settings#profile$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
-  for (const name of ['Personal information', 'Security', 'Preferences', 'Data and privacy'])
+  for (const name of ['Personal information', 'Account'])
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(
     role === 'investor' ? 0 : 1,
   );
   await expect(page.getByRole('link', { name: 'Back to Settings', exact: true })).toHaveCount(0);
+  for (const name of ['Account status', 'Security', 'Preferences', 'Data and privacy', 'Supporting payslips'])
+    await expect(page.getByRole('heading', { name, exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Review identity check', exact: true })).toHaveCount(1);
+  const manageAccount = page.getByRole('button', { name: 'Manage account', exact: true });
+  await manageAccount.click();
+  await expect(page.getByRole('button', { name: 'Export data', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Delete account', exact: true })).toBeVisible();
+  await manageAccount.click();
   if (role === 'both') {
     await page.getByRole('button', { name: 'Edit company', exact: true }).click();
     await page.getByRole('textbox', { name: 'Trading name', exact: true }).fill('Unsent company draft');
@@ -305,7 +313,7 @@ async function openTheSidebar(page: Page, role: Role) {
     await page.goto(alias);
     await expect(page).toHaveURL(/\/settings#profile$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Security', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Account', exact: true })).toBeVisible();
   }
   if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
   await expect(profile).toHaveAttribute('aria-current', 'page');

@@ -319,8 +319,9 @@ one-level group for **Profile** (the default), **Documents**, **Team**, **Activa
 **Company-recorded details**, without an extra overview page. Profile brings personal, company and
 account settings into one workspace with clearly named sections and their existing editors. Company
 sections require current company access; personal edits never change company-recorded particulars.
-Keep Security, Preferences and Data and privacy together below the profile details. Documents holds
-company source files, distinct from the top-level Documents group for generated outputs. Show company
+Use one compact Account card for relevant identity status, password, appearance and notifications;
+keep export and deletion under Manage account, with their existing confirmations. Payslip evidence
+belongs alongside investor classification claims, not on Profile. Documents holds company source files, distinct from the top-level Documents group for generated outputs. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation. Company-recorded particulars stay on their separate member page.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents

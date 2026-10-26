@@ -6,7 +6,6 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
   FIELD_LIMITS,
-  DESTINATIONS,
   formatCryptoBalance,
   formatMoney,
   shortReference,
@@ -20,7 +19,7 @@ import {
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
-import { Disclosure, LinkRow, LoadError, Loading, Row, Rows, Status } from '@components/Ledger';
+import { Disclosure, LoadError, Loading, Row, Rows, Status } from '@components/Ledger';
 
 const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',
@@ -341,9 +340,7 @@ export function DocumentsPanel() {
         </LoadError>
       )}
       {claimsQuery.isSuccess && !claims.some((claim) => claim.status === 'submitted') && (
-        <LinkRow to={DESTINATIONS.investorEligibility.path} label="Classification claims">
-          <p className="text-text-muted">Submit a claim before attaching supporting evidence.</p>
-        </LinkRow>
+        <p className="text-sm text-text-muted">Submit a claim before attaching supporting evidence.</p>
       )}
       {docs.isLoading && <Loading>Loading your documents…</Loading>}
       {docs.isError && (
