@@ -1,20 +1,11 @@
 import { Field, TextArea, TextInput } from '@components/Field';
 import { useEffect, useRef, useState } from 'react';
-import {
-  FIELD_LIMITS,
-  formatDate,
-  formatDateTime,
-  getUserVerificationStatus,
-  failureSentence,
-  VERIFICATION_TONES,
-} from '@ledova/shared';
+import { FIELD_LIMITS, formatDate, failureSentence } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
-import { Disclosure, Outcome, Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
-import { DocumentsPanel } from './DocumentsPanel';
+import { Outcome, Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { useUserProfile } from '@hooks/useUserProfile';
-import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 
-export function PersonalProfile() {
+export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUserProfile> }) {
   const {
     userProfile,
     isLoading,
@@ -27,15 +18,13 @@ export function PersonalProfile() {
     resetUpdate,
     sourceKey,
     ownerKey,
-  } = useUserProfile();
-  const verification = getUserVerificationStatus(userProfile);
+  } = profile;
   const [editing, setEditing] = useState<{ source: string | null; owner: string | null } | null>(null);
   const [savedFor, setSavedFor] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [residentialAddress, setResidentialAddress] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationOpen, setVerificationOpen] = useState(false);
   const firstField = useRef<HTMLInputElement>(null);
   const editAction = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
@@ -194,32 +183,6 @@ export function PersonalProfile() {
           </FormActions>
         )}
       </Section>
-      <Section title="Account status">
-        <Rows>
-          <Row label="Identity check">
-            <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
-          </Row>
-        </Rows>
-        <Disclosure summary="Account details">
-          <Rows>
-            <Row label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Row>
-            <Row label="Last login">{formatDateTime(userProfile.lastLogin)}</Row>
-          </Rows>
-        </Disclosure>
-        <FormActions>
-          <PageAction label="Review identity check" onClick={() => setVerificationOpen(true)} />
-        </FormActions>
-      </Section>
-      <Section title="Supporting payslips">
-        <DocumentsPanel />
-      </Section>
-      <IdentityVerificationModal
-        isOpen={verificationOpen}
-        onClose={() => {
-          setVerificationOpen(false);
-          refreshProfile();
-        }}
-      />
     </>
   );
 }

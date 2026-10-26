@@ -355,11 +355,11 @@ further payment with the operator
 
 ### Member profile
 
-Profile on web and mobile shows Personal information (full name, email, phone, date of birth,
-address and citizenship) and Account status (member since and last login). The web adds the
-identity check with **Review identity check**, and Supporting payslips.
-Web personal-details editing and payslip upload open inline, with aligned Cancel and save/upload
-actions. Expanded payslip records keep extraction details on demand and any warnings visible.
+Profile shows Personal information (full name, email, phone, date of birth, address and citizenship).
+On web, one compact Account card holds password, appearance and notifications, with identity status
+and **Review identity check**. Existing company and investor verification requirements stay unchanged.
+Mobile keeps its Account status section, with member since and last login.
+Web personal-details editing opens inline, with aligned Cancel and save actions.
 
 To change your full name, residential address or phone, choose **Edit personal details**, change
 them and choose **Save personal details**. These details are self-reported: editing them verifies
@@ -370,9 +370,10 @@ company changes only through its own evidenced workflow
 ([particulars](register.md#changing-a-members-particulars);
 [member access](member-records.md#member-access)).
 
-Payslips are private to the person and permitted platform staff; companies cannot see them. A
-payslip can be attached to a submitted claim, and an unattached one is removed under the retention
-policy ([retention clocks](../engineering/security.md#retention-clocks)). Uploading or reading a
+On web, Supporting payslips belongs to Verification alongside classification claims, with inline
+upload and extraction details on demand. Payslips are private to the person and permitted platform
+staff; companies cannot see them. A payslip can be attached to a submitted claim, and an unattached
+one is removed under the retention policy ([retention clocks](../engineering/security.md#retention-clocks)). Uploading or reading a
 payslip never establishes eligibility.
 
 ### Settings
@@ -383,15 +384,14 @@ Team remains available for accepting a company invitation. Existing page and API
 what the person can read or change. Member access stays under
 [Shareholders](register.md#the-register-page).
 
-**Profile** combines personal details, identity verification and authorised company information with
-Security (**Change password**), Preferences (**Dark theme**, remembered in this browser with Paper as
-the default, and **Transaction alerts** for transaction status changes), and Data and privacy. Each
-section retains its own editor and permissions; changing personal details does not update a company's
-records. **Documents** holds company source files; generated certificates and exports stay under the
+**Profile** combines Company details, Personal information and one Account card. Account includes
+relevant identity status, **Change password**, **Dark theme** (remembered in this browser with Paper as
+the default) and **Transaction alerts** for transaction status changes. Each editor retains its own
+permissions; changing personal details does not update a company's records. **Documents** holds company source files; generated certificates and exports stay under the
 top-level Documents group. **Activation** retains the
 [company activation workflow](companies.md#activation-and-the-registry-check).
 
-Data and privacy offers:
+**Manage account**, inside the Account card, keeps member-since and last-login details and these less frequent actions:
 
 - **Export data** downloads the person's account data as a JSON file
   ([account-data export](../engineering/records.md#account-data-export)).
