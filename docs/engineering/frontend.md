@@ -497,7 +497,22 @@ Market values are shown in AUD: `useCurrency` converts the API's US-dollar value
 rate, shows a dash while it is unknown and offers no other currency. Offering prices and application
 amounts carry their offering's currency
 ([offerings](../business/issuing-shares.md#creating-and-submitting-an-offering)), and every amount
-names its currency (`formatMoney`). Charts use no chart library; do not add one.
+names its currency (`formatMoney`).
+
+The company ownership map uses Apache ECharts, with only its treemap, tooltip and SVG renderer
+loaded when the desktop overview is visible. Keep the existing design tokens, a bounded chart area
+and a labelled class selector; narrow screens use the shared table. Other delivered charts retain
+their existing SVG implementation. Do not add a second chart library or a general chart framework.
+Visible quantities and percentages use exact share arithmetic; only normalised drawing coordinates
+use JavaScript numbers. A map represents issued share counts, not voting power or economic value.
+
+Ownership overviews read company-scoped aggregates, then fetch the selected class's holders with
+server-side search and paging. Do not fetch every shareholder in every class to draw an overview.
+Bind detail reads to the overview's register sequence; a changed sequence rereads the overview.
+Account, company and appointment guards, incomplete-read states and ordinary query invalidation
+remain in force. Do not introduce periodic dashboard polling. Unopened classes withhold company
+totals and the map; an inconsistent read withholds the overview. These rules are checked in review
+and the existing company-dashboard journey, within the dashboard suite cap.
 
 ## Recovering a submitted company request
 
@@ -670,11 +685,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 
 ### Page mechanics
 
-- Company dashboard: reads the scoped register API for the selected company (`useCompanyRegister`)
-  and computes issued-share totals, holders deduplicated across classes and each class's shares with
-  `BigInt` (`ownershipSummary` in `packages/shared/src/utils/register-ownership.ts`, and each
-  class's segments in `dashboard/src/pages/company/dashboard/summary.ts`); it draws each class's donut
-  itself. The person's own appointments (`useOwnAppointments`) give the status line and Getting
+- Company dashboard: `dashboard/src/pages/company/dashboard/useOwnership.ts` reads the selected
+  company's exact ownership summary and sequence-bound holder pages. `OwnershipExplorer.tsx` in
+  that folder opens one class inline; `ownershipChart.ts` draws the lazy ownership map. The person's
+  own appointments (`useOwnAppointments`) give the status line and Getting
   started, which reads the register step from the selected company's opened registers. Web tasks
   render only while incomplete; the existing parent condition hides the card when both tasks are
   complete.

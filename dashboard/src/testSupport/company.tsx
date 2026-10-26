@@ -20,6 +20,17 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 };
 
+globalThis.matchMedia ??= (query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addListener() {},
+  removeListener() {},
+  addEventListener() {},
+  removeEventListener() {},
+  dispatchEvent: () => true,
+});
+
 export async function choose(label: string, option: string, search = option) {
   const input = (await screen.findByRole('combobox', { name: label })) as HTMLInputElement;
   await waitFor(() => {

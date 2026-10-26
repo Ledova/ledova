@@ -1247,6 +1247,17 @@ Remove the dashboard's Recent changes and Register work cards and their class
 selector; detailed history and actions stay in Register. This replaces the web
 holder bars and separate class-count chart above without a new chart dependency.
 
+On 26 October 2026 the owner accepted the ownership-map proposal under
+[#1335](https://github.com/Ledova/ledova/issues/1335): replace the per-class donut cards with one
+company overview and inline class drill-down, using the existing workspace and sidebar. Read exact
+company aggregates first and page a selected class's holders on demand. Use modular Apache ECharts
+for the desktop map, with the existing class selector and a narrow-screen table. This replaces the
+17 October donut decision and the earlier chart-dependency restriction for this company overview.
+Issued quantities remain separate from awards and options; the map shows counts, not voting power
+or value. Historical transaction prices remain a later increment, distinguished by source and
+purpose; do not infer investment prices from rights prose or treat option exercise prices as current
+valuations. No automatic class or company valuation is authorised by this change.
+
 ### Dashboard, Settings and Register for a new company
 
 On 19 October 2026 the owner decided

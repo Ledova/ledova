@@ -40,7 +40,13 @@ use this workspace frame. Their creation and record actions use the same footer;
 keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
-record-management details, with awards separate from issued shares. The member overview's shares and
+record-management details, with awards separate from issued shares. The company Dashboard uses one
+ownership overview: select a share class in its map or labelled selector to open a ranked, searchable
+holder table in the same panel. **All classes** returns to the overview and restores focus to its
+selector. Narrow screens show the class table instead of squeezing a map. Percentages name their
+denominator; issued share counts do not imply voting power, economic value or a fully diluted
+option pool. Preserve the sidebar for navigation to other pages and keep record actions there.
+The member overview's shares and
 awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
 on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
 quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
@@ -698,9 +704,9 @@ lists grow only with one company's register decisions. The owner chose this on 2
 to revisit if registers grow large ([decision](../decisions.md#frontend-ux-standards)).
 
 Every table uses `Table`, apart from dashboard chart legends, which keep a compact layout with
-their own captions and header scopes. Company charts show ownership within each class; a member's
-chart shows only their own shares by class, with a labelled share count rather than company
-ownership, voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
+their own captions and header scopes. The company map compares issued share counts across classes;
+its selected-class holder table shows percentages within that class. A member's chart shows only
+their own shares by class, never company ownership, voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
 record's own page.
 
 ## Loading, empty and error states
