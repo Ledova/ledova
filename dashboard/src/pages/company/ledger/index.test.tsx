@@ -1482,6 +1482,32 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     formerMembersBlock: null,
     formerMembersStale: false,
   });
+  const ownershipRead = () => {
+    const current = holders();
+    return {
+      data: {
+        company: company.uuid,
+        companyName: company.name,
+        asAt: '2026-10-26T00:00:00Z',
+        complete: current.initialized,
+        issuedSupply: current.issuedSupply,
+        totalHolders: current.initialized ? current.totalHolders : null,
+        classes: [
+          {
+            uuid: token.uuid,
+            name: token.name,
+            symbol: token.symbol,
+            tokenType: token.tokenType,
+            initialized: current.initialized,
+            issuedSupply: current.issuedSupply,
+            totalHolders: current.initialized ? current.totalHolders : null,
+            sequence: current.initialized ? 1 : null,
+            recordedAt: current.initialized ? '2026-10-26T00:00:00Z' : null,
+          },
+        ],
+      },
+    };
+  };
   api.get.mockImplementation(async (url: string) => {
     if (url === '/api/user-preferences/') return { data: companyPreferences() };
     if (url === COMPANY_ENDPOINTS.BASE) return dataPage([company]);
@@ -1490,6 +1516,27 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === REGISTER || url === COMPANY_TOKEN_ENDPOINTS.BASE) return dataPage(visibleClass ? [token] : []);
     if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(token.uuid)) return { data: token };
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
+    if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP) return ownershipRead();
+    if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS(token.uuid)) {
+      const current = holders();
+      return {
+        data: {
+          count: current.totalHolders,
+          next: null,
+          previous: null,
+          token: token.uuid,
+          sequence: 1,
+          issuedSupply: current.issuedSupply,
+          asAt: '2026-10-26T00:00:00Z',
+          results: current.holders.map(({ member, name, balance }) => ({
+            member,
+            name,
+            balance,
+            percentage: '100.00',
+          })),
+        },
+      };
+    }
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
       if (membersUnavailable) throw new Error('Member choices unavailable');
       return { data: { members: companyMembers, awardRecipients: [] } };
@@ -1972,6 +2019,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const summary = await screen.findByRole('region', { name: 'Company ownership summary' });
   expect(within(summary).getByText('600')).toBeTruthy();
   expect(screen.getByText('100.00%')).toBeTruthy();
+  fireEvent.change(screen.getByRole('combobox', { name: 'Explore a class' }), { target: { value: token.uuid } });
+  expect(
+    within(await screen.findByRole('table', { name: 'Ordinary shares shareholders' })).getByText('Example Shareholder'),
+  ).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
+  expect(await screen.findByRole('combobox', { name: 'Explore a class' })).toBeTruthy();
   expect(proposal!.status).toBe('applied');
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
   expect(proposal!.decisions.map((decision) => decision.appointment)).toEqual(['approve-only', 'apply-only']);
@@ -2429,6 +2482,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === COMPANY_ENDPOINTS.DETAIL(company.uuid)) return { data: company };
     if (url === APPOINTMENTS) return dataPage([appointment]);
     if (url === REGISTER || url === COMPANY_TOKEN_ENDPOINTS.BASE) return dataPage(setupClasses);
+    if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP) return ownershipRead();
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
       if (membersUnavailable) throw new Error('Member choices unavailable');
@@ -2842,7 +2896,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(emptyRequests).toHaveLength(2);
   expect(emptyRequests[0]).toEqual(emptyRequests[1]);
   fireEvent.click(emptyConfirm);
-  expect(await screen.findByText(/No issued shares or current shareholders/)).toBeTruthy();
+  expect(await screen.findByText('No issued shares yet.')).toBeTruthy();
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
   expect(proposal!.members).toEqual([]);
   expect(api.post.mock.calls.map(([url]) => url)).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);

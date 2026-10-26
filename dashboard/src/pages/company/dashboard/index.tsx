@@ -4,18 +4,18 @@ import {
   DESTINATIONS,
   appointmentForRegisterStep,
   companiesAwaitingActivation,
-  ownershipSummary,
   useSubmissionOwner,
   useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { CompanySelection } from '@components/CompanySelection';
-import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { GettingStarted } from './GettingStarted';
-import { OwnershipMetrics, ShareholderPanels } from './OwnershipPanels';
+import { OwnershipMetrics } from './OwnershipMetrics';
+import { OwnershipExplorer } from './OwnershipExplorer';
+import { useOwnership } from './useOwnership';
 import { LoadError, Loading } from '@components/Ledger';
 
 export default function CompanyDashboardPage() {
@@ -45,35 +45,34 @@ function OwnDashboard({
 }) {
   const preferences = useUserPreferences();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const { classes, companies, company, selectCompany, registers } = useCompanyRegister(owner, guard);
+  const {
+    classes,
+    companies,
+    company,
+    selectCompany,
+    adoptCompany,
+    overview,
+    holders,
+    selected,
+    select,
+    list,
+    scopeError,
+    recover,
+  } = useOwnership(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const location = useLocation();
   const entered = useRef('');
   useEffect(() => {
-    if (entered.current === location.key || !classes.isSuccess || classes.isFetching) return;
     const wanted = location.state?.registerCompany;
-    if (typeof wanted === 'string' && classes.data.some((token) => token.companyUuid === wanted)) selectCompany(wanted);
-    entered.current = location.key;
-  }, [classes.isSuccess, classes.isFetching, classes.data, location.key, location.state, selectCompany]);
-  const rows = registers.data ?? [];
-  const expected = classes.data?.filter((item) => item.companyUuid === company?.uuid) ?? [];
-  const scoped =
-    !!company &&
-    rows.length > 0 &&
-    rows.length === expected.length &&
-    rows.every(({ token }) => expected.some((item) => item.uuid === token.uuid));
-  let summary: ReturnType<typeof ownershipSummary> | null = null;
-  let invalid = !!company && registers.isSuccess && !scoped;
-  if (scoped) {
-    try {
-      summary = ownershipSummary(rows);
-    } catch {
-      invalid = true;
-    }
-  }
+    if (typeof wanted !== 'string' || entered.current === wanted || !classes.isSuccess || classes.isFetching) return;
+    if (classes.data.some((token) => token.companyUuid === wanted)) adoptCompany(wanted);
+    entered.current = wanted;
+  }, [classes.isSuccess, classes.isFetching, classes.data, location.state, adoptCompany]);
+  const summary = overview.data;
+  const scoped = !!company && summary?.company === company.uuid;
   const preferencesReady = !!preferences.preferences && !preferences.isError && !preferences.isFetching;
   const fresh =
-    preferencesReady && classes.isSuccess && !classes.isFetching && registers.isSuccess && !registers.isFetching;
+    preferencesReady && classes.isSuccess && !classes.isFetching && overview.isSuccess && !overview.isFetching;
   const own = appointments.data ?? [];
   const administered = own.filter(
     (appointment) => appointment.isEffective && appointment.capabilities.includes('admin'),
@@ -87,7 +86,7 @@ function OwnDashboard({
   const activated = companiesAwaitingActivation(own).length === 0;
   const opened = (uuid: string) =>
     company?.uuid === uuid
-      ? scoped && rows.some(({ initialized }) => initialized)
+      ? scoped && summary.classes.some(({ initialized }) => initialized)
       : companies.some((item) => item.uuid === uuid);
   const registered = administered.every((appointment) => opened(appointment.company));
   const preparing = own.some(
@@ -97,14 +96,13 @@ function OwnDashboard({
   const gettingStarted =
     appointments.isSuccess &&
     classes.isSuccess &&
-    (!company || (registers.isSuccess && !invalid)) &&
+    (!company || overview.isSuccess) &&
     administered.length > 0 &&
     (!activated || !registered);
   const refresh = () => {
     void preferences.refetch();
-    void classes.refetch();
     void appointments.refetch();
-    if (company) void registers.refetch();
+    void recover();
   };
   return (
     <Page lede={shown ? [shown.name, status].filter(Boolean).join(' · ') : "Your company's recorded share ownership."}>
@@ -112,21 +110,21 @@ function OwnDashboard({
       {preferencesReady && classes.isSuccess && !classes.isFetching && companies.length > 1 && (
         <CompanySelection read={{ companies, companyUuid: company?.uuid, selectionBlocked: false, selectCompany }} />
       )}
-      {preferences.isError || classes.isError || registers.isError || appointments.isError || invalid ? (
+      {preferences.isError || classes.isError || overview.isError || appointments.isError || scopeError ? (
         <LoadError
           retry={refresh}
-          busy={preferences.isFetching || classes.isFetching || registers.isFetching || appointments.isFetching}
+          busy={preferences.isFetching || classes.isFetching || overview.isFetching || appointments.isFetching}
         >
           {preferences.isError
             ? 'Your account could not be loaded.'
-            : appointments.isError && !classes.isError && !registers.isError && !invalid
+            : appointments.isError && !classes.isError && !overview.isError
               ? 'Your appointments could not be loaded.'
               : 'The register could not be loaded.'}
         </LoadError>
       ) : preferences.isFetching ||
         classes.isPending ||
         appointments.isPending ||
-        (company && registers.isPending) ||
+        (company && overview.isPending) ||
         (company && !fresh) ? (
         <Loading>Loading the register…</Loading>
       ) : companies.length === 0 ? (
@@ -149,7 +147,19 @@ function OwnDashboard({
       ) : fresh && scoped && summary ? (
         <>
           <OwnershipMetrics summary={summary} />
-          <ShareholderPanels registers={rows} />
+          <OwnershipExplorer
+            key={company.uuid}
+            classes={summary.classes}
+            complete={summary.complete}
+            issuedSupply={summary.issuedSupply}
+            selected={selected?.uuid ?? null}
+            onSelect={select}
+            holders={holders.isSuccess && !holders.isFetching ? holders.data : undefined}
+            loading={!!selected?.initialized && (holders.isPending || holders.isFetching)}
+            error={holders.error}
+            retry={() => void holders.refetch()}
+            list={list}
+          />
         </>
       ) : null}
     </Page>
