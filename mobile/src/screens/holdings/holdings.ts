@@ -67,13 +67,22 @@ export function initials(name: string) {
   ).toUpperCase();
 }
 
+export type AwardPart = 'issued' | 'available' | 'unvested' | 'ended';
+
 export function awardParts(award: MemberAward) {
   if (!hasValidRegisterAwardTotals(award)) return null;
   const promised = BigInt(award.shares);
-  return [
+  const parts: { part: AwardPart; quantity: bigint }[] = [
     { part: 'issued', quantity: BigInt(award.issuedShares) },
     { part: 'available', quantity: BigInt(award.availableShares) },
     { part: 'unvested', quantity: BigInt(award.unvestedRemainingShares) },
     { part: 'ended', quantity: BigInt(award.endedUnvestedShares) + BigInt(award.endedVestedShares) },
-  ].map(({ part, quantity }) => ({ part, width: Number((quantity * 10000n) / promised) / 100 }));
+  ];
+  return parts.map(({ part, quantity }) => ({ part, quantity, width: Number((quantity * 10000n) / promised) / 100 }));
+}
+
+export function shareTotal(first: string, second: string) {
+  return /^\d+$/.test(first) && /^\d+$/.test(second)
+    ? shareQuantity(String(BigInt(first) + BigInt(second)))
+    : 'Unavailable';
 }

@@ -199,19 +199,20 @@ it('associates a member by invitation code, opens their company, award, details 
     awards: [
       {
         ...MEMBER_RECORD.awards[0],
-        vestedShares: '3',
+        shares: '20',
+        vestedShares: '6',
         issuedShares: '1',
-        availableShares: '1',
-        endedUnvestedShares: '1',
-        endedVestedShares: '1',
-        unvestedRemainingShares: '1',
-        remainingUnissuedShares: '2',
-        vestings: [{ ...MEMBER_RECORD.awards[0].vestings[0], shares: '4' }],
+        availableShares: '2',
+        endedUnvestedShares: '4',
+        endedVestedShares: '3',
+        unvestedRemainingShares: '10',
+        remainingUnissuedShares: '12',
+        vestings: [{ ...MEMBER_RECORD.awards[0].vestings[0], shares: '8' }],
         ends: [
           {
             uuid: 'own-end',
-            unvestedShares: '1',
-            vestedShares: '1',
+            unvestedShares: '4',
+            vestedShares: '3',
             companyEventOn: '2026-10-03',
             reason: 'Company selected reduction',
             createdAt: '2026-10-05T00:00:00Z',
@@ -221,7 +222,7 @@ it('associates a member by invitation code, opens their company, award, details 
           {
             uuid: 'own-reversal',
             vesting: MEMBER_RECORD.awards[0].vestings[0].uuid,
-            reversedShares: '1',
+            reversedShares: '2',
             companyEventOn: '2026-10-04',
             reason: 'Correct recorded quantity',
             createdAt: '2026-10-05T00:00:00Z',
@@ -232,9 +233,18 @@ it('associates a member by invitation code, opens their company, award, details 
   };
   await view.rerender(awardPage);
   await act(async () => screen.getByTestId('award-scroll').props.refreshControl.props.onRefresh());
-  await screen.findByText(/5 awarded · 3 vested · 1 issued · 1 available/);
-  expect(screen.getByText(/Company selected reduction/)).toBeTruthy();
-  expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
+  await screen.findByLabelText('Rights ended: 7');
+  expect(screen.getByLabelText('6 of 20 vested')).toBeTruthy();
+  expect(screen.getByLabelText('Issued to you: 1')).toBeTruthy();
+  expect(screen.getByLabelText('Vested, not yet issued: 2')).toBeTruthy();
+  expect(screen.getByLabelText('Still to vest: 10')).toBeTruthy();
+  expect(
+    screen.getAllByLabelText(/^(Vested|Rights ended|Vesting reversed), \d/).map((row) => row.props.accessibilityLabel),
+  ).toEqual([
+    'Vesting reversed, 4 October 2026, 2, Corrects the vesting of 2 October 2026, Correct recorded quantity',
+    'Rights ended, 3 October 2026, 7, 4 unvested and 3 vested not yet issued, Company selected reduction',
+    'Vested, 2 October 2026, 8',
+  ]);
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   ownRecord = MEMBER_RECORD;
   await view.rerender(classPage);
