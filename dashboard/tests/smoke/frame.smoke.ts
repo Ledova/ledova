@@ -202,6 +202,7 @@ async function openTheSidebar(page: Page, role: Role) {
         .locator('svg');
       await expect(ring).toBeVisible();
       await page.getByRole('button', { name: 'Explore Preference shares (PRF)', exact: true }).focus();
+      await ring.scrollIntoViewIfNeeded();
       const box = await ring.boundingBox();
       expect(box).not.toBeNull();
       await page.mouse.click(
