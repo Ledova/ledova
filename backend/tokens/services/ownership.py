@@ -26,7 +26,8 @@ def _company_snapshot(actor, company_id):
         current_actor = get_object_or_404(get_user_model().objects, pk=actor.pk, is_active=True, is_email_verified=True)
         company = get_object_or_404(Company.objects, pk=company_id)
         profile = UserProfile.objects.filter(user=current_actor).first()
-        current_register_reader(company, current_actor, profile, Operator.objects.get(pk=1))
+        if company.owner_id != current_actor.pk:
+            current_register_reader(company, current_actor, profile, Operator.objects.get(pk=1))
         yield company
 
 

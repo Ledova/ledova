@@ -126,12 +126,33 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.decision("/api/v1/tokens/register-grants/", identifier, "apply")
         stale = self.client.get(f"/api/v1/tokens/{self.token.pk}/ownership-holders/", {"sequence": 1})
         self.assertEqual(stale.status_code, 409, stale.content)
+        reader, _ = person("ownership-reader")
+        _, code, _ = issue_team_invitation(
+            requester=self.owner,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.appointment.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.READ_REGISTER],
+        )
+        appointment = accept_team_invitation(
+            requester=reader,
+            code=code,
+            declaration_version=DECLARATION_VERSION,
+            accept_declaration=True,
+        )
+        self.client.force_authenticate(reader)
+        self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 200)
+        self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 200)
+        revoke_company_appointment(requester=self.owner, appointment_id=appointment.pk)
+        self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 404)
+        self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 404)
+        self.client.force_authenticate(self.owner)
         revoke_company_appointment(
             requester=self.owner,
             appointment_id=self.appointment.pk,
         )
-        self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 404)
-        self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 404)
+        self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 200)
+        self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 200)
 
     def import_payload_for_ownership(self, token):
         from shared.tests.core_fixtures import import_payload
