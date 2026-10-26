@@ -16,6 +16,7 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
   const callback = useRef({ onSelect, onHighlight });
   const controller = useRef<OwnershipRingController | null>(null);
   const highlight = useRef(highlighted);
+  const revealed = useRef(false);
   const [failed, setFailed] = useState(false);
   const theme = useTheme();
   useLayoutEffect(() => {
@@ -47,12 +48,17 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
         .then(({ renderOwnershipRing }) => {
           pending = false;
           if (cancelled || !screen.matches) return;
-          controller.current = renderOwnershipRing(target, {
-            classes,
-            issuedSupply,
-            onSelect: (uuid) => callback.current.onSelect(uuid),
-            onHighlight: (uuid) => callback.current.onHighlight(uuid),
-          });
+          controller.current = renderOwnershipRing(
+            target,
+            {
+              classes,
+              issuedSupply,
+              onSelect: (uuid) => callback.current.onSelect(uuid),
+              onHighlight: (uuid) => callback.current.onHighlight(uuid),
+            },
+            !revealed.current,
+          );
+          revealed.current = true;
           controller.current.highlight(highlight.current);
         })
         .catch(() => {

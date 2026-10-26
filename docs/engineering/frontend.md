@@ -499,11 +499,14 @@ amounts carry their offering's currency
 ([offerings](../business/issuing-shares.md#creating-and-submitting-an-offering)), and every amount
 names its currency (`formatMoney`).
 
-The company ownership ring uses Apache ECharts, with only its pie chart, tooltip and SVG renderer
+The company ownership ring uses Apache ECharts, with only its pie chart and SVG renderer
 loaded when the desktop overview is visible. Use one ring and a linked class list, with the existing
 design tokens and a bounded chart area. Hover or keyboard focus links each list row to its segment;
 the centre shows the exact total or highlighted class quantity. Keep class colours consistent across
-the ring and the list, including search and paging. Every class remains selectable in the list,
+the ring and the list, including search and paging. Use a small segment lift and short transitions,
+with one brief radial reveal per mounted overview rather than replaying it on data or theme updates.
+Keep hover feedback in the centre and linked list rather than a duplicate floating tooltip; honour
+reduced motion, including changes while the page is open. Every class remains selectable in the list,
 including classes with no issued shares; do not merge small classes into an artificial Other class.
 Long class lists use the shared search and 25-row pager. Narrow screens and a failed chart load keep
 the same list without the ring. Other delivered charts retain their existing SVG implementation.
