@@ -8,11 +8,11 @@ const MOBILE = path.resolve(import.meta.dirname, '../../mobile');
 const require = createRequire(path.join(MOBILE, 'package.json'));
 const { ESLint } = require('eslint');
 
-test('a missing register press await is rejected by the real mobile lint config', async () => {
-  const filePath = path.join(MOBILE, 'src/screens/company-register/CompanyRegister.test.tsx');
+test('a missing member press await is rejected by the real mobile lint config', async () => {
+  const filePath = path.join(MOBILE, 'src/screens/member-records/MemberRecordsScreen.test.tsx');
   const source = await readFile(filePath, 'utf8');
-  const awaited = "await fireEvent.press(view.getByRole('radio', { name: 'Ordinary shares' }));";
-  assert.equal(source.split(awaited).length, 2, 'the selection must await its press');
+  const awaited = "await fireEvent.press(screen.getByRole('button', { name: 'Accept member invitation' }));";
+  assert.equal(source.split(awaited).length, 2, 'the acceptance must await its press');
   const eslint = new ESLint({ cwd: MOBILE });
   const positive = await eslint.lintText(source, { filePath });
   assert.equal(positive[0].errorCount, 0, JSON.stringify(positive[0].messages));
