@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import {
+  MEMBER_CERTIFICATE_STATUS_LABELS,
   REGISTER_CORRECTION_COPY,
   formatDate,
   shareChange,
@@ -9,8 +10,7 @@ import {
   type useMemberRecords,
 } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
-import { CustomModal } from '../../components/modal';
-import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { CustomModal, useDialogStyles } from '../../components/modal';
 import { CertificateCopy } from './CertificateCopy';
 
 type Read = ReturnType<typeof useMemberRecords>;
@@ -28,8 +28,10 @@ export const entryKind = (entry: Entry) =>
 export const entryDate = (entry: Entry) =>
   issueOrTransfer(entry) ? formatDate(entry.companyEventOn, 'Not recorded') : formatDate(entry.effectiveOn);
 
+const ready = (request: MemberCertificateRequest) => request.status === 'fulfilled' && !!request.fulfilment;
+
 export function certificateOf(entry: Entry | undefined, latest: MemberCertificateRequest | undefined): Certificate {
-  if (latest?.status === 'fulfilled' && latest.fulfilment) return 'ready';
+  if (latest && ready(latest)) return 'ready';
   if (latest?.status === 'requested') return 'requested';
   if (entry && receiving(entry)) return 'request';
   return latest ? 'other' : null;
@@ -40,19 +42,29 @@ export function CertificateSheet({
   className,
   entry,
   request,
+  previous = [],
   onClose,
 }: {
   read: Read;
   className: string;
   entry?: Entry;
   request?: MemberCertificateRequest;
+  previous?: MemberCertificateRequest[];
   onClose: () => void;
 }) {
-  const styles = useCompanyStyles();
-  const [confirming, setConfirming] = useState(false);
+  const styles = useDialogStyles();
+  const [confirming, setConfirming] = useState<MemberCertificateRequest | null>(null);
   const held = read.busy || !!read.retry;
   const certificate = certificateOf(entry, request);
   const finish = (action: Promise<unknown> | null | undefined) => void Promise.resolve(action).finally(onClose);
+  const withdraw = (item: MemberCertificateRequest) => (
+    <Action
+      label="Withdraw request"
+      accessibilityLabel={`Withdraw certificate request ${item.uuid}`}
+      disabled={held}
+      onPress={() => setConfirming(item)}
+    />
+  );
   return (
     <CustomModal
       visible
@@ -60,9 +72,16 @@ export function CertificateSheet({
       busy={read.busy}
       onClose={onClose}
       cancelLabel={confirming ? 'Keep request' : 'Close'}
-      onCancel={confirming ? () => setConfirming(false) : undefined}
+      onCancel={confirming ? () => setConfirming(null) : undefined}
       actions={
-        certificate === 'ready' && request ? (
+        confirming ? (
+          <Action
+            label="Withdraw request"
+            primary
+            disabled={held}
+            onPress={() => finish(read.withdraw(confirming.uuid))}
+          />
+        ) : certificate === 'ready' && request ? (
           <>
             {entry && receiving(entry) && (
               <Action
@@ -74,16 +93,7 @@ export function CertificateSheet({
             <CertificateCopy read={read} request={request} />
           </>
         ) : certificate === 'requested' && request ? (
-          confirming ? (
-            <Action
-              label="Withdraw request"
-              primary
-              disabled={held}
-              onPress={() => finish(read.withdraw(request.uuid))}
-            />
-          ) : (
-            <Action label="Withdraw request" disabled={held} onPress={() => setConfirming(true)} />
-          )
+          withdraw(request)
         ) : certificate === 'request' && entry ? (
           <Action
             label="Request certificate"
@@ -102,18 +112,35 @@ export function CertificateSheet({
         </Text>
         <Text style={styles.muted}>
           {confirming
-            ? 'Withdraw this certificate request? The company stops preparing it.'
+            ? `Withdraw the request made ${formatDate(confirming.createdAt)}? The company stops preparing it.`
             : certificate === 'ready'
               ? 'Ready to share. It is an unsigned copy; the company is responsible for executing it.'
               : certificate === 'requested'
                 ? `Requested ${formatDate(request?.createdAt)}. The company prepares the certificate.`
                 : certificate === 'request'
                   ? request?.status === 'withdrawn'
-                    ? 'Your earlier request was withdrawn. You can request it again.'
+                    ? 'Your last request was withdrawn. You can request it again.'
                     : 'Not requested yet. The company prepares an unsigned copy on request.'
                   : 'No certificate is available for this change.'}
         </Text>
       </View>
+      {!confirming && previous.length > 0 && (
+        <View style={styles.group}>
+          <Text style={styles.heading}>Previous requests</Text>
+          {previous.map((item) => (
+            <View key={item.uuid} style={styles.group}>
+              <Text style={styles.muted}>
+                {MEMBER_CERTIFICATE_STATUS_LABELS[item.status]} · requested {formatDate(item.createdAt)}
+              </Text>
+              {ready(item) ? (
+                <CertificateCopy read={read} request={item} />
+              ) : item.status === 'requested' ? (
+                withdraw(item)
+              ) : null}
+            </View>
+          ))}
+        </View>
+      )}
     </CustomModal>
   );
 }

@@ -63,6 +63,13 @@ const PAST_RECORD = {
   ],
   awards: [],
 };
+const WITHDRAWN_REPLACEMENT = {
+  ...FULFILLED_CERTIFICATE,
+  uuid: '17171717-1717-4717-8717-171717171717',
+  status: 'withdrawn',
+  fulfilment: null,
+  createdAt: '2026-10-02T00:00:00Z',
+};
 
 it('associates a member by invitation code, opens their company, award, details and share history from Holdings, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
   let keys = 0;
@@ -76,7 +83,7 @@ it('associates a member by invitation code, opens their company, award, details 
   let associated = false;
   let refused = false;
   let particulars: Record<string, unknown>[] = [];
-  let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE];
+  let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE, WITHDRAWN_REPLACEMENT];
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
@@ -218,7 +225,7 @@ it('associates a member by invitation code, opens their company, award, details 
   ownRecord = MEMBER_RECORD;
   await view.rerender(classPage);
   await fireEvent.press(
-    await screen.findByRole('button', { name: /^Entry 1: Issue \+10, Not recorded, certificate Certificate$/ }),
+    await screen.findByRole('button', { name: /^Entry 1: Issue \+10, Not recorded, certificate Request$/ }),
   );
   await fireEvent.press(screen.getByRole('button', { name: `Share certificate PDF ${FULFILLED_CERTIFICATE.uuid}` }));
   await waitFor(() =>
@@ -253,7 +260,7 @@ it('associates a member by invitation code, opens their company, award, details 
   await view.rerender(classPage);
   await act(async () => screen.getByTestId('class-scroll').props.refreshControl.props.onRefresh());
   await fireEvent.press(await screen.findByRole('button', { name: /^Entry 1:/ }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Request a new certificate' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Request certificate' }));
   await waitFor(() => expect(typeof release).toBe('function'));
   refused = true;
   await act(async () => {
@@ -263,7 +270,7 @@ it('associates a member by invitation code, opens their company, award, details 
     });
   });
   await waitFor(() => expect(screen.queryByRole('button', { name: /^Entry 1:/ })).toBeNull());
-  expect(screen.queryByRole('button', { name: 'Request a new certificate' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Request certificate' })).toBeNull();
   expect(screen.queryByText('History')).toBeNull();
   await act(async () => release!());
   expect(screen.queryByRole('button', { name: /^Entry 1:/ })).toBeNull();

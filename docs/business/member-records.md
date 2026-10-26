@@ -112,7 +112,7 @@ particulars, status and date together;
 completed requests open on demand. Share history, certificates and certificate requests
 are in web **Documents**, without duplicate particulars status. On mobile, each share class's history
 on the company's page shows them, and a change's certificate opens a sheet to request, withdraw or
-share it. Wallet holdings are on
+share it, with that change's earlier requests and their actions. Wallet holdings are on
 [the Wallet shares page](#the-wallet-shares-page).
 
 ### Revoking member access

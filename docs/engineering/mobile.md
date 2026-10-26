@@ -68,7 +68,8 @@ companies it becomes a searchable list. Classes with no shares left sit under Pa
 company opens the Company screen: a row per share class and per award, and Your details. A class
 opens its history, newest change first, with each change's certificate status (Request, Requested
 or Certificate). The status opens a certificate sheet that requests, withdraws (after a
-confirmation) or shares the unsigned PDF. An award opens its terms and recorded vesting, and Your
+confirmation) or shares the unsigned PDF, and lists the change's earlier requests with the same
+actions. An award opens its terms and recorded vesting, and Your
 details opens the company-recorded particulars and the particulars request. These screens share one member-records
 state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
 original operation, after leaving the company, and the screens show a loading line rather than an

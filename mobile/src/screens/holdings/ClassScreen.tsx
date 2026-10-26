@@ -80,9 +80,8 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
   const entryIds = new Set(entries.map((entry) => entry.uuid));
   const others = showing && read.entriesReady ? requests.filter((request) => !entryIds.has(request.entry)) : [];
   const sheetEntry = sheet?.entry ? entries.find((entry) => entry.uuid === sheet.entry) : undefined;
-  const sheetRequest = sheetEntry
-    ? requests.find((request) => request.entry === sheetEntry.uuid)
-    : requests.find((request) => request.uuid === sheet?.request);
+  const sheetRequests = sheetEntry ? requests.filter((request) => request.entry === sheetEntry.uuid) : [];
+  const sheetRequest = sheetEntry ? sheetRequests[0] : requests.find((request) => request.uuid === sheet?.request);
   return (
     <Page
       testID="class-scroll"
@@ -171,6 +170,7 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
                 className={item.name}
                 entry={sheetEntry}
                 request={sheetRequest}
+                previous={sheetRequests.slice(1)}
                 onClose={() => setSheet(null)}
               />
             )}
