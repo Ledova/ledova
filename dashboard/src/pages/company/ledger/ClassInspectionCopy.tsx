@@ -56,7 +56,11 @@ function InspectionForm({
     if (open) (target ? heading.current : firstField.current)?.focus();
   }, [open, target]);
   if (!open)
-    return <PageAction ref={opener} label="Prepare inspection copy" disabled={blocked} onClick={() => setOpen(true)} />;
+    return (
+      <FormActions>
+        <PageAction ref={opener} label="Prepare inspection copy" disabled={blocked} onClick={() => setOpen(true)} />
+      </FormActions>
+    );
   return (
     <form
       aria-label="Inspection copy"
@@ -66,7 +70,7 @@ function InspectionForm({
         if (!target && checks.check()) void preview();
       }}
     >
-      <h3 ref={heading} tabIndex={-1} className="text-sm font-medium text-text-primary focus:outline-none">
+      <h3 ref={heading} tabIndex={-1} className="sr-only focus:outline-none">
         Inspection copy
       </h3>
       <p className="text-sm text-text-muted">
