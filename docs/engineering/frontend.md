@@ -60,7 +60,7 @@ frame share, and `packages/shared` holds what both clients share.
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `qr/`, and single components several areas show (`AwardStatus.tsx`) |
 | `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                             |
 | `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                                                                                    |
-| `utils/`              | Browser and pure helpers used by more than one area or the frame (the software signer, `siteUrl.ts`, Keystone UR coding, which each client builds on its own registry libraries) and the web-only paths (`paths.ts`)                                                                                                             |
+| `utils/`              | Browser and pure helpers used by more than one area or the frame (the software signer, `siteUrl.ts`, Keystone UR coding) and the web-only paths (`paths.ts`)                                                                                                                                                                     |
 | `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                          |
 | `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                    |
 
@@ -82,12 +82,10 @@ Mobile maps onto the same layers, direction and placement, with `navigation/` fo
 `screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
 ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072). Shared native UI
 and cross-area reads live outside screen internals ([mobile architecture](mobile.md#architecture)).
-Profile, trading, operator and publication-list reads, invitation recipients, eligibility copy and
-application arithmetic live once in `packages/shared`; client adapters retain their current session,
-cache, labels and result policies. Register reads remain per client pending the naming decision on
-[#1065](https://github.com/Ledova/ledova/issues/1065). `site/src` is a separate flat app (one file per page in
-`pages/`, `components/`, `styles.ts`, `theme.ts`) that cannot import the shared package; only the
-file-naming rules apply to it.
+Profile, operator and publication-list reads live once in `packages/shared`; client adapters retain
+their current session, cache, labels and result policies. `site/src` is a separate flat app (one
+file per page in `pages/`, `components/`, `styles.ts`, `theme.ts`) that cannot import the shared
+package; only the file-naming rules apply to it.
 
 ## Frontend layers
 
@@ -123,8 +121,8 @@ To place a file, ask in order and stop at the first yes:
 
 1. Is it an API call function or an API-derived type? `packages/shared` (`services/`, `types/`).
 2. Is it logic both clients need, built on the same libraries, and not UI? `packages/shared`,
-   deleting the client copies. (Logic each client builds on its own platform libraries, such as
-   Keystone UR coding, stays per client.)
+   deleting the client copies. (Logic each client builds on its own platform libraries stays per
+   client.)
 3. Is it a route element, a guard, or a state only guards render? `routes/` (path constants go in
    `utils/paths.ts`).
 4. Is it a browser binding (the axios instance, a device store)? `services/`.
@@ -238,7 +236,7 @@ test placement remain review checks. Moves remove the corresponding debt in the 
 ## Adding a page or feature
 
 1. Add the page to `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) with its
-   address, title and audience; mobile reads the same entry.
+   address, title and audience.
 2. Create its folder by the [naming rule](#frontend-rules) with an `index.tsx` that default-exports
    the page rendered in `Page`.
 3. Add it to `PAGES` (`dashboard/src/routes/pages.tsx`); TypeScript refuses the table until both
@@ -252,8 +250,7 @@ test placement remain review checks. Moves remove the corresponding debt in the 
    contextual action for an individual record or task.
 6. When a second page needs one of its files, move the file by the placement rule in the same
    change.
-7. Describe the page in its business section, add its [Pages](#pages) row and add the mobile screen
-   ([navigation](mobile.md#navigation)).
+7. Describe the page in its business section and add its [Pages](#pages) row.
 8. Add a test only for a core journey and within the caps, then run `make preflight`.
 
 A feature inside an existing page follows steps 4 to 6 in that page's folder. A sign-up step is a
@@ -261,8 +258,8 @@ folder under `pages/signup/`, added to `SIGNUP_STEPS` and to the step map in `ro
 
 ## Routes, audiences and guards
 
-`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) lists the signed-in pages both
-clients share with their address, title and audience. The whole dashboard route table is in
+`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) lists the signed-in pages with
+their address, title and audience. The whole dashboard route table is in
 `dashboard/src/routes/AppRoutes.tsx`, using `signedInRoutes` from `PAGES`
 (`dashboard/src/routes/pages.tsx`), a map keyed by that table, so
 TypeScript refuses an entry without a page or a page without an entry. Each route, detail pages
@@ -311,7 +308,7 @@ The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATION
 Shareholders' `#member-access` and `#member-requests` views. Ledger's label opens its overview; a separate caret expands
 Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`), marking the active
 child and opening the group on Ledger routes. The web replaces an incoming `#history` with `#corrections`
-without dropping company/class navigation state or remounting its controllers; shared task names and mobile
+without dropping company/class navigation state or remounting its controllers; shared task names
 retain History. Shareholders' label opens its people list, with the
 same caret pattern for ESS, Member access and Member requests. Documents uses that pattern for
 Certificates, Ledger exports and Company pack. Its label opens Certificates, the default child;
@@ -346,7 +343,7 @@ bounded grid. Its items are links, and below `lg` the drawer is a dialog
 email confirmation, account type, pre-screening, user profile, financial profile, company
 registration and review. Identity verification is not a step: when `useSignupReview` reports
 `identityRequired`, company review offers **Verify your identity**, which opens the
-`IdentityVerificationModal` that Profile uses (native: `VerificationModal`). The step map in
+`IdentityVerificationModal` that Profile uses. The step map in
 `dashboard/src/routes/AppRoutes.tsx` uses the named `SIGNUP_PATHS`, and `signupRoutes` wraps each,
 with `/signup`, in `SignupRoute`, which sends a finished company account to the company dashboard
 and other finished accounts to `landingFor(role)`, lets an unfinished account or a signed-out
@@ -423,13 +420,6 @@ only for that active view. Recheck its authority before its dependent records; p
 cycles and stop periodic work while the view is hidden or the browser is offline. Ordinary reads
 need no polling. Issue shares rechecks the selected class's appointments and issue records every
 60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
-Mobile Issue shares does the same on entry, when the app or its screen comes back into view, and
-every 60 seconds while the task is on screen (`mobile/src/screens/company-register/useTaskFreshness.ts`).
-Another tab or a pushed screen counts as hidden (`ClassRecords.tsx`). Mobile has no offline signal,
-so a cycle that fails offline shows the read's error until the next cycle or Retry. It waits while a
-preparation or review is open, because a reread would disable the open form's fields and hide the
-review. Mobile Transfer shares uses the same hook without an interval, as the web's Transfer shares
-rereads only on entry, focus and reconnect; mobile waits while a review is open.
 Employee share scheme is the owner's explicit exception: no interval, focus, visibility or reconnect
 refreshes. It reads on entry and after the person's own changes, with explicit retries after errors.
 Stale entry rechecks appointments before dependent records, deferring that entry read while an editor
@@ -500,8 +490,8 @@ names its currency (`formatMoney`). Charts use no chart library; do not add one.
 ## Recovering a submitted company request
 
 Any company-run request (register command, award, vesting event, grant, external allotment or issue
-decision) may reach the server though its reply is lost. Forms on both clients recover the same way,
-so an uncertain reply never becomes a second effect:
+decision) may reach the server though its reply is lost. Forms recover the same way, so an uncertain
+reply never becomes a second effect:
 
 - A form keeps its original command, operation identifier, appointment and, for a decision, its
   preview and decision key after an interrupted response or a failed refresh. Its inputs and the
@@ -545,9 +535,9 @@ receive the controller's original owner guard from `dashboard/src/pages/company/
 They check it before and after each request and pass it as `ledovaSubmissionGuard`, so a late reply
 after an account change or reauthentication is discarded. Query keys and cache timing stay unchanged.
 
-The standalone preparations are `companyRegister*` entries in `DESTINATIONS` (on mobile, in the same
-stack): `/company/ledger/setup`; import, correction, opening and transfer under
-`/company/ledger/:uuid/` (`import`, `correct/:entry`, `open`, `transfer`); particulars
+The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
+`/company/ledger/setup`; import, correction, opening and transfer under `/company/ledger/:uuid/`
+(`import`, `correct/:entry`, `open`, `transfer`); particulars
 changes at `/company/ledger/members/:member/particulars`; and wallet links at
 `/company/ledger/companies/:company/links`. Setup is the import page without a class in its
 address: it chooses or creates a share class, then prepares the mirror import.
@@ -559,7 +549,7 @@ files. Setup uploads supporting evidence before preparation and includes it in t
 proposal; company source copies stay at opening scope. The shared register-member-documents service
 validates each returned company, member and class against the query. Later attachment lists and
 downloads use these retained links, not a public storage URL
-([attachment rules](../business/register.md#shareholder-documents)). Mobile keeps its existing setup.
+([attachment rules](../business/register.md#shareholder-documents)).
 
 The web setup's **Allocation history** is independent of **Current shares held** and starts empty.
 Its **Add allocation** heading action keeps one editor open, retains unfinished input when switching
@@ -577,17 +567,15 @@ holdings-moved refusal by its `opening_holdings_moved` code
 (`REGISTER_OPENING_HOLDINGS_MOVED_CODE`). A wallet's proof is worded as the holder's own proof on
 Ledova, never as a verification by Ledova.
 
-Every decision uses the preview-first `useRegisterDecision`, in a dialog, the web's main-page
-issue, transfer and particulars reviews, or mobile Issue shares' or Transfer shares' review in place
-of its list. It previews the
-exact decision, its unmet requirements in words and its register effect, takes a rejection reason
+Every decision uses the preview-first `useRegisterDecision`, in a dialog or the web's main-page
+issue, transfer and particulars reviews. It previews the exact decision, its unmet requirements in
+words and its register effect, takes a rejection reason
 ([how a company decision works](../business/README.md#how-a-company-decision-works)), and confirms
 with a retry key reused only for the same preview while the step's appointment is still the one
-previewed. The investor's final Approve and a transfer's Approve, on the web and mobile, each send
-one combined command (approval with the issue, or approval with the transfer), never an approval
-followed by a client-side application request. A review in place, on the web or in mobile Issue
-shares and Transfer shares, stays open when a refresh withdraws its step, saying so with its
-confirmation disabled, as mobile's decision dialogs do.
+previewed. The investor's final Approve and a transfer's Approve each send one combined command
+(approval with the issue, or approval with the transfer), never an approval followed by a
+client-side application request. A review in place stays open when a refresh withdraws its step,
+saying so with its confirmation disabled.
 `useDiscrepancyAcknowledgement` takes the reason for
 [acknowledging a discrepancy](../business/register.md#acknowledging-a-discrepancy), keeps the
 appointment it opened with and holds confirmation if a refresh changes it. Form inputs are described
@@ -677,9 +665,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   itself. The person's own appointments (`useOwnAppointments`) give the status line and Getting
   started, which reads the register step from the selected company's opened registers. Web tasks
   render only while incomplete; the existing parent condition hides the card when both tasks are
-  complete. Mobile's Ledger tab gives the corresponding status line and checklist to an
-  administrator of the company shown, retaining completed rows and judging the register step by that
-  company's registers alone.
+  complete.
 - Personal dashboard: reads the person's own member projection. Its overview sums issued shares
   with `BigInt` and charts the member's own shares by class, without company-wide totals or ownership
   percentages. Its only other content is read-only awards: separate entitlements, with the promise
@@ -743,8 +729,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   - Member invitations give `PersonSelect` the company's holders and award recipients from
     `invitationMembers`.
   - The share-class issue's member choice reads `register/members/` through
-    `useCompanyIssueInstructions`, which leaves out award recipients without shares on web and
-    mobile.
+    `useCompanyIssueInstructions`, which leaves out award recipients without shares.
   - Wallet links label the holders of every class with `registerLinkMemberLabels`, and register
     opening labels its linked members with `openingMemberLabels`.
 
@@ -767,17 +752,15 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   same links for its class. **Change particulars** and adding documents recheck current preparation
   authority, and attachment downloads require current register-read authority. While register work
   is held, Shareholders' Details links are disabled.
-- Register reads on both clients: the web reads the person's appointments through Team's
-  account-bound cache; mobile reads them itself. Both reread them after a revocation on Team (Company team on mobile)
-  or Representative authority, a refused decision, preview or acknowledgement, a waiting-wallets
-  read refused as not found, a recorded decision other than an import's (which refreshes the
-  imports, the register and its entries) and, on mobile, a pull to refresh. Entries load newest
+- Register reads: the web reads the person's appointments through Team's account-bound cache and
+  rereads them after a revocation on Team or Representative authority, a refused decision, preview
+  or acknowledgement, a waiting-wallets read refused as not found and a recorded decision other than
+  an import's (which refreshes the imports, the register and its entries). Entries load newest
   first, a page per Load more: an entry a later page repeats is listed once, a page with a non-whole
   share change fails, and a corrected or reversing entry reads as not loaded yet until its page
   arrives. A proposal of another company or class, an unreadable mapping or holding, and a
   correction lookup answering with entries it was not asked for fail the read. Each repeated control
-  is named for screen readers after its visible label and its entry, proposal or discrepancy. Native
-  section parameters switch the visible section, keeping the register mounted.
+  is named for screen readers after its visible label and its entry, proposal or discrepancy.
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Published to your members: reads the selected company's publications with `issuer` set, newest
   first, a page at a time with Load more; the card title carries the server's complete count. A
@@ -792,17 +775,14 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   (`packages/shared/src/utils/applicationAmount.ts`); Applications shows the recorded values without
   recomputing them, and a copy failure keeps the value available.
 - Market: owned order history reads independently of listed classes and wallets. Device-saved work
-  ([create-order recovery](mobile.md#create-order-recovery),
-  [order submissions](trading-protocols.md)) is read when Market loads and after each recovery.
+  ([order submissions](trading-protocols.md)) is read when Market loads and after each recovery.
 - Wallets: reads every wallet page into a ledger of its own. Native balances are formatted by
   `formatCryptoBalance` (`packages/shared/src/utils/formatting.ts`) and ordered by decimal-string
   comparison (`sortWallets` in `packages/shared/src/hooks/useWalletSort.ts`). On the web every Sync
-  waits while one runs. Imports run one address at a time, and mobile's software registration waits
-  for the server after the authenticated local seed storage. Purchase-page errors are read with
+  waits while one runs. Imports run one address at a time. Purchase-page errors are read with
   `readApiError` (`packages/shared/src/utils/errors.ts`), never a proxy's error page. Web Send
-  counts the wallets last read even while re-reading; Buy crypto (`walletsSettled`) and mobile Send
-  skip the wallet chooser only after a finished read, and mobile's Send forms keep Continue
-  unavailable until the chosen wallet's balances are read.
+  counts the wallets last read even while re-reading; Buy crypto (`walletsSettled`) skips the wallet
+  chooser only after a finished read.
 - Activity: the history read does not depend on the wallet filter read; filters use only supported
   API fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
@@ -811,11 +791,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   export and deletion. Payslip evidence lives with investor classification claims. Documents and Team
   stay focused pages; Activation keeps its existing company workflow. Signup and native
   Settings keep their own navigation.
-- Profile on web, Settings on mobile: transaction alerts are the `transactionAlerts`
-  field of the one preferences record (`useUserPreferences`, saved with a partial `POST` to `/api/user-preferences/`); mobile
-  distinguishes an unavailable record from disabled alerts. On web, a confirmed preference save updates
-  the current account cache without remounting Profile or discarding open edits. Account deletion clears
-  cached account data after the server confirms.
+- Profile on web: transaction alerts are the `transactionAlerts` field of the one preferences
+  record (`useUserPreferences`, saved with a partial `POST` to `/api/user-preferences/`). On web, a
+  confirmed preference save updates the current account cache without remounting Profile or
+  discarding open edits. Account deletion clears cached account data after the server confirms.
 
 Next: [frontend UX standards](frontend-ux.md), [mobile](mobile.md), [authentication](security.md#authentication-and-sessions),
 [company workflow API](backend.md#company-workflow-api) and [testing](testing.md).

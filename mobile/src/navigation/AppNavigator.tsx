@@ -1,5 +1,5 @@
 import React from 'react';
-import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer, type NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SignInScreen } from '../screens/signin';
 import { SignUpScreen } from '../screens/signup/user';
@@ -9,8 +9,9 @@ import { UserProfileScreen } from '../screens/signup/user-profile';
 import { FinancialProfileScreen } from '../screens/signup/financial-profile';
 import { ReviewScreen } from '../screens/signup/review';
 import { AccountTypeScreen } from '../screens/signup/account-type';
-import { CompanyRegistrationScreen } from '../screens/signup/company-registration';
+import { ShareholdersOnlyScreen } from '../screens/signup/shareholders-only';
 import { SignupCompletionGate } from './SignupCompletionGate';
+import type { SignedInStackParamList } from './SignedInNavigator';
 import { useAppTheme } from '../contexts';
 
 export type RootStackParamList = {
@@ -21,9 +22,9 @@ export type RootStackParamList = {
   PreScreening: undefined;
   UserProfile: undefined;
   FinancialProfile: undefined;
-  CompanyRegistration: undefined;
+  ShareholdersOnly: undefined;
   Review: undefined;
-  MainApp: undefined;
+  MainApp: NavigatorScreenParams<SignedInStackParamList> | undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -117,8 +118,8 @@ export const AppNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="CompanyRegistration"
-          component={CompanyRegistrationScreen}
+          name="ShareholdersOnly"
+          component={ShareholdersOnlyScreen}
           options={{
             headerShown: false,
           }}

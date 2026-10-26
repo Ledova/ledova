@@ -36,19 +36,3 @@ export function validateApiDestination(value: string): string {
   }
   return destination.href;
 }
-
-export function getTradingEventsUrl(path: string, tokenUuid: string): string {
-  const url = new URL(`${getApiBaseUrl()}${path}`);
-  url.searchParams.set('token', tokenUuid);
-  return validateApiDestination(url.href);
-}
-
-export function allowWebNavigation(value: string): boolean {
-  if (value === 'about:blank') return true;
-  try {
-    validateNetworkUrl(value);
-    return true;
-  } catch {
-    return false;
-  }
-}

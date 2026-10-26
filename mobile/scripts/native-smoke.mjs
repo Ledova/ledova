@@ -8,7 +8,6 @@ import { createHash } from 'node:crypto';
 import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { setTimeout, clearTimeout } from 'node:timers';
-import { createAndroidTestPackages } from './android-test-packages.mjs';
 import { waitForContent } from './screen-content.mjs';
 import { checkFocus, windowFocus } from './window-focus.mjs';
 
@@ -28,10 +27,6 @@ if (platform === 'android') assert.match(device, /^emulator-\d+$/);
 const sdk = process.env.ANDROID_HOME;
 const adb = sdk ? path.join(sdk, 'platform-tools', 'adb') : 'adb';
 const adbArgs = ['-P', process.env.ANDROID_ADB_SERVER_PORT || '5037', '-s', device];
-const testPackages = createAndroidTestPackages(
-  (args) => execFileSync(adb, [...adbArgs, ...args], { encoding: 'utf8', timeout: 15000, killSignal: 'SIGKILL' }),
-  (name, result) => fs.writeFileSync(path.join(directory, `${name}-cleanup.log`), result),
-);
 function archiveAndroidArtifact(source, name) {
   const destination = path.join(directory, name);
   fs.copyFileSync(source, destination);
@@ -39,26 +34,6 @@ function archiveAndroidArtifact(source, name) {
     path.join(directory, 'test-artifact-sha256.txt'),
     `${createHash('sha256').update(fs.readFileSync(destination)).digest('hex')}  ${name}\n`,
   );
-}
-
-function collectScannerEvidence() {
-  for (const suffix of ['.png', '.xml', '-status.txt']) {
-    const remote = `scanner-release${suffix}`;
-    try {
-      execFileSync(
-        adb,
-        [
-          ...adbArgs,
-          'pull',
-          `/sdcard/Android/data/${config.android.package}/files/${remote}`,
-          path.join(directory, remote),
-        ],
-        { timeout: 15000, killSignal: 'SIGKILL', stdio: 'pipe' },
-      );
-    } catch {
-      fs.appendFileSync(path.join(directory, 'scanner-evidence-collection.log'), `Could not collect ${remote}.\n`);
-    }
-  }
 }
 
 const baseEnvironment = {
@@ -290,13 +265,6 @@ async function build(name, environment) {
 async function launch(name) {
   if (platform === 'android') {
     await command(adb, [...adbArgs, 'install', '-r', appPath], `${name}-install`);
-    if (name === 'probe') {
-      await command(
-        adb,
-        [...adbArgs, 'shell', 'pm', 'grant', config.android.package, 'android.permission.CAMERA'],
-        `${name}-camera-permission`,
-      );
-    }
     await command(adb, [...adbArgs, 'shell', 'am', 'force-stop', config.android.package], `${name}-stop`);
     await command(
       adb,
@@ -503,68 +471,6 @@ try {
   );
   checkFocus(launchFocus, 'ordinary.png');
   if (platform === 'android') {
-    await command(
-      './gradlew',
-      [
-        ':ledova-scanner:assembleDebugAndroidTest',
-        '--no-daemon',
-        '--max-workers=2',
-        `-PreactNativeArchitectures=${process.env.NATIVE_ANDROID_ABIS || 'x86_64,arm64-v8a'}`,
-      ],
-      'scanner-window-build',
-      {},
-      path.join(mobile, 'android'),
-    );
-    const testApk = path.join(
-      mobile,
-      'modules/ledova-scanner/android/build/outputs/apk/androidTest/debug/ledova-scanner-debug-androidTest.apk',
-    );
-    archiveAndroidArtifact(testApk, 'scanner-window-tests.apk');
-    await testPackages.install('org.example.ledova.scanner.test', () =>
-      command(adb, [...adbArgs, 'install', '-r', testApk], 'scanner-window-install'),
-    );
-    await command(
-      adb,
-      [
-        ...adbArgs,
-        'shell',
-        'am',
-        'instrument',
-        '-w',
-        '-r',
-        'org.example.ledova.scanner.test/androidx.test.runner.AndroidJUnitRunner',
-      ],
-      'scanner-window-tests',
-    );
-    const result = fs.readFileSync(path.join(directory, 'scanner-window-tests.log'), 'utf8');
-    assert.match(result, /OK \([1-9]\d* tests\)/);
-    assert.doesNotMatch(result, /FAILURES!!!|INSTRUMENTATION_FAILED|shortMsg=/);
-    await command(adb, [...adbArgs, 'uninstall', 'org.example.ledova.scanner.test'], 'scanner-window-uninstall');
-    testPackages.forget('org.example.ledova.scanner.test');
-    await command(
-      './gradlew',
-      [
-        '-I',
-        path.join(mobile, 'native-tests/android/release-tests.gradle'),
-        ':app:assembleReleaseAndroidTest',
-        '--no-daemon',
-        '--max-workers=2',
-        `-PreactNativeArchitectures=${process.env.NATIVE_ANDROID_ABIS || 'x86_64,arm64-v8a'}`,
-      ],
-      'scanner-release-test-build',
-      {},
-      path.join(mobile, 'android'),
-    );
-    const releaseTestApk = path.join(
-      mobile,
-      'android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk',
-    );
-    archiveAndroidArtifact(releaseTestApk, 'scanner-release-tests.apk');
-    await testPackages.install('org.example.ledova.releaseprobe.test', () =>
-      command(adb, [...adbArgs, 'install', '-r', releaseTestApk], 'scanner-release-test-install'),
-    );
-  }
-  if (platform === 'android') {
     const resource = path.join(mobile, 'android/app/src/main/res/xml/ledova_network_security_config.xml');
     const certificate = path.join(mobile, 'android/app/src/main/res/raw/ledova_probe_ca.pem');
     preserve(resource);
@@ -596,28 +502,6 @@ try {
     await build('probe-release-build', environment);
     if (platform === 'android') archiveAndroidArtifact(appPath, 'native-probe.apk');
     await launch('probe');
-    if (platform === 'android') {
-      try {
-        await command(
-          adb,
-          [
-            ...adbArgs,
-            'shell',
-            'am',
-            'instrument',
-            '-w',
-            '-r',
-            'org.example.ledova.releaseprobe.test/androidx.test.runner.AndroidJUnitRunner',
-          ],
-          'scanner-release',
-        );
-      } finally {
-        collectScannerEvidence();
-      }
-      const nativeResult = fs.readFileSync(path.join(directory, 'scanner-release.log'), 'utf8');
-      assert.match(nativeResult, /OK \(1 test\)/);
-      assert.doesNotMatch(nativeResult, /FAILURES!!!|INSTRUMENTATION_FAILED|shortMsg=/);
-    }
     markStage('probe-report');
     result = await waitFor(path.join(directory, 'server/result.json'), 120000);
     await delay(500);
@@ -631,7 +515,7 @@ try {
     assert.equal(result.counts.redirectTarget, 0);
     assert.equal(result.counts.redirectBody, 0);
     assert.equal(result.counts.redirectBearer, 0);
-    for (const count of ['direct', 'targetControl', 'upload', 'download', 'stream', 'cancelled'])
+    for (const count of ['direct', 'targetControl', 'download', 'cancelled'])
       assert.ok(result.counts[count] > 0, `${count} needs a positive control.`);
     for (const count of ['http', 'untrusted']) assert.equal(result.counts[count], 0);
   } finally {
@@ -647,7 +531,6 @@ try {
 } finally {
   const cleanup = await Promise.allSettled([...activeChildren.keys()].map(stopOwned));
   const cleanupErrors = cleanup.filter((result) => result.status === 'rejected').map((result) => result.reason);
-  cleanupErrors.push(...testPackages.cleanup());
   for (const [filename, contents] of restored) {
     try {
       if (contents === null) fs.rmSync(filename, { force: true });

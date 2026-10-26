@@ -225,8 +225,8 @@ so registered members keep their normal particulars and correction flows.
 The members response lists award-only people, award recipients who have never been on the company's
 register, as members with `on_register` false, and only to readers of the company's awards (current register
 appointees). Every other member is listed with `on_register` true, including one with no shares yet,
-such as a member created by a wallet link. Its `award_recipients` list stays empty until the mobile app
-stops reading it. Private award evidence is not returned, and the RLS policies and grants are unchanged.
+such as a member created by a wallet link. Its `award_recipients` list stays empty. Private award
+evidence is not returned, and the RLS policies and grants are unchanged.
 
 ## Company workflow API
 

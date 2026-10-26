@@ -32,8 +32,12 @@ every company ([eligibility decision](../decisions.md#eligibility-and-ownership-
 3. Complete your personal profile and financial profile, review them and choose **Complete
    signup**, which accepts the Terms of Service and Privacy Policy.
 
-Signup does not include identity verification. Complete it afterwards from Profile with **Review
-identity check**; while the investor identity requirement is on, investing waits for it
+Mobile signup creates individual accounts only: **Welcome to Ledova** takes the place of the account
+type choice. On mobile, a company account that has not finished signup sees **This app is for
+shareholders** and can only sign out.
+
+Signup does not include identity verification. Complete it afterwards from Profile on the web with
+**Review identity check**; while the investor identity requirement is on, investing waits for it
 ([account readiness](#account-readiness)). An unfinished account can sign in again and resume.
 
 ### Going back and changing your email
@@ -139,8 +143,7 @@ lookup reveals nothing about the company. A submitted source can be withdrawn.
 
 ### Requesting a decision
 
-1. Open **Your company eligibility** (Eligibility requests on mobile) from Verification or
-   Directory.
+1. Open **Your company eligibility** from Verification or Directory.
 2. Select your evidence source. Enter the exact company identifier the company gave you or, for a
    large-investment claim, the approved offering's identifier and a whole-share quantity. Set the
    expiry you are asking for. On the web, a company finds its identifier on its
@@ -157,7 +160,7 @@ attached to it. You can withdraw a pending or accepted request; a refusal stays 
 
 ### Deciding, withdrawing and revoking
 
-Company approvers open **More → Company eligibility** on web, or **Company team** on mobile.
+Company approvers open **More → Company eligibility** on web.
 
 1. Choose your exact appointment and the company, then read the request queue and a request's
    summary. On the web the queue shows 25 requests a page, newest first, and can be filtered by
@@ -322,8 +325,8 @@ Verification (investing accounts) has three sections:
 - How you qualify: the four categories, **Submit evidence** or **Add evidence**, and **Request
   company eligibility**.
 
-Your company eligibility (Eligibility requests on mobile) holds your requests with their outcome
-history, **Prepare request withdrawal** and the wallet nomination. Company eligibility, for company
+Your company eligibility holds your requests with their outcome history, **Prepare request
+withdrawal** and the wallet nomination. Company eligibility, for company
 approvers and preparers, holds Your personal company authority, the Company request queue, the
 decision and revocation forms and Company wallet approvals
 ([deciding](#deciding-withdrawing-and-revoking)).
@@ -355,7 +358,7 @@ further payment with the operator
 Profile shows Personal information (full name, email, phone, date of birth, address and citizenship).
 On web, one compact Account card holds password, appearance and notifications, with identity status
 and **Review identity check**. Existing company and investor verification requirements stay unchanged.
-Mobile retains its Account status section.
+Mobile keeps its Account status section, with member since and last login.
 Web personal-details editing opens inline, with aligned Cancel and save actions.
 
 To change your full name, residential address or phone, choose **Edit personal details**, change
@@ -401,12 +404,10 @@ Web Settings also opens **Company-recorded details**: the person's name and resi
 held by each linked company, with a company-reviewed update request and its status. These are
 separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
 
-Mobile Settings keeps Verification and activation: **Verify and activate your company** for personal
-company administrators, marked To do or Done, and **Verify your identity**, which shows identity status
-and opens Profile. Other users see the identity row only. Company settings reaches company details,
-documents and the team. Native Settings also offers biometric sign-in, **App lock** (biometrics after
-the app goes into the background), **Rate the app** and **Share with friends**, and groups password,
-export and deletion under Account.
+On mobile, the Account tab opens Profile and offers biometric sign-in, **App lock** (biometrics
+after the app goes into the background), **Dark theme** (saved on the device), **Rate the app**,
+**Share with friends** and **Sign out**. Its Account section holds **Change password**, **Export
+data** (a private JSON file to save or share) and **Delete account**.
 
 Next: [company setup](companies.md) ·
 [issuing shares](issuing-shares.md) ·

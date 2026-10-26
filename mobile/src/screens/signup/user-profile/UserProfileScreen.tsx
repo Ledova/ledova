@@ -11,7 +11,6 @@ import { CountrySelector } from './components/CountrySelector';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { parseDateString, formatDateToString, useSignupUserProfile } from '@ledova/shared';
-import { useRole } from '../../../hooks/useRole';
 
 export function UserProfileScreen() {
   const theme = useAppTheme();
@@ -198,16 +197,14 @@ export function UserProfileScreen() {
     retryLoad,
   } = useSignupUserProfile();
 
-  const { isCompany } = useRole();
-
   const handleContinue = async () => {
     await handleSubmit(() => {
-      navigation.navigate(isCompany ? 'CompanyRegistration' : 'FinancialProfile');
+      navigation.navigate('FinancialProfile');
     });
   };
 
   const handleBack = () => {
-    navigation.navigate(isCompany ? 'AccountType' : 'PreScreening');
+    navigation.navigate('PreScreening');
   };
 
   if (isLoading) {

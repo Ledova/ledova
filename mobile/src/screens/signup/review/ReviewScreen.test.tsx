@@ -10,23 +10,19 @@ const mockResidentialAddress = '17 Example Street,\nSydney NSW 2000, Australia';
 let mockProfileComplete = false;
 let mockProfileError = false;
 let mockRereading = false;
-let mockSavedRequest: {
-  originalFilename: string;
-  requestedCapabilities: string[];
-  delegatableCapabilities: string[];
-  status: string;
-} | null = null;
+let mockCompany = false;
+let mockPreferencesError = false;
+let mockInterrupted = true;
 
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset, navigate: jest.fn() }) }));
-jest.mock('react-native-webview', () => jest.requireActual('react-native').View);
-jest.mock('../../../navigation/DrawerNavigator', () => ({
-  DrawerNavigator: () =>
+jest.mock('../../../navigation/SignedInNavigator', () => ({
+  SignedInNavigator: () =>
     jest
       .requireActual<typeof import('react')>('react')
       .createElement(jest.requireActual<typeof import('react-native')>('react-native').Text, null, 'Completed account'),
 }));
 jest.mock('../../../hooks/useRole', () => ({
-  useRole: () => ({ role: 'company', isCompany: true, isLoading: false }),
+  useRole: () => ({ role: mockCompany ? 'company' : 'investor', isCompany: mockCompany, isLoading: false }),
 }));
 jest.mock('../../../hooks/useUserProfile', () => ({
   useUserProfile: () => ({
@@ -40,45 +36,27 @@ jest.mock('@ledova/shared', () => {
   return {
     ...jest.requireActual('@ledova/shared'),
     useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: mockRereading, refetch: jest.fn() }),
-    useUserPreferences: () => ({ isFetching: mockRereading, refetch: jest.fn() }),
+    useUserPreferences: () => ({ isFetching: mockRereading, isError: mockPreferencesError, refetch: jest.fn() }),
     useSignupReview: (_role: string, onComplete: (guard: () => void) => Promise<void>) => {
-      const [request, setRequest] = useState(mockSavedRequest);
-      const [ready, setReady] = useState(false);
       const [error, setError] = useState<string | null>(null);
       return {
         data: {
-          userProfile: { fullName: 'Alex Company', residentialAddress: mockResidentialAddress },
-          financialProfile: null,
+          userProfile: { fullName: 'Alex Member', residentialAddress: mockResidentialAddress },
+          financialProfile: { sourceOfFunds: 'salary' },
         },
-        company: { uuid: 'company-one', name: 'Paper Company', acn: '123456789' },
-        isCompany: true,
         isLoading: false,
         error: null,
         completionError: error,
         isSubmitting: false,
         canCompleteSignup: true,
-        authorityRequest: request,
-        authorityReady: ready,
-        authorityError: null,
-        isResettingAuthority: false,
-        resetAuthorityRequest: async () => {
-          mockSavedRequest = null;
-          setRequest(null);
-        },
         retryLoad: jest.fn(),
         completeSignup: async () => {
           mockComplete();
-          if (!request) {
-            mockSavedRequest = {
-              originalFilename: '',
-              requestedCapabilities: ['admin'],
-              delegatableCapabilities: ['admin', 'prepare', 'approve', 'apply', 'finance', 'read_register'],
-              status: 'pending',
-            };
-            setError('The response was interrupted. Retry the retained request.');
+          if (mockInterrupted) {
+            mockInterrupted = false;
+            setError('The response was interrupted. Try again.');
             throw new Error('Interrupted');
           }
-          setReady(true);
           setError(null);
           await onComplete(jest.fn());
         },
@@ -91,33 +69,30 @@ afterEach(async () => {
   jest.clearAllMocks();
 });
 
-it('accepts company authority and Terms through explicit completion without uploads or checkboxes, resumes setup and keeps unfinished profiles outside the account', async () => {
+it('completes individual signup only through explicit Terms acceptance, resumes after an interrupted response, keeps unfinished profiles outside the account, waits for a readable role and sends unfinished company accounts to the shareholders-only notice', async () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   const first = await render(<ReviewScreen />, { wrapper });
-  expect(first.getByRole('button', { name: 'Complete company setup' })).toBeEnabled();
+  expect(first.getByRole('button', { name: 'Complete Signup' })).toBeEnabled();
   expect(first.getByText('Residential address:')).toBeTruthy();
   expect(first.getByText(mockResidentialAddress, { normalizer: (value) => value }).props.children).toBe(
     mockResidentialAddress,
   );
   expect(first.queryByRole('checkbox')).toBeNull();
-  expect(
-    first.getByText(/By completing setup, you confirm that you are authorised to administer Paper Company/),
-  ).toBeTruthy();
-  expect(first.queryByRole('button', { name: 'Choose representative evidence' })).toBeNull();
+  expect(first.getByText(/By completing signup, you accept the/)).toBeTruthy();
   expect(mockComplete).not.toHaveBeenCalled();
-  await fireEvent.press(first.getByRole('button', { name: 'Complete company setup' }));
-  await first.findByText('The response was interrupted. Retry the retained request.');
+  await fireEvent.press(first.getByRole('button', { name: 'Complete Signup' }));
+  await first.findByText('The response was interrupted. Try again.');
   expect(mockReset).not.toHaveBeenCalled();
   await first.unmount();
 
   const resumed = await render(<ReviewScreen />, { wrapper });
-  expect(resumed.getByRole('button', { name: 'Complete company setup' })).toBeEnabled();
+  expect(resumed.getByRole('button', { name: 'Complete Signup' })).toBeEnabled();
   expect(resumed.queryByRole('checkbox')).toBeNull();
   expect(mockComplete).toHaveBeenCalledTimes(1);
-  await fireEvent.press(resumed.getByRole('button', { name: 'Complete company setup' }));
+  await fireEvent.press(resumed.getByRole('button', { name: 'Complete Signup' }));
   await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'MainApp' }] }));
   expect(mockComplete).toHaveBeenCalledTimes(2);
   await resumed.unmount();
@@ -126,8 +101,18 @@ it('accepts company authority and Terms through explicit completion without uplo
   const gate = await render(<SignupCompletionGate />);
   expect(gate.queryByText('Completed account')).toBeNull();
   mockRereading = false;
+  mockPreferencesError = true;
   await gate.rerender(<SignupCompletionGate />);
-  await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'CompanyRegistration' }] }));
+  expect(
+    gate.getByText('Your signup progress could not be checked. Try again before opening your account.'),
+  ).toBeTruthy();
+  expect(mockReset).not.toHaveBeenCalledWith({ index: 0, routes: [{ name: 'AccountType' }] });
+  mockPreferencesError = false;
+  await gate.rerender(<SignupCompletionGate />);
+  await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'AccountType' }] }));
+  mockCompany = true;
+  await gate.rerender(<SignupCompletionGate />);
+  await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'ShareholdersOnly' }] }));
   expect(gate.queryByText('Completed account')).toBeNull();
   mockProfileComplete = true;
   await gate.rerender(<SignupCompletionGate />);

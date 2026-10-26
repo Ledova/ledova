@@ -48,19 +48,6 @@ export function formatDate(
   }
 }
 
-export function formatTime(
-  dateString: string | null | undefined,
-  fallback: string = 'Never',
-  locale: string = 'en-AU',
-): string {
-  if (!dateString) return fallback;
-  try {
-    return new Date(dateString).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
-  } catch {
-    return dateString;
-  }
-}
-
 export function formatDateTime(
   dateString: string | null | undefined,
   fallback: string = 'Never',

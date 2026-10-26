@@ -9,15 +9,16 @@ import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Action, Rows } from '../Ledger';
 import { CustomModal, useDialogStyles } from '../modal';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import type { TabParamList } from '../../navigation/SignedInNavigator';
 
 interface NotificationsModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-const DESTINATIONS: Record<string, string> = { [PUBLICATION_NOTICE]: 'Publications' };
+const DESTINATIONS: Record<string, keyof TabParamList> = { [PUBLICATION_NOTICE]: 'Documents' };
 
-export function destinationOf(notification: Notification): string | undefined {
+export function destinationOf(notification: Notification): keyof TabParamList | undefined {
   const type = (notification.data as { type?: unknown } | null | undefined)?.type;
   return typeof type === 'string' ? DESTINATIONS[type] : undefined;
 }
@@ -140,7 +141,7 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
     const destination = destinationOf(notification);
     if (!destination) return;
     onClose();
-    navigation.navigate('MainApp', { screen: 'Main', params: { screen: destination } } as never);
+    navigation.navigate('MainApp', { screen: 'Main', params: { screen: destination } });
   };
 
   return (

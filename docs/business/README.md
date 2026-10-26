@@ -143,13 +143,11 @@ rule, and company policy decides whether a separate approver is needed. Applicat
 approval whose approver still holds a current appointment; otherwise someone approves again.
 Rejection stays available until the change is applied or rejected.
 
-Investor-allotment reviews, on the web and mobile, and the web's non-paid transfer reviews combine
-approval and application in one **Approve** action, requiring both capabilities (or administration)
-and recording the approval and ledger effect atomically. They retain any existing current approval
-and create at most one entry. Mobile's transfers and other decision families keep the separate
-steps above
-([external allotments](issuing-shares.md#external-investor-allotments),
-[transfers](register.md#non-paid-transfers-between-members)).
+Investor-allotment and non-paid transfer reviews on the web combine approval and application in one
+**Approve** action, requiring both capabilities (or administration) and recording the approval and
+ledger effect atomically ([external allotments](issuing-shares.md#external-investor-allotments),
+[transfers](register.md#non-paid-transfers-between-members)). They retain any existing current
+approval and create at most one entry. Other decision families keep the separate steps above.
 
 Each step confirms an exact preview. If anything the step depends on changes before you confirm,
 such as the proposal, your appointment or the register, the step is refused and you review it
@@ -221,7 +219,9 @@ confirmed, and a confirmed one is not yet final ([chain](../engineering/chain.md
 
 ## The app at a glance
 
-The web dashboard and the mobile app reach the same records and workflows. The account type chosen
+The web dashboard reaches the records and workflows described here. The mobile app is for
+shareholders and holds only their own records, notices and account
+([decision](../decisions.md#mobile-app-for-shareholders)). The account type chosen
 at signup selects navigation only; company actions follow the person's current appointments, and
 the server decides what each person may read. Every page withholds stale records and their actions
 after a failed read, keeps an open draft without submitting it until a read succeeds, and closes
@@ -252,11 +252,7 @@ company** ([activation](companies.md#activation-and-the-registry-check)) and **S
 ([register setup](register.md#bringing-in-existing-records)). Completed tasks disappear; once both
 are complete, the whole card disappears. Register setup completes once the register of the company
 shown is opened, not when a class is merely created, and it does not wait for activation. Someone
-who can prepare the register but is
-not an administrator is pointed to Ledger instead. On mobile, the Ledger tab opens with the
-same line and shows Getting started to an administrator of the company shown, with the same **Set up
-your ledger** label, judging completion by that company's register. Its existing
-checklist still marks tasks To do or Done.
+who can prepare the register but is not an administrator is pointed to Ledger instead.
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share
@@ -267,15 +263,14 @@ and charts rather than showing zero. Detailed history and every action are on th
 [Ledger page](register.md#the-register-page).
 
 The personal Dashboard (My shares on mobile) shows the person's own register records, with no
-wallet needed and never company totals or other shareholders; personal Documents holds their
-certificates and certificate requests ([member records](member-records.md)).
+wallet needed and never company totals or other shareholders. Their certificates and certificate
+requests are in personal Documents on the web and in My shares on mobile
+([member records](member-records.md)).
 
-The mobile app has tabs for My shares, Ledger (for people who can read a company's register) and
-Wallets. Its menu holds the Company group (Ledger, whose caret shows Issue shares, Transfer shares,
-History and Corrections, then Shareholders, ESS, Documents and Company), Your
-shares (My shares), Company for company accounts without register access, Profile and Settings,
-then More with the Invest group, Offerings, Wallets, Notices and Activity, and Help & Support.
-Company accounts with register access start on Ledger; others start on My shares.
+The mobile app has three tabs and a notifications bell, and opens on Holdings. **Holdings** opens
+My shares, **Documents** opens [Notices](publications.md#the-notices-page) and **Account** holds
+Profile and the app's settings ([Profile and Settings](participants.md#profile-and-settings)).
+Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).
 
 Each page is described in the domain document for its process below;
 [pages](../engineering/frontend.md#pages) lists every page with its route, its audience and the

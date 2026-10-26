@@ -10,12 +10,6 @@ const NO_THREE_DOTS = [
   { selector: 'TemplateElement[value.raw=/\\.\\.\\./]', message: MESSAGE },
   { selector: 'JSXText[value=/\\.\\.\\./]', message: MESSAGE },
 ];
-const NO_GET_ERROR_MESSAGE = {
-  selector: "CallExpression[callee.name='getErrorMessage']",
-  message:
-    'Read a failure with failureSentence, or apiErrorSentence and readApiError (docs/engineering/frontend-ux.md#validation).',
-};
-
 export default tseslint.config(
   { ignores: ['node_modules'] },
   {
@@ -43,13 +37,7 @@ export default tseslint.config(
   },
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/generated/**', 'src/utils/errors.ts'],
-    rules: {
-      'no-restricted-syntax': ['error', ...NO_THREE_DOTS, NO_GET_ERROR_MESSAGE],
-    },
-  },
-  {
-    files: ['src/utils/errors.ts'],
+    ignores: ['src/generated/**'],
     rules: {
       'no-restricted-syntax': ['error', ...NO_THREE_DOTS],
     },

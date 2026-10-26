@@ -63,7 +63,6 @@ export {
   deleteCompanyDocument,
   activateCompany,
   createCompanyPack,
-  createCompanyPackBytes,
 } from './companies';
 export {
   getCompanyAuthorityRequests,
@@ -88,10 +87,8 @@ export {
   downloadTokenRegister,
   getRegisterInspectionPreview,
   createRegisterInspectionCopy,
-  createRegisterInspectionCopyBytes,
   getRegisterCertificatePreview,
   createRegisterCertificate,
-  createRegisterCertificateBytes,
   getCompanyTokenIssuances,
   getCapitalIncreases,
   getShareIssuanceRequests,
@@ -150,7 +147,7 @@ export {
 } from './investorClassifications';
 export { getFeatureFlags } from './featureFlags';
 export { getOperator } from './operator';
-export { getDirectoryTokens, getDirectoryToken, getDirectoryDocuments, downloadDirectoryDocument } from './directory';
+export { getDirectoryTokens, getDirectoryToken, getDirectoryDocuments } from './directory';
 export {
   getOfferings,
   getOffering,

@@ -7,7 +7,7 @@ import { useAppTheme } from '../contexts';
 import { useRole } from '../hooks/useRole';
 import { useUserProfile } from '../hooks/useUserProfile';
 import type { RootStackParamList } from './AppNavigator';
-import { DrawerNavigator } from './DrawerNavigator';
+import { SignedInNavigator } from './SignedInNavigator';
 
 export function SignupCompletionGate() {
   const theme = useAppTheme();
@@ -18,6 +18,7 @@ export function SignupCompletionGate() {
   const { userProfile, profile } = useUserProfile();
   const waiting = auth.isLoading || auth.isFetching || profile.isLoading || profile.isFetching || roleLoading;
   const completed = !waiting && !profile.isError && !!userProfile?.isSignupCompleted;
+  const failed = profile.isError || (preferences.isError && !!userProfile && !userProfile.isSignupCompleted);
   const [opened, setOpened] = useState(false);
   if (completed && !opened) setOpened(true);
   const rereading = auth.isFetching || preferences.isFetching || profile.isFetching;
@@ -27,20 +28,11 @@ export function SignupCompletionGate() {
     if (auth.isLoading || auth.isFetching) return;
     if (!auth.isAuthenticated) {
       navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
-    } else if (!waiting && !profile.isError && userProfile && !userProfile.isSignupCompleted) {
-      navigation.reset({ index: 0, routes: [{ name: isCompany ? 'CompanyRegistration' : 'AccountType' }] });
+    } else if (!waiting && !failed && userProfile && !userProfile.isSignupCompleted) {
+      navigation.reset({ index: 0, routes: [{ name: isCompany ? 'ShareholdersOnly' : 'AccountType' }] });
     }
-  }, [
-    auth.isAuthenticated,
-    auth.isLoading,
-    auth.isFetching,
-    waiting,
-    profile.isError,
-    userProfile,
-    isCompany,
-    navigation,
-  ]);
-  if (completed || kept) return <DrawerNavigator />;
+  }, [auth.isAuthenticated, auth.isLoading, auth.isFetching, waiting, failed, userProfile, isCompany, navigation]);
+  if (completed || kept) return <SignedInNavigator />;
   return (
     <View
       style={{
@@ -51,7 +43,7 @@ export function SignupCompletionGate() {
         gap: theme.spacing.md,
       }}
     >
-      {waiting || !auth.isAuthenticated || (!profile.isError && userProfile) ? (
+      {waiting || !auth.isAuthenticated || (!failed && userProfile) ? (
         <>
           <ActivityIndicator color={theme.colors.interactive.active} />
           <Text style={{ color: theme.colors.text.muted }}>Checking your account…</Text>

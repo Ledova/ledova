@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { ActivityIndicator, RefreshControl, Text, TextInput, View } from 'react-native';
-import { formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
+import { formatDate, formatDateTime } from '@ledova/shared';
 import { Action, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useUserProfile } from '../../hooks/useUserProfile';
-import { VerificationModal } from '../../components/identity/VerificationModal';
 import { useAccountStyles } from '../../hooks/useAccountStyles';
 export function UserProfileScreen() {
   const styles = useAccountStyles();
@@ -14,14 +13,12 @@ export function UserProfileScreen() {
   const [residentialAddress, setResidentialAddress] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationOpen, setVerificationOpen] = useState(false);
   const blocked = profile.isFetching || profile.isError || !userProfile || update.isPending;
   const isEditing =
     !!editing &&
     editing.owner === ownerKey &&
     !!ownerKey &&
     (editing.source === sourceKey || (!sourceKey && profile.isError));
-  const verification = getUserVerificationStatus(userProfile);
   return (
     <>
       <Page
@@ -148,23 +145,12 @@ export function UserProfileScreen() {
         {userProfile && !profile.isError && (
           <Section title="Account status">
             <Rows>
-              <Row label="Identity check">{verification.label}</Row>
               <Row label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Row>
               <Row label="Last login">{formatDateTime(userProfile.lastLogin)}</Row>
             </Rows>
-            <Action
-              label="Review identity check"
-              disabled={profile.isFetching}
-              onPress={() => setVerificationOpen(true)}
-            />
           </Section>
         )}
       </Page>
-      <VerificationModal
-        visible={verificationOpen}
-        onClose={() => setVerificationOpen(false)}
-        onRefresh={() => void profile.refetch()}
-      />
     </>
   );
 }

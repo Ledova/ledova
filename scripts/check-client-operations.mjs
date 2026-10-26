@@ -159,38 +159,6 @@ export function checkClientOperations(root, document) {
     return writes.length === 1 ? writes[0] : undefined;
   }
 
-  function simpleUrlBuilder(node) {
-    const declared = declaration(node.expression);
-    if (
-      !declared ||
-      !ts.isFunctionDeclaration(declared) ||
-      path.relative(root, declared.getSourceFile().fileName) !== 'mobile/src/config/networkPolicy.ts' ||
-      declared.name?.text !== 'getTradingEventsUrl'
-    )
-      return false;
-    const statements = declared.body?.statements;
-    if (statements?.length !== 3 || !ts.isVariableStatement(statements[0])) return false;
-    const url = statements[0].declarationList.declarations[0];
-    const build = url?.initializer;
-    const query = statements[1];
-    const result = statements[2];
-    return (
-      build &&
-      ts.isNewExpression(build) &&
-      build.expression.getText() === 'URL' &&
-      build.arguments?.length === 1 &&
-      build.arguments[0].getText() === '`${getApiBaseUrl()}${' + declared.parameters[0].name.getText() + '}`' &&
-      ts.isExpressionStatement(query) &&
-      ts.isCallExpression(query.expression) &&
-      query.expression.expression.getText() === `${url.name.getText()}.searchParams.set` &&
-      query.expression.arguments.length === 2 &&
-      query.expression.arguments[0].text === 'token' &&
-      query.expression.arguments[1].getText() === declared.parameters[1].name.getText() &&
-      ts.isReturnStatement(result) &&
-      result.expression?.getText() === `validateApiDestination(${url.name.getText()}.href)`
-    );
-  }
-
   function value(node, bindings = new Map(), seen = new Set()) {
     node = unwrap(node);
     if (!node || seen.has(node)) return undefined;
@@ -217,7 +185,6 @@ export function checkClientOperations(root, document) {
         node.arguments[1]?.text === ''
       )
         return value(node.expression.expression, bindings, next)?.replace(/\/$/, '');
-      if (simpleUrlBuilder(node)) return value(node.arguments[0], bindings, next);
       let declared = declaration(node.expression);
       if (declared?.initializer) declared = unwrap(declared.initializer);
       if (
@@ -297,33 +264,6 @@ export function checkClientOperations(root, document) {
         unchanged = false;
     });
     return unchanged;
-  }
-
-  function linkedFile(node) {
-    if (
-      !node ||
-      path.relative(root, node.getSourceFile().fileName) !==
-        "mobile/src/screens/company/DocumentEntry.tsx"
-    )
-      return false;
-    const components =
-      generatedModule &&
-      checker
-        .getExportsOfModule(generatedModule)
-        .find((entry) => entry.name === "ApiComponents");
-    const schemas =
-      components &&
-      propertyType(
-        checker.getDeclaredTypeOfSymbol(components),
-        "schemas",
-        node,
-      );
-    const document = propertyType(schemas, "CompanyDocument", node);
-    const file = document?.getProperty("fileUrl");
-    return (
-      !!file?.valueDeclaration &&
-      declaration(unwrap(node)) === file.valueDeclaration
-    );
   }
 
   function propertyType(type, name, node) {
@@ -408,12 +348,6 @@ export function checkClientOperations(root, document) {
   }
 
   function networkConstructor(node) {
-    const original = checker.getSymbolAtLocation(node.expression);
-    for (let imported of original?.declarations ?? []) {
-      while (imported && !ts.isSourceFile(imported) && !ts.isImportDeclaration(imported)) imported = imported.parent;
-      if (imported && ts.isImportDeclaration(imported) && imported.moduleSpecifier.text === 'react-native-sse')
-        return 'EventSource';
-    }
     let declared = checker.getResolvedSignature(node)?.declaration;
     if (!declared?.getSourceFile().fileName.endsWith('/lib.dom.d.ts')) return undefined;
     while (declared && !ts.isSourceFile(declared)) {
@@ -442,9 +376,7 @@ export function checkClientOperations(root, document) {
                 node,
                 'Unresolved Axios request configuration; declare its method/path or preserve an unchanged AxiosError.config replay.',
               );
-          } else if (linkedFile(node.arguments[0]))
-            record(node, method, '/api/v1/companies/{}/documents/{}/file/', 'CompanyDocument.fileUrl', 'binary');
-          else record(node, method, value(node.arguments[0]), 'axios');
+          } else record(node, method, value(node.arguments[0]), 'axios');
         } else {
           const signature = checker.getResolvedSignature(node)?.declaration;
           const definitions = signature?.name && symbol(signature.name)?.declarations;
