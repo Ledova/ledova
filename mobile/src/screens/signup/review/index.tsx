@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
@@ -11,8 +10,6 @@ import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useReview } from './useReview';
 import { formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
 import { PUBLIC_LINKS } from '../../../config/publicLinks';
-import { Action } from '../../../components/Ledger';
-import { VerificationModal } from '../../../components/identity/VerificationModal';
 
 export function ReviewScreen() {
   const theme = useAppTheme();
@@ -154,10 +151,6 @@ export function ReviewScreen() {
       shadowRadius: 8,
       elevation: 4,
     },
-    identityNotice: {
-      gap: theme.spacing.md,
-      marginBottom: theme.spacing.md,
-    },
     validationText: {
       marginBottom: theme.spacing.md,
       fontSize: theme.fontSize.sm,
@@ -191,25 +184,9 @@ export function ReviewScreen() {
     },
   }));
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const {
-    data,
-    company,
-    isCompany,
-    identityRequired,
-    isLoading,
-    error,
-    completionError,
-    completeSignup,
-    isSubmitting,
-    canCompleteSignup,
-    retryLoad,
-    authorityRequest,
-    authorityError,
-    resetAuthorityRequest,
-    isResettingAuthority,
-  } = useReview();
-  const [verificationOpen, setVerificationOpen] = useState(false);
-  const busy = isSubmitting || isResettingAuthority;
+  const { data, isLoading, error, completionError, completeSignup, isSubmitting, canCompleteSignup, retryLoad } =
+    useReview();
+  const busy = isSubmitting;
   const finish = async () => {
     if (!canCompleteSignup || busy) return;
     try {
@@ -220,7 +197,7 @@ export function ReviewScreen() {
   };
 
   const handleBack = () => {
-    navigation.navigate(isCompany ? 'CompanyRegistration' : 'FinancialProfile');
+    navigation.navigate('FinancialProfile');
   };
 
   const handleOpenTerms = async () => {
@@ -290,12 +267,8 @@ export function ReviewScreen() {
                 weight={theme.icon.weights.regular}
               />
             </View>
-            <Text style={styles.title}>{isCompany ? 'Complete company setup' : 'Review & Confirm'}</Text>
-            <Text style={styles.subtitle}>
-              {isCompany
-                ? 'Review your saved details. Documents and team setup can wait until your dashboard.'
-                : 'Please review your information before completing signup'}
-            </Text>
+            <Text style={styles.title}>Review & Confirm</Text>
+            <Text style={styles.subtitle}>Please review your information before completing signup</Text>
           </View>
 
           <View style={styles.card}>
@@ -326,136 +299,65 @@ export function ReviewScreen() {
             </View>
           </View>
 
-          {isCompany ? (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.sectionTitle}>Company Information</Text>
-              </View>
-              <View style={styles.cardContent}>
-                {company ? (
-                  <View style={styles.infoList}>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Company:</Text>
-                      <Text style={styles.infoValue}>{company.name}</Text>
-                    </View>
-                    {company.tradingName ? (
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Trading As:</Text>
-                        <Text style={styles.infoValue}>{company.tradingName}</Text>
-                      </View>
-                    ) : null}
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>ACN:</Text>
-                      <Text style={styles.infoValue}>{company.acn}</Text>
-                    </View>
-                    {company.abn ? (
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>ABN:</Text>
-                        <Text style={styles.infoValue}>{company.abn}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                ) : (
-                  <Text style={styles.errorText}>No company information found.</Text>
-                )}
-              </View>
-            </View>
-          ) : (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.sectionTitle}>Financial Profile</Text>
-              </View>
-              <View style={styles.cardContent}>
-                {financialProfile ? (
-                  <View style={styles.infoList}>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Source of Funds:</Text>
-                      <Text style={styles.infoValue}>{formatSourceOfFunds(financialProfile.sourceOfFunds)}</Text>
-                    </View>
-                    {financialProfile.sourceOfFundsOtherText && (
-                      <View style={styles.infoRowVertical}>
-                        <Text style={styles.infoLabel}>Source of Funds (Other):</Text>
-                        <Text style={styles.infoValueVertical}>{financialProfile.sourceOfFundsOtherText}</Text>
-                      </View>
-                    )}
-                    {financialProfile.intendedUse && (
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Intended Use:</Text>
-                        <Text style={styles.infoValue}>{formatIntendedUse(financialProfile.intendedUse)}</Text>
-                      </View>
-                    )}
-                    {financialProfile.intendedUseOtherText && (
-                      <View style={styles.infoRowVertical}>
-                        <Text style={styles.infoLabel}>Intended Use (Other):</Text>
-                        <Text style={styles.infoValueVertical}>{financialProfile.intendedUseOtherText}</Text>
-                      </View>
-                    )}
-                    {financialProfile.occupation && (
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Occupation:</Text>
-                        <Text style={styles.infoValue}>{financialProfile.occupation}</Text>
-                      </View>
-                    )}
-                  </View>
-                ) : (
-                  <Text style={styles.errorText}>No financial profile found.</Text>
-                )}
-              </View>
-            </View>
-          )}
-
           <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.sectionTitle}>Financial Profile</Text>
+            </View>
             <View style={styles.cardContent}>
-              {isCompany && company ? (
+              {financialProfile ? (
                 <View style={styles.infoList}>
-                  <Text style={styles.termsText}>
-                    By completing setup, you confirm that you are authorised to administer {company.name}, including
-                    managing its users, and accept the{' '}
-                    <Text style={styles.linkText} onPress={handleOpenTerms}>
-                      Terms of Service
-                    </Text>{' '}
-                    on the company’s behalf.
-                  </Text>
-                  {authorityError && (
-                    <View style={styles.infoList}>
-                      <Text accessibilityRole="alert" style={styles.errorText}>
-                        {authorityError}
-                      </Text>
-                      {authorityRequest?.status === 'pending' && (
-                        <Action
-                          label="Update saved setup"
-                          disabled={busy}
-                          onPress={() => void resetAuthorityRequest().catch(() => {})}
-                        />
-                      )}
-                      <Action label="Refresh company setup" disabled={busy} onPress={() => void retryLoad()} />
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Source of Funds:</Text>
+                    <Text style={styles.infoValue}>{formatSourceOfFunds(financialProfile.sourceOfFunds)}</Text>
+                  </View>
+                  {financialProfile.sourceOfFundsOtherText && (
+                    <View style={styles.infoRowVertical}>
+                      <Text style={styles.infoLabel}>Source of Funds (Other):</Text>
+                      <Text style={styles.infoValueVertical}>{financialProfile.sourceOfFundsOtherText}</Text>
+                    </View>
+                  )}
+                  {financialProfile.intendedUse && (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Intended Use:</Text>
+                      <Text style={styles.infoValue}>{formatIntendedUse(financialProfile.intendedUse)}</Text>
+                    </View>
+                  )}
+                  {financialProfile.intendedUseOtherText && (
+                    <View style={styles.infoRowVertical}>
+                      <Text style={styles.infoLabel}>Intended Use (Other):</Text>
+                      <Text style={styles.infoValueVertical}>{financialProfile.intendedUseOtherText}</Text>
+                    </View>
+                  )}
+                  {financialProfile.occupation && (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Occupation:</Text>
+                      <Text style={styles.infoValue}>{financialProfile.occupation}</Text>
                     </View>
                   )}
                 </View>
               ) : (
-                <Text style={styles.termsText}>
-                  By completing signup, you accept the{' '}
-                  <Text style={styles.linkText} onPress={handleOpenTerms}>
-                    Terms of Service
-                  </Text>{' '}
-                  and{' '}
-                  <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
-                    Privacy Policy
-                  </Text>
-                  .
-                </Text>
+                <Text style={styles.errorText}>No financial profile found.</Text>
               )}
             </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.cardContent}>
+              <Text style={styles.termsText}>
+                By completing signup, you accept the{' '}
+                <Text style={styles.linkText} onPress={handleOpenTerms}>
+                  Terms of Service
+                </Text>{' '}
+                and{' '}
+                <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
+                  Privacy Policy
+                </Text>
+                .
+              </Text>
+            </View>
             <View style={styles.buttonContainer}>
-              {identityRequired ? (
-                <View style={styles.identityNotice}>
-                  <Text style={styles.termsText}>This platform requires a verified identity before company setup.</Text>
-                  <Action label="Verify your identity" onPress={() => setVerificationOpen(true)} />
-                </View>
-              ) : (
-                !canCompleteSignup && (
-                  <Text style={styles.validationText}>Please ensure all information is complete to proceed.</Text>
-                )
+              {!canCompleteSignup && (
+                <Text style={styles.validationText}>Please ensure all information is complete to proceed.</Text>
               )}
               {completionError && (
                 <Text accessibilityRole="alert" style={styles.errorText}>
@@ -469,7 +371,7 @@ export function ReviewScreen() {
                 fullWidth
                 style={styles.completeButton}
               >
-                {isCompany ? 'Complete company setup' : 'Complete Signup'}
+                Complete Signup
               </PrimaryButton>
             </View>
           </View>
@@ -484,16 +386,6 @@ export function ReviewScreen() {
             <Text style={styles.backLink}>Go Back</Text>
           </TouchableOpacity>
         </ScrollView>
-        {identityRequired && (
-          <VerificationModal
-            visible={verificationOpen}
-            onClose={() => {
-              setVerificationOpen(false);
-              void retryLoad();
-            }}
-            onRefresh={() => void retryLoad()}
-          />
-        )}
       </SafeAreaView>
     </GradientBackground>
   );

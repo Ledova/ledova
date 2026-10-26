@@ -53,7 +53,7 @@ jobs:
           sudo chmod a+rw /dev/kvm
           vmstat -t -w 15 > "$RUNNER_TEMP/ledova-host-vmstat.log" 2>&1 &
           echo $! > "$RUNNER_TEMP/ledova-samplers.pid"
-          "$ANDROID_HOME/emulator/emulator" -avd ledova_native -port 5556 -camera-front emulated -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -cores 4 -memory 2048 -no-metrics > "$RUNNER_TEMP/ledova-emulator.log" 2>&1 &
+          "$ANDROID_HOME/emulator/emulator" -avd ledova_native -port 5556 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -cores 4 -memory 2048 -no-metrics > "$RUNNER_TEMP/ledova-emulator.log" 2>&1 &
           echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
           timeout 180 adb -s "$ANDROID_SERIAL" wait-for-device
           node mobile/scripts/android-evidence.mjs watch "$RUNNER_TEMP/ledova-native-android-records" &

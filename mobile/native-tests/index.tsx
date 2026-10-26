@@ -1,23 +1,17 @@
 import '../crypto-polyfill';
 import { registerRootComponent } from 'expo';
-import { useCallback, useEffect, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { getRandomValues } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 import { Buffer } from 'buffer';
-import EventSource from 'react-native-sse';
 import { apiClient, rotateRefreshToken } from '../src/services/apiClient';
 import { clearTokens, getAccessToken, getRefreshToken, storeTokens } from '../src/services/tokenStorage';
-import { generateMnemonic, getSeedPhrase, storeSeedPhrase, validateMnemonic } from '../src/services/secureKeyStorage';
-import { getApiBaseUrl, getTradingEventsUrl } from '../src/config/networkPolicy';
-import { verifyMessage } from 'ethers';
-import { deriveAccountsFromMnemonic } from '../src/utils/softwareWallet/seedDerivation';
-import { signEthereumMessage } from '../src/utils/softwareWallet/localSigner';
+import { getApiBaseUrl } from '../src/config/networkPolicy';
 import { failureCategory, NativeProbeAssertion } from './diagnostics';
-import { DocumentCopy, pickDocumentCopy, shareDocumentCopy } from '../src/services/documentCopies';
+import { shareDocumentCopy } from '../src/services/documentCopies';
 import { getSessionEpoch } from '../src/services/sessionScope';
-import { ScannerBridgeProbe } from './ScannerBridgeProbe';
 import documentFixture from './documentFixture.json';
 
 type Check = { name: string; passed: boolean; failure?: { category: string; stage: string } };
@@ -44,8 +38,8 @@ function request(url: string, method = 'GET', body?: string): Promise<XMLHttpReq
   });
 }
 
-async function run(scannerCheck: Check | null): Promise<Check[]> {
-  const checks: Check[] = scannerCheck ? [scannerCheck] : [];
+async function run(): Promise<Check[]> {
+  const checks: Check[] = [];
   async function check(name: string, action: (stage: (name: string) => void) => Promise<void> | void) {
     let stage = 'check';
     try {
@@ -62,24 +56,10 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
     requireTrue(apiClient.defaults.baseURL === process.env.EXPO_PUBLIC_API_URL);
     requireTrue(getApiBaseUrl() === process.env.EXPO_PUBLIC_API_URL);
   });
-  await check('native entropy and mnemonic', () => {
+  await check('native entropy', () => {
     const first = getRandomValues(new Uint8Array(32));
     const second = getRandomValues(new Uint8Array(32));
     requireTrue(first.some((byte) => byte !== 0) && first.some((byte, index) => byte !== second[index]));
-    requireTrue(validateMnemonic(generateMnemonic()));
-  });
-  await check('native wallet derivation and signing vector', async () => {
-    const phrase = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-    const address = '0x9858EfFD232B4033E47d90003D41EC34EcaEda94';
-    requireTrue(
-      deriveAccountsFromMnemonic(phrase)
-        .addresses.find((account) => account.networkType === 'ETH')
-        ?.address.toLowerCase() === address.toLowerCase(),
-    );
-    const message = 'Ledova synthetic native validation';
-    const signature = await signEthereumMessage(phrase, "m/44'/60'/0'/0/0", message);
-    requireTrue(verifyMessage(message, signature) === address);
-    requireTrue(verifyMessage('different synthetic message', signature) !== address);
   });
   await check('legacy session migration and ordinary storage', async (stage) => {
     stage('initial-sign-out');
@@ -101,23 +81,6 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
     stage('ordinary-session-write');
     await storeTokens(pair);
   });
-  if (Platform.OS === 'android') {
-    await check('unenrolled native wallet storage refuses without losing legacy recovery', async () => {
-      requireTrue(!SecureStore.canUseBiometricAuthentication());
-      const phrase = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-      await SecureStore.setItemAsync('wallet.seed.synthetic-probe', phrase);
-      requireTrue((await getSeedPhrase('synthetic-probe')) === null);
-      requireTrue((await SecureStore.getItemAsync('wallet.seed.synthetic-probe')) === phrase);
-      let refused = false;
-      try {
-        await storeSeedPhrase('new-synthetic-probe', phrase);
-      } catch {
-        refused = true;
-      }
-      requireTrue(refused);
-      await SecureStore.deleteItemAsync('wallet.seed.synthetic-probe');
-    });
-  }
   await check('direct authenticated API and refresh', async (stage) => {
     stage('authenticated-request');
     const { data } = await apiClient.post<{ authenticated: boolean; bodyReceived: boolean }>('/direct', {
@@ -186,119 +149,14 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
     }
     requireTrue(refused);
   });
-  await check('multipart upload and binary download', async (stage) => {
+  await check('binary download', async (stage) => {
     stage('document-fixture-decode');
     const bytes = new Uint8Array(Buffer.from(documentFixture.base64, 'base64'));
-    const file = new File(Paths.cache, documentFixture.name);
-    const picked = new File(Paths.cache, 'DocumentPicker', '11111111-1111-1111-1111-111111111111.pdf');
-    let copy: DocumentCopy | null = null;
-    let release: (() => void) | undefined;
-    try {
-      stage('document-fixture-create');
-      file.create({ overwrite: true });
-      stage('document-fixture-write');
-      file.write(bytes);
-      stage('document-picker-create');
-      picked.create({ intermediates: true, overwrite: true });
-      stage('document-picker-write');
-      picked.write(bytes);
-      stage('document-picker-adopt');
-      copy = await pickDocumentCopy(
-        () => true,
-        async () => ({
-          canceled: false,
-          assets: [
-            {
-              uri: picked.uri,
-              name: documentFixture.name,
-              mimeType: documentFixture.mimeType,
-              size: bytes.length,
-              lastModified: 0,
-            },
-          ],
-        }),
-      );
-      requireTrue(copy && !picked.info().exists);
-      requireTrue(copy.file.name === documentFixture.name && copy.file.type === documentFixture.mimeType);
-      stage('document-copy-lease');
-      release = copy.acquire();
-      copy.retire();
-      requireTrue(new File(copy.file.uri).info().exists);
-      const form = new FormData();
-      form.append('file', copy.file as unknown as Blob);
-      stage('document-multipart-upload');
-      const uploaded = await apiClient.post<{ valid: boolean }>('/upload', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        ledovaSessionEpoch: getSessionEpoch(),
-      });
-      stage('document-multipart-response');
-      requireTrue(uploaded.data.valid);
-      stage('document-copy-release');
-      release();
-      requireTrue(!new File(copy.file.uri).info().exists);
-      stage('document-fixture-readback');
-      requireTrue((await file.base64()) === documentFixture.base64);
-      stage('document-binary-download');
-      const downloaded = await apiClient.get<ArrayBuffer>('/download', { responseType: 'arraybuffer' });
-      stage('document-binary-response');
-      const returned = new Uint8Array(downloaded.data);
-      requireTrue(returned.length === bytes.length && returned.every((value, index) => value === bytes[index]));
-    } finally {
-      copy?.retire();
-      release?.();
-      if (picked.info().exists) picked.delete();
-      if (file.exists) file.delete();
-    }
-  });
-  await check('unsupported document MIME is refused without retaining a picker copy', async () => {
-    const picked = new File(Paths.cache, 'DocumentPicker', '33333333-3333-3333-3333-333333333333.txt');
-    let adopted = false;
-    let refused = false;
-    try {
-      picked.create({ intermediates: true, overwrite: true });
-      picked.write('synthetic-fixture');
-      try {
-        const copy = await pickDocumentCopy(
-          () => true,
-          async () => ({
-            canceled: false,
-            assets: [{ uri: picked.uri, name: 'synthetic.txt', mimeType: 'text/plain', size: 17, lastModified: 0 }],
-          }),
-        );
-        if (copy) {
-          adopted = true;
-          copy.retire();
-        }
-      } catch (error) {
-        refused = error instanceof Error && error.message === 'Choose a PDF, PNG or JPEG document.';
-      }
-      requireTrue(refused && !adopted && !picked.info().exists);
-    } finally {
-      if (picked.info().exists) picked.delete();
-    }
-  });
-  await check('picker copies that were never adopted are swept after a pick', async () => {
-    const leftover = new File(Paths.cache, 'DocumentPicker', '22222222-2222-2222-2222-222222222222.txt');
-    const unowned = new File(Paths.cache, 'DocumentPicker', 'not-a-picker-copy.txt');
-    try {
-      for (const fixture of [leftover, unowned]) {
-        fixture.create({ intermediates: true, overwrite: true });
-        fixture.write('synthetic-fixture');
-      }
-      requireTrue(leftover.info().exists && unowned.info().exists);
-      requireTrue(
-        (await pickDocumentCopy(
-          () => true,
-          async () => ({ canceled: true, assets: null }),
-        )) === null,
-      );
-      requireTrue(!leftover.info().exists);
-      requireTrue(unowned.info().exists);
-    } finally {
-      for (const fixture of [leftover, unowned]) {
-        if (fixture.info().exists) fixture.delete();
-      }
-    }
+    stage('document-binary-download');
+    const downloaded = await apiClient.get<ArrayBuffer>('/download', { responseType: 'arraybuffer' });
+    stage('document-binary-response');
+    const returned = new Uint8Array(downloaded.data);
+    requireTrue(returned.length === bytes.length && returned.every((value, index) => value === bytes[index]));
   });
   await check('viewed document copies keep only the latest', async () => {
     const views = new Directory(Paths.cache, 'ledova-document-views-v1');
@@ -331,32 +189,6 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
     }
   });
 
-  await check('incremental SSE and close', async () => {
-    await new Promise<void>((resolve, reject) => {
-      let messages = 0;
-      const stream = new EventSource<'connected'>(getTradingEventsUrl('/stream', 'synthetic'), {
-        headers: { Authorization: 'Bearer synthetic-access' },
-        pollingInterval: 0,
-      });
-      const timeout = setTimeout(() => {
-        stream.close();
-        reject(new Error('Stream timed out.'));
-      }, 10000);
-      stream.addEventListener('connected', () => {
-        messages++;
-        if (messages === 2) {
-          clearTimeout(timeout);
-          stream.close();
-          resolve();
-        }
-      });
-      stream.addEventListener('error', () => {
-        clearTimeout(timeout);
-        stream.close();
-        reject(new Error('Stream failed.'));
-      });
-    });
-  });
   await check('progress and native cancellation', async () => {
     await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -384,23 +216,13 @@ async function run(scannerCheck: Check | null): Promise<Check[]> {
 
 function NativeProbe() {
   const [status, setStatus] = useState('Native probe running');
-  const [scannerCheck, setScannerCheck] = useState<Check | null>(null);
-  const scannerComplete = useCallback((passed: boolean, stage = 'window-generation') => {
-    setScannerCheck({
-      name: 'Android scanner window bridge',
-      passed,
-      ...(!passed && { failure: { category: 'assertion', stage } }),
-    });
-  }, []);
   useEffect(() => {
-    if (Platform.OS === 'android' && !scannerCheck) return;
-    run(scannerCheck)
+    run()
       .then((checks) => setStatus(checks.every((check) => check.passed) ? 'NATIVE_PROBE_PASS' : 'NATIVE_PROBE_FAIL'))
       .catch(() => setStatus('NATIVE_PROBE_REPORT_FAILED'));
-  }, [scannerCheck]);
+  }, []);
   return (
     <View style={{ paddingTop: 64 }}>
-      {Platform.OS === 'android' && !scannerCheck && <ScannerBridgeProbe onComplete={scannerComplete} />}
       <Text testID="native-probe-status">{status}</Text>
     </View>
   );

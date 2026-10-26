@@ -7,7 +7,7 @@ import { useAppTheme } from '../contexts';
 import { useRole } from '../hooks/useRole';
 import { useUserProfile } from '../hooks/useUserProfile';
 import type { RootStackParamList } from './AppNavigator';
-import { DrawerNavigator } from './DrawerNavigator';
+import { SignedInNavigator } from './SignedInNavigator';
 
 export function SignupCompletionGate() {
   const theme = useAppTheme();
@@ -28,7 +28,7 @@ export function SignupCompletionGate() {
     if (!auth.isAuthenticated) {
       navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
     } else if (!waiting && !profile.isError && userProfile && !userProfile.isSignupCompleted) {
-      navigation.reset({ index: 0, routes: [{ name: isCompany ? 'CompanyRegistration' : 'AccountType' }] });
+      navigation.reset({ index: 0, routes: [{ name: isCompany ? 'ShareholdersOnly' : 'AccountType' }] });
     }
   }, [
     auth.isAuthenticated,
@@ -40,7 +40,7 @@ export function SignupCompletionGate() {
     isCompany,
     navigation,
   ]);
-  if (completed || kept) return <DrawerNavigator />;
+  if (completed || kept) return <SignedInNavigator />;
   return (
     <View
       style={{

@@ -1,7 +1,5 @@
 import type { ApiSchema, ApiRequest, ApiResponse, ApiQuery } from '../contracts';
 
-export type WalletSigningPreference = ApiSchema<'WalletSigningPreferenceEnum'>;
-
 export type Wallet = ApiSchema<'Wallet'>;
 
 export type WalletQueryParams = ApiQuery<'api_wallets_list'>;

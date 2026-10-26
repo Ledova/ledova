@@ -2,7 +2,6 @@ export {
   addCalendarDays,
   addCalendarYears,
   formatDate,
-  formatTime,
   formatDateTime,
   formatSyncAge,
   isCalendarDate,
@@ -53,7 +52,6 @@ export { getUserVerificationStatus, type VerificationStatusType } from './user-v
 export { assertNextPageAdvances, getNextPageParam, readEveryPage } from './pagination';
 export {
   createUserFriendlyError,
-  getErrorMessage,
   hasServiceErrorDetail,
   failureStatus,
   retryServerFailures,
@@ -160,7 +158,7 @@ export { ownershipSummary } from './register-ownership';
 export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
 export { MAX_ORDER_SHARES, MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
 export { marketAmount, marketQuantity, marketShares, priceCents } from './market-data';
-export { activityAmount, activityDirection, activityStatus, feeUnit } from './activity';
+export { activityAmount, activityDirection, feeUnit } from './activity';
 export { shownSymbol } from './asset-symbol';
 export { parseTheme } from './theme';
 export * from './register-issues';

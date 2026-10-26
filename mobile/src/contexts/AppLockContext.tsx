@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { AppState, AppStateStatus } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
-import { CameraAccessContext, createCameraAccess } from './cameraAccess';
 import {
   BiometricLoginState,
   deleteBiometricRefreshToken,
@@ -52,22 +51,11 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
   const backgroundTimestamp = useRef<number | null>(null);
   const isAuthenticating = useRef(false);
   const justUnlocked = useRef(false);
-  const [cameraAccess] = useState(createCameraAccess);
   const lockState = useRef({
-    initialized: false,
     mounted: false,
-    pending: false,
-    locked: false,
     enabled: false,
     revision: 0,
   });
-
-  const publishCameraAccess = useCallback(() => {
-    const state = lockState.current;
-    cameraAccess.setAllowed(
-      state.mounted && state.initialized && appState.current === 'active' && !state.locked && !state.pending,
-    );
-  }, [cameraAccess]);
 
   const checkBiometrics = useCallback(async () => {
     try {
@@ -129,8 +117,6 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
       await checkBiometrics();
       await loadPreference();
       if (!current) return;
-      lockState.current.initialized = true;
-      publishCameraAccess();
       setIsInitialized(true);
     };
     void initialize();
@@ -138,9 +124,8 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
       current = false;
       lockState.current.mounted = false;
       lockState.current.revision += 1;
-      publishCameraAccess();
     };
-  }, [checkBiometrics, loadPreference, publishCameraAccess]);
+  }, [checkBiometrics, loadPreference]);
 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
@@ -150,8 +135,6 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
       appState.current = nextAppState;
       const state = lockState.current;
       const revision = ++state.revision;
-      state.pending = nextAppState === 'active';
-      publishCameraAccess();
 
       if (nextAppState !== 'active') {
         if (previousAppState === 'active') {
@@ -171,19 +154,15 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
           const loggedIn = await isUserLoggedIn();
           if (!state.mounted || state.revision !== revision) return;
           if (loggedIn) {
-            state.locked = true;
             setIsLocked(true);
           }
         }
       }
-
-      state.pending = false;
-      publishCameraAccess();
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [isUserLoggedIn, publishCameraAccess]);
+  }, [isUserLoggedIn]);
 
   const unlock = useCallback(async (): Promise<boolean> => {
     if (isAuthenticating.current) {
@@ -202,9 +181,6 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
       if (result.success) {
         justUnlocked.current = true;
         lockState.current.revision += 1;
-        lockState.current.pending = false;
-        lockState.current.locked = false;
-        publishCameraAccess();
         setIsLocked(false);
 
         setTimeout(() => {
@@ -219,7 +195,7 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
     } finally {
       isAuthenticating.current = false;
     }
-  }, [biometricType, publishCameraAccess]);
+  }, [biometricType]);
 
   const setEnabled = useCallback(
     async (enabled: boolean): Promise<boolean> => {
@@ -241,8 +217,6 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
             await SecureStore.setItemAsync(STORAGE_KEY, 'true');
             lockState.current.enabled = true;
             lockState.current.revision += 1;
-            lockState.current.pending = false;
-            publishCameraAccess();
             setIsEnabled(true);
             justUnlocked.current = true;
 
@@ -260,15 +234,12 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
         await SecureStore.setItemAsync(STORAGE_KEY, 'false');
         lockState.current.enabled = false;
         lockState.current.revision += 1;
-        lockState.current.pending = false;
-        lockState.current.locked = false;
-        publishCameraAccess();
         setIsEnabled(false);
         setIsLocked(false);
         return true;
       }
     },
-    [biometricType, publishCameraAccess],
+    [biometricType],
   );
 
   const enableBiometricLogin = useCallback(async (): Promise<boolean> => {
@@ -347,7 +318,7 @@ export function AppLockProvider({ children }: { children: React.ReactNode }) {
         checkBiometrics,
       }}
     >
-      <CameraAccessContext.Provider value={cameraAccess}>{children}</CameraAccessContext.Provider>
+      {children}
     </AppLockContext.Provider>
   );
 }

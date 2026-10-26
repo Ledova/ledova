@@ -224,12 +224,12 @@ provider's results, scores and callbacks are read is in
 
 ## Email
 
-| Variable             | Default             | Required                                                                                                   |
-| -------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_FROM_EMAIL` | `noreply@localhost` | No                                                                                                         |
-| `SENDGRID_API_KEY`   | empty               | Yes outside `DEBUG` unless an SMTP server is reachable                                                     |
-| `SENDGRID_API_URL`   | empty               | With `SENDGRID_API_KEY`; an `https` URL, or `http` to a local host, with no credentials, query or fragment |
-| `SENDGRID_TIMEOUT`   | `10` seconds        | No                                                                                                         |
+| Variable             | Default                                             | Required                                                                                                                                       |
+| -------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_FROM_EMAIL` | `noreply@localhost`                                 | No                                                                                                                                             |
+| `SENDGRID_API_KEY`   | empty                                               | Yes outside `DEBUG` unless an SMTP server is reachable                                                                                         |
+| `SENDGRID_API_URL`   | empty                                               | With `SENDGRID_API_KEY`; an `https` URL, or `http` to a local host, with no credentials, query or fragment                                     |
+| `SENDGRID_TIMEOUT`   | `10` seconds                                        | No                                                                                                                                             |
 | `DASHBOARD_BASE_URL` | `http://localhost:5173` in `DEBUG`, empty otherwise | Required for member invitation emails; a trusted dashboard origin, HTTPS outside local debug use, without credentials, path, query or fragment |
 
 With `SENDGRID_API_KEY` set, mail goes to SendGrid, and an invalid or missing `SENDGRID_API_URL`
@@ -308,11 +308,11 @@ inbox works without push configuration but needs a running worker
 Client variables are public build configuration embedded in the bundle, so they must never hold a
 secret. `VITE_MARKETING_URL` and `EXPO_PUBLIC_MARKETING_URL` hold the public site's URL.
 
-| File                   | Variables                                                                                                                                |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `.env` in `dashboard/` | `VITE_API_URL`, `VITE_MARKETING_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                                                     |
-| `.env` in `site/`      | `VITE_LEDOVA_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                                                                        |
-| `.env` in `mobile/`    | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_DEV_API_HOST`, `EXPO_PUBLIC_MARKETING_URL`, `EXPO_PUBLIC_SUPPORT_EMAIL`, `EXPO_PUBLIC_APP_STORE_URL` |
+| File                   | Variables                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `.env` in `dashboard/` | `VITE_API_URL`, `VITE_MARKETING_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                        |
+| `.env` in `site/`      | `VITE_LEDOVA_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                                           |
+| `.env` in `mobile/`    | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_DEV_API_HOST`, `EXPO_PUBLIC_MARKETING_URL`, `EXPO_PUBLIC_APP_STORE_URL` |
 
 The production images never read these files, because the `.dockerignore` files keep every `.env`
 out of the build context. Pass the public origins as build arguments instead:

@@ -84,9 +84,3 @@ export const createCompanyPack = (
   data: CompanyPackRequest,
   config: AxiosRequestConfig = {},
 ) => apiClient.post<Blob>(COMPANY_ENDPOINTS.PACK(companyUuid), data, { ...config, responseType: 'blob' });
-export const createCompanyPackBytes = (
-  apiClient: AxiosInstance,
-  companyUuid: string,
-  data: CompanyPackRequest,
-  config: AxiosRequestConfig = {},
-) => apiClient.post<ArrayBuffer>(COMPANY_ENDPOINTS.PACK(companyUuid), data, { ...config, responseType: 'arraybuffer' });

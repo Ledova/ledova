@@ -162,7 +162,7 @@ snapshots, the ANR directory listing and the raw traces they name. Each bounded 
 code, signal, timeout, interruption, direct-child reap state, cleanup errors and partial output in
 `guest-records-status.jsonl`; `collection-complete.json` marks whether collection finished.
 Permission-denied trace output is not a captured trace, and such gaps never override the probe's
-focus, camera or transport outcome. No adbd restart or root escalation is used, and an empty record
+focus or transport outcome. No adbd restart or root escalation is used, and an empty record
 does not prove that no ANR happened.
 
 The watcher observes for at most 55 minutes; collection has a two-minute budget, ten-second commands
@@ -210,66 +210,12 @@ fail.
 ### Transport controls
 
 The runner checks 307 and 308 refusal with zero redirected target requests, beside successful direct
-bearer and body, API refresh, native entropy and signing, file upload and download, streaming and
-cancellation controls. Numeric HTTP requests must fail, including repeated refusal and cancellation.
-An unenrolled Android emulator also checks gated-wallet refusal while keeping a legacy recovery
-copy. SIGINT and SIGTERM cancel the runner, terminate its owned command and server groups (forcibly
+bearer and body, API refresh, native entropy, binary download and cancellation controls. Numeric
+HTTP requests must fail, including repeated refusal and cancellation. SIGINT and SIGTERM cancel the runner, terminate its owned command and server groups (forcibly
 after two seconds), reap direct children and close resources; short synchronous tool calls have
 timeouts. After an uncatchable kill or host loss, prebuild afresh before using the generated
 project. Remove only the owned emulator or simulator afterwards (deleting the iOS simulator removes
-its test CA), and never distribute the probe artifact, test APKs or synthetic probe apps.
-
-### Android scanner instrumentation
-
-The instrumentation suite runs inside the Android probe (`scanner-window-tests.log`) and exercises
-real Activity and Dialog windows, CameraX open and closed state, parent visibility and detachment,
-fully clipped previews, backgrounding, delayed provider completion, replacement sessions, focus loss
-and regain before JavaScript admission changes, and real decoding of a synthetic QR bitmap. A wait
-reaching its 15-second deadline appends the focused window, focused app and top resumed activity:
-after a failed focus wait, a focused system window such as `Application Not Responding` marks an
-unhealthy emulator and a focused test window points at scanner admission; after a failed camera
-wait, a focused test window only rules out lost window focus.
-
-The Release probe drives nested React Native modal windows through the actual Expo bridge, with
-camera permission granted by the emulator runner, and establishes:
-
-1. Release across unmount, cover and refocus: a scanner unmounted without a barcode must detach its
-   native view from every window tree, unbind both use cases, reach CameraX CLOSED and free the
-   camera before a fresh mount; likewise when its window is covered, and refocus must open fresh use
-   cases on the same view.
-2. Admission during focus loss: a recorder on the real native admission function, passing arguments
-   and result through, requires the queued tuple to return false during loss and after a quick
-   regain, then a fresh tuple to return true and call the real scanner finish once.
-3. Resource availability: while a native control holds the front camera through the pinned CameraX
-   interface, the back-camera scanner must stay bound in `PENDING_OPEN`, and closing the holder must
-   let the same session reach OPEN without another request (CI starts the emulator with
-   `-camera-front emulated`).
-
-Release waits are 20 seconds, native polls keep their 15- or 20-second limits, and the initial
-JavaScript mount has one minute and the continuation six. Before its first checkpoint each mount
-asks an inactive 1×1 native scanner whether generation -1, scan 0 is current and requires `false`,
-waiting for the view's first native window event rather than its layout, which under the New
-Architecture can reach JavaScript before the view is mounted (`ERR_VIEW_NOT_FOUND`, stage
-`method-native-view-not-found`). Failure artifacts record observations, not causes: last stage,
-captured camera ID, use-case binding flags, CameraX state, selected-camera availability, native view
-attachment and presence, and JavaScript scanner state. The recorder restores the original function
-and view window callback in `finally`; no product module API or scanner source is patched, and the
-ordinary Release APK is checked for absence of the test class and probe controls. The runner keeps
-APK hashes, instrumentation logs, screenshots and window diagnostics, failed runs included, and
-removes both owned instrumentation packages.
-
-To run only these controls on an owned emulator after prebuild:
-
-```bash
-cd mobile/android
-./gradlew :ledova-scanner:assembleDebugAndroidTest --no-daemon --max-workers=2
-cd ..
-adb -s "$ANDROID_SERIAL" install -r modules/ledova-scanner/android/build/outputs/apk/androidTest/debug/ledova-scanner-debug-androidTest.apk
-adb -s "$ANDROID_SERIAL" shell am instrument -w -r org.example.ledova.scanner.test/androidx.test.runner.AndroidJUnitRunner
-adb -s "$ANDROID_SERIAL" uninstall org.example.ledova.scanner.test
-```
-
-Require the nonzero `OK (... tests)` result; `am instrument` can exit zero after a test failure.
+its test CA), and never distribute the probe artifact or synthetic probe apps.
 
 ### iOS Debug LAN handler probe
 
@@ -309,23 +255,15 @@ on a physical iPhone, recording permission and reachability separately from
 ## What automated checks do not establish
 
 The mobile Jest suite covers none of the screen and file lifetimes in [mobile](mobile.md). On an
-emulator or simulator the native probes exercise the Android scanner's session ownership and, with a
-synthetic picker result, the document copy move, retention, multipart upload and retirement, driving
-no system UI. The scanner controls use the loaded bridge with a synthetic event, so they do not
-reproduce natural JavaScript queue timing, scan a physical camera image or show camera contention
-with another application; only completed emulator logs establish native results, and JavaScript
-checks certify neither Kotlin compilation nor camera hardware. The LAN probe calls the compiled
+emulator or simulator the native probes exercise the transport and the document view copies,
+driving no system UI; only completed emulator logs establish native results. The LAN probe calls the compiled
 handler directly, establishing neither React Native dispatcher selection (the Release app probe
 exercises it) nor local-network permission, which the
 [simulator does not implement](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy).
 
-OS prompt presentation, physical camera shutdown and WebView media release, device settings and OEM
-behaviour, global lock-overlay and input stacking, the WebView behaviours in
-[identity-provider WebView lifetime](mobile.md#identity-provider-webview-lifetime), iframe message
-provenance, third-party payment redirects, local or cloud provider pickers, low storage and the
-complete camera and hardware-wallet firmware journey remain device work under
-[#13](https://github.com/Ledova/ledova/issues/13); a form-completion signal is not server
-verification approval. A simulator also does not establish physical biometric enrolment or change,
+OS prompt presentation, device settings and OEM behaviour, global lock-overlay and input stacking,
+and low storage remain device work under [#13](https://github.com/Ledova/ledova/issues/13). A
+simulator also does not establish physical biometric enrolment or change,
 hardware-backed key properties, OEM backup or transfer, store distribution or behaviour on every
 supported OS.
 
@@ -335,8 +273,9 @@ exact tested head, in the PR; JavaScript tests alone do not close a native harde
 ## Pre-release device checks
 
 Complete these flows on physical hardware before a release and record them under the
-[physical acceptance checklist](https://github.com/Ledova/ledova/issues/624). The Keystone checks
-need a Keystone; the mobile checks need a development or production build on a device. Emulator and
+[physical acceptance checklist](https://github.com/Ledova/ledova/issues/624). The Keystone and
+Bitcoin checks use the web app and a Keystone; the mobile checks need a development or production
+build on a device. Emulator and
 simulator checks can supplement them.
 
 ### The Keystone QR round trip
@@ -345,7 +284,7 @@ Verify a wallet, send one EVM crypto transfer through the transfer signing flow,
 trading order through the QR branch. A transfer and a settlement's token approval are the only raw
 transaction UR uses; both are legacy type-0 transactions, as the backend prepares them, so check
 that what the Keystone displays matches what was prepared. The firmware answers a transaction with
-an EIP-155 `v` in as few bytes as it needs; both clients read 65 to 72 bytes and refuse a `v` for
+an EIP-155 `v` in as few bytes as it needs; the web app reads 65 to 72 bytes and refuse a `v` for
 another network or a signature that does not recover to the wallet's address, and only a device
 shows the firmware's actual result. Messages and typed data are signed with `v` 27 or 28, always 65
 bytes. The dashboard's seed-phrase alternative covers none of this.
@@ -353,8 +292,8 @@ bytes. The dashboard's seed-phrase alternative covers none of this.
 ### Bitcoin manual send
 
 Prepare a transfer from a Bitcoin wallet, sign the raw transaction with your own tooling, paste the
-hex, broadcast it, and confirm the success state links to the testnet explorer. The app never builds
-or signs a Bitcoin transaction.
+hex, broadcast it, and confirm the success state links to the testnet explorer. The web app never
+builds or signs a Bitcoin transaction.
 
 ### Biometric sign-in
 
@@ -362,14 +301,14 @@ Biometric sign-in is offered only while biometrics are enrolled and a gated copy
 token is stored: Sign In then shows a face-scan icon instead of a key, and tapping it with both
 fields empty starts it. Sign-out and account deletion remove the copy
 ([secret storage](mobile.md#secret-storage)), so test by relaunching. Start from a fresh install, or
-turn `<type> Sign In` on and then off in Settings (sign-out keeps the setting, so a typed sign-in
+turn `<type> Sign In` on and then off in Account (sign-out keeps the setting, so a typed sign-in
 skips the Enable alert), and keep App Lock off, since backgrounding during a prompt can add an
 unlock screen. On Android enrol a strong (Class 3) biometric: only that opens the gated copy, and a
 phone with weaker face unlock says Face ID but needs the fingerprint. `<type>` is Face ID with face
 hardware, Touch ID with only a fingerprint, and Biometrics otherwise.
 
 1. Sign in with email and password and tap Enable on `Enable <type> Sign In?`, or turn on
-   `<type> Sign In` in Settings. Android's Keystore prompts
+   `<type> Sign In` in Account. Android's Keystore prompts
    `Authenticate to keep biometric sign in`; iOS writes silently.
 2. Without signing out, force-quit and relaunch: expect the face-scan icon. Tap Sign In with both
    fields empty and pass the biometric prompt (Android: `Sign in with <type>`; iOS may first show
@@ -520,7 +459,7 @@ command:
 | `EXPO_PUBLIC_MARKETING_URL` | Public HTTPS website base URL                |
 
 Unset `EXPO_PUBLIC_DEV_API_HOST` and every `EXPO_PUBLIC_NATIVE_PROBE_*` variable, and set
-`EXPO_PUBLIC_SUPPORT_EMAIL` and `EXPO_PUBLIC_APP_STORE_URL` for the shipped experience
+`EXPO_PUBLIC_APP_STORE_URL` for the shipped experience
 ([client variables](../operations/configuration.md#clients)). The release config
 (`mobile/app.config.js`) refuses a missing or malformed identity, the development placeholder, HTTP
 endpoints, URL credentials, a query or fragment (even empty), whitespace or backslashes in a URL, a

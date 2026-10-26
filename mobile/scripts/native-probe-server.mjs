@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { URL } from 'node:url';
-import { setTimeout, clearTimeout, setInterval, clearInterval } from 'node:timers';
+import { setInterval, clearInterval } from 'node:timers';
 
 const directory = path.resolve(process.argv[2]);
 const documentFixture = JSON.parse(
@@ -176,9 +176,7 @@ const counts = {
   redirectBody: 0,
   redirectBearer: 0,
   http: 0,
-  upload: 0,
   download: 0,
-  stream: 0,
   cancelled: 0,
   untrusted: 0,
 };
@@ -208,28 +206,8 @@ const failureStages = new Set([
   'sign-out',
   'signed-out-session-read',
   'document-fixture-decode',
-  'document-fixture-create',
-  'document-fixture-write',
-  'document-picker-create',
-  'document-picker-write',
-  'document-picker-adopt',
-  'document-copy-lease',
-  'document-multipart-upload',
-  'document-multipart-response',
-  'document-copy-release',
-  'document-fixture-readback',
   'document-binary-download',
   'document-binary-response',
-  'missing-ref',
-  'missing-method',
-  'inactive-admitted',
-  'window-timeout',
-  'window-generation',
-  'method-assertion',
-  'method-native-keychain',
-  'method-native-function',
-  'method-native-view-not-found',
-  'method-unknown',
 ]);
 
 function handler(kind) {
@@ -245,14 +223,6 @@ function handler(kind) {
     if (kind === 'untrusted') counts.untrusted++;
     if (route === '/target') counts.redirectTarget++;
     if (route === '/target-control') counts.targetControl++;
-    if (route === '/stream') {
-      counts.stream++;
-      response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
-      response.write('event: connected\ndata: {"sequence":1}\n\n');
-      const timer = setTimeout(() => response.write('event: connected\ndata: {"sequence":2}\n\n'), 100);
-      response.on('close', () => clearTimeout(timer));
-      return;
-    }
     if (route === '/slow') {
       response.writeHead(200, { 'Content-Type': 'application/octet-stream' });
       response.write('synthetic-');
@@ -302,25 +272,6 @@ function handler(kind) {
         }));
         publishJson(path.join(directory, 'result.json'), { checks, counts });
         response.end('{}');
-        return;
-      }
-      if (route === '/upload') {
-        counts.upload++;
-        const boundary = /boundary="?([^";]+)"?/i.exec(request.headers['content-type'] ?? '');
-        const headerEnd = bodyBytes.indexOf(Buffer.from('\r\n\r\n'));
-        const payloadEnd = boundary ? bodyBytes.indexOf(Buffer.from(`\r\n--${boundary[1]}--`), headerEnd + 4) : -1;
-        const headers = bodyBytes.subarray(0, headerEnd).toString();
-        response.end(
-          JSON.stringify({
-            valid:
-              headerEnd >= 0 &&
-              payloadEnd > headerEnd &&
-              bodyBytes.subarray(headerEnd + 4, payloadEnd).equals(documentBytes) &&
-              headers.includes(`filename="${documentFixture.name}"`) &&
-              /content-type:\s*application\/pdf(?:\r\n|$)/i.test(headers) &&
-              request.headers['content-type']?.includes('multipart/form-data'),
-          }),
-        );
         return;
       }
       if (route === '/direct') counts.direct++;

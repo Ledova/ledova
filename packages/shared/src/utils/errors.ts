@@ -16,24 +16,6 @@ export function createUserFriendlyError(message: string, originalError?: unknown
   return error;
 }
 
-export function getErrorMessage(error: unknown, defaultMessage = 'An error occurred'): string | null {
-  if (!error) return null;
-
-  if (typeof error === 'string') return error;
-
-  if (error && typeof error === 'object' && 'response' in error) {
-    const axiosError = error as { response?: { data?: { message?: string; detail?: string } } };
-    if (axiosError.response?.data?.message) return axiosError.response.data.message;
-    if (axiosError.response?.data?.detail) return axiosError.response.data.detail;
-  }
-
-  if (error && typeof error === 'object' && 'message' in error) {
-    return (error as { message: string }).message;
-  }
-
-  return defaultMessage;
-}
-
 export function hasServiceErrorDetail(error: unknown): boolean {
   if (!error || typeof error !== 'object' || !('response' in error)) return false;
   const data = (error as { response?: { data?: unknown } }).response?.data;

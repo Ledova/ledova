@@ -1,9 +1,8 @@
 import React from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
-import { ListIcon, BellIcon } from 'phosphor-react-native';
+import { BellIcon } from 'phosphor-react-native';
 import { Header, getHeaderTitle } from '@react-navigation/elements';
 import { useAppTheme } from '../../contexts';
-import { useDrawer } from '../DrawerContext';
 
 type ThemeParam = ReturnType<typeof useAppTheme>;
 
@@ -13,31 +12,10 @@ interface MainHeaderProps {
   unreadCount?: number;
 }
 
-function DrawerToggleButton() {
-  const theme = useAppTheme();
-  const { openDrawer } = useDrawer();
-  return (
-    <TouchableOpacity
-      accessibilityRole="button"
-      accessibilityLabel="Open menu"
-      onPress={openDrawer}
-      style={{
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <ListIcon size={theme.icon.sizes.lg} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
-    </TouchableOpacity>
-  );
-}
-
 export function MainHeader({ theme, onNotifications, unreadCount = 0 }: MainHeaderProps) {
   const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
 
   return {
-    headerLeft: () => <DrawerToggleButton />,
     headerRight: () => (
       <TouchableOpacity
         accessibilityRole="button"
@@ -79,7 +57,6 @@ export function MainHeader({ theme, onNotifications, unreadCount = 0 }: MainHead
         )}
       </TouchableOpacity>
     ),
-    headerLeftContainerStyle: { paddingLeft: theme.spacing.md, paddingBottom: theme.spacing.xs },
     headerRightContainerStyle: { paddingRight: theme.spacing.md, paddingBottom: theme.spacing.xs },
   };
 }

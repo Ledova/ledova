@@ -2,9 +2,8 @@ import { cleanup, render } from '@testing-library/react-native';
 import { loadAsync } from 'expo-font';
 import App from '../App';
 
-jest.mock('react-native-webview', () => jest.requireActual('react-native').View);
 jest.mock('react-native-gesture-handler', () => ({ GestureHandlerRootView: jest.requireActual('react-native').View }));
-jest.mock('./navigation/DrawerNavigator', () => ({ DrawerNavigator: () => null }));
+jest.mock('./navigation/SignedInNavigator', () => ({ SignedInNavigator: () => null }));
 jest.mock('expo-font', () => ({ loadAsync: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('./services/notificationsService', () => ({
   notificationsService: { configure: jest.fn(), registerToken: jest.fn().mockResolvedValue(true) },

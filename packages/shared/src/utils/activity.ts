@@ -1,4 +1,3 @@
-import { getTransactionStatus } from '../constants';
 import { formatShareCount } from './formatting';
 import type { Transaction } from '../types';
 
@@ -24,11 +23,6 @@ export function activityDirection(transaction: Transaction) {
   if (incoming) return 'Incoming';
   if (outgoing) return 'Outgoing';
   return 'Direction unavailable';
-}
-
-export function activityStatus(transaction: Transaction) {
-  const { label, mark } = getTransactionStatus(transaction.status);
-  return { label, text: mark ? `${mark} ${label}` : label };
 }
 
 export function feeUnit(chain: Transaction['chain']) {

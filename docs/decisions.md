@@ -41,17 +41,18 @@ stay here as history and are marked where they appear.
 | [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands                                                  |
 | [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred                                                                       |
 | [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                                                                         |
-| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October                                                |
+| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October                             |
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile following them under #1201                     |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile people (#1196), rest in #1201         |
+| [Mobile app for shareholders](#mobile-app-for-shareholders)                                                     | 26 October 2026                                | Current; delivery under #1201                                                                                   |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                         |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                         |
-| [Clients and API types](#clients-and-api-types)                                                                 | 14 September 2026                              | Current                                                                                                         |
+| [Clients and API types](#clients-and-api-types)                                                                 | 14 September 2026                              | Current; mobile workflows superseded 26 October                                                                 |
 
 ## Company-managed registers and one product
 
@@ -1553,9 +1554,37 @@ control and the existing new-person paths for setup, issues and awards. The comp
 distinguishes people without shares from current shareholders, and registration keeps company
 authority, an attributable source and the original request on retry. Mobile stays deferred.
 
+## Mobile app for shareholders
+
+On 26 October 2026 the owner made the mobile app a shareholder app: "make mobile shareholder-only.
+Company administration, registration and activation stay on the web". The owner then added: "My
+intention is not to provide mobile users with a way to access the remaining functionality through a
+browser". So the app has no links or hand-offs to the web, including from notifications. The owner
+agreed the screens through [mockups](https://claude.ai/artifact/CHeXcDVycP9csCT3SQnvh1) and wrote:
+"All looks good. Also delete what is no longer used in the process".
+
+- **Three tabs:** Holdings, Documents and Account, with notifications behind a bell. There is no
+  drawer.
+- **Holdings across companies and classes:** a card per company, with a line per share class and
+  each award's vesting. A searchable list replaces the cards above about six companies, and holdings
+  that have ended sit under Past holdings. Percentages are not shown, because members do not
+  receive class totals.
+- **Detail on demand:** a company, then one class with its history and a certificate for each
+  change, then the certificate to share or save. Each award has its own page.
+- **Documents** gathers every company's certificates and notices, filtered by company. **Account**
+  holds the profile, the details each company records (one change can go to every company),
+  invitations, app lock, notifications and appearance.
+- **Removed from mobile:** company administration, registration and activation, and the deferred
+  investing screens (wallets, buying and sending crypto, trading, activity, Directory, Applications
+  and eligibility), with their code. Mobile signup creates individual accounts. A company account
+  that has not finished signup is told the app is for shareholders.
+- **Notifications for share events** (a certificate ready, shares vested or issued, a details
+  change decided) need new server notifications; today members are notified of notices only.
+
 ## The signed-in app
 
 The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).
+Its mobile menus are superseded by the [26 October mobile decision](#mobile-app-for-shareholders).
 
 The signed-in app is rebuilt around the register; crypto stays supported but is
 no longer the core (owner decisions, 26 September 2026, on
@@ -1786,8 +1815,9 @@ those numbers as current.
 ## Clients and API types
 
 Both clients compile `@ledova/shared` from source, without a package build step.
-Directory, Applications and company Offering workflows are available in both the
-dashboard and mobile app, using shared hooks. Earlier client boundaries are
+Directory, Applications and company Offering workflows were available in both the
+dashboard and mobile app, using shared hooks, until the
+[26 October mobile decision](#mobile-app-for-shareholders) removed them from mobile. Earlier client boundaries are
 recorded in [B7b](https://github.com/Ledova/ledova/issues/115#issuecomment-5574947880)
 and [B2](https://github.com/Ledova/ledova/issues/115#issuecomment-5574848881).
 

@@ -150,11 +150,6 @@ export function getChainShortCode(chain: string): string {
   return chainByShortName.has(upper) ? upper : upper;
 }
 
-export function isSupportedEvmChain(chain: string): boolean {
-  const normalized = getChainName(chain);
-  return normalized === BLOCKCHAIN.ETHEREUM || normalized === BLOCKCHAIN.BASE;
-}
-
 export function getNativeAssetSymbol(chain: string): string {
   return getChainName(chain) === BLOCKCHAIN.BASE ? 'ETH' : getChainShortCode(chain);
 }

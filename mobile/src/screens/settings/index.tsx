@@ -1,30 +1,25 @@
 import { useState } from 'react';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { ActivityIndicator, Alert, Text, TextInput, View } from 'react-native';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { USER_PREFERENCES_QUERY_KEY, upsertCurrentUserPreferences, useUserPreferences } from '@ledova/shared';
-import { Action, Section, SwitchRow } from '../../components/Ledger';
+import { Alert, Text, TextInput, View } from 'react-native';
+import { Action, LinkRow, Rows, Section, SwitchRow } from '../../components/Ledger';
+import { SignOutModal } from '../../components/auth/SignOutModal';
 import { Page } from '../../components/Page';
 import { useAppLock, useThemeChoice } from '../../contexts';
-import { apiClient } from '../../services/apiClient';
 import { CustomModal } from '../../components/modal';
 import { useAccountStyles } from '../../hooks/useAccountStyles';
+import { useSignOut } from '../../hooks/useSignOut';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import { useSettings } from './useSettings';
-import { Verification } from './Verification';
 
 export function SettingsScreen() {
   const styles = useAccountStyles();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const lock = useAppLock();
   const appearance = useThemeChoice();
-  const preferences = useUserPreferences();
-  const transactionAlerts = preferences.preferences?.transactionAlerts;
-  const queryClient = useQueryClient();
-  const alerts = useMutation({
-    mutationFn: (value: boolean) => upsertCurrentUserPreferences(apiClient, { transactionAlerts: value }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }),
-  });
+  const { userProfile } = useUserProfile();
+  const { signOut, signingOut } = useSignOut();
+  const [signingOutOpen, setSigningOutOpen] = useState(false);
   const settings = useSettings();
   const [modal, setModal] = useState<'password' | 'export' | 'delete' | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -112,30 +107,16 @@ export function SettingsScreen() {
   };
   return (
     <>
-      <Page title="Settings">
-        <Verification />
-        <Section title="Company settings">
-          <Text style={styles.muted}>
-            Company details and optional supporting documents can be managed after signup.
-          </Text>
-          <Action
-            label="Company details and documents"
-            onPress={() =>
-              navigation.navigate('MainApp', {
-                screen: 'Main',
-                params: { screen: 'Company', params: { screen: 'CompanyDetails' } },
-              } as never)
-            }
-          />
-          <Action
-            label="Team and appointments"
-            onPress={() =>
-              navigation.navigate('MainApp', {
-                screen: 'Main',
-                params: { screen: 'Company', params: { screen: 'CompanyTeam' } },
-              } as never)
-            }
-          />
+      <Page title="Account">
+        <Section title="Profile">
+          <Rows>
+            <LinkRow
+              label={userProfile?.fullName || 'Your profile'}
+              onPress={() => navigation.navigate('MainApp', { screen: 'Profile' })}
+            >
+              {userProfile?.email ? <Text style={styles.muted}>{userProfile.email}</Text> : null}
+            </LinkRow>
+          </Rows>
         </Section>
         <Section title="Security">
           <SwitchRow
@@ -169,35 +150,6 @@ export function SettingsScreen() {
             onChange={(dark) => appearance.setMode(dark ? 'dark' : 'paper')}
           />
         </Section>
-        <Section title="Notifications">
-          {preferences.isLoading ? (
-            <ActivityIndicator accessibilityLabel="Loading notification settings" />
-          ) : preferences.isError || transactionAlerts === undefined ? (
-            <View style={styles.fields}>
-              <Text accessibilityRole="alert" style={styles.error}>
-                Your notification settings could not be loaded.
-              </Text>
-              <Action
-                label="Try notifications again"
-                disabled={preferences.isFetching}
-                onPress={() => void preferences.refetch()}
-              />
-            </View>
-          ) : (
-            <SwitchRow
-              label="Transaction alerts"
-              description="Notifications for transaction status changes."
-              checked={transactionAlerts}
-              disabled={alerts.isPending || preferences.isFetching}
-              onChange={(value) => alerts.mutate(value)}
-            />
-          )}
-          {alerts.isError && (
-            <Text accessibilityRole="alert" style={styles.error}>
-              Your notification setting could not be saved. Try again.
-            </Text>
-          )}
-        </Section>
         <Section title="Account">
           <Action label="Change password" disabled={busy} onPress={() => open('password')} />
           <Text style={styles.muted}>Save a private JSON copy of your account data.</Text>
@@ -222,7 +174,14 @@ export function SettingsScreen() {
             </Text>
           )}
         </Section>
+        <Action label="Sign out" disabled={signingOut} onPress={() => setSigningOutOpen(true)} />
       </Page>
+      <SignOutModal
+        visible={signingOutOpen}
+        onClose={() => setSigningOutOpen(false)}
+        onConfirm={() => void signOut()}
+        isLoading={signingOut}
+      />
       <CustomModal
         visible={modal === 'password'}
         title="Change password"

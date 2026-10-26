@@ -15,7 +15,7 @@ interface NotificationsModalProps {
   onClose: () => void;
 }
 
-const DESTINATIONS: Record<string, string> = { [PUBLICATION_NOTICE]: 'Publications' };
+const DESTINATIONS: Record<string, string> = { [PUBLICATION_NOTICE]: 'Documents' };
 
 export function destinationOf(notification: Notification): string | undefined {
   const type = (notification.data as { type?: unknown } | null | undefined)?.type;

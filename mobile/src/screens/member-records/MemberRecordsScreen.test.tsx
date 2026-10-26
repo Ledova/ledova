@@ -12,30 +12,9 @@ import type { AxiosInstance } from 'axios';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
-import { AWARD_REQUEST, REGISTER, awardFrom } from '../../../../packages/shared/tests/fixtures/employee-awards';
-import {
-  FULFILLED_CERTIFICATE,
-  MEMBER_PDF,
-  OUTPUT_APPOINTMENT,
-  OUTPUT_PREVIEW,
-} from '../../../../packages/shared/tests/fixtures/register-outputs';
+import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/tests/fixtures/register-outputs';
 import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { MemberRecordsScreen } from './MemberRecordsScreen';
-import { CompanyMemberAccess } from '../company-register/CompanyMemberAccess';
-
-const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-async function choose(
-  view: Pick<Awaited<ReturnType<typeof render>>, 'findByRole' | 'findByLabelText'>,
-  label: string,
-  option: string,
-) {
-  const field = await view.findByRole('button', { name: new RegExp(`^${escaped(label)}:`) });
-  await waitFor(() => expect(field).toBeEnabled());
-  await fireEvent.press(field);
-  await fireEvent.changeText(await view.findByLabelText(/^Search /), option);
-  await fireEvent.press(await view.findByRole('radio', { name: new RegExp(`^${escaped(option)}`) }));
-}
 
 jest.mock('expo-crypto', () => ({
   randomUUID: jest.fn(),
@@ -64,7 +43,7 @@ afterEach(async () => {
 });
 const page = (results: unknown[]) => ({ data: { results, next: null, count: results.length } });
 
-it('invites and associates a walletless member, recovers one exact request and refuses cached records and a late action after current read loss', async () => {
+it('associates a member by invitation code, recovers one exact request and refuses cached records and a late action after current read loss', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -75,44 +54,10 @@ it('invites and associates a walletless member, recovers one exact request and r
   let ownRecord = MEMBER_RECORD;
   let associated = false;
   let refused = false;
-  let preferencesRefused = false;
-  let invitation: unknown;
-  let particulars: Record<string, unknown>[] = [
-    {
-      uuid: '12121212-1212-4212-8212-121212121212',
-      association: MEMBER_RECORD.uuid,
-      company: MEMBER_RECORD.company.uuid,
-      member: MEMBER_RECORD.member,
-      name: 'Private queued member name',
-      residentialAddress: 'Private queued member address',
-      status: 'submitted',
-      change: null,
-    },
-  ];
-  let certificates: Record<string, unknown>[] = [{ ...FULFILLED_CERTIFICATE, status: 'requested', fulfilment: null }];
+  let particulars: Record<string, unknown>[] = [];
+  let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE];
   api.get.mockReset().mockImplementation(async (url) => {
-    if (url === '/api/user-preferences/') {
-      if (preferencesRefused)
-        throw Object.assign(new Error('Current preferences refused'), { response: { status: 404 } });
-      return { data: preferences };
-    }
-    if (url === '/api/v1/company-authority/appointments/')
-      return page([{ ...OUTPUT_APPOINTMENT, capabilities: ['admin', 'prepare'] }]);
-    if (url === URLS.MEMBER_INVITATIONS) return page(invitation ? [invitation] : []);
-    if (url === URLS.REGISTER_AWARDS)
-      return page([
-        {
-          ...awardFrom({
-            ...AWARD_REQUEST,
-            operationId: MEMBER_RECORD.awards[0].uuid,
-            tokenId: MEMBER_RECORD.classes[0].uuid,
-            member: MEMBER_RECORD.member,
-            name: MEMBER_RECORD.name,
-            residentialAddress: MEMBER_RECORD.residentialAddress,
-          }),
-          company: MEMBER_RECORD.company.uuid,
-        },
-      ]);
+    if (url === '/api/user-preferences/') return { data: preferences };
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current member access refused'), { response: { status: 404 } });
@@ -125,43 +70,10 @@ it('invites and associates a walletless member, recovers one exact request and r
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
     if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid))
       return { data: MEMBER_PDF.buffer, headers: { 'content-type': 'application/pdf' } };
-    if (url === URLS.MEMBER_CERTIFICATE_PREVIEW(FULFILLED_CERTIFICATE.uuid))
-      return {
-        data: {
-          ...OUTPUT_PREVIEW,
-          company: MEMBER_RECORD.company.uuid,
-          member: MEMBER_RECORD.member,
-          memberRequest: FULFILLED_CERTIFICATE.uuid,
-        },
-      };
     throw new Error(`Unexpected GET ${url}`);
   });
   api.post.mockReset().mockImplementation(async (url, value) => {
     const body = value as Record<string, string>;
-    if (url === URLS.MEMBER_CERTIFICATE_FULFIL(FULFILLED_CERTIFICATE.uuid)) {
-      const request = {
-        ...FULFILLED_CERTIFICATE,
-        fulfilment: {
-          ...FULFILLED_CERTIFICATE.fulfilment,
-          uuid: body.operationId,
-          appointment: body.appointment,
-          instruction: body.instruction,
-          sourceDigest: body.sourceDigest,
-        },
-      };
-      certificates = [request];
-      return { data: request };
-    }
-    if (url === URLS.MEMBER_INVITATIONS) {
-      invitation = {
-        ...body,
-        uuid: body.operationId,
-        status: 'pending',
-        code: MEMBER_CODE,
-        acceptanceDeadline: '2026-10-18T00:00:00Z',
-      };
-      return { data: invitation };
-    }
     if (url === URLS.MEMBER_INVITATION_ACCEPT) {
       associated = true;
       return {
@@ -210,64 +122,6 @@ it('invites and associates a walletless member, recovers one exact request and r
       <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
     </QueryClientProvider>
   );
-  const company = await render(
-    <CompanyMemberAccess
-      company={MEMBER_RECORD.company.uuid}
-      epoch={getSessionEpoch()}
-      registers={[
-        {
-          ...REGISTER,
-          token: {
-            ...REGISTER.token,
-            uuid: MEMBER_RECORD.classes[0].uuid,
-            name: MEMBER_RECORD.classes[0].name,
-            symbol: MEMBER_RECORD.classes[0].symbol,
-          },
-        },
-      ]}
-    />,
-    {
-      wrapper,
-    },
-  );
-  await choose(screen, 'Member or award recipient', MEMBER_RECORD.name);
-  await fireEvent.changeText(screen.getByLabelText('Intended recipient email'), 'member@example.test');
-  await fireEvent.press(screen.getByRole('button', { name: 'Create member invitation' }));
-  await screen.findByText(`One-time member invitation code: ${MEMBER_CODE}`);
-  expect(screen.getByText(/Private queued member name/)).toBeTruthy();
-  expect(screen.getByText(/Private queued member address/)).toBeTruthy();
-  expect(screen.getByText(/member@example.test/)).toBeTruthy();
-  preferencesRefused = true;
-  await act(async () => {
-    await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
-  });
-  await waitFor(() => expect(screen.queryByText(/Private queued member name/)).toBeNull());
-  expect(screen.queryByText(/Private queued member address/)).toBeNull();
-  expect(screen.queryByText(/member@example.test/)).toBeNull();
-  expect(screen.queryByText(`One-time member invitation code: ${MEMBER_CODE}`)).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Create member invitation' })).toBeNull();
-  preferencesRefused = false;
-  particulars = [];
-  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
-  await fireEvent.changeText(
-    await screen.findByLabelText('Certificate instruction reference'),
-    'Synthetic recipient instruction',
-  );
-  await fireEvent.press(
-    screen.getByRole('button', { name: `Preview recipient certificate ${FULFILLED_CERTIFICATE.uuid}` }),
-  );
-  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm recipient certificate fulfilment' }));
-  await screen.findByText(/The unsigned recipient certificate is recorded/);
-  expect(api.post).toHaveBeenCalledWith(
-    URLS.MEMBER_CERTIFICATE_FULFIL(FULFILLED_CERTIFICATE.uuid),
-    expect.objectContaining({
-      appointment: OUTPUT_APPOINTMENT.uuid,
-      instruction: 'Synthetic recipient instruction',
-      sourceDigest: OUTPUT_PREVIEW.sourceDigest,
-    }),
-    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
-  );
-  await company.unmount();
   await render(<MemberRecordsScreen />, { wrapper });
   await fireEvent.changeText(await screen.findByLabelText('Member invitation code'), MEMBER_CODE);
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept access using my signed-in account' }));

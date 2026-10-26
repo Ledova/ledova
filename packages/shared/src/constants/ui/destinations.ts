@@ -75,10 +75,6 @@ export type DestinationKey = keyof typeof DESTINATIONS;
 
 export type LedgerTask = keyof typeof DESTINATIONS.companyRegister.tasks;
 
-export function isLedgerTask(value: unknown): value is LedgerTask {
-  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(DESTINATIONS.companyRegister.tasks, value);
-}
-
 export interface DestinationParent {
   destination: DestinationKey;
   view?: string;

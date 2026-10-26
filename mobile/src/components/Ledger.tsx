@@ -1,4 +1,4 @@
-import { Children, Fragment, isValidElement, type ReactElement, type ReactNode, type Ref } from 'react';
+import { Children, Fragment, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { CaretRightIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
@@ -132,73 +132,6 @@ export function LinkRow({
       {aside}
       <CaretRightIcon size={CARET_SIZE} color={theme.colors.text.muted} />
     </Pressable>
-  );
-}
-
-export type Tone = 'waiting' | 'done' | 'closed';
-
-export function Status({ tone, children }: { tone: Tone; children: ReactNode }) {
-  const styles = useThemedStyles((theme) => ({
-    status: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.sm },
-    mark: { width: 8, height: 8, borderRadius: 4 },
-    waiting: { borderWidth: 1, borderColor: theme.colors.text.muted },
-    done: { backgroundColor: theme.colors.brand.mid },
-    closed: { backgroundColor: theme.colors.text.muted },
-    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.primary },
-  }));
-  return (
-    <View style={styles.status}>
-      <View style={[styles.mark, styles[tone]]} />
-      <Text style={styles.label}>{children}</Text>
-    </View>
-  );
-}
-
-export function Disclosure({
-  ref,
-  summary,
-  open,
-  onToggle,
-  accessibilityLabel,
-  children,
-}: {
-  ref?: Ref<View>;
-  summary: ReactNode;
-  open: boolean;
-  onToggle: () => void;
-  accessibilityLabel?: string;
-  children: ReactNode;
-}) {
-  const theme = useAppTheme();
-  const styles = useThemedStyles((theme) => ({
-    toggle: {
-      flexDirection: 'row' as const,
-      alignItems: 'flex-start' as const,
-      gap: theme.spacing.smd,
-      paddingVertical: theme.spacing.md,
-    },
-    caret: { height: 21, justifyContent: 'center' as const },
-    turned: { transform: [{ rotate: '90deg' }] },
-    summary: { flex: 1 },
-    detail: { paddingLeft: CARET_SIZE + theme.spacing.smd, paddingBottom: theme.spacing.md },
-  }));
-  return (
-    <View>
-      <Pressable
-        ref={ref}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityState={{ expanded: open }}
-        onPress={onToggle}
-        style={styles.toggle}
-      >
-        <View style={[styles.caret, open && styles.turned]}>
-          <CaretRightIcon size={CARET_SIZE} color={theme.colors.text.muted} />
-        </View>
-        <View style={styles.summary}>{summary}</View>
-      </Pressable>
-      <View style={open ? styles.detail : undefined}>{open && children}</View>
-    </View>
   );
 }
 

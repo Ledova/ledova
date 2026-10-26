@@ -1,8 +1,3 @@
-export const IDENTITY_CHECK_COPY = {
-  STEP: 'Verify your identity',
-  NOTE: 'Your identity check, used where activation or eligibility requires it.',
-};
-
 export const IDENTITY_OUTCOME_COPY = {
   verified: { title: 'Already verified', body: 'Your identity has been verified successfully.' },
   pending: {
