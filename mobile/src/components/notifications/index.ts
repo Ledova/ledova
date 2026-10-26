@@ -1,1 +1,1 @@
-export { NotificationsModal } from './NotificationsModal';
+export { NotificationsModal, useFollowPush } from './NotificationsModal';

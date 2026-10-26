@@ -3,6 +3,7 @@ import io
 import json
 import zipfile
 from datetime import timedelta
+from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pymupdf
@@ -153,6 +154,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(accepted.status_code, 200, accepted.content)
+        told = self.enterContext(patch("tokens.services.member_events.defer"))
         requested = self.client.post(
             "/api/v1/tokens/member-certificate-requests/",
             {
@@ -189,6 +191,20 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             f"{request_endpoint}fulfil/", {**fulfil, "instruction": "Different instruction"}, format="json"
         )
         self.assertEqual(changed_retry.status_code, 409, changed_retry.content)
+        self.assertEqual(
+            [(call.kwargs["user_id"], call.kwargs["data"]) for call in told.call_args_list],
+            [
+                (
+                    str(self.foreign.pk),
+                    {
+                        "type": "certificate",
+                        "event": "ready",
+                        "company": str(self.company.pk),
+                        "record": accepted.json()["uuid"],
+                    },
+                )
+            ],
+        )
         self.client.force_authenticate(self.foreign)
         own_pdf = self.client.get(f"{request_endpoint}file/")
         self.assertEqual(own_pdf.status_code, 200, own_pdf.content)

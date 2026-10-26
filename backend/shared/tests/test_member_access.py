@@ -28,6 +28,7 @@ from tokens.models import (
 class MemberAccessTest(CoreFixtures, APITransactionTestCase):
     @override_settings(DASHBOARD_BASE_URL="https://dashboard.example.test")
     def test_exact_walletless_association_own_entitlement_holdings_requests_and_revocation(self):
+        told = self.enterContext(patch("tokens.services.member_events.defer"))
         award = self.award_payload()
         response = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
         self.assertEqual(response.status_code, 201, response.content)
@@ -180,6 +181,16 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "approve")
         applied, _ = self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "apply")
         issue_entry = applied.json()["registerEntry"]
+        self.assertEqual(
+            [(call.kwargs["user_id"], call.kwargs["title"], call.kwargs["data"]) for call in told.call_args_list],
+            [
+                (
+                    str(self.foreign.pk),
+                    "Shares issued",
+                    {"type": "holding", "event": "issued", "token": str(self.token.pk), "record": association},
+                )
+            ],
+        )
         supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
         self.client.force_authenticate(self.foreign)
         own = self.client.get(record_endpoint).json()
@@ -205,6 +216,46 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(change.json()["memberRequest"], request_id)
         self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "approve")
         self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "apply")
+        self.assertEqual(
+            told.call_args.kwargs["data"], {"type": "particulars", "event": "applied", "record": association}
+        )
+        later = self.vesting_payload(award["operation_id"], shares="1")
+        self.assertEqual(
+            self.client.post("/api/v1/tokens/register-award-vestings/", later, format="json").status_code, 201
+        )
+        self.assertEqual(
+            told.call_args.kwargs["data"],
+            {"type": "award", "event": "vested", "award": award["operation_id"], "record": association},
+        )
+        self.client.force_authenticate(self.foreign)
+        second = {**request_payload, "operation_id": str(uuid4()), "name": "Synthetic Declined Employee"}
+        declined = self.client.post("/api/v1/tokens/member-particulars-requests/", second, format="json")
+        self.assertEqual(declined.status_code, 201, declined.content)
+        self.client.force_authenticate(self.owner)
+        refused = self.client.post(
+            f"/api/v1/tokens/member-particulars-requests/{declined.json()['uuid']}/prepare/",
+            {
+                "operation_id": str(uuid4()),
+                "appointment": str(self.appointment.pk),
+                "supporting_evidence": str(
+                    retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING).pk
+                ),
+                "as_at": timezone.now().date().isoformat(),
+                "reason": "Record the member-confirmed particulars",
+            },
+            format="json",
+        )
+        self.assertEqual(refused.status_code, 201, refused.content)
+        self.decision(
+            "/api/v1/tokens/register-particulars-changes/",
+            refused.json()["uuid"],
+            "reject",
+            reason="Synthetic particulars refused",
+        )
+        self.assertEqual(
+            (told.call_args.kwargs["title"], told.call_args.kwargs["data"]),
+            ("Details change declined", {"type": "particulars", "event": "rejected", "record": association}),
+        )
         self.client.force_authenticate(self.foreign)
         status = self.client.get(f"/api/v1/tokens/member-particulars-requests/{request_id}/")
         self.assertEqual(status.json()["status"], "applied")
@@ -289,6 +340,11 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         copied_endpoint = f"/api/v1/tokens/member-records/{copied_association}/"
         self.assertEqual(self.client.get(copied_endpoint).json()["classes"], [])
         self.client.force_authenticate(self.owner)
+        after = self.vesting_payload(award["operation_id"], shares="1")
+        self.assertEqual(
+            self.client.post("/api/v1/tokens/register-award-vestings/", after, format="json").status_code, 201
+        )
+        self.assertEqual(told.call_count, 4)
         created = self.client.post(
             "/api/v1/tokens/",
             {

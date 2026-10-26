@@ -1599,7 +1599,7 @@ agreed the screens through [mockups](https://claude.ai/artifact/CHeXcDVycP9csCT3
   and eligibility), identity verification, Help and the QR scanner, with their code. Mobile signup creates individual accounts. A company account
   that has not finished signup is told the app is for shareholders.
 - **Notifications for share events** (a certificate ready, shares vested or issued, a details
-  change decided) need new server notifications; today members are notified of notices only.
+  change decided) needed new server notifications; S7 (#1344) adds them.
 
 ## The signed-in app
 
