@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as Crypto from 'expo-crypto';
 import { RefreshControl, Text, View } from 'react-native';
 import type { RouteProp } from '@react-navigation/native';
@@ -19,23 +19,14 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { Field } from '../../components/register/RegisterFields';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { RegisterCopy } from '../../components/register/RegisterCopy';
+import { useMemberRecordsState } from './MemberRecordsProvider';
 
 export function CompanyScreen({ route }: { route: RouteProp<SignedInStackParamList, 'Company'> }) {
   const uuid = route.params.record;
-  const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
-  const selectionOwner = useRef<ReturnType<typeof useMemberRecords>['owner']>(null);
+  const { read, select } = useMemberRecordsState();
   useEffect(() => {
-    if (
-      read.owner &&
-      selectionOwner.current !== read.owner &&
-      read.records.some((row) => row.uuid === uuid) &&
-      !read.busy &&
-      !read.retry
-    ) {
-      selectionOwner.current = read.owner;
-      read.select(uuid);
-    }
-  }, [read.owner, read.records, read.busy, read.retry, read.select, uuid]);
+    if (read.owner && read.records.some((row) => row.uuid === uuid) && !read.busy && !read.retry) select(uuid);
+  }, [read.owner, read.records, read.busy, read.retry, select, uuid]);
   return (
     <Company
       key={`${read.owner?.userUuid}/${read.owner?.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}`}
@@ -48,9 +39,10 @@ export function CompanyScreen({ route }: { route: RouteProp<SignedInStackParamLi
 function Company({ read, uuid }: { read: ReturnType<typeof useMemberRecords>; uuid: string }) {
   const theme = useAppTheme();
   const styles = useCompanyStyles();
-  const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
-  const [confirmed, setConfirmed] = useState(false);
+  const {
+    draft: { name, address, confirmed },
+    setDraft,
+  } = useMemberRecordsState();
   const [details, setDetails] = useState(false);
   const [history, setHistory] = useState(false);
   const [requests, setRequests] = useState(false);
@@ -58,6 +50,7 @@ function Company({ read, uuid }: { read: ReturnType<typeof useMemberRecords>; uu
   const [awardDetails, setAwardDetails] = useState<Record<string, boolean>>({});
   const held = read.busy || !!read.retry;
   const record = read.records.find((row) => row.uuid === uuid);
+  const selected = read.record?.uuid === uuid ? read.record : null;
   return (
     <Page
       testID="company-scroll"
@@ -86,7 +79,7 @@ function Company({ read, uuid }: { read: ReturnType<typeof useMemberRecords>; uu
       )}
       {!read.owner ? (
         <Text style={styles.muted}>Check your signed-in account before opening member records.</Text>
-      ) : read.loading || (read.busy && read.records.length === 0) ? (
+      ) : read.loading || (!read.listReady && !read.error) ? (
         <Text style={styles.muted}>Loading member records…</Text>
       ) : !record ? (
         !read.error && <Text style={styles.muted}>This company no longer records you as a member.</Text>
@@ -101,7 +94,7 @@ function Company({ read, uuid }: { read: ReturnType<typeof useMemberRecords>; uu
                   <Text style={styles.text}>
                     {item.name} · {formatShareCount(item.shares)} issued shares
                   </Text>
-                  {read.record?.uuid === record.uuid && (
+                  {selected && (
                     <Action
                       label={`Read own entries for ${item.name}`}
                       disabled={held}
@@ -168,7 +161,10 @@ function Company({ read, uuid }: { read: ReturnType<typeof useMemberRecords>; uu
               </>
             )}
           </Section>
-          {read.record && (
+          {!selected && read.retry && (
+            <Text style={styles.muted}>Retry or finish your pending request before opening this company.</Text>
+          )}
+          {selected && (
             <>
               {read.requests?.certificates.some((request) => request.status === 'fulfilled' && request.fulfilment) && (
                 <Section title="Documents">
@@ -190,13 +186,13 @@ function Company({ read, uuid }: { read: ReturnType<typeof useMemberRecords>; uu
                 />
                 {details && (
                   <View style={styles.group}>
-                    <Text style={styles.text}>{read.record.name}</Text>
-                    <Text style={styles.text}>{read.record.residentialAddress}</Text>
+                    <Text style={styles.text}>{selected.name}</Text>
+                    <Text style={styles.text}>{selected.residentialAddress}</Text>
                     <Text style={styles.muted}>
                       Particulars provided by the company; not verified by Ledova. Profile edits do not change this
                       register.
                     </Text>
-                    {read.record.classes.map((item) => (
+                    {selected.classes.map((item) => (
                       <Text key={item.uuid} style={styles.muted}>
                         {item.name} · Entered {item.enteredOn ?? 'not recorded'}
                         {item.ceasedOn ? ` · Ceased ${item.ceasedOn}` : ''} · Amount paid{' '}
@@ -214,27 +210,21 @@ function Company({ read, uuid }: { read: ReturnType<typeof useMemberRecords>; uu
                       label="Requested name"
                       value={name}
                       editable={!held}
-                      onChange={(value) => {
-                        setName(value);
-                        setConfirmed(false);
-                      }}
+                      onChange={(value) => setDraft((draft) => ({ ...draft, name: value, confirmed: false }))}
                     />
                     <Field
                       label="Requested residential address"
                       value={address}
                       editable={!held}
                       multiline
-                      onChange={(value) => {
-                        setAddress(value);
-                        setConfirmed(false);
-                      }}
+                      onChange={(value) => setDraft((draft) => ({ ...draft, address: value, confirmed: false }))}
                     />
                     <Choice
                       accessibilityRole="checkbox"
                       selected={confirmed}
                       disabled={held}
                       label="Share these particulars with this company for review"
-                      onPress={() => setConfirmed((value) => !value)}
+                      onPress={() => setDraft((draft) => ({ ...draft, confirmed: !draft.confirmed }))}
                     />
                     <Action
                       label="Send particulars request"

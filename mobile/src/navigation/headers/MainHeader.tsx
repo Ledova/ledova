@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BellIcon } from 'phosphor-react-native';
-import { Header, getHeaderTitle } from '@react-navigation/elements';
+import { Header } from '@react-navigation/elements';
 import { useAppTheme } from '../../contexts';
 
 type ThemeParam = ReturnType<typeof useAppTheme>;
@@ -66,21 +66,15 @@ export function getMainHeaderStyle(theme: ThemeParam) {
     headerShown: true,
     header: ({
       options,
-      route,
       back,
     }: {
       options: Record<string, unknown>;
-      route: { name: string };
       back?: { title: string | undefined; href: string | undefined };
     }) => (
       <Header
-        title={getHeaderTitle(options as Parameters<typeof getHeaderTitle>[0], route.name)}
+        title=""
         headerStyle={{ backgroundColor: theme.colors.surface.base }}
         headerTintColor={theme.colors.text.primary}
-        headerTitleStyle={{
-          fontFamily: theme.fontFamily.display,
-          fontSize: theme.fontSize.lg,
-        }}
         headerShadowVisible={false}
         headerLeft={options.headerLeft as HeaderLeftType}
         headerRight={options.headerRight as HeaderRightType}

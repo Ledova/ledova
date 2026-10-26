@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import * as Crypto from 'expo-crypto';
 import { RefreshControl, Text } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { useMemberRecords } from '@ledova/shared';
+import type { useMemberRecords } from '@ledova/shared';
 import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme } from '../../contexts';
@@ -12,9 +11,10 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { CompanyCard, CompanyList } from './CompanyHoldings';
 import { holdingsOf, holdingsSummary, LIST_ABOVE } from './holdings';
 import { MemberInvitation } from './MemberInvitation';
+import { useMemberRecordsState } from './MemberRecordsProvider';
 
 export function HoldingsScreen() {
-  const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
+  const { read } = useMemberRecordsState();
   return (
     <Holdings
       key={`${read.owner?.userUuid}/${read.owner?.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}`}
@@ -61,7 +61,7 @@ function Holdings({ read }: { read: ReturnType<typeof useMemberRecords> }) {
       )}
       {!read.owner ? (
         <Text style={styles.muted}>Check your signed-in account before opening your holdings.</Text>
-      ) : read.loading || (read.busy && read.records.length === 0) ? (
+      ) : read.loading || (!read.listReady && !read.error) ? (
         <Text style={styles.muted}>Loading your holdings…</Text>
       ) : (
         <>

@@ -66,10 +66,13 @@ holdings and Profile screens. Holdings (`mobile/src/screens/holdings`) shows a c
 a line per share class and each award's vesting bar, the award parts matching the web's; above six
 companies it becomes a searchable list. Classes with no shares left sit under Past holdings. A
 company opens the Company screen, which keeps the member record's details: entries, awards,
-certificates, requests and the company-recorded particulars. Documents opens Notices and Account
+certificates, requests and the company-recorded particulars. These screens share one member-records
+state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
+original operation, after leaving the company, and the screens show a loading line rather than an
+empty one while the list rereads. Documents opens Notices and Account
 holds the account settings, Profile and Sign out. Each tab's header has the notifications bell, and
 a notice's notification opens Documents. Screens set their own titles inside the page; a pushed
-screen's back button names the tab it came from.
+screen's back button names the tab or screen it came from.
 
 ## Theme and appearance
 

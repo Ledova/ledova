@@ -356,6 +356,7 @@ export function useMemberRecords(
   return {
     scopeOwner: owner,
     owner: available ? owner : null,
+    listReady,
     records: listReady ? list.data : [],
     record: ready ? detail.data : null,
     entries: ready && entries.isSuccess && entries.fetchStatus === 'idle' ? entries.data : [],

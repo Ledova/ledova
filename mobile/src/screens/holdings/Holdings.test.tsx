@@ -16,6 +16,7 @@ import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/t
 import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { CompanyScreen } from './CompanyScreen';
 import { HoldingsScreen } from './HoldingsScreen';
+import { MemberRecordsProvider } from './MemberRecordsProvider';
 
 const mockNavigate = jest.fn();
 
@@ -49,8 +50,18 @@ afterEach(async () => {
   resetFiles();
 });
 const page = (results: unknown[]) => ({ data: { results, next: null, count: results.length } });
+const PAST_RECORD = {
+  ...MEMBER_RECORD,
+  uuid: '13131313-1313-4313-8313-131313131313',
+  company: { uuid: '14141414-1414-4414-8414-141414141414', name: 'Alpha Former Company', acn: '987654321' },
+  member: '15151515-1515-4515-8515-151515151515',
+  classes: [
+    { ...MEMBER_RECORD.classes[0], uuid: '16161616-1616-4616-8616-161616161616', shares: '0', ceasedOn: '2026-03-31' },
+  ],
+  awards: [],
+};
 
-it('associates a member by invitation code, opens their company from Holdings, recovers one exact request and refuses cached records and a late action after current read loss', async () => {
+it('associates a member by invitation code, opens their company from Holdings, keeps one exact request recoverable after leaving the company and refuses cached records and a late action after current read loss', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -68,7 +79,7 @@ it('associates a member by invitation code, opens their company from Holdings, r
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current member access refused'), { response: { status: 404 } });
-      return page(associated ? [ownRecord] : []);
+      return page(associated ? [PAST_RECORD, ownRecord] : []);
     }
     if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: ownRecord };
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
@@ -126,21 +137,26 @@ it('associates a member by invitation code, opens their company from Holdings, r
   });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
-      <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <MemberRecordsProvider>{children}</MemberRecordsProvider>
+      </ApiClientProvider>
     </QueryClientProvider>
   );
-  const holdings = await render(<HoldingsScreen />, { wrapper });
+  const company = <CompanyScreen route={{ key: 'company', name: 'Company', params: { record: MEMBER_RECORD.uuid } }} />;
+  const view = await render(<HoldingsScreen />, { wrapper });
   await fireEvent.changeText(await screen.findByLabelText('Member invitation code'), MEMBER_CODE);
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept access using my signed-in account' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Accept member invitation' }));
-  await fireEvent.press(await screen.findByRole('button', { name: `${MEMBER_RECORD.company.name}: Ordinary · Award` }));
+  const card = await screen.findByRole('button', {
+    name: `${MEMBER_RECORD.company.name}: Ordinary 10, Award 2 of 5 vested`,
+  });
+  expect(screen.getByRole('button', { name: 'Past holdings (1)' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: new RegExp(`^${PAST_RECORD.company.name}`) })).toBeNull();
+  await fireEvent.press(card);
   expect(mockNavigate).toHaveBeenCalledWith('Company', { record: MEMBER_RECORD.uuid });
   expect(screen.getByText('1 company · 1 share class · 1 award')).toBeTruthy();
   expect(screen.getByText('2 of 5 vested')).toBeTruthy();
-  await holdings.unmount();
-  await render(<CompanyScreen route={{ key: 'company', name: 'Company', params: { record: MEMBER_RECORD.uuid } }} />, {
-    wrapper,
-  });
+  await view.rerender(company);
   await screen.findByRole('header', { name: MEMBER_RECORD.company.name });
   await screen.findByText('Ordinary · 10 issued shares');
   expect(screen.getByText(/5 awarded · 2 vested · 0 issued/)).toBeTruthy();
@@ -207,6 +223,10 @@ it('associates a member by invitation code, opens their company from Holdings, r
   await fireEvent.press(screen.getByRole('button', { name: 'Send particulars request' }));
   await screen.findByRole('button', { name: 'Retry original member action' });
   expect(screen.getByLabelText('Requested name')).toBeDisabled();
+  await view.rerender(<HoldingsScreen />);
+  expect(await screen.findByRole('button', { name: 'Retry original member action' })).toBeEnabled();
+  await view.rerender(company);
+  expect(screen.getByRole('button', { name: 'Open member details' })).toBeDisabled();
   await fireEvent.press(screen.getByRole('button', { name: 'Retry original member action' }));
   await waitFor(() => {
     expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull();
@@ -215,7 +235,9 @@ it('associates a member by invitation code, opens their company from Holdings, r
   const commands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS);
   expect(commands).toHaveLength(2);
   expect(commands[0][1]).toEqual(commands[1][1]);
+  await fireEvent.press(screen.getByRole('button', { name: 'Open member details' }));
   expect(screen.getByText(MEMBER_RECORD.name)).toBeTruthy();
+  expect(screen.getByLabelText('Requested name').props.value).toBe('Requested Member Name');
   await fireEvent.press(screen.getByRole('button', { name: 'Read own entries for Ordinary' }));
   await screen.findByRole('button', { name: 'Request certificate for entry 1' });
   expect(screen.getByText('Company event date Not recorded')).toBeTruthy();

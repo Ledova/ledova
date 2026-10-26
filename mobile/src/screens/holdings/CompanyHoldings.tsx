@@ -1,9 +1,8 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { CaretRightIcon, MagnifyingGlassIcon } from 'phosphor-react-native';
-import { formatShareCount } from '@ledova/shared';
 import { Row, Rows, useCardStyles } from '../../components/Ledger';
 import { useAppTheme, useThemedStyles } from '../../contexts';
-import { awardParts, initials, type CompanyHolding, type MemberAward } from './holdings';
+import { awardParts, awardQuantity, initials, shareQuantity, type CompanyHolding, type MemberAward } from './holdings';
 
 function useHoldingStyles() {
   return useThemedStyles((theme) => ({
@@ -77,11 +76,7 @@ function AwardLine({ award }: { award: MemberAward }) {
     <View style={styles.award}>
       <View style={styles.line}>
         <Text style={styles.label}>Award</Text>
-        <Text style={styles.value}>
-          {parts
-            ? `${formatShareCount(award.vestedShares)} of ${formatShareCount(award.shares)} vested`
-            : 'Quantities unavailable'}
-        </Text>
+        <Text style={styles.value}>{awardQuantity(award)}</Text>
       </View>
       {parts && (
         <View style={styles.bar} accessible={false}>
@@ -97,6 +92,13 @@ function AwardLine({ award }: { award: MemberAward }) {
   );
 }
 
+function quantities(holding: CompanyHolding) {
+  return [
+    ...holding.classes.map((item) => `${item.name} ${shareQuantity(item.shares)}`),
+    ...holding.awards.map((award) => `Award ${awardQuantity(award)}`),
+  ].join(', ');
+}
+
 function contents(holding: CompanyHolding) {
   return [...holding.classes.map((item) => item.name), ...(holding.awards.length > 0 ? ['Award'] : [])].join(' · ');
 }
@@ -109,7 +111,7 @@ export function CompanyCard({ holding, onOpen }: { holding: CompanyHolding; onOp
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${record.company.name}: ${contents(holding)}`}
+      accessibilityLabel={`${record.company.name}: ${quantities(holding)}`}
       onPress={() => onOpen(record.uuid)}
       style={card.card}
     >
@@ -121,7 +123,7 @@ export function CompanyCard({ holding, onOpen }: { holding: CompanyHolding; onOp
       <Rows>
         {holding.classes.map((item) => (
           <Row key={item.uuid} label={item.name}>
-            {formatShareCount(item.shares)}
+            {shareQuantity(item.shares)}
           </Row>
         ))}
         {holding.awards.map((award) => (

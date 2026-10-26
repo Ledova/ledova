@@ -10,6 +10,7 @@ import { NotificationsModal } from '../components/notifications';
 import { useAppTheme } from '../contexts';
 import { CompanyScreen } from '../screens/holdings/CompanyScreen';
 import { HoldingsScreen } from '../screens/holdings/HoldingsScreen';
+import { MemberRecordsProvider } from '../screens/holdings/MemberRecordsProvider';
 import { PastHoldingsScreen } from '../screens/holdings/PastHoldingsScreen';
 import { PublicationsScreen } from '../screens/publications';
 import { SettingsScreen } from '../screens/settings';
@@ -93,25 +94,27 @@ export function SignedInNavigator() {
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
   return (
-    <View style={{ flex: 1 }}>
-      <Stack.Navigator
-        initialRouteName="Main"
-        screenOptions={{
-          contentStyle: { backgroundColor: theme.colors.surface.base },
-          ...getMainHeaderStyle(theme),
-        }}
-      >
-        <Stack.Screen
-          name="Main"
-          options={({ route }) => ({ headerShown: false, title: getFocusedRouteNameFromRoute(route) ?? 'Holdings' })}
+    <MemberRecordsProvider>
+      <View style={{ flex: 1 }}>
+        <Stack.Navigator
+          initialRouteName="Main"
+          screenOptions={{
+            contentStyle: { backgroundColor: theme.colors.surface.base },
+            ...getMainHeaderStyle(theme),
+          }}
         >
-          {() => <Tabs onNotifications={() => setShowNotifications(true)} unreadCount={unreadCount} />}
-        </Stack.Screen>
-        <Stack.Screen name="Company" component={CompanyScreen} options={{ title: '' }} />
-        <Stack.Screen name="PastHoldings" component={PastHoldingsScreen} options={{ title: '' }} />
-        <Stack.Screen name="Profile" component={UserProfileScreen} options={{ title: '' }} />
-      </Stack.Navigator>
-      <NotificationsModal visible={showNotifications} onClose={() => setShowNotifications(false)} />
-    </View>
+          <Stack.Screen
+            name="Main"
+            options={({ route }) => ({ headerShown: false, title: getFocusedRouteNameFromRoute(route) ?? 'Holdings' })}
+          >
+            {() => <Tabs onNotifications={() => setShowNotifications(true)} unreadCount={unreadCount} />}
+          </Stack.Screen>
+          <Stack.Screen name="Company" component={CompanyScreen} options={{ title: '' }} />
+          <Stack.Screen name="PastHoldings" component={PastHoldingsScreen} options={{ title: 'Past holdings' }} />
+          <Stack.Screen name="Profile" component={UserProfileScreen} options={{ title: '' }} />
+        </Stack.Navigator>
+        <NotificationsModal visible={showNotifications} onClose={() => setShowNotifications(false)} />
+      </View>
+    </MemberRecordsProvider>
   );
 }

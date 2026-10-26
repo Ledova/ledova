@@ -1,4 +1,4 @@
-import { hasValidRegisterAwardTotals, type OwnMemberRecord } from '@ledova/shared';
+import { formatShareCount, hasValidRegisterAwardTotals, type OwnMemberRecord } from '@ledova/shared';
 
 type MemberClass = OwnMemberRecord['classes'][number];
 export type MemberAward = OwnMemberRecord['awards'][number];
@@ -34,6 +34,16 @@ function counted(count: number, one: string, many: string) {
   return `${count} ${count === 1 ? one : many}`;
 }
 
+export function shareQuantity(shares: string) {
+  return /^\d+$/.test(shares) ? formatShareCount(shares) : 'Unavailable';
+}
+
+export function awardQuantity(award: MemberAward) {
+  return awardParts(award)
+    ? `${formatShareCount(award.vestedShares)} of ${formatShareCount(award.shares)} vested`
+    : 'Quantities unavailable';
+}
+
 export function holdingsSummary(current: CompanyHolding[]) {
   const classes = current.reduce((sum, holding) => sum + holding.classes.length, 0);
   const awards = current.reduce((sum, holding) => sum + holding.awards.length, 0);
@@ -58,7 +68,7 @@ export function initials(name: string) {
 }
 
 export function awardParts(award: MemberAward) {
-  if (!hasValidRegisterAwardTotals(award) || BigInt(award.shares) === 0n) return null;
+  if (!hasValidRegisterAwardTotals(award)) return null;
   const promised = BigInt(award.shares);
   return [
     { part: 'issued', quantity: BigInt(award.issuedShares) },
