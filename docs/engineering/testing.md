@@ -28,7 +28,7 @@ the replaced cases or the approval, and independent review checks them
 
 | Suite               | Delivered cases | Maximum | Essential coverage                                                                                                             |
 | ------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Backend, PostgreSQL | 27              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
+| Backend, PostgreSQL | 28              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
 | Dashboard unit      | 20              | 20      | Main pages, sign-in, core flows                                                                                                |
 | Playwright smoke    | 9               | 9       | Core browser journeys and route wiring                                                                                         |
 | Mobile Jest         | 5               | 10      | App start, sign-in, signup completion, member records                                                                          |

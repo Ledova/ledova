@@ -34,6 +34,13 @@ from tokens.serializers.class_rights import (
     ClassRightsRevisionSerializer,
     ClassRightsWriteSerializer,
 )
+from tokens.serializers.ownership import (
+    ClassOwnershipHoldersSerializer,
+    ClassOwnershipQuerySerializer,
+    CompanyOwnershipQuerySerializer,
+    CompanyOwnershipSummarySerializer,
+    OwnershipHolderSerializer,
+)
 from tokens.serializers.register_certificate import (
     RegisterCertificatePreviewSerializer,
     RegisterCertificateRequestSerializer,
@@ -51,6 +58,7 @@ from tokens.services.class_rights import (
     record_class_rights,
 )
 from tokens.services.former_holders import fold_is_stale, former_members_of
+from tokens.services.ownership import class_ownership_holders, company_ownership
 from tokens.services.register import (
     REGISTER_HEADERS,
     api_holders,
@@ -97,6 +105,8 @@ class ShareTokenViewSet(
             "register_members",
             "class_rights",
             "class_rights_file",
+            "ownership",
+            "ownership_holders",
         }
     )
     operator_actions_because = (
@@ -120,6 +130,8 @@ class ShareTokenViewSet(
         "inside the locked company operation; ownership and platform staff permission grant no output authority. "
         "Private class-rights descriptions are read by exact-company register readers; their durable append-only "
         "producer requires current personal company administration and retains attributable revisions."
+        "Ownership summaries and paged holder reads recheck the active actor and exact-company reader inside "
+        "one read-only repeatable snapshot, aggregate stored positive balances and return no unrelated history."
     )
 
     register_reads = frozenset(
@@ -134,6 +146,8 @@ class ShareTokenViewSet(
             "register_certificate",
             "class_rights",
             "class_rights_file",
+            "ownership",
+            "ownership_holders",
         }
     )
 
@@ -194,6 +208,44 @@ class ShareTokenViewSet(
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
         return self.get_paginated_response(self.get_serializer(page, many=True).data)
+
+    @extend_schema(
+        operation_id="api_v1_tokens_ownership_retrieve",
+        parameters=[OpenApiParameter("company", OpenApiTypes.UUID, required=True)],
+        filters=False,
+        responses=CompanyOwnershipSummarySerializer,
+    )
+    @action(detail=False, methods=["get"], pagination_class=None)
+    def ownership(self, request):
+        query = CompanyOwnershipQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        result = company_ownership(actor=request.user, company_id=query.validated_data["company"])
+        return Response(CompanyOwnershipSummarySerializer(result).data)
+
+    @extend_schema(
+        operation_id="api_v1_tokens_ownership_holders_list",
+        parameters=[
+            OpenApiParameter("sequence", OpenApiTypes.INT, required=True),
+            OpenApiParameter("search", OpenApiTypes.STR),
+            OpenApiParameter("page", OpenApiTypes.INT),
+            OpenApiParameter("page_size", OpenApiTypes.INT),
+        ],
+        filters=False,
+        responses=ClassOwnershipHoldersSerializer,
+    )
+    @action(detail=True, methods=["get"], url_path="ownership-holders")
+    def ownership_holders(self, request, uuid=None):
+        query = ClassOwnershipQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        result = class_ownership_holders(
+            actor=request.user,
+            token_id=uuid,
+            paginate=self.paginate_queryset,
+            **query.validated_data,
+        )
+        response = self.get_paginated_response(OwnershipHolderSerializer(result.pop("results"), many=True).data)
+        response.data.update(result)
+        return response
 
     @extend_schema(
         methods=["GET"],

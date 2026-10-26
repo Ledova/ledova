@@ -1000,6 +1000,54 @@
         ],
         "type": "object"
       },
+      "ClassOwnershipHolders": {
+        "properties": {
+          "asAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "issuedSupply": {
+            "type": "string"
+          },
+          "next": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "previous": {
+            "format": "uri",
+            "nullable": true,
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/OwnershipHolder"
+            },
+            "type": "array"
+          },
+          "sequence": {
+            "type": "integer"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asAt",
+          "count",
+          "issuedSupply",
+          "next",
+          "previous",
+          "results",
+          "sequence",
+          "token"
+        ],
+        "type": "object"
+      },
       "ClassRightsAttributes": {
         "properties": {
           "capital": {
@@ -3352,6 +3400,48 @@
           "statusDisplay",
           "tradingName",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "CompanyOwnershipSummary": {
+        "properties": {
+          "asAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "classes": {
+            "items": {
+              "$ref": "#/components/schemas/OwnershipClass"
+            },
+            "type": "array"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "issuedSupply": {
+            "nullable": true,
+            "type": "string"
+          },
+          "totalHolders": {
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "asAt",
+          "classes",
+          "company",
+          "companyName",
+          "complete",
+          "issuedSupply",
+          "totalHolders"
         ],
         "type": "object"
       },
@@ -9394,6 +9484,80 @@
           "source",
           "status",
           "uuid"
+        ],
+        "type": "object"
+      },
+      "OwnershipClass": {
+        "properties": {
+          "initialized": {
+            "type": "boolean"
+          },
+          "issuedSupply": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "sequence": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "tokenType": {
+            "type": "string"
+          },
+          "totalHolders": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "initialized",
+          "issuedSupply",
+          "name",
+          "recordedAt",
+          "sequence",
+          "symbol",
+          "tokenType",
+          "totalHolders",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "OwnershipHolder": {
+        "properties": {
+          "balance": {
+            "type": "string"
+          },
+          "member": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "percentage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "balance",
+          "member",
+          "name",
+          "percentage"
         ],
         "type": "object"
       },
@@ -33198,6 +33362,45 @@
         ]
       }
     },
+    "/api/v1/tokens/ownership/": {
+      "get": {
+        "operationId": "api_v1_tokens_ownership_retrieve",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyOwnershipSummary"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/tokens/register-allotments/": {
       "get": {
         "operationId": "api_v1_tokens_register_allotments_list",
@@ -40131,6 +40334,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedShareIssuanceListList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/ownership-holders/": {
+      "get": {
+        "operationId": "api_v1_tokens_ownership_holders_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sequence",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassOwnershipHolders"
                 }
               }
             },
