@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 
 import { REGISTER_QUERY_KEY, registerKey } from '@hooks/useRegisterAccess';
+import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
 import {
+  CACHE_TIMING,
   COMPANY_TOKEN_ENDPOINTS,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_ENDPOINTS,
@@ -47,7 +49,7 @@ function register(uuid: string, shares: string): TokenHoldersResponse {
   };
 }
 
-function overview(registers: TokenHoldersResponse[]): CompanyOwnershipSummary {
+function overview(registers: TokenHoldersResponse[], sequences: Record<string, number> = {}): CompanyOwnershipSummary {
   const summary = ownershipSummary(registers);
   return {
     company: 'company-one',
@@ -64,13 +66,13 @@ function overview(registers: TokenHoldersResponse[]): CompanyOwnershipSummary {
       initialized: row.initialized,
       issuedSupply: row.issuedSupply,
       totalHolders: row.initialized ? row.totalHolders : null,
-      sequence: row.initialized ? 1 : null,
+      sequence: row.initialized ? (sequences[row.token.uuid] ?? 1) : null,
       recordedAt: row.initialized ? '2026-10-26T00:00:00Z' : null,
     })),
   };
 }
 
-function holderPage(row: TokenHoldersResponse, params: { search?: string; page?: number }) {
+function holderPage(row: TokenHoldersResponse, params: { search?: string; page?: number }, sequence = 1) {
   const filtered = row.holders.filter(
     (holder) => !params.search || holder.name!.toLowerCase().includes(params.search.toLowerCase()),
   );
@@ -84,7 +86,7 @@ function holderPage(row: TokenHoldersResponse, params: { search?: string; page?:
       next: page * 25 < filtered.length ? '?page=2' : null,
       previous: page > 1 ? '?page=1' : null,
       token: row.token.uuid,
-      sequence: 1,
+      sequence,
       issuedSupply: row.issuedSupply,
       asAt: '2026-10-26T00:00:00Z',
       results,
@@ -110,6 +112,16 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   }));
   ordinary.totalHolders = 28;
   const preference = register('preference', '7');
+  const allottedPreference = {
+    ...preference,
+    token: { ...preference.token, totalSupply: '1007' },
+    issuedSupply: '1007',
+    totalHolders: 2,
+    holders: [
+      ...preference.holders,
+      { ...preference.holders[0], member: 'new-investor', name: 'New investor', balance: '1000' },
+    ],
+  };
   const empty = { ...ordinary, issuedSupply: '0', holders: [], totalHolders: 0 };
   const unopened = {
     ...preference,
@@ -147,7 +159,11 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       const data = overview(
         mode === 'many'
           ? inventory()
-          : [mode === 'zero' ? empty : ordinary, mode === 'unopened' ? unopened : preference],
+          : [
+              mode === 'zero' ? empty : ordinary,
+              mode === 'unopened' ? unopened : mode === 'issued' ? allottedPreference : preference,
+            ],
+        mode === 'issued' ? { preference: 2 } : {},
       );
       return { data: mode === 'inconsistent' ? { ...data, issuedSupply: '5' } : data };
     }
@@ -156,7 +172,11 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       return holderPage(mode === 'zero' ? empty : ordinary, config?.params ?? {});
     }
     if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('preference'))
-      return holderPage(preference, config?.params ?? {});
+      return holderPage(
+        mode === 'issued' ? allottedPreference : preference,
+        config?.params ?? {},
+        mode === 'issued' ? 2 : 1,
+      );
     const extra = additional.find((row) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS(row.token.uuid));
     if (extra) return holderPage(extra, config?.params ?? {});
     return paged([]);
@@ -180,6 +200,34 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   fireEvent.click(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' }));
   const table = await screen.findByRole('table', { name: 'ordinary shares shareholders' });
   expect(within(table).getByText('9,007,199,254,740,966')).toBeTruthy();
+  const holderReads = api.get.mock.calls.filter(
+    ([url]) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('ordinary'),
+  ).length;
+  const issuedAt = Date.now();
+  mode = 'issued';
+  await act(async () => {
+    await client.invalidateQueries({
+      queryKey: registerHoldersKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+    });
+  });
+  const issuedSummary = await screen.findByRole('region', { name: 'Company ownership summary' });
+  expect(await within(issuedSummary).findByText('9,007,199,254,742,000')).toBeTruthy();
+  expect(within(issuedSummary).getByText('Current shareholders').parentElement!.textContent).toBe(
+    'Current shareholders29',
+  );
+  await waitFor(() => {
+    expect(
+      api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('ordinary')).length,
+    ).toBeGreaterThan(holderReads);
+  });
+  expect(Date.now() - issuedAt).toBeLessThan(CACHE_TIMING.SHORT_STALE_TIME);
+  mode = 'complete';
+  await act(async () => {
+    await client.invalidateQueries({
+      queryKey: registerHoldersKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+    });
+  });
+  expect(await screen.findByRole('table', { name: 'ordinary shares shareholders' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /Next/ }));
   expect(await screen.findByText('26–28 of 28 shareholders')).toBeTruthy();
   fireEvent.change(screen.getByRole('searchbox', { name: 'Search shareholders' }), {
@@ -190,7 +238,10 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   mode = 'denied';
   await act(async () => {
     await client.refetchQueries({
-      queryKey: [...registerKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }), 'ownership-holders'],
+      queryKey: [
+        ...registerHoldersKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+        'ownership-holders',
+      ],
       type: 'active',
     });
   });

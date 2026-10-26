@@ -514,8 +514,9 @@ represents issued share counts, not voting power or economic value.
 Ownership overviews read company-scoped aggregates, then fetch the selected class's holders with
 server-side search and paging. Do not fetch every shareholder in every class to draw an overview.
 Bind detail reads to the overview's register sequence; a changed sequence rereads the overview.
-Account, company and appointment guards, incomplete-read states and ordinary query invalidation
-remain in force. Do not introduce periodic dashboard polling. Unopened classes withhold company
+Account, company and appointment guards and incomplete-read states remain in force; ownership reads
+share the owner-scoped holdings query family so ordinary register changes invalidate them together.
+Do not introduce periodic dashboard polling. Unopened classes withhold company
 totals and the ring; an inconsistent read withholds the overview. These rules are checked in review
 and the existing company-dashboard journey, within the dashboard suite cap.
 
