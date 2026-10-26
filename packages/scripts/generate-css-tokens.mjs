@@ -74,6 +74,10 @@ function generateSharedVars() {
 
 const paperColors = generateColorVars(THEMES.paper);
 const darkColors = generateColorVars(THEMES.dark);
+const paperCharts = [];
+const darkCharts = [];
+flattenColors(THEMES.paper.chart, 'chart', paperCharts);
+flattenColors(THEMES.dark.chart, 'chart', darkCharts);
 
 const variableNames = (lines) =>
   lines
@@ -81,15 +85,19 @@ const variableNames = (lines) =>
     .map((line) => line.split(':')[0])
     .sort()
     .join();
-if (variableNames(paperColors) !== variableNames(darkColors)) {
+if (variableNames([...paperColors, ...paperCharts]) !== variableNames([...darkColors, ...darkCharts])) {
   throw new Error('Paper and Dark themes emit different colour variables');
 }
 
 const css = `@theme {${[...paperColors, ...generateSharedVars()].join('\n')}
 }
 
+@theme static {
+${paperCharts.join('\n')}
+}
+
 :root[data-theme='dark'] {
-  color-scheme: dark;${darkColors.join('\n')}
+  color-scheme: dark;${[...darkColors, '', ...darkCharts].join('\n')}
 }
 `;
 
