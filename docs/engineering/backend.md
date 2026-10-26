@@ -701,9 +701,16 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | `publication`      | `shareholders/services/publications.py`, when a publication is announced to its roll               | Notices        |
 | `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Activity       |
 | `identity`         | `users/services/identity.py`, when the identity check's result changes                             | Profile        |
+| `certificate`      | `tokens/services/member_events.py`, when a member's certificate request is fulfilled               | Nothing        |
+| `award`            | `tokens/services/member_events.py`, when shares vest under a member's award                        | Nothing        |
+| `holding`          | `tokens/services/member_events.py`, when a grant or allotment issues shares to a member            | Nothing        |
+| `particulars`      | `tokens/services/member_events.py`, when a member's particulars change is applied or declined      | Nothing        |
 
 A notice of any other kind, including identity notices sent before they carried a type, stays
-where it is. The mobile inbox opens only publication notices. Push registration and its settings
+where it is. The four member kinds go only to the member's current association, name the company
+and class but no quantities, and carry `record` (the association) with `company`, `award` or
+`token`. The mobile app opens publication notices and these four kinds, from its inbox or a tapped
+push ([mobile](mobile.md)). Push registration and its settings
 are in [configuration](../operations/configuration.md#push-notifications).
 
 Next: [security model](security.md), [records engine](records.md), [testing](testing.md) and

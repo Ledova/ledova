@@ -25,6 +25,7 @@ from tokens.models import (
     RegisterPosition,
 )
 from tokens.services.former_holders import member_left_on, retention_cutoff
+from tokens.services.member_events import details_decided
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_evidence import (
@@ -275,6 +276,7 @@ def _apply(change, actor, decision):
     change.reviewed_by = actor
     change.reviewed_at = decision.decided_at
     change.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
+    details_decided(change)
 
 
 PARTICULARS = DecisionFamily(
@@ -288,6 +290,7 @@ PARTICULARS = DecisionFamily(
     lock=_lock,
     apply=_apply,
     noun="change",
+    rejected=details_decided,
 )
 
 

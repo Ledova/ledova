@@ -17,6 +17,7 @@ from tokens.models import (
     ShareRegister,
     ShareToken,
 )
+from tokens.services.member_events import shares_issued
 
 
 def _operator():
@@ -150,6 +151,7 @@ def apply_issue(proposal, actor, decision, **source):
     )
     proposal.status, proposal.reviewed_by, proposal.reviewed_at = "applied", actor, decision.decided_at
     proposal.save(update_fields=["status", "register_entry", "reviewed_by", "reviewed_at", "updated_at"])
+    shares_issued(proposal)
 
 
 def open_register(*, token_id, operation_id, changes, effective_on, recorded_by):

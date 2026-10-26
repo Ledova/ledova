@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -6,7 +6,7 @@ import { getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FolderIcon, HouseIcon, UserIcon } from 'phosphor-react-native';
 import { useNotifications } from '@ledova/shared';
-import { NotificationsModal } from '../components/notifications';
+import { NotificationsModal, useFollowPush } from '../components/notifications';
 import { useAppTheme } from '../contexts';
 import { DocumentsScreen } from '../screens/documents/DocumentsScreen';
 import { AwardScreen } from '../screens/holdings/AwardScreen';
@@ -105,6 +105,8 @@ export function SignedInNavigator() {
   const theme = useAppTheme();
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
+  const closeNotifications = useCallback(() => setShowNotifications(false), []);
+  useFollowPush(closeNotifications);
   return (
     <MemberRecordsProvider>
       <View style={{ flex: 1 }}>
