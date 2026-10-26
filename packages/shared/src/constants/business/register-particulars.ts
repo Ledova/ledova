@@ -23,7 +23,6 @@ export const REGISTER_PARTICULARS_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_PARTICULARS_COPY = {
   TITLE: 'Particulars changes',
-  EMPTY: 'No particulars changes yet.',
   PREPARE: 'Change particulars',
   PROVIDED_BY_COMPANY: 'Provided by the company',
   READ_ONLY_NOTE:

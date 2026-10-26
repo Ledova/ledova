@@ -16,7 +16,7 @@ Contents: [transfer lifecycle](#transfer-lifecycle) · [EVM](#evm-transfers) and
 ## Transfer lifecycle
 
 Preparation and broadcast support selected native and crypto asset transfers on allowed test
-networks. Share classes are refused: neither client's Send picker offers an asset of
+networks. Share classes are refused: the dashboard's Send picker offers no asset of
 type `tokenized_security`, so a paused class without readable class details stays excluded, and the
 backend refusal resolves the destination through the caller's view of the class and then the global
 asset catalogue, so it holds while a class is paused and hidden from non-issuers. A class marked
@@ -311,8 +311,8 @@ supply.
 
 ## History imports and previews
 
-Manual wallet sync returns `success: false` with an actionable `syncResult.error`, which both
-clients show, when verification is missing, the provider fails, history is unreadable or a known
+Manual wallet sync returns `success: false` with an actionable `syncResult.error`, which the
+dashboard shows, when verification is missing, the provider fails, history is unreadable or a known
 holding cannot be refreshed; a partial refresh keeps the balances it read and the last successful
 sync time.
 
@@ -321,9 +321,9 @@ Import previews use `POST /api/wallets/batch-check-balances/` with a `chain` (`e
 and not widened by staff status); the addresses need not be registered. The response repeats the
 account and network and returns `balances[address]` as a decimal string, or `null` when the provider
 cannot supply a valid balance; a confirmed zero stays `"0"`. Previews create or update no wallet or
-holding. Both clients show failed reads as **Unavailable** and discard pending responses when the
-network changes, and hardware and software import screens let the user choose Ethereum or Base for
-EVM addresses.
+holding. The dashboard shows failed reads as **Unavailable** and discards pending responses when the
+network changes, and its hardware and software import screens let the user choose Ethereum or Base
+for EVM addresses.
 
 Alchemy transfer history follows each direction's `pageKey` to the end, newest first, before any
 receipt lookup, because cursors expire after ten minutes. A repeated cursor, unreadable response or

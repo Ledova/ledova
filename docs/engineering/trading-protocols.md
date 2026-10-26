@@ -203,7 +203,7 @@ inside creation and the held-order sweep, each order deciding from committed ord
 rest, so two crossing orders created concurrently can both rest unmatched; the minute's sweep bounds
 that without a new lock by holding back the newer and matching it on its next run. A held order the
 sweep lists publishes `order_listed`, one it matches `order_matched`, and the newer order of a
-crossing pair it holds back `order_held`; both clients refresh the book and the owner's orders on
+crossing pair it holds back `order_held`; the dashboard refreshes the book and the owner's orders on
 each. Every placement, settlement, lapse, revert and modification checks the
 [book it would rest in](../business/trading.md#one-match-never-crossed).
 
@@ -244,7 +244,7 @@ the [admission matrix](#the-settlement-admission-matrix), and
 
 ## Swap settlement context
 
-The backend, shared package, dashboard and mobile carry the protocol together. Swap requests
+The backend, shared package and dashboard carry the protocol together. Swap requests
 require the exact swap, order, account and verified wallet identity (HTTP 400 when missing); signing
 and approval requests also require the recorded settlement digest, which the first authorised context
 lookup may omit and then returns. An unsupported protocol or missing recorded context returns HTTP 409
@@ -333,7 +333,7 @@ an outage cannot prevent reading a recorded outcome. An unlimited approval can s
 with identical effect terms for the same account and wallet; its journal's first swap is not its only
 valid consumer.
 
-Both clients recover saved hashes through that read, validating the returned context and hash
+The dashboard recovers saved hashes through that read, validating the returned context and hash
 before clearing a `confirmed`, `reverted` or `superseded` reminder and showing its outcome. Pending,
 missing, inaccessible or malformed evidence, or an older response without the field, stays
 unresolved, and a failed storage removal keeps the reminder. A sufficient allowance does not
@@ -477,8 +477,8 @@ V1 swap only when the matching service marked it eligible at creation, both orde
 match, and no execution claim, transaction record, hash or other active match exists. The sweep
 (`expire_unclaimed_swap`) locks both orders in identifier order, then the swap, as
 [the lock graph](#the-trading-lock-graph) requires, and commits each release separately. It keeps
-filled quantities and signed terms, marks the swap `expired`, and publishes `swap_expired` so both
-clients refresh their orders and swaps; a retry cannot release a reservation twice. Signing still
+filled quantities and signed terms, marks the swap `expired`, and publishes `swap_expired` so the
+dashboard refreshes its orders and swaps; a retry cannot release a reservation twice. Signing still
 stops at the recorded deadline; the next sweep returns the two orders oldest first under the
 [one-match rule](../business/trading.md#one-match-never-crossed), and the held-order sweep never
 pairs them again.

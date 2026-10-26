@@ -62,16 +62,13 @@ the frame; sign-up keeps its own presentation.
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
 only where it adds to the titles. On web card collections, the primary creation action follows the
 last card in one right-aligned, wrapping row, rather than the title row; keep its content width.
-Ledger's Add share class follows this pattern for both empty and populated collections, on mobile
-too. The first section follows at the same gap as between sections (`Page`
+Ledger's Add share class follows this pattern for both empty and populated collections. The first
+section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground: the title (Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions
-as one wrapping row, since a phone's large title leaves no room beside it; the stack header holds
-only the menu or back button and, on a top-level screen, the bell. A tap on a control acts at once,
-even while the keyboard is up. Mobile screens framed
-differently: Help & Support keeps its stack title; Send, Transfer, Verify Wallet and Recovery Phrase
-are titled inside their `Panel` card (`mobile/src/components/panel`); Buy crypto is its dialog over
-the bare page ground, then the provider's web view.
+as one wrapping row, since a phone's large title leaves no room beside it; the header holds only
+the back button and, on a tab, the bell. A tap on a control acts at once, even while the keyboard
+is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
 `PageAction` (`dashboard/src/components/Page.tsx`) each enforce one rule:
@@ -98,8 +95,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. A web collection's primary creation action sits beneath its
   cards, aligned right. Actions do not wait for a row to be selected.
-- `Disclosure`: every expandable section on a web page, a button with `aria-expanded` (expanded or
-  collapsed on mobile) and a leading caret that opens its detail in place under its row; a summary
+- `Disclosure`: every expandable section on a web page, a button with `aria-expanded` and a leading
+  caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
   independently through `useOpenRows` from `@ledova/shared`), Activity's filter and Wallets' sort
   hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
@@ -113,7 +110,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   company to eligible investors), as an On/Off pill or native switch (`role="switch"`,
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
   an alert in the card. A choice saved with a form stays a checkbox.
-- `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event;
+- `Status` (web) is words after a small mark, read as words only; `Timeline` (web) dates each event;
   `Choice` (mobile) is an outlined choice marked selected. Each status family has its own
   tone map; shared subscription and resolution-result tones live in
   `dashboard/src/components/statusTones.ts`. Personal applications retain their moving fallback,
@@ -252,8 +249,7 @@ Web particulars changes use the same focused page review, with current and propo
 and as-at date in equal columns on wide screens and stacked on smaller screens. The reason and
 supporting document open on demand. Hide unrelated class records and selectors while reviewing,
 without unmounting their controllers. Approval and application remain separate company decisions.
-Mobile's Issue shares and Transfer shares follow this review in place of their lists. Other decision
-families, separate API decisions and mobile's other tasks keep their existing workflow.
+Other decision families and separate API decisions keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
@@ -332,10 +328,10 @@ Add share class, Class details, Edit, Save, Confirm and contextual issue or tran
 actions remain beside their records. Keep section navigation in the sidebar rather than repeating it
 in page headers or a Company administration link card.
 
-`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages for
-both clients, including Ledger, its views (Shareholders, Employee share scheme, Documents) and tasks
+`DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
+including Ledger, its views (Shareholders, Employee share scheme, Documents) and tasks
 (Issue shares, Transfer shares, History, Corrections), Set up your ledger, Ledger opening and Home's
-Documents view. Mobile retains History; the web exposes only Issue shares, Transfer shares and Corrections,
+Documents view. The web exposes only Issue shares, Transfer shares and Corrections,
 replacing an incoming `#history` with `#corrections` while retaining company/class context. The web sidebar,
 page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. The company
@@ -431,8 +427,7 @@ signing steps. Reversible actions, such as signing out, turning a switch off or 
 an unsaved form, aren't confirmed. Dismissing a notification archives it at once. Register
 decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are
 confirmed by their own review, dialog or form. The dashboard uses no browser `confirm` or `alert`
-(ESLint's `no-alert`). Mobile doesn't follow this yet: some of these actions run at once there, and others
-confirm with native alerts.
+(ESLint's `no-alert`). Mobile doesn't follow this yet: some of these actions run at once there.
 
 ## Feedback
 
@@ -458,8 +453,7 @@ identifier in their own details. It reports:
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and `CopyButton` (the payment instruction's values and the
 company's and an approved offering's UUIDs) confirms a copy with Copied beside the button.
-Ledger's other forms don't use `Outcome`. Mobile still reports success with native alerts and its
-success dialog.
+Ledger's other forms don't use `Outcome`. Mobile still reports success with native alerts.
 
 ## Copy
 
@@ -470,10 +464,9 @@ dashboard's and the shared package's source. Labels the backend supplies, such a
 document types and some statuses ("Under Review", "Awaiting Payment"), keep its title case. Mobile's
 own copy doesn't follow this yet (#1201); the shared strings it shows do.
 
-Copy and tone maps meant for both clients live in `packages/shared`, such as the identity
+Copy and tone maps meant for both clients live in `packages/shared`. The web also reads the identity
 verification outcomes (`IDENTITY_OUTCOME_COPY`), their tones (`VERIFICATION_TONES`) and an
-application's history (`applicationHistory`). The web reads them there; mobile still keeps its own
-copies until #1201.
+application's history (`applicationHistory`) there.
 
 ## Choosing a person
 
@@ -545,8 +538,7 @@ How the list behaves:
   setup draft, stays listed, disabled, with the reason.
 - **Shared logic:** `peopleFrom`, `personChoices` and `personRequest` are in
   `packages/shared/src/utils/people.ts`, and the matching is `searchEntries` and `searchMatches` in
-  `packages/shared/src/utils/search.ts`, so both clients build, label and search the list the same
-  way.
+  `packages/shared/src/utils/search.ts`.
 
 The 50-match rendering limit bounds the displayed list, not the download. Search currently runs
 over the people already read. The owner's recorded switch to server search is at about 2,000
@@ -558,35 +550,6 @@ after an uncertain save. Follow the same owner and original-request guards as ot
 
 These rules are checked in review. The dashboard suite drives the list in register setup (typing a
 name and pressing Enter), a transfer and member invitations.
-
-On mobile, the register flows choose a person from the same kind of list, in a sheet opened from the
-field. Most go through `PersonSelect` (`mobile/src/components/register/PersonPicker.tsx`), which
-labels each person with the shared `personChoices`:
-
-- investor and non-paid issues, employee awards and transfers read members, award recipients among
-  them, through `useTransferMembers` and the shared `peopleFrom`. Issues and awards send the shared
-  `personRequest` (an award-linked grant sends its award's recipient), and a transfer sends its own
-  request;
-- register setup's **Add a shareholder** reads `useRegisterImportMembers` and offers the members
-  without a linked wallet whose name and address are retained, award recipients among them, where
-  the web offers every company member;
-- the share-class issue's member uses `SearchSelect` directly, with the members from
-  `useCompanyIssueInstructions`;
-- member invitations offer the current and former holders and award recipients from
-  `invitationMembers`.
-
-The sheet works the same way in each:
-
-- **The sheet:** `SearchSelect` (`mobile/src/components/SearchSelect.tsx`) shows the label above a
-  field with the current choice and its detail. Tapping the field opens a sheet with an empty search
-  box, a count of the matches once you type, and a list that renders only the rows on screen, so no
-  cap is needed; dragging the list hides the keyboard.
-- **Choosing:** each row is a radio button in a radio group, marked when chosen, and choosing closes
-  the sheet. **New person** comes first as on the web, and an unavailable person stays listed,
-  disabled, with the reason.
-
-The mobile suite drives the sheet in register setup and member invitations. Wallet links and
-register opening on mobile still list members row by row.
 
 ## Choosing a company
 
@@ -705,11 +668,10 @@ name, wallet address or payment reference, filter by status, with the chosen off
 address too. Company eligibility's request queue pages the same way, with no search box: its one
 filter is the outcome, as radio buttons, which the server derives from each request's decision,
 withdrawal, revocation and expiry. While another page or outcome loads, its rows stay dimmed and
-their View buttons wait; mobile still reads every page of the queue. Shareholders searches and pages
-the register the page has already read in full, since its ownership totals need every holding: the
-same box and pager, matching every word ignoring case and accents (`searchRows` in
-`packages/shared/src/utils/search.ts`), with the share class as its filter. Mobile's Shareholders
-searches the same way, with the class as radio buttons, and loads 25 more people at a time.
+their View buttons wait. Shareholders searches and pages the register the page has already read in
+full, since its ownership totals need every holding: the same box and pager, matching every word
+ignoring case and accents (`searchRows` in `packages/shared/src/utils/search.ts`), with the share
+class as its filter.
 
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
 your members, a class's register entries, a share class's issuance requests, authorised share
@@ -746,8 +708,7 @@ not be loaded.", and adds a second sentence only for what the block can't otherw
 consequence, such as "Trading actions are unavailable." or "The list is incomplete.", or a likely
 cause, such as "It may be unavailable to this account." Try again is described by that sentence, so
 a screen reader says which read it retries, and it stays disabled while the read runs again. Shared
-copy that both clients show passes through unchanged, such as an unreadable chain on a register
-opening.
+copy passes through unchanged, such as an unreadable chain on a register opening.
 
 A failed read shows this block, not an empty state. The notification bell, profile documents,
 classification claims and a class's deployments, which used to show an empty state, now show the
@@ -770,17 +731,15 @@ requests match."
 
 A class's awards, grants, allotments, openings, imports, non-paid transfers, deployments and
 reconciliation, notices, offer documents and an offering's applications take their empty sentence
-from shared copy in `packages/shared/src/constants/business/`, which both clients show; mobile
-Home's recent notices keep their own words until #1201. On the web, a section with no corrections,
-register entries or particulars changes is hidden instead, and so is one with no wallet links
-unless wallets are waiting for a link you can prepare, so those shared sentences show only on
-mobile. Other empty sentences are each client's own, and mobile's move to these words
-under [#1201](https://github.com/Ledova/ledova/issues/1201). A sentence that reports a state rather
-than an empty list keeps its own words, such as "No votes need your attention." or "No orders
-listed." for a market's live order book. A class's awards, grants, allotments, non-paid transfers
-and deployments, and an award's vesting and entitlement changes, can't be made on every class or
-award, so theirs says none has been recorded or prepared for it, such as "No employee award has
-been recorded for this share class."
+from shared copy in `packages/shared/src/constants/business/`. On the web, a section with no
+corrections, register entries or particulars changes is hidden instead, and so is one with no wallet
+links unless wallets are waiting for a link you can prepare. Other empty sentences are each client's
+own, and mobile's move to these words under [#1201](https://github.com/Ledova/ledova/issues/1201).
+A sentence that reports a state rather than an empty list keeps its own words, such as "No votes
+need your attention." or "No orders listed." for a market's live order book. A class's awards,
+grants, allotments, non-paid transfers and deployments, and an award's vesting and entitlement
+changes, can't be made on every class or award, so theirs says none has been recorded or prepared
+for it, such as "No employee award has been recorded for this share class."
 
 Some messages keep their own form:
 
@@ -821,13 +780,11 @@ Some messages keep their own form:
   Investor issue and employee awards may omit this routine hint with `showUploadHint={false}`. Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
   of up to 10 MB." on the field. The evidence in an eligibility claim keeps its dashed
-  area but applies the same rule. Mobile's pickers keep their own wording until
-  [#1201](https://github.com/Ledova/ledova/issues/1201).
+  area but applies the same rule.
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
 - **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
-  `FormSteps` (`dashboard/src/components/FormSteps.tsx`; mobile's investor issue and transfer
-  forms use `mobile/src/components/FormSteps.tsx`), with one step visible at a time.
+  `FormSteps` (`dashboard/src/components/FormSteps.tsx`), with one step visible at a time.
   Show company and class context once above the form, without a duplicate information card or
   routine technical and upload descriptions. Transfer preparation follows the investor pattern:
   People and shares, Transfer documents, then Company authority and review.
@@ -866,8 +823,7 @@ Some messages keep their own form:
   company eligibility expiries are a local date and time (`datetime-local`), labelled so.
 - **Helpers.** `isCalendarDate` checks a typed date, and `addCalendarDays` and `addCalendarYears`
   move a valid one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or
-  split into a date in the dashboard's source. Mobile keeps its own `utcToday`, and its deadlines are
-  a local date and time, until [#1201](https://github.com/Ledova/ledova/issues/1201).
+  split into a date in the dashboard's source.
 
 ## Validation
 
@@ -875,16 +831,12 @@ This section covers how a form reports a problem: when it is submitted, and when
 
 - **Checking on submit.** Web forms check their fields when submitted. Filters that only narrow a
   list, such as Activity's dates, keep their own rules, and Trading's order change, deferred with
-  trading, shows the one sentence its shared hook reports. Mobile's Issue shares forms and its
-  transfer form check the same way; its other forms follow in
-  [#1201](https://github.com/Ledova/ledova/issues/1201). On mobile the summary
-  (`mobile/src/components/ErrorSummary.tsx`) sits above the form's actions, where the press
-  happened, and takes screen-reader focus; each field shows its message beneath it.
+  trading, shows the one sentence its shared hook reports.
   - **Summary and fields.** A problem shows twice. `ErrorSummary` (`dashboard/src/components/`)
     lists each problem at the top of the form as `role="alert"` and takes focus, each item linking
     to its field. The field shows the same sentence as its error and turns `aria-invalid`; on
     sign-up, a registered email's error there also links to sign-in.
-    `useErrorSummary` (`packages/shared/src/hooks/useErrorSummary.ts`, which both clients use)
+    `useErrorSummary` (`packages/shared/src/hooks/useErrorSummary.ts`)
     reads the form's problems, keyed by field, and a form with two actions, such as the share-class
     issue's wallet link and grant, checks only the fields its action needs. A box that must be ticked is a `CheckboxField`,
     except the eligibility claim's long declaration and sign-up pre-screening's four declarations,
@@ -903,11 +855,11 @@ This section covers how a form reports a problem: when it is submitted, and when
     such as without company authority or with nothing changed, and the page says why. An unchanged
     retry of an interrupted request is not checked again.
   - **Shared wording.** A rule both clients apply has one sentence in `packages/shared`, which the
-    web uses now and mobile adopts in #1201: a new person's name and address
-    (`NEW_PERSON_PROBLEMS`), a new password (`PASSWORD_PROBLEMS`, which sign-up's shared hook
-    already gives both) and an invitation code
+    web uses now and mobile adopts in #1201: a new password (`PASSWORD_PROBLEMS`, which sign-up's
+    shared hook already gives both) and an invitation code
     (`INVITATION_CODE_PROBLEM`). A pasted code is trimmed before its length limit applies; web member
-    invitations use email links instead of a code field.
+    invitations use email links instead of a code field. The web's new-person fields take their
+    sentences from `NEW_PERSON_PROBLEMS`.
   - **The summary keeps the last press.** It lists the problems found when submit was last pressed
     that still fail, so it shrinks as they are fixed, and it clears when a check passes or the form
     is reset. It takes focus only on a new press.
@@ -936,9 +888,7 @@ This section covers how a form reports a problem: when it is submitted, and when
   continuing.", or as the caller's fallback for a refused register decision. `readApiError` never
   reads a code list as a sentence, so a code never reaches the screen.
 - **Enforcement.** ESLint refuses `getErrorMessage` in the dashboard (`no-restricted-imports`) and in
-  the shared package (`no-restricted-syntax`). Mobile still uses it, so a field error there can read
-  "Request failed with status code 400" until [#1201](https://github.com/Ledova/ledova/issues/1201)
-  moves it to these rules.
+  the shared package (`no-restricted-syntax`).
 
 ## Dates, numbers and identifiers
 

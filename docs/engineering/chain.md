@@ -632,29 +632,23 @@ process unless that setting is `test` or `regtest`.
 
 Both client signing paths are legitimate. The Keystone path wraps the challenge as a UR/CBOR
 `eth-sign-request` QR and reads an `eth-signature` UR back through the camera; the seed-phrase path
-derives the key on the client and never stores or transmits the phrase. Both clients' `localSigner`
-modules build on the shared `createLocalSigner` (`packages/shared/src/utils/local-signer.ts`), which
-holds key handling and EVM signing, each passing its own bundled `ethers` and
-`ethereum-cryptography`; mobile adds Bitcoin message signing. The derived private key is wiped in a
-`finally`, but the BIP-39 seed and master key only on `deriveKey`'s normal and guarded exits, so a
-throw from `masterKey.derive(derivationPath)`, reachable because `derivation_path` is a free-text
-`CharField` with no format validation, leaves them unzeroed.
+derives the key on the client and never stores or transmits the phrase. The dashboard's
+`localSigner` builds on the shared `createLocalSigner` (`packages/shared/src/utils/local-signer.ts`),
+which holds key handling and EVM signing, passing its bundled `ethers` and `ethereum-cryptography`.
+The derived private key is wiped in a `finally`, but the BIP-39 seed and master key only on
+`deriveKey`'s normal and guarded exits, so a throw from `masterKey.derive(derivationPath)`,
+reachable because `derivation_path` is a free-text `CharField` with no format validation, leaves
+them unzeroed.
 
 The dashboard compares `deriveAddress` case-insensitively with the wallet's address before spending
 anything, refusing a wrong phrase in the browser; its default path is `m/44'/60'/0'/0/0`, overridden
 by a wallet's `derivation_path`, and it is offered only on EVM chains (the dashboard bundle has no
-Bitcoin software signer). Mobile keeps the phrase in the device keychain under the gated options in
-[mobile secret storage](mobile.md#secret-storage), and `autoVerify` reads it back under them, so
-every read raises the OS prompt. It signs Bitcoin and EVM, gates only on a self-declared
-`signingPreference` and a set `derivationPath` and `masterFingerprint` with no in-app confirmation,
-and runs no local `deriveAddress` comparison, leaving a mismatched row to the server.
+Bitcoin software signer).
 
-JavaScript and native probes cover encoding, decoding and scanner boundaries, not the camera and
-firmware journey, a [pre-release device check](mobile-releases.md#pre-release-device-checks). The
-client code is in `dashboard/src/components/wallet/useWalletVerification.ts`,
-`dashboard/src/utils/softwareWallet/localSigner.ts`,
-`mobile/src/utils/softwareWallet/localSigner.ts`,
-`mobile/src/screens/wallets/useWalletVerification.ts` and `mobile/src/services/secureKeyStorage.ts`.
+The camera and firmware journey is a
+[pre-release device check](mobile-releases.md#pre-release-device-checks). The client code is in
+`dashboard/src/components/wallet/useWalletVerification.ts` and
+`dashboard/src/utils/softwareWallet/localSigner.ts`.
 
 ### Network identity
 
@@ -755,7 +749,7 @@ how the demo seed dates its testers from their identity decision.
 None exists. A `Holding` carries only its current quantity, which the hourly sync, history imports
 and transfer confirmation rewrite without a dated series; no past-date valuation, snapshot route,
 holding snapshot or value-series service exists, and the portfolios API only groups wallets.
-Both clients' Holdings pages show share quantities by company and class, not a chart.
+The web's Wallet shares page shows share quantities by company and class, not a chart.
 
 Next: [wallet protocols](wallet-protocols.md), [trading protocols](trading-protocols.md),
 [chain setup](../operations/chains.md) and [recovery](../operations/recovery.md).

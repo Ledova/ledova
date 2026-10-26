@@ -299,33 +299,6 @@ export function checkClientOperations(root, document) {
     return unchanged;
   }
 
-  function linkedFile(node) {
-    if (
-      !node ||
-      path.relative(root, node.getSourceFile().fileName) !==
-        "mobile/src/screens/company/DocumentEntry.tsx"
-    )
-      return false;
-    const components =
-      generatedModule &&
-      checker
-        .getExportsOfModule(generatedModule)
-        .find((entry) => entry.name === "ApiComponents");
-    const schemas =
-      components &&
-      propertyType(
-        checker.getDeclaredTypeOfSymbol(components),
-        "schemas",
-        node,
-      );
-    const document = propertyType(schemas, "CompanyDocument", node);
-    const file = document?.getProperty("fileUrl");
-    return (
-      !!file?.valueDeclaration &&
-      declaration(unwrap(node)) === file.valueDeclaration
-    );
-  }
-
   function propertyType(type, name, node) {
     const property = type?.getProperty(name);
     return property && checker.getTypeOfSymbolAtLocation(property, node);
@@ -442,9 +415,7 @@ export function checkClientOperations(root, document) {
                 node,
                 'Unresolved Axios request configuration; declare its method/path or preserve an unchanged AxiosError.config replay.',
               );
-          } else if (linkedFile(node.arguments[0]))
-            record(node, method, '/api/v1/companies/{}/documents/{}/file/', 'CompanyDocument.fileUrl', 'binary');
-          else record(node, method, value(node.arguments[0]), 'axios');
+          } else record(node, method, value(node.arguments[0]), 'axios');
         } else {
           const signature = checker.getResolvedSignature(node)?.declaration;
           const definitions = signature?.name && symbol(signature.name)?.declarations;

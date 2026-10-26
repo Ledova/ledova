@@ -475,7 +475,7 @@ transfer effect. The combined command reuses a still-current approval or records
 the application decision and one TRANSFER entry in the same transaction. A failure rolls back every
 new decision and movement. Its application receipt retains `complete_transfer: true` and
 `approval_appointment`; an identical request recovers that exact receipt without duplicating the
-transfer. Omitting the combined flag keeps the separate API and mobile decisions.
+transfer. Omitting the combined flag keeps the separate API decisions.
 
 ### Company event dates
 
@@ -626,7 +626,7 @@ credential out of HTTP paths and query strings. `POST member-invitations/preview
 signed-in verified matching email before returning company, member and expiry;
 `member-invitations/accept/` takes the hidden token and explicit confirmation. Opening or previewing
 the link creates no association.
-The unchanged native API `POST member-invitations/` answers 201 with a one-time `code` (43 URL-safe
+The unchanged `POST member-invitations/` answers 201 with a one-time `code` (43 URL-safe
 characters), and a retry 200 without it.
 Invitations and associations are listed to current personal `admin` appointees; `member-records/`
 returns only the caller's own associations, with a `ceasedOn` only within retention, and their entry
