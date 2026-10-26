@@ -249,9 +249,8 @@ Web particulars changes use the same focused page review, with current and propo
 and as-at date in equal columns on wide screens and stacked on smaller screens. The reason and
 supporting document open on demand. Hide unrelated class records and selectors while reviewing,
 without unmounting their controllers. Approval and application remain separate company decisions.
-Mobile's Issue
-shares follows this review in place of its list. Other decision families, separate API decisions and
-mobile's other tasks keep their existing workflow.
+Mobile's Issue shares and Transfer shares follow this review in place of their lists. Other decision
+families, separate API decisions and mobile's other tasks keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first

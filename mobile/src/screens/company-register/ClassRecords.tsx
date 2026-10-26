@@ -130,22 +130,22 @@ export function ClassRecords({
           visible={shown('issue') && focused}
         />
       </View>
-      <View style={shown('transfer') ? undefined : HIDDEN}>
-        <Section title={register.token.name}>
-          {appointmentFailure}
-          <ClassTransfers
-            epoch={epoch}
-            company={company}
-            register={register}
-            steps={steps}
-            refreshHolders={refreshHolders}
-            refreshAppointments={appointments.refetch}
-            onPrepare={onPrepareTransfer}
-            sourceReady={readReady}
-            guard={guard}
-            onHeldChange={transferHeld}
-          />
-        </Section>
+      <View style={shown('transfer') ? styles.group : HIDDEN}>
+        {appointmentFailure}
+        <ClassTransfers
+          epoch={epoch}
+          company={company}
+          register={register}
+          steps={steps}
+          refreshHolders={refreshHolders}
+          refreshAppointments={appointments.refetch}
+          onPrepare={onPrepareTransfer}
+          onSetUp={() => onPrepareImport()}
+          onOpenClass={onOpenClass}
+          sourceReady={readReady}
+          guard={guard}
+          onHeldChange={transferHeld}
+        />
       </View>
       <View style={shown('history') ? undefined : HIDDEN}>
         <Section title={register.token.name}>
