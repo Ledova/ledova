@@ -189,9 +189,9 @@ class CoreFixtures:
             **changes,
         }
 
-    def decision(self, endpoint, identifier, kind, appointment=None, **changes):
+    def decision(self, endpoint, identifier, kind, appointment=None, reason="", **changes):
         appointment = appointment or self.appointment
-        fields = {"appointment": str(appointment.pk), "kind": kind}
+        fields = {"appointment": str(appointment.pk), "kind": kind, **({"reason": reason} if reason else {})}
         preview = self.client.post(f"{endpoint}{identifier}/decision-preview/", fields, format="json")
         self.assertEqual(preview.status_code, 200, preview.content)
         payload = {

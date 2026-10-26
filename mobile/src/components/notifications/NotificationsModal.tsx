@@ -44,15 +44,17 @@ export function destinationOf(value: unknown): Destination | undefined {
   }
 }
 
-export function useFollowPush() {
+export function useFollowPush(onFollow: () => void) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const response = useLastNotificationResponse();
   useEffect(() => {
     if (!response) return;
     clearLastNotificationResponse();
     const destination = destinationOf(response.notification.request.content.data);
-    if (destination) navigation.navigate('MainApp', destination);
-  }, [response, navigation]);
+    if (!destination) return;
+    onFollow();
+    navigation.navigate('MainApp', destination);
+  }, [response, navigation, onFollow]);
 }
 
 function NotificationItem({

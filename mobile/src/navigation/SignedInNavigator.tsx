@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -105,7 +105,8 @@ export function SignedInNavigator() {
   const theme = useAppTheme();
   const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
-  useFollowPush();
+  const closeNotifications = useCallback(() => setShowNotifications(false), []);
+  useFollowPush(closeNotifications);
   return (
     <MemberRecordsProvider>
       <View style={{ flex: 1 }}>

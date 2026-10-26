@@ -32,16 +32,11 @@ def _tell(association, title, body, data):
     )
 
 
-def _shares(value):
-    return f"{int(value):,}"
-
-
 def certificate_ready(request):
-    shares = sum(int(change["shares"]) for change in request.entry.changes if change["member"] == str(request.member))
     _tell(
         _current(pk=request.association_id),
         "Certificate ready",
-        f"{request.company.display_name} · {request.token.name} {_shares(shares)}",
+        f"{request.company.name} · {request.token.name}",
         {"type": "certificate", "event": "ready", "company": str(request.company_id)},
     )
 
@@ -50,7 +45,7 @@ def shares_vested(vesting):
     _tell(
         _current(company_id=vesting.company_id, member=vesting.award.member),
         "Shares vested",
-        f"{vesting.company.display_name} · {_shares(vesting.shares)}",
+        f"{vesting.company.name} · Employee award",
         {"type": "award", "event": "vested", "award": str(vesting.award_id)},
     )
 
@@ -59,7 +54,7 @@ def shares_issued(proposal):
     _tell(
         _current(company_id=proposal.company_id, member=proposal.member),
         "Shares issued",
-        f"{proposal.company.display_name} · {_shares(proposal.shares)} {proposal.token.name}",
+        f"{proposal.company.name} · {proposal.token.name}",
         {"type": "holding", "event": "issued", "token": str(proposal.token_id)},
     )
 
@@ -71,6 +66,6 @@ def details_decided(change):
     _tell(
         _current(pk=change.member_request.association_id),
         "Details changed" if applied else "Details change declined",
-        f"{change.company.display_name} {'accepted' if applied else 'declined'} your change",
+        f"{change.company.name} {'accepted' if applied else 'declined'} your change",
         {"type": "particulars", "event": change.status},
     )
