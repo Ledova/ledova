@@ -704,9 +704,9 @@ lists grow only with one company's register decisions. The owner chose this on 2
 to revisit if registers grow large ([decision](../decisions.md#frontend-ux-standards)).
 
 Every table uses `Table`, apart from dashboard chart legends, which keep a compact layout with
-their own captions and header scopes. Company charts show ownership within each class; a member's
-chart shows only their own shares by class, with a labelled share count rather than company
-ownership, voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
+their own captions and header scopes. The company map compares issued share counts across classes;
+its selected-class holder table shows percentages within that class. A member's chart shows only
+their own shares by class, never company ownership, voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
 record's own page.
 
 ## Loading, empty and error states
