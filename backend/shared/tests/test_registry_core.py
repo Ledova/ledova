@@ -121,6 +121,10 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual((empty["count"], empty["results"]), (0, []))
         self.assertEqual(self.client.get(endpoint, {"sequence": 1, "search": "x" * 101}).status_code, 400)
         self.assertEqual(self.client.get(endpoint, {"sequence": 1, "page": 0}).status_code, 404)
+        self.assertEqual(
+            self.client.get("/api/v1/tokens/not-a-class/ownership-holders/", {"sequence": 1}).status_code,
+            404,
+        )
         identifier = self.prepare_grant()
         self.decision("/api/v1/tokens/register-grants/", identifier, "approve")
         self.decision("/api/v1/tokens/register-grants/", identifier, "apply")

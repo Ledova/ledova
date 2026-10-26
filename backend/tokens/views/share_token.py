@@ -239,7 +239,7 @@ class ShareTokenViewSet(
         query.is_valid(raise_exception=True)
         result = class_ownership_holders(
             actor=request.user,
-            token_id=uuid,
+            token_id=self.get_object().pk,
             paginate=self.paginate_queryset,
             **query.validated_data,
         )
