@@ -8,8 +8,8 @@ import {
   type ClassOwnershipHolders,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
+import { registerHoldersKey, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { READ_TIMING } from '@hooks/useRegisterAccess';
 import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
 import apiClient from '@services/apiClient';
 
@@ -86,7 +86,7 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
   const company = companies.length === 1 ? companies[0] : companies.find(({ uuid }) => uuid === chosen);
   const expected = listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
   const overview = useQuery({
-    queryKey: [...registerKey(owner), 'ownership', company?.uuid, ...expected],
+    queryKey: [...registerHoldersKey(owner), 'ownership', company?.uuid, ...expected],
     enabled: !!company && classes.isSuccess && !classes.isFetching,
     queryFn: async () => {
       guard();
@@ -101,7 +101,7 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
   const held = !!company && unconfirmed === company.uuid;
   const holders = useQuery({
     queryKey: [
-      ...registerKey(owner),
+      ...registerHoldersKey(owner),
       'ownership-holders',
       company?.uuid,
       selected?.uuid,
@@ -158,7 +158,7 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
         const snapshot = await overview.refetch();
         guard();
         if (!snapshot.isSuccess || snapshot.data.company !== company.uuid) return;
-        await client.resetQueries({ queryKey: [...registerKey(owner), 'ownership-holders', company.uuid] });
+        await client.resetQueries({ queryKey: [...registerHoldersKey(owner), 'ownership-holders', company.uuid] });
         guard();
         if (failureStatus(holders.error) === 404 && list.page > 1) list.setPage(1, true);
         setUnconfirmed(null);
