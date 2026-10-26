@@ -14,7 +14,6 @@ export interface OwnershipRingController {
 export function renderOwnershipRing(
   container: HTMLDivElement,
   { classes, issuedSupply, onSelect, onHighlight }: Omit<OwnershipRingProps, 'highlighted'>,
-  reveal: boolean,
 ): OwnershipRingController {
   const tokens = getComputedStyle(container);
   const color = (name: string) => tokens.getPropertyValue(`--color-${name}`).trim();
@@ -26,15 +25,14 @@ export function renderOwnershipRing(
     if (!node || typeof node !== 'object' || !('id' in node)) return;
     return eligible.find((item) => item.uuid === node.id);
   };
-  const option = (initial: boolean): ComposeOption<PieSeriesOption> => ({
+  const option = (): ComposeOption<PieSeriesOption> => ({
     animation: !reducedMotion.matches,
-    animationDuration: initial && !reducedMotion.matches ? 450 : 0,
+    animationDuration: 0,
     animationDurationUpdate: reducedMotion.matches ? 0 : 160,
     animationEasing: 'cubicOut',
     series: [
       {
         type: 'pie',
-        animationType: 'scale',
         radius: ['63%', '88%'],
         center: ['50%', '50%'],
         minAngle: 0,
@@ -69,7 +67,7 @@ export function renderOwnershipRing(
     if (container.clientWidth === 0) return;
     if (!chart) {
       chart = init(container, undefined, { renderer: 'svg' });
-      chart.setOption(option(reveal));
+      chart.setOption(option());
       chart.on('click', (parameters) => {
         const row = rowFrom(parameters);
         if (row) onSelect(row.uuid);
@@ -95,7 +93,7 @@ export function renderOwnershipRing(
   };
   const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
   const updateMotion = () => {
-    chart?.setOption(option(false));
+    chart?.setOption(option());
   };
   resize();
   observer?.observe(container);
