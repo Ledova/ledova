@@ -95,15 +95,6 @@ updates:
       # Jest on 8 (#668). Drop this with the SDK upgrade that adopts Babel 8.
       - dependency-name: "@babel/core"
         update-types: ["version-update:semver-major"]
-      # jsdom 27 and later load ES-module-only packages that Jest cannot require
-      # under Node 22: @csstools/css-calc from 27.0.0, and @exodus/bytes from 27.4.
-      # VerificationFormModal.test.tsx then fails to run (#668, #677); 26.1.0
-      # passes. @types/jsdom moves with it. Drop both when Jest loads ES modules:
-      # Node 24.9+ or a transform.
-      - dependency-name: jsdom
-        versions: [">=27.0.0"]
-      - dependency-name: "@types/jsdom"
-        versions: [">=27.0.0"]
     groups:
       all:
         patterns: ["*"]

@@ -16,17 +16,16 @@ the current audit result.
 
 The npm exceptions apply to `mobile/` only; the root, `site/` and
 `contracts/` audits must stay completely clean. They preserve the findings
-accepted on 5 October 2026. Most belong to the Expo and Metro developer
-toolchain, whose SDK upgrade remains separate work. `elliptic` and a second `uuid` ancestry also reach the
-experimental testnet chain. The earlier toolchain and testnet risk acceptance
-does not authorise additional advisories in those categories.
+accepted on 5 October 2026, less `elliptic`, which left with the mobile wallet
+libraries. All belong to the Expo and Metro developer toolchain, whose SDK
+upgrade remains separate work. The earlier toolchain risk acceptance does not
+authorise additional advisories in that category.
 
 | Package           | Accepted advisory ID  |
 | ----------------- | --------------------- |
 | `brace-expansion` | `GHSA-6j4f-fj2g-mc7p` |
 | `brace-expansion` | `GHSA-q2hr-2g5m-vwhr` |
 | `brace-expansion` | `GHSA-qhr7-859c-m2p7` |
-| `elliptic`        | `GHSA-848j-6mx2-7j84` |
 | `image-size`      | `GHSA-5p2g-fcmc-qvqq` |
 | `image-size`      | `GHSA-w3rx-r6r6-pgpr` |
 | `node-forge`      | `GHSA-86w9-cpqp-85rv` |

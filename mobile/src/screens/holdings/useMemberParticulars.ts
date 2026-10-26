@@ -70,7 +70,6 @@ export function useMemberParticulars(read: Read) {
     waitingAt,
     waitingCount: read.records.reduce((sum, record) => sum + waitingAt(record.uuid).length, 0),
     loading: lists.some((query) => query.isPending),
-    fetching: lists.some((query) => query.isFetching),
     failed: lists.some((query) => query.isError),
     refetch,
   };

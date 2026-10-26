@@ -210,10 +210,11 @@ passcode changes can invalidate gated items
 ## Native dependencies and randomness
 
 Operation keys come from Expo Crypto's native `randomUUID`, and nothing falls back to `Math.random`.
-The app loads no Node shims: the wallet libraries that needed Buffer, process, crypto, stream,
-events, assert and util went with the screens that used them, and `buffer` remains only as a
-development dependency of the manual native probe. The resolution check confirms that every bundled
-import reaches a declared runtime dependency.
+The app sets up no Node globals or shims; the wallet libraries that needed them went with the
+screens that used them. `buffer` stays a runtime dependency because `react-native-svg` imports it
+without declaring it, and `assert` and `util` arrive through `expo-notifications`. The resolution
+check confirms that the app's own imports reach declared runtime dependencies; imports inside
+`node_modules` are resolved by Metro when the app is bundled.
 
 ## Document view copies
 

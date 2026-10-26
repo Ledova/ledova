@@ -196,8 +196,7 @@ export function YourDetailsScreen() {
               />
             </>
           ) : (
-            shown &&
-            !particulars.fetching && (
+            shown && (
               <>
                 <Text accessibilityLiveRegion="polite" style={styles.text}>
                   This change is now waiting or recorded at {companies.filter((record) => has(record, batch)).length} of{' '}
