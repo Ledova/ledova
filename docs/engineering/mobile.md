@@ -165,7 +165,8 @@ retirement fails part-way cannot hand back the gated copy in that process, or af
 the marker was written.
 
 Earlier builds kept wallet seeds under their own gated SecureStore keys, and order and settlement
-recovery records (UUIDs only) in AsyncStorage; this app neither reads nor deletes them.
+recovery records (identifiers only, no keys or signatures) in AsyncStorage; this app neither reads
+nor deletes them.
 
 Android keeps SecureStore's exclusions in the legacy backup XML and the Android 12+ cloud and
 device-transfer rules, with non-secret preference backups still enabled. iOS device-only
