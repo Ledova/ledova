@@ -2019,12 +2019,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const summary = await screen.findByRole('region', { name: 'Company ownership summary' });
   expect(within(summary).getByText('600')).toBeTruthy();
   expect(screen.getByText('100.00%')).toBeTruthy();
-  fireEvent.change(screen.getByRole('combobox', { name: 'Explore a class' }), { target: { value: token.uuid } });
+  fireEvent.click(screen.getByRole('button', { name: 'Explore Ordinary shares (ORD)' }));
   expect(
     within(await screen.findByRole('table', { name: 'Ordinary shares shareholders' })).getByText('Example Shareholder'),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
-  expect(await screen.findByRole('combobox', { name: 'Explore a class' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Explore Ordinary shares (ORD)' })).toBeTruthy();
   expect(proposal!.status).toBe('applied');
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
   expect(proposal!.decisions.map((decision) => decision.appointment)).toEqual(['approve-only', 'apply-only']);

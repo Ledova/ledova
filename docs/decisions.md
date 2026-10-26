@@ -1258,6 +1258,15 @@ or value. Historical transaction prices remain a later increment, distinguished 
 purpose; do not infer investment prices from rights prose or treat option exercise prices as current
 valuations. No automatic class or company valuation is authorised by this change.
 
+On 27 October 2026 the owner selected one ownership ring with a linked class list under
+[#1342](https://github.com/Ledova/ledova/issues/1342), replacing #1335's treemap presentation.
+Keep its inline class details, exact company aggregates, sequence-bound holder pages and access
+guards. Hover and keyboard focus highlight the matching class and centre quantity; every class
+remains selectable in the list, with shared search and paging when long. Small classes are not
+combined into Other, and zero-share classes remain listed. Use the installed modular ECharts pie
+chart, tooltip and SVG renderer, retaining a list without the ring on narrow screens or chart failure.
+The existing workspace, sidebar, issued-share denominator and valuation boundary remain unchanged.
+
 ### Dashboard, Settings and Register for a new company
 
 On 19 October 2026 the owner decided

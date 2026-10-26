@@ -176,12 +176,12 @@ async function openTheSidebar(page: Page, role: Role) {
     const summary = page.getByRole('region', { name: 'Company ownership summary' });
     await expect(summary).toContainText('Issued shares135');
     await expect(summary).toContainText('Current shareholders2');
-    await page.getByRole('combobox', { name: 'Explore a class' }).selectOption('ordinary');
+    await page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true }).click();
     const ownership = page.getByRole('table', { name: 'Ordinary shares shareholders' });
     await expect(ownership.getByRole('row', { name: 'Founder 100 74.07%' })).toBeVisible();
     await expect(ownership.getByRole('row', { name: 'Investor 35 25.93%' })).toBeVisible();
     await page.getByRole('button', { name: 'All classes', exact: true }).click();
-    await expect(page.getByRole('combobox', { name: 'Explore a class' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true })).toBeFocused();
   }
   expect(await page.locator('html').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   const phone = page.viewportSize()!.width < 1024;

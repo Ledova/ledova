@@ -41,11 +41,16 @@ keep secondary facts and copyable technical references on demand. Application su
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The company Dashboard uses one
-ownership overview: select a share class in its map or labelled selector to open a ranked, searchable
-holder table in the same panel. **All classes** returns to the overview and restores focus to its
-selector. Narrow screens show the class table instead of squeezing a map. Percentages name their
-denominator; issued share counts do not imply voting power, economic value or a fully diluted
-option pool. Preserve the sidebar for navigation to other pages and keep record actions there.
+ownership ring beside a linked class list: select a segment or class row to open the existing ranked,
+searchable holder table in the same panel. Hover and keyboard focus highlight the matching segment
+and its exact class quantity in the ring's centre; otherwise the centre shows the company total.
+Keep class colours consistent in both views and through list search and paging. Long class lists
+use shared search and a 25-row pager; small and zero-share classes remain directly selectable.
+**All classes** returns to the overview and restores focus to the class row or class search.
+Narrow screens show the linked list without squeezing the ring. A chart failure leaves the same
+list usable. Percentages name their denominator; issued share counts do not imply voting power,
+economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
+and keep record actions there.
 The member overview's shares and
 awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
 on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
@@ -704,7 +709,7 @@ lists grow only with one company's register decisions. The owner chose this on 2
 to revisit if registers grow large ([decision](../decisions.md#frontend-ux-standards)).
 
 Every table uses `Table`, apart from dashboard chart legends, which keep a compact layout with
-their own captions and header scopes. The company map compares issued share counts across classes;
+their own captions and header scopes. The company ring compares issued share counts across classes;
 its selected-class holder table shows percentages within that class. A member's chart shows only
 their own shares by class, never company ownership, voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
 record's own page.
