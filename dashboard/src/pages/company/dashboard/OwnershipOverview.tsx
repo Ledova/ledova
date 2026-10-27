@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatShareCount, searchRows, sharePercentage, type CompanyOwnershipSummary } from '@ledova/shared';
 import { ListSearch, Pager } from '@components/List';
 import { PAGE_SIZE, type ListParams } from '@hooks/useListParams';
@@ -67,7 +68,7 @@ export function OwnershipOverview({ classes, complete, issuedSupply, onSelect, l
                     data-class-uuid={row.uuid}
                     aria-label={`Explore ${row.name} (${row.symbol})`}
                     aria-describedby={`${id}-${row.uuid}`}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm hover:bg-surface-tertiary focus-visible:bg-surface-tertiary motion-safe:transition-colors motion-safe:duration-150 ${highlighted === row.uuid ? 'bg-surface-tertiary' : ''}`}
+                    className={`group flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm hover:bg-surface-tertiary focus-visible:bg-surface-tertiary motion-safe:transition-colors motion-safe:duration-150 ${highlighted === row.uuid ? 'bg-surface-tertiary' : ''}`}
                     onMouseEnter={() => setHovered(row.uuid)}
                     onMouseLeave={() => setHovered(null)}
                     onFocus={() => setFocused(row.uuid)}
@@ -95,6 +96,10 @@ export function OwnershipOverview({ classes, complete, issuedSupply, onSelect, l
                         </span>
                       )}
                     </span>
+                    <CaretRightIcon
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0 text-text-muted group-hover:text-brand-light group-focus-visible:text-brand-light"
+                    />
                   </button>
                 </li>
               ))}

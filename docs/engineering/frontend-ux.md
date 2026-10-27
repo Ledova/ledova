@@ -43,8 +43,9 @@ and the shared card heading and padding. Ownership dashboards put their overview
 record-management details, with awards separate from issued shares. The company Dashboard uses one
 ownership ring beside a linked class list, with full class names before their secondary codes.
 Names wrap without displacing the figures. Select a segment or class row to open the existing ranked,
-searchable holder bar list in the same panel. Its class heading appears once, followed by one wrapping
-row for the code, totals and **All classes** control. Search stays compact on wider screens and takes
+searchable holder bar list in the same panel. A muted trailing chevron identifies class rows that open
+this detail; holder rows keep their highlight-only interaction. The selected class heading appears
+once, followed by one wrapping row for the code, totals and **All classes** control. Search stays compact on wider screens and takes
 the full width on narrow screens. Each compact holder row aligns the shareholder's name, a
 horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
 with short transitions that honour reduced motion; keep all figures visible without a tooltip.
@@ -57,6 +58,10 @@ Keep the ring aligned at the top beside its list, so a long list never pushes it
 Keep class colours consistent in both views and through list search and paging. Long class lists
 use shared search and a 25-row pager; small and zero-share classes remain directly selectable.
 **All classes** returns to the overview and restores focus to the class row or class search.
+While holders load, replace their rows with a static loading status and reserve the last settled
+holder panel height, with a modest first-load placeholder. Retain geometry only, never stale holder
+figures. Settled short results, empty states and errors take their natural height; preserve the
+existing access clearing and retry controls.
 Narrow screens show the linked list without squeezing the ring. A chart failure leaves the same
 list usable. Percentages name their denominator; issued share counts do not imply voting power,
 economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
