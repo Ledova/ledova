@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { shareCount, sharePercentage, type ClassOwnershipHolders, type CompanyOwnershipSummary } from '@ledova/shared';
 import { ListSearch, Pager } from '@components/List';
 import { LoadError, Loading, Section } from '@components/Ledger';
@@ -35,8 +35,22 @@ export function OwnershipExplorer({
 }: OwnershipExplorerProps) {
   const choice = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
+  const content = useRef<HTMLDivElement>(null);
   const previous = useRef(selected);
   const current = classes.find(({ uuid }) => uuid === selected);
+  const pending = loading || (!error && !holders);
+  useLayoutEffect(() => {
+    const region = content.current;
+    if (!region || pending || error) return;
+    const measure = () => {
+      const height = region.getBoundingClientRect().height;
+      if (height > 0) region.style.setProperty('--ownership-holders-height', `${height}px`);
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(region);
+    return () => observer?.disconnect();
+  }, [selected, holders, pending, error]);
   useEffect(() => {
     if (previous.current === selected) return;
     const returned = previous.current;
@@ -97,32 +111,39 @@ export function OwnershipExplorer({
                   count={!loading && !error ? holders?.count : undefined}
                 />
               </div>
-              {loading ? (
-                <Loading>Loading shareholders…</Loading>
-              ) : error ? (
-                <LoadError retry={retry}>The class’s shareholders could not be confirmed.</LoadError>
-              ) : !holders ? (
-                <Loading>Loading shareholders…</Loading>
-              ) : holders.count === 0 ? (
-                <p className="text-sm text-text-muted">
-                  {list.search ? 'No shareholders match your search.' : 'No current shareholders yet.'}
-                </p>
-              ) : (
-                <>
-                  <OwnershipHolders
-                    holders={holders}
-                    name={current.name}
-                    symbol={current.symbol}
-                    color={ownershipColor(classes, current.uuid)}
-                  />
-                  <Pager
-                    label="Class shareholders"
-                    list={list}
-                    noun={['shareholder', 'shareholders']}
-                    count={holders.count}
-                  />
-                </>
-              )}
+              <div
+                ref={content}
+                aria-busy={pending}
+                className="flex flex-col gap-4"
+                style={pending ? { minHeight: 'var(--ownership-holders-height, 20rem)' } : undefined}
+              >
+                {loading ? (
+                  <Loading>Loading shareholders…</Loading>
+                ) : error ? (
+                  <LoadError retry={retry}>The class’s shareholders could not be confirmed.</LoadError>
+                ) : !holders ? (
+                  <Loading>Loading shareholders…</Loading>
+                ) : holders.count === 0 ? (
+                  <p className="text-sm text-text-muted">
+                    {list.search ? 'No shareholders match your search.' : 'No current shareholders yet.'}
+                  </p>
+                ) : (
+                  <>
+                    <OwnershipHolders
+                      holders={holders}
+                      name={current.name}
+                      symbol={current.symbol}
+                      color={ownershipColor(classes, current.uuid)}
+                    />
+                    <Pager
+                      label="Class shareholders"
+                      list={list}
+                      noun={['shareholder', 'shareholders']}
+                      count={holders.count}
+                    />
+                  </>
+                )}
+              </div>
             </>
           )}
         </>

@@ -199,7 +199,7 @@ async function openTheSidebar(page: Page, role: Role) {
       const ring = page
         .locator('section')
         .filter({ has: page.getByRole('heading', { name: 'Ownership overview', exact: true }) })
-        .locator('svg');
+        .locator('svg:not([aria-hidden="true"])');
       await expect(ring).toBeVisible();
       await page.getByRole('button', { name: 'Explore Preference shares (PRF)', exact: true }).focus();
       await ring.scrollIntoViewIfNeeded();
