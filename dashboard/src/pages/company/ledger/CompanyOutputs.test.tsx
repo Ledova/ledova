@@ -237,18 +237,23 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   );
   const records = await screen.findByRole('list', { name: 'Certificate records' });
   await waitFor(() => expect(within(records).getAllByRole('listitem')).toHaveLength(2));
-  expect(within(records).getAllByText('You')).toHaveLength(1);
+  expect(within(records).queryByText('You')).toBeNull();
   expect(within(records).getAllByText(MEMBER_RECORD.name)).toHaveLength(1);
   expect(within(records).getByText('Other shareholder')).toBeTruthy();
   expect(within(records).getByText('Fulfilled', { exact: true })).toBeTruthy();
-  expect(within(records).getAllByRole('button', { name: /Prepare unsigned certificate/ })).toHaveLength(2);
+  expect(within(records).queryByRole('button', { name: /Prepare unsigned certificate/ })).toBeNull();
+  fireEvent.click(within(records).getByRole('button', { name: new RegExp(MEMBER_RECORD.name) }));
+  expect(within(records).getByRole('button', { name: /Prepare unsigned certificate/ })).toBeTruthy();
+  expect(within(records).getAllByRole('button', { name: /Prepare unsigned certificate/, hidden: true })).toHaveLength(
+    2,
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Load more register entries' }));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   await screen.findByText('More register entries could not be loaded. The list is incomplete.');
   expect(within(records).getAllByRole('listitem')).toHaveLength(2);
   expect(
     within(records)
-      .getAllByRole('button', { name: /Prepare unsigned certificate/ })
+      .getAllByRole('button', { name: /Prepare unsigned certificate/, hidden: true })
       .every((button) => (button as HTMLButtonElement).disabled),
   ).toBe(true);
   refusedMore = false;
@@ -256,7 +261,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   await waitFor(() =>
     expect(
       within(records)
-        .getAllByRole('button', { name: /Prepare unsigned certificate/ })
+        .getAllByRole('button', { name: /Prepare unsigned certificate/, hidden: true })
         .every((button) => !(button as HTMLButtonElement).disabled),
     ).toBe(true),
   );

@@ -725,8 +725,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 - The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) combines company-authorised
   certificate preparation and association-bound member tracking in one class-selected list. Company
   reads mount only with confirmed register access; member-only access never reads the full company register.
-  `CertificateRecords.tsx` merges a linked person's matching entry into the company row, marks it
-  **You**, and retains their history and other requests without duplicate rows. The existing
+  `CertificateRecords.tsx` merges matching company and own entries without duplicate rows. Aligned
+  `Disclosure` rows show the shareholder or change, shares, date and status; details, previous
+  requests and permitted actions open inline. The class selector stays in the card header, and
+  preparation opens a focused main-page form. The existing
   preparation, request, withdrawal and recipient-download controllers retain their separate guards;
   preparing a company PDF does not fulfil a member request.
 - Certificates and Company-recorded details share an owner-bound member-records controller.

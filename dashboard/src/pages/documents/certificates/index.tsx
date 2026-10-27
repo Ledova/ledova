@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { formatDate, useSubmissionOwner, type OrderSubmissionOwner } from '@ledova/shared';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
-import { LoadError, Loading } from '@components/Ledger';
+import { LoadError, Loading, Section } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -19,7 +19,7 @@ export default function CertificatesPage() {
   const { owner, boundary } = useSubmissionOwner();
   return (
     <PageTitle.Provider value="Certificates">
-      <Page lede="Prepare, request and download share certificates.">
+      <Page>
         {read.readFailed ? (
           <LoadError retry={read.refresh} busy={read.busy || read.refreshing}>
             Your member records could not be loaded.
@@ -152,7 +152,33 @@ function CertificateWorkspace({
     navigate({ search: query.toString(), hash: location.hash }, { replace: true, state: location.state });
   }, [requested, selected, location, navigate]);
   return (
-    <>
+    <Section
+      title="Certificate records"
+      header={
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Certificate records</h2>
+          {classes.length > 1 ? (
+            <div className="w-full sm:w-64">
+              <SelectField
+                label="Share class"
+                value={selected?.uuid ?? ''}
+                options={classes.map((item) => ({ value: item.uuid, label: `${item.name} · ${item.symbol}` }))}
+                disabled={disabled || read.busy || !!read.retry}
+                onChange={(uuid) => {
+                  const query = new URLSearchParams(location.search);
+                  query.set('class', uuid);
+                  navigate({ search: query.toString(), hash: location.hash }, { state: location.state });
+                }}
+              />
+            </div>
+          ) : selected ? (
+            <p className="text-sm text-text-muted">
+              {selected.name} · {selected.symbol}
+            </p>
+          ) : null}
+        </div>
+      }
+    >
       {read.error && (
         <p role="alert" className="text-sm text-error-light">
           {read.error}
@@ -165,27 +191,8 @@ function CertificateWorkspace({
           onClick={() => void read.recover()}
         />
       )}
-      {classes.length > 1 ? (
-        <div className="max-w-sm">
-          <SelectField
-            label="Share class"
-            value={selected?.uuid ?? ''}
-            options={classes.map((item) => ({ value: item.uuid, label: `${item.name} · ${item.symbol}` }))}
-            disabled={disabled || read.busy || !!read.retry}
-            onChange={(uuid) => {
-              const query = new URLSearchParams(location.search);
-              query.set('class', uuid);
-              navigate({ search: query.toString(), hash: location.hash }, { state: location.state });
-            }}
-          />
-        </div>
-      ) : selected ? (
-        <p className="text-sm text-text-muted">
-          {selected.name} · {selected.symbol}
-        </p>
-      ) : null}
       {children}
-    </>
+    </Section>
   );
 }
 

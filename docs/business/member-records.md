@@ -36,12 +36,12 @@ company owner may download the register CSV.
 
 On web, **Documents** opens one **Certificates** page for the selected company. Register readers
 can prepare permitted company outputs; members can request, track and download only their own
-certificates. A person with both kinds of access sees matching entries once, with their own records
-marked **You**. Existing request fulfilment remains in **Shareholders** → **Member requests**.
+certificates. A person with both kinds of access sees matching entries once. Existing request
+fulfilment remains in **Shareholders** → **Member requests**.
 **Ledger exports** and **Company pack** remain alongside Certificates where company access permits
 them. Certificates and Ledger exports use one selected share class; **Share class** appears only
-when there is more than one. Company pack covers the company. Supporting attachments stay with
-the person, share class or company Settings.
+when there is more than one and sits in the Certificates card header. Company pack covers the
+company. Supporting attachments stay with the person, share class or company Settings.
 
 | Output               | Who prepares it                            | Where                                                   | What Ledova keeps                                        |
 | -------------------- | ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
@@ -208,10 +208,10 @@ It reads **fulfilled** only once a real file exists, which the member downloads 
 current access, checked against its record. Nothing is signed automatically and no legal
 recognition is claimed.
 
-Web **Documents** → **Certificates** keeps each share change, its latest request status and its
-permitted actions together. **Record details** holds previous requests; **Other certificate requests**
-keeps requests for other classes or entries not shown, including their permitted withdrawals and
-downloads. Company preparation and member requests keep their separate permissions: generating a
+Web **Documents** → **Certificates** shows each shareholder or change, shares, date and status in
+one aligned row. Open the row for details, previous requests and permitted actions.
+**Other certificate requests** keeps requests for other classes or entries not shown, including
+their permitted withdrawals and downloads. Company preparation and member requests keep their separate permissions: generating a
 company PDF does not fulfil a member request or make it available as a recipient's retained file.
 
 ## Inspection copies
@@ -270,9 +270,9 @@ register, or a correction has since reversed the entry (the refusal names the co
 ### Preparing a certificate
 
 1. On web, open **Documents** → **Certificates**, select the share class and choose the issue or
-   transfer, identified by its date and share movements, then **Prepare unsigned certificate**.
-2. On web, choose **Preview**. Check the share class, share movements and PDF page count;
-   **Record details** holds the entry and register sequence. Choose **Download PDF** to generate
+   transfer row, then **Prepare unsigned certificate**.
+2. In the focused main-page form, choose **Preview**. Check the share class, share movements and PDF
+   page count; **Record details** holds the entry and register sequence. Choose **Download PDF** to generate
    the unsigned file, or **Cancel** to close the form. The download action records the requester
    and an instruction linked to the exact ledger entry automatically; no reference needs typing.
    The form keeps the privacy and signing reminder visible; the company arranges execution and

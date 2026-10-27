@@ -239,7 +239,7 @@ the company information they may read. The sidebar keeps focused tasks for the s
 - Ledger opens the class overview, with Issue shares, Transfer shares and Corrections beneath it.
   Shareholders opens the people list, with ESS, Member access and Member requests. Documents opens
   one Certificates page for company and member records, with Ledger exports and Company pack where
-  company access permits them. A person's own linked records are marked **You**, without duplicate rows.
+  company access permits them. Matching company and own records appear once.
 - More retains permitted personal notices, investing and wallet pages and company eligibility,
   publication and Offering workflows.
 - Settings keeps personal Profile and Account, with company information, source Documents, Team,

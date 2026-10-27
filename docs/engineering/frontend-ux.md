@@ -217,10 +217,10 @@ preparation belongs in Documents. Keep maintenance controllers mounted so unfini
 survive navigation. Documents has one **Certificates** page for company and member records, plus
 **Ledger exports** and **Company pack** where company access permits them. Certificates and Ledger
 exports show one selected class, with a **Share class** selector only when there is more than one.
+On Certificates, the selector sits in the records card header.
 Company pack stays at company scope. Each uses the existing workspace frame, cards, responsive
-field grid and action footer, opening one focused inline preparation at a time. Certificate choices
-show the issue or transfer's date and share movements;
-the form uses the existing labelled summary rows for share movements, company date and PDF page
+field grid and action footer, opening one focused main-page preparation at a time. Certificate
+preparation uses the existing labelled summary rows for share movements, company date and PDF page
 count after preview. No manual certificate reference is needed: the server records the exact-entry
 request when the file is generated. Keep technical metadata under **Record details** and one
 right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
@@ -232,11 +232,12 @@ refresh controls.
 
 Certificates uses one list for the selected company and class. Company readers see permitted
 company entries; members see only their own history, request status and actions. Mixed-role accounts
-see matching entries once, with their linked records marked **You**. Company-only rows show certificate
-eligibility; request status comes only from an actual readable request. Keep quantity, class, date,
-status and relevant preparation, request, withdrawal or unsigned-download actions aligned.
-Entry numbers, ledger dates, recording timestamps and previous requests open under **Record details**;
-requests without a matching visible entry remain under **Other certificate requests** with their own
+see matching entries once. Use one aligned `Disclosure` row for the shareholder or change, shares,
+date and status, with details, previous requests and permitted preparation, request, withdrawal or
+unsigned-download actions opening inline. Company-only rows show certificate eligibility; request
+status comes only from an actual readable request. Keep entry numbers, ledger dates and recording
+timestamps inside the opened details. Requests without a matching visible entry remain under
+**Other certificate requests** with their own
 actions. Preparing a company PDF never marks a member request fulfilled. Particulars requests stay
 in Company-recorded details in Settings.
 
