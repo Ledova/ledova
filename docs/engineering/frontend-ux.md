@@ -452,7 +452,8 @@ request, on pages and in dialogs, including:
 - member, particulars and certificate requests;
 - register setup's review step (editing the records, loading and confirming the decision).
 
-Data stays current automatically under the [freshness standard](frontend.md#automatic-data-freshness).
+Read on entry and after relevant actions under the [freshness standard](frontend.md#automatic-data-freshness),
+without idle, focus or reconnect page refreshes.
 Do not add a routine Refresh action; Try again belongs to a failed read.
 
 Where a shared hook only reports that some command is running, `useRunningAction`

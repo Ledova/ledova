@@ -25,7 +25,7 @@ import { OrdersPanel } from './OrdersPanel';
 import { PlaceOrderPanel } from './PlaceOrderPanel';
 import { useTradingEvents } from './useTradingEvents';
 import { Page, PageAction } from '@components/Page';
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 import { Outcome, Section, LoadError } from '@components/Ledger';
 
 function TradingPage() {
@@ -35,7 +35,7 @@ function TradingPage() {
   const settlements = useSwapSettlements(swapSettlementStore, swapSettlementCrypto);
   const savedWorkReading = submissions.isLoading || actions.isLoading || settlements.isLoading;
   const refreshSavedWork = () => Promise.all([submissions.refresh(), actions.refresh(), settlements.refresh()]);
-  useAutomaticReads({
+  useEntryReads({
     scope: submissions.owner ? `${submissions.owner.userUuid}/${submissions.owner.ownerAccountUuid}` : null,
     paused: submissions.isStarting || !!submissions.active || !!actions.active || !!settlements.active,
     refresh: async (available) => {

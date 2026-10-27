@@ -14,7 +14,7 @@ import { awardsKey } from './shared/useRegisterAwards';
 import { entriesKey } from './shared/useRegisterEntries';
 import { allPeopleKey } from './shared/usePeople';
 
-export function useIssueFreshness({
+export function useIssueEntryRead({
   owner,
   company,
   token,
@@ -44,7 +44,7 @@ export function useIssueFreshness({
     let pending = true;
     let scheduled: number | undefined;
     const keys = [grantsKey(owner, token), allotmentsKey(owner, token)];
-    const available = () => active && current.current.visible && !document.hidden && navigator.onLine !== false;
+    const available = () => active && current.current.visible;
     const ready = () => available() && current.current.sourceReady;
     const schedule = (delay = 0) => {
       if (scheduled !== undefined || running || !ready()) return;
@@ -101,25 +101,13 @@ export function useIssueFreshness({
         if (pending) schedule();
       }
     };
-    const request = () => {
-      pending = true;
-      schedule();
-    };
     resume.current = () => {
       if (pending) schedule();
     };
-    const interval = window.setInterval(request, 60_000);
-    window.addEventListener('focus', request);
-    window.addEventListener('online', request);
-    document.addEventListener('visibilitychange', request);
     schedule();
     return () => {
       active = false;
       if (scheduled !== undefined) window.clearTimeout(scheduled);
-      window.clearInterval(interval);
-      window.removeEventListener('focus', request);
-      window.removeEventListener('online', request);
-      document.removeEventListener('visibilitychange', request);
       resume.current = () => {};
     };
   }, [client, owner, company, token, guard, visible]);

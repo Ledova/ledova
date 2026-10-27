@@ -15,7 +15,6 @@ export function MemberDocuments(props: {
   sourceReady: boolean;
   holdings: DocumentHolding[];
   title?: string;
-  deferWhileEditing?: boolean;
   readsPaused?: boolean;
   onHeldChange?: (held: boolean) => void;
 }) {

@@ -125,7 +125,7 @@ async function ownShares(quantity: string) {
 
 async function chooseMemberCompany(name: string) {
   const settings = !!screen.queryByRole('heading', { name: 'Company-recorded details', level: 1 });
-  const documents = !!screen.queryByRole('heading', { name: 'Your documents', level: 1 });
+  const documents = !!screen.queryByRole('heading', { name: 'Your certificates', level: 1 });
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await choose('Your companies', name);
   if (screen.queryByRole('dialog', { name: 'Leave this page?' }))
@@ -136,7 +136,11 @@ async function chooseMemberCompany(name: string) {
 
 beforeEach(() => {
   api.get.mockReset();
-  client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false, refetchInterval: false },
+    },
+  });
 });
 
 afterEach(() => {
@@ -187,7 +191,7 @@ it('reads every wallet page and shows exact share totals with company/class name
   expect(within(detailOf(row)).getByText('Reserve')).toBeTruthy();
 });
 
-it('updates ownership after invalidation, keeps active member workflows fresh and preserves drafts without showing revoked records', async () => {
+it('updates ownership and member workflows after invalidation without idle refreshes or losing drafts or revoked-record guards', async () => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   let currentPreferences = preferences;
@@ -209,17 +213,10 @@ it('updates ownership after invalidation, keeps active member workflows fresh an
   const refreshRead = async () => {
     const previous = api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length;
     await act(async () => {
-      if (
-        screen.queryByRole('heading', { name: 'Your documents', level: 1 }) ||
-        screen.queryByRole('heading', { name: 'Company-recorded details', level: 1 })
-      ) {
-        fireEvent(window, new Event('focus'));
-        await new Promise((resolve) => window.setTimeout(resolve, 0));
-      } else {
-        const key = ownMemberRecordsKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' });
-        await client.invalidateQueries({ queryKey: key, exact: true });
-        await client.invalidateQueries({ queryKey: key, predicate: (query) => query.queryKey.length > key.length });
-      }
+      const key = ownMemberRecordsKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' });
+      await client.invalidateQueries({ queryKey: key, exact: true });
+      await client.invalidateQueries({ queryKey: key, predicate: (query) => query.queryKey.length === key.length + 1 });
+      await client.invalidateQueries({ queryKey: key, predicate: (query) => query.queryKey.length > key.length + 1 });
     });
     expect(api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length).toBeGreaterThan(previous);
     await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -272,9 +269,12 @@ it('updates ownership after invalidation, keeps active member workflows fresh an
   const activeReads = api.get.mock.calls.length;
   await act(async () => {
     fireEvent(window, new Event('focus'));
+    fireEvent(window, new Event('online'));
+    fireEvent(document, new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(60_000);
     await new Promise((resolve) => window.setTimeout(resolve, 0));
   });
-  await waitFor(() => expect(api.get.mock.calls.length).toBeGreaterThan(activeReads));
+  expect(api.get.mock.calls).toHaveLength(activeReads);
   await waitFor(() => expect(client.isFetching()).toBe(0));
   record = MEMBER_RECORD;
   await refreshRead();
@@ -448,7 +448,7 @@ it('updates ownership after invalidation, keeps active member workflows fresh an
   });
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
-  expect(await screen.findByRole('heading', { name: 'Your documents', level: 1 })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Your certificates', level: 1 })).toBeTruthy();
   expect(screen.queryByText('Your issued shares')).toBeNull();
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.getByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeTruthy();

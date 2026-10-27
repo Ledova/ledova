@@ -5,7 +5,7 @@ import { Section } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { useInvestorIssues } from './useInvestorIssues';
 import { useNonPaidIssues } from './useNonPaidIssues';
-import { useIssueFreshness } from './useIssueFreshness';
+import { useIssueEntryRead } from './useIssueEntryRead';
 
 const KINDS = [
   ['investor', 'Investor issue'],
@@ -96,7 +96,7 @@ export function ClassIssues({
     reviewTarget,
     onReviewChange: reviewChanged,
   });
-  useIssueFreshness({
+  useIssueEntryRead({
     owner,
     company,
     token: register.token.uuid,

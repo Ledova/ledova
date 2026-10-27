@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BellIcon, XIcon } from '@phosphor-icons/react';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
@@ -170,6 +170,7 @@ export function NotificationBell({ align }: NotificationBellProps) {
     isLoadingNotifications,
     notificationsFailed,
     fetchNotifications,
+    refreshUnreadCount,
     markAsRead,
     archive,
     markAllAsRead,
@@ -178,7 +179,11 @@ export function NotificationBell({ align }: NotificationBellProps) {
     isLoadingMoreNotifications,
     moreNotificationsFailed,
     loadMoreNotifications,
-  } = useNotifications();
+  } = useNotifications({ refetchInterval: false });
+  const load = useCallback(() => {
+    void refreshUnreadCount();
+    return fetchNotifications();
+  }, [fetchNotifications, refreshUnreadCount]);
 
   const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
 
@@ -230,7 +235,7 @@ export function NotificationBell({ align }: NotificationBellProps) {
 
             <div className="max-h-96 overflow-y-auto">
               <NotificationList
-                load={fetchNotifications}
+                load={load}
                 notifications={notifications}
                 isLoading={isLoadingNotifications}
                 failed={notificationsFailed}

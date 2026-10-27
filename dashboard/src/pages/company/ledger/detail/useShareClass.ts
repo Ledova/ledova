@@ -60,8 +60,8 @@ export function useShareClass(uuid: string) {
   const token = useQuery({
     queryKey: tokenKey,
     enabled: !!uuid && !!owner,
-    refetchOnWindowFocus: !readingPaused,
-    refetchOnReconnect: !readingPaused,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       guard();
       const { data } = await getCompanyToken(apiClient, uuid, config);
@@ -81,8 +81,8 @@ export function useShareClass(uuid: string) {
   const register = useQuery({
     queryKey: [...tokenKey, 'holders'],
     enabled,
-    refetchOnWindowFocus: !readingPaused,
-    refetchOnReconnect: !readingPaused,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       guard();
       const { data } = await getCompanyTokenHolders(apiClient, uuid, config);

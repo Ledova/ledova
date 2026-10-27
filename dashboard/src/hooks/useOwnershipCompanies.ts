@@ -77,7 +77,6 @@ export function useOwnershipCompanies() {
   const appointments = useOwnAppointments(owner!, guard, {
     queryKey: owner ? ownAppointmentsKey(owner) : [...OWN_APPOINTMENTS_QUERY_KEY, null],
     enabled: ready,
-    coordinatedReads: true,
   });
   const memberRows = useQuery({
     queryKey: ownMemberRecordsKey(owner),

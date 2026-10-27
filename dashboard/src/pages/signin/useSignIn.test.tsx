@@ -49,9 +49,12 @@ describe('useSignIn', () => {
   it('signs in, refreshes authentication state, then reports success', async () => {
     const { queryClient, wrapper } = createHarness();
     const callOrder: string[] = [];
+    const storageWrite = vi.spyOn(Storage.prototype, 'setItem');
     signinMock.mockImplementation(async () => {
       callOrder.push('signin');
-      return { data: {} } as never;
+      return {
+        data: { access: 'legacy-access-token', refresh: 'legacy-refresh-token', token: 'legacy-token' },
+      } as never;
     });
     vi.spyOn(queryClient, 'refetchQueries').mockImplementation(async (filters) => {
       expect(filters).toEqual({ queryKey: AUTH_QUERY_KEY, exact: true });
@@ -71,6 +74,9 @@ describe('useSignIn', () => {
     });
     expect(callOrder).toEqual(['signin', 'refetch', 'success']);
     expect(onSuccess).toHaveBeenCalledOnce();
+    expect(storageWrite).not.toHaveBeenCalled();
+    expect(localStorage).toHaveLength(0);
+    expect(sessionStorage).toHaveLength(0);
 
     unmount();
     queryClient.clear();
@@ -94,32 +100,6 @@ describe('useSignIn', () => {
     expect(queryClient.getQueryData(['userProfiles'])).toBeUndefined();
     expect(queryClient.getQueryData(AUTH_QUERY_KEY)).toBeDefined();
 
-    unmount();
-    queryClient.clear();
-  });
-
-  it('does not persist token-looking response fields', async () => {
-    const { queryClient, wrapper } = createHarness();
-    const storageWrite = vi.spyOn(Storage.prototype, 'setItem');
-    signinMock.mockResolvedValue({
-      data: {
-        access: 'legacy-access-token',
-        refresh: 'legacy-refresh-token',
-        token: 'legacy-token',
-      },
-    } as never);
-    const { result, unmount } = renderHook(() => useSignIn(), { wrapper });
-    fillForm(result);
-
-    await act(async () => {
-      await result.current.handleSubmit();
-    });
-
-    expect(storageWrite).not.toHaveBeenCalled();
-    expect(localStorage).toHaveLength(0);
-    expect(sessionStorage).toHaveLength(0);
-
-    storageWrite.mockRestore();
     unmount();
     queryClient.clear();
   });

@@ -1,6 +1,6 @@
 import { Row, Rows, Section, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { useCallback, useEffect } from 'react';
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 import { FormActions, PageAction } from '@components/Page';
 import {
   REGISTER_DEPLOYMENT_COPY as COPY,
@@ -102,7 +102,7 @@ export function DeploymentFlow({
     data.holdReads('deployment/request', working || uncertain);
     return () => data.holdReads('deployment/request', false);
   }, [working, uncertain, data.holdReads]);
-  useAutomaticReads({
+  useEntryReads({
     scope: active && owner ? data.scopeKey + '/deployment' : null,
     paused: data.readingPaused || working || uncertain,
     refresh,

@@ -3,6 +3,9 @@
 import { registerKey } from '@hooks/useRegisterAccess';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { awardsKey } from './shared/useRegisterAwards';
+import { grantsKey } from './shared/useRegisterGrants';
+import { allotmentsKey } from './useRegisterAllotments';
+import { registerHoldersKey } from '@hooks/useRegisterClasses';
 
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
@@ -88,7 +91,12 @@ function show(onHeldChange?: (token: string, held: boolean) => void) {
 
 beforeEach(() => {
   window.history.replaceState({}, '', '/company/ledger#awards');
-  client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false, refetchInterval: false },
+      mutations: { retry: false },
+    },
+  });
   appointments = [APPOINTMENT];
   awards = [];
   events = [];
@@ -563,9 +571,7 @@ it('retains original award, vesting and linked issue preparations through interr
   fillGrant();
   const beforeDraftPoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
-  await waitFor(() =>
-    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length).toBeGreaterThan(beforeDraftPoll),
-  );
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeDraftPoll);
   expect(((await screen.findByLabelText(GRANT.SHARES)) as HTMLInputElement).value).toBe('10');
   expect((screen.getByLabelText(GRANT.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('2026-10-06');
   expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
@@ -690,9 +696,11 @@ it('retains original award, vesting and linked issue preparations through interr
   );
   const beforeFocusRead = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
   fireEvent(window, new Event('focus'));
-  await waitFor(() =>
-    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length).toBeGreaterThan(beforeFocusRead),
-  );
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeFocusRead);
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true });
+    await client.invalidateQueries({ queryKey: grantsKey(OWNER, REGISTER.token.uuid), exact: true });
+  });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   slowReads = true;
   fireEvent.click(await screen.findByRole('button', { name: /^Recover record issue receipt/ }));
@@ -726,6 +734,16 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeAutomaticRead);
   visibility.mockReturnValue(false);
   fireEvent(document, new Event('visibilitychange'));
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeAutomaticRead);
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true });
+    await Promise.all(
+      [grantsKey(OWNER, REGISTER.token.uuid), allotmentsKey(OWNER, REGISTER.token.uuid)].map((queryKey) =>
+        client.invalidateQueries({ queryKey, exact: true }),
+      ),
+    );
+    await client.invalidateQueries({ queryKey: registerHoldersKey(OWNER) });
+  });
   await waitFor(() =>
     expect(
       within(
@@ -742,11 +760,16 @@ it('retains original award, vesting and linked issue preparations through interr
   allotmentsFailed = false;
   const beforeVisiblePoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
-  await waitFor(() =>
-    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length).toBeGreaterThan(
-      beforeVisiblePoll,
-    ),
-  );
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeVisiblePoll);
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true });
+    await Promise.all(
+      [grantsKey(OWNER, REGISTER.token.uuid), allotmentsKey(OWNER, REGISTER.token.uuid)].map((queryKey) =>
+        client.invalidateQueries({ queryKey, exact: true }),
+      ),
+    );
+    await client.invalidateQueries({ queryKey: registerHoldersKey(OWNER) });
+  });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(issues.queryByText('External allotments could not be loaded.')).toBeNull();
   const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
@@ -756,6 +779,16 @@ it('retains original award, vesting and linked issue preparations through interr
   grantsFailed = true;
   online.mockReturnValue(true);
   fireEvent(window, new Event('online'));
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeOfflinePoll);
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true });
+    await Promise.all(
+      [grantsKey(OWNER, REGISTER.token.uuid), allotmentsKey(OWNER, REGISTER.token.uuid)].map((queryKey) =>
+        client.invalidateQueries({ queryKey, exact: true }),
+      ),
+    );
+    await client.invalidateQueries({ queryKey: registerHoldersKey(OWNER) });
+  });
   await issues.findByText('Non-paid issues could not be loaded.');
   expect(issues.queryByText('Shares issued')).toBeNull();
   grantsFailed = false;

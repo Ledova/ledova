@@ -3,7 +3,7 @@ import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useEffect, useState } from 'react';
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
   useWalletNomination,
@@ -74,7 +74,7 @@ export function WalletNomination({
     onHeldChange(active && (data.readingPaused || !!proofOpen));
     return () => onHeldChange(false);
   }, [active, data.readingPaused, proofOpen, onHeldChange]);
-  useAutomaticReads({
+  useEntryReads({
     scope: active && data.owner ? data.scopeKey : null,
     paused: data.readingPaused || !!proofOpen,
     refresh: data.refresh,

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
-export function useAutomaticReads({
+export function useEntryReads({
   scope,
   paused,
   refresh,
@@ -20,7 +20,7 @@ export function useAutomaticReads({
     let running = false;
     let pending = true;
     let scheduled: number | undefined;
-    const available = () => live && !current.current.paused && !document.hidden && navigator.onLine !== false;
+    const available = () => live && !current.current.paused;
     const schedule = (delay = 0) => {
       if (scheduled !== undefined || running || !available()) return;
       scheduled = window.setTimeout(() => {
@@ -44,25 +44,13 @@ export function useAutomaticReads({
         if (pending) schedule(250);
       }
     };
-    const request = () => {
-      pending = true;
-      schedule();
-    };
     resume.current = () => {
       if (pending) schedule();
     };
-    const interval = window.setInterval(request, 60_000);
-    window.addEventListener('focus', request);
-    window.addEventListener('online', request);
-    document.addEventListener('visibilitychange', request);
     schedule();
     return () => {
       live = false;
       if (scheduled !== undefined) window.clearTimeout(scheduled);
-      window.clearInterval(interval);
-      window.removeEventListener('focus', request);
-      window.removeEventListener('online', request);
-      document.removeEventListener('visibilitychange', request);
       resume.current = () => {};
     };
   }, [scope]);

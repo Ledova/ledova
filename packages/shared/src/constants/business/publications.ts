@@ -109,8 +109,6 @@ export function resolutionStatus(
 
 export const LONGEST_TIMER_DELAY = 2 ** 31 - 1;
 
-export const PUBLICATION_SUMMARY_REFRESH_INTERVAL = 5 * 60 * 1000;
-
 export function nextResolutionBoundary(
   publication: Pick<Publication, 'opensAt' | 'closesAt' | 'result'>,
   now: Date,

@@ -18,7 +18,7 @@ export function useIdentityVerificationStatus(justSubmitted: boolean) {
     gcTime: CACHE_TIMING.LONG_GC_TIME,
     retry: 1,
     refetchOnWindowFocus: false,
-    refetchOnReconnect: true,
+    refetchOnReconnect: justSubmitted,
 
     refetchInterval: (query) => {
       if (!justSubmitted) return false;

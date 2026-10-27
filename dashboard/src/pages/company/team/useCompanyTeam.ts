@@ -219,51 +219,6 @@ export function useCompanyTeam({
       throw new Error('Your company appointment changed. Reopen the invitation and select a current source.');
   };
   const companyName = companies.find(([uuid]) => uuid === company)?.[1] ?? context?.company?.name ?? '';
-  useEffect(() => {
-    if (!refreshReady) return;
-    let live = true;
-    let running = false;
-    const available = () => live && !document.hidden && navigator.onLine !== false;
-    const refresh = async () => {
-      if (!available() || running) return;
-      running = true;
-      try {
-        guard();
-        await own.refetch({ cancelRefetch: false });
-        if (!available()) return;
-        guard();
-        const authority = client.getQueryState(ownAppointmentsKey(owner));
-        if (authority?.status !== 'success' || authority.fetchStatus !== 'idle') return;
-        await invitations.refetch({ cancelRefetch: false });
-        if (!available()) return;
-        guard();
-        const current = client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [];
-        if (
-          company &&
-          current.some(
-            (item) => item.company === company && currentAppointment(item) && item.capabilities.includes('admin'),
-          )
-        )
-          await team.refetch({ cancelRefetch: false });
-      } catch {
-        return;
-      } finally {
-        running = false;
-      }
-    };
-    const request = () => void refresh();
-    const interval = window.setInterval(request, 60_000);
-    window.addEventListener('focus', request);
-    window.addEventListener('online', request);
-    document.addEventListener('visibilitychange', request);
-    return () => {
-      live = false;
-      window.clearInterval(interval);
-      window.removeEventListener('focus', request);
-      window.removeEventListener('online', request);
-      document.removeEventListener('visibilitychange', request);
-    };
-  }, [refreshReady, client, owner, company, guard, own.refetch, invitations.refetch, team.refetch]);
   return {
     guard,
     company,

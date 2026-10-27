@@ -13,7 +13,7 @@ import { useLaterPages } from './useLaterPages';
 
 const NOTIFICATIONS_LIST_KEY = ['notifications', 'list'];
 
-export function useNotifications() {
+export function useNotifications({ refetchInterval = 60 * 1000 }: { refetchInterval?: number | false } = {}) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
 
@@ -21,7 +21,7 @@ export function useNotifications() {
     queryKey: ['notifications', 'unread-count'],
     queryFn: () => getUnreadNotificationCount(apiClient),
     staleTime: CACHE_TIMING.VERY_SHORT_STALE_TIME,
-    refetchInterval: 60 * 1000,
+    refetchInterval,
   });
 
   const notificationsQuery = useInfiniteQuery({
@@ -68,6 +68,7 @@ export function useNotifications() {
     isLoadingNotifications: notificationsQuery.isLoading || notificationsQuery.isFetching,
     notificationsFailed: pages.hasError,
     fetchNotifications: notificationsQuery.refetch,
+    refreshUnreadCount: unreadCountQuery.refetch,
     hasMoreNotifications: notificationsQuery.hasNextPage,
     isLoadingMoreNotifications: notificationsQuery.isFetchingNextPage,
     moreNotificationsFailed: pages.moreFailed,

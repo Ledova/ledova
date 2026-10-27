@@ -1,4 +1,4 @@
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 import { useCallback, useEffect } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Disclosure, Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
@@ -274,7 +274,7 @@ export function CompanyCapitalFlow({
     data.holdReads('capital/request', commands.working || !!commands.recovery);
     return () => data.holdReads('capital/request', false);
   }, [commands.working, commands.recovery, data.holdReads]);
-  useAutomaticReads({
+  useEntryReads({
     scope: active && commands.owner ? data.scopeKey + '/capital' : null,
     paused: data.readingPaused || commands.readingPaused,
     refresh: commands.refresh,
