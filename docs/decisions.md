@@ -1279,6 +1279,14 @@ economic value or fully diluted ownership. Named-holder and class-rights disclos
 decisions; mobile presentation is unchanged. This does not replace the company's legal register or
 lawful access arrangements.
 
+The owner then requested explicit **Your shares** and **Company ownership** views, usable for both
+single-company shareholders and a local Taylor demo linked to three companies. Your shares is the
+default; the existing searchable Company selector appears only for multiple companies and starts
+with the first available association. Both views
+remain company-bound, with no invented cross-company ownership percentage. Ordinary revalidation
+preserves the view choice; an account/company change or unavailable sharing returns to Your shares.
+The choice stays in memory and uses the existing member-read lifecycle.
+
 ### Dashboard, Settings and Register for a new company
 
 On 19 October 2026 the owner decided

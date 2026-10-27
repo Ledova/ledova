@@ -68,6 +68,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   let associated = false;
   let currentMemberRecord: OwnMemberRecord = MEMBER_RECORD;
+  let additionalRecords: OwnMemberRecord[] = [];
   let holdMemberRecord = false;
   let refused = false;
   let preferencesRefused = false;
@@ -112,7 +113,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     uuid: '56565656-5656-4565-8565-565656565656',
     token: '78787878-7878-4787-8787-787878787878',
   };
-  api.get.mockReset().mockImplementation(async (url) => {
+  api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') {
       if (preferencesRefused)
         throw Object.assign(new Error('Current preferences refused'), { response: { status: 404 } });
@@ -129,7 +130,14 @@ it('invites and associates a walletless member, recovers one exact request and r
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current member access refused'), { response: { status: 404 } });
-      return page(associated ? [currentMemberRecord] : []);
+      const current = client.getQueryData<{ data: typeof preferences }>(USER_PREFERENCES_QUERY_KEY)?.data;
+      return page(
+        associated &&
+          current?.userProfile === preferences.userProfile &&
+          current.userAccount.uuid === preferences.userAccount.uuid
+          ? [currentMemberRecord, ...additionalRecords]
+          : [],
+      );
     }
     if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) {
       const response = { data: currentMemberRecord };
@@ -141,9 +149,13 @@ it('invites and associates a walletless member, recovers one exact request and r
       }
       return response;
     }
+    const additional = additionalRecords.find((record) => url === URLS.MEMBER_RECORD(record.uuid));
+    if (additional) return { data: additional };
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
-    if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
-    if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
+    if (url === URLS.MEMBER_PARTICULARS_REQUESTS)
+      return page(additionalRecords.some((record) => record.uuid === config?.params?.association) ? [] : particulars);
+    if (url === URLS.MEMBER_CERTIFICATE_REQUESTS)
+      return page(additionalRecords.some((record) => record.uuid === config?.params?.association) ? [] : certificates);
     if ([FULFILLED_CERTIFICATE.uuid, otherCertificate.uuid].some((uuid) => url === URLS.MEMBER_CERTIFICATE_FILE(uuid)))
       return { data: pdf };
     if (url === URLS.MEMBER_CERTIFICATE_PREVIEW(FULFILLED_CERTIFICATE.uuid))
@@ -415,7 +427,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     },
     otherCertificate,
   );
-  render(
+  const memberPages = (
     <MemberRecordsProvider>
       <nav>
         <Link to="/home">Dashboard</Link>
@@ -426,10 +438,12 @@ it('invites and associates a walletless member, recovers one exact request and r
         <Route path="/home" element={<MemberRecordsPage />} />
         <Route path="/settings" element={<CompanyRecordedDetails />} />
       </Routes>
-    </MemberRecordsProvider>,
-    { wrapper },
+    </MemberRecordsProvider>
   );
+  const memberView = render(memberPages, { wrapper });
   await screen.findByText('10 issued shares');
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
+  expect(screen.queryByRole('group', { name: 'Ownership view' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
   expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
   expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
@@ -479,6 +493,9 @@ it('invites and associates a walletless member, recovers one exact request and r
   const ownDetailKey = ['member-records', 'profile-one', 'account-one', 0, MEMBER_RECORD.uuid];
   currentMemberRecord = { ...MEMBER_RECORD, ownership };
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
+  expect((await screen.findByRole('button', { name: 'Your shares' })).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.queryByRole('heading', { name: 'Company ownership' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
   const companyOverview = (await screen.findByRole('heading', { name: 'Company ownership' })).closest('section')!;
   expect(screen.getByRole('region', { name: 'Company ownership summary' }).textContent).toContain('1,500');
   expect(within(companyOverview).getByText('1.00% of class')).toBeTruthy();
@@ -488,6 +505,26 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(preference.getAttribute('aria-pressed')).toBe('true');
   fireEvent.click(preference);
   expect(preference.getAttribute('aria-pressed')).toBe('false');
+  fireEvent.click(screen.getByRole('button', { name: 'Your shares' }));
+  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
+  await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
+  expect((await screen.findByRole('button', { name: 'Company ownership' })).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.getByRole('region', { name: 'Company ownership summary' }).textContent).toContain('1,500');
+  holdMemberRecord = true;
+  release = undefined;
+  let refreshing: Promise<void>;
+  await act(async () => {
+    refreshing = client.refetchQueries({ queryKey: ownDetailKey, exact: true });
+  });
+  await waitFor(() => expect(release).toBeTypeOf('function'));
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
+  await act(async () => {
+    release!();
+    await refreshing;
+  });
+  expect((await screen.findByRole('button', { name: 'Company ownership' })).getAttribute('aria-pressed')).toBe('true');
   expect(api.get.mock.calls.some(([url]) => url === URLS.OWNERSHIP)).toBe(false);
   currentMemberRecord = {
     ...MEMBER_RECORD,
@@ -504,6 +541,8 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
   currentMemberRecord = { ...MEMBER_RECORD, ownership };
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
+  expect((await screen.findByRole('button', { name: 'Your shares' })).getAttribute('aria-pressed')).toBe('true');
+  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
   await screen.findByRole('heading', { name: 'Company ownership' });
   preferencesRefused = true;
   await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
@@ -511,11 +550,82 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.queryByText('1,500')).toBeNull();
   preferencesRefused = false;
   await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Company ownership' }));
+  await screen.findByRole('heading', { name: 'Company ownership' });
+  await act(async () => {
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: { userProfile: 'other-profile', userAccount: { uuid: 'other-account', role: 'investor' } },
+    });
+  });
+  await screen.findByRole('heading', { name: 'Get access to your shares' });
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
+  await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences }));
+  expect((await screen.findByRole('button', { name: 'Your shares' })).getAttribute('aria-pressed')).toBe('true');
+  additionalRecords = [2, 3].map((number) => {
+    const uuid = `${number}aaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`;
+    const member = `${number}bbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`;
+    const company = {
+      ...MEMBER_RECORD.company,
+      uuid: `${number}ccccccc-cccc-4ccc-8ccc-cccccccccccc`,
+      name: `Company ${number}`,
+    };
+    const shareClass = {
+      ...MEMBER_RECORD.classes[0],
+      uuid: `${number}ddddddd-dddd-4ddd-8ddd-dddddddddddd`,
+      shares: `${number * 10}`,
+    };
+    return {
+      ...MEMBER_RECORD,
+      uuid,
+      member,
+      company,
+      classes: [shareClass],
+      awards: [],
+      ownership: {
+        ...ownership,
+        company: company.uuid,
+        companyName: company.name,
+        issuedSupply: `${number * 1000}`,
+        totalHolders: 2,
+        classes: [
+          {
+            ...ownership.classes[0],
+            uuid: shareClass.uuid,
+            issuedSupply: `${number * 1000}`,
+            ownShares: shareClass.shares,
+          },
+        ],
+      },
+    };
+  });
+  await act(async () => client.refetchQueries({ queryKey: ownDetailKey.slice(0, -1), exact: true }));
+  memberView.unmount();
+  render(memberPages, { wrapper });
+  await screen.findByText('10 issued shares');
+  expect(screen.getByRole('button', { name: 'Your shares' }).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.getByRole('combobox', { name: 'Company' })).toBeTruthy();
+  await choose('Company', 'Company 2');
+  await screen.findByText('20 issued shares');
+  expect(screen.getByRole('button', { name: 'Your shares' }).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
+  expect(screen.getByRole('region', { name: 'Company ownership summary' }).textContent).toContain('2,000');
+  expect(screen.queryByText('1,500')).toBeNull();
+  await choose('Company', 'Company 3');
+  await screen.findByText('30 issued shares');
+  expect(screen.getByRole('button', { name: 'Your shares' }).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.queryByText('2,000')).toBeNull();
+  await choose('Company', MEMBER_RECORD.company.name);
+  await screen.findByText('10 issued shares');
+  expect(screen.getByRole('button', { name: 'Your shares' }).getAttribute('aria-pressed')).toBe('true');
+  additionalRecords = [];
+  await act(async () => client.refetchQueries({ queryKey: ownDetailKey.slice(0, -1), exact: true }));
+  await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull());
+  fireEvent.click(await screen.findByRole('button', { name: 'Company ownership' }));
   await screen.findByRole('heading', { name: 'Company ownership' });
   currentMemberRecord = { ...MEMBER_RECORD, ownership: null };
   holdMemberRecord = true;
   release = undefined;
-  let refreshing: Promise<void>;
   await act(async () => {
     refreshing = client.refetchQueries({ queryKey: ownDetailKey, exact: true });
   });
@@ -528,6 +638,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   });
   await screen.findByRole('img', { name: /Your issued shares by class/ });
   await waitFor(() => expect(screen.queryByRole('heading', { name: 'Company ownership' })).toBeNull());
+  expect(screen.queryByRole('group', { name: 'Ownership view' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
   const detailsCard = (await screen.findByRole('heading', { name: 'Current details' })).closest('section')!;
   expect(
