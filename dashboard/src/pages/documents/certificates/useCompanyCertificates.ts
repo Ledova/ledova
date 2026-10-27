@@ -169,7 +169,6 @@ export function useCompanyCertificates(
       : [],
     ready,
     sourceReady,
-    count: ready ? history.data?.pages[0]?.count : undefined,
     hasError: classes.isError || appointments.isError || register.isError || pages.hasError,
     isRefreshing: classes.isFetching || appointments.isFetching || register.isFetching || history.isFetching,
     retry: async () => {

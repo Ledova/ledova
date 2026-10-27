@@ -4,7 +4,6 @@ import {
   REGISTER_CORRECTION_COPY,
   formatDate,
   formatDateTime,
-  formatShareCount,
   searchRows,
   shareChange,
   type MemberCertificateRequest,
@@ -32,7 +31,6 @@ export type CompanyCertificateSource = {
   guard: () => void;
   sourceReady: boolean;
   readReady: boolean;
-  count?: number;
   more: { hasMore: boolean; failed: boolean; loading: boolean; onLoad: () => unknown };
 };
 type CertificateRecord = { uuid: string; company?: RegisterEntry; own?: OwnMemberEntry };
@@ -104,11 +102,6 @@ export function CertificateRecords({
     (b.company?.recordedAt ?? b.own?.createdAt ?? '').localeCompare(a.company?.recordedAt ?? a.own?.createdAt ?? ''),
   );
   const filtered = !!filters.search || filters.status !== 'all';
-  const count = company
-    ? Number.isSafeInteger(company.count)
-      ? company.count! + extras.length
-      : undefined
-    : ordered.length;
   const otherRequests = requests.filter(
     (request) => request.token !== selectedClass?.uuid || !records.has(request.entry),
   );
@@ -132,12 +125,9 @@ export function CertificateRecords({
   );
   return (
     <>
-      {filtered && count !== undefined && (
+      {filtered && ordered.length === 0 && (
         <p role="status" className="text-sm text-text-muted">
-          {count === 0
-            ? 'No certificate records match'
-            : `${formatShareCount(String(count))} certificate ${count === 1 ? 'record matches' : 'records match'}`}{' '}
-          these filters.
+          No certificate records match these filters.
         </p>
       )}
       {ordered.length === 0 && !filtered && (

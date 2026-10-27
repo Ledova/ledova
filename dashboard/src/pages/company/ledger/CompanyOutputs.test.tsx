@@ -280,7 +280,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
   records = await screen.findByRole('list', { name: 'Certificate records' });
   await within(records).findByText('Earlier shareholder');
-  expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Filters, 2 active/ }));
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Filters' }));
   expect(within(records).queryByText(MEMBER_RECORD.name)).toBeNull();
   expect(within(records).queryByText('Other shareholder')).toBeNull();
   expect(api.get).toHaveBeenCalledWith(

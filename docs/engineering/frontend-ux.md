@@ -222,12 +222,12 @@ preparation belongs in Documents. Keep maintenance controllers mounted so unfini
 survive navigation. Documents has one **Certificates** page for company and member records, plus
 **Ledger exports** and **Company pack** where company access permits them. Certificates and Ledger
 exports show one selected class, with a **Share class** selector only when there is more than one.
-Certificates keeps the selected class visible in the collection heading. One **Filters** popover
-groups class selection, shareholder search and certificate status, with an active count and summary
-visible when closed. Fields are drafts until **Apply** updates the URL; **Clear** removes search
-and status while keeping the class. Filter the complete
-permitted history, not just loaded rows, and keep older or other-class requests outside these entry
-filters.
+Certificates keeps the class visible in each record and in its filter panel. An icon button named
+**Filters**, with a tooltip, opens the popover for class selection, shareholder search and certificate
+status. The collection heading has no repeated filter summary or match-count line. Fields are drafts
+until **Apply** updates the URL; **Clear** removes search and status while keeping the class. Filter
+the complete permitted history, not just loaded rows, and keep older or other-class requests outside
+these entry filters.
 Company pack stays at company scope. Each uses the existing workspace frame, cards, responsive
 field grid and action footer, opening one focused main-page preparation at a time. Certificate
 preparation uses the existing labelled summary rows for share movements, company date and PDF page
@@ -727,9 +727,10 @@ server:
   a search or filter applies, a polite status line counts the matches, such as "3 applications match
   your search" or "No applications match".
 - **Compact filters:** secondary filters may share one **Filters** button and anchored popover;
-  a search central to the page's main task stays visible. Keep the applied scope and a compact
-  active count or summary visible outside the panel. Use labelled controls and one Clear/Apply
-  row. Edits remain drafts until Apply; incidental dismissal retains them without changing results.
+  a search central to the page's main task stays visible. The button may use an icon with an
+  accessible name and tooltip. The controls and record rows can identify the applied scope without
+  repeating it in a header summary or badge. Use labelled controls and one Clear/Apply row.
+  Edits remain drafts until Apply; incidental dismissal retains them without changing results.
   Apply and Clear close the panel and return focus to its button. Escape and an outside click
   dismiss it, and all controls remain keyboard accessible. Fit the panel within the viewport,
   scrolling inside when needed rather than overflowing or shifting the table. Applying filters
