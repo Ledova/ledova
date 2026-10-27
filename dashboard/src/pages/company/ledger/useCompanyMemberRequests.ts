@@ -45,7 +45,6 @@ export function useCompanyMemberRequests({
     undefined,
     sourceReady,
     particularsKey(owner, company),
-    'email',
   );
   const guardRecipients = () => {
     guard();

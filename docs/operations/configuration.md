@@ -234,7 +234,8 @@ provider's results, scores and callbacks are read is in
 
 With `SENDGRID_API_KEY` set, mail goes to SendGrid with click tracking turned off for each
 message, so a link keeps its `#` fragment (the member invitation code) whatever the account's
-tracking setting, and an invalid or missing `SENDGRID_API_URL` fails each send and logs the error. Without a key, mail goes through Django's email backend: the
+click-tracking setting, and an invalid or missing `SENDGRID_API_URL` fails each send and logs the
+error. Without a key, mail goes through Django's email backend: the
 console backend with `DEBUG=true`, which prints sign-up verification and member invitation emails
 to the private backend log, and SMTP with Django's defaults otherwise. Local walkthroughs use this
 mailbox without sending to external recipients. Keep its invitation links private. Member

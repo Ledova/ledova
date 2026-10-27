@@ -12,7 +12,6 @@ MOBILE_ACCEPTED = {
     ("brace-expansion", "GHSA-6j4f-fj2g-mc7p"),
     ("brace-expansion", "GHSA-q2hr-2g5m-vwhr"),
     ("brace-expansion", "GHSA-qhr7-859c-m2p7"),
-    ("elliptic", "GHSA-848j-6mx2-7j84"),
     ("image-size", "GHSA-5p2g-fcmc-qvqq"),
     ("image-size", "GHSA-w3rx-r6r6-pgpr"),
     ("node-forge", "GHSA-86w9-cpqp-85rv"),

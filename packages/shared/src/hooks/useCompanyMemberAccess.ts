@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import {
-  createMemberInvitation,
   sendMemberInvitationEmail,
-  getMemberInvitation,
   getMemberInvitations,
   getMemberAssociations,
   getMemberParticularsRequests,
@@ -46,7 +44,6 @@ export function useCompanyMemberAccess(
   session?: OrderSubmissionSession,
   sourceReady = true,
   particularsQueryKey?: QueryKey,
-  invitationDelivery: 'code' | 'email' = 'code',
 ) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -58,7 +55,6 @@ export function useCompanyMemberAccess(
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState<Command | null>(null);
-  const [code, setCode] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [invitationReceipt, setInvitationReceipt] = useState('');
   const [certificateTarget, setCertificateTarget] = useState<{
@@ -77,7 +73,6 @@ export function useCompanyMemberAccess(
   }, []);
   useEffect(() => {
     setRetry(null);
-    setCode(null);
     setNotice('');
     setInvitationReceipt('');
     setCertificateTarget(null);
@@ -205,7 +200,7 @@ export function useCompanyMemberAccess(
     await queue.refetch({ throwOnError: true });
     if (adminAppointment(currentAppointments())) await access.refetch({ throwOnError: true });
   };
-  const execute = async (command: Command, recovering = false) => {
+  const execute = async (command: Command) => {
     if (pending.current) return;
     pending.current = true;
     setBusy(true);
@@ -225,21 +220,8 @@ export function useCompanyMemberAccess(
         throw new Error('Your exact company appointment changed. Refresh before continuing.');
       setRetry(command);
       if (command.kind === 'invite') {
-        let response;
-        if (recovering && invitationDelivery === 'code') {
-          try {
-            response = await getMemberInvitation(api, command.payload.operationId, config(check));
-          } catch (failure) {
-            if (failureStatus(failure) !== 404) throw failure;
-          }
-        }
-        response ??= await (invitationDelivery === 'email' ? sendMemberInvitationEmail : createMemberInvitation)(
-          api,
-          command.payload,
-          config(check),
-        );
+        const { data } = await sendMemberInvitationEmail(api, command.payload, config(check));
         check();
-        const data = response.data;
         if (
           data.uuid !== command.payload.operationId ||
           data.company !== company ||
@@ -248,20 +230,10 @@ export function useCompanyMemberAccess(
           data.intendedEmail.toLowerCase() !== command.payload.intendedEmail.toLowerCase()
         )
           throw new Error('The invitation result does not match the original request.');
-        if (invitationDelivery === 'email' && (!('emailDelivery' in data) || data.emailDelivery !== 'accepted'))
+        if (data.emailDelivery !== 'accepted')
           throw new Error('The invitation email could not be confirmed. Retry the original action.');
-        const receivedCode = invitationDelivery === 'code' && 'code' in data ? data.code : null;
-        if (receivedCode !== null && (typeof receivedCode !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(receivedCode)))
-          throw new Error('The one-time invitation code could not be confirmed.');
-        setCode(receivedCode);
         setInvitationReceipt(data.uuid);
-        setNotice(
-          invitationDelivery === 'email'
-            ? 'The invitation email was accepted for sending. Awaiting the recipient’s acceptance.'
-            : receivedCode
-              ? 'Invitation recorded. Copy the one-time code now and share it privately with the intended recipient.'
-              : 'The invitation is recorded. Its code is unavailable on recovery; use the original code or issue a new invitation if it was lost.',
-        );
+        setNotice('The invitation email was accepted for sending. Awaiting the recipient’s acceptance.');
       } else if (command.kind === 'revoke') {
         const { data } = await revokeMemberAssociation(api, command.uuid, command.payload, config(check));
         check();
@@ -402,7 +374,6 @@ export function useCompanyMemberAccess(
     access: accessReady ? access.data : null,
     busy,
     retry,
-    code: accessReady ? code : null,
     notice: readable ? notice : '',
     invitationReceipt: accessReady ? invitationReceipt : '',
     readFailed,
@@ -435,6 +406,6 @@ export function useCompanyMemberAccess(
         uuid,
         payload: { operationId: newKey(), appointment: prepare.uuid, supportingEvidence, asAt, reason },
       }),
-    recover: () => retry && execute(retry, true),
+    recover: () => retry && execute(retry),
   };
 }

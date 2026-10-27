@@ -30,18 +30,22 @@ class DependencyAuditTest(unittest.TestCase):
                 },
             },
             "vulnerabilities": {
-                "elliptic": {
-                    "name": "elliptic",
+                "node-forge": {
+                    "name": "node-forge",
                     "severity": "low",
                     "via": [
                         {
-                            "name": "elliptic",
+                            "name": "node-forge",
                             "severity": "low",
-                            "url": "https://github.com/advisories/GHSA-848j-6mx2-7j84",
+                            "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
                         }
                     ],
                 },
-                "hdkey": {"name": "hdkey", "severity": "low", "via": ["elliptic"]},
+                "@expo/code-signing-certificates": {
+                    "name": "@expo/code-signing-certificates",
+                    "severity": "low",
+                    "via": ["node-forge"],
+                },
             },
         }
         pip = {
@@ -88,21 +92,23 @@ class DependencyAuditTest(unittest.TestCase):
                                     "synthetic",
                                 )
         for package, identifier, severity in (
-            ("elliptic", "GHSA-cfgh-jmpq-rvwx", "low"),
-            ("different-package", "GHSA-848j-6mx2-7j84", "low"),
-            ("elliptic", "GHSA-848j-6mx2-7j84", "critical"),
+            ("node-forge", "GHSA-cfgh-jmpq-rvwx", "low"),
+            ("different-package", "GHSA-86w9-cpqp-85rv", "low"),
+            ("node-forge", "GHSA-86w9-cpqp-85rv", "critical"),
         ):
             changed = copy.deepcopy(npm)
-            changed["vulnerabilities"]["elliptic"]["via"][0].update(
+            changed["vulnerabilities"]["node-forge"]["via"][0].update(
                 name=package,
                 severity=severity,
                 url=f"https://github.com/advisories/{identifier}",
             )
-            if package != "elliptic":
-                renamed = changed["vulnerabilities"].pop("elliptic")
+            if package != "node-forge":
+                renamed = changed["vulnerabilities"].pop("node-forge")
                 renamed["name"] = package
                 changed["vulnerabilities"][package] = renamed
-                changed["vulnerabilities"]["hdkey"]["via"] = [package]
+                changed["vulnerabilities"]["@expo/code-signing-certificates"]["via"] = [
+                    package
+                ]
             with self.subTest(
                 package=package, identifier=identifier, severity=severity
             ):

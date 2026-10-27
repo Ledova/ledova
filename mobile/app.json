@@ -18,9 +18,7 @@
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "UIStatusBarStyle": "UIStatusBarStyleDarkContent",
-        "NSLocationWhenInUseUsageDescription": "Ledova uses your location in the optional identity-verification demo.",
-        "NSCameraUsageDescription": "Ledova uses the camera to scan wallet QR codes and in the optional identity-verification demo."
+        "UIStatusBarStyle": "UIStatusBarStyleDarkContent"
       }
     },
     "android": {
@@ -30,8 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "org.example.ledova",
-      "allowBackup": true,
-      "blockedPermissions": ["android.permission.RECORD_AUDIO"]
+      "allowBackup": true
     },
     "plugins": [
       [

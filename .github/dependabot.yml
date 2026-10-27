@@ -74,17 +74,6 @@ updates:
       - dependency-name: "@react-native-async-storage/*"
       - dependency-name: "@react-native-community/*"
       - dependency-name: jest-expo
-      # @noble/hashes 2 removed the ./sha256, ./sha512, ./ripemd160 and ./hmac
-      # subpath exports. Six imports across bip32.ts, seedDerivation.ts,
-      # localSigner.ts and secureKeyStorage.ts use them - the wallet derivation
-      # path. The mobile type-check does not catch it: the root npm ci puts
-      # @noble/hashes 1.8.0 in the repository root, TypeScript walks up to it when
-      # the exports lookup fails in mobile/node_modules, and passes against a copy
-      # Metro never bundles. Drop this when those imports move to /sha2.js,
-      # /legacy.js and /hmac.js and the derived addresses are checked against
-      # known vectors.
-      - dependency-name: "@noble/hashes"
-        update-types: ["version-update:semver-major"]
       # The ESLint 10 block from the root entry applies here too, and the root
       # entry does not reach this directory: `directory: /` covers packages/shared
       # and dashboard, the two root workspaces, while mobile has its own lockfile
@@ -106,15 +95,6 @@ updates:
       # Jest on 8 (#668). Drop this with the SDK upgrade that adopts Babel 8.
       - dependency-name: "@babel/core"
         update-types: ["version-update:semver-major"]
-      # jsdom 27 and later load ES-module-only packages that Jest cannot require
-      # under Node 22: @csstools/css-calc from 27.0.0, and @exodus/bytes from 27.4.
-      # VerificationFormModal.test.tsx then fails to run (#668, #677); 26.1.0
-      # passes. @types/jsdom moves with it. Drop both when Jest loads ES modules:
-      # Node 24.9+ or a transform.
-      - dependency-name: jsdom
-        versions: [">=27.0.0"]
-      - dependency-name: "@types/jsdom"
-        versions: [">=27.0.0"]
     groups:
       all:
         patterns: ["*"]

@@ -707,9 +707,10 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | `particulars`      | `tokens/services/member_events.py`, when a member's particulars change is applied or declined      | Nothing        |
 
 A notice of any other kind, including identity notices sent before they carried a type, stays
-where it is. The four member kinds go only to the member's current association, name the company
-and class but no quantities, and carry `record` (the association) with `company`, `award` or
-`token`. The mobile app opens publication notices and these four kinds, from its inbox or a tapped
+where it is. The four member kinds go only to the member's current association and name the
+company, with the class for certificate and holding notices, but no quantities. Each carries
+`record` (the association), with `company` for a certificate, `award` for a vesting and `token` for
+an issue. The mobile app opens publication notices and these four kinds, from its inbox or a tapped
 push ([mobile](mobile.md)). Push registration and its settings
 are in [configuration](../operations/configuration.md#push-notifications).
 

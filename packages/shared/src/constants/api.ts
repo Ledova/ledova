@@ -93,7 +93,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   MEMBER_CERTIFICATE_FULFIL: (uuid: string) => `/api/v1/tokens/member-certificate-requests/${uuid}/fulfil/` as const,
   MEMBER_CERTIFICATE_FILE: (uuid: string) => `/api/v1/tokens/member-certificate-requests/${uuid}/file/` as const,
   MEMBER_INVITATIONS: '/api/v1/tokens/member-invitations/',
-  MEMBER_INVITATION: (uuid: string) => `/api/v1/tokens/member-invitations/${uuid}/` as const,
   MEMBER_INVITATION_ACCEPT: '/api/v1/tokens/member-invitations/accept/',
   MEMBER_INVITATION_SEND_EMAIL: '/api/v1/tokens/member-invitations/send-email/',
   MEMBER_INVITATION_PREVIEW: '/api/v1/tokens/member-invitations/preview/',

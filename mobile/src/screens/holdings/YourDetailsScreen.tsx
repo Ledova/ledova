@@ -109,6 +109,7 @@ export function YourDetailsScreen() {
   const targets = change ? companies.filter((record) => !has(record, change)) : [];
   const send = () => {
     if (!change) return;
+    select('');
     setBatch({
       ...change,
       queue: targets.map((record) => ({ uuid: record.uuid, name: shortName(record.company.name) })),
