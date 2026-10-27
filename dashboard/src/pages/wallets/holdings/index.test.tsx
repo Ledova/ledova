@@ -14,6 +14,7 @@ import {
   COMPANY_ENDPOINTS,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   HOLDING_ASSET_TYPE,
+  ownMemberRecordsKey,
   USER_PREFERENCES_QUERY_KEY,
   WALLET_ENDPOINTS,
   type WalletHolding,
@@ -186,7 +187,7 @@ it('reads every wallet page and shows exact share totals with company/class name
   expect(within(detailOf(row)).getByText('Reserve')).toBeTruthy();
 });
 
-it('updates own shares and awards automatically, preserves drafts and selected history, and hides revoked records without an empty-ownership claim', async () => {
+it('updates ownership after invalidation, keeps active member workflows fresh and preserves drafts without showing revoked records', async () => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   let currentPreferences = preferences;
@@ -205,11 +206,20 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     awards: [],
   };
   let otherRecord = otherRecordWithShares;
-  const focusRead = async () => {
+  const refreshRead = async () => {
     const previous = api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length;
     await act(async () => {
-      fireEvent(window, new Event('focus'));
-      await new Promise((resolve) => window.setTimeout(resolve, 0));
+      if (
+        screen.queryByRole('heading', { name: 'Your documents', level: 1 }) ||
+        screen.queryByRole('heading', { name: 'Company-recorded details', level: 1 })
+      ) {
+        fireEvent(window, new Event('focus'));
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+      } else {
+        const key = ownMemberRecordsKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' });
+        await client.invalidateQueries({ queryKey: key, exact: true });
+        await client.invalidateQueries({ queryKey: key, predicate: (query) => query.queryKey.length > key.length });
+      }
     });
     expect(api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS).length).toBeGreaterThan(previous);
     await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -259,8 +269,15 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     </QueryClientProvider>,
   );
   await screen.findByText('No share changes yet.');
+  const activeReads = api.get.mock.calls.length;
+  await act(async () => {
+    fireEvent(window, new Event('focus'));
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+  });
+  await waitFor(() => expect(api.get.mock.calls.length).toBeGreaterThan(activeReads));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   record = MEMBER_RECORD;
-  await focusRead();
+  await refreshRead();
   await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
   expect(screen.queryByRole('button', { name: 'Ordinary · ORD' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
@@ -309,6 +326,8 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   expect(api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS)).toHaveLength(beforeHidden);
   visibility.mockReturnValue(false);
   fireEvent(document, new Event('visibilitychange'));
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS)).toHaveLength(beforeHidden);
+  await refreshRead();
   await ownShares('15');
   expect(screen.getByRole('img', { name: /0 unvested, 0 vested, awaiting issue, 5 issued from award/ })).toBeTruthy();
   const issuedAwardCard = screen.getByRole('heading', { name: 'Your employee awards' }).closest('section')!;
@@ -354,7 +373,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
       },
     ],
   };
-  await act(async () => vi.advanceTimersByTimeAsync(60_000));
+  await refreshRead();
   await screen.findByRole('img', {
     name: /1 unvested, 1 vested, awaiting issue, 1 issued from award, 1 unvested rights ended, 1 vested rights ended/,
   });
@@ -363,7 +382,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   record = { ...MEMBER_RECORD, classes: [] };
-  await focusRead();
+  await refreshRead();
   expect(await screen.findByText('No issued shares yet.')).toBeTruthy();
   await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
@@ -371,7 +390,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     ...record,
     awards: [{ ...MEMBER_RECORD.awards[0], vestedShares: '6', availableShares: '6' }],
   };
-  await focusRead();
+  await refreshRead();
   await screen.findByText('Your ownership records could not be loaded.');
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByText('No issued shares yet.')).toBeNull();
@@ -379,11 +398,11 @@ it('updates own shares and awards automatically, preserves drafts and selected h
     ...record,
     awards: [{ ...MEMBER_RECORD.awards[0], shares: '0', vestedShares: '0', availableShares: '0' }],
   };
-  await focusRead();
+  await refreshRead();
   await screen.findByText('Your ownership records could not be loaded.');
   expect(screen.queryByRole('img')).toBeNull();
   record = MEMBER_RECORD;
-  await focusRead();
+  await refreshRead();
   await ownShares('10');
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
@@ -406,11 +425,13 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
   expect(screen.queryByRole('heading', { name: 'Update requests' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
+  expect(((await screen.findByRole('textbox', { name: 'Requested name' })) as HTMLInputElement).value).toBe(
+    'Retained draft',
+  );
   await act(async () => {
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
   });
-  await focusRead();
+  await refreshRead();
   await waitFor(() =>
     expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft'),
   );
@@ -442,6 +463,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   expect(api.get.mock.calls.filter(([url]) => url === URLS.MEMBER_RECORDS)).toHaveLength(beforeOffline);
   online.mockReturnValue(true);
   fireEvent(window, new Event('online'));
+  await refreshRead();
   await screen.findByText('Your ownership records could not be loaded.');
   await waitFor(() => expect(screen.queryByText('Your issued shares')).toBeNull());
   expect(screen.queryByRole('img')).toBeNull();
@@ -457,16 +479,20 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   expect(screen.getByRole('list', { name: 'Share classes' })).toBeTruthy();
   includeOther = true;
   otherRecord = { ...otherRecordWithShares, classes: [] };
-  await focusRead();
+  await refreshRead();
   expect((screen.getByRole('combobox', { name: 'Your companies' }) as HTMLInputElement).disabled).toBe(false);
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
+  expect(((await screen.findByRole('textbox', { name: 'Requested name' })) as HTMLInputElement).value).toBe(
+    'Retained draft',
+  );
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await choose('Your companies', otherRecord.company.name);
   const leaveReview = await screen.findByRole('dialog', { name: 'Leave this page?' });
   fireEvent.click(within(leaveReview).getByRole('button', { name: 'Cancel' }));
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
+  expect(((await screen.findByRole('textbox', { name: 'Requested name' })) as HTMLInputElement).value).toBe(
+    'Retained draft',
+  );
   await chooseMemberCompany(otherRecord.company.name);
   await waitFor(() => expect(screen.getByRole('button', { name: 'Request update' })).toBeTruthy());
   fireEvent.click(screen.getByRole('button', { name: 'Request update' }));
@@ -490,9 +516,9 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   otherRecord = otherRecordWithShares;
-  await focusRead();
+  await refreshRead();
   detailRefused = true;
-  await focusRead();
+  await refreshRead();
   await screen.findByText('Your ownership records could not be loaded.');
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByText('Your issued shares')).toBeNull();
