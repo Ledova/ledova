@@ -477,9 +477,8 @@ repeat a write, upload or share issue.
 An unsuccessful read still offers an explicit Try again through `LoadError`; this is error recovery,
 not routine freshness work. Automatic recovery uses bounded retries with backoff or the view's
 read interval, never a tight retry loop. Apply this standard when building or refining a page;
-existing manual refresh controls elsewhere, including the deferred mobile work, are not evidence
-of a different convention. Commands that actually synchronise external systems remain distinct
-from refreshing a displayed list.
+existing manual refresh controls elsewhere are not evidence of a different convention. Commands
+that actually synchronise external systems remain distinct from refreshing a displayed list.
 
 ## Lists, figures and currency
 
@@ -857,8 +856,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   personal, company and account sections, keeping each editor's data and authority separate. One Account
   card holds relevant identity status, password, appearance and notifications; Manage account contains
   export and deletion. Payslip evidence lives with investor classification claims. Documents and Team
-  stay focused pages; Activation keeps its existing company workflow. Signup and native
-  Settings keep their own navigation.
+  stay focused pages; Activation keeps its existing company workflow. Signup and the mobile
+  Account tab keep their own navigation.
 - Profile on web: transaction alerts are the `transactionAlerts` field of the one preferences
   record (`useUserPreferences`, saved with a partial `POST` to `/api/user-preferences/`). On web, a
   confirmed preference save updates the current account cache without remounting Profile or
