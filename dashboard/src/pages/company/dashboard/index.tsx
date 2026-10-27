@@ -15,6 +15,7 @@ import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { GettingStarted } from './GettingStarted';
 import { OwnershipMetrics } from './OwnershipMetrics';
 import { OwnershipExplorer } from './OwnershipExplorer';
+import { OwnershipLoading } from './OwnershipLoading';
 import { useOwnership } from './useOwnership';
 import { LoadError, Loading } from '@components/Ledger';
 
@@ -62,6 +63,7 @@ function OwnDashboard({
   const appointments = useOwnAppointments(owner, guard);
   const location = useLocation();
   const entered = useRef('');
+  const revealed = useRef(new Set<string>());
   useEffect(() => {
     const wanted = location.state?.registerCompany;
     if (typeof wanted !== 'string' || entered.current === wanted || !classes.isSuccess || classes.isFetching) return;
@@ -126,7 +128,7 @@ function OwnDashboard({
         appointments.isPending ||
         (company && overview.isPending) ||
         (company && !fresh) ? (
-        <Loading>Loading the register…</Loading>
+        <OwnershipLoading />
       ) : companies.length === 0 ? (
         !gettingStarted && (
           <p className="py-3 text-sm text-text-muted">
@@ -154,6 +156,11 @@ function OwnDashboard({
             issuedSupply={summary.issuedSupply}
             selected={selected?.uuid ?? null}
             onSelect={select}
+            onRingReady={() => {
+              if (revealed.current.has(company.uuid)) return false;
+              revealed.current.add(company.uuid);
+              return true;
+            }}
             holders={holders.isSuccess && !holders.isFetching ? holders.data : undefined}
             loading={!!selected?.initialized && (holders.isPending || holders.isFetching)}
             error={holders.error}

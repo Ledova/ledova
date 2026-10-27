@@ -145,6 +145,10 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   const pendingHolders = new Promise<ReturnType<typeof holderPage>>((resolve) => {
     finishHolders = resolve;
   });
+  let finishOverview!: (response: { data: CompanyOwnershipSummary }) => void;
+  const pendingOverview = new Promise<{ data: CompanyOwnershipSummary }>((resolve) => {
+    finishOverview = resolve;
+  });
   const additional = Array.from({ length: 26 }, (_, index) => register(`class-${String(index).padStart(2, '0')}`, '1'));
   const inventory = () => (mode === 'many' ? [ordinary, preference, ...additional] : [ordinary, preference]);
   api.get.mockImplementation(async (url: string, config?: { params?: { search?: string; page?: number } }) => {
@@ -160,6 +164,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       );
     if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP) {
       if (mode === 'failed') throw new Error('Ownership read failed');
+      if (mode === 'pending-overview') return pendingOverview;
       const data = overview(
         mode === 'many'
           ? inventory()
@@ -202,6 +207,25 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(within(summary).getByText('Current shareholders').parentElement!.textContent).toBe('Current shareholders28');
   expect(api.get.mock.calls.some(([url]) => String(url).endsWith('/ownership-holders/'))).toBe(false);
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
+  expect(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' })).toBeTruthy();
+  mode = 'pending-overview';
+  let refreshingOverview!: Promise<void>;
+  await act(async () => {
+    refreshingOverview = client.refetchQueries({
+      queryKey: [...registerHoldersKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }), 'ownership'],
+      type: 'active',
+    });
+  });
+  expect(await screen.findByText('Loading the register…')).toBeTruthy();
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
+  expect(screen.queryByRole('list', { name: 'Share classes' })).toBeNull();
+  expect(screen.queryByText('9,007,199,254,741,000')).toBeNull();
+  mode = 'complete';
+  await act(async () => {
+    finishOverview({ data: overview([ordinary, preference]) });
+    await refreshingOverview;
+  });
+  expect(await screen.findByRole('region', { name: 'Company ownership summary' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' }));
   const holders = await screen.findByRole('list', { name: 'ordinary shares shareholders' });
   expect(within(holders).getByText('9,007,199,254,740,966')).toBeTruthy();
