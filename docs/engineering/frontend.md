@@ -515,7 +515,11 @@ use exact share arithmetic; only normalised drawing coordinates use JavaScript n
 represents issued share counts, not voting power or economic value.
 
 Ownership overviews read company-scoped aggregates, then fetch the selected class's holders with
-server-side search and paging. Do not fetch every shareholder in every class to draw an overview.
+server-side search and paging. The selected class uses one ranked horizontal bar list in the server's
+largest-first order, with exact quantities and within-class percentages always visible. Bars use the
+full class's issued shares on a shared 0–100% scale through search and paging; do not renormalise the
+visible subset, inflate tiny holdings or introduce an Other group. Do not fetch every shareholder in
+every class to draw an overview.
 Bind detail reads to the overview's register sequence; a changed sequence rereads the overview.
 Account, company and appointment guards and incomplete-read states remain in force; ownership reads
 share the owner-scoped holdings query family so ordinary register changes invalidate them together.
@@ -697,9 +701,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 
 - Company dashboard: `dashboard/src/pages/company/dashboard/useOwnership.ts` reads the selected
   company's exact ownership summary and sequence-bound holder pages. `OwnershipExplorer.tsx` in
-  that folder opens one class inline; `OwnershipRing.tsx` loads `ownershipChart.ts` for the ring.
-  The linked class list keeps every class accessible, with search and paging for long lists. The person's
-  own appointments (`useOwnAppointments`) give the status line and Getting
+  that folder opens one class inline; `OwnershipHolders.tsx` renders its ranked bars, and
+  `OwnershipRing.tsx` loads `ownershipChart.ts` for the ring. The linked class list keeps every class
+  accessible; the selected class's bar list keeps server search and paging. The person's own
+  appointments (`useOwnAppointments`) give the status line and Getting
   started, which reads the register step from the selected company's opened registers. Web tasks
   render only while incomplete; the existing parent condition hides the card when both tasks are
   complete.

@@ -1,16 +1,12 @@
 import { useEffect, useRef } from 'react';
-import {
-  formatShareCount,
-  shareCount,
-  sharePercentage,
-  type ClassOwnershipHolders,
-  type CompanyOwnershipSummary,
-} from '@ledova/shared';
-import { ListSearch, Pager, Table } from '@components/List';
+import { shareCount, sharePercentage, type ClassOwnershipHolders, type CompanyOwnershipSummary } from '@ledova/shared';
+import { ListSearch, Pager } from '@components/List';
 import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import type { ListParams } from '@hooks/useListParams';
 import { OwnershipOverview } from './OwnershipOverview';
+import { OwnershipHolders } from './OwnershipHolders';
+import { ownershipColor } from './ownershipColors';
 
 interface OwnershipExplorerProps {
   classes: CompanyOwnershipSummary['classes'];
@@ -104,39 +100,12 @@ export function OwnershipExplorer({
                 </p>
               ) : (
                 <>
-                  <Table
-                    caption={`${current.name} shareholders`}
-                    columns={[
-                      { label: 'Shareholder' },
-                      { label: 'Shares', align: 'right' },
-                      { label: `% of ${current.symbol}`, align: 'right' },
-                    ]}
-                  >
-                    {holders.results.map((holder) => (
-                      <tr key={holder.member}>
-                        <th scope="row" className="min-w-48 px-4 py-3 text-left font-medium text-text-primary">
-                          <span className="block break-words">{holder.name || 'Unnamed shareholder'}</span>
-                          <span aria-hidden="true" className="mt-2 block h-1.5 w-full max-w-56 bg-surface-tertiary">
-                            <span
-                              className="block h-full bg-brand-light"
-                              style={{
-                                width:
-                                  holders.issuedSupply === '0'
-                                    ? '0%'
-                                    : `${Number((BigInt(holder.balance) * 10000n) / BigInt(holders.issuedSupply)) / 100}%`,
-                              }}
-                            />
-                          </span>
-                        </th>
-                        <td className="px-4 py-3 text-right tabular-nums text-text-primary">
-                          {formatShareCount(holder.balance)}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-text-primary">
-                          {sharePercentage(holder.balance, holders.issuedSupply)}
-                        </td>
-                      </tr>
-                    ))}
-                  </Table>
+                  <OwnershipHolders
+                    holders={holders}
+                    name={current.name}
+                    symbol={current.symbol}
+                    color={ownershipColor(classes, current.uuid)}
+                  />
                   <Pager
                     label="Class shareholders"
                     list={list}
