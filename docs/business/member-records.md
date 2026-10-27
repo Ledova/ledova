@@ -98,23 +98,22 @@ private company decisions, financial documents and other members' parts of an en
 award is an entitlement, not a holding. Editing the personal Profile does not change the register;
 only a [particulars request](#particulars-requests) can.
 
-Choose **My shares** below the sidebar logo on web. Its **Dashboard** starts with **Your shares**:
-the member's own issued-share total, share-class count and a chart of their shares by class. Members
-linked to several companies start with the first available one. Select the company name in the
-ownership panel's header to search and change companies; a single-company member sees a plain
-company heading. Both dashboard views refer to that selected company, without combining
-shares or percentages across unrelated companies.
+The web **Dashboard** is one Ownership browser for all of the person's company relationships.
+Choose a company from its searchable list; a single company opens directly. The overview brings
+the person's own shares and the company information they may read together, without switching
+workspaces or profiles. Company and class selections stay in the address, with a breadcrumb and
+browser Back/Forward. Shares and percentages from unrelated companies are never combined.
 
 A company administrator can enable **Share ownership overview with members** in Settings → Profile →
-Edit company. It starts off. When enabled, the connected view selector in the panel header offers
-**Your shares** and **Company ownership**. The company view shows the company's
-issued-share total, shareholder count and all share classes, with the member's own quantity and
-percentage within each class. The company retains who last changed the setting and when. The overview
-shares no other holder's name, identifier, address, award, documents or entry details and grants no
-company appointment. The view choice survives an ordinary data refresh for the same company; changing
-company or account starts at Your shares. Turning sharing off or losing current association access
-removes the company view; own records remain separate. Incomplete or unopened registers withhold complete totals and the ring.
-The company's legal register and lawful inspection arrangements remain with the company.
+Edit company. It starts off. When enabled, the selected company's overview shows its issued-share
+total, shareholder count and share classes, alongside the member's own quantity and percentage
+within each class. Selecting a class shows the member's position, without reading other holders.
+The company retains who last changed the setting and when. The overview shares no other holder's
+name, identifier, address, award, documents or entry details and grants no company appointment.
+Turning sharing off or losing current association access removes the shared figures. Without that
+sharing, the overview shows only the person's own shares by class. Incomplete or unopened registers
+withhold complete company totals and the company ring. The company's legal register and lawful
+inspection arrangements remain with the company.
 
 These charts count issued shares, not voting power or value; different classes can carry different
 rights. Class-rights disclosure and mobile presentation of the shared overview remain separate work.

@@ -1,3 +1,4 @@
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
@@ -11,7 +12,13 @@ import { useIssuerPublications } from './useIssuerPublications';
 
 export default function IssuerPublicationsPage() {
   const [opening, setOpening] = useState<{ scope: string; company: string | undefined } | null>(null);
-  const companyRead = useCompanySelection({ ownedOnly: true, coordinatedReads: true, pausedScope: opening?.scope });
+  const context = useCompanyContext();
+  const companyRead = useCompanySelection({
+    ownedOnly: true,
+    coordinatedReads: true,
+    pausedScope: opening?.scope,
+    selectedUuid: context?.companyUuid ?? undefined,
+  });
   return (
     <CompanyPublications
       key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`}

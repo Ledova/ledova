@@ -163,7 +163,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
   `ledovaSubmissionGuard`, which `apiClient` checks, so a late reply cannot reach another account
-  (the owner key in `dashboard/src/pages/company/dashboard/index.tsx`, the guard in
+  (the owner key in `dashboard/src/pages/home/OwnershipBrowser.tsx`, the guard in
   `dashboard/src/pages/company/ledger/shared/useRegisterGrants.ts`). Mobile adds the session epoch
   ([session scope](mobile.md#session-scope)).
 - **API client.** Shared services take the axios instance first. Shared hooks read it with
@@ -280,8 +280,7 @@ non-company account that opens a sign-up step.
 
 `/` (`RootRedirect`) sends a signed-out visitor to sign in and an unfinished account into sign-up:
 to `/signup/company-registration` when the account may open company pages and its full name has more
-than one word, otherwise to `SIGNUP_RESUMES_AT`. A finished account opens the valid remembered workspace's Dashboard,
-or Company when current access permits it and My shares otherwise; a failed check offers Try again.
+than one word, otherwise to `SIGNUP_RESUMES_AT`. A finished account opens the unified Dashboard.
 Pending member invitations take precedence. Sign-in navigates to `/`.
 
 `ProtectedRoute` (`dashboard/src/routes/ProtectedRoute.tsx`) guards each signed-in route with its
@@ -300,18 +299,16 @@ entry's audience:
 The guard decides pages, not data: the API decides which rows a person sees, answering 404 for a
 refused row.
 
-The web frame separates Company and My shares through the selector below the sidebar logo,
-also in the phone drawer. `WorkspaceProvider` (`dashboard/src/components/WorkspaceProvider.tsx`)
-shares the selected context with the frame and pages; `useWorkspace` (`dashboard/src/hooks/useWorkspace.ts`)
-reads it. Browser storage (`dashboard/src/services/workspace.ts`) remembers only the mode, keyed by
-current person and account. Company availability follows current register, appointment and company
-access; My shares keeps own records and any company-enabled aggregate ownership overview, including
-its empty state. Choosing a workspace changes
-neither account audience nor authority. Explicit routes (`dashboard/src/utils/workspace.ts`) select
-company or personal context; shared Profile keeps the active choice. Temporary access reads preserve
-the selected context, and a settled refusal invalidates a remembered Company choice.
-Switching confirms before discarding an edited, still-open form; held Ledger work prevents switching.
-The confirmation is bound to the current account and location.
+The web frame has no workspace selector or remembered company/personal mode.
+`CompanyContextProvider` (`dashboard/src/components/CompanyContextProvider.tsx`) and
+`useCompanyContext` (`dashboard/src/hooks/useCompanyContext.ts`) share the selected company with the
+Dashboard and task navigation. The address's `company` query identifies it; an explicit record's
+company context takes precedence. A single company opens directly. Company relationships come from
+current company access, appointments and real member associations, including draft companies with
+no classes. Selection changes neither account audience nor authority.
+Company changes and return to the company list confirm before discarding an edited, still-open
+form; held Ledger work prevents those changes. The confirmation is bound to the current account
+and location. Authorised deep links and invitations remain usable without visiting Dashboard first.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
 `companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
@@ -325,22 +322,23 @@ same caret pattern for ESS, Member access and Member requests. Documents uses th
 Certificates, Ledger exports and Company pack. Its label opens Certificates, the default child;
 the legacy company `#documents` hash opens Certificates too. A group without a meaningful overview
 opens its default child, without a separate Overview page or duplicate page navigation.
-Settings uses the same one-level pattern: Profile in both workspaces, company Documents, Team and
-Activation in Company, and Company-recorded details in My shares when linked. Its default is Profile (`/settings#profile`), combining personal details,
-company information in Company and one shared compact Account card for identity status, password,
-appearance and notifications. These sections keep their separate records, editors and authority checks. Existing
+Settings uses the same one-level pattern: Profile, company Documents, Team and Activation where
+permitted, and Company-recorded details where a member association exists. Its default is Profile
+(`/settings#profile`), combining personal details, permitted company information and one compact
+Account card for identity status, password, appearance and notifications. These sections keep their separate records, editors and authority checks. Existing
 `/user-profile`, `/company` and `/settings#account` links redirect to Profile; company source documents
 remain at `/company#documents`, separate from the generated outputs in the top-level Documents group.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
-Team remains available for company-invitation acceptance; My shares Profile keeps an acceptance
-entry under Manage account before Company access is granted. Company-recorded member particulars
+Team remains available for company-invitation acceptance; Profile keeps an acceptance
+entry under Manage account before company access is granted. Company-recorded member particulars
 stay at `/settings#company-recorded-details`. Company eligibility, Published to your members and
-Offerings stay under Company More; personal Notices, Activity, Wallets and permitted investing pages
-stay under My shares More. Team keeps Representative authority as a contextual task, with its existing owner
+Offerings stay under More; personal Notices, Activity, Wallets and permitted investing pages
+stay under More. Team keeps Representative authority as a contextual task, with its existing owner
 and audience checks.
-Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
-stay siblings in Company. My shares shows only its personal Dashboard, Documents and Settings;
-its investing group follows the investing role and Market `trading_enabled` ([the app at a
+Each group opens on its routes and marks the active destination. Ledger, Shareholders and company
+Documents stay siblings where the selected company's current access permits them. Mixed-role
+accounts name personal certificates explicitly, rather than selecting them through a hidden mode.
+The investing group follows the investing role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). Direct Settings children have their own active item
 and omit Back to Settings; a contextual page marks its nearest sidebar parent, such as Team
 on Representative authority and Shareholders on a shareholder's page. The register hashes switch the
@@ -526,7 +524,7 @@ Account, company and appointment guards and incomplete-read states remain in for
 share the owner-scoped holdings query family so ordinary register changes invalidate them together.
 Do not introduce periodic dashboard polling. Unopened classes withhold company
 totals and the ring; an inconsistent read withholds the overview. These rules are checked in review
-and the existing company-dashboard journey, within the dashboard suite cap.
+and the existing Ownership browser journey, within the dashboard suite cap.
 
 The member Dashboard receives an optional aggregate ownership summary within its existing
 association-bound record read. Sharing is off by default and changed only through current company
@@ -581,10 +579,12 @@ The server side, including how identical and changed retries are answered, is th
   receipt check;
 - copy with a sentence for every requirement a decision can leave unmet.
 
-The web's base class and holder reads in `dashboard/src/pages/company/shared/useCompanyRegister.ts`
-receive the controller's original owner guard from `dashboard/src/pages/company/shared/ownerGuard.ts`.
-They check it before and after each request and pass it as `ledovaSubmissionGuard`, so a late reply
-after an account change or reauthentication is discarded. Query keys and cache timing stay unchanged.
+The web's base class read in `dashboard/src/hooks/useRegisterClasses.ts` and holder reads in
+`dashboard/src/pages/company/shared/useCompanyRegister.ts` receive their caller's original owner
+guard. Company register controllers use `dashboard/src/pages/company/shared/ownerGuard.ts`.
+The reads check the guard before and after each request and pass it as `ledovaSubmissionGuard`, so
+a late reply after an account change or reauthentication is discarded. Query keys and cache timing
+stay unchanged.
 
 The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
 `/company/ledger/setup`; import, correction, opening and transfer under `/company/ledger/:uuid/`
@@ -690,8 +690,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 
 | Page and business section                                                                           | Routes                                                                                                                                                                               | Audience  |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| [Company dashboard](../business/README.md#the-app-at-a-glance)                                      | `/company/dashboard` (web only)                                                                                                                                                      | everyone  |
-| [Personal dashboard](../business/member-records.md#what-a-member-can-read)                          | `/home`, `/home#documents`, alias `/member-records`                                                                                                                                  | everyone  |
+| [Dashboard](../business/README.md#the-app-at-a-glance)                                              | `/home`, `/company/dashboard` (web alias); company/class query context                                                                                                                | everyone  |
+| [Personal documents](../business/member-records.md#what-a-member-can-read)                          | `/home#documents`, alias `/member-records`                                                                                                                                           | everyone  |
 | [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#certificates`, `#ledger-exports`, `#company-pack`; legacy `#documents`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                 | `/company/ledger/members/:member?company=`                                                                                                                                           | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                         | `/company/ledger/:uuid`                                                                                                                                                              | everyone  |
@@ -710,42 +710,30 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 
 ### Page mechanics
 
-- Company dashboard: `dashboard/src/pages/company/dashboard/useOwnership.ts` reads the selected
-  company's exact ownership summary and sequence-bound holder pages. `OwnershipExplorer.tsx` in
-  that folder opens one class inline; `OwnershipHolders.tsx` renders its ranked bars, and
-  `dashboard/src/components/ownership/OwnershipRing.tsx` loads `ownershipChart.ts` beside it for the ring.
-  That folder also owns the reused metrics, colours and static ring placeholder. The linked class list keeps every class
-  accessible; the selected class's bar list keeps server search and paging. `OwnershipLoading.tsx`
-  reserves a static, data-free loading frame, also used while the chart module loads. Confirmed
-  figures appear directly, without pulse or entrance tracking. The person's own
-  appointments (`useOwnAppointments`) give the status line and Getting
-  started, which reads the register step from the selected company's opened registers. Web tasks
-  render only while incomplete; the existing parent condition hides the card when both tasks are
-  complete.
-- Personal dashboard: reads the person's own member projection and defaults to Your shares for the
-  selected company. One ownership panel contains the company header, connected view selector,
-  figures and chart. With several current associations, the company name opens the existing
-  searchable Company selector, with the first available association selected initially; a single
-  association uses a plain heading. Documents and Settings keep their existing labelled selector.
-  When that company enables aggregate sharing,
-  Company ownership is a second view: `dashboard/src/pages/home/MemberCompanyOwnership.tsx` uses the
-  shared ring and metrics with a page-owned list of all class totals and the person's own position.
-  Its own-shares view sums issued shares with `BigInt` and charts only their shares by class.
-  Keep view intent outside the gated content so ordinary revalidation does not reset it; key it to
-  the account and selected association, and discard company-view intent when sharing becomes
-  unavailable. A failed selected-company read retains the existing company selector for recovery
-  and withholds its figures. No new storage or refresh timer is needed. Read-only awards remain
-  separate entitlements, with the promise and nonzero lifecycle quantities above their full
-  breakdown and terms in Award details.
-  Company-recorded details in Settings groups current particulars and update-request records in one
-  card, side by side on desktop and stacked on smaller screens, with one shared action footer.
-  Request update opens a focused inline form; successful submission closes it and clears consent,
-  while pending requests keep the requested particulars and status visible together. Documents
-  holds share history and certificate tracking. The views share an owner-bound member-records
-  controller, retaining an unfinished particulars draft in memory across their navigation within
-  the same account and company, without browser storage. Choosing another class in Documents reads
-  that class's own entries. Active web
-  reads follow [automatic data freshness](#automatic-data-freshness); they never replay a member action.
+- Dashboard: `dashboard/src/pages/home/OwnershipBrowser.tsx` combines current company relationships, opening a single
+  company directly or a searchable company collection. Company and class context belong in the
+  address, so browser Back/Forward and task links retain the selected scope.
+  `dashboard/src/pages/home/useCompanyOwnership.ts` owns company aggregates and sequence-bound
+  holder reads. `dashboard/src/pages/home/useOwnershipMember.ts` reads only the selected member
+  association. `dashboard/src/hooks/useOwnershipCompanies.ts` merges company and member indexes with
+  current appointments for the directory. The overview uses the shared
+  `dashboard/src/components/ownership/OwnershipRing.tsx`, linked class list and exact metrics. Company-authorised readers obtain sequence-bound, server-paged holder details;
+  members obtain only their own position and the optional shared aggregates from the existing
+  association-bound read. A real member link, not a matching name or company appointment, supplies
+  the personal position. No full-register reads are needed just to list companies.
+  Static, data-free placeholders reserve loading space, and confirmed figures appear directly.
+  Getting started lists only incomplete company-administrator tasks and disappears once they are
+  complete. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
+  quantities above their full breakdown and terms in Award details.
+- Personal Documents and Company-recorded details share an owner-bound member-records controller.
+  Settings groups current particulars and update-request records in one card, side by side on
+  desktop and stacked on smaller screens, with one shared action footer. Request update opens a
+  focused inline form; successful submission closes it and clears consent, while pending requests
+  keep the requested particulars and status visible together. Documents holds share history and
+  certificate tracking. The controller retains an unfinished particulars draft in memory across
+  navigation within the same account and company, without browser storage. Choosing another class
+  in Documents reads that class's own entries. Active web reads follow
+  [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
   Member requests, Employee share scheme (ESS), Certificates, Ledger exports and Company pack views by hash.

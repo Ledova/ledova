@@ -1,3 +1,4 @@
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,7 +12,8 @@ import { EditCompanyForm } from './CompanyForms';
 import { CompanySelection } from '@components/CompanySelection';
 
 export function CompanyProfile() {
-  const data = useCompanySelection();
+  const context = useCompanyContext();
+  const data = useCompanySelection({ selectedUuid: context?.companyUuid ?? undefined });
   return <CompanyDetails key={`${data.scopeKey}/${data.companyUuid ?? ''}`} data={data} />;
 }
 

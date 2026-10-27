@@ -1,3 +1,4 @@
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
 import { DESTINATIONS, companyActivationOutcome, useCompanyActivation, useCompanySelection } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
@@ -9,7 +10,8 @@ import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
 import { CompanySelection } from '@components/CompanySelection';
 
 export default function ListingPage() {
-  const read = useCompanySelection({ personalOnly: true });
+  const context = useCompanyContext();
+  const read = useCompanySelection({ personalOnly: true, selectedUuid: context?.companyUuid ?? undefined });
   return <CompanyActivation key={`${read.scopeKey}/${read.companyUuid ?? ''}`} read={read} />;
 }
 

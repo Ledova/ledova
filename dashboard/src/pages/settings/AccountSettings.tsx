@@ -19,7 +19,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 import type { useUserProfile } from '@hooks/useUserProfile';
-import { useWorkspace } from '@hooks/useWorkspace';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
   return (
@@ -75,7 +75,7 @@ function PasswordInput({
 }
 
 export function AccountSettings({ profile }: { profile: ReturnType<typeof useUserProfile> }) {
-  const workspace = useWorkspace();
+  const context = useCompanyContext();
   const [verificationOpen, setVerificationOpen] = useState(false);
   const verification = getUserVerificationStatus(profile.userProfile);
   const {
@@ -176,7 +176,7 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
             </Rows>
           )}
           <div className="divide-y divide-border-subtle">
-            {workspace?.mode === 'my-shares' && (
+            {!context?.company?.canManage && (
               <div className="flex justify-end py-3">
                 <PageLink to={DESTINATIONS.companyTeam.path} label="Accept a company invitation" />
               </div>

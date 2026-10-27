@@ -14,6 +14,7 @@ import { appointmentReceipt, currentAppointment, sameScope } from '@pages/compan
 import apiClient from '@services/apiClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export function teamInvitationsKey(owner: OrderSubmissionOwner) {
   return ['company-team-invitations', owner.userUuid, owner.ownerAccountUuid];
@@ -44,7 +45,15 @@ export function useCompanyTeam({
   }, [client, currentOwner, owner]);
   const ownKey = ownAppointmentsKey(owner);
   const invitationKey = teamInvitationsKey(owner);
-  const [selectedCompany, setCompany] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const selectedCompany = new URLSearchParams(location.search).get('company');
+  const setCompany = (uuid: string) => {
+    const next = new URLSearchParams(location.search);
+    if (uuid) next.set('company', uuid);
+    else next.delete('company');
+    navigate({ search: next.toString(), hash: location.hash }, { state: location.state });
+  };
   const [sourceId, setSourceId] = useState('');
   const [formBusy, setFormBusy] = useState(false);
   const [revoking, setRevoking] = useState(false);
@@ -81,7 +90,7 @@ export function useCompanyTeam({
   });
   const appointments = own.isError ? [] : (own.data ?? []);
   const companies = [...new Map(appointments.map((item) => [item.company, item.companyName])).entries()];
-  const company = selectedCompany || (companies.length === 1 ? companies[0][0] : '');
+  const company = selectedCompany ?? (companies.length === 1 ? companies[0][0] : '');
   const sources = appointments.filter(
     (item) => item.company === company && currentAppointment(item) && item.delegatableCapabilities.length > 0,
   );

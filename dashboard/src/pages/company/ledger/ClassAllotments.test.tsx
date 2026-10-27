@@ -2,7 +2,7 @@
 
 import { Sidebar } from '@components/Sidebar';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
-import { WorkspaceProvider } from '@components/WorkspaceProvider';
+import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 import {
@@ -26,7 +26,7 @@ import { choose, companyPreferences, renderCompanyPage } from '../../../testSupp
 
 import { allotmentsKey } from './useRegisterAllotments';
 import { TransferForm } from './transfer/TransferForm';
-import { registerClassesKey } from '@pages/company/shared/useCompanyRegister';
+import { registerClassesKey } from '@hooks/useRegisterClasses';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const save = vi.hoisted(() => vi.fn());
@@ -76,7 +76,8 @@ it('preserves original preparation and combined approval recovery through refres
   };
   api.get.mockReset().mockImplementation(async (url, config?: { params?: { token?: string } }) => {
     if (url === '/api/user-accounts/') return { data: { uuid: 'account-one', role: 'company' } };
-    if (url === '/api/user-profiles/' || url === '/api/feature-flags/') return { data: { results: [], next: null } };
+    if (url === '/api/user-profiles/' || url === '/api/feature-flags/' || url === '/api/v1/companies/')
+      return { data: { results: [], next: null } };
     if (url === '/api/user-preferences/') {
       return { data: companyPreferences() };
     }
@@ -201,29 +202,30 @@ it('preserves original preparation and combined approval recovery through refres
   renderCompanyPage(
     client,
     <LedgerNavigationProvider>
-      <WorkspaceProvider>
+      <CompanyContextProvider>
         <Sidebar />
         <CompanyRegisterPage />
         <Link to="/company/ledger#history">Open old History link</Link>
         <Link to="/company/ledger#issue">Return to Issue link</Link>
-      </WorkspaceProvider>
+      </CompanyContextProvider>
     </LedgerNavigationProvider>,
     'Ledger',
     { entry: '/company/ledger', path: '/company/ledger' },
   );
-  const investorTask = await screen.findByRole('link', { name: 'Issue shares' });
-  const transferTask = screen.getByRole('link', { name: 'Transfer shares' });
+  await screen.findByRole('link', { name: 'Issue shares' });
+  const investorTask = () => screen.getByRole('link', { name: 'Issue shares' });
+  const transferTask = () => screen.getByRole('link', { name: 'Transfer shares' });
   expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
-  const correctionsTask = screen.getByRole('link', { name: 'Corrections' });
-  await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
+  const correctionsTask = () => screen.getByRole('link', { name: 'Corrections' });
+  await waitFor(() => expect(investorTask().getAttribute('aria-disabled')).toBeNull());
   failedRegisterRead = true;
   await act(async () => client.refetchQueries({ queryKey: registerClassesKey(owner), exact: true }));
-  await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBe('true'));
-  expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).disabled).toBe(false);
+  await waitFor(() => expect(investorTask().getAttribute('aria-disabled')).toBe('true'));
+  expect(screen.queryByRole('combobox', { name: 'Workspace' })).toBeNull();
   failedRegisterRead = false;
   await act(async () => client.refetchQueries({ queryKey: registerClassesKey(owner), exact: true }));
-  await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
-  fireEvent.click(investorTask);
+  await waitFor(() => expect(investorTask().getAttribute('aria-disabled')).toBeNull());
+  fireEvent.click(investorTask());
   expect(await screen.findByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
   expect(screen.queryByRole('link', { name: /Class details/ })).toBeNull();
   const taskClass = () => screen.getByLabelText('Share class') as HTMLSelectElement;
@@ -349,10 +351,11 @@ it('preserves original preparation and combined approval recovery through refres
   expect(allotments.getByRole('button', { name: 'Back' }).matches(':disabled')).toBe(true);
   expect(allotments.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(true);
   expect(taskClass().disabled).toBe(true);
-  expect(investorTask.getAttribute('aria-disabled')).toBe('true');
-  expect(transferTask.getAttribute('aria-disabled')).toBe('true');
-  expect(correctionsTask.getAttribute('aria-disabled')).toBe('true');
-  expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).disabled).toBe(true);
+  expect(investorTask().getAttribute('aria-disabled')).toBe('true');
+  expect(transferTask().getAttribute('aria-disabled')).toBe('true');
+  expect(correctionsTask().getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+  expect(screen.getByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
   const preparedAllotment = rows[0];
   rows = [{ ...preparedAllotment, companyEventOn: null }];
   const originalReads = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENT(rows[0].uuid)).length;
@@ -366,7 +369,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(allotments.getByLabelText(COPY.COMPANY_EVENT_ON)).toBeTruthy();
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_ALLOTMENTS)).toHaveLength(1);
   rows = [preparedAllotment];
-  fireEvent.click(correctionsTask);
+  fireEvent.click(correctionsTask());
   expect(taskClass().value).toBe(REGISTER.token.uuid);
   expect(allotments.getByLabelText(COPY.CONSIDERATION)).toBeTruthy();
   const beforeOldLink = api.post.mock.calls.length;
@@ -402,7 +405,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(allotments.queryByRole('button', { name: 'Prepare issue' })).toBeNull();
   expect(taskClass().disabled).toBe(true);
-  expect(transferTask.getAttribute('aria-disabled')).toBe('true');
+  expect(transferTask().getAttribute('aria-disabled')).toBe('true');
   expect(document.activeElement).toBe(within(incomplete).getByRole('heading', { name: 'Review share issue' }));
   await within(incomplete).findByText(COPY.OWNERSHIP_UNAVAILABLE);
   expect((within(incomplete).getByRole('button', { name: 'Approve' }) as HTMLButtonElement).disabled).toBe(true);
@@ -464,9 +467,9 @@ it('preserves original preparation and combined approval recovery through refres
   fireEvent.click(cancelUncertain);
   await allotments.findByRole('button', { name: /^Recover approve receipt/ });
   expect(taskClass().disabled).toBe(true);
-  expect(transferTask.getAttribute('aria-disabled')).toBe('true');
-  expect(correctionsTask.getAttribute('aria-disabled')).toBe('true');
-  fireEvent.click(transferTask);
+  expect(transferTask().getAttribute('aria-disabled')).toBe('true');
+  expect(correctionsTask().getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(transferTask());
   expect(taskClass().value).toBe(REGISTER.token.uuid);
   expect(allotments.getByRole('button', { name: /^Recover approve receipt/ })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: /^Documents$/ }));
@@ -479,9 +482,9 @@ it('preserves original preparation and combined approval recovery through refres
   fireEvent.click(screen.getByRole('link', { name: 'Company pack' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Company pack' })).toBeTruthy();
   expect(screen.queryByLabelText('Share class')).toBeNull();
-  await waitFor(() => expect(investorTask.getAttribute('aria-disabled')).toBeNull());
-  expect(transferTask.getAttribute('aria-disabled')).toBe('true');
-  fireEvent.click(investorTask);
+  await waitFor(() => expect(investorTask().getAttribute('aria-disabled')).toBeNull());
+  expect(transferTask().getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(investorTask());
   expect(await screen.findByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
   expect(allotments.getByRole('button', { name: /^Recover approve receipt/ })).toBeTruthy();
   pauseRead = true;
@@ -581,9 +584,9 @@ it('preserves original preparation and combined approval recovery through refres
   expect(rows[0].registerEntry).toBe('entry-a');
   expect(rows[0].decisions).toHaveLength(2);
   await waitFor(() => expect(taskClass().disabled).toBe(false));
-  await waitFor(() => expect(correctionsTask.getAttribute('aria-disabled')).toBeNull());
-  expect(correctionsTask.getAttribute('aria-disabled')).toBeNull();
-  fireEvent.click(correctionsTask);
+  await waitFor(() => expect(correctionsTask().getAttribute('aria-disabled')).toBeNull());
+  expect(correctionsTask().getAttribute('aria-disabled')).toBeNull();
+  fireEvent.click(correctionsTask());
   fireEvent.change(taskClass(), { target: { value: preference.token.uuid } });
   expect(
     (await screen.findAllByRole('heading', { name: `${preference.token.name} · ${preference.token.symbol}` })).find(
@@ -592,7 +595,7 @@ it('preserves original preparation and combined approval recovery through refres
   ).toBeTruthy();
   expect(screen.queryByText('entry-a')).toBeNull();
   fireEvent.change(taskClass(), { target: { value: REGISTER.token.uuid } });
-  fireEvent.click(investorTask);
+  fireEvent.click(investorTask());
   await allotments.findByText('Approved');
   expect(rows[0].registerEntry).toBe('entry-a');
   expect(rows[0].decisions).toHaveLength(2);
@@ -821,18 +824,19 @@ it('preserves original preparation and combined approval recovery through refres
   renderCompanyPage(
     client,
     <LedgerNavigationProvider>
-      <WorkspaceProvider>
+      <CompanyContextProvider>
         <Sidebar />
         <CompanyRegisterPage />
-      </WorkspaceProvider>
+      </CompanyContextProvider>
     </LedgerNavigationProvider>,
     'Ledger',
     { entry: '/company/ledger#transfer', path: '/company/ledger' },
   );
   const transferClass = () => screen.getByLabelText('Share class') as HTMLSelectElement;
-  const transferLink = await screen.findByRole('link', { name: 'Transfer shares' });
-  const issueLink = screen.getByRole('link', { name: 'Issue shares' });
-  const correctionsLink = screen.getByRole('link', { name: 'Corrections' });
+  await screen.findByRole('link', { name: 'Transfer shares' });
+  const transferLink = () => screen.getByRole('link', { name: 'Transfer shares' });
+  const issueLink = () => screen.getByRole('link', { name: 'Issue shares' });
+  const correctionsLink = () => screen.getByRole('link', { name: 'Corrections' });
   expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
   const openTransfer = () => screen.getByRole('button', { name: /^Review and approve [(]transfer/ });
   await screen.findByRole('button', { name: /^Review and approve [(]transfer/ });
@@ -851,8 +855,8 @@ it('preserves original preparation and combined approval recovery through refres
   ).toBeTruthy();
   expect(document.activeElement).toBe(within(transferReview).getByRole('heading', { name: 'Review share transfer' }));
   expect(transferClass().disabled).toBe(true);
-  expect(issueLink.getAttribute('aria-disabled')).toBe('true');
-  expect(correctionsLink.getAttribute('aria-disabled')).toBe('true');
+  expect(issueLink().getAttribute('aria-disabled')).toBe('true');
+  expect(correctionsLink().getAttribute('aria-disabled')).toBe('true');
   expect(transferDecisionCalls()).toHaveLength(0);
   expect(transfer.registerEntry).toBeNull();
   fireEvent.click(within(transferReview).getByRole('button', { name: 'Cancel' }));
@@ -875,11 +879,11 @@ it('preserves original preparation and combined approval recovery through refres
   fireEvent.click(cancelTransferReview);
   await screen.findByRole('button', { name: /^Recover approve receipt [(]transfer/ });
   expect(transferClass().disabled).toBe(true);
-  expect(issueLink.getAttribute('aria-disabled')).toBe('true');
+  expect(issueLink().getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(screen.getByRole('link', { name: /^Documents$/ }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Certificates' })).toBeTruthy();
-  expect(transferLink.getAttribute('aria-disabled')).toBeNull();
-  fireEvent.click(transferLink);
+  expect(transferLink().getAttribute('aria-disabled')).toBeNull();
+  fireEvent.click(transferLink());
   expect(await screen.findByRole('heading', { level: 1, name: 'Transfer shares' })).toBeTruthy();
   fireEvent.click(await screen.findByRole('button', { name: /^Recover approve receipt [(]transfer/ }));
   await waitFor(() =>
@@ -934,10 +938,10 @@ it('preserves original preparation and combined approval recovery through refres
   renderCompanyPage(
     client,
     <LedgerNavigationProvider>
-      <WorkspaceProvider>
+      <CompanyContextProvider>
         <Sidebar />
         <CompanyRegisterPage />
-      </WorkspaceProvider>
+      </CompanyContextProvider>
     </LedgerNavigationProvider>,
     'Ledger',
     { entry: '/company/ledger#transfer', path: '/company/ledger' },

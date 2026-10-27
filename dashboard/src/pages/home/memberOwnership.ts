@@ -3,7 +3,7 @@ import { hasWholeShares, type OwnMemberRecord } from '@ledova/shared';
 const WHOLE = /^(0|[1-9][0-9]*)$/;
 const quantity = (value: string | null): value is string => value !== null && WHOLE.test(value);
 const count = (value: number | null) => value !== null && Number.isSafeInteger(value) && value >= 0;
-export type SharedOwnership = NonNullable<OwnMemberRecord['ownership']>;
+type SharedOwnership = NonNullable<OwnMemberRecord['ownership']>;
 
 export function sharedMemberOwnership(record: OwnMemberRecord): SharedOwnership | null {
   const summary = record.ownership;

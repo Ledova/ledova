@@ -1,4 +1,4 @@
-import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
+import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import { pageTitle } from '@utils/destinations';

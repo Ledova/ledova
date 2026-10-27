@@ -15,7 +15,7 @@ import SignupReview from '@pages/signup/review';
 
 import SignupAccountType from '@pages/signup/account-type';
 import SignupCompanyRegistration from '@pages/signup/company-registration';
-import CompanyDashboardPage from '@pages/company/dashboard';
+import DashboardPage from '@pages/home';
 import { PageTitle } from '@components/PageTitle';
 import { ProtectedRoute } from './ProtectedRoute';
 import {
@@ -63,7 +63,7 @@ export function AppRoutes() {
         element={
           <PageTitle.Provider value="Dashboard">
             <ProtectedRoute audience="everyone">
-              <CompanyDashboardPage />
+              <DashboardPage />
             </ProtectedRoute>
           </PageTitle.Provider>
         }

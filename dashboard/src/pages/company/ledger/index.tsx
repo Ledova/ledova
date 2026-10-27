@@ -206,6 +206,7 @@ function OwnRegister({
     guard,
     retained,
     includeEmptyCompanies,
+    new URLSearchParams(location.search).get('company') ?? undefined,
   );
   const companiesReady =
     !includeEmptyCompanies ||
@@ -287,7 +288,9 @@ function OwnRegister({
   const registerCompany =
     typeof location.state?.registerCompany === 'string'
       ? location.state.registerCompany
-      : (classes.data?.find((item) => item.uuid === registerToken)?.companyUuid ?? '');
+      : (new URLSearchParams(location.search).get('company') ??
+        classes.data?.find((item) => item.uuid === registerToken)?.companyUuid ??
+        '');
   const hashTask = hash.slice(1);
   const registerTask = ledgerTask(hashTask) ?? ledgerTask(location.state?.registerTask);
   const registerOutcome =

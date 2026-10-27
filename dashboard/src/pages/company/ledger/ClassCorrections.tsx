@@ -1,4 +1,4 @@
-import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
+import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { allPeopleKey } from '@pages/company/ledger/shared/usePeople';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
