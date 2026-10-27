@@ -15,7 +15,7 @@ export function MemberDocuments() {
   const [withdrawing, setWithdrawing] = useState<{ uuid: string; createdAt: string } | null>(null);
   const { running, track } = useRunningAction();
   return (
-    <PageTitle.Provider value="Your documents">
+    <PageTitle.Provider value="Your certificates">
       <Page lede="Your share history and certificates.">
         <MemberRecordsContent>
           {record && (

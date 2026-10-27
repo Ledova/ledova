@@ -28,6 +28,7 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    if (axios.isCancel(error)) return Promise.reject(error);
     const config = error.config as RetriableRequestConfig | undefined;
     config?.ledovaSubmissionGuard?.();
     if (config && !config.csrfRetried && isCsrfFailure(error)) {

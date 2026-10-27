@@ -257,7 +257,9 @@ async function openTheSidebar(page: Page, role: Role) {
     await companyChoice.fill('harbour robotics');
     await page.getByRole('option', { name: new RegExp(`^${LONG_NAME}`) }).click();
     aside = await visibleSidebar(page);
-    await expect(aside.getByRole('link', { name: 'Your certificates', exact: true })).toHaveAttribute(
+    const documents = aside.getByRole('link', { name: 'Documents', exact: true }).locator('../..');
+    await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
+    await expect(documents.getByRole('link', { name: 'Your certificates', exact: true })).toHaveAttribute(
       'href',
       '/home?company=company#documents',
     );

@@ -1,4 +1,4 @@
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
@@ -501,7 +501,7 @@ export function CompanyIssueFlow({
     data.holdReads('issue/request', commands.working || !!commands.recovery);
     return () => data.holdReads('issue/request', false);
   }, [commands.working, commands.recovery, data.holdReads]);
-  useAutomaticReads({
+  useEntryReads({
     scope: active && commands.owner ? data.scopeKey + '/issue' : null,
     paused: data.readingPaused || commands.readingPaused,
     refresh: commands.refresh,

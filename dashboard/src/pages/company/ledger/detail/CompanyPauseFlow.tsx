@@ -1,4 +1,4 @@
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 import { useCallback, useEffect } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
@@ -272,7 +272,7 @@ export function CompanyPauseFlow({
     data.holdReads('pause/request', commands.working || !!commands.recovery);
     return () => data.holdReads('pause/request', false);
   }, [commands.working, commands.recovery, data.holdReads]);
-  useAutomaticReads({
+  useEntryReads({
     scope: active && commands.owner ? data.scopeKey + '/pause' : null,
     paused: data.readingPaused || commands.readingPaused,
     refresh: commands.refresh,

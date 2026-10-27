@@ -4,7 +4,7 @@ import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useCallback, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -305,7 +305,7 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
       editing,
       records: prior?.scope === data.scopeKey ? prior.records : new Set(),
     }));
-  useAutomaticReads({
+  useEntryReads({
     scope: active && data.owner ? data.scopeKey : null,
     paused: data.readingPaused,
     refresh: data.refresh,

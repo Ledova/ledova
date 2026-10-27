@@ -19,7 +19,7 @@ import {
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import type { CompanyActionRead } from '@components/CompanyState';
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 
 function openingFailure(error: unknown) {
   const cause = (error as UserFriendlyError | undefined)?.originalError ?? error;
@@ -88,7 +88,7 @@ export function useIssuerPublications(
       }
     },
   });
-  useAutomaticReads({
+  useEntryReads({
     scope: read.scopeKey,
     paused: opening.isPending || listing.isFetchingNextPage,
     refresh: async (available) => {

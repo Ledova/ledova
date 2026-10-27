@@ -43,7 +43,6 @@ function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClas
     uuid,
     data.token.isSuccess && data.token.fetchStatus === 'idle',
     data.token.data?.companyUuid,
-    data.readingPaused,
   );
   useEffect(() => {
     data.holdReads('class-rights', !!rights.editor || rights.pending || rights.busy);
@@ -143,7 +142,6 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
       {data.owner && (
         <MemberDocuments
           title="Shareholder documents"
-          deferWhileEditing
           readsPaused={data.readingPaused}
           onHeldChange={onDocumentsHeld}
           owner={data.owner}

@@ -30,7 +30,8 @@ export function useDocument(uuid: string | null) {
       const doc = query.state.data as Document | undefined;
       const status = doc?.latestExtraction?.status;
 
-      if (!status || status === 'pending' || status === 'running') return 3000;
+      if (status === 'pending' || status === 'running') return 3000;
+      if (!status && doc && Date.now() - Date.parse(doc.createdAt) < 60_000) return 3000;
       return false;
     },
   });

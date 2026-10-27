@@ -11,8 +11,10 @@ import {
   type CompanyEligibilityRequest,
   USER_PREFERENCES_QUERY_KEY,
   AUTH_QUERY_KEY,
+  eligibilityRecordsKey,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
+import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Link, useLocation } from 'react-router-dom';
@@ -219,9 +221,15 @@ it('shows focused company details without share classes, and uploads documents t
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   failed = appointmentsUrl;
+  const beforeIdleTeamRead = ownReads();
   await act(async () => {
     window.dispatchEvent(new Event('focus'));
   });
+  expect(ownReads()).toBe(beforeIdleTeamRead);
+  expect(screen.getAllByText('Private team administrator').length).toBeGreaterThan(0);
+  expect(screen.queryByText('Your appointments could not be loaded.')).toBeNull();
+  const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
+  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true }));
   await screen.findAllByText('Your appointments could not be loaded.');
   expect(screen.queryAllByText('Private team administrator')).toHaveLength(0);
   expect((screen.getByRole('button', { name: 'Invite a company user' }) as HTMLButtonElement).disabled).toBe(true);
@@ -304,11 +312,20 @@ it('shows focused company details without share classes, and uploads documents t
   await act(async () => {
     window.dispatchEvent(new Event('focus'));
   });
+  expect(ownReads()).toBe(beforeSource);
+  expect(queueReads()).toBe(beforeQueue);
+  let authorityRead: Promise<unknown> = Promise.resolve();
+  await act(async () => {
+    authorityRead = client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
   await waitFor(() => expect(ownReads()).toBeGreaterThan(beforeSource));
   expect(queueReads()).toBe(beforeQueue);
   await act(async () => {
     authorityGate = null;
     releaseAuthority();
+    await authorityRead;
+    await client.invalidateQueries({ queryKey: eligibilityRecordsKey('company', ['profile-one', 'account-one', 0]) });
   });
   await waitFor(() => expect(queueReads()).toBeGreaterThan(beforeQueue));
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -362,9 +379,14 @@ it('shows focused company details without share classes, and uploads documents t
   await waitFor(() => expect(client.isFetching()).toBe(0));
   const beforeAuthorityFailure = queueReads();
   failed = appointmentsUrl;
+  const beforeIdleAuthorityRead = ownReads();
   await act(async () => {
     window.dispatchEvent(new Event('focus'));
   });
+  expect(ownReads()).toBe(beforeIdleAuthorityRead);
+  expect(queueReads()).toBe(beforeAuthorityFailure);
+  expect(screen.getByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` })).toBeTruthy();
+  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true }));
   await screen.findByText("The company's eligibility records could not be loaded.");
   expect(queueReads()).toBe(beforeAuthorityFailure);
   expect(screen.queryByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` })).toBeNull();

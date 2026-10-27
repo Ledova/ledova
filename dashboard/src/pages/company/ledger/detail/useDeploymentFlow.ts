@@ -75,7 +75,6 @@ export function useDeploymentFlow({ uuid, data }: { uuid: string; data: ReturnTy
     queryKey: appointmentKey,
     enabled: !!owner && !data.readingPaused,
     timing: {},
-    coordinatedReads: true,
   });
   const steps =
     appointments.isSuccess && !appointments.isFetching && company ? registerSteps(appointments.data, company) : {};

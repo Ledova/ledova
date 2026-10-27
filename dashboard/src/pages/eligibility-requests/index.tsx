@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 import { useCallback, useState } from 'react';
 import {
   FIELD_LIMITS,
@@ -35,7 +35,7 @@ export default function ParticipantEligibilityPage() {
     },
     [read.scopeKey],
   );
-  useAutomaticReads({ scope: read.owner ? read.scopeKey : null, paused: read.readingPaused, refresh: read.refresh });
+  useEntryReads({ scope: read.owner ? read.scopeKey : null, paused: read.readingPaused, refresh: read.refresh });
   const { running, track } = useRunningAction();
   const source = read.sources.find((item) => item.uuid === read.draft.source);
   const directory = useDirectoryNames();

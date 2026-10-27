@@ -54,7 +54,7 @@ frame share, and `packages/shared` holds what both clients share.
 
 | `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                             |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                                                                                                                           |
+| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                                                                  |
 | `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `TradingRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                   |
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `qr/`, and single components several areas show (`AwardStatus.tsx`) |
@@ -326,7 +326,8 @@ child and opening the group on Ledger routes. The web replaces an incoming `#his
 without dropping company/class navigation state or remounting its controllers; shared task names
 retain History. Shareholders' label opens its people list, with the
 same caret pattern for ESS, Member access and Member requests. Documents uses that pattern for
-Certificates, Ledger exports and Company pack. Its label opens Certificates, the default child;
+Certificates, Ledger exports and Company pack, plus Your certificates for a person with their own
+member records in that company. Its label opens Certificates, the default child;
 the legacy company `#documents` hash opens Certificates too. A group without a meaningful overview
 opens its default child, without a separate Overview page or duplicate page navigation.
 Settings uses the same one-level pattern: Profile, company Documents, Team and Activation where
@@ -344,7 +345,8 @@ stay under More. Team keeps Representative authority as a contextual task, with 
 and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and company
 Documents stay siblings where the selected company's current access permits them. Mixed-role
-accounts name personal certificates explicitly, rather than selecting them through a hidden mode.
+accounts open Your certificates inside Documents, without a duplicate top-level destination.
+Member-only accounts use Documents for the same personal page; company outputs still require register access.
 The investing group follows the investing role and Market `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). Direct Settings children have their own active item
 and omit Back to Settings; a contextual page marks its nearest sidebar parent, such as Team
@@ -405,8 +407,8 @@ and authority checks.
 The session itself is in [authentication](security.md#authentication-and-sessions);
 `packages/shared/src/hooks/useAuth.ts` owns the authentication query (`AUTH_QUERY_KEY`).
 `ApiClientProvider` gives the shared hooks the client's API instance ([API
-client](#frontend-rules)); the dashboard's `QueryClient` revalidates on focus and reconnect,
-mobile's (`mobile/App.tsx`) only on reconnect. Authentication does not retry a failed request
+client](#frontend-rules)); the web authentication and user-preferences identity queries revalidate on focus and reconnect,
+separately from page-data reads, while mobile's `QueryClient` (`mobile/App.tsx`) revalidates on reconnect. Authentication does not retry a failed request
 automatically; a later mount may recheck. The hook exposes fetching separately from the first
 session check, so a retry does not restore initial loading, and public forms keep their nested
 authentication consumers mounted so a failure cannot create a remount loop. The protected route
@@ -427,58 +429,42 @@ cached preferences are hidden again when authentication is lost.
 
 ## Automatic data freshness
 
-Reading current data is the application's job. Pages have no routine Refresh or Sync button for
-their lists. Use the existing TanStack Query hooks, exported keys and cache timings: read on entry,
-revalidate stale data on focus and reconnect, and invalidate the narrowest related keys after a
-successful change. Do not clear the whole cache, refetch unrelated resources or introduce a second
-store or event system for this. Session resets remain the exception described above.
+Pages have no routine Refresh or Sync button for their lists. Read on entry and when the person
+selects another company, class or record. Invalidate the narrowest related query keys after a
+successful change, using existing TanStack Query hooks and cache timings. Do not clear the whole
+cache, refetch unrelated resources or introduce a second store or event system. Session resets
+remain the exception described above.
 
-Where another person's changes must appear while a page stays open, use a bounded read interval
-only for that active view. Recheck its authority before its dependent records; prevent overlapping
-cycles and stop periodic work while the view is hidden or the browser is offline. Ordinary reads
-need no polling. Issue shares rechecks the selected class's appointments and issue records every
-60 seconds while visible, as well as on entry, focus and reconnect; hidden Ledger tasks do not poll.
-Employee share scheme is the owner's explicit exception: no interval, focus, visibility or reconnect
-refreshes. It reads on entry and after the person's own changes, with explicit retries after errors.
-Stale entry rechecks appointments before dependent records, deferring that entry read while an editor
-or original-request recovery is open. The web register query policy and user-preferences defaults
-suppress native focus/reconnect refetches only at the ESS address; authentication revalidation stays
-unchanged. Current authority, source and account checks still gate every command and private read.
-Dashboard has no periodic refresh. Its ownership queries read on entry and update through the existing
-mutation invalidation, focus and reconnect policies. Do not mount another workflow's active reads behind
-an overview: the member workspace reads and rechecks associations, requests and history only on member
-Documents and Company-recorded details. Those two views recheck associations before dependent records
-every 60 seconds while visible and online, and on focus and reconnect. Their provider keeps drafts and
-original-request recovery across navigation without fetching hidden records. This gives bounded freshness,
-not an instantaneous update guarantee. Current account, authority and snapshot checks still withhold
-private records while their prerequisite reads are unconfirmed.
-Team on web also reads appointments before dependent team records on focus, reconnect and a visible,
-online 60-second interval, deferring those cycles while a team editor or revocation is open.
+Signed-in web pages do not poll while idle or refetch because of window focus, visibility or
+reconnection. Web query defaults enforce that page-data policy. Another person's changes appear on a later
+entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
+content stable until a relevant read is needed, without mounting another workflow's reads behind
+an overview. Member Documents and Company-recorded details read only while active, retaining
+unfinished drafts and original-request recovery across navigation.
 
-The remaining web eligibility and company-publication views use `dashboard/src/hooks/useAutomaticReads.ts`
-for the same visible, online entry/focus/reconnect and 60-second scheduling. Their callbacks retain ordered
-source and authority checks; edited drafts, decision reviews and original-request recovery defer those cycles.
-Trading uses it only to reread locally saved work, without replaying a saved command. Explicit possession-proof
-renewal and indexer synchronisation remain commands, and failed reads keep Try again.
+`dashboard/src/hooks/useEntryReads.ts` and
+`dashboard/src/pages/company/ledger/useIssueEntryRead.ts` retain ordered entry reads:
+confirm current authority or association before dependent records, and defer a read while an editor,
+decision review or original-request recovery is open. Class-operation entry reads run only while
+Technical details is open. Closing it stops new entry work without discarding retained controllers.
 
-Class-operation records use the same scheduler only while Technical details is open. Class rights,
-class documents and technical preparation, decision or recovery tasks pause the class's coordinated reads
-and parent focus/reconnect reads; their holds are scoped to the current account, company and class.
-Closing Technical details stops its periodic reads while keeping its controllers mounted. Confirmation
-and execution stay explicit; a retained pending job can still be read after its dispatch finishes.
+Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
+operation are separate from idle page freshness. Authentication verification alone confirms validity,
+so user preferences still recheck the signed-in identity on focus and reconnect; unconfirmed identity
+continues to withhold private content, including after an account changes in another tab. Keep bounded status checks for a submitted upload, extraction or identity
+verification, stopping when the operation finishes or its view closes. A status read must never
+repeat a write, upload or share issue. Explicit possession-proof renewal and indexer synchronisation
+remain commands.
 
-Every read retains the account, company and appointment guards. A failed or inconsistent read
-withholds private records, decision controls and ownership totals as
-[lists, figures and currency](#lists-figures-and-currency) requires; cached client authority never
-replaces the server's check. Preserve drafts and original submitted commands during revalidation,
-following [request recovery](#recovering-a-submitted-company-request). Automatic reading must never
-repeat a write, upload or share issue.
+Every read and command retains its account, company, association, appointment and source guards.
+Cached client authority never replaces the server's check. A failed or inconsistent read withholds
+private records, decision controls and ownership totals. Preserve drafts and original submitted
+commands during revalidation, following [request recovery](#recovering-a-submitted-company-request).
 
-An unsuccessful read still offers an explicit Try again through `LoadError`; this is error recovery,
-not routine freshness work. Automatic recovery uses bounded retries with backoff or the view's
-read interval, never a tight retry loop. Apply this standard when building or refining a page;
-existing manual refresh controls elsewhere are not evidence of a different convention. Commands
-that actually synchronise external systems remain distinct from refreshing a displayed list.
+A failed read offers Try again through `LoadError`; this is error recovery, not routine freshness.
+Keep bounded request retries and genuine failures visible. An intentionally cancelled Axios request
+is still rejected unchanged but is not logged as an API failure; never hide network, server or
+authorisation failures or turn a cancelled read into an empty successful result.
 
 ## Lists, figures and currency
 
@@ -701,7 +687,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 
 | Page and business section                                                                           | Routes                                                                                                                                                                               | Audience  |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| [Dashboard](../business/README.md#the-app-at-a-glance)                                              | `/home`, `/company/dashboard` (web alias); company/class query context                                                                                                                | everyone  |
+| [Dashboard](../business/README.md#the-app-at-a-glance)                                              | `/home`, `/company/dashboard` (web alias); company/class query context                                                                                                               | everyone  |
 | [Personal documents](../business/member-records.md#what-a-member-can-read)                          | `/home#documents`, alias `/member-records`                                                                                                                                           | everyone  |
 | [Ledger, Shareholders, Employee share scheme, Documents](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#certificates`, `#ledger-exports`, `#company-pack`; legacy `#documents`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                 | `/company/ledger/members/:member?company=`                                                                                                                                           | everyone  |

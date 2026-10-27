@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
-import { TRADING_CONFIG } from '../constants/business/trading';
 import type { TradingEventType } from '../generated/api';
 import { getInvestorReadiness } from '../services/investorClassifications';
 import { getOrderBook, getShareTokens } from '../services/trading';
@@ -64,7 +63,6 @@ export function useOrderBook(tokenUuid: string | undefined) {
     queryFn: () => getOrderBook(apiClient, tokenUuid!).then((res) => res.data),
     enabled: !!tokenUuid,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    refetchInterval: TRADING_CONFIG.ORDER_BOOK_FALLBACK_INTERVAL,
   });
 }
 

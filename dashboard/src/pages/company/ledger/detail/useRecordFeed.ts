@@ -12,9 +12,6 @@ export function useRecordFeed<Row extends { uuid: string }>(
   const query = useInfiniteQuery({
     queryKey,
     enabled: enabled && !policy.paused,
-    ...(policy.paused === undefined
-      ? {}
-      : { refetchOnWindowFocus: !policy.paused, refetchOnReconnect: !policy.paused }),
     queryFn: async ({ pageParam }) => {
       const { data } = await read(pageParam);
       assertNextPageAdvances(pageParam, data);

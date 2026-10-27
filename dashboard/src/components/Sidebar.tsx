@@ -50,7 +50,6 @@ interface NavItem {
   destination: DestinationKey;
   icon: Icon;
   view?: string;
-  label?: string;
 }
 
 interface NavGroup {
@@ -148,7 +147,7 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
       className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-      <span>{item.label ?? title}</span>
+      <span>{title}</span>
     </Link>
   );
 }
@@ -341,6 +340,7 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   const [expanded, setExpanded] = useState(active);
   const id = useId();
   const selected = location.pathname === path ? documentView(location.hash.slice(1)) : undefined;
+  const personal = location.pathname === DESTINATIONS.home.path && location.hash === '#documents';
   const context = ledgerContext(location, state, companyContext?.companyUuid);
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
 
@@ -385,6 +385,16 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
             {label}
           </Link>
         ))}
+        {!!companyContext?.company?.memberUuids.length && (
+          <Link
+            to={companyContext.companyPath(`${DESTINATIONS.home.path}#documents`)}
+            onClick={onNavigate}
+            aria-current={personal ? 'page' : undefined}
+            className={`${ITEM_CLASS} ${personal ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
+          >
+            Your certificates
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -474,17 +484,16 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const companyTasks = !!(context?.company?.canReadRegister || context?.company?.canManage);
   const companyItems = context?.company?.canReadRegister
     ? COMPANY
-    : COMPANY.filter((item) => item.destination === 'home');
+    : [
+        ...COMPANY.filter((item) => item.destination === 'home'),
+        ...(context?.company?.memberUuids.length ? [PERSONAL[1]!] : []),
+      ];
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
 
   const groups: NavGroup[] = [
     ...(companyTasks ? [{ id: 'company', items: companyItems }] : []),
-    ...(!companyTasks
-      ? [{ id: 'shares', items: PERSONAL }]
-      : context?.company?.memberUuids.length
-        ? [{ id: 'personal', items: [{ ...PERSONAL[1]!, label: 'Your certificates' }] }]
-        : []),
+    ...(!companyTasks ? [{ id: 'shares', items: PERSONAL }] : []),
     { id: 'yours', items: YOURS },
   ];
   const secondaryGroups: NavGroup[] = [
@@ -523,6 +532,9 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
           ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'shareholders')
           : undefined) ??
         (place.destination === 'companyRegister' && documentView(place.view)
+          ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'certificates')
+          : undefined) ??
+        (place.destination === 'home' && place.view === 'documents'
           ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'certificates')
           : undefined) ??
         allItems.find((item) => item.destination === place.destination && !item.view),

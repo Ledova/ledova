@@ -4,7 +4,7 @@ import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useAutomaticReads } from '@hooks/useAutomaticReads';
+import { useEntryReads } from '@hooks/useEntryReads';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -59,7 +59,7 @@ export default function CompanyEligibilityPage() {
     },
     { coordinatedReads: true, selectedCompany: context ? (context.companyUuid ?? '') : (requestedCompany ?? '') },
   );
-  useAutomaticReads({ scope: read.owner ? read.scopeKey : null, paused: read.readingPaused, refresh: read.refresh });
+  useEntryReads({ scope: read.owner ? read.scopeKey : null, paused: read.readingPaused, refresh: read.refresh });
   const gone = useFirstPageWhenGone(list, read.listError);
   const queue = read.queue;
   const [revocationReason, setRevocationReason] = useState('');

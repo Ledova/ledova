@@ -30,7 +30,6 @@ export function useSettingsNavigation() {
   const appointments = useOwnAppointments(owner!, guard, {
     queryKey: owner ? ownAppointmentsKey(owner) : [...OWN_APPOINTMENTS_QUERY_KEY, null],
     enabled: !!owner,
-    coordinatedReads: true,
     passive: true,
   });
   const companies = useQuery({

@@ -42,7 +42,6 @@ export function useMemberDocuments({
   token,
   sourceReady,
   holdings,
-  deferWhileEditing = false,
   readsPaused = false,
 }: {
   owner: OrderSubmissionOwner;
@@ -52,7 +51,6 @@ export function useMemberDocuments({
   token?: string;
   sourceReady: boolean;
   holdings: DocumentHolding[];
-  deferWhileEditing?: boolean;
   readsPaused?: boolean;
 }) {
   const client = useQueryClient();
@@ -66,10 +64,8 @@ export function useMemberDocuments({
   const [busy, setBusy] = useState(false);
   const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
-  const editing = deferWhileEditing && (!!editor || busy || held || readsPaused);
   const appointments = useOwnAppointments(owner, guard, {
     enabled: sourceReady && !readsPaused,
-    coordinatedReads: editing,
   });
   const authorised =
     sourceReady &&
@@ -126,7 +122,6 @@ export function useMemberDocuments({
       }),
     ...READ_TIMING,
     refetchOnMount: 'always',
-    ...(deferWhileEditing ? { refetchOnWindowFocus: !editing, refetchOnReconnect: !editing } : {}),
   });
   const ready = authorised && query.isSuccess && query.fetchStatus === 'idle';
   const open = () => {

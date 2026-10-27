@@ -161,8 +161,8 @@ shows **People** and **Invitations**; Member requests is one list identifying ea
 and status. The rows keep names and relevant details together. Access, invitation and certificate
 records place technical references under **Technical details**.
 Task fields open only when needed;
-an empty queue does not ask for a company reason or certificate reference. Reads update on entry,
-focus and reconnect, and after a completed action; a failed read offers a retry.
+an empty queue does not ask for a company reason or certificate reference. Web reads update on entry
+and after a completed action, without idle polling or focus/reconnect refreshes; a failed read offers a retry.
 Every action rechecks the person's account, session, association and the company's authority; a
 failed refresh hides cached private records, and an uncertain reply is recovered against the
 original request

@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { matchPath } from 'react-router-dom';
 import {
   getOwnCompanyAppointments,
   readEveryPage,
@@ -7,17 +6,14 @@ import {
   type OrderSubmissionOwner,
   OWN_APPOINTMENTS_QUERY_KEY,
   CACHE_TIMING,
-  DESTINATIONS,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-const automaticReads = () =>
-  !matchPath(DESTINATIONS.companyRegister.path, window.location.pathname) || window.location.hash !== '#awards';
 
 export const READ_TIMING = {
   staleTime: CACHE_TIMING.SHORT_STALE_TIME,
   gcTime: CACHE_TIMING.MEDIUM_GC_TIME,
-  refetchOnWindowFocus: automaticReads,
-  refetchOnReconnect: automaticReads,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
 };
 
 export function ownAppointmentsKey(owner: OrderSubmissionOwner) {
@@ -31,7 +27,6 @@ export function useOwnAppointments(
     queryKey?: readonly unknown[];
     enabled?: boolean;
     timing?: Partial<Pick<typeof READ_TIMING, 'staleTime' | 'gcTime'>>;
-    coordinatedReads?: boolean;
     passive?: boolean;
   } = {},
 ) {
@@ -47,7 +42,6 @@ export function useOwnAppointments(
     ...(policy.timing ?? READ_TIMING),
     refetchOnWindowFocus: READ_TIMING.refetchOnWindowFocus,
     refetchOnReconnect: READ_TIMING.refetchOnReconnect,
-    ...(policy.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {}),
     ...(policy.passive ? { refetchOnMount: false, retryOnMount: false, retry: false } : {}),
     ...(policy.enabled === undefined ? {} : { enabled: policy.enabled }),
   });
