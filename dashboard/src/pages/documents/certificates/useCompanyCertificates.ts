@@ -10,6 +10,7 @@ import {
   useLaterPages,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  type MemberCertificateRequest,
 } from '@ledova/shared';
 import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { registerClassesKey, registerHoldersKey, useRegisterClasses } from '@hooks/useRegisterClasses';
@@ -18,12 +19,29 @@ import apiClient from '@services/apiClient';
 
 type RegisterClass = NonNullable<ReturnType<typeof useRegisterClasses>['data']>[number];
 
+export const CERTIFICATE_STATUSES = [
+  ['all', 'All'],
+  ['can_prepare', 'Can prepare'],
+  ['reversed', 'Reversed'],
+  ['not_requested', 'Not requested'],
+  ['requested', 'Requested'],
+  ['withdrawn', 'Withdrawn'],
+  ['fulfilled', 'Fulfilled'],
+  ['not_applicable', 'Not applicable'],
+] as const;
+
+export type CertificateStatus = (typeof CERTIFICATE_STATUSES)[number][0];
+export type CertificateFilterValues = { search: string; status: CertificateStatus };
+
 export function useCompanyCertificates(
   owner: OrderSubmissionOwner,
   currentOwner: () => OrderSubmissionOwner | null,
   company: string,
   requested: string | null,
   preferred: string,
+  filters: CertificateFilterValues,
+  association?: string,
+  requests: readonly MemberCertificateRequest[] = [],
 ) {
   const client = useQueryClient();
   const accountGuard = useMemo(
@@ -80,16 +98,43 @@ export function useCompanyCertificates(
     },
     ...READ_TIMING,
   });
-  const queryKey = [...registerKey(owner), 'entries', token];
+  const requestVersion =
+    filters.status === 'all'
+      ? ''
+      : JSON.stringify(
+          requests
+            .filter((item) => item.token === token)
+            .map((item) => [item.uuid, item.status, item.createdAt])
+            .sort((left, right) => left[0]!.localeCompare(right[0]!)),
+        );
+  const queryKey = [
+    ...registerKey(owner),
+    'entries',
+    token,
+    'certificates',
+    filters.search,
+    filters.status,
+    association ?? '',
+    requestVersion,
+  ];
   const history = useInfiniteQuery({
     queryKey,
-    enabled: sourceReady && register.isSuccess && !register.isFetching,
+    enabled:
+      sourceReady &&
+      register.isSuccess &&
+      !register.isFetching &&
+      CERTIFICATE_STATUSES.some(([value]) => value === filters.status),
     queryFn: async ({ pageParam }) => {
       guard();
       const { data } = await getRegisterEntries(
         apiClient,
         token,
-        { page: pageParam },
+        {
+          page: pageParam,
+          search: filters.search || undefined,
+          certificate_status: filters.status,
+          ...(association ? { association } : {}),
+        },
         { ledovaSubmissionGuard: guard },
       );
       guard();
@@ -124,6 +169,7 @@ export function useCompanyCertificates(
       : [],
     ready,
     sourceReady,
+    count: ready ? history.data?.pages[0]?.count : undefined,
     hasError: classes.isError || appointments.isError || register.isError || pages.hasError,
     isRefreshing: classes.isFetching || appointments.isFetching || register.isFetching || history.isFetching,
     retry: async () => {

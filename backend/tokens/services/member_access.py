@@ -99,6 +99,12 @@ def own_associations(queryset, actor):
     ).filter(access_current=True)
 
 
+def own_company_association(*, actor, association_id, company):
+    return get_object_or_404(
+        own_associations(MemberAssociation.objects.all(), actor), pk=association_id, company_id=company
+    )
+
+
 def request_readable(queryset, actor):
     if not actor.is_authenticated or not actor.is_active or not actor.is_email_verified:
         return queryset.none()

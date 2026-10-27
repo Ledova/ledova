@@ -6,17 +6,30 @@ import { LoadError, Loading, Section } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { SelectField } from '@components/SelectField';
 import { useMemberWorkspace } from '@components/member-records/useMemberWorkspace';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { CertificateRecords, type CertificateClass, type CompanyCertificateSource } from './CertificateRecords';
-import { useCompanyCertificates } from './useCompanyCertificates';
+import { CertificateFilters } from './CertificateFilters';
+import {
+  CERTIFICATE_STATUSES,
+  useCompanyCertificates,
+  type CertificateFilterValues,
+  type CertificateStatus,
+} from './useCompanyCertificates';
 
 export default function CertificatesPage() {
   const context = useCompanyContext();
   const { read } = useMemberWorkspace();
   const { owner, boundary } = useSubmissionOwner();
+  const query = new URLSearchParams(useLocation().search);
+  const filters: CertificateFilterValues = {
+    search: (query.get('q') ?? '').slice(0, 100),
+    status: (query.get('certificate_status') ?? 'all') as CertificateStatus,
+  };
+  const waitingForMember =
+    !!context?.company?.memberUuids.length &&
+    (read.record?.company.uuid !== context.company.uuid || read.selectedUuid !== read.record.uuid || !read.requests);
   return (
     <PageTitle.Provider value="Certificates">
       <Page>
@@ -28,7 +41,11 @@ export default function CertificatesPage() {
           <LoadError retry={context.directory.retry} busy={context.directory.isRefreshing}>
             Your company access could not be confirmed.
           </LoadError>
-        ) : !owner || context?.directory.isLoading || context?.directory.isRefreshing || read.loading ? (
+        ) : !owner ||
+          context?.directory.isLoading ||
+          context?.directory.isRefreshing ||
+          read.loading ||
+          waitingForMember ? (
           <Loading>Loading certificate records…</Loading>
         ) : !context?.company ? (
           <CompanyContextNotice />
@@ -38,11 +55,13 @@ export default function CertificatesPage() {
             owner={owner}
             currentOwner={boundary.get}
             company={context.company.uuid}
+            filters={filters}
           />
         ) : context.company.memberUuids.length ? (
           <PersonalCertificates
             key={`${owner.userUuid}/${owner.ownerAccountUuid}/${context.company.uuid}`}
             company={context.company.uuid}
+            filters={filters}
           />
         ) : (
           <p className="text-sm text-text-muted">Your account has no certificate access for this company.</p>
@@ -56,19 +75,41 @@ function CompanyCertificates({
   owner,
   currentOwner,
   company,
+  filters,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
   company: string;
+  filters: CertificateFilterValues;
 }) {
   const location = useLocation();
   const [editing, setEditing] = useState(false);
   const workspace = useMemberWorkspace();
   const requested = new URLSearchParams(location.search).get('class');
-  const source = useCompanyCertificates(owner, currentOwner, company, requested, workspace.token);
+  const association =
+    workspace.read.record?.company.uuid === company && workspace.read.selectedUuid === workspace.read.record.uuid
+      ? workspace.read.record.uuid
+      : undefined;
+  const source = useCompanyCertificates(
+    owner,
+    currentOwner,
+    company,
+    requested,
+    workspace.token,
+    filters,
+    association,
+    workspace.read.requests?.certificates,
+  );
   const selected = source.options.find((item) => item.uuid === source.token);
   return (
-    <CertificateWorkspace classes={source.options} selected={selected} disabled={editing}>
+    <CertificateWorkspace
+      classes={source.options}
+      selected={selected}
+      disabled={editing}
+      filters={filters}
+      companyReader
+      ownRecord={!!association}
+    >
       {source.hasError ? (
         <LoadError retry={source.retry} busy={source.isRefreshing}>
           Certificate records could not be loaded.
@@ -81,10 +122,11 @@ function CompanyCertificates({
         <Loading>Loading certificate records…</Loading>
       ) : (
         <Records
-          key={`${company}/${selected?.uuid ?? ''}/${workspace.read.selectedUuid}`}
+          key={JSON.stringify([company, selected?.uuid, workspace.read.selectedUuid, filters])}
           companyUuid={company}
           onEditingChange={setEditing}
           selected={selected}
+          filters={filters}
           company={
             source.register && selected
               ? {
@@ -94,6 +136,7 @@ function CompanyCertificates({
                   guard: source.guard,
                   sourceReady: source.ready && !source.more.failed && !source.more.loading,
                   readReady: source.ready,
+                  count: source.count,
                   more: source.more,
                 }
               : undefined
@@ -104,7 +147,7 @@ function CompanyCertificates({
   );
 }
 
-function PersonalCertificates({ company }: { company: string }) {
+function PersonalCertificates({ company, filters }: { company: string; filters: CertificateFilterValues }) {
   const { read, token } = useMemberWorkspace();
   const location = useLocation();
   const requested = new URLSearchParams(location.search).get('class');
@@ -114,16 +157,17 @@ function PersonalCertificates({ company }: { company: string }) {
   if (!record || !read.requests || (!requested && classes.length > 0 && !selected))
     return <Loading>Loading your certificate records…</Loading>;
   return (
-    <CertificateWorkspace classes={classes} selected={selected}>
+    <CertificateWorkspace classes={classes} selected={selected} filters={filters} companyReader={false} ownRecord>
       {requested && !selected ? (
         <p className="text-sm text-text-muted">Your account has no member record for this share class.</p>
       ) : selected && !read.entriesReady ? (
         <Loading>Loading your certificate records…</Loading>
       ) : (
         <Records
-          key={`${company}/${selected?.uuid ?? ''}/${read.selectedUuid}`}
+          key={JSON.stringify([company, selected?.uuid, read.selectedUuid, filters])}
           companyUuid={company}
           selected={selected}
+          filters={filters}
         />
       )}
     </CertificateWorkspace>
@@ -135,13 +179,19 @@ function CertificateWorkspace({
   selected,
   children,
   disabled = false,
+  filters,
+  companyReader,
+  ownRecord,
 }: {
   classes: CertificateClass[];
   selected?: CertificateClass;
   children: ReactNode;
   disabled?: boolean;
+  filters: CertificateFilterValues;
+  companyReader: boolean;
+  ownRecord: boolean;
 }) {
-  const { read } = useMemberWorkspace();
+  const { read, held } = useMemberWorkspace();
   const location = useLocation();
   const navigate = useNavigate();
   const requested = new URLSearchParams(location.search).get('class');
@@ -157,28 +207,22 @@ function CertificateWorkspace({
       header={
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Certificate records</h2>
-          {classes.length > 1 ? (
-            <div className="w-full sm:w-64">
-              <SelectField
-                label="Share class"
-                value={selected?.uuid ?? ''}
-                options={classes.map((item) => ({ value: item.uuid, label: `${item.name} · ${item.symbol}` }))}
-                disabled={disabled || read.busy || !!read.retry}
-                onChange={(uuid) => {
-                  const query = new URLSearchParams(location.search);
-                  query.set('class', uuid);
-                  navigate({ search: query.toString(), hash: location.hash }, { state: location.state });
-                }}
-              />
-            </div>
-          ) : selected ? (
+          {selected && (
             <p className="text-sm text-text-muted">
               {selected.name} · {selected.symbol}
             </p>
-          ) : null}
+          )}
         </div>
       }
     >
+      <CertificateFilters
+        classes={classes}
+        selected={selected}
+        applied={filters}
+        disabled={disabled || held}
+        companyReader={companyReader}
+        ownRecord={ownRecord}
+      />
       {read.error && (
         <p role="alert" className="text-sm text-error-light">
           {read.error}
@@ -191,7 +235,13 @@ function CertificateWorkspace({
           onClick={() => void read.recover()}
         />
       )}
-      {children}
+      {CERTIFICATE_STATUSES.some(([value]) => value === filters.status) ? (
+        children
+      ) : (
+        <p role="alert" className="text-sm text-error-light">
+          This certificate status is unavailable. Choose a status or Clear in Filters.
+        </p>
+      )}
     </Section>
   );
 }
@@ -201,11 +251,13 @@ function Records({
   company,
   companyUuid,
   onEditingChange,
+  filters,
 }: {
   selected?: CertificateClass;
   company?: CompanyCertificateSource;
   companyUuid: string;
   onEditingChange?: (open: boolean) => void;
+  filters: CertificateFilterValues;
 }) {
   const { read, held, token } = useMemberWorkspace();
   const [withdrawing, setWithdrawing] = useState<{ uuid: string; createdAt: string } | null>(null);
@@ -225,6 +277,7 @@ function Records({
         company={company}
         held={held}
         running={running}
+        filters={filters}
         onRequest={(uuid) => track(`certificate:${uuid}`, read.requestCertificate(uuid))}
         onWithdraw={(request) => setWithdrawing({ uuid: request.uuid, createdAt: request.createdAt })}
       />

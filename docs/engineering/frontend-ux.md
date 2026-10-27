@@ -217,7 +217,11 @@ preparation belongs in Documents. Keep maintenance controllers mounted so unfini
 survive navigation. Documents has one **Certificates** page for company and member records, plus
 **Ledger exports** and **Company pack** where company access permits them. Certificates and Ledger
 exports show one selected class, with a **Share class** selector only when there is more than one.
-On Certificates, the selector sits in the records card header.
+Certificates keeps the selected class visible in the collection heading. One **Filters** disclosure
+groups class selection, shareholder search and certificate status. Fields are drafts until **Apply**
+updates the URL; **Clear** removes search and status while keeping the class. Filter the complete
+permitted history, not just loaded rows, and keep older or other-class requests outside these entry
+filters.
 Company pack stays at company scope. Each uses the existing workspace frame, cards, responsive
 field grid and action footer, opening one focused main-page preparation at a time. Certificate
 preparation uses the existing labelled summary rows for share movements, company date and PDF page
@@ -236,7 +240,7 @@ see matching entries once. Use one aligned `Disclosure` row for the shareholder 
 date and status, with details, previous requests and permitted preparation, request, withdrawal or
 unsigned-download actions opening inline. Company-only rows show certificate eligibility; request
 status comes only from an actual readable request. Keep entry numbers, ledger dates and recording
-timestamps inside the opened details. Requests without a matching visible entry remain under
+timestamps inside the opened details. Older or other-class requests remain under
 **Other certificate requests** with their own
 actions. Preparing a company PDF never marks a member request fulfilled. Particulars requests stay
 in Company-recorded details in Settings.

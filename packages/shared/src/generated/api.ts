@@ -12359,10 +12359,21 @@ export interface ApiOperations {
   api_v1_tokens_register_entries_list: {
     parameters: {
       query?: {
+        association?: string;
+        certificate_status?:
+          | 'all'
+          | 'can_prepare'
+          | 'reversed'
+          | 'not_requested'
+          | 'requested'
+          | 'withdrawn'
+          | 'fulfilled'
+          | 'not_applicable';
         entry?: string[];
         member?: string;
         page?: number;
         page_size?: number;
+        search?: string;
       };
       header?: never;
       path: {
