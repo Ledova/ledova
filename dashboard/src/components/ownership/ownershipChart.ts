@@ -13,7 +13,13 @@ export interface OwnershipRingController {
 
 export function renderOwnershipRing(
   container: HTMLDivElement,
-  { classes, issuedSupply, onSelect, onHighlight }: Omit<OwnershipRingProps, 'highlighted'>,
+  {
+    classes,
+    issuedSupply,
+    onSelect,
+    onHighlight,
+    onReady,
+  }: Omit<OwnershipRingProps, 'highlighted'> & { onReady: () => void },
 ): OwnershipRingController {
   const tokens = getComputedStyle(container);
   const color = (name: string) => tokens.getPropertyValue(`--color-${name}`).trim();
@@ -33,7 +39,7 @@ export function renderOwnershipRing(
     series: [
       {
         type: 'pie',
-        radius: ['63%', '88%'],
+        radius: ['55%', '88%'],
         center: ['50%', '50%'],
         minAngle: 0,
         padAngle: 0,
@@ -43,7 +49,7 @@ export function renderOwnershipRing(
         emphasis: { scale: !reducedMotion.matches, scaleSize: 5, focus: 'self' },
         stateAnimation: { duration: reducedMotion.matches ? 0 : 160, easing: 'cubicOut' },
         blur: { itemStyle: { opacity: 0.3 } },
-        itemStyle: { borderColor: color('surface-raised'), borderWidth: 2 },
+        itemStyle: { borderColor: color('surface-raised'), borderWidth: 2, borderRadius: 2 },
         data: eligible.map((item) => {
           const sliceColor = tokens.getPropertyValue(ownershipColor(classes, item.uuid).slice(4, -1)).trim();
           return {
@@ -79,6 +85,7 @@ export function renderOwnershipRing(
     if (!chart) {
       chart = init(container, undefined, { renderer: 'svg' });
       chart.setOption(option());
+      onReady();
       chart.on('click', (parameters) => {
         const row = rowFrom(parameters);
         if (row) onSelect(row.uuid);

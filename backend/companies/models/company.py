@@ -165,6 +165,11 @@ class Company(BaseModel):
         default=False,
         help_text="Show this company's share classes in the investor directory.",
     )
+    share_ownership_with_members = models.BooleanField(default=False)
+    ownership_sharing_changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name="+", editable=False
+    )
+    ownership_sharing_changed_at = models.DateTimeField(null=True, editable=False)
 
     class Meta:
         verbose_name = "Company"

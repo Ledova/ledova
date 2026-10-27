@@ -1,7 +1,8 @@
+import { TestRouter } from './TestRouter';
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import { PageTitle } from '@components/PageTitle';
 import apiClient from '@services/apiClient';
 import {
@@ -100,6 +101,9 @@ export function companyRecord(overrides: Partial<Company> = {}): Company {
     isPendingReview: false,
     canIssueTokens: false,
     isOpenToInvestors: false,
+    shareOwnershipWithMembers: false,
+    ownershipSharingChangedBy: null,
+    ownershipSharingChangedAt: null,
     primaryContact: null,
     createdAt: '2026-09-01T00:00:00Z',
     updatedAt: '2026-09-01T00:00:00Z',
@@ -117,7 +121,7 @@ export function renderCompanyPage(
   return render(
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
-        <MemoryRouter initialEntries={[entry]}>
+        <TestRouter initialEntries={[entry]}>
           <PageTitle.Provider value={title}>
             <Routes>
               <Route path={path} element={page} />
@@ -125,7 +129,7 @@ export function renderCompanyPage(
               <Route path={DESTINATIONS.companyRegister.path} element={<p>Register page</p>} />
             </Routes>
           </PageTitle.Provider>
-        </MemoryRouter>
+        </TestRouter>
       </ApiClientProvider>
     </QueryClientProvider>,
   );

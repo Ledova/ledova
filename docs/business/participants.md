@@ -378,19 +378,18 @@ payslip never establishes eligibility.
 
 ### Settings
 
-On web, the selector below the Ledova logo switches between Company and My shares under one login.
-Company shows company-management navigation; My shares shows only the person's own holdings, awards
-and documents, including an empty state before records are linked. Company access still comes from
-current appointments and existing owner rules. A remembered choice never grants access, and direct
-links open the matching workspace. Switching an edited form asks before discarding it.
+On web, Dashboard selects a company for ownership exploration and task navigation, without a
+workspace or role selector. Company appointments and actual member links determine the available
+records and actions; choosing a company grants neither.
 
-Settings opens Profile in both workspaces. Company also shows Documents, Team and Activation;
-My shares shows Company-recorded details for linked records. Team remains reachable for accepting
-a company invitation. Before Company access is granted, **My shares → Profile → Manage account**
-provides **Accept a company invitation**, opening the same guarded workflow. Member access stays under company [Shareholders](register.md#the-register-page).
+Settings opens Profile. Company Documents, Team and Activation appear where company access permits;
+Company-recorded details appears for linked member records. Team remains reachable for accepting
+a company invitation. Before company access is granted, **Settings → Profile → Manage account**
+provides **Accept a company invitation**, opening the same guarded workflow. Member access stays
+under company [Shareholders](register.md#the-register-page).
 
-**Profile** shares Personal information and one Account card across the workspaces, with Company
-details only in Company. Account includes
+**Profile** combines Personal information and one Account card, with permitted Company details.
+Account includes
 relevant identity status, **Change password**, **Dark theme** (remembered in this browser with Paper as
 the default) and **Transaction alerts** for transaction status changes. Each editor retains its own
 permissions; changing personal details does not update a company's records. **Documents** holds company source files; generated certificates and exports stay under the
@@ -406,7 +405,7 @@ top-level Documents group. **Activation** retains the
   register entries are kept. The confirmation says so, and the browser's copy of the account's data
   is cleared once the server confirms.
 
-In My shares, web Settings also opens **Company-recorded details**: the person's name and residential address
+For linked members, web Settings also opens **Company-recorded details**: the person's name and residential address
 held by each linked company, with a company-reviewed update request and its status. These are
 separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
 

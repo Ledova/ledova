@@ -43,7 +43,7 @@ stay here as history and are marked where they appear.
 | [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                                                                         |
 | [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October                             |
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey superseded 26 October                                          |
-| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
+| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 to 27 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web); mobile (#1157) superseded 26 October                                                      |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                          |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
@@ -1269,6 +1269,48 @@ remains selectable in the list, with shared search and paging when long. Small c
 combined into Other, and zero-share classes remain listed. Use the installed modular ECharts pie
 chart, tooltip and SVG renderer, retaining a list without the ring on narrow screens or chart failure.
 The existing workspace, sidebar, issued-share denominator and valuation boundary remain unchanged.
+
+On 27 October 2026 the owner approved a company-controlled read-only member ownership overview under
+[#1355](https://github.com/Ledova/ledova/issues/1355). This extends the earlier own-records-only
+dashboard scope: one company-administrator setting, off by default, shares issued company/class
+totals and shareholder counts with current linked members. Each member also sees their own class
+quantity and percentage. Retain the actor and time of the company's latest choice. Reuse the web
+ownership ring and existing member-read safeguards; do not grant a company appointment or expose
+other holders' names, identifiers, personal information, awards, documents or history. Sharing off,
+revocation and failed reads clear the shared figures. Issued-share counts do not imply voting power,
+economic value or fully diluted ownership. Named-holder and class-rights disclosure remain separate
+decisions; mobile presentation is unchanged. This does not replace the company's legal register or
+lawful access arrangements.
+
+The owner then requested explicit **Your shares** and **Company ownership** views, usable for both
+single-company shareholders and a local Taylor demo linked to three companies. Your shares is the
+default; the existing searchable Company selector appears only for multiple companies and starts
+with the first available association. Both views
+remain company-bound, with no invented cross-company ownership percentage. Ordinary revalidation
+preserves the view choice; an account/company change or unavailable sharing returns to Your shares.
+The choice stays in memory and uses the existing member-read lifecycle.
+
+The owner then approved one ownership panel under [#1358](https://github.com/Ledova/ledova/issues/1358):
+the company name opens the searchable selector in its header, beside a connected view selector,
+with figures and chart beneath. Single-company members see a plain company heading; narrow screens
+stack the controls. Remove the repeated company heading and separate dashboard control rows, keeping
+the controls outside the ring and awards in a separate card.
+
+On 27 October 2026 the owner selected the **Ownership browser with the ownership ring** under
+[#1360](https://github.com/Ledova/ledova/issues/1360), after comparing company-map, linked-browser
+and zoomable-wheel proposals. This replaces the separate workspace Dashboards, remembered workspace
+choice and header view/company selectors described above. Keep one searchable company collection,
+then company → class → permitted detail, with a breadcrumb and browser Back/Forward. One company
+opens directly; overlapping administrative and shareholder relationships create one company entry.
+Show the person's own position alongside company information their current access permits.
+
+Remove the sidebar workspace selector. Dashboard chooses company context; the sidebar retains
+focused tasks with visible company context and explicitly named personal/company destinations.
+Keep authorised deep links, unsaved-draft confirmation, account boundaries and held-execution
+recovery. Company appointments and real member associations remain separate; selecting a company
+grants neither. Sharing stays opt-in and aggregate-only for members, awards stay separate from
+issued shares, and this adds no valuation or named-holder disclosure. Reuse the existing chart
+library and ring with a selectable list; mobile is unchanged by this web increment.
 
 ### Dashboard, Settings and Register for a new company
 

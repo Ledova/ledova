@@ -2,293 +2,271 @@
 
 import {
   ApiClientProvider,
-  USER_PREFERENCES_QUERY_KEY,
-  COMPANY_TOKEN_ENDPOINTS,
   COMPANY_ENDPOINTS,
-  USER_ACCOUNT_ENDPOINTS,
   FEATURE_FLAG_ENDPOINTS,
-  OWN_APPOINTMENTS_QUERY_KEY,
-  type OwnCompanyAppointment,
+  USER_ACCOUNT_ENDPOINTS,
+  USER_PREFERENCES_QUERY_KEY,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, useNavigate } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
-import { APPOINTMENT, companyPreferences, prepareCompanyClient } from '../testSupport/company';
+import {
+  APPOINTMENT,
+  MEMBER_RECORD,
+  companyPreferences,
+  companyRecord,
+  prepareCompanyClient,
+} from '../testSupport/company';
 import { Sidebar } from '@components/Sidebar';
-import { WorkspaceProvider } from '@components/WorkspaceProvider';
-import type { ReactNode } from 'react';
+import { CompanyContextProvider } from '@components/CompanyContextProvider';
+import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
+import { useLedgerNavigation } from '@components/LedgerNavigation';
+import { useCompanyContext } from '@hooks/useCompanyContext';
+import { ownershipCompaniesKey } from '@hooks/useOwnershipCompanies';
 import { RootRedirect } from './RootRedirect';
-import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';
+import { TestRouter } from '../testSupport/TestRouter';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 
-it('keeps dashboard access and remembered workspaces bound to the current account', async () => {
-  localStorage.clear();
+function ContextActions() {
+  const context = useCompanyContext();
+  const ledger = useLedgerNavigation();
+  const navigate = useNavigate();
+  return (
+    <>
+      <output aria-label="Selected company">{context?.company?.name ?? 'No company selected'}</output>
+      <button onClick={() => context?.selectCompany('company-a')}>Choose company A</button>
+      <button onClick={() => context?.selectCompany('company-b')}>Choose company B</button>
+      <button onClick={() => ledger.setState({ company: 'company-a', blocked: true, held: true })}>Hold action</button>
+      <button onClick={() => ledger.setState({ company: 'company-a', blocked: false })}>Release action</button>
+      <button onClick={() => void navigate(-1)}>Browser Back</button>
+      <button onClick={() => void navigate(1)}>Browser Forward</button>
+      <Link to="/">Check access</Link>
+    </>
+  );
+}
+
+it('uses one dashboard and company-scoped tasks, protects drafts and holds, and clears a late directory after the account changes', async () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   prepareCompanyClient(client, 'investor');
-  let reject!: (reason: Error) => void;
-  let refused = true;
-  let companyAccess = true;
   let signupComplete = true;
   let personalDetailsSaved = false;
-  let withSidebar = false;
-  let appointment: OwnCompanyAppointment = { ...APPOINTMENT, capabilities: ['prepare'], expiresAt: null };
-  let appointmentsRefused = false;
-  let appointmentsVisible = true;
-  let holdAppointmentRead = false;
-  let releaseAppointmentRead: (() => void) | undefined;
-  let appointmentGuard = () => {};
+  let visible = true;
+  let delayCompanies = false;
+  let releaseCompanies: (() => void) | undefined;
+  let companiesGuard = () => {};
+  const company = companyRecord({ uuid: 'company-a', name: 'Company A' });
+  const associations = [
+    {
+      ...MEMBER_RECORD,
+      uuid: 'association-a',
+      company: { ...MEMBER_RECORD.company, uuid: 'company-a', name: 'Company A' },
+    },
+    {
+      ...MEMBER_RECORD,
+      uuid: 'association-b',
+      company: { ...MEMBER_RECORD.company, uuid: 'company-b', name: 'Company B' },
+    },
+  ];
+  const page = (results: unknown[]) => ({ data: { results, next: null, count: results.length } });
   api.get.mockImplementation((url: string, config) => {
     if (url === '/api/user-preferences/') return Promise.resolve({ data: companyPreferences('investor') });
     if (url === USER_ACCOUNT_ENDPOINTS.BASE)
-      return Promise.resolve({
-        data: client.getQueryData<{ data: ReturnType<typeof companyPreferences> }>(USER_PREFERENCES_QUERY_KEY)?.data
-          .userAccount,
-      });
-    if (url === FEATURE_FLAG_ENDPOINTS.BASE) return Promise.resolve({ data: { results: [], next: null, count: 0 } });
-    if (url === '/api/v1/company-authority/appointments/') {
-      appointmentGuard = config.ledovaSubmissionGuard;
-      if (holdAppointmentRead) {
-        holdAppointmentRead = false;
+      return Promise.resolve({ data: companyPreferences('investor').userAccount });
+    if (url === FEATURE_FLAG_ENDPOINTS.BASE) return Promise.resolve(page([]));
+    if (url === '/api/v1/company-authority/appointments/') return Promise.resolve(page(visible ? [APPOINTMENT] : []));
+    if (url === '/api/user-profiles/')
+      return Promise.resolve(
+        page([
+          {
+            uuid: client.getQueryData<{ data: { userProfile: string } }>(USER_PREFERENCES_QUERY_KEY)!.data.userProfile,
+            isSignupCompleted: signupComplete,
+            fullName: personalDetailsSaved ? 'Example Director' : '',
+          },
+        ]),
+      );
+    if (url === '/api/v1/tokens/member-records/') return Promise.resolve(page(visible ? associations : []));
+    if (url === COMPANY_ENDPOINTS.BASE) {
+      companiesGuard = config.ledovaSubmissionGuard;
+      if (delayCompanies) {
+        delayCompanies = false;
         return new Promise((resolve) => {
-          releaseAppointmentRead = () => resolve({ data: { results: [appointment], next: null, count: 1 } });
+          releaseCompanies = () => resolve(page([company]));
         });
       }
-      if (appointmentsRefused) return Promise.reject(new Error('Appointment read refused'));
-      return Promise.resolve({
-        data: { results: appointmentsVisible ? [appointment] : [], next: null, count: appointmentsVisible ? 1 : 0 },
-      });
+      return Promise.resolve(page(visible ? [company] : []));
     }
-    if (url === '/api/user-profiles/')
-      return Promise.resolve({
-        data: {
-          results: [
-            {
-              uuid: client.getQueryData<{ data: { userProfile: string } }>(USER_PREFERENCES_QUERY_KEY)!.data
-                .userProfile,
-              isSignupCompleted: signupComplete,
-              fullName: personalDetailsSaved ? 'Example Director' : '',
-            },
-          ],
-          next: null,
-          count: 1,
-        },
-      });
-    if (url === '/api/v1/tokens/member-records/')
-      return Promise.resolve({ data: { results: [], next: null, previous: null, count: 0 } });
-    if (url === COMPANY_ENDPOINTS.BASE)
-      return Promise.resolve({ data: { results: [], next: null, previous: null, count: 0 } });
-    if (url !== COMPANY_TOKEN_ENDPOINTS.REGISTER) throw new Error(`Unexpected read ${url}`);
-    if (refused)
-      return new Promise((_resolve, refuse) => {
-        reject = refuse;
-      });
-    return Promise.resolve({
-      data: {
-        results: companyAccess ? [{ uuid: 'class', companyUuid: 'company', companyName: 'Example' }] : [],
-        next: null,
-        count: companyAccess ? 1 : 0,
-      },
-    });
+    throw new Error(`Unexpected read ${url}`);
   });
-  const Frame = ({ children }: { children: ReactNode }) =>
-    withSidebar ? <WorkspaceProvider>{children}</WorkspaceProvider> : children;
-  const showRoot = (entry = '/') =>
+  const show = (entry = '/') =>
     render(
       <QueryClientProvider client={client}>
         <ApiClientProvider client={api as unknown as AxiosInstance}>
-          <MemoryRouter initialEntries={[entry]}>
-            <Frame>
-              <Routes>
-                <Route path="/" element={<RootRedirect />} />
-                <Route
-                  path={COMPANY_DASHBOARD_PATH}
-                  element={
-                    <>
-                      {withSidebar && <Sidebar />}
-                      <p>Company overview</p>
-                      <Link to="/settings#profile">Profile settings</Link>
-                      <Link to="/">Check access</Link>
-                    </>
-                  }
-                />
-                <Route
-                  path="/home"
-                  element={
-                    <>
-                      {withSidebar && <Sidebar />}
-                      <p>Personal overview</p>
-                      <Link to="/">Check access</Link>
-                    </>
-                  }
-                />
-                <Route
-                  path={SIGNUP_RESUMES_AT}
-                  element={
-                    <>
-                      <p>Resume signup</p>
-                      <Link to="/">Check signup progress</Link>
-                    </>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <>
-                      <Sidebar />
-                      <p>Shared profile</p>
-                      <Link to="/">Check access</Link>
-                    </>
-                  }
-                />
-                <Route path="/signup/company-registration" element={<p>Resume company setup</p>} />
-              </Routes>
-            </Frame>
-          </MemoryRouter>
+          <TestRouter initialEntries={[entry]}>
+            <LedgerNavigationProvider>
+              <CompanyContextProvider>
+                <Routes>
+                  <Route path="/" element={<RootRedirect />} />
+                  <Route
+                    path="/home"
+                    element={
+                      <>
+                        <Sidebar />
+                        <main>
+                          <p>Unified overview</p>
+                          <form>
+                            <label>
+                              Dashboard draft
+                              <input />
+                            </label>
+                          </form>
+                          <ContextActions />
+                        </main>
+                      </>
+                    }
+                  />
+                  <Route
+                    path="/company/ledger"
+                    element={
+                      <>
+                        <Sidebar />
+                        <main>
+                          <h1>Ledger task</h1>
+                          <form>
+                            <label>
+                              Draft reference
+                              <input />
+                            </label>
+                          </form>
+                          <ContextActions />
+                        </main>
+                      </>
+                    }
+                  />
+                  <Route path={SIGNUP_RESUMES_AT} element={<p>Resume signup</p>} />
+                  <Route path="/signup/company-registration" element={<p>Resume company setup</p>} />
+                </Routes>
+              </CompanyContextProvider>
+            </LedgerNavigationProvider>
+          </TestRouter>
         </ApiClientProvider>
       </QueryClientProvider>,
     );
   try {
-    showRoot();
-    expect((await screen.findByRole('status')).textContent).toMatch(/Checking your dashboard/);
-    expect(screen.queryByText('Company overview')).toBeNull();
-    await act(async () => reject(new Error('Access unavailable')));
-    expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(screen.queryByText('Personal overview')).toBeNull();
-    refused = false;
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByText('Company overview')).toBeTruthy();
-    companyAccess = false;
-    const other = companyPreferences('company');
-    act(() =>
-      client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-        data: { ...other, userProfile: 'profile-two', userAccount: { ...other.userAccount!, uuid: 'account-two' } },
-      }),
-    );
-    fireEvent.click(screen.getByRole('link', { name: 'Check access' }));
-    expect(await screen.findByText('Personal overview')).toBeTruthy();
-    expect(screen.queryByText('Company overview')).toBeNull();
-    const registerReads = api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER).length;
-    signupComplete = false;
-    refused = true;
-    act(() =>
-      client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-        data: { ...other, userProfile: 'profile-three', userAccount: { ...other.userAccount!, uuid: 'account-three' } },
-      }),
-    );
-    fireEvent.click(screen.getByRole('link', { name: 'Check access' }));
-    expect(await screen.findByText('Resume signup')).toBeTruthy();
-    expect(api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER)).toHaveLength(registerReads);
-    personalDetailsSaved = true;
-    act(() =>
-      client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-        data: { ...other, userProfile: 'profile-four', userAccount: { ...other.userAccount!, uuid: 'account-four' } },
-      }),
-    );
-    fireEvent.click(screen.getByRole('link', { name: 'Check signup progress' }));
-    expect(await screen.findByText('Resume company setup')).toBeTruthy();
-    expect(api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER)).toHaveLength(registerReads);
-    cleanup();
-    client.clear();
-    signupComplete = true;
-    refused = false;
-    companyAccess = false;
-    withSidebar = true;
-    prepareCompanyClient(client, 'investor');
-    showRoot();
-    expect(await screen.findByText('Company overview')).toBeTruthy();
-    expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Your shares' })).toBeNull();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace' }), { target: { value: 'my-shares' } });
-    expect(await screen.findByText('Personal overview')).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
-    fireEvent.click(screen.getByRole('link', { name: 'Check access' }));
-    expect(await screen.findByText('Personal overview')).toBeTruthy();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace' }), { target: { value: 'company' } });
-    expect(await screen.findByText('Company overview')).toBeTruthy();
-    const currentAppointment = appointment;
-    for (const patch of [
-      { status: 'revoked' as const, isEffective: false, revokedAt: '2026-10-14T00:00:00Z' },
-      { expiresAt: '2026-10-14T00:00:00Z' },
-      { capabilities: ['read_register' as const] },
-    ]) {
-      appointment = { ...currentAppointment, ...patch };
-      await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
-      await waitFor(() => expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull());
-      fireEvent.click(screen.getByRole('link', { name: 'Check access' }));
-      expect(await screen.findByText('Personal overview')).toBeTruthy();
-    }
-    appointment = currentAppointment;
-    await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
-    await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Workspace' }).querySelector('option[value="company"]')).toBeTruthy(),
-    );
-    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('my-shares');
-    fireEvent.change(screen.getByRole('combobox', { name: 'Workspace' }), { target: { value: 'company' } });
-    expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
-    appointmentsRefused = true;
-    await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
-    await waitFor(() => expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull());
-    appointmentsRefused = false;
-    await act(async () => client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }));
-    expect(await screen.findByRole('link', { name: 'Ledger' })).toBeTruthy();
+    show();
+    expect(await screen.findByText('Unified overview')).toBeTruthy();
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    fireEvent.click(screen.getByRole('link', { name: 'Profile settings' }));
-    expect(await screen.findByText('Shared profile')).toBeTruthy();
-    holdAppointmentRead = true;
-    const staleRead = client.refetchQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY });
-    await waitFor(() => expect(releaseAppointmentRead).toBeTypeOf('function'));
-    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('company');
-    const staleGuard = appointmentGuard;
-    appointmentsVisible = false;
-    const foreign = companyPreferences('investor');
+    expect(screen.queryByRole('combobox', { name: 'Workspace' })).toBeNull();
+    expect(screen.getByLabelText('Selected company').textContent).toBe('No company selected');
+    fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
+    const ledgerLink = await screen.findByRole('link', { name: 'Ledger' });
+    expect(ledgerLink.getAttribute('href')).toBe('/company/ledger?company=company-a');
+    expect(screen.getByRole('link', { name: 'Your certificates' }).getAttribute('href')).toBe(
+      '/home?company=company-a#documents',
+    );
+    expect(screen.getAllByRole('link', { name: 'Dashboard' })).toHaveLength(1);
+    fireEvent.click(ledgerLink);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
+      target: { value: 'Unfinished draft' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }));
+    expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
+    expect(screen.queryByText('Unified overview')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect((screen.getByRole('textbox', { name: 'Draft reference' }) as HTMLInputElement).value).toBe(
+      'Unfinished draft',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
+    expect(await screen.findByText('Unified overview')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Dashboard draft' }), {
+      target: { value: 'Unfinished dashboard draft' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Forward' }));
+    expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Ledger task' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect((screen.getByRole('textbox', { name: 'Dashboard draft' }) as HTMLInputElement).value).toBe(
+      'Unfinished dashboard draft',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Forward' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
+    await screen.findByRole('heading', { name: 'Ledger task' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
+      target: { value: 'Unfinished draft' },
+    });
+    fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+    expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
+    expect(screen.queryByText('Unified overview')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect((screen.getByRole('textbox', { name: 'Draft reference' }) as HTMLInputElement).value).toBe(
+      'Unfinished draft',
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
+    expect(await screen.findByText('Unified overview')).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', { name: 'Ledger' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hold action' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Leave this page?' })).toBeNull());
+    expect(screen.getByRole('heading', { name: 'Ledger task' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose company B' }));
+    expect(screen.getByRole('heading', { name: 'Ledger task' })).toBeTruthy();
+    expect(screen.queryByText('Unified overview')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Release action' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Choose company B' }));
+    expect(await screen.findByText('Unified overview')).toBeTruthy();
+    expect(screen.getByLabelText('Selected company').textContent).toBe('Company B');
+    expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
+    await screen.findByRole('link', { name: 'Ledger' });
+    delayCompanies = true;
+    const oldOwner = client.getQueryData<{ data: ReturnType<typeof companyPreferences> }>(
+      USER_PREFERENCES_QUERY_KEY,
+    )!.data;
+    const staleRead = client.refetchQueries({
+      queryKey: ownershipCompaniesKey({ userUuid: oldOwner.userProfile, ownerAccountUuid: oldOwner.userAccount!.uuid }),
+    });
+    await waitFor(() => expect(releaseCompanies).toBeTypeOf('function'));
+    const staleGuard = companiesGuard;
+    visible = false;
     act(() =>
       client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
         data: {
-          ...foreign,
-          userProfile: 'foreign-profile',
-          userAccount: { ...foreign.userAccount!, uuid: 'foreign-account' },
+          ...oldOwner,
+          userProfile: 'profile-two',
+          userAccount: { ...oldOwner.userAccount!, uuid: 'account-two' },
         },
       }),
     );
     expect(() => staleGuard()).toThrow(/signed-in account changed/);
     await act(async () => {
-      releaseAppointmentRead!();
+      releaseCompanies!();
       await staleRead;
     });
     await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
-    expect(screen.queryByRole('option', { name: 'Company' })).toBeNull();
-    fireEvent.click(screen.getByRole('link', { name: 'Check access' }));
-    expect(await screen.findByText('Personal overview')).toBeTruthy();
+    expect(screen.getByLabelText('Selected company').textContent).toBe('No company selected');
     cleanup();
     client.clear();
-    localStorage.clear();
-    appointmentsVisible = true;
-    appointment = currentAppointment;
-    releaseAppointmentRead = undefined;
-    prepareCompanyClient(client, 'investor');
-    showRoot('/settings#profile');
-    expect(await screen.findByText('Shared profile')).toBeTruthy();
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('company');
-    holdAppointmentRead = true;
-    const defaultRead = client.refetchQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY });
-    await waitFor(() => expect(releaseAppointmentRead).toBeTypeOf('function'));
-    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('company');
-    await act(async () => {
-      releaseAppointmentRead!();
-      await defaultRead;
-    });
-    expect((screen.getByRole('combobox', { name: 'Workspace' }) as HTMLSelectElement).value).toBe('company');
+    prepareCompanyClient(client, 'company');
+    signupComplete = false;
+    show();
+    expect(await screen.findByText('Resume signup')).toBeTruthy();
+    cleanup();
+    client.clear();
+    prepareCompanyClient(client, 'company');
+    personalDetailsSaved = true;
+    show();
+    expect(await screen.findByText('Resume company setup')).toBeTruthy();
   } finally {
     cleanup();
     client.clear();
     api.get.mockReset();
-    localStorage.clear();
   }
 });

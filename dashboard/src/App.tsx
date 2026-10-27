@@ -4,10 +4,10 @@ import { MemberRecordsProvider } from '@components/member-records/MemberRecordsP
 
 export default function App() {
   return (
-    <Layout>
-      <MemberRecordsProvider>
+    <MemberRecordsProvider>
+      <Layout>
         <AppRoutes />
-      </MemberRecordsProvider>
-    </Layout>
+      </Layout>
+    </MemberRecordsProvider>
   );
 }

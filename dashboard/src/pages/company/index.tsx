@@ -1,3 +1,4 @@
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
@@ -17,7 +18,8 @@ export default function CompanyPage() {
 }
 
 function DocumentsPage() {
-  const data = useCompanySelection();
+  const context = useCompanyContext();
+  const data = useCompanySelection({ selectedUuid: context?.companyUuid ?? undefined });
   return <Documents key={`${data.scopeKey}/${data.companyUuid ?? ''}`} data={data} />;
 }
 

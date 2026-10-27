@@ -1,3 +1,4 @@
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,7 +12,8 @@ import { EditCompanyForm } from './CompanyForms';
 import { CompanySelection } from '@components/CompanySelection';
 
 export function CompanyProfile() {
-  const data = useCompanySelection();
+  const context = useCompanyContext();
+  const data = useCompanySelection({ selectedUuid: context?.companyUuid ?? undefined });
   return <CompanyDetails key={`${data.scopeKey}/${data.companyUuid ?? ''}`} data={data} />;
 }
 
@@ -30,6 +32,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
       queryClient.invalidateQueries({ queryKey: data.companiesKey, exact: true }),
       queryClient.invalidateQueries({ queryKey: TOKENS_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
+      queryClient.invalidateQueries({ queryKey: ['member-records'] }),
     ]);
   const address = company
     ? [
@@ -52,6 +55,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
             <EditCompanyForm
               key={`${data.scopeKey}/${editing.uuid}`}
               target={editing}
+              canShareOwnership={data.canPersonalAdmin}
               company={company}
               read={data}
               onClose={closeEdit}
@@ -77,6 +81,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                 )}
                 <Row label="Type">{company.companyTypeDisplay}</Row>
                 <Row label="ACN">{company.acn}</Row>
+                <Row label="Member ownership overview">{company.shareOwnershipWithMembers ? 'Shared' : 'Private'}</Row>
                 {company.abn && <Row label="ABN">{company.abn}</Row>}
                 {data.canAdmin && company.email && (
                   <Row label="Email">

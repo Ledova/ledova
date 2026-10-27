@@ -7,7 +7,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { registerClassesKey, registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
+import { registerClassesKey, registerHoldersKey } from '@hooks/useRegisterClasses';
 import { grantsKey } from './shared/useRegisterGrants';
 import { allotmentsKey } from './useRegisterAllotments';
 import { awardsKey } from './shared/useRegisterAwards';

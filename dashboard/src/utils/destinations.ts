@@ -14,6 +14,7 @@ export interface Place {
 
 const WEB_TITLES: Partial<Record<DestinationKey, string>> = {
   home: 'Dashboard',
+  memberRecords: 'Dashboard',
   company: 'Profile',
   companyTeam: 'Team',
   userProfile: 'Profile',

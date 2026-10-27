@@ -341,6 +341,8 @@ BEGIN
             OR NEW.declarant_name <> '' OR NEW.board_resolution_reference <> ''
             OR NEW.officeholder_attested_by_id IS NOT NULL OR NEW.officeholder_attested_at IS NOT NULL
             OR NEW.officeholder_attestation <> '{}'::jsonb OR NEW.operator_wallet_id IS NOT NULL
+            OR NEW.share_ownership_with_members OR NEW.ownership_sharing_changed_by_id IS NOT NULL
+            OR NEW.ownership_sharing_changed_at IS NOT NULL
         THEN RAISE EXCEPTION 'Registration records only the exact active owner draft' USING ERRCODE = '23514'; END IF;
         RETURN NEW;
     END IF;
@@ -351,7 +353,18 @@ BEGIN
         allowed := ARRAY['name', 'trading_name', 'company_type', 'acn', 'abn', 'declarant_name',
             'board_resolution_reference', 'phone', 'address_line_1', 'address_line_2', 'city', 'state', 'postcode',
             'country', 'description', 'industry', 'founded_year', 'operator_wallet_id', 'is_open_to_investors',
+            'share_ownership_with_members', 'ownership_sharing_changed_by_id', 'ownership_sharing_changed_at',
             'updated_at', 'lifecycle_revision', 'registry_status', 'registry_reason'];
+        IF NEW.share_ownership_with_members IS DISTINCT FROM OLD.share_ownership_with_members THEN
+            IF NOT EXISTS (SELECT 1 FROM companies_companyappointment appointment
+                WHERE appointment.company_id = OLD.uuid AND appointment.appointee_id = principal
+                    AND tokens_register_appointment_current(appointment.uuid, OLD.uuid, principal, 'admin', clock_timestamp()))
+            THEN RAISE EXCEPTION 'Ownership sharing needs current personal company administration' USING ERRCODE = '23514'; END IF;
+            NEW.ownership_sharing_changed_by_id := principal;
+            NEW.ownership_sharing_changed_at := clock_timestamp();
+        ELSIF ROW(NEW.ownership_sharing_changed_by_id, NEW.ownership_sharing_changed_at)
+            IS DISTINCT FROM ROW(OLD.ownership_sharing_changed_by_id, OLD.ownership_sharing_changed_at)
+        THEN RAISE EXCEPTION 'Ownership sharing attribution follows the company choice' USING ERRCODE = '23514'; END IF;
         IF to_jsonb(NEW) - allowed IS DISTINCT FROM to_jsonb(OLD) - allowed
             OR (ROW(NEW.acn, NEW.abn) IS DISTINCT FROM ROW(OLD.acn, OLD.abn)
                 AND NOT companies_valid_identifiers(NEW.acn, NEW.abn))

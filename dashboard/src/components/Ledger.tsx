@@ -5,13 +5,13 @@ import { formatDate } from '@ledova/shared';
 import { InSignedInFrame } from './InSignedInFrame';
 import { PageAction } from './Page';
 
-export function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({ title, header, children }: { title: string; header?: ReactNode; children: ReactNode }) {
   const inFrame = useContext(InSignedInFrame);
   return (
     <section
       className={`flex flex-col border border-border bg-surface-raised p-4 ${inFrame ? 'min-w-0 gap-4 rounded-2xl sm:p-6' : 'gap-2 rounded-xl sm:p-5'}`}
     >
-      <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">{title}</h2>
+      {header ?? <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">{title}</h2>}
       {children}
     </section>
   );

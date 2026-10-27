@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   failureStatus,
+  getRegisterClasses,
+  readEveryPage,
   getClassOwnershipHolders,
   getCompanyOwnership,
   type CompanyOwnershipSummary,
   type ClassOwnershipHolders,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { registerHoldersKey, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { registerHoldersKey, registerClassesKey } from '@hooks/useRegisterClasses';
 import { READ_TIMING } from '@hooks/useRegisterAccess';
 import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
 import apiClient from '@services/apiClient';
@@ -72,18 +74,36 @@ function checkHolders(
   return data;
 }
 
-export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
+export function useCompanyOwnership(
+  owner: OrderSubmissionOwner,
+  guard: () => void,
+  companyUuid: string,
+  enabled: boolean,
+) {
   const client = useQueryClient();
-  const classes = useRegisterClasses(owner, guard);
-  const [chosen, setChosen] = useState('');
+  const classes = useQuery({
+    queryKey: [...registerClassesKey(owner), 'company', companyUuid],
+    enabled: enabled && !!companyUuid,
+    queryFn: () =>
+      readEveryPage(async (page) => {
+        guard();
+        const response = await getRegisterClasses(
+          apiClient,
+          { page, company_uuid: companyUuid },
+          { ledovaSubmissionGuard: guard },
+        );
+        guard();
+        if (response.data.results.some((row) => row.companyUuid !== companyUuid))
+          throw new Error('The share classes belong to another company.');
+        return response;
+      }),
+    ...READ_TIMING,
+  });
   const [unconfirmed, setUnconfirmed] = useState<string | null>(null);
   const handledDenial = useRef<unknown>(null);
   const list = useListParams(['class']);
   const listed = classes.data ?? [];
-  const companies = [...new Map(listed.map((item) => [item.companyUuid, item.companyName])).entries()].map(
-    ([uuid, name]) => ({ uuid, name }),
-  );
-  const company = companies.length === 1 ? companies[0] : companies.find(({ uuid }) => uuid === chosen);
+  const company = enabled && companyUuid ? { uuid: companyUuid } : undefined;
   const expected = listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
   const overview = useQuery({
     queryKey: [...registerHoldersKey(owner), 'ownership', company?.uuid, ...expected],
@@ -140,13 +160,6 @@ export function useOwnership(owner: OrderSubmissionOwner, guard: () => void) {
   };
   return {
     classes,
-    companies,
-    company,
-    adoptCompany: setChosen,
-    selectCompany: (uuid: string) => {
-      setChosen(uuid);
-      select(null);
-    },
     overview,
     scopeError: held || denied,
     recover: async () => {

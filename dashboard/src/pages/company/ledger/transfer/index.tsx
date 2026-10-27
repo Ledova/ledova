@@ -13,7 +13,7 @@ import {
 import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { usePeople } from '@pages/company/ledger/shared/usePeople';

@@ -2,9 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { formatShareCount, sharePercentage, type CompanyOwnershipSummary } from '@ledova/shared';
 import { useTheme } from '@hooks/useTheme';
 import type { OwnershipRingController } from './ownershipChart';
+import { OwnershipRingPlaceholder } from './OwnershipRingPlaceholder';
 
 export interface OwnershipRingProps {
-  classes: CompanyOwnershipSummary['classes'];
+  classes: Pick<CompanyOwnershipSummary['classes'][number], 'uuid' | 'name' | 'symbol' | 'issuedSupply'>[];
   issuedSupply: string;
   highlighted: string | null;
   onSelect: (uuid: string) => void;
@@ -17,6 +18,7 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
   const controller = useRef<OwnershipRingController | null>(null);
   const highlight = useRef(highlighted);
   const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
   const theme = useTheme();
   useLayoutEffect(() => {
     callback.current = { onSelect, onHighlight };
@@ -39,6 +41,7 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
     const load = () => {
       if (!screen.matches) {
         dispose();
+        setReady(false);
         return;
       }
       if (pending || controller.current) return;
@@ -52,6 +55,7 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
             issuedSupply,
             onSelect: (uuid) => callback.current.onSelect(uuid),
             onHighlight: (uuid) => callback.current.onHighlight(uuid),
+            onReady: () => setReady(true),
           });
           controller.current.highlight(highlight.current);
         })
@@ -73,26 +77,33 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
     <div className="hidden min-w-0 md:block">
       {failed ? (
         <p role="status" className="py-3 text-sm text-text-muted">
-          The ownership ring could not be displayed. Choose a class from the list to explore its shareholders.
+          The ownership ring could not be displayed. Share class figures remain available in the list.
         </p>
       ) : (
         <div className="relative mx-auto h-80 w-full max-w-sm" aria-hidden="true">
-          <div ref={container} className="h-full w-full" />
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center">
-            <div className="w-[48%] min-w-0 space-y-1">
-              <p className="break-all text-2xl font-medium tabular-nums text-text-primary">
-                {formatShareCount(current?.issuedSupply ?? issuedSupply)}
-              </p>
-              <p className="truncate text-sm text-text-muted" title={current?.symbol}>
-                {current ? current.symbol : 'issued shares'}
-              </p>
-              {current && (
-                <p className="text-sm tabular-nums text-text-muted">
-                  {sharePercentage(current.issuedSupply!, issuedSupply)}
-                </p>
-              )}
+          <div ref={container} className={`h-full w-full ${ready ? '' : 'invisible'}`} />
+          {!ready && (
+            <div className="absolute inset-0">
+              <OwnershipRingPlaceholder />
             </div>
-          </div>
+          )}
+          {ready && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center">
+              <div className="w-[42%] min-w-0 space-y-1">
+                <p className="break-all text-2xl font-medium tabular-nums text-text-primary">
+                  {formatShareCount(current?.issuedSupply ?? issuedSupply)}
+                </p>
+                <p className="truncate text-sm text-text-muted" title={current?.symbol}>
+                  {current ? current.symbol : 'issued shares'}
+                </p>
+                {current && (
+                  <p className="text-sm tabular-nums text-text-muted">
+                    {sharePercentage(current.issuedSupply!, issuedSupply)}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

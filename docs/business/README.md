@@ -230,25 +230,28 @@ reply never acts for the new one
 ([clients](../engineering/frontend.md#clients-and-the-shared-package);
 [lists and forms](../engineering/frontend.md#lists-figures-and-currency)).
 
-On the web, the selector below the logo separates two workspaces under one login:
+On the web, one Dashboard explores all of the person's company relationships. A searchable company
+list opens that company's ownership overview; one company opens directly. A person who both
+administers a company and holds its shares sees that company once, with their own position alongside
+the company information they may read. The sidebar keeps focused tasks for the selected company:
 
-- Company: Dashboard, Ledger, Shareholders and Documents. Ledger opens the class overview, with
-  Issue shares, Transfer shares and Corrections beneath it. Shareholders opens the people list,
-  with ESS, Member access and Member requests. Company More retains permitted eligibility,
-  publication and Offering workflows. Company settings holds source Documents, Team and Activation.
-- My shares: the person's own Dashboard and Documents. Its More holds Notices, Activity, Wallets
-  and, for investing accounts, Directory, Applications, Market (when enabled) and Verification.
-- Both keep Settings → Profile, Help & Support, the person's name, Sign out and the theme switch.
-  Profile shares personal and account settings; Company details appear only in Company.
+- Ledger opens the class overview, with Issue shares, Transfer shares and Corrections beneath it.
+  Shareholders opens the people list, with ESS, Member access and Member requests. Company Documents
+  groups Certificates, Ledger exports and Company pack.
+- Personal certificates are named separately for people who also have company document access.
+  More retains permitted personal notices, investing and wallet pages and company eligibility,
+  publication and Offering workflows.
+- Settings keeps personal Profile and Account, with company information, source Documents, Team,
+  Activation and Company-recorded details according to current access.
 
-Company access follows current appointments and existing owner/read rules; selecting a workspace
-changes no permissions. My shares can be empty before a member invitation is accepted. Sign-in opens
-the valid remembered workspace, defaulting to Company when available and My shares otherwise.
-Direct links and member invitations open the appropriate context. Failed access checks offer retry;
-switching an edited form asks before discarding it.
+There is no workspace selector. Company selection grants no authority: appointments and real member
+associations still govern each task and record. The selected company stays visible, and the address
+retains company/class context for browser Back/Forward. Direct links and invitations remain usable.
+Failed reads offer retry, an edited form asks before a company change discards it, and held execution
+blocks context changes.
 
-The company Dashboard opens with one line naming the company and its status. Until setup is
-complete, a personal administrator also sees **Getting started**: **Verify and activate your
+The selected company overview keeps its name visible. Until setup is complete, a personal
+administrator also sees **Getting started**: **Verify and activate your
 company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your ledger**
 ([register setup](register.md#bringing-in-existing-records)). Completed tasks disappear; once both
 are complete, the whole card disappears. Register setup completes once the register of the company
@@ -257,14 +260,15 @@ who can prepare the register but is not an administrator is pointed to Ledger in
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share
-classes, then one ownership donut per class with its five largest shareholders and Others, with
-exact share counts and percentages of that class's issued shares. A class without an opened
+classes, then one ownership ring and linked class list. Choosing a class opens its searchable,
+paged holders with exact shares and percentages of that class's issued shares. A class without an opened
 register makes the company totals incomplete, and a failed or inconsistent read withholds totals
 and charts rather than showing zero. Detailed history and every action are on the
 [Ledger page](register.md#the-register-page).
 
-The personal Dashboard (Holdings on mobile) shows the person's own register records, with no
-wallet needed and never company totals or other shareholders. Their certificates and certificate
+The same web Dashboard shows the person's own register records, with no wallet needed. A company can opt into sharing an aggregate ownership overview with its current
+linked members on the web: all class totals and each member's own position, without other
+shareholders' identities or private records. Mobile retains its own-records view. Certificates and certificate
 requests are in personal Documents on the web, and in Documents and each share class's page on mobile
 ([member records](member-records.md)).
 

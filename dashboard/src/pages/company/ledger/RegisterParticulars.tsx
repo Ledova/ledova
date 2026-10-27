@@ -2,7 +2,7 @@ import { registerEntriesKey } from '@pages/company/ledger/shared/useRegisterEntr
 import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { awardsKey } from '@pages/company/ledger/shared/useRegisterAwards';
 import { registerKey } from '@hooks/useRegisterAccess';
-import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
+import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import {

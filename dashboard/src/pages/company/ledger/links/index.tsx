@@ -7,7 +7,7 @@ import { useParams } from 'react-router-dom';
 import { REGISTER_LINK_COPY, appointmentForRegisterStep, type OrderSubmissionOwner } from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
-import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useWaitingWallets } from '@pages/company/ledger/shared/useRegisterLinks';

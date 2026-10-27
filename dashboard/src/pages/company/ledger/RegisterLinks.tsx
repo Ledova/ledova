@@ -1,6 +1,6 @@
 import { registerEntriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { allPeopleKey } from '@pages/company/ledger/shared/usePeople';
-import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
+import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {

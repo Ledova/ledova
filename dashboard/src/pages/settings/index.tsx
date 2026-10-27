@@ -6,7 +6,7 @@ import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { useUserProfile } from '@hooks/useUserProfile';
-import { useWorkspace } from '@hooks/useWorkspace';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { CompanyRecordedDetails } from './CompanyRecordedDetails';
 import { PersonalProfile } from './PersonalProfile';
 import { CompanyProfile } from './CompanyProfile';
@@ -23,30 +23,29 @@ export default function SettingsPage() {
 function Profile() {
   const navigation = useSettingsNavigation();
   const profile = useUserProfile();
-  const workspace = useWorkspace();
-  const companyWorkspace = workspace?.mode !== 'my-shares';
+  const context = useCompanyContext();
   const { owner } = useSubmissionOwner();
-  const [companyOwner, setCompanyOwner] = useState<typeof owner>(null);
-  const admittedOwner = navigation.canManageCompany
-    ? owner
-    : navigation.isLoading || navigation.isError
-      ? companyOwner
-      : null;
-  if (companyOwner !== admittedOwner) setCompanyOwner(admittedOwner);
-  const showCompany =
-    companyWorkspace &&
-    !!owner &&
-    (navigation.canManageCompany || (companyOwner === owner && (navigation.isLoading || navigation.isError)));
+  const allowed = context ? !!context.company?.canManage : navigation.canManageCompany;
+  const accessError = navigation.isError || context?.directory.hasError;
+  const accessLoading = navigation.isLoading || context?.directory.isLoading || context?.directory.isRefreshing;
+  const key = owner ? `${owner.userUuid}/${owner.ownerAccountUuid}/${context?.companyUuid ?? ''}` : null;
+  const [admitted, setAdmitted] = useState<string | null>(null);
+  if (allowed && admitted !== key) setAdmitted(key);
+  if (admitted && (!key || (!allowed && !accessLoading && !accessError))) setAdmitted(null);
+  const showCompany = allowed || (!!key && admitted === key && (accessLoading || accessError));
   return (
     <PageTitle.Provider value="Profile">
       <Page>
-        {companyWorkspace && navigation.isError ? (
+        {accessError ? (
           <Section title="Company access">
-            <LoadError retry={() => void navigation.retry()} busy={navigation.isFetching}>
+            <LoadError
+              retry={() => Promise.all([navigation.retry(), context?.directory.retry()])}
+              busy={navigation.isFetching || context?.directory.isRefreshing}
+            >
               Your company access could not be loaded.
             </LoadError>
           </Section>
-        ) : companyWorkspace && navigation.isLoading && !showCompany ? (
+        ) : accessLoading && !showCompany ? (
           <Loading>Loading company access…</Loading>
         ) : null}
         {showCompany && <CompanyProfile />}

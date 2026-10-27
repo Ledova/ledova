@@ -10,6 +10,10 @@ from tokens.models import (
     MemberInvitation,
     MemberParticularsRequest,
 )
+from tokens.serializers.ownership import (
+    CompanyOwnershipSummarySerializer,
+    OwnershipClassSerializer,
+)
 from tokens.services.member_access import _query
 
 
@@ -274,6 +278,14 @@ class MemberRecordAwardSerializer(serializers.Serializer):
     vesting_reversals = MemberRecordAwardVestingReversalSerializer(many=True)
 
 
+class MemberOwnershipClassSerializer(OwnershipClassSerializer):
+    own_shares = serializers.CharField(allow_null=True)
+
+
+class MemberOwnershipSummarySerializer(CompanyOwnershipSummarySerializer):
+    classes = MemberOwnershipClassSerializer(many=True)
+
+
 class MemberRecordSerializer(serializers.Serializer):
     uuid = serializers.UUIDField()
     member = serializers.UUIDField()
@@ -283,6 +295,7 @@ class MemberRecordSerializer(serializers.Serializer):
     identity_source = serializers.ChoiceField(choices=["company_recorded"])
     classes = MemberRecordClassSerializer(many=True)
     awards = MemberRecordAwardSerializer(many=True)
+    ownership = MemberOwnershipSummarySerializer(allow_null=True)
 
 
 class MemberRecordEntrySerializer(serializers.Serializer):

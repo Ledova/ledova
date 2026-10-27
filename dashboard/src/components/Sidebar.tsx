@@ -27,9 +27,8 @@ import { Logo } from './Logo';
 import { NotificationBell } from './NotificationBell';
 import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
-import { useWorkspace } from '@hooks/useWorkspace';
-import { WorkspaceSwitcher } from './WorkspaceSwitcher';
-import { COMPANY_DASHBOARD_PATH, SITE_PATHS } from '@utils/paths';
+import { useCompanyContext } from '@hooks/useCompanyContext';
+import { SITE_PATHS } from '@utils/paths';
 import {
   destinationAt,
   pageTitle,
@@ -48,7 +47,7 @@ import { useLedgerNavigation } from './LedgerNavigation';
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
 
 interface NavItem {
-  destination: DestinationKey | 'companyDashboard';
+  destination: DestinationKey;
   icon: Icon;
   view?: string;
   label?: string;
@@ -61,7 +60,7 @@ interface NavGroup {
 }
 
 const COMPANY: NavItem[] = [
-  { destination: 'companyDashboard', icon: HouseIcon },
+  { destination: 'home', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
   { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
   { destination: 'companyRegister', view: 'certificates', icon: FilesIcon },
@@ -99,7 +98,7 @@ const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, LedgerTask>> = {
 };
 
 function itemPath(item: NavItem) {
-  const path = item.destination === 'companyDashboard' ? COMPANY_DASHBOARD_PATH : DESTINATIONS[item.destination].path;
+  const path = DESTINATIONS[item.destination].path;
   return `${path}${item.view ? `#${item.view}` : ''}`;
 }
 
@@ -111,11 +110,18 @@ function GroupLabel({ children }: { children: string }) {
 
 function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate?: () => void }) {
   const Icon = item.icon;
-  const title = item.destination === 'companyDashboard' ? 'Dashboard' : pageTitle(item.destination, item.view);
+  const context = useCompanyContext();
+  const title = pageTitle(item.destination, item.view);
   return (
     <Link
-      to={itemPath(item)}
-      onClick={onNavigate}
+      to={context?.companyPath(itemPath(item)) ?? itemPath(item)}
+      onClick={(event) => {
+        if (item.destination === 'home' && !item.view && context) {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          if (context.openDashboard()) onNavigate?.();
+        } else onNavigate?.();
+      }}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
     >
@@ -126,6 +132,7 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
 }
 
 function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
+  const companyContext = useCompanyContext();
   const location = useLocation();
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
@@ -155,10 +162,12 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
   const context =
     location.pathname === path
-      ? { registerCompany: state?.company, registerToken: state?.token }
+      ? { registerCompany: state?.company ?? companyContext?.companyUuid, registerToken: state?.token }
       : classParams
         ? { registerCompany: classParams.company, registerToken: classParams.uuid }
-        : undefined;
+        : companyContext?.companyUuid
+          ? { registerCompany: companyContext.companyUuid }
+          : undefined;
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
 
   if (shownPlace !== place) {
@@ -175,7 +184,7 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
     <div>
       <div className="flex items-center gap-1">
         <Link
-          to={path}
+          to={companyContext?.companyPath(path) ?? path}
           state={context}
           onClick={navigate}
           onAuxClick={(event) => {
@@ -203,7 +212,7 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
         {tasks.map(([key, label]) => (
           <Link
             key={key}
-            to={`${path}#${key}`}
+            to={companyContext?.companyPath(`${path}#${key}`) ?? `${path}#${key}`}
             state={context}
             onClick={navigate}
             onAuxClick={(event) => {
@@ -222,6 +231,7 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
 }
 
 function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
+  const companyContext = useCompanyContext();
   const location = useLocation();
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
@@ -246,7 +256,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
     (location.pathname === path ? state?.company : classParams?.company) ??
     (typeof location.state?.registerCompany === 'string'
       ? location.state.registerCompany
-      : (new URLSearchParams(location.search).get('company') ?? undefined));
+      : (new URLSearchParams(location.search).get('company') ?? companyContext?.companyUuid ?? undefined));
   const token = location.pathname === path ? state?.token : classParams?.uuid;
   const context = company || token ? { registerCompany: company, registerToken: token } : undefined;
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
@@ -265,7 +275,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
     <div>
       <div className="flex items-center gap-1">
         <Link
-          to={`${path}#shareholders`}
+          to={companyContext?.companyPath(`${path}#shareholders`) ?? `${path}#shareholders`}
           state={context}
           onClick={navigate}
           onAuxClick={(event) => {
@@ -293,7 +303,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
         {children.map(([key, label]) => (
           <Link
             key={key}
-            to={`${path}#${key}`}
+            to={companyContext?.companyPath(`${path}#${key}`) ?? `${path}#${key}`}
             state={context}
             title={key === 'awards' ? label : undefined}
             onClick={navigate}
@@ -313,6 +323,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
 }
 
 function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
+  const companyContext = useCompanyContext();
   const location = useLocation();
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
@@ -332,7 +343,7 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
     (location.pathname === path ? state?.company : classParams?.company) ??
     (typeof location.state?.registerCompany === 'string'
       ? location.state.registerCompany
-      : (new URLSearchParams(location.search).get('company') ?? undefined));
+      : (new URLSearchParams(location.search).get('company') ?? companyContext?.companyUuid ?? undefined));
   const token = location.pathname === path ? state?.token : classParams?.uuid;
   const context = company || token ? { registerCompany: company, registerToken: token } : undefined;
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
@@ -346,7 +357,7 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
     <div>
       <div className="flex items-center gap-1">
         <Link
-          to={`${path}#certificates`}
+          to={companyContext?.companyPath(`${path}#certificates`) ?? `${path}#certificates`}
           state={context}
           onClick={onNavigate}
           className={`${ITEM_CLASS} min-w-0 flex-1 ${IDLE_CLASS}`}
@@ -369,7 +380,7 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
         {DOCUMENT_VIEWS.map(({ key, label }) => (
           <Link
             key={key}
-            to={`${path}#${key}`}
+            to={companyContext?.companyPath(`${path}#${key}`) ?? `${path}#${key}`}
             state={context}
             onClick={onNavigate}
             aria-current={selected === key ? 'page' : undefined}
@@ -392,7 +403,7 @@ function SettingsGroup({
   navigation: ReturnType<typeof useSettingsNavigation>;
   onNavigate?: () => void;
 }) {
-  const workspace = useWorkspace();
+  const context = useCompanyContext();
   const location = useLocation();
   const place = `${location.pathname}${location.hash}`;
   const [shownPlace, setShownPlace] = useState(place);
@@ -400,10 +411,12 @@ function SettingsGroup({
   const id = useId();
   const selected = settingsView(location.pathname, location.hash);
   const items = SETTINGS_VIEWS.filter((item) => {
-    const inWorkspace =
+    const available =
       item.key === 'profile' ||
-      (item.key === 'company-recorded-details' ? workspace?.mode !== 'company' : workspace?.mode !== 'my-shares');
-    return inWorkspace && (selected === item.key || navigation.items.includes(item));
+      (item.key === 'company-recorded-details'
+        ? !!context?.company?.memberUuids.length
+        : !!context?.company?.canManage);
+    return available && (selected === item.key || navigation.items.includes(item));
   });
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
 
@@ -416,7 +429,7 @@ function SettingsGroup({
     <div>
       <div className="flex items-center gap-1">
         <Link
-          to={navigation.isLoading || navigation.isError ? DESTINATIONS.settings.path : navigation.defaultPath}
+          to={context?.companyPath(navigation.defaultPath) ?? navigation.defaultPath}
           onClick={onNavigate}
           className={`${ITEM_CLASS} min-w-0 flex-1 ${IDLE_CLASS}`}
         >
@@ -438,7 +451,7 @@ function SettingsGroup({
         {items.map(({ key, label, to }) => (
           <Link
             key={key}
-            to={to}
+            to={context?.companyPath(to) ?? to}
             onClick={onNavigate}
             aria-current={selected === key ? 'page' : undefined}
             className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
@@ -460,62 +473,66 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const location = useLocation();
   const tradingEnabled = useFeatureFlags().isEnabled('trading_enabled');
   const { isInvestor, isCompany } = useRole();
-  const workspace = useWorkspace();
+  const context = useCompanyContext();
   const standaloneSettings = useSettingsNavigation();
-  const settings = workspace?.settings ?? standaloneSettings;
-  const companyWorkspace = workspace?.mode === 'company';
-  const companyItems = workspace?.canRegister
+  const settings = standaloneSettings;
+  const companyTasks = !!(context?.company?.canReadRegister || context?.company?.canManage);
+  const companyItems = context?.company?.canReadRegister
     ? COMPANY
-    : COMPANY.filter((item) => item.destination === 'companyDashboard');
+    : COMPANY.filter((item) => item.destination === 'home');
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
 
   const groups: NavGroup[] = [
-    ...(companyWorkspace ? [{ id: 'company', items: companyItems }] : []),
-    ...(!companyWorkspace ? [{ id: 'shares', items: PERSONAL }] : []),
+    ...(companyTasks ? [{ id: 'company', items: companyItems }] : []),
+    ...(!companyTasks
+      ? [{ id: 'shares', items: PERSONAL }]
+      : context?.company?.memberUuids.length
+        ? [{ id: 'personal', items: [{ ...PERSONAL[1]!, label: 'Your certificates' }] }]
+        : []),
     { id: 'yours', items: YOURS },
   ];
-  const secondaryGroups: NavGroup[] = companyWorkspace
-    ? [
-        {
-          id: 'company-more',
-          items: [
-            ...(settings.canReviewEligibility
-              ? [{ destination: 'companyEligibility' as const, icon: ShieldCheckIcon }]
-              : []),
-            ...(settings.hasOwnedCompany && isCompany
-              ? [{ destination: 'companyPublications' as const, icon: NewspaperIcon }]
-              : []),
-            ...(isCompany ? [{ destination: 'companyOffering' as const, icon: MegaphoneIcon }] : []),
-          ],
-        },
-      ]
-    : [
-        { id: 'history', items: HISTORY },
-        ...(isInvestor
-          ? [{ id: 'invest', label: 'Invest', items: INVEST.filter((item) => item !== MARKET || tradingEnabled) }]
-          : []),
-        { id: 'personal-more', items: [{ destination: 'wallets', icon: WalletIcon }] },
-      ];
+  const secondaryGroups: NavGroup[] = [
+    ...(companyTasks
+      ? [
+          {
+            id: 'company-more',
+            items: [
+              ...(context?.company?.canReviewEligibility
+                ? [{ destination: 'companyEligibility' as const, icon: ShieldCheckIcon }]
+                : []),
+              ...(context?.company?.isOwner && isCompany
+                ? [{ destination: 'companyPublications' as const, icon: NewspaperIcon }]
+                : []),
+              ...(context?.company?.isOwner && isCompany
+                ? [{ destination: 'companyOffering' as const, icon: MegaphoneIcon }]
+                : []),
+            ],
+          },
+        ]
+      : []),
+    { id: 'history', items: HISTORY },
+    ...(isInvestor
+      ? [{ id: 'invest', label: 'Invest', items: INVEST.filter((item) => item !== MARKET || tradingEnabled) }]
+      : []),
+    { id: 'personal-more', items: [{ destination: 'wallets', icon: WalletIcon }] },
+  ];
 
   const allItems = [...groups, ...secondaryGroups].flatMap((group) => group.items);
-  const activeItem =
-    location.pathname === COMPANY_DASHBOARD_PATH
-      ? allItems.find((item) => item.destination === 'companyDashboard')
-      : placesAt(location.pathname, location.hash)
-          .map(
-            (place) =>
-              allItems.find((item) => item.destination === place.destination && item.view === place.view) ??
-              (place.destination === 'companyRegister' &&
-              Object.prototype.hasOwnProperty.call(SHAREHOLDER_VIEWS, place.view ?? '')
-                ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'shareholders')
-                : undefined) ??
-              (place.destination === 'companyRegister' && documentView(place.view)
-                ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'certificates')
-                : undefined) ??
-              allItems.find((item) => item.destination === place.destination && !item.view),
-          )
-          .find(Boolean);
+  const activeItem = placesAt(location.pathname, location.hash)
+    .map(
+      (place) =>
+        allItems.find((item) => item.destination === place.destination && item.view === place.view) ??
+        (place.destination === 'companyRegister' &&
+        Object.prototype.hasOwnProperty.call(SHAREHOLDER_VIEWS, place.view ?? '')
+          ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'shareholders')
+          : undefined) ??
+        (place.destination === 'companyRegister' && documentView(place.view)
+          ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'certificates')
+          : undefined) ??
+        allItems.find((item) => item.destination === place.destination && !item.view),
+    )
+    .find(Boolean);
   const activePath = activeItem && itemPath(activeItem);
 
   return (
@@ -525,7 +542,9 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         {withNotifications && <NotificationBell align="start" />}
       </div>
 
-      <WorkspaceSwitcher onNavigate={onNavigate} />
+      {context?.company && (
+        <p className="break-words px-6 pb-2 text-sm font-medium text-text-secondary">{context.company.name}</p>
+      )}
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <nav aria-label="Main" className="space-y-6">
           {groups.map((group) => (
