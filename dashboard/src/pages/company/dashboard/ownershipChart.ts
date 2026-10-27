@@ -13,7 +13,7 @@ export interface OwnershipRingController {
 
 export function renderOwnershipRing(
   container: HTMLDivElement,
-  { classes, issuedSupply, onSelect, onHighlight }: Omit<OwnershipRingProps, 'highlighted'>,
+  { classes, issuedSupply, onSelect, onHighlight, onRingReady }: Omit<OwnershipRingProps, 'highlighted'>,
 ): OwnershipRingController {
   const tokens = getComputedStyle(container);
   const color = (name: string) => tokens.getPropertyValue(`--color-${name}`).trim();
@@ -33,7 +33,7 @@ export function renderOwnershipRing(
     series: [
       {
         type: 'pie',
-        radius: ['63%', '88%'],
+        radius: ['55%', '88%'],
         center: ['50%', '50%'],
         minAngle: 0,
         padAngle: 0,
@@ -65,6 +65,7 @@ export function renderOwnershipRing(
     ],
   });
   let chart: EChartsType | undefined;
+  let entrance: Animation | undefined;
   let highlighted: string | null = null;
   let nativeHover: string | null = null;
   const highlight = (uuid: string | null) => {
@@ -79,6 +80,9 @@ export function renderOwnershipRing(
     if (!chart) {
       chart = init(container, undefined, { renderer: 'svg' });
       chart.setOption(option());
+      if (onRingReady() && !reducedMotion.matches && typeof container.animate === 'function') {
+        entrance = container.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
+      }
       chart.on('click', (parameters) => {
         const row = rowFrom(parameters);
         if (row) onSelect(row.uuid);
@@ -104,6 +108,7 @@ export function renderOwnershipRing(
   };
   const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
   const updateMotion = () => {
+    if (reducedMotion.matches) entrance?.finish();
     chart?.setOption(option());
   };
   resize();
@@ -114,6 +119,7 @@ export function renderOwnershipRing(
     dispose: () => {
       observer?.disconnect();
       reducedMotion.removeEventListener('change', updateMotion);
+      entrance?.cancel();
       chart?.dispose();
     },
   };

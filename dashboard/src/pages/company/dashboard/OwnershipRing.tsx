@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { formatShareCount, sharePercentage, type CompanyOwnershipSummary } from '@ledova/shared';
 import { useTheme } from '@hooks/useTheme';
 import type { OwnershipRingController } from './ownershipChart';
+import { OwnershipRingPlaceholder } from './OwnershipLoading';
 
 export interface OwnershipRingProps {
   classes: CompanyOwnershipSummary['classes'];
@@ -9,18 +10,27 @@ export interface OwnershipRingProps {
   highlighted: string | null;
   onSelect: (uuid: string) => void;
   onHighlight: (uuid: string | null) => void;
+  onRingReady: () => boolean;
 }
 
-export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, onHighlight }: OwnershipRingProps) {
+export function OwnershipRing({
+  classes,
+  issuedSupply,
+  highlighted,
+  onSelect,
+  onHighlight,
+  onRingReady,
+}: OwnershipRingProps) {
   const container = useRef<HTMLDivElement>(null);
-  const callback = useRef({ onSelect, onHighlight });
+  const callback = useRef({ onSelect, onHighlight, onRingReady });
   const controller = useRef<OwnershipRingController | null>(null);
   const highlight = useRef(highlighted);
   const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
   const theme = useTheme();
   useLayoutEffect(() => {
-    callback.current = { onSelect, onHighlight };
-  }, [onSelect, onHighlight]);
+    callback.current = { onSelect, onHighlight, onRingReady };
+  }, [onSelect, onHighlight, onRingReady]);
   useLayoutEffect(() => {
     highlight.current = highlighted;
     controller.current?.highlight(highlighted);
@@ -39,6 +49,7 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
     const load = () => {
       if (!screen.matches) {
         dispose();
+        setReady(false);
         return;
       }
       if (pending || controller.current) return;
@@ -52,6 +63,10 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
             issuedSupply,
             onSelect: (uuid) => callback.current.onSelect(uuid),
             onHighlight: (uuid) => callback.current.onHighlight(uuid),
+            onRingReady: () => {
+              setReady(true);
+              return callback.current.onRingReady();
+            },
           });
           controller.current.highlight(highlight.current);
         })
@@ -77,22 +92,29 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
         </p>
       ) : (
         <div className="relative mx-auto h-80 w-full max-w-sm" aria-hidden="true">
-          <div ref={container} className="h-full w-full" />
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center">
-            <div className="w-[48%] min-w-0 space-y-1">
-              <p className="break-all text-2xl font-medium tabular-nums text-text-primary">
-                {formatShareCount(current?.issuedSupply ?? issuedSupply)}
-              </p>
-              <p className="truncate text-sm text-text-muted" title={current?.symbol}>
-                {current ? current.symbol : 'issued shares'}
-              </p>
-              {current && (
-                <p className="text-sm tabular-nums text-text-muted">
-                  {sharePercentage(current.issuedSupply!, issuedSupply)}
-                </p>
-              )}
+          <div ref={container} className={`h-full w-full ${ready ? '' : 'invisible'}`} />
+          {!ready && (
+            <div className="absolute inset-0">
+              <OwnershipRingPlaceholder />
             </div>
-          </div>
+          )}
+          {ready && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center">
+              <div className="w-[42%] min-w-0 space-y-1">
+                <p className="break-all text-2xl font-medium tabular-nums text-text-primary">
+                  {formatShareCount(current?.issuedSupply ?? issuedSupply)}
+                </p>
+                <p className="truncate text-sm text-text-muted" title={current?.symbol}>
+                  {current ? current.symbol : 'issued shares'}
+                </p>
+                {current && (
+                  <p className="text-sm tabular-nums text-text-muted">
+                    {sharePercentage(current.issuedSupply!, issuedSupply)}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
