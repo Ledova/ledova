@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { DESTINATIONS, useMemberRecords } from '@ledova/shared';
 import { MemberWorkspaceContext, type MemberDraft } from './useMemberWorkspace';
 import { useMemberFreshness } from './useMemberFreshness';
@@ -22,7 +22,6 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
 
 function MemberState({ children, read }: { children: ReactNode; read: ReturnType<typeof useMemberRecords> }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const requested = new URLSearchParams(location.search).get('company');
   const active = [DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path].some(
     (path) => path === location.pathname,
@@ -42,11 +41,7 @@ function MemberState({ children, read }: { children: ReactNode; read: ReturnType
   }, [read.retry, read.requests, held]);
   useEffect(() => {
     if (!active || draft.open || !read.owner || !read.listReady || read.busy || read.refreshing || read.retry) return;
-    const wanted = requested
-      ? (read.records.find(({ company }) => company.uuid === requested)?.uuid ?? '')
-      : read.records.length === 1
-        ? read.records[0]!.uuid
-        : '';
+    const wanted = requested ? (read.records.find(({ company }) => company.uuid === requested)?.uuid ?? '') : '';
     if (selectionOwner.current !== read.owner || read.selectedUuid !== wanted) {
       selectionOwner.current = read.owner;
       initialHistory.current = '';
@@ -86,15 +81,6 @@ function MemberState({ children, read }: { children: ReactNode; read: ReturnType
         draft,
         setDraft,
         token,
-        select: (uuid) => {
-          if (read.busy || read.refreshing || read.retry || !read.owner) return;
-          const company = read.records.find((record) => record.uuid === uuid)?.company.uuid;
-          if (company) {
-            const next = new URLSearchParams(location.search);
-            next.set('company', company);
-            navigate({ search: next.toString(), hash: location.hash }, { state: location.state });
-          }
-        },
         selectToken: (uuid) => {
           if (held) return;
           setToken(uuid);

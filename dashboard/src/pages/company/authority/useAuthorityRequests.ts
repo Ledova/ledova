@@ -14,6 +14,8 @@ import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import { useCompanyContext } from '@hooks/useCompanyContext';
+import { useLocation } from 'react-router-dom';
 
 export function authorityRequestsKey(owner: OrderSubmissionOwner) {
   return ['company-authority-requests', owner.userUuid, owner.ownerAccountUuid];
@@ -33,7 +35,8 @@ export function useAuthorityRequests({
   const guard = useCallback(() => {
     if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen representative authority.');
   }, [owner, currentOwner]);
-  const [selected, setSelected] = useState('');
+  const context = useCompanyContext();
+  const location = useLocation();
   const [recorded, setRecorded] = useState<CompanyAuthorityRequest | null>(null);
   const client = useQueryClient();
   const historyKey = authorityRequestsKey(owner);
@@ -58,6 +61,9 @@ export function useAuthorityRequests({
       }),
   });
   const drafts = companies.isError ? [] : (companies.data ?? []).filter((company) => company.status === 'draft');
+  const selected = context
+    ? (context.companyUuid ?? '')
+    : (new URLSearchParams(location.search).get('company') ?? (drafts.length === 1 ? drafts[0].uuid : ''));
   const company = drafts.find((item) => item.uuid === selected);
   const lifecycle = useMutation({
     mutationFn: async ({
@@ -108,13 +114,10 @@ export function useAuthorityRequests({
   });
   return {
     guard,
-    selected,
-    setSelected,
     recorded,
     setRecorded,
     companies,
     history,
-    drafts,
     company,
     lifecycle,
     opening,

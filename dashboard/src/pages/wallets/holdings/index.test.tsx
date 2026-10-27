@@ -123,9 +123,14 @@ async function ownShares(quantity: string) {
 }
 
 async function chooseMemberCompany(name: string) {
-  await choose('Company', name);
+  const settings = !!screen.queryByRole('heading', { name: 'Company-recorded details', level: 1 });
+  const documents = !!screen.queryByRole('heading', { name: 'Your documents', level: 1 });
+  fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
+  await choose('Your companies', name);
   if (screen.queryByRole('dialog', { name: 'Leave this page?' }))
     fireEvent.click(screen.getByRole('button', { name: 'Leave page' }));
+  if (settings) fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
+  if (documents) fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
 }
 
 beforeEach(() => {
@@ -456,9 +461,11 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   expect((screen.getByRole('combobox', { name: 'Your companies' }) as HTMLInputElement).disabled).toBe(false);
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
-  await choose('Company', otherRecord.company.name);
+  fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
+  await choose('Your companies', otherRecord.company.name);
   const leaveReview = await screen.findByRole('dialog', { name: 'Leave this page?' });
   fireEvent.click(within(leaveReview).getByRole('button', { name: 'Cancel' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   await chooseMemberCompany(otherRecord.company.name);
   await waitFor(() => expect(screen.getByRole('button', { name: 'Request update' })).toBeTruthy());

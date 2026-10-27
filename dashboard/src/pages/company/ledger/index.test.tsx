@@ -157,6 +157,16 @@ function LedgerLocation() {
   return <output aria-label="Ledger location">{JSON.stringify(location)}</output>;
 }
 
+function CompanyContextLinks() {
+  const location = useLocation();
+  return (
+    <>
+      <Link to={{ search: '?company=harbour', hash: location.hash }}>Use Harbour company</Link>
+      <Link to={{ search: '?company=inland', hash: location.hash }}>Use Inland company</Link>
+    </>
+  );
+}
+
 function show(
   role: AccountRole = 'company',
   content: ReactNode = <CompanyRegisterPage />,
@@ -165,7 +175,15 @@ function show(
 ) {
   prepareCompanyClient(client, role);
   client.setQueryData(['userAccount'], { data: { role } });
-  return renderCompanyPage(client, content, title, route);
+  return renderCompanyPage(
+    client,
+    <>
+      {content}
+      <CompanyContextLinks />
+    </>,
+    title,
+    route,
+  );
 }
 
 function readUrls() {
@@ -500,7 +518,25 @@ it('reads every class page and groups exact holdings by member identity with sea
         return { data: { results: [], count: 0, next: null, previous: null } };
       },
     );
-  show('investor', <ShareClass uuid="ordinary" />, 'Share class');
+  show(
+    'investor',
+    <>
+      <ShareClass uuid="ordinary" />
+      <LedgerLocation />
+      <Link to="/?company=inland">Open conflicting class company</Link>
+      <Link to="/?company=harbour">Open actual class company</Link>
+    </>,
+    'Share class',
+  );
+  await screen.findByText('No rights recorded.');
+  await waitFor(() =>
+    expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!).search).toBe('?company=harbour'),
+  );
+  fireEvent.click(screen.getByRole('link', { name: 'Open conflicting class company' }));
+  expect(await screen.findByText('This share class is not in a register you can read.')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+  expect(screen.queryByRole('region', { name: 'Current ownership' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Open actual class company' }));
   await screen.findByText('No rights recorded.');
   fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
   let rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
@@ -769,7 +805,9 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
   expect(screen.queryByText(former.name)).toBeNull();
-  expect(screen.getByRole('link', { name: 'Back to Ledger' }).getAttribute('href')).toBe('/company/ledger');
+  expect(screen.getByRole('link', { name: 'Back to Ledger' }).getAttribute('href')).toBe(
+    '/company/ledger?company=harbour',
+  );
   const technical = screen.getByRole('button', { name: 'Technical details and chain workflows' });
   expect(technical.getAttribute('aria-expanded')).toBe('false');
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -2527,7 +2565,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   pick('Redeemable (RED)');
   expect(screen.getByText(`${company.name} · Redeemable shares (RED)`)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-  expect(screen.getByRole('link', { name: 'open Ledger' }).getAttribute('href')).toBe('/company/ledger');
+  expect(screen.getByRole('link', { name: 'open Ledger' }).getAttribute('href')).toBe(
+    `/company/ledger?company=${company.uuid}`,
+  );
   fireEvent.click(screen.getByRole('link', { name: `${token.name} · ${token.symbol}` }));
   await waitFor(() => expect(screen.queryByLabelText('Class code')).toBeNull());
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
@@ -2538,7 +2578,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     showJourney(importPath);
     expect(await screen.findByText(/This class cannot open from copied records/)).toBeTruthy();
     expect(screen.queryByLabelText('Record date')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Open Ledger' }).getAttribute('href')).toBe('/company/ledger');
+    expect(screen.getByRole('link', { name: 'Open Ledger' }).getAttribute('href')).toBe(
+      `/company/ledger?company=${company.uuid}`,
+    );
   }
   cleanup();
   client.clear();
@@ -3053,6 +3095,9 @@ it("retains a dashboard's validated company/class context and reads only the cho
       <Link to="/" state={{ registerCompany: 'inland', registerToken: 'ordinary' }}>
         Open mismatched dashboard class
       </Link>
+      <Link to="/?company=harbour" state={{ registerCompany: 'inland', registerToken: 'preference' }}>
+        Open mismatched URL company
+      </Link>
       <Link to="/#history" state={{ registerCompany: 'inland', registerToken: 'preference' }}>
         Open dashboard class
       </Link>
@@ -3061,20 +3106,16 @@ it("retains a dashboard's validated company/class context and reads only the cho
       </Link>
     </>,
   );
-  const company = (await screen.findByRole('combobox', { name: 'Company' })) as HTMLInputElement;
-  expect(company.value).toBe('');
-  fireEvent.change(company, { target: { value: ' ' } });
-  expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual([
-    'Harbour Example Pty Ltd',
-    'Inland Example Pty Ltd',
-  ]);
-  fireEvent.keyDown(company, { key: 'Escape' });
-  expect(screen.getByText('Select a company to show its register.')).toBeTruthy();
+  expect(await screen.findByRole('link', { name: 'Choose company on Dashboard' })).toBeTruthy();
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.queryByRole('button', { name: /shares/ })).toBeNull();
   expect(readUrls()).toEqual([REGISTER]);
 
   fireEvent.click(screen.getByRole('link', { name: 'Open mismatched dashboard class' }));
-  expect(company.value).toBe('');
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
+  expect(readUrls()).toEqual([REGISTER]);
+  fireEvent.click(screen.getByRole('link', { name: 'Open mismatched URL company' }));
+  expect(screen.getByRole('link', { name: 'Choose company on Dashboard' })).toBeTruthy();
   expect(readUrls()).toEqual([REGISTER]);
   fireEvent.click(screen.getByRole('link', { name: 'Open dashboard class' }));
   const preference = (await screen.findAllByRole('heading', { name: /^Preference shares ·/ })).find((heading) =>
@@ -3089,7 +3130,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
 
-  await choose('Company', 'Harbour Example Pty Ltd', 'harbour');
+  fireEvent.click(screen.getByRole('link', { name: 'Use Harbour company' }));
   await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
   expect(
     (await screen.findAllByRole('heading', { name: /^Ordinary shares ·/ })).find((heading) => heading.closest('li')),
@@ -3111,7 +3152,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
 
   fireEvent.click(screen.getByRole('link', { name: 'Open dashboard shareholders' }));
   await screen.findByText('Inland Example Pty Ltd', { selector: 'p' });
-  await choose('Company', 'Harbour Example Pty Ltd', 'harbour');
+  fireEvent.click(screen.getByRole('link', { name: 'Use Harbour company' }));
   await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
   fireEvent.change(await screen.findByLabelText('Search people'), { target: { value: 'Example' } });
   expect(await screen.findByText(/match(es)? your search\./)).toBeTruthy();
@@ -3125,8 +3166,7 @@ it("starts again for another signed-in account without showing the previous acco
     if (url === REGISTER) return page([harbour('ordinary'), inland('preference')]);
     return noCommands(url) ?? { data: register(url.includes('preference') ? 'preference' : 'ordinary') };
   });
-  show('investor', <CompanyRegisterPage />, 'Register', { entry: '/#shareholders' });
-  await choose('Company', 'Inland Example Pty Ltd', 'inland');
+  show('investor', <CompanyRegisterPage />, 'Register', { entry: '/?company=inland#shareholders' });
   const table = await screen.findByRole('table', { name: 'Company shareholders' });
   expect(within(table).getByText('Example Member')).toBeTruthy();
 
@@ -3148,9 +3188,9 @@ it("starts again for another signed-in account without showing the previous acco
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.queryByText('Example Member')).toBeNull();
-  await act(async () => finish(page([harbour('ordinary'), inland('preference')])));
-  expect(((await screen.findByRole('combobox', { name: 'Company' })) as HTMLInputElement).value).toBe('');
+  await act(async () => finish(page([harbour('ordinary')])));
+  expect(await screen.findByRole('link', { name: 'Choose company on Dashboard' })).toBeTruthy();
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
-  expect(screen.getByText('Select a company to show its register.')).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Choose company on Dashboard' })).toBeTruthy();
   expect(readUrls().filter((url) => url === REGISTER)).toHaveLength(2);
 });

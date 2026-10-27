@@ -1,3 +1,4 @@
+import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice, PreparationPreferences } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useTransferRegister } from './useTransferRegister';
@@ -56,11 +57,12 @@ function OwnTransfer({
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === uuid);
+  const companyMatches = useRecordCompany(listed?.companyUuid, guard);
   const appointment =
-    listed && appointments.data
+    companyMatches && listed && appointments.data
       ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
       : undefined;
-  const registers = useTransferRegister(owner, uuid, listed, guard);
+  const registers = useTransferRegister(owner, uuid, companyMatches ? listed : undefined, guard);
   const register = registers.data?.[0];
   const members = usePeople(owner, uuid, guard, !!appointment);
   const busy = classes.isFetching || appointments.isFetching || registers.isFetching || members.isFetching;
@@ -81,7 +83,7 @@ function OwnTransfer({
     ) : (
       <Loading>Loading the register…</Loading>
     );
-  else if (!listed) content = <PreparationNotice />;
+  else if (!listed || !companyMatches) content = <PreparationNotice />;
   else if (!appointment) content = <PreparationNotice>{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (!register || !members.data)
     content = stale ? (
@@ -125,7 +127,11 @@ function OwnTransfer({
     );
   return (
     <Page
-      lede={listed && appointment ? `${listed.companyName} · ${listed.name} (${listed.symbol})` : undefined}
+      lede={
+        companyMatches && listed && appointment
+          ? `${listed.companyName} · ${listed.name} (${listed.symbol})`
+          : undefined
+      }
       back={{ to: undefined }}
     >
       {content}

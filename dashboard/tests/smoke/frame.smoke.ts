@@ -301,6 +301,8 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(aside.getByRole('link', { name: 'Corrections', exact: true })).toHaveAttribute('aria-current', 'page');
     await aside.getByRole('link', { name: 'Ledger', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Ledger', exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/company\/ledger\?company=company$/);
+    await expect(page.getByRole('combobox', { name: 'Company', exact: true })).toHaveCount(0);
     aside = await visibleSidebar(page);
     await aside.getByRole('button', { name: 'Expand Shareholders navigation' }).click();
     await expect(aside.getByRole('link', { name: 'ESS', exact: true })).toHaveAttribute(
@@ -309,9 +311,11 @@ async function openTheSidebar(page: Page, role: Role) {
     );
     await aside.getByRole('link', { name: 'ESS', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Employee share scheme', exact: true })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Company', exact: true })).toHaveCount(0);
     aside = await visibleSidebar(page);
     await aside.getByRole('link', { name: 'Documents', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Certificates', exact: true })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Company', exact: true })).toHaveCount(0);
     aside = await visibleSidebar(page);
     for (const [name, hash] of [
       ['Certificates', 'certificates'],

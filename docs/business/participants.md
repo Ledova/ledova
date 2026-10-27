@@ -162,8 +162,8 @@ attached to it. You can withdraw a pending or accepted request; a refusal stays 
 
 Company approvers open **More → Company eligibility** on web.
 
-1. Choose your exact appointment and the company, then read the request queue and a request's
-   summary. On the web the queue shows 25 requests a page, newest first, and can be filtered by
+1. Choose your exact appointment for the selected company, then read the request queue and a
+   request's summary. On the web the queue shows 25 requests a page, newest first, and can be filtered by
    outcome (pending, accepted, refused, withdrawn, revoked or expired).
 2. Prepare an acceptance with an expiry, or a refusal with its reason, and confirm the previewed
    decision.
@@ -378,9 +378,9 @@ payslip never establishes eligibility.
 
 ### Settings
 
-On web, Dashboard selects a company for ownership exploration and task navigation, without a
-workspace or role selector. Company appointments and actual member links determine the available
-records and actions; choosing a company grants neither.
+On web, Dashboard selects the company used across company-related pages, without repeated company
+pickers or a workspace or role selector. Company appointments and actual member links determine the
+available records and actions; choosing a company grants neither.
 
 Settings opens Profile. Company Documents, Team and Activation appear where company access permits;
 Company-recorded details appears for linked member records. Team remains reachable for accepting

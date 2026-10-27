@@ -6,12 +6,13 @@ import {
   useLocation,
   useNavigate,
   type BlockerFunction,
+  type Location,
 } from 'react-router-dom';
 import { DESTINATIONS, useSubmissionOwner } from '@ledova/shared';
 import { CompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipCompanies } from '@hooks/useOwnershipCompanies';
 import { documentView } from '@utils/destinations';
-import { useLedgerNavigation } from './LedgerNavigation';
+import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';
 import { Confirmation } from './Modal';
 import { MemberWorkspaceContext } from './member-records/useMemberWorkspace';
 
@@ -21,6 +22,24 @@ function ledgerParams(pathname: string) {
     .sort((left, right) => Number(left.path.includes(':')) - Number(right.path.includes(':')))
     .map(({ path }) => matchPath(path, pathname)?.params)
     .find(Boolean);
+}
+
+function companyScopeAt(
+  location: Pick<Location, 'pathname' | 'search' | 'state'>,
+  ledger: LedgerNavigationState | null,
+  companies: readonly { uuid: string }[],
+) {
+  const params = ledgerParams(location.pathname);
+  const token = params?.uuid;
+  const query = new URLSearchParams(location.search);
+  const stated = typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : null;
+  const entered = params?.company ?? query.get('company') ?? stated;
+  const ledgerCompany =
+    location.pathname === DESTINATIONS.companyRegister.path || (token && ledger?.token === token)
+      ? ledger?.company
+      : undefined;
+  const companyUuid = entered ?? ledgerCompany ?? (!token && companies.length === 1 ? companies[0]!.uuid : null);
+  return { companyUuid, token, entered };
 }
 
 export function CompanyContextProvider({ children }: { children: ReactNode }) {
@@ -36,17 +55,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     owner: typeof owner;
     location: string;
   } | null>(null);
-  const params = ledgerParams(location.pathname);
-  const token = params?.uuid;
-  const query = new URLSearchParams(location.search);
-  const stated = typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : null;
-  const entered = params?.company ?? query.get('company') ?? stated;
-  const ledgerCompany =
-    location.pathname === DESTINATIONS.companyRegister.path || (token && ledger.state?.token === token)
-      ? ledger.state?.company
-      : undefined;
-  const companyUuid =
-    entered ?? ledgerCompany ?? (!token && directory.companies.length === 1 ? directory.companies[0]!.uuid : null);
+  const { companyUuid, token, entered } = companyScopeAt(location, ledger.state, directory.companies);
   const company = directory.companies.find(({ uuid }) => uuid === companyUuid);
   const ledgerHeld = location.pathname === DESTINATIONS.companyRegister.path && !!ledger.state?.held;
   const memberHeld = !!member?.read.busy || !!member?.read.retry;
@@ -65,18 +74,11 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         if (!owner || boundary.get() !== owner) return false;
         const nextQuery = new URLSearchParams(nextLocation.search);
         const currentQuery = new URLSearchParams(currentLocation.search);
-        const next = nextQuery.get('company');
         nextQuery.delete('company');
         currentQuery.delete('company');
         nextQuery.sort();
         currentQuery.sort();
-        const stated =
-          typeof nextLocation.state?.registerCompany === 'string' ? nextLocation.state.registerCompany : null;
-        const target =
-          ledgerParams(nextLocation.pathname)?.company ??
-          next ??
-          stated ??
-          (nextLocation.pathname === DESTINATIONS.home.path && directory.companies.length > 1 ? null : companyUuid);
+        const target = companyScopeAt(nextLocation, ledger.state, directory.companies).companyUuid;
         const changingCompany = target !== companyUuid;
         const hash = nextLocation.hash.slice(1);
         if (
@@ -112,13 +114,12 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         owner,
         boundary,
         companyUuid,
-        directory.companies.length,
+        directory.companies,
         member?.draft.open,
         held,
         ledgerHeld,
         memberHeld,
-        ledger.state?.token,
-        ledger.state?.task,
+        ledger.state,
         isDirty,
       ],
     ),
@@ -146,8 +147,14 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     }
   }, [blocker, blockedAt, held, owner, location.key]);
   useEffect(() => {
+    const companyPage =
+      location.pathname === DESTINATIONS.company.path || location.pathname.startsWith(`${DESTINATIONS.company.path}/`);
     if (
-      location.pathname !== DESTINATIONS.home.path ||
+      (!companyPage &&
+        ![DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path].some(
+          (path) => path === location.pathname,
+        )) ||
+      token ||
       entered !== null ||
       directory.isLoading ||
       directory.isRefreshing ||
@@ -158,7 +165,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     const next = new URLSearchParams(location.search);
     next.set('company', directory.companies[0]!.uuid);
     navigate({ search: next.toString(), hash: location.hash }, { replace: true, state: location.state });
-  }, [directory, entered, location, navigate]);
+  }, [directory, entered, location, navigate, token]);
   useEffect(() => {
     const changed = (event: Event) => {
       const control = event.target;
@@ -177,7 +184,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     const [beforeHash, hash] = path.split('#');
     const [pathname, search] = beforeHash!.split('?');
     const next = new URLSearchParams(search);
-    if (companyUuid) next.set('company', companyUuid);
+    if (companyUuid && !next.has('company')) next.set('company', companyUuid);
     const value = next.toString();
     return `${pathname}${value ? `?${value}` : ''}${hash ? `#${hash}` : ''}`;
   };
@@ -187,17 +194,8 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     void navigate(path);
     return true;
   };
-  const selectCompany = (uuid: string | null, preservePage = false) => {
-    const next = new URLSearchParams(preservePage ? location.search : undefined);
-    next.delete('class');
-    next.delete('q');
-    next.delete('page');
-    if (uuid) next.set('company', uuid);
-    else next.delete('company');
-    const path = preservePage ? location.pathname : DESTINATIONS.home.path;
-    const search = next.toString();
-    return request(uuid, `${path}${search ? `?${search}` : ''}${preservePage ? location.hash : ''}`);
-  };
+  const selectCompany = (uuid: string) =>
+    request(uuid, `${DESTINATIONS.home.path}?${new URLSearchParams({ company: uuid })}`);
   return (
     <CompanyContext.Provider
       value={{

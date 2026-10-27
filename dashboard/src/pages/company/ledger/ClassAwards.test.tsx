@@ -269,7 +269,7 @@ it('retains original award, vesting and linked issue preparations through interr
     expect.objectContaining({ vestedShares: '100', issuedShares: '0', availableShares: '100' }),
   );
   expect((await screen.findByRole('link', { name: 'Issue vested shares' })).getAttribute('href')).toBe(
-    '/company/ledger#issue',
+    `/company/ledger?company=${APPOINTMENT.company}#issue`,
   );
   expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
   expect(screen.getByRole('img', { name: /0 unvested, 100 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
@@ -473,8 +473,8 @@ it('retains original award, vesting and linked issue preparations through interr
           ]}
         >
           <CompanyRegisterPage />
-          <Link to="/company/ledger#issue">Open issue task</Link>
-          <Link to="/company/ledger#awards">Return to ESS</Link>
+          <Link to={`/company/ledger?company=${APPOINTMENT.company}#issue`}>Open issue task</Link>
+          <Link to={`/company/ledger?company=${APPOINTMENT.company}#awards`}>Return to ESS</Link>
         </MemoryRouter>
       </ApiClientProvider>
     </QueryClientProvider>,
@@ -613,7 +613,8 @@ it('retains original award, vesting and linked issue preparations through interr
   appointments = [APPOINTMENT];
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
   expect(awards[0].issuedShares).toBe('0');
-  expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).value).toBe(APPOINTMENT.companyName);
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
+  expect((screen.getByLabelText('Share class') as HTMLSelectElement).value).toBe(REGISTER.token.uuid);
   expect(screen.getByText('Non-paid issues from this award · 1')).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: /^10 shares, prepared/, hidden: true }));
   await waitFor(() => expect(document.activeElement).toBe(awardIssueRecord()));
@@ -627,7 +628,7 @@ it('retains original award, vesting and linked issue preparations through interr
     let review = await screen.findByRole('region', { name: 'Review share issue' });
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(issues.queryByRole('button', { name: 'Prepare issue' })).toBeNull();
-    expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByRole('combobox', { name: 'Share class' }) as HTMLSelectElement).disabled).toBe(true);
     expect(document.activeElement).toBe(within(review).getByRole('heading', { name: 'Review share issue' }));
     if (label === 'Approve') {
       fireEvent.click(within(review).getByRole('button', { name: 'Cancel' }));
@@ -657,7 +658,9 @@ it('retains original award, vesting and linked issue preparations through interr
   const originalIssue = submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter(
     (row) => row.kind === 'apply',
   )[0];
-  expect((screen.getByRole('combobox', { name: 'Company', hidden: true }) as HTMLInputElement).disabled).toBe(true);
+  expect((screen.getByRole('combobox', { name: 'Share class', hidden: true }) as HTMLSelectElement).disabled).toBe(
+    true,
+  );
   preferencesFailed = true;
   await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
   expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status).toBe('error');
@@ -696,7 +699,7 @@ it('retains original award, vesting and linked issue preparations through interr
   await issues.findByText('Shares issued');
   await waitFor(() => expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull());
   await waitFor(() =>
-    expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false),
+    expect((screen.getByRole('combobox', { name: 'Share class' }) as HTMLSelectElement).disabled).toBe(false),
   );
   slowReads = false;
   expect(submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter((row) => row.kind === 'apply')).toEqual([

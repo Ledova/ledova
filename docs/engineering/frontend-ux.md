@@ -71,9 +71,9 @@ list usable. Percentages name their denominator; issued share counts do not impl
 economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
 and keep record actions there.
 The web Dashboard is one Ownership browser for a person's company relationships. With several
-companies, its top trail holds a searchable **Your companies** field; the overview uses the full
-workspace width. A single company opens directly. Show a company once even when the person both
-administers it and holds shares. Use the same ownership ring, linked
+companies, its top trail holds the searchable company name, with an accessible label kept visually
+hidden; the overview uses the full workspace width. A single company opens directly. Show a company
+once even when the person both administers it and holds shares. Use the same ownership ring, linked
 class list and hover/focus treatment across relationships, with the person's own position beside the
 company figures they may read. Selection progresses from company to class to permitted detail;
 keep a breadcrumb and browser Back/Forward, with company and class in the address. On narrow screens,
@@ -610,24 +610,21 @@ name and pressing Enter), a transfer and member invitations.
 
 ## Choosing a company
 
-Task pages that ask which company to work on use `CompanyPicker`
-(`dashboard/src/components/CompanyPicker.tsx`): the same searchable list as
-[choosing a person](#choosing-a-person), labelled **Company**, showing each company's name and, where
-it helps, a muted detail such as a draft company's ACN, never an internal identifier.
+On web, Dashboard is the only place to change company context. Its `CompanyPicker`
+(`dashboard/src/components/CompanyPicker.tsx`) uses the same searchable list as
+[choosing a person](#choosing-a-person), showing company names and useful muted details, never
+internal identifiers. The selected name and dropdown affordance identify the control; its label
+remains accessible but visually hidden.
 
-- **Dashboard** uses `CompanyPicker`, labelled **Your companies**, in its top ownership trail.
-  A single company opens directly. The selected company is kept in the address and task links.
-- **Pages that keep their own choice:** Ledger, Profile’s company details, Settings Documents,
-  Activation, Offerings, Published to your members and register setup use `CompanySelection`. It
-  hides the list when the account has one company and it is already chosen.
-- **Personal Documents and Company-recorded details** retain their labelled company field when
-  several member associations are available.
-- **Pages that always show it:** Team, Representative authority (which lists only draft
-  companies), Company eligibility and its wallet approvals show it whenever they ask for a company.
-  Wallet approvals label theirs **Wallet approval company**, since the page has two.
+A single company opens directly. Other company-related pages inherit the selection through their
+address and task links, showing the company name without another company picker. With several
+companies and no selection, or an unavailable selected company, `CompanyContextNotice`
+(`dashboard/src/components/CompanyContextNotice.tsx`) links to Dashboard. Never silently select a
+different company. Valid company and record links still open directly. Account-wide Profile,
+own appointments and invitation acceptance remain available without a company selection.
 
-These rules are checked in review. The dashboard suite drives the picker on Ledger and in the award
-recovery case.
+Share-class, person, wallet and other record choices stay with their tasks. These rules and the
+company-change safeguards are checked in review and the existing dashboard journeys.
 
 ## Choosing a wallet or a paid subscription
 

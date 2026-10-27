@@ -231,7 +231,8 @@ reply never acts for the new one
 [lists and forms](../engineering/frontend.md#lists-figures-and-currency)).
 
 On the web, one Dashboard explores all of the person's company relationships. Search and switch
-companies through **Your companies** at the top; one company opens directly. A person who both
+companies using the company name at the top; one company opens directly. That selection follows
+company-related pages, without repeated company choices. A person who both
 administers a company and holds its shares sees that company once, with their own position alongside
 the company information they may read. The sidebar keeps focused tasks for the selected company:
 

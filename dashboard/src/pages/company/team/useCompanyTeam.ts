@@ -14,7 +14,8 @@ import { appointmentReceipt, currentAppointment, sameScope } from '@pages/compan
 import apiClient from '@services/apiClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 
 export function teamInvitationsKey(owner: OrderSubmissionOwner) {
   return ['company-team-invitations', owner.userUuid, owner.ownerAccountUuid];
@@ -46,14 +47,8 @@ export function useCompanyTeam({
   const ownKey = ownAppointmentsKey(owner);
   const invitationKey = teamInvitationsKey(owner);
   const location = useLocation();
-  const navigate = useNavigate();
+  const context = useCompanyContext();
   const selectedCompany = new URLSearchParams(location.search).get('company');
-  const setCompany = (uuid: string) => {
-    const next = new URLSearchParams(location.search);
-    if (uuid) next.set('company', uuid);
-    else next.delete('company');
-    navigate({ search: next.toString(), hash: location.hash }, { state: location.state });
-  };
   const [sourceId, setSourceId] = useState('');
   const [formBusy, setFormBusy] = useState(false);
   const [revoking, setRevoking] = useState(false);
@@ -90,7 +85,9 @@ export function useCompanyTeam({
   });
   const appointments = own.isError ? [] : (own.data ?? []);
   const companies = [...new Map(appointments.map((item) => [item.company, item.companyName])).entries()];
-  const company = selectedCompany ?? (companies.length === 1 ? companies[0][0] : '');
+  const company = context
+    ? (context.companyUuid ?? '')
+    : (selectedCompany ?? (companies.length === 1 ? companies[0][0] : ''));
   const sources = appointments.filter(
     (item) => item.company === company && currentAppointment(item) && item.delegatableCapabilities.length > 0,
   );
@@ -221,7 +218,7 @@ export function useCompanyTeam({
     )
       throw new Error('Your company appointment changed. Reopen the invitation and select a current source.');
   };
-  const companyName = companies.find(([uuid]) => uuid === company)?.[1] ?? '';
+  const companyName = companies.find(([uuid]) => uuid === company)?.[1] ?? context?.company?.name ?? '';
   useEffect(() => {
     if (!refreshReady) return;
     let live = true;
@@ -270,7 +267,6 @@ export function useCompanyTeam({
   return {
     guard,
     company,
-    setCompany,
     sourceId,
     setSourceId,
     setFormBusy,
@@ -280,7 +276,6 @@ export function useCompanyTeam({
     own,
     invitations,
     appointments,
-    companies,
     sources,
     source,
     canAdmin,

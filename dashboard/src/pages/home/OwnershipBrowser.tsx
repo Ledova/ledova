@@ -144,6 +144,7 @@ function SignedInOwnership({
               <div className="w-full max-w-sm">
                 <CompanyPicker
                   label="Your companies"
+                  labelHidden
                   companies={directory.companies.map((item) => ({
                     uuid: item.uuid,
                     name: item.name,

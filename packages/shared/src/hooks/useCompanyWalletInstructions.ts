@@ -35,6 +35,7 @@ export function useCompanyWalletInstructions(options: {
   coordinatedReads?: boolean;
   paused?: boolean;
   pausedScope?: string;
+  selectedCompany?: string;
 }) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -42,7 +43,7 @@ export function useCompanyWalletInstructions(options: {
   const mounted = useRef(true);
   const selected = useRef({ owner, company: '' });
   const pending = useRef(false);
-  const [companyUuid, setCompanyUuid] = useState('');
+  const [selectedCompany, setCompanyUuid] = useState('');
   const [kept, setKept] = useState<{ owner: typeof owner; company: string; records: CompanyWalletInstruction[] }>({
     owner,
     company: '',
@@ -53,9 +54,22 @@ export function useCompanyWalletInstructions(options: {
   const [workingOwner, setWorkingOwner] = useState<typeof owner>(null);
   const view = useRef({ owner, generation: 0 });
   if (view.current.owner !== owner) view.current = { owner, generation: view.current.generation + 1 };
+  const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0];
+  const heldCompany =
+    options.pausedScope === [...scope, selected.current.company, view.current.generation].join('/')
+      ? selected.current.company
+      : undefined;
+  const companyUuid =
+    options.selectedCompany === undefined
+      ? selectedCompany
+      : (heldCompany ??
+        (retained?.owner === owner
+          ? retained.body.company
+          : busy && workingOwner === owner
+            ? selected.current.company
+            : options.selectedCompany));
   const [error, setError] = useState<string | null>(null);
   const [clock, setClock] = useState(0);
-  const scope = [owner?.userUuid, owner?.ownerAccountUuid, options.session?.getEpoch() ?? 0];
   const scopeKey = [...scope, companyUuid, view.current.generation].join('/');
   const readingPaused =
     !!options.paused ||

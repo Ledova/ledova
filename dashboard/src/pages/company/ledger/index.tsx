@@ -18,7 +18,8 @@ import { PageTitle } from '@components/PageTitle';
 import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { Page, PageAction, PageLink } from '@components/Page';
-import { CompanySelection } from '@components/CompanySelection';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 
 import { ClassCorrections } from './ClassCorrections';
 import { ClassCertificates } from './ClassCertificates';
@@ -43,13 +44,11 @@ import { useLedgerNavigation } from '@components/LedgerNavigation';
 
 const ON_CHAIN = ['deployed', 'paused'];
 function RegisterPage({
-  selection,
   companyName,
   sections,
   task,
   children,
 }: {
-  selection?: ReactNode;
   companyName?: string;
   sections?: ReactNode;
   task?: LedgerTask;
@@ -87,7 +86,6 @@ function RegisterPage({
                               : 'Share classes and current ownership.'
         }
       >
-        {selection}
         {companyName && <p className="text-sm text-text-muted">{companyName}</p>}
         {children}
         {sections}
@@ -147,6 +145,7 @@ function OwnRegister({
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
   const { setState: setLedgerNavigation } = useLedgerNavigation();
+  const companyContext = useCompanyContext();
   const [memberHeldView, setMemberHeldView] = useState<'access' | 'requests' | null>(null);
   const memberHeld = memberHeldView !== null;
   const memberHeldChange = useCallback((held: boolean, view: 'access' | 'requests') => {
@@ -201,15 +200,24 @@ function OwnRegister({
       ? { company: retainedScope.company, tokens: retainedScope.registers.map(({ token }) => token.uuid) }
       : undefined;
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const { classes, companies, company, selectCompany, registers, companyAppointments } = useCompanyRegister(
+  const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
+  const statedCompany =
+    typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : undefined;
+  const requestedCompany =
+    new URLSearchParams(location.search).get('company') ??
+    statedCompany ??
+    (registerToken ? undefined : companyContext ? (companyContext.companyUuid ?? '') : undefined);
+  const includeCompanyAppointments = includeEmptyCompanies || !!companyContext?.companyUuid;
+  const { classes, companies, company, registers, companyAppointments } = useCompanyRegister(
     owner,
     guard,
     retained,
-    includeEmptyCompanies,
-    new URLSearchParams(location.search).get('company') ?? undefined,
+    includeCompanyAppointments,
+    requestedCompany,
+    registerToken,
   );
   const companiesReady =
-    !includeEmptyCompanies ||
+    !includeCompanyAppointments ||
     classes.data?.some((item) => item.companyUuid === company?.uuid) ||
     companyAppointments.isSuccess;
   const preferenceRead = useUserPreferences();
@@ -284,13 +292,12 @@ function OwnRegister({
     (uuid: string, held: boolean) => classHeld(`corrections/company/${uuid}`, held),
     [classHeld],
   );
-  const registerToken = typeof location.state?.registerToken === 'string' ? location.state.registerToken : '';
   const registerCompany =
-    typeof location.state?.registerCompany === 'string'
-      ? location.state.registerCompany
-      : (new URLSearchParams(location.search).get('company') ??
-        classes.data?.find((item) => item.uuid === registerToken)?.companyUuid ??
-        '');
+    new URLSearchParams(location.search).get('company') ??
+    statedCompany ??
+    classes.data?.find((item) => item.uuid === registerToken)?.companyUuid ??
+    companyContext?.companyUuid ??
+    '';
   const hashTask = hash.slice(1);
   const registerTask = ledgerTask(hashTask) ?? ledgerTask(location.state?.registerTask);
   const registerOutcome =
@@ -302,34 +309,6 @@ function OwnRegister({
   const landed: Landed | undefined = registerRecord
     ? { record: registerRecord, key: location.key, outcome: registerOutcome }
     : undefined;
-  const enteredIssue = useRef('');
-  const entered = `${registerCompany}/${registerToken}`;
-  useEffect(() => {
-    if (enteredIssue.current === entered || !classes.isSuccess || classes.isFetching || held || !companiesReady) return;
-    if (
-      registerCompany &&
-      (includeEmptyCompanies && !registerToken
-        ? companies.some((item) => item.uuid === registerCompany)
-        : classes.data.some(
-            (item) => item.companyUuid === registerCompany && (!registerToken || item.uuid === registerToken),
-          ))
-    )
-      selectCompany(registerCompany);
-    enteredIssue.current = entered;
-  }, [
-    enteredIssue,
-    entered,
-    classes.isSuccess,
-    classes.isFetching,
-    classes.data,
-    held,
-    registerToken,
-    registerCompany,
-    selectCompany,
-    companiesReady,
-    includeEmptyCompanies,
-    companies,
-  ]);
   const view =
     hash === '#awards'
       ? 'awards'
@@ -445,24 +424,6 @@ function OwnRegister({
     <RegisterPage
       task={view === 'register' ? selectedTask : undefined}
       companyName={readable && sourceReady ? scope?.company.name : undefined}
-      selection={
-        preferences?.status === 'success' &&
-        preferences.fetchStatus === 'idle' &&
-        classes.isSuccess &&
-        !classes.isFetching &&
-        (!held || readable) &&
-        !reviewingParticulars &&
-        companies.length > 1 && (
-          <CompanySelection
-            read={{
-              companies,
-              companyUuid: scope?.company.uuid,
-              selectionBlocked: held,
-              selectCompany,
-            }}
-          />
-        )
-      }
       sections={
         scope && (
           <>
@@ -526,7 +487,7 @@ function OwnRegister({
         <LoadError retry={() => preferenceRead.refetch()} busy={preferenceRead.isFetching}>
           Your account could not be loaded.
         </LoadError>
-      ) : includeEmptyCompanies && companyAppointments.isError && !companiesReady ? (
+      ) : includeCompanyAppointments && companyAppointments.isError && !companiesReady ? (
         <LoadError retry={() => companyAppointments.refetch()} busy={companyAppointments.isFetching}>
           The companies could not be loaded.
         </LoadError>
@@ -542,10 +503,12 @@ function OwnRegister({
         >
           The register could not be loaded.
         </LoadError>
+      ) : !company && companyContext ? (
+        <CompanyContextNotice />
       ) : companies.length === 0 ? (
         <RegisterSetup owner={owner} guard={guard} />
       ) : !company ? (
-        <p className="py-3 text-sm text-text-muted">Select a company to show its register.</p>
+        <CompanyContextNotice />
       ) : registers.isPending ? (
         <Loading>Loading the register…</Loading>
       ) : null}
@@ -566,7 +529,7 @@ function OwnRegister({
             A person save is unfinished. Return to its original form to finish it.
           </p>
           <PageLink
-            to={`${DESTINATIONS.companyRegister.path}#shareholders`}
+            to={`${DESTINATIONS.companyRegister.path}?company=${scope.company.uuid}#shareholders`}
             state={{ registerCompany: scope.company.uuid }}
             label="Return to person form"
           />
@@ -578,7 +541,7 @@ function OwnRegister({
             A member action is unfinished. Return to its original form to finish it.
           </p>
           <PageLink
-            to={`${DESTINATIONS.companyRegister.path}#${heldShareholderView}`}
+            to={`${DESTINATIONS.companyRegister.path}?company=${scope.company.uuid}#${heldShareholderView}`}
             state={{ registerCompany: scope.company.uuid }}
             label="Return to member action"
           />
@@ -604,6 +567,11 @@ function OwnRegister({
           documents === 'certificates' ||
           documents === 'ledger-exports') && (
           <>
+            {view === 'register' && !selectedTask && ownershipReady && scope.registers.length === 0 && (
+              <Section title="Share classes">
+                <p className="text-sm text-text-muted">No share classes yet.</p>
+              </Section>
+            )}
             {view === 'register' &&
               !selectedTask &&
               ownershipReady &&
@@ -619,7 +587,7 @@ function OwnRegister({
                     />
                   ) : (
                     <PageLink
-                      to={generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}
+                      to={`${generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}?company=${scope.company.uuid}`}
                       label="Class details"
                       context={register.token.name}
                     />
