@@ -99,9 +99,9 @@ award is an entitlement, not a holding. Editing the personal Profile does not ch
 only a [particulars request](#particulars-requests) can.
 
 The web **Dashboard** is one Ownership browser for all of the person's company relationships.
-Choose a company from its searchable list; a single company opens directly. The overview brings
-the person's own shares and the company information they may read together, without switching
-workspaces or profiles. Company and class selections stay in the address, with a breadcrumb and
+Search and switch companies through **Your companies** at the top; a single company opens directly.
+The overview brings the person's own shares and the company information they may read together,
+without switching workspaces or profiles. Company and class selections stay in the address, with a breadcrumb and
 browser Back/Forward. Shares and percentages from unrelated companies are never combined.
 
 A company administrator can enable **Share ownership overview with members** in Settings → Profile →

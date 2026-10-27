@@ -306,7 +306,7 @@ Dashboard and task navigation. The address's `company` query identifies it; an e
 company context takes precedence. A single company opens directly. Company relationships come from
 current company access, appointments and real member associations, including draft companies with
 no classes. Selection changes neither account audience nor authority.
-Company changes and return to the company list confirm before discarding an edited, still-open
+Company changes and clearing the company selection confirm before discarding an edited, still-open
 form, including browser Back and Forward through React Router’s `useBlocker`; held Ledger or member work prevents those changes. The confirmation is bound to the current account
 and location. Authorised deep links and invitations remain usable without visiting Dashboard first.
 
@@ -710,9 +710,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 
 ### Page mechanics
 
-- Dashboard: `dashboard/src/pages/home/OwnershipBrowser.tsx` combines current company relationships, opening a single
-  company directly or a searchable company collection. Company and class context belong in the
-  address, so browser Back/Forward and task links retain the selected scope.
+- Dashboard: `dashboard/src/pages/home/OwnershipBrowser.tsx` combines current company relationships,
+  opening a single company directly or choosing through `CompanyPicker` in the top ownership trail.
+  Company and class context belong in the address, so browser Back/Forward and task links retain the
+  selected scope.
   `dashboard/src/pages/home/useCompanyOwnership.ts` owns company aggregates and sequence-bound
   holder reads. `dashboard/src/pages/home/useOwnershipMember.ts` reads only the selected member
   association. `dashboard/src/hooks/useOwnershipCompanies.ts` merges company and member indexes with

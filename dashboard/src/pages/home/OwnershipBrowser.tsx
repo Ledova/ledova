@@ -11,13 +11,13 @@ import {
 import { Page, PageAction } from '@components/Page';
 import { LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
 import { ListSearch, Pager } from '@components/List';
+import { CompanyPicker } from '@components/CompanyPicker';
 import { OwnershipMetrics } from './OwnershipMetrics';
 import { ownershipColor } from './ownershipColors';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipMember } from './useOwnershipMember';
 import { useCompanyOwnership } from './useCompanyOwnership';
 import { ownershipView } from './ownershipView';
-import { OwnershipCompanies } from './OwnershipCompanies';
 import { OwnershipClasses } from './OwnershipClasses';
 import { OwnershipHolders } from './OwnershipHolders';
 import { OwnershipLoading } from './OwnershipLoading';
@@ -139,258 +139,242 @@ function SignedInOwnership({
         </Section>
       ) : (
         <>
-          <nav aria-label="Ownership trail" className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-            {directory.companies.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => context?.selectCompany(null)}
-                  className="text-text-muted hover:text-text-primary"
-                >
-                  Your companies
-                </button>
-                {company && (
-                  <span aria-hidden className="text-text-muted">
-                    /
-                  </span>
-                )}
-              </>
-            )}
-            {company &&
-              (selected ? (
-                <button
-                  type="button"
-                  onClick={() => ownership.select(null)}
-                  className="max-w-full break-words text-text-muted hover:text-text-primary"
-                >
-                  {company.name}
-                </button>
-              ) : (
-                <span className="break-words font-medium">{company.name}</span>
-              ))}
-            {selectedClass && (
-              <>
-                <span aria-hidden className="text-text-muted">
-                  /
-                </span>
-                <span className="break-words font-medium">{selectedClass.symbol}</span>
-              </>
-            )}
-          </nav>
-          <div
-            className={
-              directory.companies.length > 1
-                ? 'grid min-w-0 items-start gap-5 xl:grid-cols-[14rem_minmax(0,1fr)]'
-                : 'min-w-0'
-            }
-          >
-            {directory.companies.length > 1 && (
-              <div className={companyUuid ? 'hidden min-w-0 xl:block' : 'min-w-0'}>
-                <OwnershipCompanies
-                  companies={directory.companies}
-                  selected={companyUuid}
-                  onSelect={(uuid) => context?.selectCompany(uuid)}
+          <nav aria-label="Ownership trail" className="flex min-w-0 flex-wrap items-end gap-3 text-sm">
+            {directory.companies.length > 1 || !company ? (
+              <div className="w-full max-w-sm">
+                <CompanyPicker
+                  label="Your companies"
+                  companies={directory.companies.map((item) => ({
+                    uuid: item.uuid,
+                    name: item.name,
+                    detail: [
+                      item.canManage ? 'Company administrator' : item.canReadRegister ? 'Company access' : null,
+                      item.memberUuids.length ? 'Member' : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · '),
+                  }))}
+                  value={company?.uuid ?? ''}
+                  onChange={(uuid) => context?.selectCompany(uuid)}
                 />
               </div>
+            ) : selected ? (
+              <button
+                type="button"
+                onClick={() => ownership.select(null)}
+                className="max-w-full break-words text-text-muted hover:text-text-primary"
+              >
+                {company.name}
+              </button>
+            ) : (
+              <span className="break-words font-medium">{company.name}</span>
             )}
-            <div className="flex min-w-0 flex-col gap-5">
-              {!company ? (
-                <Section title={companyUuid ? 'Company unavailable' : 'Ownership overview'}>
-                  <p role={companyUuid ? 'alert' : undefined} className="text-sm text-text-muted">
-                    {companyUuid
-                      ? 'This company is no longer available to your account.'
-                      : 'Choose a company to explore its shares and your position.'}
-                  </p>
-                </Section>
-              ) : failed ? (
-                <LoadError retry={retry} busy={directory.isRefreshing}>
-                  Your ownership records could not be loaded.
-                </LoadError>
-              ) : !ready ? (
-                <OwnershipLoading />
-              ) : (
-                <>
-                  {company.canManage && (!activated || !registered) && (
-                    <GettingStarted activated={activated} registered={registered} />
-                  )}
-                  {view ? (
-                    <>
-                      <Section title={company.name}>
-                        <p className="text-sm text-text-muted">
-                          {[
-                            company.canManage
-                              ? 'Company administrator'
-                              : company.canReadRegister
-                                ? 'Company access'
-                                : null,
-                            record ? 'Member' : null,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                        {view.summary ? (
-                          <OwnershipMetrics summary={view.summary} />
+            {selectedClass && (
+              <span className="flex min-w-0 max-w-full items-center gap-3 py-3 font-medium">
+                <span aria-hidden className="shrink-0 text-text-muted">
+                  /
+                </span>
+                <span className="min-w-0 break-words">{selectedClass.symbol}</span>
+              </span>
+            )}
+          </nav>
+          <div className="flex min-w-0 flex-col gap-5">
+            {!company ? (
+              <Section title={companyUuid ? 'Company unavailable' : 'Ownership overview'}>
+                <p role={companyUuid ? 'alert' : undefined} className="text-sm text-text-muted">
+                  {companyUuid
+                    ? 'This company is no longer available to your account.'
+                    : 'Choose a company to explore its shares and your position.'}
+                </p>
+              </Section>
+            ) : failed ? (
+              <LoadError retry={retry} busy={directory.isRefreshing}>
+                Your ownership records could not be loaded.
+              </LoadError>
+            ) : !ready ? (
+              <OwnershipLoading />
+            ) : (
+              <>
+                {company.canManage && (!activated || !registered) && (
+                  <GettingStarted activated={activated} registered={registered} />
+                )}
+                {view ? (
+                  <>
+                    <Section title={company.name}>
+                      <p className="text-sm text-text-muted">
+                        {[
+                          company.canManage
+                            ? 'Company administrator'
+                            : company.canReadRegister
+                              ? 'Company access'
+                              : null,
+                          record ? 'Member' : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                      {view.summary ? (
+                        <OwnershipMetrics summary={view.summary} />
+                      ) : (
+                        <dl className="grid grid-cols-2 gap-4 border-b border-border-subtle pb-4">
+                          <div>
+                            <dt className="text-sm text-text-muted">Your issued shares</dt>
+                            <dd className="mt-1 text-2xl font-medium tabular-nums">
+                              {formatShareCount(view.total ?? '0')}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="text-sm text-text-muted">Classes held</dt>
+                            <dd className="mt-1 text-2xl font-medium tabular-nums">
+                              {
+                                view.classes.filter(({ ownShares }) => ownShares !== null && BigInt(ownShares) > 0n)
+                                  .length
+                              }
+                            </dd>
+                          </div>
+                        </dl>
+                      )}
+                      <OwnershipClasses
+                        classes={view.classes}
+                        total={view.total}
+                        complete={view.complete}
+                        personalOnly={view.personalOnly}
+                        hasMember={!!record}
+                        selected={selected || null}
+                        onSelect={ownership.select}
+                        list={ownership.list}
+                      />
+                    </Section>
+                    {selected && (
+                      <Section
+                        title="Class details"
+                        header={
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <h2 ref={details} tabIndex={-1} className="font-display text-xl focus:outline-none">
+                              {selectedClass?.name ?? 'Class unavailable'}
+                            </h2>
+                            <PageAction label="All classes" onClick={() => ownership.select(null)} />
+                          </div>
+                        }
+                      >
+                        {!selectedClass ? (
+                          <p role="status" className="text-sm text-text-muted">
+                            This share class is no longer available in the company overview.
+                          </p>
                         ) : (
-                          <dl className="grid grid-cols-2 gap-4 border-b border-border-subtle pb-4">
-                            <div>
-                              <dt className="text-sm text-text-muted">Your issued shares</dt>
-                              <dd className="mt-1 text-2xl font-medium tabular-nums">
-                                {formatShareCount(view.total ?? '0')}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="text-sm text-text-muted">Classes held</dt>
-                              <dd className="mt-1 text-2xl font-medium tabular-nums">
-                                {
-                                  view.classes.filter(({ ownShares }) => ownShares !== null && BigInt(ownShares) > 0n)
-                                    .length
-                                }
-                              </dd>
-                            </div>
-                          </dl>
-                        )}
-                        <OwnershipClasses
-                          classes={view.classes}
-                          total={view.total}
-                          complete={view.complete}
-                          personalOnly={view.personalOnly}
-                          hasMember={!!record}
-                          selected={selected || null}
-                          onSelect={ownership.select}
-                          list={ownership.list}
-                        />
-                      </Section>
-                      {selected && (
-                        <Section
-                          title="Class details"
-                          header={
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <h2 ref={details} tabIndex={-1} className="font-display text-xl focus:outline-none">
-                                {selectedClass?.name ?? 'Class unavailable'}
-                              </h2>
-                              <PageAction label="All classes" onClick={() => ownership.select(null)} />
-                            </div>
-                          }
-                        >
-                          {!selectedClass ? (
-                            <p role="status" className="text-sm text-text-muted">
-                              This share class is no longer available in the company overview.
-                            </p>
-                          ) : (
-                            <>
-                              <Rows>
-                                <Row label="Share class">{selectedClass.symbol}</Row>
-                                {!view.personalOnly && (
-                                  <Row label="Issued shares">
-                                    {selectedClass.issuedSupply === null
-                                      ? 'Not recorded'
-                                      : formatShareCount(selectedClass.issuedSupply)}
+                          <>
+                            <Rows>
+                              <Row label="Share class">{selectedClass.symbol}</Row>
+                              {!view.personalOnly && (
+                                <Row label="Issued shares">
+                                  {selectedClass.issuedSupply === null
+                                    ? 'Not recorded'
+                                    : formatShareCount(selectedClass.issuedSupply)}
+                                </Row>
+                              )}
+                              {record && (
+                                <Row label="Your shares">
+                                  {selectedClass.ownShares === null
+                                    ? 'Not recorded'
+                                    : formatShareCount(selectedClass.ownShares)}
+                                </Row>
+                              )}
+                              {record &&
+                                !view.personalOnly &&
+                                selectedClass.issuedSupply !== null &&
+                                selectedClass.issuedSupply !== '0' &&
+                                selectedClass.ownShares !== null && (
+                                  <Row label="Your share of this class">
+                                    {sharePercentage(selectedClass.ownShares, selectedClass.issuedSupply)}
                                   </Row>
                                 )}
-                                {record && (
-                                  <Row label="Your shares">
-                                    {selectedClass.ownShares === null
-                                      ? 'Not recorded'
-                                      : formatShareCount(selectedClass.ownShares)}
-                                  </Row>
-                                )}
-                                {record &&
-                                  !view.personalOnly &&
-                                  selectedClass.issuedSupply !== null &&
-                                  selectedClass.issuedSupply !== '0' &&
-                                  selectedClass.ownShares !== null && (
-                                    <Row label="Your share of this class">
-                                      {sharePercentage(selectedClass.ownShares, selectedClass.issuedSupply)}
-                                    </Row>
-                                  )}
-                              </Rows>
-                              {company.canReadRegister ? (
-                                <>
-                                  {!selectedClass.initialized ? (
-                                    <p role="status" className="text-sm text-text-muted">
-                                      Current ownership is not available for this class. Its ledger must be opened and
-                                      its figures confirmed.
-                                    </p>
-                                  ) : (
-                                    <>
-                                      <ListSearch
-                                        label="Search shareholders"
-                                        list={ownership.list}
-                                        noun={['shareholder', 'shareholders']}
-                                        count={
-                                          ownership.holders.isSuccess && !ownership.holders.isFetching
-                                            ? ownership.holders.data.count
-                                            : undefined
-                                        }
-                                      />
-                                      <div
-                                        className="min-h-48"
-                                        aria-busy={ownership.holders.isPending || ownership.holders.isFetching}
-                                      >
-                                        {ownership.holders.isPending || ownership.holders.isFetching ? (
-                                          <Loading>Loading shareholders…</Loading>
-                                        ) : ownership.holders.isError ? (
-                                          <LoadError retry={() => ownership.holders.refetch()}>
-                                            The class’s shareholders could not be confirmed.
-                                          </LoadError>
-                                        ) : ownership.holders.data.count === 0 ? (
-                                          <p className="text-sm text-text-muted">
-                                            {ownership.list.search
-                                              ? 'No shareholders match your search.'
-                                              : 'No current shareholders yet.'}
-                                          </p>
-                                        ) : (
-                                          <OwnershipHolders
-                                            holders={ownership.holders.data}
-                                            name={selectedClass.name}
-                                            symbol={selectedClass.symbol}
-                                            color={ownershipColor(view.classes, selectedClass.uuid)}
-                                          />
-                                        )}
-                                      </div>
-                                      {ownership.holders.isSuccess && !ownership.holders.isFetching && (
-                                        <Pager
-                                          label="Class shareholders"
-                                          list={ownership.list}
-                                          noun={['shareholder', 'shareholders']}
-                                          count={ownership.holders.data.count}
+                            </Rows>
+                            {company.canReadRegister ? (
+                              <>
+                                {!selectedClass.initialized ? (
+                                  <p role="status" className="text-sm text-text-muted">
+                                    Current ownership is not available for this class. Its ledger must be opened and its
+                                    figures confirmed.
+                                  </p>
+                                ) : (
+                                  <>
+                                    <ListSearch
+                                      label="Search shareholders"
+                                      list={ownership.list}
+                                      noun={['shareholder', 'shareholders']}
+                                      count={
+                                        ownership.holders.isSuccess && !ownership.holders.isFetching
+                                          ? ownership.holders.data.count
+                                          : undefined
+                                      }
+                                    />
+                                    <div
+                                      className="min-h-48"
+                                      aria-busy={ownership.holders.isPending || ownership.holders.isFetching}
+                                    >
+                                      {ownership.holders.isPending || ownership.holders.isFetching ? (
+                                        <Loading>Loading shareholders…</Loading>
+                                      ) : ownership.holders.isError ? (
+                                        <LoadError retry={() => ownership.holders.refetch()}>
+                                          The class’s shareholders could not be confirmed.
+                                        </LoadError>
+                                      ) : ownership.holders.data.count === 0 ? (
+                                        <p className="text-sm text-text-muted">
+                                          {ownership.list.search
+                                            ? 'No shareholders match your search.'
+                                            : 'No current shareholders yet.'}
+                                        </p>
+                                      ) : (
+                                        <OwnershipHolders
+                                          holders={ownership.holders.data}
+                                          name={selectedClass.name}
+                                          symbol={selectedClass.symbol}
+                                          color={ownershipColor(view.classes, selectedClass.uuid)}
                                         />
                                       )}
-                                    </>
-                                  )}
-                                  <Link
-                                    to={
-                                      context?.companyPath(
-                                        generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid }),
-                                      ) ?? generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid })
-                                    }
-                                    state={{ registerCompany: company.uuid }}
-                                    className="w-fit text-sm text-brand-light underline"
-                                  >
-                                    Class rights and documents
-                                  </Link>
-                                </>
-                              ) : (
-                                <p className="text-sm text-text-muted">
-                                  Only your own holdings and awards are shown. Other shareholders’ records are private.
-                                </p>
-                              )}
-                            </>
-                          )}
-                        </Section>
-                      )}
-                    </>
-                  ) : (
-                    <Section title="Ownership overview">
-                      <p role="status" className="text-sm text-text-muted">
-                        The current ownership figures could not be confirmed.
-                      </p>
-                    </Section>
-                  )}
-                  {record && <MemberAwards record={record} token={selected || null} />}
-                </>
-              )}
-            </div>
+                                    </div>
+                                    {ownership.holders.isSuccess && !ownership.holders.isFetching && (
+                                      <Pager
+                                        label="Class shareholders"
+                                        list={ownership.list}
+                                        noun={['shareholder', 'shareholders']}
+                                        count={ownership.holders.data.count}
+                                      />
+                                    )}
+                                  </>
+                                )}
+                                <Link
+                                  to={
+                                    context?.companyPath(
+                                      generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid }),
+                                    ) ?? generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid })
+                                  }
+                                  state={{ registerCompany: company.uuid }}
+                                  className="w-fit text-sm text-brand-light underline"
+                                >
+                                  Class rights and documents
+                                </Link>
+                              </>
+                            ) : (
+                              <p className="text-sm text-text-muted">
+                                Only your own holdings and awards are shown. Other shareholders’ records are private.
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </Section>
+                    )}
+                  </>
+                ) : (
+                  <Section title="Ownership overview">
+                    <p role="status" className="text-sm text-text-muted">
+                      The current ownership figures could not be confirmed.
+                    </p>
+                  </Section>
+                )}
+                {record && <MemberAwards record={record} token={selected || null} />}
+              </>
+            )}
           </div>
         </>
       )}
