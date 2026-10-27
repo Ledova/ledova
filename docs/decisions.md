@@ -47,7 +47,7 @@ stay here as history and are marked where they appear.
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web); mobile (#1157) superseded 26 October                                                      |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                          |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
-| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; mobile shareholder screens (#1201)           |
+| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201)   |
 | [Mobile app for shareholders](#mobile-app-for-shareholders)                                                     | 26 October 2026                                | Current; delivered under #1201                                                                                  |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                         |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                         |
@@ -1188,6 +1188,9 @@ actions stay in Wallets.
 
 ## Simpler signed-in journeys
 
+The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).
+Its native journey is superseded by the [26 October mobile decision](#mobile-app-for-shareholders).
+
 On 11 October 2026 the owner approved the reviewed journey proposal under
 [#1000](https://github.com/Ledova/ledova/issues/1000). Keep signup unchanged.
 Start with home/navigation and named-member invitations (#1003), then focused
@@ -1269,6 +1272,8 @@ The existing workspace, sidebar, issued-share denominator and valuation boundary
 
 ### Dashboard, Settings and Register for a new company
 
+Its mobile part (#1157) is superseded by the [26 October mobile decision](#mobile-app-for-shareholders).
+
 On 19 October 2026 the owner decided
 ([#1155](https://github.com/Ledova/ledova/issues/1155)) to separate the company
 Dashboard, Settings and Register, with simplicity, clarity and no duplicated
@@ -1289,6 +1294,8 @@ keep it simple: share classes created on the web carry the internal quantity
 guard, with no custom technical share limit, and mobile follows the same rule.
 
 ### Share classes, shareholders and employee awards
+
+Its mobile parts are superseded by the [26 October mobile decision](#mobile-app-for-shareholders).
 
 On 20 October 2026 the owner decided ([#1165](https://github.com/Ledova/ledova/issues/1165)) to
 separate share-class management from shareholder management without duplicating functionality: a

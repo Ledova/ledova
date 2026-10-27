@@ -441,7 +441,7 @@ way:
 A load error's Try again and recovery actions keep their label while they run; a form's submit
 button that also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
 placeholder and Trading keep their own controls, and dialog footers use the
-same order as `FormActions`. Mobile's `Action` has no busy or pressed form.
+same order as `FormActions`. Mobile's `Action` has no busy, pressed or destructive form.
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
@@ -459,7 +459,7 @@ an unsaved form, aren't confirmed. Dismissing a notification archives it at once
 decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are
 confirmed by their own review, dialog or form. The dashboard uses no browser `confirm` or `alert`
 (ESLint's `no-alert`). Mobile asks first before withdrawing a certificate request or deleting the
-account.
+account, and also before signing out and, in a native alert, before turning off biometric sign-in.
 
 ## Feedback
 
@@ -485,8 +485,8 @@ identifier in their own details. It reports:
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and `CopyButton` (the payment instruction's values and the
 company's and an approved offering's UUIDs) confirms a copy with Copied beside the button.
-Ledger's other forms don't use `Outcome`. Mobile reports a changed password, and some failures,
-in native alerts.
+Ledger's other forms don't use `Outcome`. Mobile reports a changed password, some failures
+and a few warnings in native alerts.
 
 ## Copy
 
@@ -768,8 +768,8 @@ A class's awards, grants, allotments, openings, imports, non-paid transfers, dep
 reconciliation, notices, offer documents and an offering's applications take their empty sentence
 from shared copy in `packages/shared/src/constants/business/`. On the web, a section with no
 corrections, register entries or particulars changes is hidden instead, and so is one with no wallet
-links unless wallets are waiting for a link you can prepare. Other empty sentences, including
-mobile's, are each client's own.
+links unless wallets are waiting for a link you can prepare. Other empty sentences are each client's
+own.
 A sentence that reports a state rather than an empty list keeps its own words, such as "No votes
 need your attention." or "No orders listed." for a market's live order book. A class's awards,
 grants, allotments, non-paid transfers and deployments, and an award's vesting and entitlement
@@ -948,7 +948,7 @@ by a local helper or a browser `toLocale…` call:
   values. A register's amounts paid and unpaid show as recorded, without `formatMoney`, because the
   register cannot name a single currency for them
   ([amount paid](../business/register.md#amount-paid-and-date-entered)).
-  Mobile's screens format their dates the same way.
+  Mobile's signed-in screens format their dates the same way.
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
   shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
@@ -956,7 +956,8 @@ by a local helper or a browser `toLocale…` call:
   states, a deployment's swap approval, an application's status on company records, order states
   and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
   for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
-  register entry kinds). Mobile reads its statuses from shared maps too.
+  register entry kinds). Mobile shows no status codes: its request statuses come from the shared
+  maps, and its certificate and pending-change tags use its own words.
 - **Identifiers.** Records show names. Where only an identifier tells records apart, the screen
   shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight characters),
   never the full UUID, including in choices and screen-reader context. Internal user numbers are
