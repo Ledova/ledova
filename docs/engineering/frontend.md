@@ -723,9 +723,11 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   render only while incomplete; the existing parent condition hides the card when both tasks are
   complete.
 - Personal dashboard: reads the person's own member projection and defaults to Your shares for the
-  selected company. With several current associations, the existing searchable Company selector
-  chooses one, with the first available association selected initially; a single association needs no
-  selector. When that company enables aggregate sharing,
+  selected company. One ownership panel contains the company header, connected view selector,
+  figures and chart. With several current associations, the company name opens the existing
+  searchable Company selector, with the first available association selected initially; a single
+  association uses a plain heading. Documents and Settings keep their existing labelled selector.
+  When that company enables aggregate sharing,
   Company ownership is a second view: `dashboard/src/pages/home/MemberCompanyOwnership.tsx` uses the
   shared ring and metrics with a page-owned list of all class totals and the person's own position.
   Its own-shares view sums issued shares with `BigInt` and charts only their shares by class.

@@ -1287,6 +1287,12 @@ remain company-bound, with no invented cross-company ownership percentage. Ordin
 preserves the view choice; an account/company change or unavailable sharing returns to Your shares.
 The choice stays in memory and uses the existing member-read lifecycle.
 
+The owner then approved one ownership panel under [#1358](https://github.com/Ledova/ledova/issues/1358):
+the company name opens the searchable selector in its header, beside a connected view selector,
+with figures and chart beneath. Single-company members see a plain company heading; narrow screens
+stack the controls. Remove the repeated company heading and separate dashboard control rows, keeping
+the controls outside the ring and awards in a separate card.
+
 ### Dashboard, Settings and Register for a new company
 
 On 19 October 2026 the owner decided

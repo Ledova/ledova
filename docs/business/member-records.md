@@ -100,13 +100,14 @@ only a [particulars request](#particulars-requests) can.
 
 Choose **My shares** below the sidebar logo on web. Its **Dashboard** starts with **Your shares**:
 the member's own issued-share total, share-class count and a chart of their shares by class. Members
-linked to several companies start with the first available one and can change it with the searchable
-Company selector; a single-company
-member needs no selector. Both dashboard views refer to that selected company, without combining
+linked to several companies start with the first available one. Select the company name in the
+ownership panel's header to search and change companies; a single-company member sees a plain
+company heading. Both dashboard views refer to that selected company, without combining
 shares or percentages across unrelated companies.
 
 A company administrator can enable **Share ownership overview with members** in Settings → Profile →
-Edit company. It starts off. When enabled, **Company ownership** is a second view showing the company's
+Edit company. It starts off. When enabled, the connected view selector in the panel header offers
+**Your shares** and **Company ownership**. The company view shows the company's
 issued-share total, shareholder count and all share classes, with the member's own quantity and
 percentage within each class. The company retains who last changed the setting and when. The overview
 shares no other holder's name, identifier, address, award, documents or entry details and grants no

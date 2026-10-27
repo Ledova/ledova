@@ -70,19 +70,21 @@ Narrow screens show the linked list without squeezing the ring. A chart failure 
 list usable. Percentages name their denominator; issued share counts do not imply voting power,
 economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
 and keep record actions there.
-The member Dashboard defaults to **Your shares** for the selected company. When the company enables
-aggregate sharing, offer **Your shares** and **Company ownership** as two existing-style pressed
-buttons in one labelled group. The second view shows one full-width ownership ring and linked class list. Show all issued class totals alongside
+The member Dashboard uses one full-width ownership panel. Its header shows the selected company name
+on the left and, when aggregate sharing is enabled, a connected **Your shares / Company ownership**
+view selector on the right. The company name opens the existing searchable Company selector when
+several companies are linked; a single-company member sees a plain heading. Keep company context
+once, stack the controls on narrow screens, and place the figures and chart directly beneath the
+header inside the panel. Controls stay outside the ring, whose segments represent share classes.
+The Dashboard defaults to **Your shares**. The second view shows the ownership ring and linked class list. Show all issued class totals alongside
 the member's own quantity and within-class percentage; class selection highlights that position
 without a separate detail panel or other holders' records.
 Keep other holders' identities and records out of this view. Without shared figures, keep the own
-shares view without a redundant switch. Use the existing searchable Company selector only for
-several linked companies, initially selecting the first available one; both views stay within the selected company. Preserve the chosen view
+shares view without a redundant switch. Initially select the first available company; both views stay within the selected company. Preserve the chosen view
 through normal revalidation, start at Your shares after a company/account change, and return there
 when sharing becomes unavailable. Do not store the choice as an account preference or combine
-different companies' shares into a single ownership percentage. Awards remain separate in both modes. The own-only overview's shares and
-awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
-on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
+different companies' shares into a single ownership percentage. Awards remain in a separate card
+below the ownership panel in both modes. Member awards show the promise and nonzero lifecycle
 quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
 included in the holding. The member Dashboard contains only the shares and read-only award overview.
 **Company-recorded details** in Settings uses one **Your details** card in the standard workspace
@@ -611,7 +613,9 @@ it helps, a muted detail such as a draft company's ACN, never an internal identi
 - **Pages that keep their own choice:** Ledger, Dashboard, Profile’s company details, Settings Documents,
   Activation, Offerings, Published to your members and register setup each keep their own choice through `CompanySelection`. It hides the
   list when the account has one company and it is already chosen.
-- **Your shares** shows it when the person holds records in more than one company.
+- **Your shares** shows it when the person holds records in more than one company. On Dashboard,
+  the company name in the ownership panel's header opens it; Documents and Settings retain the
+  labelled field.
 - **Pages that always show it:** Team, Representative authority (which lists only draft
   companies), Company eligibility and its wallet approvals show it whenever they ask for a company.
   Wallet approvals label theirs **Wallet approval company**, since the page has two.

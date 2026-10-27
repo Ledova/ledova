@@ -4,7 +4,15 @@ import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { useMemberWorkspace } from './useMemberWorkspace';
 
-export function MemberRecordsContent({ children, actions = true }: { children: ReactNode; actions?: boolean }) {
+export function MemberRecordsContent({
+  children,
+  actions = true,
+  companyHeader = true,
+}: {
+  children: ReactNode;
+  actions?: boolean;
+  companyHeader?: boolean;
+}) {
   const { read, select } = useMemberWorkspace();
   const [retrying, setRetrying] = useState(false);
   return (
@@ -38,7 +46,7 @@ export function MemberRecordsContent({ children, actions = true }: { children: R
         <Loading>Loading member records…</Loading>
       ) : (
         <>
-          {read.records.length > 1 && (
+          {companyHeader && read.records.length > 1 && (
             <div className="max-w-md">
               <CompanyPicker
                 companies={read.records.map((record) => ({ uuid: record.uuid, name: record.company.name }))}
@@ -50,7 +58,9 @@ export function MemberRecordsContent({ children, actions = true }: { children: R
           )}
           {read.record && !read.readFailed && (
             <>
-              <h2 className="break-words font-display text-xl text-text-primary">{read.record.company.name}</h2>
+              {companyHeader && (
+                <h2 className="break-words font-display text-xl text-text-primary">{read.record.company.name}</h2>
+              )}
               {children}
             </>
           )}
