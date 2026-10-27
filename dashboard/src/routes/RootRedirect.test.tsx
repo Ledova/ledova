@@ -28,7 +28,7 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { ownershipCompaniesKey } from '@hooks/useOwnershipCompanies';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { RootRedirect } from './RootRedirect';
-import { SIGNUP_RESUMES_AT } from '@utils/paths';
+import { CERTIFICATES_PATH, SIGNUP_RESUMES_AT } from '@utils/paths';
 import { TestRouter } from '../testSupport/TestRouter';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
@@ -161,6 +161,18 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
                       </>
                     }
                   />
+                  <Route
+                    path={CERTIFICATES_PATH}
+                    element={
+                      <>
+                        <Sidebar />
+                        <main>
+                          <p>Certificates workspace</p>
+                          <ContextActions />
+                        </main>
+                      </>
+                    }
+                  />
                   <Route path={SIGNUP_RESUMES_AT} element={<p>Resume signup</p>} />
                   <Route path="/signup/company-registration" element={<p>Resume company setup</p>} />
                 </Routes>
@@ -184,17 +196,14 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     );
     const documentsToggle = screen.getByRole('button', { name: 'Expand Documents navigation' });
     fireEvent.click(documentsToggle);
-    const ownCertificates = screen.getByRole('link', { name: 'Your certificates' });
-    expect(document.getElementById(documentsToggle.getAttribute('aria-controls')!)?.contains(ownCertificates)).toBe(
-      true,
-    );
-    expect(ownCertificates.getAttribute('href')).toBe('/home?company=company-a#documents');
-    fireEvent.click(ownCertificates);
-    expect(screen.getByRole('link', { name: 'Your certificates' }).getAttribute('aria-current')).toBe('page');
+    const certificates = screen.getByRole('link', { name: 'Certificates' });
+    expect(document.getElementById(documentsToggle.getAttribute('aria-controls')!)?.contains(certificates)).toBe(true);
+    expect(certificates.getAttribute('href')).toBe('/documents/certificates?company=company-a');
+    expect(screen.queryByRole('link', { name: 'Your certificates' })).toBeNull();
+    fireEvent.click(certificates);
+    await screen.findByText('Certificates workspace');
+    expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('link', { name: 'Dashboard' }).getAttribute('aria-current')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('href')).toBe(
-      '/company/ledger?company=company-a#certificates',
-    );
     expect(screen.getAllByRole('link', { name: 'Dashboard' })).toHaveLength(1);
     fireEvent.click(ledgerLink);
     fireEvent.click(screen.getByRole('button', { name: 'Search this company' }));
@@ -264,9 +273,10 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Your certificates' })).toBeNull();
     const memberDocuments = screen.getByRole('link', { name: 'Documents' });
-    expect(memberDocuments.getAttribute('href')).toBe('/home?company=company-b#documents');
+    expect(memberDocuments.getAttribute('href')).toBe('/documents/certificates?company=company-b');
     fireEvent.click(memberDocuments);
-    expect(screen.getByRole('link', { name: 'Documents' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.queryByRole('link', { name: 'Ledger exports' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
     await screen.findByRole('link', { name: 'Ledger' });
     fireEvent.click(screen.getByRole('link', { name: 'Unavailable company record' }));
@@ -288,9 +298,10 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     });
     await waitFor(() => expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull());
     const managedMemberDocuments = screen.getByRole('link', { name: 'Documents' });
-    expect(managedMemberDocuments.getAttribute('href')).toBe('/home?company=company-a#documents');
+    expect(managedMemberDocuments.getAttribute('href')).toBe('/documents/certificates?company=company-a');
     fireEvent.click(managedMemberDocuments);
-    expect(screen.getByRole('link', { name: 'Documents' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.queryByRole('link', { name: 'Ledger exports' })).toBeNull();
     act(() => {
       client.setQueryData(companyKey, [company]);
       client.setQueryData(ownAppointmentsKey(owner), [APPOINTMENT]);

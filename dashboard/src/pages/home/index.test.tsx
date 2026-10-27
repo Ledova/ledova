@@ -30,6 +30,8 @@ import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD, choose } from '../../testSupp
 import { AWARD_REQUEST, REGISTER, awardFrom } from '../../testSupport/company';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF, OUTPUT_APPOINTMENT, OUTPUT_PREVIEW } from '../../testSupport/company';
 import MemberRecordsPage from './index';
+import CertificatesPage from '../documents/certificates';
+import { CERTIFICATES_PATH } from '@utils/paths';
 import MemberInvitationPage from '../member-invitation';
 import { CompanyMemberAccess } from '../company/ledger/CompanyMemberAccess';
 
@@ -457,6 +459,7 @@ it('invites and associates a walletless member, recovers one exact request and r
           <MemberPageLinks />
           <Routes>
             <Route path="/home" element={<MemberRecordsPage />} />
+            <Route path={CERTIFICATES_PATH} element={<CertificatesPage />} />
             <Route path="/settings" element={<CompanyRecordedDetails />} />
           </Routes>
         </CompanyContextProvider>
@@ -670,8 +673,8 @@ it('invites and associates a walletless member, recovers one exact request and r
     within(screen.getByRole('heading', { name: 'Update requests' }).closest('section')!).getByText('Applied'),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
-  const certificatesCard = (await screen.findByRole('heading', { name: 'Certificates' })).closest('section')!;
-  expect(within(certificatesCard).getByRole('heading', { name: '+10 ORD shares' })).toBeTruthy();
+  const certificatesCard = (await screen.findByRole('heading', { name: 'Certificate records' })).closest('section')!;
+  expect(within(certificatesCard).getByText('+10 ORD shares')).toBeTruthy();
   expect(within(certificatesCard).getByText('Requested', { exact: true, selector: 'p.font-medium' })).toBeTruthy();
   expect(within(certificatesCard).getByText('Not recorded')).toBeTruthy();
   expect(within(certificatesCard).getByRole('button', { name: /Withdraw certificate request/ })).toBeTruthy();

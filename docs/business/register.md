@@ -553,11 +553,13 @@ reason, the person, their appointment and the time, and the
 The destination is **Ledger** on the web, with the subtitle **Share classes and current
 ownership.** On the web, Ledger is open to every signed-in account and shows the
 registers of companies the person owns or where their appointment includes register access. With
-none, it offers **Add share class** to someone who can prepare one and otherwise says there are none. A company
-selector appears when several companies are readable. Ledger's sidebar label opens the share-class
+none, it offers **Add share class** to someone who can prepare one and otherwise says there are none.
+The selected company follows Dashboard. Ledger's sidebar label opens the share-class
 overview; its separate caret expands Issue shares, Transfer shares and Corrections.
-Shareholders and Documents remain beside Ledger; ESS is under Shareholders. These are views of one page, so switching between them keeps
-unfinished forms and their recovery ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
+Shareholders and Documents remain beside Ledger; ESS is under Shareholders. Ledger and Shareholders
+keep their views on one page so switching between them preserves unfinished forms and recovery.
+Documents → Certificates has its own page for company and member records, while Ledger exports and
+Company pack retain their existing workflows ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
 company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
 

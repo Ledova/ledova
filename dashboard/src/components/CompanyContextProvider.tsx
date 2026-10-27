@@ -12,6 +12,7 @@ import { DESTINATIONS, useSubmissionOwner } from '@ledova/shared';
 import { CompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipCompanies } from '@hooks/useOwnershipCompanies';
 import { documentView } from '@utils/destinations';
+import { CERTIFICATES_PATH } from '@utils/paths';
 import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';
 import { Confirmation } from './Modal';
 import { MemberWorkspaceContext } from './member-records/useMemberWorkspace';
@@ -95,7 +96,12 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
           (documentView(hash) || hash === ledger.state?.task)
         )
           return false;
-        const memberPages = [DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path];
+        const memberPages = [
+          DESTINATIONS.home.path,
+          DESTINATIONS.memberRecords.path,
+          DESTINATIONS.settings.path,
+          CERTIFICATES_PATH,
+        ];
         const persistentDraft =
           !!member?.draft.open &&
           !changingCompany &&
@@ -151,7 +157,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
       location.pathname === DESTINATIONS.company.path || location.pathname.startsWith(`${DESTINATIONS.company.path}/`);
     if (
       (!companyPage &&
-        ![DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path].some(
+        ![DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path, CERTIFICATES_PATH].some(
           (path) => path === location.pathname,
         )) ||
       token ||

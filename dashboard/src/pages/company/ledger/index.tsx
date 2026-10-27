@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { generatePath, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, generatePath, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -20,9 +20,9 @@ import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { Page, PageAction, PageLink } from '@components/Page';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
+import { certificatesLocation } from '@utils/paths';
 
 import { ClassCorrections } from './ClassCorrections';
-import { ClassCertificates } from './ClassCertificates';
 import { ClassImports } from './ClassImports';
 import { ClassIssues } from './ClassIssues';
 import { ClassAwards } from './ClassAwards';
@@ -71,19 +71,17 @@ function RegisterPage({
                 ? 'Prepare and review changes while preserving the original records.'
                 : hash === '#awards'
                   ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
-                  : documents === 'certificates'
-                    ? 'Prepare unsigned certificates for recorded share changes.'
-                    : documents === 'ledger-exports'
-                      ? 'Download ledger records or prepare an inspection copy.'
-                      : documents === 'company-pack'
-                        ? 'Prepare a package of the company’s records.'
-                        : hash === '#shareholders'
-                          ? 'Who holds shares and what they hold in each class.'
-                          : hash === '#member-access'
-                            ? 'Invite people to their records and manage their access.'
-                            : hash === '#member-requests'
-                              ? 'Review requests to update details or prepare certificates.'
-                              : 'Share classes and current ownership.'
+                  : documents === 'ledger-exports'
+                    ? 'Download ledger records or prepare an inspection copy.'
+                    : documents === 'company-pack'
+                      ? 'Prepare a package of the company’s records.'
+                      : hash === '#shareholders'
+                        ? 'Who holds shares and what they hold in each class.'
+                        : hash === '#member-access'
+                          ? 'Invite people to their records and manage their access.'
+                          : hash === '#member-requests'
+                            ? 'Review requests to update details or prepare certificates.'
+                            : 'Share classes and current ownership.'
         }
       >
         {companyName && <p className="text-sm text-text-muted">{companyName}</p>}
@@ -118,8 +116,11 @@ function RegisterDownload({ register }: { register: TokenHoldersResponse }) {
 }
 
 export default function CompanyRegisterPage() {
+  const location = useLocation();
   const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
+  if (location.hash === '#certificates' || location.hash === '#documents')
+    return <Navigate to={certificatesLocation(location)} state={location.state} replace />;
   if (owner)
     return (
       <OwnRegister key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} currentOwner={boundary.get} />
@@ -561,83 +562,74 @@ function OwnRegister({
           />
         </div>
       )}
-      {scope &&
-        (view === 'register' ||
-          view === 'awards' ||
-          documents === 'certificates' ||
-          documents === 'ledger-exports') && (
-          <>
-            {view === 'register' && !selectedTask && ownershipReady && scope.registers.length === 0 && (
-              <Section title="Share classes">
-                <p className="text-sm text-text-muted">No share classes yet.</p>
+      {scope && (view === 'register' || view === 'awards' || documents === 'ledger-exports') && (
+        <>
+          {view === 'register' && !selectedTask && ownershipReady && scope.registers.length === 0 && (
+            <Section title="Share classes">
+              <p className="text-sm text-text-muted">No share classes yet.</p>
+            </Section>
+          )}
+          {view === 'register' &&
+            !selectedTask &&
+            ownershipReady &&
+            scope.registers.map((register) => (
+              <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
+                <ClassRegister register={register} former={false} />
+                {held ? (
+                  <PageAction label="Class details" context={register.token.name} disabled onClick={() => undefined} />
+                ) : (
+                  <PageLink
+                    to={`${generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}?company=${scope.company.uuid}`}
+                    label="Class details"
+                    context={register.token.name}
+                  />
+                )}
               </Section>
+            ))}
+          {view === 'register' && !selectedTask && canAddClass && (
+            <div className="flex flex-wrap justify-end gap-2">
+              <PageLink
+                primary
+                to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
+                label="Add share class"
+              />
+            </div>
+          )}
+          <section
+            aria-label={documents ? 'Document scope' : 'Ledger tasks'}
+            hidden={reviewingParticulars}
+            className="space-y-4"
+          >
+            {(selectedTask || view === 'awards' || documents) && sourceReady && scope.registers.length === 1 && (
+              <p className="text-sm text-text-muted">
+                {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
+              </p>
             )}
-            {view === 'register' &&
-              !selectedTask &&
-              ownershipReady &&
-              scope.registers.map((register) => (
-                <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
-                  <ClassRegister register={register} former={false} />
-                  {held ? (
-                    <PageAction
-                      label="Class details"
-                      context={register.token.name}
-                      disabled
-                      onClick={() => undefined}
-                    />
-                  ) : (
-                    <PageLink
-                      to={`${generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}?company=${scope.company.uuid}`}
-                      label="Class details"
-                      context={register.token.name}
-                    />
-                  )}
-                </Section>
-              ))}
-            {view === 'register' && !selectedTask && canAddClass && (
-              <div className="flex flex-wrap justify-end gap-2">
-                <PageLink
-                  primary
-                  to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
-                  label="Add share class"
+            {(selectedTask || view === 'awards' || documents) && sourceReady && scope.registers.length > 1 && (
+              <div className="max-w-sm">
+                <SelectField
+                  label="Share class"
+                  options={scope.registers.map(({ token }) => ({
+                    value: token.uuid,
+                    label: `${token.name} · ${token.symbol}`,
+                  }))}
+                  value={selectedToken}
+                  disabled={held || (view === 'awards' && editingAwards.size > 0)}
+                  onChange={(token) => {
+                    if (!held && (view !== 'awards' || editingAwards.size === 0) && sourceReady)
+                      setTaskSelection({
+                        company: scope.company.uuid,
+                        token,
+                        task: documents ?? (view === 'awards' ? 'awards' : selectedTask!),
+                        locationKey: location.key,
+                      });
+                  }}
                 />
               </div>
             )}
-            <section
-              aria-label={documents ? 'Document scope' : 'Ledger tasks'}
-              hidden={reviewingParticulars}
-              className="space-y-4"
-            >
-              {(selectedTask || view === 'awards' || documents) && sourceReady && scope.registers.length === 1 && (
-                <p className="text-sm text-text-muted">
-                  {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
-                </p>
-              )}
-              {(selectedTask || view === 'awards' || documents) && sourceReady && scope.registers.length > 1 && (
-                <div className="max-w-sm">
-                  <SelectField
-                    label="Share class"
-                    options={scope.registers.map(({ token }) => ({
-                      value: token.uuid,
-                      label: `${token.name} · ${token.symbol}`,
-                    }))}
-                    value={selectedToken}
-                    disabled={held || (view === 'awards' && editingAwards.size > 0)}
-                    onChange={(token) => {
-                      if (!held && (view !== 'awards' || editingAwards.size === 0) && sourceReady)
-                        setTaskSelection({
-                          company: scope.company.uuid,
-                          token,
-                          task: documents ?? (view === 'awards' ? 'awards' : selectedTask!),
-                          locationKey: location.key,
-                        });
-                    }}
-                  />
-                </div>
-              )}
-            </section>
-          </>
-        )}
+          </section>
+        </>
+      )}
       {scope && (
         <ul hidden={includeEmptyCompanies || reviewingParticulars} className="space-y-6">
           {scope.registers.map((register) => (
@@ -646,10 +638,7 @@ function OwnRegister({
               hidden={
                 ((view === 'awards' || view === 'documents') && selectedToken !== register.token.uuid) ||
                 documents === 'company-pack' ||
-                (view === 'documents' &&
-                  !!documentTask &&
-                  documentTask !== `inspection/${register.token.uuid}` &&
-                  !documentTask.startsWith(`certificate/${register.token.uuid}/`))
+                (view === 'documents' && !!documentTask && documentTask !== `inspection/${register.token.uuid}`)
               }
               tabIndex={-1}
               className="scroll-mt-6"
@@ -794,28 +783,6 @@ function OwnRegister({
                     />
                   </div>
                   <div hidden={view !== 'documents'} className="space-y-5">
-                    <div
-                      hidden={
-                        documents !== 'certificates' ||
-                        (!!documentTask && !documentTask.startsWith(`certificate/${register.token.uuid}/`))
-                      }
-                    >
-                      <ClassCertificates
-                        owner={owner}
-                        guard={guard}
-                        company={scope.company.uuid}
-                        register={register}
-                        sourceReady={sourceReady}
-                        visible={
-                          documents === 'certificates' &&
-                          selectedToken === register.token.uuid &&
-                          sourceReady &&
-                          (!documentTask || documentTask.startsWith(`certificate/${register.token.uuid}/`))
-                        }
-                        activeTask={documentTask}
-                        onEditingChange={documentEditing}
-                      />
-                    </div>
                     {readable && (
                       <>
                         <div hidden={documents !== 'ledger-exports' || !!documentTask}>

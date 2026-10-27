@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { TestRouter } from '../../../testSupport/TestRouter';
+import { CERTIFICATES_PATH } from '@utils/paths';
 
 import {
   COMPANY_TOKEN_ENDPOINTS,
@@ -2169,6 +2170,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       createdAt: '2026-10-22T02:00:00Z',
     },
   ];
+  function RegisterDestination() {
+    return useLocation().pathname === CERTIFICATES_PATH ? <h1>Certificates destination</h1> : <CompanyRegisterPage />;
+  }
   const decisionAppointment = appointment;
   appointment = { ...appointment, capabilities: ['read_register'] };
   cleanup();
@@ -2176,9 +2180,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   show(
     'company',
     <>
-      <CompanyRegisterPage />
+      <RegisterDestination />
       <Link to="/#transfer">Transfer shares</Link>
-      <Link to="/#documents">Open Documents</Link>
+      <Link to="/#documents" state={{ registerCompany: company.uuid, registerToken: token.uuid }}>
+        Open Documents
+      </Link>
       <Link to="/#ledger-exports">Open Ledger exports</Link>
       <Link to="/#company-pack">Open Company pack</Link>
       <Link
@@ -2191,7 +2197,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       <Link to="/#corrections">Open Corrections</Link>
     </>,
     'Ledger',
-    { entry: '/?audit=1#history' },
+    { entry: '/?audit=1#history', path: '*' },
   );
   expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
   expect(screen.getByRole('heading', { level: 1, name: 'Corrections' })).toBeTruthy();
@@ -2264,46 +2270,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByRole('button', { name: /^Details for entry 3:/ })).toBeTruthy();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
-  expect(await screen.findByRole('heading', { level: 1, name: 'Certificates' })).toBeTruthy();
-  const certificateRecords = await screen.findByRole('list', { name: 'Certificate records' });
-  expect(within(certificateRecords).getByText('Taylor Demo: +100')).toBeTruthy();
-  pauseHistory = true;
-  const previousHistoryRelease = releaseHistory;
-  act(() => {
-    refreshingHistory = client.refetchQueries({ predicate: (query) => query.queryKey.includes('entries') });
+  expect(await screen.findByRole('heading', { name: 'Certificates destination' })).toBeTruthy();
+  expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!)).toMatchObject({
+    pathname: CERTIFICATES_PATH,
+    search: `?company=${company.uuid}&class=${token.uuid}`,
+    hash: '',
+    state: { registerCompany: company.uuid, registerToken: token.uuid },
   });
-  await waitFor(() => expect(releaseHistory).not.toBe(previousHistoryRelease));
-  expect(certificateRecords.textContent).not.toContain('Taylor Demo');
-  expect(certificateRecords.textContent).not.toContain('Example Shareholder');
-  await act(async () => {
-    pauseHistory = false;
-    releaseHistory();
-    await refreshingHistory;
-  });
-  const certificatePreparation = await screen.findByRole('button', {
-    name: 'Prepare unsigned certificate (entry 3)',
-  });
-  const certificateEntry = certificatePreparation.closest('li')!;
-  expect(within(certificateEntry).queryByRole('link', { name: /^Correct this entry/ })).toBeNull();
-  expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
-  expect(screen.queryByRole('textbox', { name: 'Written instruction reference' })).toBeNull();
-  expect(screen.queryByRole('textbox', { name: 'Pack instruction reference' })).toBeNull();
-  fireEvent.click(certificatePreparation);
-  expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Prepare company pack' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
-  expect(within(certificateEntry).queryByRole('textbox')).toBeNull();
-  const recordDetails = within(certificateEntry).getByRole('button', { name: 'Record details' });
-  expect(recordDetails.getAttribute('aria-expanded')).toBe('false');
-  fireEvent.click(recordDetails);
-  expect(within(certificateEntry).getByText('Ledger date')).toBeTruthy();
-  fireEvent.click(recordDetails);
-  expect(
-    within(certificateEntry).getByRole('button', { name: 'Preview (unsigned certificate for entry 3)' }),
-  ).toBeTruthy();
-  fireEvent.click(within(certificateEntry).getByRole('button', { name: 'Cancel (unsigned certificate for entry 3)' }));
-  expect(await screen.findByRole('button', { name: 'Prepare unsigned certificate (entry 3)' })).toBeTruthy();
-  expect(screen.queryByRole('form', { name: 'Unsigned certificate for entry 3' })).toBeNull();
+  expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   fireEvent.click(screen.getByRole('link', { name: 'Open Ledger exports' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Ledger exports' })).toBeTruthy();
   expect(await screen.findByRole('button', { name: 'Prepare inspection copy' })).toBeTruthy();
