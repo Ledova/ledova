@@ -559,7 +559,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     ownership,
   };
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
-  await screen.findByText('The current ownership figures could not be confirmed.');
+  await screen.findByText('Your ownership records could not be loaded.');
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByText('1,500')).toBeNull();
   currentMemberRecord = { ...MEMBER_RECORD, ownership: { ...ownership, company: 'foreign-company' } };
@@ -699,6 +699,31 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.change(screen.getByLabelText('Requested residential address'), {
     target: { value: 'Requested synthetic address' },
   });
+  fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+  await screen.findByText('Your issued shares');
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const hiddenReads = () =>
+    api.get.mock.calls.filter(([url]) =>
+      [
+        URLS.MEMBER_PARTICULARS_REQUESTS,
+        URLS.MEMBER_CERTIFICATE_REQUESTS,
+        URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid),
+      ].includes(url),
+    ).length;
+  const previousReads = hiddenReads();
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: [...ownDetailKey, 'requests'] });
+    await client.invalidateQueries({ queryKey: [...ownDetailKey, 'entries'] });
+  });
+  expect(hiddenReads()).toBe(previousReads);
+  fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+  expect(((await screen.findByLabelText('Requested name')) as HTMLInputElement).value).toBe('Requested Member Name');
+  expect((screen.getByLabelText('Requested residential address') as HTMLTextAreaElement).value).toBe(
+    'Requested synthetic address',
+  );
+  await waitFor(() =>
+    expect((screen.getByRole('button', { name: 'Send request' }) as HTMLButtonElement).disabled).toBe(false),
+  );
   fireEvent.click(screen.getByRole('checkbox', { name: /Share these requested particulars/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Send request' }));
   await screen.findByRole('button', { name: 'Retry original member action' });

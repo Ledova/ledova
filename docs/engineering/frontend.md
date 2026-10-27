@@ -444,9 +444,14 @@ Stale entry rechecks appointments before dependent records, deferring that entry
 or original-request recovery is open. The web register query policy and user-preferences defaults
 suppress native focus/reconnect refetches only at the ESS address; authentication revalidation stays
 unchanged. Current authority, source and account checks still gate every command and private read.
-The member Dashboard, Documents and Company-recorded details views also recheck member associations
-before their dependent records every 60 seconds while visible and online, and on focus and reconnect. This gives bounded freshness,
-not an instantaneous update guarantee.
+Dashboard has no periodic refresh. Its ownership queries read on entry and update through the existing
+mutation invalidation, focus and reconnect policies. Do not mount another workflow's active reads behind
+an overview: the member workspace reads and rechecks associations, requests and history only on member
+Documents and Company-recorded details. Those two views recheck associations before dependent records
+every 60 seconds while visible and online, and on focus and reconnect. Their provider keeps drafts and
+original-request recovery across navigation without fetching hidden records. This gives bounded freshness,
+not an instantaneous update guarantee. Current account, authority and snapshot checks still withhold
+private records while their prerequisite reads are unconfirmed.
 Team on web also reads appointments before dependent team records on focus, reconnect and a visible,
 online 60-second interval, deferring those cycles while a team editor or revocation is open.
 
