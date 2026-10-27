@@ -18,6 +18,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import CompanyDashboardPage from '.';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
+import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
 import { companyPreferences, companyRecord, prepareCompanyClient, renderCompanyPage } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
@@ -100,6 +101,8 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 it('explores exact bounded company ownership and withholds incomplete, failed and old-account replies', async () => {
@@ -198,6 +201,8 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   prepareCompanyClient(client);
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
   const wrapped = (
     <LedgerNavigationProvider>
       <CompanyContextProvider>
@@ -205,7 +210,10 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       </CompanyContextProvider>
     </LedgerNavigationProvider>
   );
-  const view = renderCompanyPage(client, wrapped, 'Dashboard');
+  const view = renderCompanyPage(client, <MemberRecordsProvider>{wrapped}</MemberRecordsProvider>, 'Dashboard', {
+    entry: '/home',
+    path: '/home',
+  });
   const refresh = async () => {
     await act(async () => {
       await Promise.all([
@@ -220,6 +228,12 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(api.get.mock.calls.some(([url]) => String(url).endsWith('/ownership-holders/'))).toBe(false);
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
   expect(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' })).toBeTruthy();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const idleReads = api.get.mock.calls.length;
+  await act(async () => vi.advanceTimersByTimeAsync(120_000));
+  expect(api.get.mock.calls).toHaveLength(idleReads);
+  expect(screen.getByRole('region', { name: 'Company ownership summary' })).toBe(summary);
+  vi.useRealTimers();
   mode = 'pending-overview';
   let refreshingOverview!: Promise<void>;
   await act(async () => {
