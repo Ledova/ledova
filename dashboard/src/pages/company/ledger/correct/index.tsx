@@ -1,3 +1,4 @@
+import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice, PreparationShell } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useCorrectionEntry } from './useCorrectionEntry';
@@ -62,8 +63,9 @@ function OwnCorrection({
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === uuid);
+  const companyMatches = useRecordCompany(listed?.companyUuid, guard);
   const appointment =
-    listed && appointments.data
+    companyMatches && listed && appointments.data
       ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
       : undefined;
   const corrected = useCorrectionEntry(owner, uuid, entry, guard, appointment);
@@ -84,7 +86,7 @@ function OwnCorrection({
       ) : (
         <Loading>Loading the register…</Loading>
       );
-  else if (!listed) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
+  else if (!listed || !companyMatches) content = <PreparationNotice className="py-3 text-sm text-text-muted" />;
   else if (!appointment)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (corrected.data === undefined)
@@ -146,7 +148,13 @@ function OwnCorrection({
       </>
     );
   return (
-    <Page narrow lede={LEDE} back={registerPlace({ token: uuid, task: 'corrections' })}>
+    <Page
+      narrow
+      lede={LEDE}
+      back={
+        companyMatches ? registerPlace({ company: listed?.companyUuid, token: uuid, task: 'corrections' }) : undefined
+      }
+    >
       {content}
     </Page>
   );

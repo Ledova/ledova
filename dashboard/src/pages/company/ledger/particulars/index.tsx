@@ -1,3 +1,4 @@
+import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice, PreparationShell } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useParticularsRegisters } from './useParticularsRegisters';
@@ -94,6 +95,7 @@ function OwnParticulars({
       ? [{ company, name: recipient.name, label: recipient.name || COPY.UNNAMED_MEMBER, read: people[index] }]
       : [];
   })[0];
+  const companyMatches = useRecordCompany(found?.company.uuid, guard);
   const reads = [...registers, ...people];
   const retry = () => {
     if (classes.isError) void classes.refetch();
@@ -113,6 +115,7 @@ function OwnParticulars({
       ) : (
         <Loading>Loading the register…</Loading>
       );
+  else if (!companyMatches) content = <PreparationNotice />;
   else if (preparing.length === 0)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
   else if (!found)
@@ -159,10 +162,12 @@ function OwnParticulars({
       narrow
       lede={LEDE}
       back={
-        found && {
-          to: shareholderPath(member, found.company.uuid),
-          label: `Back to ${found.label}`,
-        }
+        found && companyMatches
+          ? {
+              to: shareholderPath(member, found.company.uuid),
+              label: `Back to ${found.label}`,
+            }
+          : undefined
       }
     >
       {content}

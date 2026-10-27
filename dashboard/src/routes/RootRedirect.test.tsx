@@ -10,7 +10,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { Link, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
 import {
   APPOINTMENT,
@@ -21,6 +21,7 @@ import {
 } from '../testSupport/company';
 import { Sidebar } from '@components/Sidebar';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 import { useCompanyContext } from '@hooks/useCompanyContext';
@@ -36,15 +37,27 @@ function ContextActions() {
   const context = useCompanyContext();
   const ledger = useLedgerNavigation();
   const navigate = useNavigate();
+  const location = useLocation();
   return (
     <>
       <output aria-label="Selected company">{context?.company?.name ?? 'No company selected'}</output>
+      <output aria-label="Company address">{location.pathname + location.search}</output>
       <button onClick={() => context?.selectCompany('company-a')}>Choose company A</button>
       <button onClick={() => context?.selectCompany('company-b')}>Choose company B</button>
+      <button onClick={() => void navigate('?company=company-a&q=Alex&class=ordinary&page=2')}>
+        Search this company
+      </button>
+      <button onClick={() => context?.selectCompany('company-b')}>Change company on Dashboard</button>
       <button onClick={() => ledger.setState({ company: 'company-a', blocked: true, held: true })}>Hold action</button>
       <button onClick={() => ledger.setState({ company: 'company-a', blocked: false })}>Release action</button>
+      <button onClick={() => void navigate({ search: '', hash: location.hash })}>Clear company in address</button>
       <button onClick={() => void navigate(-1)}>Browser Back</button>
       <button onClick={() => void navigate(1)}>Browser Forward</button>
+      <Link to={context?.companyPath('/company/ledger?company=company-b') ?? '/company/ledger?company=company-b'}>
+        Explicit company record
+      </Link>
+      <Link to="/company/ledger?company=unavailable">Unavailable company record</Link>
+      <CompanyContextNotice />
       <Link to="/">Check access</Link>
     </>
   );
@@ -165,14 +178,29 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
     const ledgerLink = await screen.findByRole('link', { name: 'Ledger' });
     expect(ledgerLink.getAttribute('href')).toBe('/company/ledger?company=company-a');
+    expect(screen.getByRole('link', { name: 'Explicit company record' }).getAttribute('href')).toBe(
+      '/company/ledger?company=company-b',
+    );
     expect(screen.getByRole('link', { name: 'Your certificates' }).getAttribute('href')).toBe(
       '/home?company=company-a#documents',
     );
     expect(screen.getAllByRole('link', { name: 'Dashboard' })).toHaveLength(1);
     fireEvent.click(ledgerLink);
+    fireEvent.click(screen.getByRole('button', { name: 'Search this company' }));
+    expect(screen.getByLabelText('Company address').textContent).toBe(
+      '/company/ledger?company=company-a&q=Alex&class=ordinary&page=2',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Change company on Dashboard' }));
+    expect(screen.getByLabelText('Company address').textContent).toBe('/home?company=company-b');
+    fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Ledger' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
       target: { value: 'Unfinished draft' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Clear company in address' }));
+    expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByLabelText('Company address').textContent).toBe('/company/ledger?company=company-a');
     fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }));
     expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
     expect(screen.queryByText('Unified overview')).toBeNull();
@@ -199,14 +227,14 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
       target: { value: 'Unfinished draft' },
     });
-    fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Choose company on Dashboard' }));
     expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
     expect(screen.queryByText('Unified overview')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect((screen.getByRole('textbox', { name: 'Draft reference' }) as HTMLInputElement).value).toBe(
       'Unfinished draft',
     );
-    fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Choose company on Dashboard' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
     expect(await screen.findByText('Unified overview')).toBeTruthy();
     fireEvent.click(screen.getByRole('link', { name: 'Ledger' }));
@@ -222,6 +250,11 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     fireEvent.click(screen.getByRole('button', { name: 'Choose company B' }));
     expect(await screen.findByText('Unified overview')).toBeTruthy();
     expect(screen.getByLabelText('Selected company').textContent).toBe('Company B');
+    expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
+    await screen.findByRole('link', { name: 'Ledger' });
+    fireEvent.click(screen.getByRole('link', { name: 'Unavailable company record' }));
+    expect(screen.getByLabelText('Selected company').textContent).toBe('No company selected');
     expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
     await screen.findByRole('link', { name: 'Ledger' });

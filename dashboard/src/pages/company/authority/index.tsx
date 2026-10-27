@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CompanyPicker } from '@components/CompanyPicker';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { Outcome, Section, LoadError, Loading } from '@components/Ledger';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, failureSentence } from '@ledova/shared';
@@ -40,19 +40,7 @@ function OwnAuthorityRequests({
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
-  const {
-    guard,
-    selected,
-    setSelected,
-    recorded,
-    setRecorded,
-    companies,
-    history,
-    drafts,
-    company,
-    lifecycle,
-    opening,
-  } = useAuthorityRequests({
+  const { guard, recorded, setRecorded, companies, history, company, lifecycle, opening } = useAuthorityRequests({
     owner,
     currentOwner,
   });
@@ -121,22 +109,10 @@ function OwnAuthorityRequests({
             <LoadError retry={() => companies.refetch()} busy={companies.isFetching}>
               Your companies could not be loaded.
             </LoadError>
-          ) : drafts.length === 0 ? (
-            <p className="text-sm text-text-muted">No draft company is available for an authority request.</p>
+          ) : !company ? (
+            <CompanyContextNotice />
           ) : (
-            <CompanyPicker
-              companies={drafts.map((item) => ({
-                uuid: item.uuid,
-                name: item.name,
-                detail: `Draft · ACN ${item.acn}`,
-              }))}
-              value={selected}
-              disabled={companies.isFetching}
-              onChange={(uuid) => {
-                setSelected(uuid);
-                setRecorded(null);
-              }}
-            />
+            <p className="text-sm text-text-muted">{company.name}</p>
           )}
           {!recorded && company && (
             <AuthorityRequestForm

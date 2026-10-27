@@ -1,3 +1,4 @@
+import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice, PreparationPreferences } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useImportRegister, importRegisterKey } from './useImportRegister';
@@ -83,7 +84,9 @@ function OwnImport({
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === uuid);
-  const steps = listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
+  const companyMatches = useRecordCompany(listed?.companyUuid, guard);
+  const steps =
+    companyMatches && listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
   const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
   const members = usePeople(owner, uuid, guard, readable);
@@ -152,6 +155,7 @@ function OwnImport({
     if (!fresh || !canOpen || retained?.listed.companyUuid !== listed?.companyUuid)
       throw createUserFriendlyError('Your company, authority or source records changed. Refresh before continuing.');
   };
+  if (!companyMatches) return <PreparationNotice />;
   if (!held && fresh && record && !saved)
     return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
   if (!retained || (!held && (!fresh || !canOpen))) {
@@ -177,7 +181,7 @@ function OwnImport({
         <p className="text-sm text-text-muted">
           This class cannot open from copied records.{' '}
           <Link
-            to={DESTINATIONS.companyRegister.path}
+            to={`${DESTINATIONS.companyRegister.path}?company=${listed.companyUuid}`}
             state={{ registerCompany: listed.companyUuid }}
             className="text-brand-light underline"
           >

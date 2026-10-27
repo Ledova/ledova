@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Page } from '@components/Page';
 import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useCompanyContext } from '@hooks/useCompanyContext';
@@ -47,6 +48,13 @@ function Profile() {
           </Section>
         ) : accessLoading && !showCompany ? (
           <Loading>Loading company access…</Loading>
+        ) : !showCompany &&
+          context &&
+          ((!!context.companyUuid && !context.company) ||
+            (!context.companyUuid && context.directory.companies.some((company) => company.canManage))) ? (
+          <Section title="Company details">
+            <CompanyContextNotice />
+          </Section>
         ) : null}
         {showCompany && <CompanyProfile />}
         <PersonalProfile profile={profile} />

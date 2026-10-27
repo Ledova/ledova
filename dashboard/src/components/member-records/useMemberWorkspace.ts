@@ -9,7 +9,6 @@ export type MemberWorkspace = {
   draft: MemberDraft;
   setDraft: Dispatch<SetStateAction<MemberDraft>>;
   token: string;
-  select: (uuid: string) => void;
   selectToken: (uuid: string) => void;
 };
 

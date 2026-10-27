@@ -6,6 +6,7 @@ import { registerKey } from '@hooks/useRegisterAccess';
 import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { CompanyRecordedDetails } from '@pages/settings/CompanyRecordedDetails';
 
 import {
@@ -31,6 +32,17 @@ import { FULFILLED_CERTIFICATE, MEMBER_PDF, OUTPUT_APPOINTMENT, OUTPUT_PREVIEW }
 import MemberRecordsPage from './index';
 import MemberInvitationPage from '../member-invitation';
 import { CompanyMemberAccess } from '../company/ledger/CompanyMemberAccess';
+
+function MemberPageLinks() {
+  const context = useCompanyContext();
+  return (
+    <nav>
+      <Link to={context!.companyPath('/home')}>Dashboard</Link>
+      <Link to={context!.companyPath('/home#documents')}>Documents</Link>
+      <Link to={context!.companyPath('/settings#company-recorded-details')}>Settings</Link>
+    </nav>
+  );
+}
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -442,11 +454,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     <MemberRecordsProvider>
       <LedgerNavigationProvider>
         <CompanyContextProvider>
-          <nav>
-            <Link to="/home">Dashboard</Link>
-            <Link to="/home#documents">Documents</Link>
-            <Link to="/settings#company-recorded-details">Settings</Link>
-          </nav>
+          <MemberPageLinks />
           <Routes>
             <Route path="/home" element={<MemberRecordsPage />} />
             <Route path="/settings" element={<CompanyRecordedDetails />} />
@@ -551,7 +559,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     ownership,
   };
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
-  await screen.findByText('The current ownership figures could not be confirmed.');
+  await screen.findByText('Your ownership records could not be loaded.');
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByText('1,500')).toBeNull();
   currentMemberRecord = { ...MEMBER_RECORD, ownership: { ...ownership, company: 'foreign-company' } };
@@ -617,22 +625,21 @@ it('invites and associates a walletless member, recovers one exact request and r
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey.slice(0, -1), exact: true }));
   memberView.unmount();
   render(memberPages, { wrapper });
-  const companies = await screen.findByRole('list', { name: 'Your companies' });
-  expect(within(companies).getAllByRole('button')).toHaveLength(3);
-  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  fireEvent.click(within(companies).getByRole('button', { name: /^Company 2\s*Member$/ }));
+  await screen.findByRole('combobox', { name: 'Your companies' });
+  expect(screen.queryByRole('list', { name: 'Your companies' })).toBeNull();
+  await choose('Your companies', 'Company 2', 'company 2');
   expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('2,000');
   expect(screen.getByRole('list', { name: 'Share classes' }).textContent).toContain('You: 20');
   expect(screen.queryByText('1,500')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: /^Company 3\s*Member$/ }));
+  await choose('Your companies', 'Company 3', 'company 3');
   expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('3,000');
   expect(screen.getByRole('list', { name: 'Share classes' }).textContent).toContain('You: 30');
   expect(screen.queryByText('2,000')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.company.name}\\s*Member$`) }));
+  await choose('Your companies', MEMBER_RECORD.company.name);
   expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('1,500');
   additionalRecords = [];
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey.slice(0, -1), exact: true }));
-  await waitFor(() => expect(screen.queryByRole('list', { name: 'Your companies' })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Your companies' })).toBeNull());
   currentMemberRecord = { ...MEMBER_RECORD, ownership: null };
   holdMemberRecord = true;
   release = undefined;
@@ -692,6 +699,31 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.change(screen.getByLabelText('Requested residential address'), {
     target: { value: 'Requested synthetic address' },
   });
+  fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+  await screen.findByText('Your issued shares');
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const hiddenReads = () =>
+    api.get.mock.calls.filter(([url]) =>
+      [
+        URLS.MEMBER_PARTICULARS_REQUESTS,
+        URLS.MEMBER_CERTIFICATE_REQUESTS,
+        URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid),
+      ].includes(url),
+    ).length;
+  const previousReads = hiddenReads();
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: [...ownDetailKey, 'requests'] });
+    await client.invalidateQueries({ queryKey: [...ownDetailKey, 'entries'] });
+  });
+  expect(hiddenReads()).toBe(previousReads);
+  fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
+  expect(((await screen.findByLabelText('Requested name')) as HTMLInputElement).value).toBe('Requested Member Name');
+  expect((screen.getByLabelText('Requested residential address') as HTMLTextAreaElement).value).toBe(
+    'Requested synthetic address',
+  );
+  await waitFor(() =>
+    expect((screen.getByRole('button', { name: 'Send request' }) as HTMLButtonElement).disabled).toBe(false),
+  );
   fireEvent.click(screen.getByRole('checkbox', { name: /Share these requested particulars/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Send request' }));
   await screen.findByRole('button', { name: 'Retry original member action' });

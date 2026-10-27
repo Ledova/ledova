@@ -99,10 +99,10 @@ award is an entitlement, not a holding. Editing the personal Profile does not ch
 only a [particulars request](#particulars-requests) can.
 
 The web **Dashboard** is one Ownership browser for all of the person's company relationships.
-Choose a company from its searchable list; a single company opens directly. The overview brings
-the person's own shares and the company information they may read together, without switching
-workspaces or profiles. Company and class selections stay in the address, with a breadcrumb and
-browser Back/Forward. Shares and percentages from unrelated companies are never combined.
+[Choose the company on Dashboard](README.md#the-app-at-a-glance); Documents and Company-recorded
+details use that selection. The overview brings the person's own shares and permitted company
+information together, without switching workspaces or profiles. Company and class selections stay
+in the address, with a breadcrumb and browser Back/Forward. Shares and percentages from unrelated companies are never combined.
 
 A company administrator can enable **Share ownership overview with members** in Settings → Profile →
 Edit company. It starts off. When enabled, the selected company's overview shows its issued-share
@@ -226,8 +226,8 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
-2. On web, open **Documents** → **Ledger exports**, select the company and share class, then
-   choose **Prepare inspection copy**. Enter the reference, recipient and request date.
+2. On web, open **Documents** → **Ledger exports** for the selected company, choose the share class,
+   then **Prepare inspection copy**. Enter the reference, recipient and request date.
 3. Choose **Preview inspection copy**, check the request and register sequence, then **Confirm and
    download inspection copy**.
 

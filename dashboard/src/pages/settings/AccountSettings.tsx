@@ -178,7 +178,10 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
           <div className="divide-y divide-border-subtle">
             {!context?.company?.canManage && (
               <div className="flex justify-end py-3">
-                <PageLink to={DESTINATIONS.companyTeam.path} label="Accept a company invitation" />
+                <PageLink
+                  to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
+                  label="Accept a company invitation"
+                />
               </div>
             )}
             <ActionRow

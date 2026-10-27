@@ -1,9 +1,10 @@
 import { SelectField } from '@components/SelectField';
-import { CompanyPicker } from '@components/CompanyPicker';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { Row, Rows, Section, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { FormActions, Page, PageAction, PageLink } from '@components/Page';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
 import {
   formatDate,
@@ -47,6 +48,7 @@ function OwnTeam({
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
   const settings = useSettingsNavigation();
+  const context = useCompanyContext();
   const [task, setTask] = useState<'accept' | 'invite' | null>(null);
   const [returnFocus, setReturnFocus] = useState<'accept' | 'invite' | null>(null);
   const [draftSource, setDraftSource] = useState<OwnCompanyAppointment | null>(null);
@@ -57,7 +59,6 @@ function OwnTeam({
   const {
     guard,
     company,
-    setCompany,
     sourceId,
     setSourceId,
     setFormBusy,
@@ -67,7 +68,6 @@ function OwnTeam({
     own,
     invitations,
     appointments,
-    companies,
     sources,
     source,
     canAdmin,
@@ -132,7 +132,10 @@ function OwnTeam({
         </Section>
         <div className="flex flex-wrap justify-end gap-2">
           {settings.hasOwnedCompany && (
-            <PageLink to={DESTINATIONS.companyAuthority.path} label="Representative authority" />
+            <PageLink
+              to={context?.companyPath(DESTINATIONS.companyAuthority.path) ?? DESTINATIONS.companyAuthority.path}
+              label="Representative authority"
+            />
           )}
           <PageAction
             ref={acceptOpener}
@@ -142,21 +145,11 @@ function OwnTeam({
           />
         </div>
         <Section title="Team">
-          {companies.length === 1 ? (
-            <p className="text-sm text-text-muted">{companyName || companies[0][1]}</p>
-          ) : (
-            <CompanyPicker
-              companies={companies.map(([uuid, name]) => ({ uuid, name }))}
-              value={company}
-              disabled={disabled || own.isFetching || own.isError}
-              onChange={(uuid) => {
-                close();
-                setCompany(uuid);
-                setSourceId('');
-                setDraftSource(null);
-              }}
-            />
-          )}
+          {companyName ? (
+            <p className="text-sm text-text-muted">{companyName}</p>
+          ) : !own.isPending && !own.isFetching && !own.isError ? (
+            <CompanyContextNotice />
+          ) : null}
           {company &&
             (own.isFetching ? (
               <Loading>Loading company team…</Loading>

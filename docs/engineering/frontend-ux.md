@@ -63,16 +63,16 @@ use shared search and a 25-row pager; small and zero-share classes remain direct
 While company ownership loads, reserve the dashboard's summary and chart space with a static,
 data-free placeholder. The same neutral ring covers the lazy chart import. Show confirmed data
 directly when ready, without artificial waiting time, placeholder figures or entrance tracking.
-While holders load, replace their rows with a static loading status and reserve the last settled
-holder panel height, with a modest first-load placeholder. Retain geometry only, never stale holder
-figures. Settled short results, empty states and errors take their natural height; preserve the
-existing access clearing and retry controls.
+Keep a modest minimum-height holder area, showing a static loading status instead of stale holder
+figures while reading. Short results, empty states and errors retain that minimum area; preserve
+the existing access clearing and retry controls.
 Narrow screens show the linked list without squeezing the ring. A chart failure leaves the same
 list usable. Percentages name their denominator; issued share counts do not imply voting power,
 economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
 and keep record actions there.
-The web Dashboard is one Ownership browser for a person's company relationships. A searchable
-company list opens the selected company's overview; a single company opens directly. Show a company
+The web Dashboard is one Ownership browser for a person's company relationships. With several
+companies, its top trail holds the searchable company name, with an accessible label kept visually
+hidden; the overview uses the full workspace width. A single company opens directly. Show a company
 once even when the person both administers it and holds shares. Use the same ownership ring, linked
 class list and hover/focus treatment across relationships, with the person's own position beside the
 company figures they may read. Selection progresses from company to class to permitted detail;
@@ -355,7 +355,7 @@ company appointments and actual member associations independently determine the 
 records. Company context never grants authority or links someone to a same-named shareholder.
 Personal and company document destinations must say whose records they open. Preserve authorised
 direct links and invitations without forcing a visit through Dashboard. Protect edited forms before
-changing company or returning to the company list, and block those changes during held execution.
+changing or clearing the company selection, and block those changes during held execution.
 Recheck the account and current location before confirming navigation.
 
 The sidebar owns navigation between sections. A related group has one level of children: its label
@@ -613,24 +613,21 @@ name and pressing Enter), a transfer and member invitations.
 
 ## Choosing a company
 
-Task pages that ask which company to work on use `CompanyPicker`
-(`dashboard/src/components/CompanyPicker.tsx`): the same searchable list as
-[choosing a person](#choosing-a-person), labelled **Company**, showing each company's name and, where
-it helps, a muted detail such as a draft company's ACN, never an internal identifier.
+On web, Dashboard is the only place to change company context. Its `CompanyPicker`
+(`dashboard/src/components/CompanyPicker.tsx`) uses the same searchable list as
+[choosing a person](#choosing-a-person), showing company names and useful muted details, never
+internal identifiers. The selected name and dropdown affordance identify the control; its label
+remains accessible but visually hidden.
 
-- **Dashboard** uses its searchable company list as the first level of the Ownership browser,
-  opening a single company directly. The selected company is kept in the address and task links.
-- **Pages that keep their own choice:** Ledger, Profile’s company details, Settings Documents,
-  Activation, Offerings, Published to your members and register setup use `CompanySelection`. It
-  hides the list when the account has one company and it is already chosen.
-- **Personal Documents and Company-recorded details** retain their labelled company field when
-  several member associations are available.
-- **Pages that always show it:** Team, Representative authority (which lists only draft
-  companies), Company eligibility and its wallet approvals show it whenever they ask for a company.
-  Wallet approvals label theirs **Wallet approval company**, since the page has two.
+A single company opens directly. Other company-related pages inherit the selection through their
+address and task links, showing the company name without another company picker. With several
+companies and no selection, or an unavailable selected company, `CompanyContextNotice`
+(`dashboard/src/components/CompanyContextNotice.tsx`) links to Dashboard. Never silently select a
+different company. Valid company and record links still open directly. Account-wide Profile,
+own appointments and invitation acceptance remain available without a company selection.
 
-These rules are checked in review. The dashboard suite drives the picker on Ledger and in the award
-recovery case.
+Share-class, person, wallet and other record choices stay with their tasks. These rules and the
+company-change safeguards are checked in review and the existing dashboard journeys.
 
 ## Choosing a wallet or a paid subscription
 

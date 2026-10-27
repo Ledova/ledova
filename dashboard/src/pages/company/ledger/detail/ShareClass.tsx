@@ -1,3 +1,5 @@
+import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
+import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { REGISTER_COPY, USER_PREFERENCES_QUERY_KEY, formatShareCount, useUserPreferences } from '@ledova/shared';
@@ -12,6 +14,13 @@ import { ShareClassTechnical } from './ShareClassTechnical';
 
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
+  const companyMatches = useRecordCompany(data.token.data?.companyUuid, data.guard);
+  if (!companyMatches)
+    return (
+      <Page>
+        <PreparationNotice />
+      </Page>
+    );
   return (
     <Page back={{ ...registerPlace({ company: data.token.data?.companyUuid }), label: 'Back to Ledger' }}>
       <ShareClassRecord data={data} uuid={uuid} />

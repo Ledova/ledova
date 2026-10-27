@@ -309,7 +309,7 @@ function OwnShareholder({
             ))}
             {prepare && issueClass && recorded?.walletless && recorded.particularsRetained && (
               <PageLink
-                to={`${DESTINATIONS.companyRegister.path}#issue`}
+                to={`${DESTINATIONS.companyRegister.path}?company=${company}#issue`}
                 state={{ registerCompany: company, registerToken: issueClass, issueMember: member }}
                 label="Issue shares to them"
               />
@@ -364,7 +364,7 @@ function OwnShareholder({
                 ))}
               </Rows>
               <PageLink
-                to={`${DESTINATIONS.companyRegister.path}#awards`}
+                to={`${DESTINATIONS.companyRegister.path}?company=${company}#awards`}
                 state={{ registerCompany: company }}
                 label="Open Employee share scheme"
               />
@@ -378,7 +378,7 @@ function OwnShareholder({
                 </p>
               ))}
               <PageLink
-                to={`${DESTINATIONS.companyRegister.path}#member-requests`}
+                to={`${DESTINATIONS.companyRegister.path}?company=${company}#member-requests`}
                 state={{ registerCompany: company }}
                 label="Open member requests"
               />
@@ -395,7 +395,7 @@ function OwnShareholder({
               </p>
               {!current && !invited && (
                 <PageLink
-                  to={`${DESTINATIONS.companyRegister.path}#member-access`}
+                  to={`${DESTINATIONS.companyRegister.path}?company=${company}#member-access`}
                   state={{ registerCompany: company, inviteMember: member }}
                   label="Invite to their records"
                 />

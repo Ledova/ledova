@@ -1,7 +1,9 @@
 import { SelectField } from '@components/SelectField';
 import { Choices } from '@components/Choices';
-import { CompanyPicker } from '@components/CompanyPicker';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAutomaticReads } from '@hooks/useAutomaticReads';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { ErrorSummary } from '@components/ErrorSummary';
@@ -41,6 +43,8 @@ const QUEUE_OUTCOMES = [
 type QueueOutcome = Exclude<(typeof QUEUE_OUTCOMES)[number][0], ''>;
 
 export default function CompanyEligibilityPage() {
+  const context = useCompanyContext();
+  const requestedCompany = new URLSearchParams(useLocation().search).get('company');
   const [actionOpener, setActionOpener] = useState<HTMLElement | null>(null);
   const list = useListParams(['outcome']);
   const outcome = QUEUE_OUTCOMES.find(([value]) => value && value === list.filters.outcome)?.[0] as
@@ -53,7 +57,7 @@ export default function CompanyEligibilityPage() {
       pageSize: PAGE_SIZE,
       outcome,
     },
-    { coordinatedReads: true },
+    { coordinatedReads: true, selectedCompany: context ? (context.companyUuid ?? '') : (requestedCompany ?? '') },
   );
   useAutomaticReads({ scope: read.owner ? read.scopeKey : null, paused: read.readingPaused, refresh: read.refresh });
   const gone = useFirstPageWhenGone(list, read.listError);
@@ -97,20 +101,21 @@ export default function CompanyEligibilityPage() {
           )}
           <div hidden={!!read.action} className="flex flex-col gap-5">
             <Section title="Your personal company authority">
-              <LinkRow to={DESTINATIONS.companyTeam.path} label={DESTINATIONS.companyTeam.title} />
+              <LinkRow
+                to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
+                label={DESTINATIONS.companyTeam.title}
+              />
               <p className="text-sm text-text-muted">
                 Current personal prepare or approve authority permits reading this company&apos;s queue and preparing a
                 decision. Recording a decision or revocation requires your own approve appointment.
               </p>
-              <CompanyPicker
-                companies={read.companies}
-                value={read.companyUuid}
-                onChange={(uuid) => {
-                  read.setCompany(uuid);
-                  forget();
-                  if (list.page > 1) list.setPage(1, true);
-                }}
-              />
+              {!read.companyUuid && <CompanyContextNotice />}
+              {read.companyUuid && (
+                <p className="text-sm text-text-muted">
+                  {read.companies.find((company) => company.uuid === read.companyUuid)?.name ??
+                    (context?.companyUuid === read.companyUuid ? context.company?.name : 'Original company')}
+                </p>
+              )}
               {!read.readFailed && read.companies.length === 0 && (
                 <p>No current personal prepare or approve appointments are available.</p>
               )}
@@ -263,7 +268,7 @@ export default function CompanyEligibilityPage() {
           )}
         </>
       )}
-      <div hidden={!!read.action}>
+      <div hidden={!!read.action || !read.companyUuid}>
         <CompanyWalletInstructions active={!read.action} />
       </div>
     </Page>

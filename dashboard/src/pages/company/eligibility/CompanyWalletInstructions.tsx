@@ -1,7 +1,9 @@
 import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
-import { CompanyPicker } from '@components/CompanyPicker';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useCallback, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAutomaticReads } from '@hooks/useAutomaticReads';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { ErrorSummary } from '@components/ErrorSummary';
@@ -273,12 +275,15 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
   );
 }
 export function CompanyWalletInstructions({ active = true }: { active?: boolean }) {
+  const context = useCompanyContext();
+  const requestedCompany = new URLSearchParams(useLocation().search).get('company');
   const [held, setHeld] = useState<{ scope: string; editing: boolean; records: Set<string> } | null>(null);
   const data = useCompanyWalletInstructions({
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
     paused: !active,
     pausedScope: held && (held.editing || held.records.size > 0) ? held.scope : undefined,
+    selectedCompany: context ? (context.companyUuid ?? '') : (requestedCompany ?? ''),
   });
   const onHeldChange = useCallback(
     (uuid: string, pending: boolean) => {
@@ -322,16 +327,14 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
               Your appointments could not be loaded.
             </LoadError>
           )}
-          <CompanyPicker
-            label="Wallet approval company"
-            companies={data.companies}
-            value={data.companyUuid}
-            disabled={data.busy || (held?.scope === data.scopeKey && held.records.size > 0)}
-            onChange={(uuid) => {
-              setEditing(false);
-              data.setCompany(uuid);
-            }}
-          />
+          {data.companyUuid ? (
+            <p className="text-sm text-text-muted">
+              {data.companies.find((company) => company.uuid === data.companyUuid)?.name ??
+                (context?.companyUuid === data.companyUuid ? context.company?.name : 'Original company')}
+            </p>
+          ) : (
+            <CompanyContextNotice />
+          )}
           {data.error && (
             <p role="alert" className="text-sm text-error-light">
               {data.error}

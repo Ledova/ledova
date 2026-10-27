@@ -1,20 +1,9 @@
 import { formatShareCount, type CompanyOwnershipSummary } from '@ledova/shared';
 
-export function OwnershipMetrics({
-  summary,
-  embedded = false,
-}: {
-  summary: CompanyOwnershipSummary;
-  embedded?: boolean;
-}) {
+export function OwnershipMetrics({ summary }: { summary: CompanyOwnershipSummary }) {
   const unopened = summary.classes.filter(({ initialized }) => !initialized).length;
   return (
-    <section
-      aria-label="Company ownership summary"
-      className={
-        embedded ? 'border-b border-border-subtle pb-4' : 'rounded-xl border border-border bg-surface-raised p-4 sm:p-5'
-      }
-    >
+    <section aria-label="Company ownership summary" className="border-b border-border-subtle pb-4">
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6">
         {[
           ['Issued shares', summary.issuedSupply === null ? 'Not complete' : formatShareCount(summary.issuedSupply)],

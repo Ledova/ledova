@@ -86,14 +86,6 @@ export function useSettingsNavigation() {
   );
   const hasOwnedCompany = companyRows.some((company) => company.isOwner === true);
   const canManageCompany = canActivate || companyRows.some(canAdministerCompany) || hasOwnedCompany;
-  const canReviewEligibility =
-    canManageCompany ||
-    own.some(
-      (appointment) =>
-        !appointment.revokedAt &&
-        (appointmentForRegisterStep([appointment], appointment.company, 'prepare') ||
-          appointmentForRegisterStep([appointment], appointment.company, 'approve')),
-    );
   const hasMemberRecords = current && members.isSuccess && members.data.length > 0;
   const items = SETTINGS_VIEWS.filter(({ key }) => {
     if (key === 'company-documents') return canManageCompany;
@@ -123,9 +115,6 @@ export function useSettingsNavigation() {
     },
     items,
     canManageCompany,
-    canActivate,
     hasOwnedCompany,
-    hasMemberRecords,
-    canReviewEligibility,
   };
 }

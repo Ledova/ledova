@@ -18,7 +18,8 @@ import {
   type RegisterTransferMembers,
 } from '@ledova/shared';
 
-import { CompanySelection } from '@components/CompanySelection';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { useRegisterClasses, registerClassesKey } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -53,8 +54,8 @@ export function NewClassSetup({
 }) {
   const client = useQueryClient();
   const [search] = useSearchParams();
-  const preferred = search.get('company');
-  const [selected, setSelected] = useState('');
+  const companyContext = useCompanyContext();
+  const preferred = search.get('company') ?? (companyContext ? (companyContext.companyUuid ?? '') : undefined);
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<{
     company: Pick<Company, 'uuid' | 'name'>;
@@ -75,7 +76,7 @@ export function NewClassSetup({
     void classes.refetch();
     if (anchor) void members.refetch();
   };
-  const companyUuid = preferred ?? (selected || (companies.length === 1 ? companies[0].uuid : ''));
+  const companyUuid = preferred ?? (companies.length === 1 ? companies[0].uuid : '');
   const company = companies.find((item) => item.uuid === companyUuid);
   const steps = company && appointments.data ? registerSteps(appointments.data, company.uuid) : null;
   const anchor = classes.data?.find((token) => token.companyUuid === company?.uuid)?.uuid;
@@ -138,16 +139,8 @@ export function NewClassSetup({
   if (!context && (!classes.data || !appointments.data)) return <Loading>Loading the register…</Loading>;
   return (
     <div className="space-y-5">
-      <CompanySelection
-        read={{
-          companyUuid: context?.company.uuid ?? companyUuid,
-          companies,
-          selectionBlocked: held || classes.isFetching || appointments.isFetching,
-          selectCompany: setSelected,
-        }}
-      />
       {!context ? (
-        <p className="text-sm text-text-muted">Select the company whose existing records you want to mirror.</p>
+        <CompanyContextNotice />
       ) : !context.steps.prepare ? (
         <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>
       ) : (
@@ -251,7 +244,7 @@ function FreshClass({
             <p className="text-sm text-text-muted">
               For existing chain classes,{' '}
               <Link
-                to={DESTINATIONS.companyRegister.path}
+                to={`${DESTINATIONS.companyRegister.path}?company=${company.uuid}`}
                 state={{ registerCompany: company.uuid }}
                 className="text-brand-light underline"
               >

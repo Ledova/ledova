@@ -40,7 +40,7 @@ export function ownMemberRecordsKey(owner: OrderSubmissionOwner | null, epoch = 
 export function useMemberRecords(
   newKey: () => string,
   session?: OrderSubmissionSession,
-  { coordinatedRefresh = false }: { coordinatedRefresh?: boolean } = {},
+  { coordinatedRefresh = false, enabled = true }: { coordinatedRefresh?: boolean; enabled?: boolean } = {},
 ) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -88,7 +88,7 @@ export function useMemberRecords(
   const list = useQuery({
     ...refreshOptions,
     queryKey: key,
-    enabled: !!owner,
+    enabled: enabled && !!owner,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
@@ -114,7 +114,7 @@ export function useMemberRecords(
   const detail = useQuery({
     ...refreshOptions,
     queryKey: detailKey,
-    enabled: !!selected && list.isSuccess && !list.isFetching,
+    enabled: enabled && !!selected && list.isSuccess && !list.isFetching,
     queryFn: async () => {
       guardSelection();
       const { data } = await getOwnMemberRecord(api, selected, config(guardSelection));
@@ -139,7 +139,7 @@ export function useMemberRecords(
   const requests = useQuery({
     ...refreshOptions,
     queryKey: requestsKey,
-    enabled: !!selected && detail.isSuccess && !detail.isFetching && list.isSuccess && !list.isFetching,
+    enabled: enabled && !!selected && detail.isSuccess && !detail.isFetching && list.isSuccess && !list.isFetching,
     queryFn: async () => {
       const [particulars, certificates] = await Promise.all([
         readEveryPage(async (page) => {
@@ -177,6 +177,7 @@ export function useMemberRecords(
     ...refreshOptions,
     queryKey: entriesKey,
     enabled:
+      enabled &&
       !!token &&
       !!selected &&
       detail.isSuccess &&

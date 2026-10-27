@@ -1,5 +1,5 @@
 import { Section } from '@components/Ledger';
-import { OwnershipRingPlaceholder } from '@components/ownership/OwnershipRingPlaceholder';
+import { OwnershipRingPlaceholder } from './OwnershipRingPlaceholder';
 
 export function OwnershipLoading() {
   return (

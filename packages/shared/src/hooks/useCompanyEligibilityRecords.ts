@@ -171,7 +171,12 @@ export interface EligibilityQueuePage {
   outcome?: CompanyEligibilityQueueQuery['outcome'];
 }
 
-type EligibilityReadOptions = { coordinatedReads?: boolean; paused?: boolean; pausedScope?: string };
+type EligibilityReadOptions = {
+  coordinatedReads?: boolean;
+  paused?: boolean;
+  pausedScope?: string;
+  selectedCompany?: string;
+};
 
 function useEligibilityRecords(
   mode: 'participant' | 'company',
@@ -204,7 +209,7 @@ function useEligibilityRecords(
     request: { ...requestDraft },
     decision: { ...decisionDraft },
   });
-  const selection =
+  const kept =
     keptSelection.owner === owner
       ? keptSelection
       : {
@@ -215,6 +220,12 @@ function useEligibilityRecords(
           request: { ...requestDraft },
           decision: { ...decisionDraft },
         };
+  const controlledCompany = mode === 'company' ? options.selectedCompany : undefined;
+  const held = action?.owner === owner || (busy && workingOwner === owner);
+  const selection =
+    controlledCompany !== undefined && !held && kept.company !== controlledCompany
+      ? { ...kept, company: controlledCompany, appointment: '', record: '', decision: { ...decisionDraft } }
+      : kept;
   const selected = useRef(selection);
   selected.current = selection;
   const scope = [owner?.userUuid ?? '', owner?.ownerAccountUuid ?? '', session?.getEpoch() ?? 0];
@@ -292,11 +303,21 @@ function useEligibilityRecords(
     mode === 'participant'
       ? sources.isSuccess && !sources.isFetching
       : appointments.isSuccess && !appointments.isFetching;
+  const controlledCompanyReady =
+    controlledCompany === undefined ||
+    (sourceReady &&
+      (appointments.data ?? []).some(
+        (row) =>
+          row.company === selection.company &&
+          isCurrentEligibilityAppointment(row) &&
+          row.capabilities.some((capability) => capability === 'prepare' || capability === 'approve'),
+      ));
   const list = useQuery({
     queryKey: listKey,
     enabled:
       !!owner &&
       (mode === 'participant' || !!selection.company) &&
+      controlledCompanyReady &&
       reading &&
       (!options.coordinatedReads || sourceReady),
     ...timing,
@@ -833,7 +854,10 @@ function useEligibilityRecords(
       if (mounted.current) setBusy(false);
     }
   };
-  const relevantReads = mode === 'participant' ? [sources, list] : [appointments, ...(selection.company ? [list] : [])];
+  const relevantReads =
+    mode === 'participant'
+      ? [sources, list]
+      : [appointments, ...(selection.company && controlledCompanyReady ? [list] : [])];
   const readError = relevantReads.some((read) => read.isError) || (!!selection.record && detail.isError);
   const preferenceState = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
   const available = !!owner && preferenceState?.status === 'success' && preferenceState.fetchStatus === 'idle';
