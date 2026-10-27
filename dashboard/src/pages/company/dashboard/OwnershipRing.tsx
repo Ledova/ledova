@@ -10,27 +10,19 @@ export interface OwnershipRingProps {
   highlighted: string | null;
   onSelect: (uuid: string) => void;
   onHighlight: (uuid: string | null) => void;
-  onRingReady: () => boolean;
 }
 
-export function OwnershipRing({
-  classes,
-  issuedSupply,
-  highlighted,
-  onSelect,
-  onHighlight,
-  onRingReady,
-}: OwnershipRingProps) {
+export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, onHighlight }: OwnershipRingProps) {
   const container = useRef<HTMLDivElement>(null);
-  const callback = useRef({ onSelect, onHighlight, onRingReady });
+  const callback = useRef({ onSelect, onHighlight });
   const controller = useRef<OwnershipRingController | null>(null);
   const highlight = useRef(highlighted);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const theme = useTheme();
   useLayoutEffect(() => {
-    callback.current = { onSelect, onHighlight, onRingReady };
-  }, [onSelect, onHighlight, onRingReady]);
+    callback.current = { onSelect, onHighlight };
+  }, [onSelect, onHighlight]);
   useLayoutEffect(() => {
     highlight.current = highlighted;
     controller.current?.highlight(highlighted);
@@ -63,10 +55,7 @@ export function OwnershipRing({
             issuedSupply,
             onSelect: (uuid) => callback.current.onSelect(uuid),
             onHighlight: (uuid) => callback.current.onHighlight(uuid),
-            onRingReady: () => {
-              setReady(true);
-              return callback.current.onRingReady();
-            },
+            onReady: () => setReady(true),
           });
           controller.current.highlight(highlight.current);
         })

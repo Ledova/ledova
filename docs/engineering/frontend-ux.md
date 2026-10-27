@@ -53,18 +53,15 @@ Rows stack their name and figures above the bar on narrow screens. Hover and key
 class list highlight the matching segment
 and its exact class quantity in the ring's centre; otherwise the centre shows the company total.
 The ring uses a fuller band without changing segment proportions. Its highlighted segment has a soft
-class-coloured glow and a short lift, without continuous pulsing once loaded. Reduced motion keeps
-this emphasis static.
+class-coloured glow and a short lift. Reduced motion keeps this emphasis static; no loading pulse or
+entrance animation is needed.
 Keep the ring aligned at the top beside its list, so a long list never pushes it below the overview.
 Keep class colours consistent in both views and through list search and paging. Long class lists
 use shared search and a 25-row pager; small and zero-share classes remain directly selectable.
 **All classes** returns to the overview and restores focus to the class row or class search.
-While company ownership loads, reserve the dashboard's summary and chart space with a data-free
-placeholder. Its neutral ring pulses gently in opacity on wide screens; keep it static for reduced
-motion. The same placeholder covers the lazy chart import. Once the real ring is ready, fade it in
-briefly on its first display for that company during the dashboard visit. Keep exact centre figures
-stable, skip the fade for reduced motion, and do not replay it on routine updates, theme changes or
-returning from a class. Add no artificial waiting time or placeholder figures.
+While company ownership loads, reserve the dashboard's summary and chart space with a static,
+data-free placeholder. The same neutral ring covers the lazy chart import. Show confirmed data
+directly when ready, without artificial waiting time, placeholder figures or entrance tracking.
 While holders load, replace their rows with a static loading status and reserve the last settled
 holder panel height, with a modest first-load placeholder. Retain geometry only, never stale holder
 figures. Settled short results, empty states and errors take their natural height; preserve the

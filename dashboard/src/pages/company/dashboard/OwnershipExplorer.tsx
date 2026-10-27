@@ -14,7 +14,6 @@ interface OwnershipExplorerProps {
   issuedSupply: CompanyOwnershipSummary['issuedSupply'];
   selected: string | null;
   onSelect: (uuid: string | null) => void;
-  onRingReady: () => boolean;
   holders: ClassOwnershipHolders | undefined;
   loading: boolean;
   error: unknown;
@@ -28,7 +27,6 @@ export function OwnershipExplorer({
   issuedSupply,
   selected,
   onSelect,
-  onRingReady,
   holders,
   loading,
   error,
@@ -156,7 +154,6 @@ export function OwnershipExplorer({
             complete={complete}
             issuedSupply={issuedSupply}
             onSelect={onSelect}
-            onRingReady={onRingReady}
             list={list}
           />
         </div>
