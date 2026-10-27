@@ -7,6 +7,7 @@ export const MEMBER_RECORD: OwnMemberRecord = {
   name: 'Company Recorded Member',
   residentialAddress: 'Synthetic company-recorded address',
   identitySource: 'company_recorded',
+  ownership: null,
   classes: [
     {
       uuid: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',

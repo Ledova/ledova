@@ -2409,6 +2409,17 @@
             "readOnly": true,
             "type": "string"
           },
+          "ownershipSharingChangedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "ownershipSharingChangedBy": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          },
           "phone": {
             "maxLength": 20,
             "type": "string"
@@ -2441,6 +2452,10 @@
             "nullable": true,
             "readOnly": true,
             "type": "string"
+          },
+          "shareOwnershipWithMembers": {
+            "readOnly": true,
+            "type": "boolean"
           },
           "state": {
             "maxLength": 50,
@@ -2511,10 +2526,13 @@
           "isPendingReview",
           "name",
           "operatorWallet",
+          "ownershipSharingChangedAt",
+          "ownershipSharingChangedBy",
           "primaryContact",
           "rejectionAt",
           "rejectionReason",
           "reviewStartedAt",
+          "shareOwnershipWithMembers",
           "status",
           "statusDisplay",
           "submittedAt",
@@ -7384,6 +7402,102 @@
         ],
         "type": "object"
       },
+      "MemberOwnershipClass": {
+        "properties": {
+          "initialized": {
+            "type": "boolean"
+          },
+          "issuedSupply": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ownShares": {
+            "nullable": true,
+            "type": "string"
+          },
+          "recordedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "sequence": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "tokenType": {
+            "type": "string"
+          },
+          "totalHolders": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "initialized",
+          "issuedSupply",
+          "name",
+          "ownShares",
+          "recordedAt",
+          "sequence",
+          "symbol",
+          "tokenType",
+          "totalHolders",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "MemberOwnershipSummary": {
+        "properties": {
+          "asAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "classes": {
+            "items": {
+              "$ref": "#/components/schemas/MemberOwnershipClass"
+            },
+            "type": "array"
+          },
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "issuedSupply": {
+            "nullable": true,
+            "type": "string"
+          },
+          "totalHolders": {
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "asAt",
+          "classes",
+          "company",
+          "companyName",
+          "complete",
+          "issuedSupply",
+          "totalHolders"
+        ],
+        "type": "object"
+      },
       "MemberParticularsRequest": {
         "properties": {
           "association": {
@@ -7559,6 +7673,14 @@
           "name": {
             "type": "string"
           },
+          "ownership": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberOwnershipSummary"
+              }
+            ],
+            "nullable": true
+          },
           "residentialAddress": {
             "type": "string"
           },
@@ -7574,6 +7696,7 @@
           "identitySource",
           "member",
           "name",
+          "ownership",
           "residentialAddress",
           "uuid"
         ],
@@ -11393,6 +11516,9 @@
           "postcode": {
             "maxLength": 10,
             "type": "string"
+          },
+          "shareOwnershipWithMembers": {
+            "type": "boolean"
           },
           "state": {
             "maxLength": 50,

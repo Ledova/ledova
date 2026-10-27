@@ -23,6 +23,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 from authentication.email import normalize_email
 from companies.constants import TEAM_INVITATION_DEFAULT_DAYS, TEAM_INVITATION_MAX_DAYS
 from companies.models import REGISTER_READERS, CompanyAppointment, CompanyCapability
+from companies.services.administration import company_operation
 from companies.services.authority_requests import _require_requester
 from integrations.sendgrid_email import sendgrid_client
 from operators.models import Operator
@@ -44,7 +45,12 @@ from tokens.models import (
     RegisterPosition,
 )
 from tokens.services.former_holders import retention_cutoff
-from tokens.services.register import _stored_register, imported_membership_dates
+from tokens.services.ownership import _ownership_summary
+from tokens.services.register import (
+    _snapshot,
+    _stored_register,
+    imported_membership_dates,
+)
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_awards import award_quantities
 from tokens.services.register_events import with_company_event_dates
@@ -441,7 +447,12 @@ def withdraw_certificate(*, actor, request_id, idempotency_key):
         return request
 
 
-def own_record(association):
+def own_record(association, *, actor):
+    with company_operation(actor, association.company_id, "member_record_read"), _snapshot():
+        return _own_record(_own(association.pk, actor))
+
+
+def _own_record(association):
     identity = _identity(association.company_id, association.member)
     classes = []
     for position in RegisterPosition.objects.filter(
@@ -525,6 +536,11 @@ def own_record(association):
         "identity_source": "company_recorded",
         "classes": classes,
         "awards": awards,
+        "ownership": (
+            _ownership_summary(association.company, member_id=association.member)
+            if association.company.share_ownership_with_members
+            else None
+        ),
     }
 
 

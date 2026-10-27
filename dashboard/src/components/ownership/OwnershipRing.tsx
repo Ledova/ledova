@@ -2,10 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { formatShareCount, sharePercentage, type CompanyOwnershipSummary } from '@ledova/shared';
 import { useTheme } from '@hooks/useTheme';
 import type { OwnershipRingController } from './ownershipChart';
-import { OwnershipRingPlaceholder } from './OwnershipLoading';
+import { OwnershipRingPlaceholder } from './OwnershipRingPlaceholder';
 
 export interface OwnershipRingProps {
-  classes: CompanyOwnershipSummary['classes'];
+  classes: Pick<CompanyOwnershipSummary['classes'][number], 'uuid' | 'name' | 'symbol' | 'issuedSupply'>[];
   issuedSupply: string;
   highlighted: string | null;
   onSelect: (uuid: string) => void;
@@ -77,7 +77,7 @@ export function OwnershipRing({ classes, issuedSupply, highlighted, onSelect, on
     <div className="hidden min-w-0 md:block">
       {failed ? (
         <p role="status" className="py-3 text-sm text-text-muted">
-          The ownership ring could not be displayed. Choose a class from the list to explore its shareholders.
+          The ownership ring could not be displayed. Share class figures remain available in the list.
         </p>
       ) : (
         <div className="relative mx-auto h-80 w-full max-w-sm" aria-hidden="true">

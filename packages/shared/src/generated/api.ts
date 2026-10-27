@@ -4830,12 +4830,15 @@ export interface ApiComponents {
       isPendingReview: boolean;
       name: string;
       operatorWallet: string | null;
+      ownershipSharingChangedAt: string | null;
+      ownershipSharingChangedBy: number | null;
       phone?: string;
       postcode?: string;
       primaryContact: ApiComponents['schemas']['_CompanyUserProfile'] | null;
       rejectionAt: string | null;
       rejectionReason: string;
       reviewStartedAt: string | null;
+      shareOwnershipWithMembers: boolean;
       state?: string;
       status: ApiComponents['schemas']['CompanyStatusEnum'];
       statusDisplay: string;
@@ -5779,6 +5782,27 @@ export interface ApiComponents {
       name: string;
       uuid: string;
     };
+    MemberOwnershipClass: {
+      initialized: boolean;
+      issuedSupply: string | null;
+      name: string;
+      ownShares: string | null;
+      recordedAt: string | null;
+      sequence: number | null;
+      symbol: string;
+      tokenType: string;
+      totalHolders: number | null;
+      uuid: string;
+    };
+    MemberOwnershipSummary: {
+      asAt: string;
+      classes: ApiComponents['schemas']['MemberOwnershipClass'][];
+      company: string;
+      companyName: string;
+      complete: boolean;
+      issuedSupply: string | null;
+      totalHolders: number | null;
+    };
     MemberParticularsRequest: {
       association: string;
       change: string | null;
@@ -5813,6 +5837,7 @@ export interface ApiComponents {
       identitySource: ApiComponents['schemas']['MemberRecordIdentitySourceEnum'];
       member: string;
       name: string;
+      ownership: ApiComponents['schemas']['MemberOwnershipSummary'] | null;
       residentialAddress: string;
       uuid: string;
     };
@@ -6566,6 +6591,7 @@ export interface ApiComponents {
       operatorWallet?: string | null;
       phone?: string;
       postcode?: string;
+      shareOwnershipWithMembers?: boolean;
       state?: string;
       tradingName?: string;
     };

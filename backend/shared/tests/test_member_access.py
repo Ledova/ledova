@@ -133,6 +133,8 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         record_endpoint = f"/api/v1/tokens/member-records/{association}/"
         own = self.client.get(record_endpoint)
         self.assertEqual(own.status_code, 200, own.content)
+        self.assertEqual(own["Cache-Control"], "private, no-store")
+        self.assertIsNone(own.json()["ownership"])
         self.assertEqual(own.json()["classes"], [])
         self.assertEqual((own.json()["awards"][0]["shares"], own.json()["awards"][0]["vestedShares"]), ("30", "25"))
         self.assertEqual(own.json()["awards"][0]["issuedShares"], "0")
@@ -196,6 +198,39 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         own = self.client.get(record_endpoint).json()
         self.assertEqual((own["classes"][0]["shares"], own["awards"][0]["issuedShares"]), ("25", "25"))
         self.assertIsNone(own["classes"][0]["amountPaid"])
+        company_endpoint = f"/api/v1/companies/{self.company.pk}/"
+        sharing = {"share_ownership_with_members": True}
+        self.assertEqual(self.client.patch(company_endpoint, sharing, format="json").status_code, 404)
+        self.client.force_authenticate(self.owner)
+        enabled = self.client.patch(company_endpoint, sharing, format="json")
+        self.assertEqual(enabled.status_code, 200, enabled.content)
+        self.assertTrue(enabled.json()["shareOwnershipWithMembers"])
+        self.assertEqual(enabled.json()["ownershipSharingChangedBy"], self.owner.pk)
+        self.assertIsNotNone(enabled.json()["ownershipSharingChangedAt"])
+        self.client.force_authenticate(self.foreign)
+        overview = self.client.get(record_endpoint).json()["ownership"]
+        self.assertEqual((overview["issuedSupply"], overview["totalHolders"]), ("125", 2))
+        self.assertEqual((overview["classes"][0]["ownShares"], overview["classes"][0]["issuedSupply"]), ("25", "125"))
+        self.assertEqual(
+            set(overview), {"company", "companyName", "asAt", "complete", "issuedSupply", "totalHolders", "classes"}
+        )
+        self.assertNotIn(str(self.member.pk), str(overview))
+        self.assertNotIn("Synthetic Member", str(overview))
+        self.assertNotIn("evidence", str(overview))
+        self.assertEqual(
+            self.client.get("/api/v1/tokens/ownership/", {"company": str(self.company.pk)}).status_code, 404
+        )
+        self.assertEqual(
+            self.client.get(f"/api/v1/tokens/{self.token.pk}/ownership-holders/", {"sequence": 2}).status_code, 404
+        )
+        self.client.force_authenticate(self.owner)
+        disabled = self.client.patch(company_endpoint, {"share_ownership_with_members": False}, format="json")
+        self.assertEqual(disabled.status_code, 200, disabled.content)
+        self.client.force_authenticate(self.foreign)
+        self.assertIsNone(self.client.get(record_endpoint).json()["ownership"])
+        self.client.force_authenticate(self.owner)
+        self.assertEqual(self.client.patch(company_endpoint, sharing, format="json").status_code, 200)
+        self.client.force_authenticate(self.foreign)
         entries = self.client.get(f"{record_endpoint}entries/?token={self.token.pk}").json()["entries"]
         self.assertEqual([(item["uuid"], item["delta"]) for item in entries], [(issue_entry, "25")])
         self.assertNotIn(str(self.member.pk), str(entries))
@@ -357,6 +392,13 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(created.status_code, 201, created.content)
         token = ShareToken.objects.get(pk=created.json()["uuid"])
+        self.client.force_authenticate(copied_user)
+        incomplete = self.client.get(copied_endpoint).json()["ownership"]
+        self.assertFalse(incomplete["complete"])
+        self.assertIsNone(incomplete["issuedSupply"])
+        unopened = next(row for row in incomplete["classes"] if row["uuid"] == str(token.pk))
+        self.assertIsNone(unopened["ownShares"])
+        self.client.force_authenticate(self.owner)
         copied = import_payload(self.owner, self.appointment, token, member_id=copied_award["member"])
         copied["members"][0].update(name=copied_award["name"], residential_address=copied_award["residential_address"])
         endpoint = "/api/v1/tokens/register-imports/"

@@ -46,53 +46,59 @@ def _registers(tokens):
 
 def company_ownership(*, actor, company_id):
     with _company_snapshot(actor, company_id) as company:
-        tokens = list(ShareToken.objects.filter(company=company).order_by("name", "uuid"))
-        registers = _registers(tokens)
-        positions = RegisterPosition.objects.filter(register__token__in=tokens, shares__gt=0)
-        quantities = {
-            row["register_id"]: row
-            for row in positions.values("register_id").annotate(
-                total=Sum("shares"),
-                holders=Count("member_id"),
-                foreign_holders=Count("pk", filter=~Q(member__company_id=company.pk)),
-            )
-        }
-        classes = []
-        complete = True
-        for token in tokens:
-            register = registers.get(token.pk)
-            initialized = register is not None and register.sequence > 0
-            quantity = quantities.get(register.pk, {}) if register else {}
-            valid = (
-                initialized
-                and register.company_id == company.pk
-                and register.recorded_at is not None
-                and int(register.issued_supply) == int(quantity.get("total", 0))
-                and quantity.get("foreign_holders", 0) == 0
-            )
-            complete = complete and valid
-            classes.append(
-                {
-                    "uuid": token.pk,
-                    "name": token.name,
-                    "symbol": token.symbol,
-                    "token_type": token.token_type,
-                    "initialized": initialized,
-                    "issued_supply": str(int(register.issued_supply)) if valid else None,
-                    "total_holders": quantity.get("holders", 0) if valid else None,
-                    "sequence": register.sequence if initialized else None,
-                    "recorded_at": register.recorded_at if initialized else None,
-                }
-            )
-        return {
-            "company": company.pk,
-            "company_name": company.name,
-            "as_at": timezone.now(),
-            "complete": complete,
-            "issued_supply": str(sum(int(row["issued_supply"]) for row in classes)) if complete else None,
-            "total_holders": positions.values("member_id").distinct().count() if complete else None,
-            "classes": classes,
-        }
+        return _ownership_summary(company)
+
+
+def _ownership_summary(company, *, member_id=None):
+    tokens = list(ShareToken.objects.filter(company=company).order_by("name", "uuid"))
+    registers = _registers(tokens)
+    positions = RegisterPosition.objects.filter(register__token__in=tokens, shares__gt=0)
+    quantities = {
+        row["register_id"]: row
+        for row in positions.values("register_id").annotate(
+            total=Sum("shares"),
+            holders=Count("member_id"),
+            foreign_holders=Count("pk", filter=~Q(member__company_id=company.pk)),
+            own_shares=Sum("shares", filter=Q(member_id=member_id)),
+        )
+    }
+    classes = []
+    complete = True
+    for token in tokens:
+        register = registers.get(token.pk)
+        initialized = register is not None and register.sequence > 0
+        quantity = quantities.get(register.pk, {}) if register else {}
+        valid = (
+            initialized
+            and register.company_id == company.pk
+            and register.recorded_at is not None
+            and int(register.issued_supply) == int(quantity.get("total", 0))
+            and quantity.get("foreign_holders", 0) == 0
+        )
+        complete = complete and valid
+        classes.append(
+            {
+                "uuid": token.pk,
+                "name": token.name,
+                "symbol": token.symbol,
+                "token_type": token.token_type,
+                "initialized": initialized,
+                "issued_supply": str(int(register.issued_supply)) if valid else None,
+                "total_holders": quantity.get("holders", 0) if valid else None,
+                "sequence": register.sequence if initialized else None,
+                "recorded_at": register.recorded_at if initialized else None,
+                **({"own_shares": str(int(quantity.get("own_shares") or 0)) if valid else None} if member_id else {}),
+            }
+        )
+    return {
+        "company": company.pk,
+        "company_name": company.name,
+        "as_at": timezone.now(),
+        "complete": complete,
+        "issued_supply": str(sum(int(row["issued_supply"]) for row in classes)) if complete else None,
+        "total_holders": positions.values("member_id").distinct().count() if complete else None,
+        "classes": classes,
+    }
 
 
 def class_ownership_holders(*, actor, token_id, sequence, search, paginate):

@@ -6,7 +6,7 @@ import { PageAction } from '@components/Page';
 import type { ListParams } from '@hooks/useListParams';
 import { OwnershipOverview } from './OwnershipOverview';
 import { OwnershipHolders } from './OwnershipHolders';
-import { ownershipColor } from './ownershipColors';
+import { ownershipColor } from '@components/ownership/ownershipColors';
 
 interface OwnershipExplorerProps {
   classes: CompanyOwnershipSummary['classes'];

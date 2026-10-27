@@ -13,7 +13,7 @@ import { CompanySelection } from '@components/CompanySelection';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { GettingStarted } from './GettingStarted';
-import { OwnershipMetrics } from './OwnershipMetrics';
+import { OwnershipMetrics } from '@components/ownership/OwnershipMetrics';
 import { OwnershipExplorer } from './OwnershipExplorer';
 import { OwnershipLoading } from './OwnershipLoading';
 import { useOwnership } from './useOwnership';

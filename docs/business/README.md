@@ -257,14 +257,16 @@ who can prepare the register but is not an administrator is pointed to Ledger in
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share
-classes, then one ownership donut per class with its five largest shareholders and Others, with
-exact share counts and percentages of that class's issued shares. A class without an opened
+classes, then one ownership ring and linked class list. Choosing a class opens its searchable,
+paged holders with exact shares and percentages of that class's issued shares. A class without an opened
 register makes the company totals incomplete, and a failed or inconsistent read withholds totals
 and charts rather than showing zero. Detailed history and every action are on the
 [Ledger page](register.md#the-register-page).
 
 The personal Dashboard (Holdings on mobile) shows the person's own register records, with no
-wallet needed and never company totals or other shareholders. Their certificates and certificate
+wallet needed. A company can opt into sharing an aggregate ownership overview with its current
+linked members on the web: all class totals and each member's own position, without other
+shareholders' identities or private records. Mobile retains its own-records view. Certificates and certificate
 requests are in personal Documents on the web, and in Documents and each share class's page on mobile
 ([member records](member-records.md)).
 

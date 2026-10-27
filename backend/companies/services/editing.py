@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from companies.models import Company, CompanyStatus, RegistryCheckStatus
@@ -8,6 +9,7 @@ from companies.services.administration import (
     lock_company_actor,
     require_company_administration,
 )
+from companies.services.team import _require_admin
 from companies.validators import (
     ABN_DOES_NOT_CARRY_ACN,
     abn_carries_acn,
@@ -35,6 +37,7 @@ EDITABLE_FIELDS = REVIEWED_FIELDS | {
     "founded_year",
     "operator_wallet",
     "is_open_to_investors",
+    "share_ownership_with_members",
 }
 
 
@@ -73,6 +76,8 @@ def _update_company(current, changes, actor):
     if forbidden:
         raise ValidationError({field: "Use the explicit company review action." for field in sorted(forbidden)})
     changes = {field: value for field, value in changes.items() if getattr(current, field) != value}
+    if "share_ownership_with_members" in changes:
+        _require_admin(actor, current.pk)
     if changes.get("operator_wallet") is not None:
         wallet = changes["operator_wallet"]
         if not Wallet.objects.owned_by(actor).verified_evm().filter(pk=wallet.pk).exists():
@@ -100,6 +105,10 @@ def _update_company(current, changes, actor):
     if current.abn and not abn_carries_acn(current.abn, current.acn):
         raise ValidationError({"abn": ABN_DOES_NOT_CARRY_ACN})
     fields = [*changes, "updated_at"]
+    if "share_ownership_with_members" in changes:
+        current.ownership_sharing_changed_by = actor
+        current.ownership_sharing_changed_at = timezone.now()
+        fields.extend(["ownership_sharing_changed_by", "ownership_sharing_changed_at"])
     if changes.keys() & REVIEWED_FIELDS:
         current.lifecycle_revision += 1
         current.registry_status = RegistryCheckStatus.PENDING
@@ -107,4 +116,6 @@ def _update_company(current, changes, actor):
         fields.extend(["lifecycle_revision", "registry_status", "registry_reason"])
     if changes:
         current.save(update_fields=fields)
+        if "share_ownership_with_members" in changes:
+            current.refresh_from_db(fields=["ownership_sharing_changed_by", "ownership_sharing_changed_at"])
     return current

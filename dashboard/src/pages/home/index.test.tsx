@@ -10,6 +10,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   USER_PREFERENCES_QUERY_KEY,
   type TokenHoldersResponse,
+  type OwnMemberRecord,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -66,6 +67,8 @@ it('invites and associates a walletless member, recovers one exact request and r
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   let associated = false;
+  let currentMemberRecord: OwnMemberRecord = MEMBER_RECORD;
+  let holdMemberRecord = false;
   let refused = false;
   let preferencesRefused = false;
   const createObjectURL = vi.fn(() => 'blob:synthetic');
@@ -126,9 +129,18 @@ it('invites and associates a walletless member, recovers one exact request and r
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current member access refused'), { response: { status: 404 } });
-      return page(associated ? [MEMBER_RECORD] : []);
+      return page(associated ? [currentMemberRecord] : []);
     }
-    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
+    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) {
+      const response = { data: currentMemberRecord };
+      if (holdMemberRecord) {
+        holdMemberRecord = false;
+        return new Promise((resolve) => {
+          release = () => resolve(response);
+        });
+      }
+      return response;
+    }
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
@@ -430,6 +442,92 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Withdraw certificate request/ })).toBeNull();
   expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
+  const ownership: NonNullable<OwnMemberRecord['ownership']> = {
+    company: MEMBER_RECORD.company.uuid,
+    companyName: MEMBER_RECORD.company.name,
+    asAt: '2026-10-27T00:00:00Z',
+    complete: true,
+    issuedSupply: '1500',
+    totalHolders: 3,
+    classes: [
+      {
+        uuid: MEMBER_RECORD.classes[0].uuid,
+        name: 'Ordinary',
+        symbol: 'ORD',
+        tokenType: 'ordinary',
+        initialized: true,
+        issuedSupply: '1000',
+        ownShares: '10',
+        totalHolders: 2,
+        sequence: 1,
+        recordedAt: '2026-10-27T00:00:00Z',
+      },
+      {
+        uuid: '45454545-4545-4545-8545-454545454545',
+        name: 'Preference',
+        symbol: 'PRF',
+        tokenType: 'preference',
+        initialized: true,
+        issuedSupply: '500',
+        ownShares: '0',
+        totalHolders: 1,
+        sequence: 1,
+        recordedAt: '2026-10-27T00:00:00Z',
+      },
+    ],
+  };
+  const ownDetailKey = ['member-records', 'profile-one', 'account-one', 0, MEMBER_RECORD.uuid];
+  currentMemberRecord = { ...MEMBER_RECORD, ownership };
+  await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
+  const companyOverview = (await screen.findByRole('heading', { name: 'Company ownership' })).closest('section')!;
+  expect(screen.getByRole('region', { name: 'Company ownership summary' }).textContent).toContain('1,500');
+  expect(within(companyOverview).getByText('1.00% of class')).toBeTruthy();
+  expect(screen.queryByRole('img', { name: /Your issued shares by class/ })).toBeNull();
+  const preference = within(companyOverview).getByRole('button', { name: 'Highlight Preference (PRF)' });
+  fireEvent.click(preference);
+  expect(preference.getAttribute('aria-pressed')).toBe('true');
+  fireEvent.click(preference);
+  expect(preference.getAttribute('aria-pressed')).toBe('false');
+  expect(api.get.mock.calls.some(([url]) => url === URLS.OWNERSHIP)).toBe(false);
+  currentMemberRecord = {
+    ...MEMBER_RECORD,
+    classes: [...MEMBER_RECORD.classes, { ...MEMBER_RECORD.classes[0], shares: '999' }],
+    ownership,
+  };
+  await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
+  await screen.findByText('Your current share quantities are unavailable.');
+  expect(screen.queryByRole('heading', { name: 'Company ownership' })).toBeNull();
+  expect(screen.queryByText('1,500')).toBeNull();
+  currentMemberRecord = { ...MEMBER_RECORD, ownership: { ...ownership, company: 'foreign-company' } };
+  await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Company ownership' })).toBeNull());
+  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  currentMemberRecord = { ...MEMBER_RECORD, ownership };
+  await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
+  await screen.findByRole('heading', { name: 'Company ownership' });
+  preferencesRefused = true;
+  await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Company ownership' })).toBeNull());
+  expect(screen.queryByText('1,500')).toBeNull();
+  preferencesRefused = false;
+  await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences }));
+  await screen.findByRole('heading', { name: 'Company ownership' });
+  currentMemberRecord = { ...MEMBER_RECORD, ownership: null };
+  holdMemberRecord = true;
+  release = undefined;
+  let refreshing: Promise<void>;
+  await act(async () => {
+    refreshing = client.refetchQueries({ queryKey: ownDetailKey, exact: true });
+  });
+  await waitFor(() => expect(release).toBeTypeOf('function'));
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Company ownership' })).toBeNull());
+  expect(screen.queryByText('1,500')).toBeNull();
+  await act(async () => {
+    release!();
+    await refreshing;
+  });
+  await screen.findByRole('img', { name: /Your issued shares by class/ });
+  await waitFor(() => expect(screen.queryByRole('heading', { name: 'Company ownership' })).toBeNull());
   fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
   const detailsCard = (await screen.findByRole('heading', { name: 'Current details' })).closest('section')!;
   expect(

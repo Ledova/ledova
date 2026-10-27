@@ -93,15 +93,25 @@ inviting administrator, another person's account or a conflicting association is
 
 An accepted member reads their own company-recorded particulars, share-class balances, the entries
 that changed their holding, and their employee-award terms, original vesting, endings and referenced reversals with net vested,
-issued, ended and remaining quantities; no wallet or company approval is needed. Company totals, other members, private
-company decisions, financial documents and other members' parts of an entry are never shown. An
+issued, ended and remaining quantities; no wallet or company approval is needed. Other members' identities,
+private company decisions, financial documents and other members' parts of an entry are never shown. An
 award is an entitlement, not a holding. Editing the personal Profile does not change the register;
 only a [particulars request](#particulars-requests) can.
 
 Choose **My shares** below the sidebar logo on web. Its **Dashboard** starts with the member's own
 issued-share total, share-class count and a chart
-of their shares by class. This counts shares, not company ownership, voting power or value; different
-classes can carry different rights. Mobile **Holdings** shows a card per company, with a line per
+of their shares by class. A company administrator can enable **Share ownership overview with members**
+in Settings → Profile → Edit company. It starts off. When enabled, the web Dashboard adds the company's
+issued-share total, shareholder count and all share classes, with the member's own quantity and
+percentage within each class. The company retains who last changed the setting and when. The overview
+shares no other holder's name, identifier, address, award, documents or entry details and grants no
+company appointment. Turning sharing off or losing current association access removes the overview;
+own records remain separate. Incomplete or unopened registers withhold complete totals and the ring.
+The company's legal register and lawful inspection arrangements remain with the company.
+
+These charts count issued shares, not voting power or value; different classes can carry different
+rights. Class-rights disclosure and mobile presentation of the shared overview remain separate work.
+Mobile **Holdings** shows a card per company, with a line per
 share class and each award's vested quantity and bar; with more than six companies it becomes a
 searchable list, and classes no longer held sit under **Past holdings**. On mobile an award opens
 its own page with the vested quantity, the issued, vested but unissued, still-to-vest and ended
