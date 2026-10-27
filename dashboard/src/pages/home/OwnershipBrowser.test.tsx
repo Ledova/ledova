@@ -375,6 +375,32 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   view.unmount();
   client.clear();
 
+  const previousRead = api.get.getMockImplementation()!;
+  let accountUnavailable = true;
+  api.get.mockImplementation((url, config) => {
+    if (url === USER_PREFERENCES_ENDPOINTS.BASE && accountUnavailable) throw new Error('Account unavailable');
+    return previousRead(url, config);
+  });
+  const coldClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  coldClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  const coldView = renderCompanyPage(
+    coldClient,
+    <LedgerNavigationProvider>
+      <CompanyContextProvider>
+        <CompanyDashboardPage />
+      </CompanyContextProvider>
+    </LedgerNavigationProvider>,
+    'Dashboard',
+  );
+  expect(await screen.findByText('Your account could not be loaded.')).toBeTruthy();
+  expect(screen.queryByText('Loading your account…')).toBeNull();
+  accountUnavailable = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByRole('region', { name: 'Company ownership summary' })).toBeTruthy();
+  coldView.unmount();
+  coldClient.clear();
+  api.get.mockImplementation(previousRead);
+
   for (const delayed of ['classes', 'overview', 'holders'] as const) {
     const oldRegister = register('old-class', '11');
     oldRegister.holders[0].name = 'Old account shareholder';

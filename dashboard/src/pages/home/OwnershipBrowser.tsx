@@ -5,6 +5,7 @@ import {
   formatShareCount,
   sharePercentage,
   useSubmissionOwner,
+  useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
@@ -25,10 +26,19 @@ import { GettingStarted } from './GettingStarted';
 
 export function OwnershipBrowser() {
   const { owner, boundary } = useSubmissionOwner();
+  const preferences = useUserPreferences();
   return owner ? (
     <SignedInOwnership key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} currentOwner={boundary.get} />
   ) : (
-    <Page loading />
+    <Page>
+      {preferences.isLoading || preferences.isFetching ? (
+        <Loading>Loading your account…</Loading>
+      ) : (
+        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+          Your account could not be loaded.
+        </LoadError>
+      )}
+    </Page>
   );
 }
 
