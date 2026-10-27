@@ -42,6 +42,7 @@ from tokens.serializers.ownership import (
     OwnershipHolderSerializer,
 )
 from tokens.serializers.register_certificate import (
+    RegisterCertificateEntriesQuerySerializer,
     RegisterCertificatePreviewSerializer,
     RegisterCertificateRequestSerializer,
     RegisterCertificateSelectionSerializer,
@@ -58,6 +59,7 @@ from tokens.services.class_rights import (
     record_class_rights,
 )
 from tokens.services.former_holders import fold_is_stale, former_members_of
+from tokens.services.member_access import own_company_association
 from tokens.services.ownership import class_ownership_holders, company_ownership
 from tokens.services.register import (
     REGISTER_HEADERS,
@@ -381,10 +383,13 @@ class ShareTokenViewSet(
         parameters=[
             OpenApiParameter("entry", OpenApiTypes.UUID, many=True),
             OpenApiParameter("member", OpenApiTypes.UUID),
+            RegisterCertificateEntriesQuerySerializer,
         ],
     )
     @action(detail=True, methods=["get"], url_path="register/entries")
     def register_entries(self, request, uuid=None):
+        filters = RegisterCertificateEntriesQuerySerializer(data=request.query_params)
+        filters.is_valid(raise_exception=True)
         try:
             wanted = [UUID(value) for value in request.query_params.getlist("entry")]
         except ValueError:
@@ -393,7 +398,14 @@ class ShareTokenViewSet(
             member = UUID(request.query_params["member"]) if "member" in request.query_params else None
         except ValueError:
             raise ValidationError({"member": "Name the member by their UUID."}) from None
-        rows = stored_entries(self.get_object(), self.paginate_queryset, wanted, member)
+        token = self.get_object()
+        values = filters.validated_data
+        association = values.pop("association", None)
+        if association is not None:
+            association = own_company_association(
+                actor=request.user, association_id=association, company=token.company_id
+            )
+        rows = stored_entries(token, self.paginate_queryset, wanted, member, association=association, **values)
         return self.get_paginated_response(ShareRegisterEntrySerializer(rows, many=True).data)
 
     @extend_schema(responses=RegisterOpeningHoldersSerializer)

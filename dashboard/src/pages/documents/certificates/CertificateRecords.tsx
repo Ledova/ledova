@@ -4,6 +4,8 @@ import {
   REGISTER_CORRECTION_COPY,
   formatDate,
   formatDateTime,
+  formatShareCount,
+  searchRows,
   shareChange,
   type MemberCertificateRequest,
   type OrderSubmissionOwner,
@@ -19,6 +21,7 @@ import { LoadMore } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { ClassCertificate } from './ClassCertificate';
 import { useMemberCertificateDownload } from './useMemberCertificateDownload';
+import { CERTIFICATE_STATUSES, type CertificateFilterValues, type CertificateStatus } from './useCompanyCertificates';
 
 export type CertificateClass = Pick<OwnMemberRecord['classes'][number], 'uuid' | 'name' | 'symbol'>;
 type Read = ReturnType<typeof useMemberRecords>;
@@ -29,6 +32,7 @@ export type CompanyCertificateSource = {
   guard: () => void;
   sourceReady: boolean;
   readReady: boolean;
+  count?: number;
   more: { hasMore: boolean; failed: boolean; loading: boolean; onLoad: () => unknown };
 };
 type CertificateRecord = { uuid: string; company?: RegisterEntry; own?: OwnMemberEntry };
@@ -43,6 +47,7 @@ export function CertificateRecords({
   running,
   onRequest,
   onWithdraw,
+  filters,
 }: {
   read: Read;
   selectedClass?: CertificateClass;
@@ -53,6 +58,7 @@ export function CertificateRecords({
   running: string | null;
   onRequest: (uuid: string) => void;
   onWithdraw: (request: MemberCertificateRequest) => void;
+  filters: CertificateFilterValues;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -71,19 +77,38 @@ export function CertificateRecords({
     record?.classes.some((item) => item.uuid === selectedClass?.uuid) && read.selectedToken === selectedClass?.uuid;
   const ownEntries = own ? read.entries : [];
   const ownById = new Map(ownEntries.map((entry) => [entry.uuid, entry]));
+  const requests = [...(record ? (read.requests?.certificates ?? []) : [])].sort(
+    (a, b) => b.createdAt.localeCompare(a.createdAt) || b.uuid.localeCompare(a.uuid),
+  );
+  const statusOf = (row: CertificateRecord): CertificateStatus => {
+    const entry = row.company ?? row.own!;
+    const latest = requests.find((request) => request.entry === row.uuid && request.token === selectedClass?.uuid);
+    if (latest) return latest.status;
+    if (entry.correctedBy) return 'reversed';
+    if (row.own && ['issue', 'transfer'].includes(row.own.kind.toLowerCase()) && BigInt(row.own.delta) > 0n)
+      return 'not_requested';
+    return row.company ? 'can_prepare' : 'not_applicable';
+  };
+  const extras = searchRows(
+    ownEntries.filter((entry) => !company || !['issue', 'transfer'].includes(entry.kind.toLowerCase())),
+    () => record?.name ?? '',
+    filters.search,
+  ).filter((entry) => filters.status === 'all' || statusOf({ uuid: entry.uuid, own: entry }) === filters.status);
   const records = new Map<string, CertificateRecord>();
   for (const entry of company?.entries ?? []) {
     if (['issue', 'transfer'].includes(entry.kind) && Number.isSafeInteger(entry.sequence) && entry.sequence > 0)
       records.set(entry.uuid, { uuid: entry.uuid, company: entry, own: ownById.get(entry.uuid) });
   }
-  for (const entry of ownEntries)
-    if (!records.has(entry.uuid)) records.set(entry.uuid, { uuid: entry.uuid, own: entry });
+  for (const entry of extras) if (!records.has(entry.uuid)) records.set(entry.uuid, { uuid: entry.uuid, own: entry });
   const ordered = [...records.values()].sort((a, b) =>
     (b.company?.recordedAt ?? b.own?.createdAt ?? '').localeCompare(a.company?.recordedAt ?? a.own?.createdAt ?? ''),
   );
-  const requests = [...(record ? (read.requests?.certificates ?? []) : [])].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
-  );
+  const filtered = !!filters.search || filters.status !== 'all';
+  const count = company
+    ? Number.isSafeInteger(company.count)
+      ? company.count! + extras.length
+      : undefined
+    : ordered.length;
   const otherRequests = requests.filter(
     (request) => request.token !== selectedClass?.uuid || !records.has(request.entry),
   );
@@ -107,7 +132,15 @@ export function CertificateRecords({
   );
   return (
     <>
-      {ordered.length === 0 && (
+      {filtered && count !== undefined && (
+        <p role="status" className="text-sm text-text-muted">
+          {count === 0
+            ? 'No certificate records match'
+            : `${formatShareCount(String(count))} certificate ${count === 1 ? 'record matches' : 'records match'}`}{' '}
+          these filters.
+        </p>
+      )}
+      {ordered.length === 0 && !filtered && (
         <p className="text-sm text-text-muted">No eligible certificate records in the loaded entries.</p>
       )}
       {ordered.length > 0 && !editing && (
@@ -132,7 +165,6 @@ export function CertificateRecords({
             !!row.own && ['issue', 'transfer'].includes(row.own.kind.toLowerCase()) && BigInt(row.own.delta) > 0n;
           const kind =
             REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind.toLowerCase() as RegisterEntryKind] ?? 'Register change';
-          const eligible = !!row.company && !row.company.correctedBy;
           const changes = row.company?.changes ?? [
             { member: record!.member, name: record!.name, shares: row.own!.delta },
           ];
@@ -170,15 +202,7 @@ export function CertificateRecords({
                         : formatDate(entry.effectiveOn)}
                     </span>
                     <span className="font-medium">
-                      {latest
-                        ? MEMBER_CERTIFICATE_STATUS_LABELS[latest.status]
-                        : entry.correctedBy
-                          ? 'Reversed'
-                          : receiving
-                            ? 'Not requested'
-                            : eligible
-                              ? 'Can prepare'
-                              : 'Not applicable'}
+                      {CERTIFICATE_STATUSES.find(([value]) => value === statusOf(row))?.[1]}
                     </span>
                   </span>
                 }

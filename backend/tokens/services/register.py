@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import io
+import unicodedata
 from calendar import monthrange
 from collections import defaultdict
 from contextlib import contextmanager
@@ -13,11 +14,17 @@ from uuid import UUID
 from django.db import connections
 from django.db.models import (
     BigIntegerField,
+    BooleanField,
+    Case,
     CharField,
     Exists,
+    F,
+    Func,
+    JSONField,
     OuterRef,
     Subquery,
     Value,
+    When,
 )
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -37,12 +44,14 @@ from tokens.constants import (
 from tokens.exceptions import RegisterChangeConflict, RegisterNotInitialized
 from tokens.models import (
     ImportedFormerMember,
+    MemberCertificateRequest,
     RegisterAllotment,
     RegisterEntry,
     RegisterEntryKind,
     RegisterExport,
     RegisterExportKind,
     RegisterImport,
+    RegisterMember,
     RegisterMemberCessation,
     RegisterMemberParticulars,
     RegisterMemberWallet,
@@ -576,18 +585,90 @@ def stored_waiting_list(token):
         return waiting_list(token.pk)
 
 
-def stored_entries(token, paginate, wanted=(), member=None) -> list[dict]:
+def _search_entries(entries, token, search):
+    if not search:
+        return entries
+    people = member_identities(
+        token, RegisterMember.objects.filter(company_id=token.company_id).values_list("pk", flat=True)
+    )
+
+    def folded(value):
+        return "".join(
+            char for char in unicodedata.normalize("NFD", value) if not unicodedata.category(char).startswith("M")
+        ).lower()
+
+    words = folded(search).split()
+    members = [
+        str(member) for member, person in people.items() if all(word in folded(person.name or "") for word in words)
+    ]
+    if not members:
+        return entries.none()
+    return entries.annotate(
+        matches_shareholder=Func(
+            F("changes"),
+            Value("$[*] ? (@.member == $members[*])"),
+            Value({"members": members}, output_field=JSONField()),
+            function="jsonb_path_exists",
+            output_field=BooleanField(),
+        )
+    ).filter(matches_shareholder=True)
+
+
+def _certificate_entries(entries, certificate_status, association):
+    entries = entries.filter(kind__in=CERTIFICATE_ENTRY_KINDS)
+    if certificate_status == "all":
+        return entries
+    if certificate_status == "not_applicable":
+        return entries.none()
+    latest = MemberCertificateRequest.objects.none()
+    receiving = Value(False, output_field=BooleanField())
+    if association is not None:
+        latest = MemberCertificateRequest.objects.filter(association=association, entry_id=OuterRef("pk"))
+        receiving = Func(
+            Value(association.pk), F("pk"), function="tokens_member_certificate_entry", output_field=BooleanField()
+        )
+    latest = latest.annotate(
+        filter_status=Case(
+            When(fulfilment__isnull=False, then=Value("fulfilled")),
+            When(withdrawal__isnull=False, then=Value("withdrawn")),
+            default=Value("requested"),
+            output_field=CharField(),
+        )
+    ).order_by("-created_at", "-uuid")
+    return (
+        entries.annotate(
+            latest_certificate_status=Subquery(latest.values("filter_status")[:1]),
+            own_receiving=receiving,
+        )
+        .annotate(
+            certificate_filter_status=Case(
+                When(latest_certificate_status__isnull=False, then=F("latest_certificate_status")),
+                When(corrected_by__isnull=False, then=Value("reversed")),
+                When(own_receiving=True, then=Value("not_requested")),
+                default=Value("can_prepare"),
+                output_field=CharField(),
+            )
+        )
+        .filter(certificate_filter_status=certificate_status)
+    )
+
+
+def stored_entries(
+    token, paginate, wanted=(), member=None, *, search="", certificate_status=None, association=None
+) -> list[dict]:
     entries = with_company_event_dates(RegisterEntry.objects.filter(register__token=token))
     if wanted:
         entries = entries.filter(pk__in=wanted)
     if member:
         entries = entries.filter(changes__contains=[{"member": str(member)}])
     with _snapshot():
-        entries = paginate(
-            entries.annotate(
-                corrected_by=Subquery(RegisterEntry.objects.filter(corrects=OuterRef("pk")).values("pk"))
-            ).order_by("-sequence")
+        entries = entries.annotate(
+            corrected_by=Subquery(RegisterEntry.objects.filter(corrects=OuterRef("pk")).values("pk"))
         )
+        entries = _search_entries(entries, token, search)
+        if certificate_status is not None:
+            entries = _certificate_entries(entries, certificate_status, association)
+        entries = paginate(entries.order_by("-sequence"))
         people = member_identities(
             token, sorted({UUID(change["member"]) for entry in entries for change in entry.changes})
         )

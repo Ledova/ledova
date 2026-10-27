@@ -697,6 +697,17 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(within(certificatesCard).getByRole('button', { name: /Download unsigned certificate/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(2));
   expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(otherCertificate.uuid), expect.anything());
+  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Fulfilled' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
+  expect(within(screen.getByRole('list', { name: 'Certificate records' })).queryByRole('listitem')).toBeNull();
+  expect(screen.getByRole('status').textContent).toBe('No certificate records match these filters.');
+  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Requested' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
+  expect(within(screen.getByRole('list', { name: 'Certificate records' })).getAllByRole('listitem')).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Clear (certificate filters)' }));
   fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
   fireEvent.click(screen.getByText('Request update'));
   fireEvent.change(screen.getByLabelText('Requested name'), { target: { value: 'Requested Member Name' } });

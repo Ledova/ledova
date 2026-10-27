@@ -39,9 +39,11 @@ can prepare permitted company outputs; members can request, track and download o
 certificates. A person with both kinds of access sees matching entries once. Existing request
 fulfilment remains in **Shareholders** → **Member requests**.
 **Ledger exports** and **Company pack** remain alongside Certificates where company access permits
-them. Certificates and Ledger exports use one selected share class; **Share class** appears only
-when there is more than one and sits in the Certificates card header. Company pack covers the
-company. Supporting attachments stay with the person, share class or company Settings.
+them. Certificates and Ledger exports use one selected share class. Certificates keeps its class
+visible in the heading; **Filters** groups **Share class** when there is more than one, shareholder
+search and certificate status. **Apply** filters the full permitted history; **Clear** removes search
+and status while keeping the class. Company pack covers the company. Supporting attachments stay
+with the person, share class or company Settings.
 
 | Output               | Who prepares it                            | Where                                                   | What Ledova keeps                                        |
 | -------------------- | ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
@@ -210,9 +212,11 @@ recognition is claimed.
 
 Web **Documents** → **Certificates** shows each shareholder or change, shares, date and status in
 one aligned row. Open the row for details, previous requests and permitted actions.
-**Other certificate requests** keeps requests for other classes or entries not shown, including
-their permitted withdrawals and downloads. Company preparation and member requests keep their separate permissions: generating a
-company PDF does not fulfil a member request or make it available as a recipient's retained file.
+**Other certificate requests** keeps older or other-class requests independently of the entry
+filters, including their permitted withdrawals and downloads. Company preparation and member
+requests keep their separate permissions: company certificate eligibility is not a member request
+status, and generating a company PDF does not fulfil a member request or make it available as a
+recipient's retained file.
 
 ## Inspection copies
 

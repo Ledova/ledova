@@ -174,6 +174,12 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     sequence: 2,
     changes: [{ member: '66666666-6666-4666-8666-666666666666', name: 'Other shareholder', shares: '20' }],
   };
+  const olderEntry = {
+    ...otherEntry,
+    uuid: '77777777-7777-4777-8777-777777777777',
+    sequence: 3,
+    changes: [{ member: '88888888-8888-4888-8888-888888888888', name: 'Earlier shareholder', shares: '30' }],
+  };
   const page = (results: unknown[], next: string | null = null) => ({ data: { results, next, count: results.length } });
   api.get.mockImplementation(async (url, config) => {
     if (url === '/api/v1/company-authority/appointments/') return page([OUTPUT_APPOINTMENT]);
@@ -184,10 +190,29 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(OUTPUT_REGISTER.token.uuid)) return { data: OUTPUT_REGISTER };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(OUTPUT_REGISTER.token.uuid)) {
       if (refusedHistory || (config.params.page === 2 && refusedMore)) throw new Error('Synthetic history refusal');
-      return page(
-        [OUTPUT_ENTRY, otherEntry],
-        config.params.page === 1 ? 'https://example.invalid/entries?page=2' : null,
-      );
+      const selected = [OUTPUT_ENTRY, otherEntry, olderEntry].filter((entry) => {
+        const status =
+          entry.uuid === OUTPUT_ENTRY.uuid && config.params.association === MEMBER_RECORD.uuid
+            ? 'fulfilled'
+            : 'can_prepare';
+        return (
+          (!config.params.search ||
+            entry.changes.some((change) =>
+              (change.name ?? '').toLowerCase().includes(config.params.search.toLowerCase()),
+            )) &&
+          (!config.params.certificate_status ||
+            config.params.certificate_status === 'all' ||
+            config.params.certificate_status === status)
+        );
+      });
+      const start = (config.params.page - 1) * 2;
+      return {
+        data: {
+          results: selected.slice(start, start + 2),
+          count: selected.length,
+          next: start + 2 < selected.length ? 'https://example.invalid/entries?page=2' : null,
+        },
+      };
     }
     if (url === COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORDS) return page([MEMBER_RECORD]);
     if (url === COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
@@ -235,13 +260,49 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
       entry: `${CERTIFICATES_PATH}?company=${company.uuid}&class=${OUTPUT_REGISTER.token.uuid}`,
     },
   );
-  const records = await screen.findByRole('list', { name: 'Certificate records' });
+  let records = await screen.findByRole('list', { name: 'Certificate records' });
   await waitFor(() => expect(within(records).getAllByRole('listitem')).toHaveLength(2));
   expect(within(records).queryByText('You')).toBeNull();
   expect(within(records).getAllByText(MEMBER_RECORD.name)).toHaveLength(1);
   expect(within(records).getByText('Other shareholder')).toBeTruthy();
   expect(within(records).getByText('Fulfilled', { exact: true })).toBeTruthy();
   expect(within(records).queryByRole('button', { name: /Prepare unsigned certificate/ })).toBeNull();
+  expect(within(records).queryByText('Earlier shareholder')).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Shareholder' }), { target: { value: 'Earlier' } });
+  fireEvent.click(screen.getByRole('radio', { name: 'Can prepare' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  await within(records).findByText('Earlier shareholder');
+  expect(within(records).queryByText(MEMBER_RECORD.name)).toBeNull();
+  expect(within(records).queryByText('Other shareholder')).toBeNull();
+  expect(api.get).toHaveBeenCalledWith(
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(OUTPUT_REGISTER.token.uuid),
+    expect.objectContaining({
+      params: expect.objectContaining({
+        search: 'Earlier',
+        certificate_status: 'can_prepare',
+        association: MEMBER_RECORD.uuid,
+        page: 1,
+      }),
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Clear (certificate filters)' }));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  await within(records).findByText('Other shareholder');
+  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Fulfilled' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  await within(records).findByText('Fulfilled', { exact: true });
+  expect(within(records).getAllByRole('listitem')).toHaveLength(1);
+  expect(within(records).queryByText('Other shareholder')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Clear (certificate filters)' }));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  await within(records).findByText('Other shareholder');
   fireEvent.click(within(records).getByRole('button', { name: new RegExp(MEMBER_RECORD.name) }));
   expect(within(records).getByRole('button', { name: /Prepare unsigned certificate/ })).toBeTruthy();
   expect(within(records).getAllByRole('button', { name: /Prepare unsigned certificate/, hidden: true })).toHaveLength(
@@ -273,7 +334,8 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
         'entries',
         OUTPUT_REGISTER.token.uuid,
       ],
-      exact: true,
+      exact: false,
+      type: 'active',
     });
   });
   await screen.findByText('Certificate records could not be loaded.');

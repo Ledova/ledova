@@ -40663,6 +40663,33 @@
         "parameters": [
           {
             "in": "query",
+            "name": "association",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "* `all` - all\n* `can_prepare` - can_prepare\n* `reversed` - reversed\n* `not_requested` - not_requested\n* `requested` - requested\n* `withdrawn` - withdrawn\n* `fulfilled` - fulfilled\n* `not_applicable` - not_applicable",
+            "in": "query",
+            "name": "certificate_status",
+            "schema": {
+              "enum": [
+                "all",
+                "can_prepare",
+                "reversed",
+                "not_requested",
+                "requested",
+                "withdrawn",
+                "fulfilled",
+                "not_applicable"
+              ],
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "entry",
             "schema": {
               "items": {
@@ -40696,6 +40723,15 @@
             "required": false,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "default": "",
+              "maxLength": 100,
+              "type": "string"
             }
           },
           {

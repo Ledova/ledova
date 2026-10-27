@@ -727,8 +727,13 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   reads mount only with confirmed register access; member-only access never reads the full company register.
   `CertificateRecords.tsx` merges matching company and own entries without duplicate rows. Aligned
   `Disclosure` rows show the shareholder or change, shares, date and status; details, previous
-  requests and permitted actions open inline. The class selector stays in the card header, and
-  preparation opens a focused main-page form. The existing
+  requests and permitted actions open inline. The collection heading keeps the selected class visible;
+  one Filters disclosure holds draft class, shareholder search and certificate status. Apply writes
+  `class`, `q` and `certificate_status` to the URL; Clear preserves the class and removes search and
+  status. Company entries are filtered on the server before paging; own-member history is read
+  fully and filtered locally. Other certificate requests remain outside the entry filters. Request
+  status always comes from the person's own readable requests, separately from company certificate
+  eligibility. Preparation opens a focused main-page form. The existing
   preparation, request, withdrawal and recipient-download controllers retain their separate guards;
   preparing a company PDF does not fulfil a member request.
 - Certificates and Company-recorded details share an owner-bound member-records controller.
