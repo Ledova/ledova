@@ -141,6 +141,10 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(() => ownershipSummary([ordinary, ordinary])).toThrow(/more than once/);
   const paged = (results: unknown[]) => ({ data: { count: results.length, results, next: null, previous: null } });
   let mode = 'complete';
+  let finishHolders!: (response: ReturnType<typeof holderPage>) => void;
+  const pendingHolders = new Promise<ReturnType<typeof holderPage>>((resolve) => {
+    finishHolders = resolve;
+  });
   const additional = Array.from({ length: 26 }, (_, index) => register(`class-${String(index).padStart(2, '0')}`, '1'));
   const inventory = () => (mode === 'many' ? [ordinary, preference, ...additional] : [ordinary, preference]);
   api.get.mockImplementation(async (url: string, config?: { params?: { search?: string; page?: number } }) => {
@@ -169,6 +173,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
     }
     if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('ordinary')) {
       if (mode === 'denied') throw { response: { status: 404 } };
+      if (mode === 'pending-holders') return pendingHolders;
       return holderPage(mode === 'zero' ? empty : ordinary, config?.params ?? {});
     }
     if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('preference'))
@@ -200,6 +205,27 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   fireEvent.click(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' }));
   const holders = await screen.findByRole('list', { name: 'ordinary shares shareholders' });
   expect(within(holders).getByText('9,007,199,254,740,966')).toBeTruthy();
+  mode = 'pending-holders';
+  let refreshing!: Promise<void>;
+  await act(async () => {
+    refreshing = client.refetchQueries({
+      queryKey: [
+        ...registerHoldersKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+        'ownership-holders',
+      ],
+      type: 'active',
+    });
+  });
+  expect(await screen.findByText('Loading shareholders…')).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'ordinary shares shareholders' })).toBeNull();
+  expect(screen.queryByText('Example Shareholder')).toBeNull();
+  expect(screen.queryByText('9,007,199,254,740,966')).toBeNull();
+  mode = 'complete';
+  await act(async () => {
+    finishHolders(holderPage(ordinary, {}));
+    await refreshing;
+  });
+  expect(await screen.findByRole('list', { name: 'ordinary shares shareholders' })).toBeTruthy();
   const holderReads = api.get.mock.calls.filter(
     ([url]) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('ordinary'),
   ).length;
