@@ -61,9 +61,23 @@ export function OwnershipExplorer({
     <Section title={current ? current.name : 'Ownership overview'}>
       {selected ? (
         <>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+            {current && (
+              <p className="min-w-0 break-words tabular-nums text-text-muted">
+                <span className="break-all">{current.symbol}</span>
+                {current.initialized && current.issuedSupply !== null && current.totalHolders !== null && (
+                  <>
+                    {' · '}
+                    {shareCount(current.issuedSupply, 'issued')} · {current.totalHolders}{' '}
+                    {current.totalHolders === 1 ? 'shareholder' : 'shareholders'}
+                    {complete && issuedSupply !== null && issuedSupply !== '0' && (
+                      <> · {sharePercentage(current.issuedSupply, issuedSupply)} of all issued shares</>
+                    )}
+                  </>
+                )}
+              </p>
+            )}
             <PageAction ref={back} label="All classes" onClick={() => onSelect(null)} />
-            {current && <span className="text-text-muted">{current.symbol}</span>}
           </div>
           {!current ? (
             <p role="status" className="text-sm text-text-muted">
@@ -75,19 +89,14 @@ export function OwnershipExplorer({
             </p>
           ) : (
             <>
-              <p className="text-sm tabular-nums text-text-muted">
-                {shareCount(current.issuedSupply, 'issued')} · {current.totalHolders}{' '}
-                {current.totalHolders === 1 ? 'shareholder' : 'shareholders'}
-                {complete && issuedSupply !== null && issuedSupply !== '0' && (
-                  <> · {sharePercentage(current.issuedSupply, issuedSupply)} of all issued shares</>
-                )}
-              </p>
-              <ListSearch
-                label="Search shareholders"
-                list={list}
-                noun={['shareholder', 'shareholders']}
-                count={!loading && !error ? holders?.count : undefined}
-              />
+              <div className="w-full sm:max-w-sm">
+                <ListSearch
+                  label="Search shareholders"
+                  list={list}
+                  noun={['shareholder', 'shareholders']}
+                  count={!loading && !error ? holders?.count : undefined}
+                />
+              </div>
               {loading ? (
                 <Loading>Loading shareholders…</Loading>
               ) : error ? (
