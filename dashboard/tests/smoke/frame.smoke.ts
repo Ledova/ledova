@@ -212,9 +212,13 @@ async function openTheSidebar(page: Page, role: Role) {
     } else {
       await page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true }).click();
     }
-    const ownership = page.getByRole('table', { name: 'Ordinary shares shareholders' });
-    await expect(ownership.getByRole('row', { name: 'Founder 100 74.07%' })).toBeVisible();
-    await expect(ownership.getByRole('row', { name: 'Investor 35 25.93%' })).toBeVisible();
+    const ownership = page.getByRole('list', { name: 'Ordinary shares shareholders' });
+    const founder = ownership.getByRole('button', { name: 'Highlight Founder’s holding' });
+    const investor = ownership.getByRole('button', { name: 'Highlight Investor’s holding' });
+    await expect(founder).toBeVisible();
+    await expect(founder).toHaveAccessibleDescription('100 shares 74.07% of ORD');
+    await expect(investor).toBeVisible();
+    await expect(investor).toHaveAccessibleDescription('35 shares 25.93% of ORD');
     await page.getByRole('button', { name: 'All classes', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true })).toBeFocused();
   }
