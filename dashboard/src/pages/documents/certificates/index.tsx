@@ -207,22 +207,24 @@ function CertificateWorkspace({
       header={
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Certificate records</h2>
-          {selected && (
-            <p className="text-sm text-text-muted">
-              {selected.name} · {selected.symbol}
-            </p>
-          )}
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            {selected && (
+              <p className="text-sm text-text-muted">
+                {selected.name} · {selected.symbol}
+              </p>
+            )}
+            <CertificateFilters
+              classes={classes}
+              selected={selected}
+              applied={filters}
+              disabled={disabled || held}
+              companyReader={companyReader}
+              ownRecord={ownRecord}
+            />
+          </div>
         </div>
       }
     >
-      <CertificateFilters
-        classes={classes}
-        selected={selected}
-        applied={filters}
-        disabled={disabled || held}
-        companyReader={companyReader}
-        ownRecord={ownRecord}
-      />
       {read.error && (
         <p role="alert" className="text-sm text-error-light">
           {read.error}

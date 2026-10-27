@@ -140,7 +140,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. A web collection's primary creation action sits beneath its
   cards, aligned right. Actions do not wait for a row to be selected.
-- `Disclosure`: every expandable section on a web page, a button with `aria-expanded` and a leading
+- `Disclosure`: expandable page content, a button with `aria-expanded` and a leading
   caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
   independently through `useOpenRows` from `@ledova/shared`), Activity's filter and Wallets' sort
@@ -151,6 +151,11 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   naming what it applies; applying or clearing closes it and every open entry and returns focus to
   its button. Substantial record reviews use the main page; brief confirmations and signing steps
   can use dialogs.
+- `Popover`: compact secondary controls, such as filters and notifications, may open an anchored
+  panel without moving page content. Reuse Headless UI's `Popover`, `PopoverButton` and
+  `PopoverPanel`, as the notification bell does, with the existing surface, border and spacing.
+  The [filter rules](#lists-search-filters-and-paging) describe its interaction. Editing records,
+  preparation and substantial reviews stay on the main page.
 - `SwitchRow`: a setting that takes effect at once (Transaction alerts; Dark theme; Show this
   company to eligible investors), as an On/Off pill or native switch (`role="switch"`,
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
@@ -217,9 +222,10 @@ preparation belongs in Documents. Keep maintenance controllers mounted so unfini
 survive navigation. Documents has one **Certificates** page for company and member records, plus
 **Ledger exports** and **Company pack** where company access permits them. Certificates and Ledger
 exports show one selected class, with a **Share class** selector only when there is more than one.
-Certificates keeps the selected class visible in the collection heading. One **Filters** disclosure
-groups class selection, shareholder search and certificate status. Fields are drafts until **Apply**
-updates the URL; **Clear** removes search and status while keeping the class. Filter the complete
+Certificates keeps the selected class visible in the collection heading. One **Filters** popover
+groups class selection, shareholder search and certificate status, with an active count and summary
+visible when closed. Fields are drafts until **Apply** updates the URL; **Clear** removes search
+and status while keeping the class. Filter the complete
 permitted history, not just loaded rows, and keep older or other-class requests outside these entry
 filters.
 Company pack stays at company scope. Each uses the existing workspace frame, cards, responsive
@@ -720,6 +726,16 @@ server:
   It searches 300 ms after typing stops. The server matches every typed word, ignoring case. While
   a search or filter applies, a polite status line counts the matches, such as "3 applications match
   your search" or "No applications match".
+- **Compact filters:** secondary filters may share one **Filters** button and anchored popover;
+  a search central to the page's main task stays visible. Keep the applied scope and a compact
+  active count or summary visible outside the panel. Use labelled controls and one Clear/Apply
+  row. Edits remain drafts until Apply; incidental dismissal retains them without changing results.
+  Apply and Clear close the panel and return focus to its button. Escape and an outside click
+  dismiss it, and all controls remain keyboard accessible. Fit the panel within the viewport,
+  scrolling inside when needed rather than overflowing or shifting the table. Applying filters
+  keeps their URL, full-history matching and loading/error rules; opening the panel or editing a
+  draft does not start a new results read. Certificates uses this pattern; Activity's filter and
+  Wallets' sort keep their existing disclosures.
 - **The address:** `useListParams` (`dashboard/src/hooks/useListParams.ts`) keeps the search
   (`q`), the filters and the page in the URL, so Back, a refresh or a shared link keep them. Typing
   replaces the history entry, while a filter or page change adds one. Any change but the page

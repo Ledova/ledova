@@ -40,9 +40,9 @@ certificates. A person with both kinds of access sees matching entries once. Exi
 fulfilment remains in **Shareholders** → **Member requests**.
 **Ledger exports** and **Company pack** remain alongside Certificates where company access permits
 them. Certificates and Ledger exports use one selected share class. Certificates keeps its class
-visible in the heading; **Filters** groups **Share class** when there is more than one, shareholder
-search and certificate status. **Apply** filters the full permitted history; **Clear** removes search
-and status while keeping the class. Company pack covers the company. Supporting attachments stay
+visible in the heading; **Filters** opens a compact panel with **Share class** when there is more
+than one, shareholder search and certificate status. **Apply** filters the full permitted history;
+**Clear** removes search and status while keeping the class. Company pack covers the company. Supporting attachments stay
 with the person, share class or company Settings.
 
 | Output               | Who prepares it                            | Where                                                   | What Ledova keeps                                        |
