@@ -83,6 +83,19 @@ it('shows focused company details without share classes, and uploads documents t
   expect(screen.getByRole('button', { name: 'Edit company' })).toBeTruthy();
   expect(screen.queryByText(/Share classes/)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Create share class' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Edit company' }));
+  const sharing = screen.getByRole('checkbox', { name: 'Share ownership overview with members' });
+  expect((sharing as HTMLInputElement).checked).toBe(false);
+  fireEvent.click(sharing);
+  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+  await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit company' })).toBeNull());
+  expect(api.patch).toHaveBeenCalledWith(
+    COMPANY,
+    { shareOwnershipWithMembers: true },
+    expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
+  );
+  expect(screen.getByText('Shared')).toBeTruthy();
+
   const file = new File(['Synthetic company supporting copy'], 'company-constitution.pdf', { type: 'application/pdf' });
   const companyDocument: CompanyDocument = {
     uuid: 'document-one',

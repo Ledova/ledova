@@ -3,8 +3,8 @@ import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatShareCount, searchRows, sharePercentage, type CompanyOwnershipSummary } from '@ledova/shared';
 import { ListSearch, Pager } from '@components/List';
 import { PAGE_SIZE, type ListParams } from '@hooks/useListParams';
-import { OwnershipRing } from './OwnershipRing';
-import { ownershipColor } from './ownershipColors';
+import { OwnershipRing } from '@components/ownership/OwnershipRing';
+import { ownershipColor } from '@components/ownership/ownershipColors';
 
 interface OwnershipOverviewProps {
   classes: CompanyOwnershipSummary['classes'];

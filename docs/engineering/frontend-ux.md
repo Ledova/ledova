@@ -70,7 +70,12 @@ Narrow screens show the linked list without squeezing the ring. A chart failure 
 list usable. Percentages name their denominator; issued share counts do not imply voting power,
 economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
 and keep record actions there.
-The member overview's shares and
+When a company enables aggregate sharing, the member Dashboard replaces its personal donut with
+one full-width company ownership ring and linked class list. Show all issued class totals alongside
+the member's own quantity and within-class percentage; class selection highlights that position
+without a separate detail panel or other holders' records.
+Keep other holders' identities and records out of this view. Without shared figures, keep the own
+shares overview. Awards remain separate in both modes. The own-only overview's shares and
 awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
 on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
 quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
@@ -730,8 +735,9 @@ to revisit if registers grow large ([decision](../decisions.md#frontend-ux-stand
 Every table uses `Table`, apart from dashboard chart legends, which keep a compact layout with
 their own captions and header scopes. The company ring compares issued share counts across classes;
 its selected-class bar list keeps server search and a 25-row pager, showing percentages of the full
-class even when only some holders are visible. A member's chart shows only
-their own shares by class, never company ownership, voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
+class even when only some holders are visible. A member's own-only chart shows the composition of
+their holdings; a company-enabled overview adds aggregate class totals and their own position.
+Neither chart implies voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
 record's own page.
 
 ## Loading, empty and error states

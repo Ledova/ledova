@@ -305,7 +305,8 @@ also in the phone drawer. `WorkspaceProvider` (`dashboard/src/components/Workspa
 shares the selected context with the frame and pages; `useWorkspace` (`dashboard/src/hooks/useWorkspace.ts`)
 reads it. Browser storage (`dashboard/src/services/workspace.ts`) remembers only the mode, keyed by
 current person and account. Company availability follows current register, appointment and company
-access; My shares remains an own-records view, including its empty state. Choosing a workspace changes
+access; My shares keeps own records and any company-enabled aggregate ownership overview, including
+its empty state. Choosing a workspace changes
 neither account audience nor authority. Explicit routes (`dashboard/src/utils/workspace.ts`) select
 company or personal context; shared Profile keeps the active choice. Temporary access reads preserve
 the selected context, and a settled refusal invalidates a remembered Company choice.
@@ -514,7 +515,7 @@ Do not add a second chart library or a general chart framework. Visible quantiti
 use exact share arithmetic; only normalised drawing coordinates use JavaScript numbers. The ring
 represents issued share counts, not voting power or economic value.
 
-Ownership overviews read company-scoped aggregates, then fetch the selected class's holders with
+Company-authorised ownership overviews read company-scoped aggregates, then fetch the selected class's holders with
 server-side search and paging. The selected class uses one ranked horizontal bar list in the server's
 largest-first order, with exact quantities and within-class percentages always visible. Bars use the
 full class's issued shares on a shared 0–100% scale through search and paging; do not renormalise the
@@ -526,6 +527,16 @@ share the owner-scoped holdings query family so ordinary register changes invali
 Do not introduce periodic dashboard polling. Unopened classes withhold company
 totals and the ring; an inconsistent read withholds the overview. These rules are checked in review
 and the existing company-dashboard journey, within the dashboard suite cap.
+
+The member Dashboard receives an optional aggregate ownership summary within its existing
+association-bound record read. Sharing is off by default and changed only through current company
+administration; the server retains the latest actor and time. It exposes class totals and that
+member's own class quantities, with no other holder identity, position, private terms or documents.
+The web uses the same ring renderer and a page-owned class list; selecting a class highlights the
+member's position without reading other holders. Company holder endpoints remain company-authorised. Clear the shared view with
+the rest of the member record during revalidation, account/company changes and failed reads, and
+remove it when a fresh read reports sharing off. Reuse the existing member read lifecycle; add no
+timer or manual refresh control.
 
 ## Recovering a submitted company request
 
@@ -702,7 +713,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 - Company dashboard: `dashboard/src/pages/company/dashboard/useOwnership.ts` reads the selected
   company's exact ownership summary and sequence-bound holder pages. `OwnershipExplorer.tsx` in
   that folder opens one class inline; `OwnershipHolders.tsx` renders its ranked bars, and
-  `OwnershipRing.tsx` loads `ownershipChart.ts` for the ring. The linked class list keeps every class
+  `dashboard/src/components/ownership/OwnershipRing.tsx` loads `ownershipChart.ts` beside it for the ring.
+  That folder also owns the reused metrics, colours and static ring placeholder. The linked class list keeps every class
   accessible; the selected class's bar list keeps server search and paging. `OwnershipLoading.tsx`
   reserves a static, data-free loading frame, also used while the chart module loads. Confirmed
   figures appear directly, without pulse or entrance tracking. The person's own
@@ -710,9 +722,11 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   started, which reads the register step from the selected company's opened registers. Web tasks
   render only while incomplete; the existing parent condition hides the card when both tasks are
   complete.
-- Personal dashboard: reads the person's own member projection. Its overview sums issued shares
-  with `BigInt` and charts the member's own shares by class, without company-wide totals or ownership
-  percentages. Its only other content is read-only awards: separate entitlements, with the promise
+- Personal dashboard: reads the person's own member projection. When the company enables aggregate
+  sharing, `dashboard/src/pages/home/MemberCompanyOwnership.tsx` uses the shared ring and metrics
+  with a page-owned list of all class totals and the person's own position;
+  otherwise its own-shares overview sums issued shares with `BigInt` and charts only their shares
+  by class. Read-only awards remain separate entitlements, with the promise
   and nonzero lifecycle quantities above their full breakdown and terms in Award details.
   Company-recorded details in Settings groups current particulars and update-request records in one
   card, side by side on desktop and stacked on smaller screens, with one shared action footer.

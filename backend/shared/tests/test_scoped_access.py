@@ -11,6 +11,8 @@ from django.utils import timezone
 from procrastinate.contrib.django.models import ProcrastinateJob
 from rest_framework.test import APIClient, APITransactionTestCase
 
+from companies.models import Company
+from companies.services.administration import company_operation
 from companies.services.team import revoke_company_appointment
 from compliance.models import MonitoringRule
 from documents.models import Document
@@ -457,6 +459,13 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             healthy.close()
         with use_operator():
             opening_entry = self.token.stored_register.entries.get(kind="opening").pk
+        sharing = self.client.patch(
+            f"/api/v1/companies/{self.company.pk}/", {"share_ownership_with_members": True}, format="json"
+        )
+        self.assertEqual(sharing.status_code, 200, sharing.content)
+        self.assertEqual(sharing.json()["ownershipSharingChangedBy"], self.owner.pk)
+        with company_operation(self.owner, self.company.pk, "edit"), self.assertRaises(IntegrityError), atomic():
+            Company.objects.filter(pk=self.company.pk).update(ownership_sharing_changed_by=self.foreign)
         invitation_payload = self.invitation_payload()
         invitation = self.client.post("/api/v1/tokens/member-invitations/", invitation_payload, format="json")
         self.assertEqual(invitation.status_code, 201, invitation.content)
@@ -484,6 +493,18 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         own = self.client.get(f"/api/v1/tokens/member-records/{association_id}/")
         self.assertEqual(own.status_code, 200, own.content)
         self.assertEqual(own.json()["classes"][0]["shares"], "100")
+        self.assertEqual(own.json()["ownership"]["classes"][0]["ownShares"], "100")
+        self.assertEqual(own.json()["ownership"]["issuedSupply"], "100")
+        denied_sharing = self.client.patch(
+            f"/api/v1/companies/{self.company.pk}/", {"share_ownership_with_members": False}, format="json"
+        )
+        self.assertEqual(denied_sharing.status_code, 404, denied_sharing.content)
+        set_principal(self.foreign.pk, APP_ALIAS)
+        self.assertEqual(
+            Company.objects.using(APP_ALIAS).filter(pk=self.company.pk).update(share_ownership_with_members=False),
+            0,
+        )
+        reset_principal(APP_ALIAS)
         self.assertEqual(self.client.get("/api/v1/tokens/member-invitations/").json()["count"], 0)
         self.assertEqual(
             self.client.get(f"/api/v1/tokens/member-invitations/{invitation_payload['operation_id']}/").status_code, 404

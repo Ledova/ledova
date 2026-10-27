@@ -1,4 +1,4 @@
-import { Field, TextInput } from '@components/Field';
+import { CheckboxField, Field, TextInput } from '@components/Field';
 import { useEffect, useRef } from 'react';
 import { FormActions, PageAction } from '@components/Page';
 import { readApiError } from '@ledova/shared';
@@ -17,7 +17,7 @@ export function EditCompanyForm(props: FormProps) {
     ? readApiError(save.error, {
         fallback: 'Company changes could not be saved. Try again.',
         unanswered: 'The company changes could not be confirmed. Refresh before retrying.',
-        displayedFields: EDIT_FIELDS.map(([key]) => key),
+        displayedFields: [...EDIT_FIELDS.map(([key]) => key), 'shareOwnershipWithMembers'],
       })
     : null;
   return (
@@ -70,6 +70,20 @@ export function EditCompanyForm(props: FormProps) {
             </Field>
           ))}
         </div>
+        {props.canShareOwnership && (
+          <div className="space-y-2">
+            <CheckboxField
+              label="Share ownership overview with members"
+              checked={draft.shareOwnershipWithMembers}
+              onChange={(event) => setDraft({ ...draft, shareOwnershipWithMembers: event.target.checked })}
+              error={reading?.fieldErrors?.shareOwnershipWithMembers?.join(' ') ?? null}
+            />
+            <p className="text-sm text-text-muted">
+              Linked members can see company and share-class totals alongside their own holding. Other
+              shareholders&apos; records stay private.
+            </p>
+          </div>
+        )}
       </fieldset>
       <FormActions>
         <PageAction label="Cancel" disabled={save.isPending} onClick={onClose} />

@@ -1267,6 +1267,18 @@ combined into Other, and zero-share classes remain listed. Use the installed mod
 chart, tooltip and SVG renderer, retaining a list without the ring on narrow screens or chart failure.
 The existing workspace, sidebar, issued-share denominator and valuation boundary remain unchanged.
 
+On 27 October 2026 the owner approved a company-controlled read-only member ownership overview under
+[#1355](https://github.com/Ledova/ledova/issues/1355). This extends the earlier own-records-only
+dashboard scope: one company-administrator setting, off by default, shares issued company/class
+totals and shareholder counts with current linked members. Each member also sees their own class
+quantity and percentage. Retain the actor and time of the company's latest choice. Reuse the web
+ownership ring and existing member-read safeguards; do not grant a company appointment or expose
+other holders' names, identifiers, personal information, awards, documents or history. Sharing off,
+revocation and failed reads clear the shared figures. Issued-share counts do not imply voting power,
+economic value or fully diluted ownership. Named-holder and class-rights disclosure remain separate
+decisions; mobile presentation is unchanged. This does not replace the company's legal register or
+lawful access arrangements.
+
 ### Dashboard, Settings and Register for a new company
 
 On 19 October 2026 the owner decided

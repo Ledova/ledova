@@ -14,10 +14,11 @@ export const EDIT_FIELDS = [
   ['postcode', 'Postcode', FIELD_LIMITS.POSTCODE],
   ['phone', 'Phone', FIELD_LIMITS.COMPANY_PHONE],
 ] as const;
-type Draft = Record<(typeof EDIT_FIELDS)[number][0], string>;
+type Draft = Record<(typeof EDIT_FIELDS)[number][0], string> & { shareOwnershipWithMembers: boolean };
 export interface FormProps {
   company: Company | null;
   target: Company;
+  canShareOwnership: boolean;
   read: CompanyActionRead;
   onClose: () => void;
   onSuccess: () => Promise<unknown>;
@@ -27,7 +28,10 @@ function targetAvailable({ company, target, read }: FormProps) {
 }
 export function useEditCompanyForm(props: FormProps) {
   const { company, target, read, onClose, onSuccess } = props;
-  const initial = Object.fromEntries(EDIT_FIELDS.map(([key]) => [key, target[key] ?? ''])) as Draft;
+  const initial = {
+    ...Object.fromEntries(EDIT_FIELDS.map(([key]) => [key, target[key] ?? ''])),
+    shareOwnershipWithMembers: target.shareOwnershipWithMembers,
+  } as Draft;
   const [draft, setDraft] = useState(initial);
   const pendingRef = useRef(false);
   const mounted = useRef(true);
@@ -38,9 +42,9 @@ export function useEditCompanyForm(props: FormProps) {
     };
   }, []);
   const [assertCurrent] = useState(() => read.assertCurrent);
-  const guard = (uuid: string, mode: 'admin' | 'owner' = 'admin') => {
+  const guard = (uuid: string) => {
     if (!mounted.current) throw createUserFriendlyError('This company action is closed. Reopen it before continuing.');
-    assertCurrent(uuid, mode);
+    assertCurrent(uuid, changes.shareOwnershipWithMembers === undefined ? 'admin' : 'personal');
   };
   const [config] = useState(() => read.requestConfig(target.uuid));
   const changes = Object.fromEntries(
@@ -48,7 +52,13 @@ export function useEditCompanyForm(props: FormProps) {
   ) as CompanyUpdate;
   const canChangeName = company?.status === 'draft' || company?.status === 'info_required';
   const changed = Object.keys(changes).length > 0;
-  const available = targetAvailable(props) && !!company && read.canAdmin && changed && (!changes.name || canChangeName);
+  const available =
+    targetAvailable(props) &&
+    !!company &&
+    read.canAdmin &&
+    changed &&
+    (!changes.name || canChangeName) &&
+    (changes.shareOwnershipWithMembers === undefined || props.canShareOwnership);
   const problems: Problems<keyof Draft> = { name: !draft.name.trim() && 'Give the company name.' };
   const save = useMutation({
     mutationFn: async () => {

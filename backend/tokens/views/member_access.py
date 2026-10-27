@@ -161,9 +161,15 @@ class MemberRecordViewSet(MemberAccessViewSet):
     serializer_class = schema.MemberRecordSerializer
     operator_actions_because = (
         "A current explicit member association binds this signed-in user and actual owned account to one company "
-        "and member. The operator projects only that member's own retained balances, deltas, awards and vesting; "
-        "it exposes no counterparties, company totals, private authority files or appointment rights."
+        "and member. The operator projects that member's own retained balances, deltas, awards and vesting. "
+        "An explicit company choice adds aggregate ownership and the member's own class quantities within "
+        "one revalidated snapshot, without counterparties, private authority files or appointment rights."
     )
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "private, no-store"
+        return response
 
     def narrow(self, queryset):
         return service.own_associations(queryset.select_related("company"), self.request.user)
@@ -173,12 +179,14 @@ class MemberRecordViewSet(MemberAccessViewSet):
         rows = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(rows)
         items = rows if page is None else page
-        data = schema.MemberRecordSerializer([service.own_record(item) for item in items], many=True).data
+        data = schema.MemberRecordSerializer(
+            [service.own_record(item, actor=request.user) for item in items], many=True
+        ).data
         return self.get_paginated_response(data) if page is not None else Response(data)
 
     @extend_schema(responses=schema.MemberRecordSerializer)
     def retrieve(self, request, uuid=None):
-        return Response(schema.MemberRecordSerializer(service.own_record(self.get_object())).data)
+        return Response(schema.MemberRecordSerializer(service.own_record(self.get_object(), actor=request.user)).data)
 
     @extend_schema(
         parameters=[OpenApiParameter("token", OpenApiTypes.UUID, required=True)],
