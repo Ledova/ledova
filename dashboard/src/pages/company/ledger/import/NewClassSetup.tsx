@@ -20,7 +20,7 @@ import {
 
 import { CompanySelection } from '@components/CompanySelection';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses, registerClassesKey } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
@@ -60,7 +60,6 @@ export function NewClassSetup({
     company: Pick<Company, 'uuid' | 'name'>;
     steps: ReturnType<typeof registerSteps>;
   } | null>(null);
-  const [appliedPreference, setAppliedPreference] = useState('');
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const appointments = useOwnAppointments(owner, guard);
   const classes = useRegisterClasses(owner, guard);
@@ -71,16 +70,12 @@ export function NewClassSetup({
         .map((appointment) => [appointment.company, { uuid: appointment.company, name: appointment.companyName }]),
     ).values(),
   ];
-  if (preferred && appliedPreference !== preferred && appointments.isSuccess && !appointments.isFetching) {
-    if (companies.some((company) => company.uuid === preferred)) setSelected(preferred);
-    setAppliedPreference(preferred);
-  }
   const retry = () => {
     void appointments.refetch();
     void classes.refetch();
     if (anchor) void members.refetch();
   };
-  const companyUuid = selected || (companies.length === 1 ? companies[0].uuid : '');
+  const companyUuid = preferred ?? (selected || (companies.length === 1 ? companies[0].uuid : ''));
   const company = companies.find((item) => item.uuid === companyUuid);
   const steps = company && appointments.data ? registerSteps(appointments.data, company.uuid) : null;
   const anchor = classes.data?.find((token) => token.companyUuid === company?.uuid)?.uuid;

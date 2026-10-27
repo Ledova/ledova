@@ -111,9 +111,9 @@ An owner of a draft company can also request initial authority outside signup, f
 
 ## Team invitations and appointments
 
-Open the team from **Settings → Team** in the Company workspace. Before company access is granted,
-open **My shares → Settings → Profile → Manage account → Accept a company invitation**. Investor-only accounts can open it too: accepting an
-invitation or reading your appointments needs no company workspace. The web page starts with
+Open the team from **Settings → Team** for the selected company. Before company access is granted,
+open **Settings → Profile → Manage account → Accept a company invitation**. Investor-only accounts
+can open it too: accepting an invitation or reading your appointments needs no company appointment. The web page starts with
 appointments, the selected company's team and issued invitations; **Invite a company user** and
 **Accept a company invitation** open focused inline forms. It also keeps the owner's contextual
 Representative authority task.
@@ -350,16 +350,16 @@ requirement is separate ([participants](participants.md#account-readiness)).
 
 ## The Company page
 
-The company section of web **Company → Settings → Profile** shows the selected company's details
+The company section of web **Settings → Profile** shows the selected company's details
 as provided by the company: status, trading name, type, ACN, ABN, email (administrators only), phone
 and address. Administrators see **Edit company**. It also shows the company's UUID in full, with
 **Copy company UUID**, to give investors for their eligibility requests and claims
 ([requesting a decision](participants.md#requesting-a-decision)).
 
-On web, choose Company below the sidebar logo. Settings opens Profile, combining personal, company
-and account sections with separate editors and permissions. My shares is the same person's personal
-workspace, with no company administration controls or Company details section. Documents, Team and Activation have their own sidebar items, without a
-repeated Company administration link card. Representative authority is a contextual task in Team.
+On web, select the company in Dashboard. Settings opens Profile, combining personal, permitted
+company and account sections with separate editors and permissions. Company documents, Team and
+Activation have their own sidebar items where current access permits, without a repeated Company
+administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
 Company eligibility and **Published to your members** remain under More, retaining their existing access rules
 ([the Published page](publications.md#the-published-page)).
 

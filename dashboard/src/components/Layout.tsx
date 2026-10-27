@@ -11,7 +11,7 @@ import { AuthLayoutAction } from './auth';
 import { InSignedInFrame } from './InSignedInFrame';
 import { SignOutButton } from './SignOutButton';
 import { LedgerNavigationProvider } from './LedgerNavigationProvider';
-import { WorkspaceProvider } from './WorkspaceProvider';
+import { CompanyContextProvider } from './CompanyContextProvider';
 
 interface LayoutProps {
   children: ReactNode;
@@ -61,7 +61,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <InSignedInFrame.Provider value>
       <LedgerNavigationProvider>
-        <WorkspaceProvider>
+        <CompanyContextProvider>
           <BuyCryptoProvider>
             <SendTransferProvider>
               <div className="min-h-screen bg-surface-base text-text-primary">
@@ -89,7 +89,7 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </SendTransferProvider>
           </BuyCryptoProvider>
-        </WorkspaceProvider>
+        </CompanyContextProvider>
       </LedgerNavigationProvider>
     </InSignedInFrame.Provider>
   );

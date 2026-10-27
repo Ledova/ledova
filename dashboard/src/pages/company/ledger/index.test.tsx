@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { TestRouter } from '../../../testSupport/TestRouter';
+
 import {
   COMPANY_TOKEN_ENDPOINTS,
   COMPANY_ENDPOINTS,
@@ -36,11 +38,13 @@ import apiClient from '@services/apiClient';
 import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CompanyRegisterPage from '.';
 import CompanyShareholderPage from './member';
-import CompanyDashboardPage from '../dashboard';
+import CompanyDashboardPage from '@pages/home';
+import { CompanyContextProvider } from '@components/CompanyContextProvider';
+import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { ShareClass } from './detail/ShareClass';
 import { MemberDocuments } from './shared/MemberDocuments';
 import { ClassReconciliation } from './ClassReconciliation';
@@ -1741,14 +1745,23 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     render(
       <QueryClientProvider client={client}>
         <ApiClientProvider client={apiClient}>
-          <MemoryRouter initialEntries={[path]}>
+          <TestRouter initialEntries={[path]}>
             <Routes>
               <Route path="/" element={<CompanyRegisterPage />} />
-              <Route path="/company/dashboard" element={<CompanyDashboardPage />} />
+              <Route
+                path="/company/dashboard"
+                element={
+                  <LedgerNavigationProvider>
+                    <CompanyContextProvider>
+                      <CompanyDashboardPage />
+                    </CompanyContextProvider>
+                  </LedgerNavigationProvider>
+                }
+              />
               <Route path={DESTINATIONS.companyRegisterSetup.path} element={<CompanyRegisterImportPage />} />
               <Route path={DESTINATIONS.companyRegisterImport.path} element={<CompanyRegisterImportPage />} />
             </Routes>
-          </MemoryRouter>
+          </TestRouter>
         </ApiClientProvider>
       </QueryClientProvider>,
     );
@@ -2360,7 +2373,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     render(
       <QueryClientProvider client={client}>
         <ApiClientProvider client={apiClient}>
-          <MemoryRouter>
+          <TestRouter>
             <ImportForm
               owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
               guard={() => {}}
@@ -2374,7 +2387,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
               blocked={false}
               onConflict={() => {}}
             />
-          </MemoryRouter>
+          </TestRouter>
         </ApiClientProvider>
       </QueryClientProvider>,
     );

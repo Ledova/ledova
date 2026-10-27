@@ -7,7 +7,8 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
-import { registersQuery, useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { registersQuery } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { readMemberEntries, registerEntriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { usePeople } from '@pages/company/ledger/shared/usePeople';
 

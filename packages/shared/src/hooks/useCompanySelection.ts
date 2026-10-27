@@ -39,6 +39,7 @@ export function useCompanySelection({
   coordinatedReads = false,
   paused = false,
   pausedScope,
+  selectedUuid,
 }: {
   ownedOnly?: boolean;
   personalOnly?: boolean;
@@ -46,6 +47,7 @@ export function useCompanySelection({
   coordinatedReads?: boolean;
   paused?: boolean;
   pausedScope?: string;
+  selectedUuid?: string;
 } = {}) {
   const apiClient = useApiClient();
   const client = useQueryClient();
@@ -116,7 +118,7 @@ export function useCompanySelection({
   const choices = enabled ? (companies.data ?? []).filter(readable) : [];
   const selected = selection?.scope === scopeKey ? selection.uuid : undefined;
   const initial = selected === undefined && companies.isSuccess && choices.length === 1 ? choices[0]!.uuid : '';
-  const uuid = selected ?? initial;
+  const uuid = selectedUuid ?? selected ?? initial;
   const selectedCompany = choices.find((item) => item.uuid === uuid);
   const companyUuid = selectedCompany?.uuid;
   const selectedRef = useRef(companyUuid);

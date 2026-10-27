@@ -43,7 +43,7 @@ stay here as history and are marked where they appear.
 | [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                                                                         |
 | [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October                             |
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey remains delivered                                              |
-| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 October 2026                                | Current; increments #1012–#1014; classes moved to Register (#1155); member access moved to Shareholders (#1166) |
+| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 to 27 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web), #1157 (mobile)                                                                            |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile following them under #1201                     |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
@@ -1292,6 +1292,22 @@ the company name opens the searchable selector in its header, beside a connected
 with figures and chart beneath. Single-company members see a plain company heading; narrow screens
 stack the controls. Remove the repeated company heading and separate dashboard control rows, keeping
 the controls outside the ring and awards in a separate card.
+
+On 27 October 2026 the owner selected the **Ownership browser with the ownership ring** under
+[#1360](https://github.com/Ledova/ledova/issues/1360), after comparing company-map, linked-browser
+and zoomable-wheel proposals. This replaces the separate workspace Dashboards, remembered workspace
+choice and header view/company selectors described above. Keep one searchable company collection,
+then company → class → permitted detail, with a breadcrumb and browser Back/Forward. One company
+opens directly; overlapping administrative and shareholder relationships create one company entry.
+Show the person's own position alongside company information their current access permits.
+
+Remove the sidebar workspace selector. Dashboard chooses company context; the sidebar retains
+focused tasks with visible company context and explicitly named personal/company destinations.
+Keep authorised deep links, unsaved-draft confirmation, account boundaries and held-execution
+recovery. Company appointments and real member associations remain separate; selecting a company
+grants neither. Sharing stays opt-in and aggregate-only for members, awards stay separate from
+issued shares, and this adds no valuation or named-holder disclosure. Reuse the existing chart
+library and ring with a selectable list; mobile is unchanged by this web increment.
 
 ### Dashboard, Settings and Register for a new company
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { REGISTER_QUERY_KEY, registerKey } from '@hooks/useRegisterAccess';
-import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
+import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import {
   CACHE_TIMING,
   COMPANY_TOKEN_ENDPOINTS,
@@ -16,7 +16,9 @@ import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import CompanyDashboardPage from '.';
-import { companyPreferences, prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
+import { CompanyContextProvider } from '@components/CompanyContextProvider';
+import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
+import { companyPreferences, companyRecord, prepareCompanyClient, renderCompanyPage } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -150,10 +152,13 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
     finishOverview = resolve;
   });
   const additional = Array.from({ length: 26 }, (_, index) => register(`class-${String(index).padStart(2, '0')}`, '1'));
-  const inventory = () => (mode === 'many' ? [ordinary, preference, ...additional] : [ordinary, preference]);
+  const inventory = () =>
+    mode === 'draft-empty' ? [] : mode === 'many' ? [ordinary, preference, ...additional] : [ordinary, preference];
   api.get.mockImplementation(async (url: string, config?: { params?: { search?: string; page?: number } }) => {
     if (url === USER_PREFERENCES_ENDPOINTS.BASE)
       return { data: companyPreferences(mode === 'readable-investor' ? 'investor' : 'company') };
+    if (url === '/api/v1/companies/')
+      return paged([companyRecord({ name: 'Example Company', status: 'active', statusDisplay: 'Active' })]);
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER)
       return paged(
         inventory().map(({ token }) => ({
@@ -166,7 +171,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       if (mode === 'failed') throw new Error('Ownership read failed');
       if (mode === 'pending-overview') return pendingOverview;
       const data = overview(
-        mode === 'many'
+        mode === 'many' || mode === 'draft-empty'
           ? inventory()
           : [
               mode === 'zero' ? empty : ordinary,
@@ -193,7 +198,14 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   prepareCompanyClient(client);
-  const view = renderCompanyPage(client, <CompanyDashboardPage />, 'Dashboard');
+  const wrapped = (
+    <LedgerNavigationProvider>
+      <CompanyContextProvider>
+        <CompanyDashboardPage />
+      </CompanyContextProvider>
+    </LedgerNavigationProvider>
+  );
+  const view = renderCompanyPage(client, wrapped, 'Dashboard');
   const refresh = async () => {
     await act(async () => {
       await Promise.all([
@@ -300,7 +312,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       type: 'active',
     });
   });
-  expect(await screen.findByText('The register could not be loaded.')).toBeTruthy();
+  expect(await screen.findByText('Your ownership records could not be loaded.')).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByText('Small holder 27')).toBeNull();
@@ -343,10 +355,15 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(screen.getAllByText('Not complete')).toHaveLength(2);
   expect(screen.queryByText('9,007,199,254,741,000')).toBeNull();
   expect(screen.queryByText('0 issued shares')).toBeNull();
+  mode = 'draft-empty';
+  await refresh();
+  expect(await screen.findByText('No share classes yet.')).toBeTruthy();
+  expect(screen.getAllByText('Not complete')).toHaveLength(2);
+  expect(screen.queryByText('No issued shares yet.')).toBeNull();
   for (const failed of ['failed', 'inconsistent']) {
     mode = failed;
     await refresh();
-    expect(await screen.findByText('The register could not be loaded.')).toBeTruthy();
+    expect(await screen.findByText('Your ownership records could not be loaded.')).toBeTruthy();
     expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
     expect(screen.queryByText('Example Shareholder')).toBeNull();
   }
@@ -354,9 +371,35 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('button', { name: 'Explore ordinary shares (ORDINARY)' })).toBeTruthy();
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  expect(api.get.mock.calls.map(([url]) => url)).not.toContain('/api/v1/companies/');
+  expect(api.get.mock.calls.map(([url]) => url)).toContain('/api/v1/companies/');
   view.unmount();
   client.clear();
+
+  const previousRead = api.get.getMockImplementation()!;
+  let accountUnavailable = true;
+  api.get.mockImplementation((url, config) => {
+    if (url === USER_PREFERENCES_ENDPOINTS.BASE && accountUnavailable) throw new Error('Account unavailable');
+    return previousRead(url, config);
+  });
+  const coldClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  coldClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  const coldView = renderCompanyPage(
+    coldClient,
+    <LedgerNavigationProvider>
+      <CompanyContextProvider>
+        <CompanyDashboardPage />
+      </CompanyContextProvider>
+    </LedgerNavigationProvider>,
+    'Dashboard',
+  );
+  expect(await screen.findByText('Your account could not be loaded.')).toBeTruthy();
+  expect(screen.queryByText('Loading your account…')).toBeNull();
+  accountUnavailable = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByRole('region', { name: 'Company ownership summary' })).toBeTruthy();
+  coldView.unmount();
+  coldClient.clear();
+  api.get.mockImplementation(previousRead);
 
   for (const delayed of ['classes', 'overview', 'holders'] as const) {
     const oldRegister = register('old-class', '11');
@@ -397,6 +440,8 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
           return pending;
         }
         const row = changed ? currentRegister : oldRegister;
+        if (url === '/api/v1/companies/')
+          return paged([companyRecord({ name: 'Example Company', status: 'active', statusDisplay: 'Active' })]);
         if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER) return classesFor(row);
         if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP) {
           if (changed) currentGuard = config?.ledovaSubmissionGuard;
@@ -409,7 +454,15 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
     );
     const sessionClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     prepareCompanyClient(sessionClient);
-    const sessionView = renderCompanyPage(sessionClient, <CompanyDashboardPage />, 'Dashboard');
+    const sessionView = renderCompanyPage(
+      sessionClient,
+      <LedgerNavigationProvider>
+        <CompanyContextProvider>
+          <CompanyDashboardPage />
+        </CompanyContextProvider>
+      </LedgerNavigationProvider>,
+      'Dashboard',
+    );
     if (delayed === 'holders')
       fireEvent.click(await screen.findByRole('button', { name: 'Explore old-class shares (OLD-CLASS)' }));
     await waitFor(() => expect(requested).toBe(true));

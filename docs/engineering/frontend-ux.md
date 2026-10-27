@@ -40,13 +40,14 @@ use this workspace frame. Their creation and record actions use the same footer;
 keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
-record-management details, with awards separate from issued shares. The company Dashboard uses one
+record-management details, with awards separate from issued shares. The selected company uses one
 ownership ring beside a linked class list, with full class names before their secondary codes.
-Names wrap without displacing the figures. Select a segment or class row to open the existing ranked,
-searchable holder bar list in the same panel. A muted trailing chevron identifies class rows that open
-this detail; holder rows keep their highlight-only interaction. The selected class heading appears
-once, followed by one wrapping row for the code, totals and **All classes** control. Search stays compact on wider screens and takes
-the full width on narrow screens. Each compact holder row aligns the shareholder's name, a
+Names wrap without displacing the figures. Select a segment or class row to open an aligned class
+details card beneath the overview, with the class heading and **All classes** control together.
+A muted trailing chevron identifies class rows that open this detail; holder rows keep their
+highlight-only interaction. Show the relevant exact totals and own position, followed by the
+ranked, searchable holder list only for company-authorised readers. Search stays compact on wider
+screens and takes the full width on narrow screens. Each compact holder row aligns the shareholder's name, a
 horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
 with short transitions that honour reduced motion; keep all figures visible without a tooltip.
 Rows stack their name and figures above the bar on narrow screens. Hover and keyboard focus on the
@@ -70,25 +71,25 @@ Narrow screens show the linked list without squeezing the ring. A chart failure 
 list usable. Percentages name their denominator; issued share counts do not imply voting power,
 economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
 and keep record actions there.
-The member Dashboard uses one full-width ownership panel. Its header shows the selected company name
-on the left and, when aggregate sharing is enabled, a connected **Your shares / Company ownership**
-view selector on the right. The company name opens the existing searchable Company selector when
-several companies are linked; a single-company member sees a plain heading. Keep company context
-once, stack the controls on narrow screens, and place the figures and chart directly beneath the
-header inside the panel. Controls stay outside the ring, whose segments represent share classes.
-The Dashboard defaults to **Your shares**. The second view shows the ownership ring and linked class list. Show all issued class totals alongside
-the member's own quantity and within-class percentage; class selection highlights that position
-without a separate detail panel or other holders' records.
-Keep other holders' identities and records out of this view. Without shared figures, keep the own
-shares view without a redundant switch. Initially select the first available company; both views stay within the selected company. Preserve the chosen view
-through normal revalidation, start at Your shares after a company/account change, and return there
-when sharing becomes unavailable. Do not store the choice as an account preference or combine
-different companies' shares into a single ownership percentage. A failed selected-company read keeps
-the existing company selector available for recovery while withholding that company's figures.
-Awards remain in a separate card
-below the ownership panel in both modes. Member awards show the promise and nonzero lifecycle
-quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
-included in the holding. The member Dashboard contains only the shares and read-only award overview.
+The web Dashboard is one Ownership browser for a person's company relationships. A searchable
+company list opens the selected company's overview; a single company opens directly. Show a company
+once even when the person both administers it and holds shares. Use the same ownership ring, linked
+class list and hover/focus treatment across relationships, with the person's own position beside the
+company figures they may read. Selection progresses from company to class to permitted detail;
+keep a breadcrumb and browser Back/Forward, with company and class in the address. On narrow screens,
+stack the levels rather than squeezing several columns together.
+
+Company-authorised readers may open the class's paged holder breakdown. A member without that access
+sees only their own position and, where the company enables sharing, aggregate company/class totals.
+Other holders' identities and records stay private. Without shared figures, label the ring as the
+person's own shares by class; unavailable company totals are not zero. Keep company selection
+available after a selected-company read fails, while withholding that company's figures. Never
+combine different companies' shares into a single ownership percentage or imply a valuation.
+
+Awards remain in a separate card below the ownership panel. Member awards show the promise and
+nonzero lifecycle quantities, with the full breakdown and terms under **Award details**. Issued
+award shares are already included in the holding. The Dashboard contains the overview and read-only
+awards; requests, documents and record-management actions stay on their focused pages.
 **Company-recorded details** in Settings uses one **Your details** card in the standard workspace
 frame. **Current details** and **Update requests** form equal desktop groups separated by a hairline,
 with aligned name and address rows; they stack on smaller screens without nested cards. Address previews
@@ -348,12 +349,14 @@ as a Headless UI `Dialog`: the button reports `aria-expanded`, focus stays insid
 is open, and Escape or a choice closes it. The first Tab on a signed-in page reaches "Skip to main
 content", which moves focus to the page's heading.
 
-The workspace selector belongs below the sidebar logo and in the phone drawer, always showing
-Company or My shares. Keep company administration out of the personal menu and personal holdings
-out of the company menu. One person keeps one account, with separate company authority and member
-links; the selector grants neither. Remember the valid workspace per account, honour direct links
-and invitations, and protect edited forms before switching. Keep current context stable during an
-access reread and recheck it when confirming a switch.
+The Dashboard selects company context; there is no workspace or role selector. Keep the selected
+company visible in the sidebar and preserve its context in task links. One person uses one account:
+company appointments and actual member associations independently determine the available tasks and
+records. Company context never grants authority or links someone to a same-named shareholder.
+Personal and company document destinations must say whose records they open. Preserve authorised
+direct links and invitations without forcing a visit through Dashboard. Protect edited forms before
+changing company or returning to the company list, and block those changes during held execution.
+Recheck the account and current location before confirming navigation.
 
 The sidebar owns navigation between sections. A related group has one level of children: its label
 opens a meaningful overview or the default child, and a separate caret expands the children, without
@@ -363,10 +366,10 @@ Shareholders uses the same web pattern for **ESS**, **Member access** and **Memb
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
 **Ledger exports** and **Company pack**, with its label opening Certificates. Settings uses the same
 one-level group for **Profile** (the default), **Documents**, **Team**, **Activation** and
-**Company-recorded details**, without an extra overview page. Company shows Profile, Documents,
-Team and Activation; My shares shows Profile and linked Company-recorded details. Profile keeps
-personal information and Account shared, with Company details only in Company and under current
-company access. Personal edits never change company-recorded particulars.
+**Company-recorded details**, without an extra overview page. Profile always holds personal
+information and Account. Company Documents, Team, Activation and Company details follow current
+company access; Company-recorded details follows an actual member association. Personal edits never
+change company-recorded particulars.
 Use one compact Account card for relevant identity status, password, appearance and notifications;
 keep export and deletion under Manage account, with their existing confirmations. Payslip evidence
 belongs alongside investor classification claims, not on Profile. Documents holds company source files, distinct from the top-level Documents group for generated outputs. Show company
@@ -387,9 +390,9 @@ including Ledger, its views (Shareholders, Employee share scheme, Documents) and
 Documents view. The web exposes only Issue shares, Transfer shares and Corrections,
 replacing an incoming `#history` with `#corrections` while retaining company/class context. The web sidebar,
 page titles and parent links use `pageTitle`
-(`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. The company
-dashboard is also Dashboard; each workspace shows its own Dashboard, without a Your shares link
-in the company menu. The sidebar shows
+(`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. Dashboard is one
+company-centred explorer for all relationships, without a separate Your shares navigation mode.
+The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
@@ -607,17 +610,18 @@ name and pressing Enter), a transfer and member invitations.
 
 ## Choosing a company
 
-Every web page that asks which company to work on uses `CompanyPicker`
+Task pages that ask which company to work on use `CompanyPicker`
 (`dashboard/src/components/CompanyPicker.tsx`): the same searchable list as
 [choosing a person](#choosing-a-person), labelled **Company**, showing each company's name and, where
 it helps, a muted detail such as a draft company's ACN, never an internal identifier.
 
-- **Pages that keep their own choice:** Ledger, Dashboard, Profile’s company details, Settings Documents,
-  Activation, Offerings, Published to your members and register setup each keep their own choice through `CompanySelection`. It hides the
-  list when the account has one company and it is already chosen.
-- **Your shares** shows it when the person holds records in more than one company. On Dashboard,
-  the company name in the ownership panel's header opens it; Documents and Settings retain the
-  labelled field.
+- **Dashboard** uses its searchable company list as the first level of the Ownership browser,
+  opening a single company directly. The selected company is kept in the address and task links.
+- **Pages that keep their own choice:** Ledger, Profile’s company details, Settings Documents,
+  Activation, Offerings, Published to your members and register setup use `CompanySelection`. It
+  hides the list when the account has one company and it is already chosen.
+- **Personal Documents and Company-recorded details** retain their labelled company field when
+  several member associations are available.
 - **Pages that always show it:** Team, Representative authority (which lists only draft
   companies), Company eligibility and its wallet approvals show it whenever they ask for a company.
   Wallet approvals label theirs **Wallet approval company**, since the page has two.

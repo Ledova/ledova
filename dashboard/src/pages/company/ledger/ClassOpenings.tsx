@@ -1,4 +1,4 @@
-import { registerHoldersKey } from '@pages/company/shared/useCompanyRegister';
+import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';

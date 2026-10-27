@@ -1,3 +1,4 @@
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useState } from 'react';
 import { OFFERING_STATUS_TONES } from '@pages/company/shared/statusTones';
 import { Disclosure, Outcome, Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
@@ -122,7 +123,8 @@ function OfferingRecord({
 }
 
 export default function OfferingPage() {
-  const companyRead = useCompanySelection({ ownedOnly: true });
+  const context = useCompanyContext();
+  const companyRead = useCompanySelection({ ownedOnly: true, selectedUuid: context?.companyUuid ?? undefined });
   return (
     <CompanyOfferings key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`} companyRead={companyRead} />
   );

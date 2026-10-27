@@ -3,38 +3,15 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   downloadTokenRegister,
   getCompanyTokenHolders,
-  getRegisterClasses,
   hasCurrentRegisterReadAuthority,
-  readEveryPage,
   useSubmissionOwner,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
+import { READ_TIMING } from '@hooks/useRegisterAccess';
+import { registerHoldersKey, useRegisterClasses } from '@hooks/useRegisterClasses';
 import { saveFile } from '@utils/saveFile';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
-
-export function registerClassesKey(owner: OrderSubmissionOwner) {
-  return [...registerKey(owner), 'classes'];
-}
-
-export function registerHoldersKey(owner: OrderSubmissionOwner) {
-  return [...registerKey(owner), 'holders'];
-}
-
-export function useRegisterClasses(owner: OrderSubmissionOwner, guard: () => void) {
-  return useQuery({
-    queryKey: registerClassesKey(owner),
-    queryFn: () =>
-      readEveryPage(async (page) => {
-        guard();
-        const response = await getRegisterClasses(apiClient, { page }, { ledovaSubmissionGuard: guard });
-        guard();
-        return response;
-      }),
-    ...READ_TIMING,
-  });
-}
 
 export async function readRegister(uuid: string, guard: () => void) {
   guard();
@@ -66,6 +43,7 @@ export function useCompanyRegister(
   guard: () => void,
   retained?: { company: { uuid: string; name: string }; tokens: string[] },
   includeEmptyCompanies = false,
+  requestedCompany?: string,
 ) {
   const [selected, setSelected] = useState('');
   const classes = useRegisterClasses(owner, guard);
@@ -81,7 +59,12 @@ export function useCompanyRegister(
     ...new Map([...listed.map((item) => [item.companyUuid, item.companyName] as const), ...extra]).entries(),
   ].map(([uuid, name]) => ({ uuid, name }));
   const company =
-    retained?.company ?? (companies.length === 1 ? companies[0] : companies.find(({ uuid }) => uuid === selected));
+    retained?.company ??
+    (requestedCompany !== undefined
+      ? companies.find(({ uuid }) => uuid === requestedCompany)
+      : companies.length === 1
+        ? companies[0]
+        : companies.find(({ uuid }) => uuid === selected));
   const uuids = retained?.tokens ?? listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
   const empty = includeEmptyCompanies && !!company && uuids.length === 0;
   const registers = useQuery({

@@ -45,10 +45,11 @@ async function serveASignedInAccount(page: Page, role: Role) {
   const memberRecord = {
     uuid: 'own-record',
     member: 'investor',
-    company,
+    company: { uuid: company.uuid, name: company.name, acn: company.acn },
     name: 'Ada Lovelace',
     residentialAddress: 'Demo address',
     identitySource: 'company_recorded',
+    ownership: null,
     classes: [
       {
         uuid: 'ordinary',
@@ -61,6 +62,50 @@ async function serveASignedInAccount(page: Page, role: Role) {
       },
     ],
     awards: [],
+  };
+  const otherRecord = {
+    ...memberRecord,
+    uuid: 'other-record',
+    member: 'other-member',
+    company: { uuid: 'other-company', name: 'Second Demo Pty Ltd', acn: '929000001' },
+    classes: [{ ...memberRecord.classes[0], uuid: 'other-ordinary', shares: '12' }],
+  };
+  const members = role === 'company' ? [] : role === 'both' ? [memberRecord, otherRecord] : [memberRecord];
+  const classes = ['ordinary', 'preference'].map((uuid) => ({ uuid, companyUuid: 'company', companyName: LONG_NAME }));
+  const ownership = {
+    company: company.uuid,
+    companyName: LONG_NAME,
+    asAt: '2026-10-26T00:00:00Z',
+    complete: true,
+    issuedSupply: role === 'company' ? '0' : '140',
+    totalHolders: role === 'company' ? 0 : ORDINARY.totalHolders,
+    classes:
+      role === 'company'
+        ? []
+        : [
+            {
+              uuid: 'ordinary',
+              name: 'Ordinary shares',
+              symbol: 'ORD',
+              tokenType: 'ordinary',
+              initialized: true,
+              issuedSupply: ORDINARY.issuedSupply,
+              totalHolders: ORDINARY.totalHolders,
+              sequence: 1,
+              recordedAt: '2026-10-26T00:00:00Z',
+            },
+            {
+              uuid: 'preference',
+              name: 'Preference shares',
+              symbol: 'PRF',
+              tokenType: 'preference',
+              initialized: true,
+              issuedSupply: '5',
+              totalHolders: 1,
+              sequence: 1,
+              recordedAt: '2026-10-26T00:00:00Z',
+            },
+          ],
   };
   await page.route('**/api/**', (route) => {
     const answer = (body: unknown) =>
@@ -75,27 +120,22 @@ async function serveASignedInAccount(page: Page, role: Role) {
       if (route.request().method() === 'POST') transactionAlerts = route.request().postDataJSON().transactionAlerts;
       return answer({ userProfile: 'profile', userAccount: { uuid: 'account', role }, transactionAlerts });
     }
-    if (path === '/api/user-profiles/') {
+    if (path === '/api/user-profiles/')
       return answer({
         ...EMPTY,
         count: 1,
         results: [{ uuid: 'profile', isSignupCompleted: true, fullName: 'Ada Lovelace', email: 'ada@example.test' }],
       });
-    }
-    if (path === '/api/feature-flags/') {
+    if (path === '/api/feature-flags/')
       return answer({ ...EMPTY, count: 1, results: [{ name: 'trading_enabled', enabled: true }] });
-    }
-    if (path === '/api/v1/companies/') {
-      return answer({ ...EMPTY, count: 1, results: [company] });
-    }
+    if (path === '/api/v1/companies/')
+      return answer({ ...EMPTY, count: role === 'investor' ? 0 : 1, results: role === 'investor' ? [] : [company] });
     if (path === '/api/v1/companies/company/') return answer(company);
+    if (path === '/api/v1/tokens/member-records/') return answer({ ...EMPTY, count: members.length, results: members });
     if (path === '/api/v1/tokens/member-records/own-record/') return answer(memberRecord);
-    if (path === '/api/v1/tokens/member-records/')
-      return answer({
-        ...EMPTY,
-        count: 1,
-        results: [memberRecord],
-      });
+    if (path === '/api/v1/tokens/member-records/other-record/') return answer(otherRecord);
+    if (path.startsWith('/api/v1/tokens/member-records/') && path.endsWith('/entries/')) return answer({ entries: [] });
+    if (path === '/api/v1/company-authority/companies/company/team/') return answer([]);
     if (path === '/api/v1/company-authority/appointments/' && role === 'both')
       return answer({
         ...EMPTY,
@@ -117,14 +157,11 @@ async function serveASignedInAccount(page: Page, role: Role) {
           },
         ],
       });
-    if (path === '/api/v1/tokens/register/' && role !== 'company')
-      return answer({
-        ...EMPTY,
-        count: 2,
-        results: ['ordinary', 'preference'].map((uuid) => ({ uuid, companyUuid: 'company', companyName: LONG_NAME })),
-      });
-    if (path === '/api/v1/tokens/ordinary/holders/' && role !== 'company') return answer(ORDINARY);
-    if (path === '/api/v1/tokens/preference/holders/' && role !== 'company')
+    if (path === '/api/v1/tokens/register/')
+      return answer({ ...EMPTY, count: role === 'both' ? classes.length : 0, results: role === 'both' ? classes : [] });
+    if (path === '/api/v1/tokens/ownership/') return answer(ownership);
+    if (path === '/api/v1/tokens/ordinary/holders/') return answer(ORDINARY);
+    if (path === '/api/v1/tokens/preference/holders/')
       return answer({
         ...ORDINARY,
         token: { ...ORDINARY.token, uuid: 'preference', name: 'Preference shares', symbol: 'PRF' },
@@ -132,45 +169,12 @@ async function serveASignedInAccount(page: Page, role: Role) {
         totalHolders: 1,
         holders: [{ ...ORDINARY.holders[0], balance: '5', percentage: 100, shareClass: 'PRF' }],
       });
-    if (path === '/api/v1/tokens/ownership/' && role !== 'company')
-      return answer({
-        company: company.uuid,
-        companyName: LONG_NAME,
-        asAt: '2026-10-26T00:00:00Z',
-        complete: true,
-        issuedSupply: '140',
-        totalHolders: ORDINARY.totalHolders,
-        classes: [
-          {
-            uuid: ORDINARY.token.uuid,
-            name: ORDINARY.token.name,
-            symbol: ORDINARY.token.symbol,
-            tokenType: 'ordinary',
-            initialized: true,
-            issuedSupply: ORDINARY.issuedSupply,
-            totalHolders: ORDINARY.totalHolders,
-            sequence: 1,
-            recordedAt: '2026-10-26T00:00:00Z',
-          },
-          {
-            uuid: 'preference',
-            name: 'Preference shares',
-            symbol: 'PRF',
-            tokenType: 'preference',
-            initialized: true,
-            issuedSupply: '5',
-            totalHolders: 1,
-            sequence: 1,
-            recordedAt: '2026-10-26T00:00:00Z',
-          },
-        ],
-      });
-    if (path === '/api/v1/tokens/ordinary/ownership-holders/' && role !== 'company')
+    if (path === '/api/v1/tokens/ordinary/ownership-holders/')
       return answer({
         count: ORDINARY.totalHolders,
         next: null,
         previous: null,
-        token: ORDINARY.token.uuid,
+        token: 'ordinary',
         sequence: 1,
         issuedSupply: ORDINARY.issuedSupply,
         asAt: '2026-10-26T00:00:00Z',
@@ -186,191 +190,165 @@ async function serveASignedInAccount(page: Page, role: Role) {
   return reads;
 }
 
+async function visibleSidebar(page: Page) {
+  if (page.viewportSize()!.width < 1024) {
+    const opener = page.getByRole('button', { name: 'Open navigation' });
+    if ((await opener.getAttribute('aria-expanded')) !== 'true') await opener.click();
+    await expect(page.getByRole('button', { name: 'Close navigation', exact: true })).toBeVisible();
+  }
+  const aside = page.locator('aside').filter({ visible: true });
+  await expect(aside).toHaveCount(1);
+  return aside;
+}
+
+async function closeSidebar(page: Page) {
+  if (page.viewportSize()!.width < 1024) {
+    const opener = page.getByRole('button', { name: 'Open navigation' });
+    const closer = page.getByRole('button', { name: 'Close navigation', exact: true });
+    if ((await opener.getAttribute('aria-expanded')) === 'true') {
+      await expect(closer).toBeVisible();
+      await closer.click();
+    }
+    await expect(opener).toHaveAttribute('aria-expanded', 'false');
+    await expect(closer).not.toBeVisible();
+  }
+}
+
 async function openTheSidebar(page: Page, role: Role) {
   const reads = await serveASignedInAccount(page, role);
   await page.goto('/');
-  await expect(page).toHaveURL(/\/company\/dashboard$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
-  if (role !== 'company') {
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
+  if (role === 'both') {
+    await expect(page).toHaveURL(/\/home$/);
+    await page.getByRole('button', { name: new RegExp(`^${LONG_NAME}`) }).click();
+  }
+  await expect(page).toHaveURL(/\/home\?company=company$/);
+  if (role === 'both') {
     const summary = page.getByRole('region', { name: 'Company ownership summary' });
     await expect(summary).toContainText('Issued shares140');
     await expect(summary).toContainText('Current shareholders2');
-    if (page.viewportSize()!.width >= 768) {
-      const ring = page
-        .locator('section')
-        .filter({ has: page.getByRole('heading', { name: 'Ownership overview', exact: true }) })
-        .locator('svg:not([aria-hidden="true"])');
-      await expect(ring).toBeVisible();
-      await page.getByRole('button', { name: 'Explore Preference shares (PRF)', exact: true }).focus();
-      await ring.scrollIntoViewIfNeeded();
-      const box = await ring.boundingBox();
-      expect(box).not.toBeNull();
-      await page.mouse.click(
-        box!.x + box!.width / 2 + Math.min(box!.width, box!.height) * 0.38,
-        box!.y + box!.height / 2,
-      );
-    } else {
-      await page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true }).click();
-    }
-    const ownership = page.getByRole('list', { name: 'Ordinary shares shareholders' });
-    const founder = ownership.getByRole('button', { name: 'Highlight Founder’s holding' });
-    const investor = ownership.getByRole('button', { name: 'Highlight Investor’s holding' });
-    await expect(founder).toBeVisible();
-    await expect(founder).toHaveAccessibleDescription('100 shares 74.07% of ORD');
-    await expect(investor).toBeVisible();
-    await expect(investor).toHaveAccessibleDescription('35 shares 25.93% of ORD');
+    if (page.viewportSize()!.width >= 768)
+      await expect(page.locator('main svg:not([aria-hidden="true"])')).toBeVisible();
+    await page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true }).click();
+    await expect(page).toHaveURL(/company=company&class=ordinary/);
+    const holders = page.getByRole('list', { name: 'Ordinary shares shareholders' });
+    await expect(holders.getByRole('button', { name: 'Highlight Founder’s holding' })).toHaveAccessibleDescription(
+      '100 shares 74.07% of ORD',
+    );
+    await expect(holders.getByRole('button', { name: 'Highlight Investor’s holding' })).toHaveAccessibleDescription(
+      '35 shares 25.93% of ORD',
+    );
     await page.getByRole('button', { name: 'All classes', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true })).toBeFocused();
+    await page
+      .getByRole('navigation', { name: 'Ownership trail' })
+      .getByRole('button', { name: 'Your companies', exact: true })
+      .click();
+    await page.getByRole('button', { name: /^Second Demo Pty Ltd/ }).click();
+    await expect(page).toHaveURL(/company=other-company/);
+    await expect(page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true })).toContainText('12');
+    let aside = await visibleSidebar(page);
+    await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(0);
+    await closeSidebar(page);
+    await page
+      .getByRole('navigation', { name: 'Ownership trail' })
+      .getByRole('button', { name: 'Your companies', exact: true })
+      .click();
+    await page.getByRole('button', { name: new RegExp(`^${LONG_NAME}`) }).click();
+    aside = await visibleSidebar(page);
+    await expect(aside.getByRole('link', { name: 'Your certificates', exact: true })).toHaveAttribute(
+      'href',
+      '/home?company=company#documents',
+    );
+  } else if (role === 'investor') {
+    await expect(page.getByText('Your issued shares', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true }).click();
+    await expect(page.getByRole('list', { name: 'Ordinary shares shareholders' })).toHaveCount(0);
+    await expect(
+      page.getByText('Only your own holdings and awards are shown. Other shareholders’ records are private.'),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'All classes', exact: true }).click();
+  } else {
+    await expect(page.getByRole('region', { name: 'Company ownership summary' })).toContainText(
+      'Issued sharesNot complete',
+    );
   }
   expect(await page.locator('html').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
-  const phone = page.viewportSize()!.width < 1024;
-  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
-  const aside = page.locator('aside').filter({ visible: true });
-  await expect(aside).toHaveCount(1);
+  let aside = await visibleSidebar(page);
   await expect(aside.getByRole('button', { name: 'Sign out' })).toBeInViewport();
-  await expect(aside.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
-  await expect(aside.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
-  await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(role === 'company' ? 0 : 1);
-  await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveValue('company');
-  await expect(aside.getByRole('link', { name: 'Your shares', exact: true })).toHaveCount(0);
-  await expect(aside.getByText(LONG_NAME)).toHaveCount(0);
-  if (role !== 'company') {
-    const toggle = aside.getByRole('button', { name: 'Expand Ledger navigation' });
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await toggle.click();
-    await expect(aside.getByRole('button', { name: 'Collapse Ledger navigation' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
+  await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveCount(0);
+  await expect(aside.getByText(LONG_NAME, { exact: true })).toBeVisible();
+  await expect(aside.getByRole('link', { name: 'Dashboard', exact: true })).toHaveAttribute(
+    'href',
+    '/home?company=company',
+  );
+  await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
+  if (role === 'both') {
+    await aside.getByRole('button', { name: 'Expand Ledger navigation' }).click();
     for (const [name, hash] of [
       ['Issue shares', 'issue'],
       ['Transfer shares', 'transfer'],
       ['Corrections', 'corrections'],
-    ]) {
-      await expect(aside.getByRole('link', { name, exact: true })).toHaveAttribute('href', `/company/ledger#${hash}`);
-    }
-    await expect(aside.getByRole('link', { name: 'History', exact: true })).toHaveCount(0);
+    ])
+      await expect(aside.getByRole('link', { name, exact: true })).toHaveAttribute(
+        'href',
+        `/company/ledger?company=company#${hash}`,
+      );
     await aside.getByRole('link', { name: 'Corrections', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Corrections', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Class details', exact: true })).toHaveCount(0);
-    if (phone) {
-      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-      await page.getByRole('button', { name: 'Open navigation' }).click();
-    }
+    aside = await visibleSidebar(page);
     await expect(aside.getByRole('link', { name: 'Corrections', exact: true })).toHaveAttribute('aria-current', 'page');
-    await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).not.toHaveAttribute('aria-current');
     await aside.getByRole('link', { name: 'Ledger', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Ledger', exact: true })).toBeVisible();
-    if (phone) {
-      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-      await page.getByRole('button', { name: 'Open navigation' }).click();
-    }
-    await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveAttribute('aria-current', 'page');
-    await expect(aside.getByRole('link', { name: 'ESS', exact: true })).toHaveCount(0);
+    aside = await visibleSidebar(page);
     await aside.getByRole('button', { name: 'Expand Shareholders navigation' }).click();
-    const shareholders = aside.getByRole('link', { name: 'Shareholders', exact: true }).locator('../..');
-    const awards = shareholders.getByRole('link', { name: 'ESS', exact: true, includeHidden: true });
-    await expect(awards).toHaveAttribute('href', '/company/ledger#awards');
-    await expect(awards).toHaveAttribute('title', 'Employee share scheme');
-    await expect(aside.getByRole('link', { name: 'ESS', exact: true })).toHaveCount(1);
-    await awards.click();
+    await expect(aside.getByRole('link', { name: 'ESS', exact: true })).toHaveAttribute(
+      'href',
+      '/company/ledger?company=company#awards',
+    );
+    await aside.getByRole('link', { name: 'ESS', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Employee share scheme', exact: true })).toBeVisible();
-    if (phone) {
-      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-      await page.getByRole('button', { name: 'Open navigation' }).click();
-    }
-    await expect(awards).toHaveAttribute('aria-current', 'page');
-    await expect(shareholders.getByRole('link', { name: 'Shareholders', exact: true })).not.toHaveAttribute(
-      'aria-current',
-    );
-    await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).not.toHaveAttribute('aria-current');
-    await expect(aside.getByRole('button', { name: 'Collapse Shareholders navigation' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
-    const documents = aside.getByRole('link', { name: 'Documents', exact: true }).locator('../..');
-    const documentsLink = documents.getByRole('link', { name: 'Documents', exact: true });
-    await expect(documentsLink).toHaveAttribute('href', '/company/ledger#certificates');
-    await expect(documents.getByRole('button', { name: 'Expand Documents navigation' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-    await documentsLink.click();
-    await expect(page).toHaveURL(/\/company\/ledger#certificates$/);
+    aside = await visibleSidebar(page);
+    await aside.getByRole('link', { name: 'Documents', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Certificates', exact: true })).toBeVisible();
-    if (phone) {
-      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-      await page.getByRole('button', { name: 'Open navigation' }).click();
-    }
-    const certificates = documents.getByRole('link', { name: 'Certificates', exact: true });
-    const exports = documents.getByRole('link', { name: 'Ledger exports', exact: true });
-    const pack = documents.getByRole('link', { name: 'Company pack', exact: true });
-    await expect(certificates).toHaveAttribute('href', '/company/ledger#certificates');
-    await expect(exports).toHaveAttribute('href', '/company/ledger#ledger-exports');
-    await expect(pack).toHaveAttribute('href', '/company/ledger#company-pack');
-    await expect(certificates).toHaveAttribute('aria-current', 'page');
-    await expect(documentsLink).not.toHaveAttribute('aria-current');
-    await expect(awards).not.toHaveAttribute('aria-current');
-    await documents.getByRole('button', { name: 'Collapse Documents navigation' }).click();
-    await expect(documents.getByRole('button', { name: 'Expand Documents navigation' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-    await expect(certificates).not.toBeVisible();
-    await expect(page).toHaveURL(/\/company\/ledger#certificates$/);
-    await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
-    await expect(documents.getByRole('button', { name: 'Collapse Documents navigation' })).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
-    await exports.click();
-    await expect(page).toHaveURL(/\/company\/ledger#ledger-exports$/);
+    aside = await visibleSidebar(page);
+    for (const [name, hash] of [
+      ['Certificates', 'certificates'],
+      ['Ledger exports', 'ledger-exports'],
+      ['Company pack', 'company-pack'],
+    ])
+      await expect(aside.getByRole('link', { name, exact: true })).toHaveAttribute(
+        'href',
+        `/company/ledger?company=company#${hash}`,
+      );
+    await aside.getByRole('link', { name: 'Ledger exports', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Ledger exports', exact: true })).toBeVisible();
-    if (phone) {
-      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-      await page.getByRole('button', { name: 'Open navigation' }).click();
-    }
-    await expect(exports).toHaveAttribute('aria-current', 'page');
-    await expect(certificates).not.toHaveAttribute('aria-current');
-    await pack.click();
-    await expect(page).toHaveURL(/\/company\/ledger#company-pack$/);
+    aside = await visibleSidebar(page);
+    await aside.getByRole('link', { name: 'Company pack', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Company pack', exact: true })).toBeVisible();
-    if (phone) {
-      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-      await page.getByRole('button', { name: 'Open navigation' }).click();
-    }
-    await expect(pack).toHaveAttribute('aria-current', 'page');
-    await expect(exports).not.toHaveAttribute('aria-current');
-    await expect(documentsLink).not.toHaveAttribute('aria-current');
+    aside = await visibleSidebar(page);
   }
   const settings = aside.getByRole('link', { name: 'Settings', exact: true }).locator('../..');
   const settingsLink = settings.getByRole('link', { name: 'Settings', exact: true });
-  await expect(settingsLink).toHaveAttribute('href', '/settings#profile');
+  await expect(settingsLink).toHaveAttribute('href', '/settings?company=company#profile');
   await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
-  await expect(settings.getByRole('button', { name: 'Collapse Settings navigation' })).toHaveAttribute(
-    'aria-expanded',
-    'true',
+  await expect(settings.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute(
+    'href',
+    '/settings?company=company#profile',
   );
-  const profile = settings.getByRole('link', { name: 'Profile', exact: true });
-  await expect(profile).toHaveAttribute('href', '/settings#profile');
-  await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveAttribute('href', '/company/team');
-  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(0);
-  await expect(settings.getByRole('link', { name: 'Company', exact: true })).toHaveCount(0);
-  await expect(settings.getByRole('link', { name: 'Account', exact: true })).toHaveCount(0);
-  await expect(settings.getByRole('link', { name: 'Documents', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
-  await expect(settings.getByRole('link', { name: 'Activation', exact: true })).toHaveCount(role === 'both' ? 1 : 0);
+  await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
+  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(
+    role === 'company' ? 0 : 1,
+  );
   await settingsLink.click();
-  await expect(page).toHaveURL(/\/settings#profile$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
-  for (const name of ['Personal information', 'Account'])
-    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(
     role === 'investor' ? 0 : 1,
   );
-  await expect(page.getByRole('link', { name: 'Back to Settings', exact: true })).toHaveCount(0);
+  for (const name of ['Personal information', 'Account'])
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   for (const name of ['Account status', 'Security', 'Preferences', 'Data and privacy', 'Supporting payslips'])
     await expect(page.getByRole('heading', { name, exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Review identity check', exact: true })).toHaveCount(1);
   const manageAccount = page.getByRole('button', { name: 'Manage account', exact: true });
   await manageAccount.click();
   await expect(page.getByRole('button', { name: 'Export data', exact: true })).toBeVisible();
@@ -382,110 +360,29 @@ async function openTheSidebar(page: Page, role: Role) {
     const alerts = page.getByRole('switch', { name: 'Transaction alerts', exact: true });
     await alerts.click();
     await expect(alerts).toHaveAttribute('aria-checked', 'true');
-    await expect(page.getByRole('form', { name: 'Edit company', exact: true })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Trading name', exact: true })).toHaveValue('Unsent company draft');
-    if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
-    await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('my-shares');
-    const leave = page.getByRole('dialog', { name: 'Leave this workspace?', exact: true });
-    await expect(leave.getByRole('heading', { name: 'Leave this workspace?', exact: true })).toBeVisible();
+    aside = await visibleSidebar(page);
+    await aside.getByRole('link', { name: 'Dashboard', exact: true }).click();
+    const leave = page.getByRole('dialog', { name: 'Leave this page?', exact: true });
+    await expect(leave.getByRole('heading', { name: 'Leave this page?', exact: true })).toBeVisible();
     await leave.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await expect(leave.getByRole('heading', { name: 'Leave this workspace?', exact: true })).not.toBeVisible();
-    if (phone) {
-      const closeNavigation = page.getByRole('button', { name: 'Close navigation', exact: true });
-      await closeNavigation.click();
-      await expect(closeNavigation).not.toBeVisible();
-    }
+    await expect(leave.getByRole('heading', { name: 'Leave this page?', exact: true })).not.toBeVisible();
+    await closeSidebar(page);
     await expect(page.getByRole('textbox', { name: 'Trading name', exact: true })).toHaveValue('Unsent company draft');
-    if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
-    await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('my-shares');
-    await leave.getByRole('button', { name: 'Leave workspace', exact: true }).click();
-    await expect(page).toHaveURL(/\/home$/);
-    if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
-    await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveValue('my-shares');
-    await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('company');
-    await expect(page).toHaveURL(/\/company\/dashboard$/);
-    await page.goto('/settings#profile');
-    await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
+    aside = await visibleSidebar(page);
+    await aside.getByRole('link', { name: 'Dashboard', exact: true }).click();
+    await leave.getByRole('button', { name: 'Leave page', exact: true }).click();
+    await expect(page).toHaveURL(/\/home\?company=company$/);
   }
-  if (phone) {
-    await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-    await page.getByRole('button', { name: 'Open navigation' }).click();
-  }
-  await expect(profile).toHaveAttribute('aria-current', 'page');
-  if (role !== 'investor') {
-    const sourceDocuments = settings.getByRole('link', { name: 'Documents', exact: true });
-    await sourceDocuments.click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Documents', exact: true })).toBeVisible();
-    if (phone) {
-      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-      await page.getByRole('button', { name: 'Open navigation' }).click();
-    }
-    await expect(sourceDocuments).toHaveAttribute('aria-current', 'page');
-    await expect(profile).not.toHaveAttribute('aria-current');
-    await profile.click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
-    if (phone) {
-      await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-      await page.getByRole('button', { name: 'Open navigation' }).click();
-    }
-  }
-  await expect(profile).toHaveAttribute('aria-current', 'page');
-  for (const alias of ['/company', '/user-profile', '/settings#account']) {
-    await page.goto(alias);
-    await expect(page).toHaveURL(/\/settings#profile$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Account', exact: true })).toBeVisible();
-  }
-  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
-  await expect(profile).toHaveAttribute('aria-current', 'page');
-  await settings.getByRole('link', { name: 'Team', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Team', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Accept a company invitation', exact: true })).toBeVisible();
-  if (phone) {
-    await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-    await page.getByRole('button', { name: 'Open navigation' }).click();
-  }
-  await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveAttribute('aria-current', 'page');
-  if (phone) {
-    const cachedReads = { ...reads };
-    expect(cachedReads.memberLists).toBeGreaterThan(0);
-    await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'Navigation' })).not.toBeVisible();
-    await page.getByRole('button', { name: 'Open navigation' }).click();
-    await settings.getByRole('button', { name: 'Collapse Settings navigation' }).click();
-    await expect(settings.getByRole('button', { name: 'Expand Settings navigation' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-    await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
-    await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveAttribute('aria-current', 'page');
-    expect(reads).toEqual(cachedReads);
-  }
-  await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('my-shares');
-  await expect(page).toHaveURL(/\/home$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
-  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
-  await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveValue('my-shares');
-  await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(0);
-  await expect(aside.getByRole('link', { name: 'Shareholders', exact: true })).toHaveCount(0);
-  await aside.getByRole('link', { name: 'Settings', exact: true }).click();
+  await page.goto('/settings?company=company#profile');
   await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(0);
-  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
-  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(1);
-  for (const label of ['Team', 'Documents', 'Activation'])
-    await expect(settings.getByRole('link', { name: label, exact: true })).toHaveCount(0);
-  await page.goto('/');
-  await expect(page).toHaveURL(/\/home$/);
-  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
-  await aside.getByRole('combobox', { name: 'Workspace' }).selectOption('company');
-  await expect(page).toHaveURL(/\/company\/dashboard$/);
-  await page.goto('/home#documents');
-  await expect(page.getByRole('heading', { level: 1, name: 'Documents', exact: true })).toBeVisible();
-  if (phone) await page.getByRole('button', { name: 'Open navigation' }).click();
-  await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveValue('my-shares');
-  await aside.locator('summary').filter({ hasText: 'More' }).click();
+  aside = await visibleSidebar(page);
+  const more = aside.locator('summary').filter({ hasText: 'More' });
+  if ((await more.locator('..').getAttribute('open')) === null) await more.click();
+  await expect(aside.getByRole('link', { name: 'Wallets', exact: true })).toBeVisible();
   if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();
+  await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveCount(0);
+  expect(reads.memberLists).toBeGreaterThan(0);
   return aside;
 }
 
@@ -497,14 +394,12 @@ async function checkTheCutEdge(aside: ReturnType<Page['locator']>) {
   const list = aside.locator('nav').locator('..');
   const foot = aside.locator(':scope > :last-child');
   const help = aside.getByRole('link', { name: 'Help & Support' });
-
   expect(await list.evaluate((node) => node.scrollHeight - node.clientHeight)).toBeGreaterThan(0);
   expect(await list.evaluate((node) => node.nextElementSibling === node.parentElement?.lastElementChild)).toBe(true);
   await expect(foot).toContainText('Sign out');
   await expect(foot).toHaveCSS('border-top-style', 'solid');
   await expect(foot).toHaveCSS('border-top-width', '1px');
   expect(Math.abs((await foot.boundingBox())!.y - bottomOf(await list.boundingBox()))).toBeLessThan(0.5);
-
   expect(await list.evaluate((node) => node.lastElementChild?.textContent)).toBe('Help & Support');
   await list.evaluate((node) => {
     node.scrollTop = node.scrollHeight;
@@ -521,41 +416,18 @@ test.describe('the signed-in sidebar when its list is longer than the screen', (
     },
     { name: 'the desktop sidebar', viewport: { width: 1440, height: 600 }, roles: ['both'] as Role[] },
   ];
-
-  for (const layout of layouts) {
+  for (const layout of layouts)
     for (const role of layout.roles) {
       test(`cuts the ${role} list at the foot's rule in ${layout.name}, with Help & Support at the list's end`, async ({
         page,
       }) => {
         await page.setViewportSize(layout.viewport);
-
         await checkTheCutEdge(await openTheSidebar(page, role));
         if (role === 'investor') {
-          for (const endpoint of [
-            '/api/v1/tokens/register/',
-            '/api/v1/companies/',
-            '/api/v1/company-authority/appointments/',
-          ])
-            await page.route(`**${endpoint}*`, (route) =>
-              route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(EMPTY) }),
-            );
-          await page.goto('/settings#profile');
-          await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
-          const workspace = page
-            .locator('aside')
-            .filter({ visible: true })
-            .getByRole('combobox', { name: 'Workspace' });
-          await expect(workspace).toHaveValue('my-shares');
-          await expect(workspace.locator('option[value="company"]')).toHaveCount(0);
-          await page.getByRole('button', { name: 'Close navigation', exact: true }).click();
-          await page.getByRole('button', { name: 'Manage account', exact: true }).click();
-          const invitation = page.getByRole('link', { name: 'Accept a company invitation', exact: true });
-          await expect(invitation).toHaveAttribute('href', '/company/team');
-          await invitation.click();
+          await page.goto('/company/team');
           await page.getByRole('button', { name: 'Accept a company invitation', exact: true }).click();
           await expect(page.getByRole('textbox', { name: 'Invitation code', exact: true })).toBeVisible();
         }
       });
     }
-  }
 });

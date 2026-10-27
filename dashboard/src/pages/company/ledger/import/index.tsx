@@ -19,7 +19,7 @@ import {
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
-import { useRegisterClasses, registerClassesKey } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses, registerClassesKey } from '@hooks/useRegisterClasses';
 import { importsKey, useRegisterImports } from '@pages/company/ledger/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';

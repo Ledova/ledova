@@ -15,7 +15,7 @@ import { Page } from '@components/Page';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
 import { describeEntry } from '@pages/company/shared/proposals';
 
-import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses } from '@hooks/useRegisterClasses';
 
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';

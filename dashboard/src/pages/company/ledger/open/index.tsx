@@ -15,7 +15,7 @@ import {
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 
-import { useRegisterClasses } from '@pages/company/shared/useCompanyRegister';
+import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 

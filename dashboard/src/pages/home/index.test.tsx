@@ -1,12 +1,18 @@
 // @vitest-environment jsdom
 
+import { TestRouter } from '../../testSupport/TestRouter';
+
 import { registerKey } from '@hooks/useRegisterAccess';
 import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
+import { CompanyContextProvider } from '@components/CompanyContextProvider';
+import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { CompanyRecordedDetails } from '@pages/settings/CompanyRecordedDetails';
 
 import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
+  COMPANY_ENDPOINTS,
+  OWN_APPOINTMENTS_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   USER_PREFERENCES_QUERY_KEY,
   type TokenHoldersResponse,
@@ -15,7 +21,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -123,8 +129,9 @@ it('invites and associates a walletless member, recovers one exact request and r
       const current = client.getQueryData<{ data: typeof preferences }>(USER_PREFERENCES_QUERY_KEY)?.data;
       return page([{ uuid: current?.userProfile, isSignupCompleted: signupCompleted }]);
     }
+    if (url === COMPANY_ENDPOINTS.BASE) return page([]);
     if (url === '/api/v1/company-authority/appointments/')
-      return page([{ ...OUTPUT_APPOINTMENT, capabilities: ['admin', 'prepare'] }]);
+      return page(associated ? [] : [{ ...OUTPUT_APPOINTMENT, capabilities: ['admin', 'prepare'] }]);
     if (url === URLS.MEMBER_INVITATIONS) return page(invitation ? [invitation] : []);
     if (url === URLS.REGISTER_AWARDS) return page([]);
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
@@ -268,7 +275,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <MemoryRouter initialEntries={['/home']}>{children}</MemoryRouter>
+        <TestRouter initialEntries={['/home']}>{children}</TestRouter>
       </ApiClientProvider>
     </QueryClientProvider>
   );
@@ -428,26 +435,34 @@ it('invites and associates a walletless member, recovers one exact request and r
     },
     otherCertificate,
   );
+  await act(async () => {
+    await client.refetchQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY });
+  });
   const memberPages = (
     <MemberRecordsProvider>
-      <nav>
-        <Link to="/home">Dashboard</Link>
-        <Link to="/home#documents">Documents</Link>
-        <Link to="/settings#company-recorded-details">Settings</Link>
-      </nav>
-      <Routes>
-        <Route path="/home" element={<MemberRecordsPage />} />
-        <Route path="/settings" element={<CompanyRecordedDetails />} />
-      </Routes>
+      <LedgerNavigationProvider>
+        <CompanyContextProvider>
+          <nav>
+            <Link to="/home">Dashboard</Link>
+            <Link to="/home#documents">Documents</Link>
+            <Link to="/settings#company-recorded-details">Settings</Link>
+          </nav>
+          <Routes>
+            <Route path="/home" element={<MemberRecordsPage />} />
+            <Route path="/settings" element={<CompanyRecordedDetails />} />
+          </Routes>
+        </CompanyContextProvider>
+      </LedgerNavigationProvider>
     </MemberRecordsProvider>
   );
   const memberView = render(memberPages, { wrapper });
-  await screen.findByText('10 issued shares');
+  await screen.findByText('Your issued shares');
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  expect(screen.queryByRole('button', { name: /Change company/ })).toBeNull();
   expect(screen.queryByRole('group', { name: 'Ownership view' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
-  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  const shareClasses = screen.getByRole('list', { name: 'Share classes' });
+  expect(within(shareClasses).getByRole('button', { name: 'Explore Ordinary (ORD)' })).toBeTruthy();
+  expect(within(shareClasses).getByText('10')).toBeTruthy();
   expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
@@ -495,25 +510,23 @@ it('invites and associates a walletless member, recovers one exact request and r
   const ownDetailKey = ['member-records', 'profile-one', 'account-one', 0, MEMBER_RECORD.uuid];
   currentMemberRecord = { ...MEMBER_RECORD, ownership };
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
-  expect((await screen.findByRole('button', { name: 'Your shares' })).getAttribute('aria-pressed')).toBe('true');
-  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
-  const companyOverview = screen.getByRole('group', { name: 'Ownership view' }).closest('section')!;
-  expect(screen.getByRole('region', { name: 'Company ownership summary' }).textContent).toContain('1,500');
-  expect(within(companyOverview).getByText('1.00% of class')).toBeTruthy();
-  expect(screen.queryByRole('img', { name: /Your issued shares by class/ })).toBeNull();
-  const preference = within(companyOverview).getByRole('button', { name: 'Highlight Preference (PRF)' });
+  const companySummary = await screen.findByRole('region', { name: 'Company ownership summary' });
+  expect(companySummary.textContent).toContain('1,500');
+  expect(screen.queryByRole('button', { name: 'Your shares' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Company ownership' })).toBeNull();
+  const preference = screen.getByRole('button', { name: 'Explore Preference (PRF)' });
   fireEvent.click(preference);
-  expect(preference.getAttribute('aria-pressed')).toBe('true');
-  fireEvent.click(preference);
-  expect(preference.getAttribute('aria-pressed')).toBe('false');
-  fireEvent.click(screen.getByRole('button', { name: 'Your shares' }));
-  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
-  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
-  await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
-  expect((await screen.findByRole('button', { name: 'Company ownership' })).getAttribute('aria-pressed')).toBe('true');
-  expect(screen.getByRole('region', { name: 'Company ownership summary' }).textContent).toContain('1,500');
+  await screen.findByRole('heading', { name: 'Preference' });
+  const classDetails = screen.getByRole('heading', { name: 'Preference' }).closest('section')!;
+  expect(within(classDetails).getByText('0')).toBeTruthy();
+  expect(within(classDetails).getByText('0.00%')).toBeTruthy();
+  expect(screen.queryByRole('searchbox', { name: 'Search shareholders' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Explore Ordinary (ORD)' }));
+  const ordinaryDetails = (await screen.findByRole('heading', { name: 'Ordinary' })).closest('section')!;
+  expect(within(ordinaryDetails).getByText('1.00%')).toBeTruthy();
+  expect(within(ordinaryDetails).getByText('10')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
   holdMemberRecord = true;
   release = undefined;
   let refreshing: Promise<void>;
@@ -526,25 +539,27 @@ it('invites and associates a walletless member, recovers one exact request and r
     release!();
     await refreshing;
   });
-  expect((await screen.findByRole('button', { name: 'Company ownership' })).getAttribute('aria-pressed')).toBe('true');
-  expect(api.get.mock.calls.some(([url]) => url === URLS.OWNERSHIP)).toBe(false);
+  expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('1,500');
+  expect(
+    api.get.mock.calls.some(
+      ([url]) => url === URLS.OWNERSHIP || (typeof url === 'string' && url.includes('/ownership-holders/')),
+    ),
+  ).toBe(false);
   currentMemberRecord = {
     ...MEMBER_RECORD,
     classes: [...MEMBER_RECORD.classes, { ...MEMBER_RECORD.classes[0], shares: '999' }],
     ownership,
   };
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
-  await screen.findByText('Your current share quantities are unavailable.');
+  await screen.findByText('The current ownership figures could not be confirmed.');
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByText('1,500')).toBeNull();
   currentMemberRecord = { ...MEMBER_RECORD, ownership: { ...ownership, company: 'foreign-company' } };
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
-  await waitFor(() => expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull());
-  expect(screen.getByRole('img', { name: /Your issued shares by class/ })).toBeTruthy();
+  await screen.findByText('Your issued shares');
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   currentMemberRecord = { ...MEMBER_RECORD, ownership };
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey, exact: true }));
-  expect((await screen.findByRole('button', { name: 'Your shares' })).getAttribute('aria-pressed')).toBe('true');
-  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
   await screen.findByRole('region', { name: 'Company ownership summary' });
   preferencesRefused = true;
   await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
@@ -552,17 +567,16 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.queryByText('1,500')).toBeNull();
   preferencesRefused = false;
   await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Company ownership' }));
   await screen.findByRole('region', { name: 'Company ownership summary' });
   await act(async () => {
     client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
       data: { userProfile: 'other-profile', userAccount: { uuid: 'other-account', role: 'investor' } },
     });
   });
-  await screen.findByRole('heading', { name: 'Get access to your shares' });
+  await screen.findByText(/No company relationships yet/);
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences }));
-  expect((await screen.findByRole('button', { name: 'Your shares' })).getAttribute('aria-pressed')).toBe('true');
+  await screen.findByRole('region', { name: 'Company ownership summary' });
   additionalRecords = [2, 3].map((number) => {
     const uuid = `${number}aaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`;
     const member = `${number}bbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`;
@@ -603,35 +617,22 @@ it('invites and associates a walletless member, recovers one exact request and r
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey.slice(0, -1), exact: true }));
   memberView.unmount();
   render(memberPages, { wrapper });
-  await screen.findByText('10 issued shares');
-  expect(screen.getByRole('button', { name: 'Your shares' }).getAttribute('aria-pressed')).toBe('true');
+  const companies = await screen.findByRole('list', { name: 'Your companies' });
+  expect(within(companies).getAllByRole('button')).toHaveLength(3);
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  const chooseCompany = async (name: string) => {
-    fireEvent.click(await screen.findByRole('button', { name: /Change company/ }));
-    await choose('Company', name);
-  };
-  await chooseCompany('Company 2');
-  await screen.findByText('20 issued shares');
-  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  expect(screen.getByRole('button', { name: 'Change company (Company 2)' })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Your shares' }).getAttribute('aria-pressed')).toBe('true');
-  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
-  expect(screen.getByRole('region', { name: 'Company ownership summary' }).textContent).toContain('2,000');
+  fireEvent.click(within(companies).getByRole('button', { name: /^Company 2\s*Member$/ }));
+  expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('2,000');
+  expect(screen.getByRole('list', { name: 'Share classes' }).textContent).toContain('You: 20');
   expect(screen.queryByText('1,500')).toBeNull();
-  await chooseCompany('Company 3');
-  await screen.findByText('30 issued shares');
-  expect(screen.getByRole('button', { name: 'Your shares' }).getAttribute('aria-pressed')).toBe('true');
+  fireEvent.click(screen.getByRole('button', { name: /^Company 3\s*Member$/ }));
+  expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('3,000');
+  expect(screen.getByRole('list', { name: 'Share classes' }).textContent).toContain('You: 30');
   expect(screen.queryByText('2,000')).toBeNull();
-  await chooseCompany(MEMBER_RECORD.company.name);
-  await screen.findByText('10 issued shares');
-  expect(screen.getByRole('button', { name: 'Your shares' }).getAttribute('aria-pressed')).toBe('true');
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.company.name}\\s*Member$`) }));
+  expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('1,500');
   additionalRecords = [];
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey.slice(0, -1), exact: true }));
-  await waitFor(() => expect(screen.queryByRole('button', { name: /Change company/ })).toBeNull());
-  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  fireEvent.click(await screen.findByRole('button', { name: 'Company ownership' }));
-  await screen.findByRole('region', { name: 'Company ownership summary' });
+  await waitFor(() => expect(screen.queryByRole('list', { name: 'Your companies' })).toBeNull());
   currentMemberRecord = { ...MEMBER_RECORD, ownership: null };
   holdMemberRecord = true;
   release = undefined;
@@ -639,14 +640,14 @@ it('invites and associates a walletless member, recovers one exact request and r
     refreshing = client.refetchQueries({ queryKey: ownDetailKey, exact: true });
   });
   await waitFor(() => expect(release).toBeTypeOf('function'));
-  await waitFor(() => expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull());
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByText('1,500')).toBeNull();
   await act(async () => {
     release!();
     await refreshing;
   });
-  await screen.findByRole('img', { name: /Your issued shares by class/ });
-  await waitFor(() => expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull());
+  await screen.findByText('Your issued shares');
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByRole('group', { name: 'Ownership view' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
   const detailsCard = (await screen.findByRole('heading', { name: 'Current details' })).closest('section')!;
