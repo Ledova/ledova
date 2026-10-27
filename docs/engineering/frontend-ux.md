@@ -441,7 +441,7 @@ way:
 A load error's Try again and recovery actions keep their label while they run; a form's submit
 button that also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
 placeholder and Trading keep their own controls, and dialog footers use the
-same order as `FormActions`. Mobile's `Action` has no busy or pressed form yet.
+same order as `FormActions`. Mobile's `Action` has no busy or pressed form.
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
@@ -458,7 +458,8 @@ signing steps. Reversible actions, such as signing out, turning a switch off or 
 an unsaved form, aren't confirmed. Dismissing a notification archives it at once. Register
 decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are
 confirmed by their own review, dialog or form. The dashboard uses no browser `confirm` or `alert`
-(ESLint's `no-alert`). Mobile doesn't follow this yet: some of these actions run at once there.
+(ESLint's `no-alert`). Mobile asks first before withdrawing a certificate request or deleting the
+account.
 
 ## Feedback
 
@@ -484,7 +485,8 @@ identifier in their own details. It reports:
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and `CopyButton` (the payment instruction's values and the
 company's and an approved offering's UUIDs) confirms a copy with Copied beside the button.
-Ledger's other forms don't use `Outcome`. Mobile still reports success with native alerts.
+Ledger's other forms don't use `Outcome`. Mobile reports a changed password, and some failures,
+in native alerts.
 
 ## Copy
 
@@ -492,8 +494,9 @@ Text uses sentence case: titles, labels, buttons and options capitalise only the
 names, such as page names (Back to Shareholders), document names (Terms of Service) and
 organisations. An ellipsis is one character, "…"; ESLint refuses three dots in the text of the
 dashboard's and the shared package's source. Labels the backend supplies, such as company and
-document types and some statuses ("Under Review", "Awaiting Payment"), keep its title case. Mobile's
-own copy doesn't follow this yet (#1201); the shared strings it shows do.
+document types and some statuses ("Under Review", "Awaiting Payment"), keep its title case. Parts of
+mobile's own copy, such as sign-up and its native alerts, use title case or three dots; the shared
+strings it shows follow this.
 
 Copy and tone maps meant for both clients live in `packages/shared`. The web also reads the identity
 verification outcomes (`IDENTITY_OUTCOME_COPY`), their tones (`VERIFICATION_TONES`) and an
@@ -765,8 +768,8 @@ A class's awards, grants, allotments, openings, imports, non-paid transfers, dep
 reconciliation, notices, offer documents and an offering's applications take their empty sentence
 from shared copy in `packages/shared/src/constants/business/`. On the web, a section with no
 corrections, register entries or particulars changes is hidden instead, and so is one with no wallet
-links unless wallets are waiting for a link you can prepare. Other empty sentences are each client's
-own, and mobile's move to these words under [#1201](https://github.com/Ledova/ledova/issues/1201).
+links unless wallets are waiting for a link you can prepare. Other empty sentences, including
+mobile's, are each client's own.
 A sentence that reports a state rather than an empty list keeps its own words, such as "No votes
 need your attention." or "No orders listed." for a market's live order book. A class's awards,
 grants, allotments, non-paid transfers and deployments, and an award's vesting and entitlement
@@ -945,8 +948,7 @@ by a local helper or a browser `toLocale…` call:
   values. A register's amounts paid and unpaid show as recorded, without `formatMoney`, because the
   register cannot name a single currency for them
   ([amount paid](../business/register.md#amount-paid-and-date-entered)).
-  Mobile still shows some raw dates until
-  [#1201](https://github.com/Ledova/ledova/issues/1201).
+  Mobile's screens format their dates the same way.
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
   shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
@@ -954,7 +956,7 @@ by a local helper or a browser `toLocale…` call:
   states, a deployment's swap approval, an application's status on company records, order states
   and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
   for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
-  register entry kinds). Mobile follows in [#1201](https://github.com/Ledova/ledova/issues/1201).
+  register entry kinds). Mobile reads its statuses from shared maps too.
 - **Identifiers.** Records show names. Where only an identifier tells records apart, the screen
   shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight characters),
   never the full UUID, including in choices and screen-reader context. Internal user numbers are
@@ -966,8 +968,8 @@ by a local helper or a browser `toLocale…` call:
   on Offerings.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
-  refuses inline ISO date slicing ([forms](#forms)). Mobile follows in
-  [#1201](https://github.com/Ledova/ledova/issues/1201).
+  refuses inline ISO date slicing ([forms](#forms)). Mobile's ESLint configuration has neither
+  rule.
 
 Next: [frontend](frontend.md), [mobile](mobile.md) and
 [the register's person choice](../business/register.md#choosing-a-person).

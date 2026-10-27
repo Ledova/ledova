@@ -52,12 +52,12 @@ expansion tickets were [closed as not planned on 18 October](../../decisions.md#
 | [#1185](https://github.com/Ledova/ledova/issues/1185)                                                                                                               | ESS in the web sidebar, Employee share scheme as the page title                                                                                   |
 | [#1215](https://github.com/Ledova/ledova/issues/1215)                                                                                                               | Initial Class rights text records and document references, with retained revisions and company-administrator editing (web); refined under #1165    |
 | [#1165](https://github.com/Ledova/ledova/issues/1165)                                                                                                               | Ledger routes and Class rights, simpler setup, focused issue/transfer reviews, combined audit and correction view, class-selected ESS under Shareholders, aligned Documents preparation and [emailed member invitations](../../business/member-records.md#member-access) (web) |
+| [#1201](https://github.com/Ledova/ledova/issues/1201)                                                                                                               | The [mobile app for shareholders](../../decisions.md#mobile-app-for-shareholders): Holdings with company, class and award pages and certificates, Documents, Account with invitations and each company's details, and share-event notifications; company administration and the investing screens removed from mobile |
 
 ## Remaining scope
 
 | Issue                                               | Remaining                                         | Current prerequisites                              |
 | --------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
-| [#1201](https://github.com/Ledova/ledova/issues/1201) | Mobile people, issue placement and UX refinements | Resumed on 24 October 2026 for the finished web pages |
 | [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance | Genuine device/human and configured-chain evidence |
 
 Programme [#860](https://github.com/Ledova/ledova/issues/860), now closed, tracked the transition to one registry
