@@ -1,6 +1,5 @@
 import { useId } from 'react';
 import { formatShareCount, hasWholeShares, shareCount, type OwnMemberRecord } from '@ledova/shared';
-import { Section } from '@components/Ledger';
 
 const SERIES = [
   'var(--color-brand-light)',
@@ -14,11 +13,9 @@ export function OwnSharesOverview({ classes }: { classes: OwnMemberRecord['class
   const id = useId();
   if (!hasWholeShares(classes) || new Set(classes.map((item) => item.uuid)).size !== classes.length)
     return (
-      <Section title="Your shares">
-        <p role="status" className="text-sm text-text-muted">
-          Your current share quantities are unavailable.
-        </p>
-      </Section>
+      <p role="status" className="text-sm text-text-muted">
+        Your current share quantities are unavailable.
+      </p>
     );
   const holdings = classes.filter((item) => BigInt(item.shares) > 0n);
   const total = holdings.reduce((sum, item) => sum + BigInt(item.shares), 0n);
@@ -29,7 +26,7 @@ export function OwnSharesOverview({ classes }: { classes: OwnMemberRecord['class
   });
   const colors = new Map(holdings.map((item, index) => [item.uuid, SERIES[index % SERIES.length]]));
   return (
-    <Section title="Your shares">
+    <>
       <dl className="grid grid-cols-2 gap-4 border-b border-border-subtle pb-4 sm:gap-6">
         {[
           ['Your holding', shareCount(String(total), 'issued')],
@@ -119,6 +116,6 @@ export function OwnSharesOverview({ classes }: { classes: OwnMemberRecord['class
           </table>
         </div>
       )}
-    </Section>
+    </>
   );
 }

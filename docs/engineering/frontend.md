@@ -723,16 +723,20 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   render only while incomplete; the existing parent condition hides the card when both tasks are
   complete.
 - Personal dashboard: reads the person's own member projection and defaults to Your shares for the
-  selected company. With several current associations, the existing searchable Company selector
-  chooses one, with the first available association selected initially; a single association needs no
-  selector. When that company enables aggregate sharing,
+  selected company. One ownership panel contains the company header, connected view selector,
+  figures and chart. With several current associations, the company name opens the existing
+  searchable Company selector, with the first available association selected initially; a single
+  association uses a plain heading. Documents and Settings keep their existing labelled selector.
+  When that company enables aggregate sharing,
   Company ownership is a second view: `dashboard/src/pages/home/MemberCompanyOwnership.tsx` uses the
   shared ring and metrics with a page-owned list of all class totals and the person's own position.
   Its own-shares view sums issued shares with `BigInt` and charts only their shares by class.
   Keep view intent outside the gated content so ordinary revalidation does not reset it; key it to
   the account and selected association, and discard company-view intent when sharing becomes
-  unavailable. No new storage or refresh timer is needed. Read-only awards remain separate entitlements, with the promise
-  and nonzero lifecycle quantities above their full breakdown and terms in Award details.
+  unavailable. A failed selected-company read retains the existing company selector for recovery
+  and withholds its figures. No new storage or refresh timer is needed. Read-only awards remain
+  separate entitlements, with the promise and nonzero lifecycle quantities above their full
+  breakdown and terms in Award details.
   Company-recorded details in Settings groups current particulars and update-request records in one
   card, side by side on desktop and stacked on smaller screens, with one shared action footer.
   Request update opens a focused inline form; successful submission closes it and clears consent,

@@ -1,6 +1,5 @@
 import { useId, useState } from 'react';
 import { formatShareCount, searchRows, sharePercentage } from '@ledova/shared';
-import { Section } from '@components/Ledger';
 import { ListSearch, Pager } from '@components/List';
 import { OwnershipMetrics } from '@components/ownership/OwnershipMetrics';
 import { OwnershipRing } from '@components/ownership/OwnershipRing';
@@ -35,109 +34,107 @@ export function MemberCompanyOwnership({ ownership }: { ownership: SharedOwnersh
   const searchable = ownership.classes.length > 10 || !!list.typed || !!list.search;
   return (
     <>
-      <OwnershipMetrics summary={ownership} />
-      <Section title="Company ownership">
-        <p className="text-sm text-text-muted">By issued share count</p>
-        {!ownership.complete ? (
-          <p role="status" className="text-sm text-text-muted">
-            Company ownership is incomplete until every class has an opened register and confirmed figures.
-          </p>
-        ) : ownership.issuedSupply === '0' ? (
-          <p className="text-sm text-text-muted">No issued shares yet.</p>
-        ) : null}
-        <div className={hasRing ? 'grid min-w-0 gap-6 md:grid-cols-2 md:items-start' : 'min-w-0'}>
-          {hasRing && (
-            <OwnershipRing
-              classes={ownership.classes}
-              issuedSupply={ownership.issuedSupply!}
-              highlighted={highlighted}
-              onHighlight={setHovered}
-              onSelect={select}
+      <OwnershipMetrics summary={ownership} embedded />
+      <p className="text-sm text-text-muted">By issued share count</p>
+      {!ownership.complete ? (
+        <p role="status" className="text-sm text-text-muted">
+          Company ownership is incomplete until every class has an opened register and confirmed figures.
+        </p>
+      ) : ownership.issuedSupply === '0' ? (
+        <p className="text-sm text-text-muted">No issued shares yet.</p>
+      ) : null}
+      <div className={hasRing ? 'grid min-w-0 gap-6 md:grid-cols-2 md:items-start' : 'min-w-0'}>
+        {hasRing && (
+          <OwnershipRing
+            classes={ownership.classes}
+            issuedSupply={ownership.issuedSupply!}
+            highlighted={highlighted}
+            onHighlight={setHovered}
+            onSelect={select}
+          />
+        )}
+        <div className="flex min-w-0 flex-col gap-3">
+          {searchable && (
+            <ListSearch
+              label="Search share classes"
+              list={list}
+              noun={['share class', 'share classes']}
+              count={found.length}
             />
           )}
-          <div className="flex min-w-0 flex-col gap-3">
-            {searchable && (
-              <ListSearch
-                label="Search share classes"
-                list={list}
-                noun={['share class', 'share classes']}
-                count={found.length}
-              />
-            )}
-            {shown.length === 0 ? (
-              <p className="text-sm text-text-muted">No share classes match your search.</p>
-            ) : (
-              <>
-                <div
-                  aria-hidden="true"
-                  className="grid grid-cols-[minmax(0,1fr)_5rem_5.5rem] gap-3 px-3 text-xs text-text-muted"
-                >
-                  <span>Share class</span>
-                  <span className="text-right">Issued shares</span>
-                  <span className="text-right">Your shares</span>
-                </div>
-                <ul aria-label="Company share classes" className="divide-y divide-border-subtle">
-                  {shown.map((row) => (
-                    <li key={row.uuid}>
-                      <button
-                        type="button"
-                        aria-label={`Highlight ${row.name} (${row.symbol})`}
-                        aria-pressed={selected === row.uuid}
-                        aria-describedby={`${id}-${row.uuid} ${id}-${row.uuid}-own`}
-                        className={`grid w-full grid-cols-[minmax(0,1fr)_5rem_5.5rem] items-center gap-3 rounded-lg px-3 py-3 text-left text-sm hover:bg-surface-tertiary focus-visible:bg-surface-tertiary motion-safe:transition-colors motion-safe:duration-150 ${highlighted === row.uuid ? 'bg-surface-tertiary' : ''}`}
-                        onMouseEnter={() => setHovered(row.uuid)}
-                        onMouseLeave={() => setHovered(null)}
-                        onFocus={() => setFocused(row.uuid)}
-                        onBlur={() => setFocused(null)}
-                        onClick={() => select(row.uuid)}
-                      >
-                        <span className="flex min-w-0 items-start gap-2">
-                          <span
-                            aria-hidden="true"
-                            className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: ownershipColor(ownership.classes, row.uuid) }}
-                          />
-                          <span className="min-w-0">
-                            <span className="block break-words font-medium text-text-primary">{row.name}</span>
-                            <span className="block break-all text-text-muted">{row.symbol}</span>
-                          </span>
+          {shown.length === 0 ? (
+            <p className="text-sm text-text-muted">No share classes match your search.</p>
+          ) : (
+            <>
+              <div
+                aria-hidden="true"
+                className="grid grid-cols-[minmax(0,1fr)_3.5rem_4rem] gap-2 px-2 text-xs text-text-muted sm:grid-cols-[minmax(0,1fr)_5rem_5.5rem] sm:gap-3 sm:px-3"
+              >
+                <span>Share class</span>
+                <span className="text-right">Issued shares</span>
+                <span className="text-right">Your shares</span>
+              </div>
+              <ul aria-label="Company share classes" className="divide-y divide-border-subtle">
+                {shown.map((row) => (
+                  <li key={row.uuid}>
+                    <button
+                      type="button"
+                      aria-label={`Highlight ${row.name} (${row.symbol})`}
+                      aria-pressed={selected === row.uuid}
+                      aria-describedby={`${id}-${row.uuid} ${id}-${row.uuid}-own`}
+                      className={`grid w-full grid-cols-[minmax(0,1fr)_3.5rem_4rem] items-center gap-2 rounded-lg px-2 py-3 text-left text-sm hover:bg-surface-tertiary focus-visible:bg-surface-tertiary sm:grid-cols-[minmax(0,1fr)_5rem_5.5rem] sm:gap-3 sm:px-3 motion-safe:transition-colors motion-safe:duration-150 ${highlighted === row.uuid ? 'bg-surface-tertiary' : ''}`}
+                      onMouseEnter={() => setHovered(row.uuid)}
+                      onMouseLeave={() => setHovered(null)}
+                      onFocus={() => setFocused(row.uuid)}
+                      onBlur={() => setFocused(null)}
+                      onClick={() => select(row.uuid)}
+                    >
+                      <span className="flex min-w-0 items-start gap-2">
+                        <span
+                          aria-hidden="true"
+                          className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: ownershipColor(ownership.classes, row.uuid) }}
+                        />
+                        <span className="min-w-0">
+                          <span className="block break-words font-medium text-text-primary">{row.name}</span>
+                          <span className="block break-all text-text-muted">{row.symbol}</span>
                         </span>
-                        <span id={`${id}-${row.uuid}`} className="text-right tabular-nums">
-                          <span className="block break-all text-text-primary">
-                            {row.issuedSupply === null ? 'Unavailable' : formatShareCount(row.issuedSupply)}
-                            <span className="sr-only"> issued shares</span>
-                          </span>
-                          {hasRing && row.issuedSupply !== null && (
-                            <span className="block text-xs text-text-muted">
-                              {sharePercentage(row.issuedSupply, ownership.issuedSupply!)}
-                              <span className="sr-only"> of company issued shares</span>
-                            </span>
-                          )}
+                      </span>
+                      <span id={`${id}-${row.uuid}`} className="text-right tabular-nums">
+                        <span className="block break-all text-text-primary">
+                          {row.issuedSupply === null ? 'Unavailable' : formatShareCount(row.issuedSupply)}
+                          <span className="sr-only"> issued shares</span>
                         </span>
-                        <span id={`${id}-${row.uuid}-own`} className="text-right tabular-nums">
-                          <span className="block break-all font-medium text-text-primary">
-                            {row.ownShares === null ? 'Unavailable' : formatShareCount(row.ownShares)}
-                            <span className="sr-only"> held by you</span>
+                        {hasRing && row.issuedSupply !== null && (
+                          <span className="block text-xs text-text-muted">
+                            {sharePercentage(row.issuedSupply, ownership.issuedSupply!)}
+                            <span className="sr-only"> of company issued shares</span>
                           </span>
-                          {row.ownShares !== null && row.issuedSupply !== null && row.issuedSupply !== '0' && (
-                            <span className="block text-xs text-text-muted">
-                              {sharePercentage(row.ownShares, row.issuedSupply)} of class
-                            </span>
-                          )}
+                        )}
+                      </span>
+                      <span id={`${id}-${row.uuid}-own`} className="text-right tabular-nums">
+                        <span className="block break-all font-medium text-text-primary">
+                          {row.ownShares === null ? 'Unavailable' : formatShareCount(row.ownShares)}
+                          <span className="sr-only"> held by you</span>
                         </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            {ownership.classes.length > PAGE_SIZE && (
-              <Pager label="Share classes" list={list} noun={['share class', 'share classes']} count={found.length} />
-            )}
-          </div>
+                        {row.ownShares !== null && row.issuedSupply !== null && row.issuedSupply !== '0' && (
+                          <span className="block text-xs text-text-muted">
+                            {sharePercentage(row.ownShares, row.issuedSupply)} of class
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {ownership.classes.length > PAGE_SIZE && (
+            <Pager label="Share classes" list={list} noun={['share class', 'share classes']} count={found.length} />
+          )}
         </div>
-        <p className="text-xs text-text-muted">Share counts show composition, not voting power or value.</p>
-      </Section>
+      </div>
+      <p className="text-xs text-text-muted">Share counts show composition, not voting power or value.</p>
     </>
   );
 }
