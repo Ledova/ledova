@@ -14,7 +14,11 @@ export function ownershipView(summary: CompanyOwnershipSummary | undefined, reco
     (!hasWholeShares(record.classes) || new Set(record.classes.map(({ uuid }) => uuid)).size !== record.classes.length)
   )
     return null;
-  const company = summary ?? (record ? sharedMemberOwnership(record) : null);
+  const recorded = summary ?? (record ? sharedMemberOwnership(record) : null);
+  const company =
+    recorded && recorded.classes.length === 0
+      ? { ...recorded, complete: false, issuedSupply: null, totalHolders: null }
+      : recorded;
   if (company) {
     const classes: OwnershipClass[] = company.classes.map((row) => ({
       ...row,

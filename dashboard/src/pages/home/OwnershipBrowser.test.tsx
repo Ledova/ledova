@@ -152,7 +152,8 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
     finishOverview = resolve;
   });
   const additional = Array.from({ length: 26 }, (_, index) => register(`class-${String(index).padStart(2, '0')}`, '1'));
-  const inventory = () => (mode === 'many' ? [ordinary, preference, ...additional] : [ordinary, preference]);
+  const inventory = () =>
+    mode === 'draft-empty' ? [] : mode === 'many' ? [ordinary, preference, ...additional] : [ordinary, preference];
   api.get.mockImplementation(async (url: string, config?: { params?: { search?: string; page?: number } }) => {
     if (url === USER_PREFERENCES_ENDPOINTS.BASE)
       return { data: companyPreferences(mode === 'readable-investor' ? 'investor' : 'company') };
@@ -170,7 +171,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       if (mode === 'failed') throw new Error('Ownership read failed');
       if (mode === 'pending-overview') return pendingOverview;
       const data = overview(
-        mode === 'many'
+        mode === 'many' || mode === 'draft-empty'
           ? inventory()
           : [
               mode === 'zero' ? empty : ordinary,
@@ -354,6 +355,11 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(screen.getAllByText('Not complete')).toHaveLength(2);
   expect(screen.queryByText('9,007,199,254,741,000')).toBeNull();
   expect(screen.queryByText('0 issued shares')).toBeNull();
+  mode = 'draft-empty';
+  await refresh();
+  expect(await screen.findByText('No share classes yet.')).toBeTruthy();
+  expect(screen.getAllByText('Not complete')).toHaveLength(2);
+  expect(screen.queryByText('No issued shares yet.')).toBeNull();
   for (const failed of ['failed', 'inconsistent']) {
     mode = failed;
     await refresh();

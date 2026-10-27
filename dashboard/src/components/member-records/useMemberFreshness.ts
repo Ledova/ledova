@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { USER_PREFERENCES_QUERY_KEY, type useMemberRecords } from '@ledova/shared';
 
-export function useMemberFreshness(read: ReturnType<typeof useMemberRecords>) {
+export function useMemberFreshness(read: ReturnType<typeof useMemberRecords>, enabled = true) {
   const client = useQueryClient();
   const current = useRef(read);
   const resume = useRef<() => void>(() => {});
@@ -10,6 +10,7 @@ export function useMemberFreshness(read: ReturnType<typeof useMemberRecords>) {
     current.current = read;
   }, [read]);
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     let running = false;
     let pending = false;
@@ -67,6 +68,8 @@ export function useMemberFreshness(read: ReturnType<typeof useMemberRecords>) {
       document.removeEventListener('visibilitychange', request);
       resume.current = () => {};
     };
-  }, [client]);
-  useEffect(() => resume.current(), [read.owner, read.busy, read.refreshing]);
+  }, [client, enabled]);
+  useEffect(() => {
+    if (enabled) resume.current();
+  }, [read.owner, read.busy, read.refreshing, enabled]);
 }

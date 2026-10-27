@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { DESTINATIONS } from '@ledova/shared';
+import { DESTINATIONS, useSubmissionOwner } from '@ledova/shared';
+import { useState } from 'react';
 import { Page } from '@components/Page';
 import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
@@ -23,9 +24,15 @@ function Profile() {
   const navigation = useSettingsNavigation();
   const profile = useUserProfile();
   const context = useCompanyContext();
-  const showCompany = context ? !!context.company?.canManage : navigation.canManageCompany;
+  const { owner } = useSubmissionOwner();
+  const allowed = context ? !!context.company?.canManage : navigation.canManageCompany;
   const accessError = navigation.isError || context?.directory.hasError;
-  const accessLoading = navigation.isLoading || context?.directory.isLoading;
+  const accessLoading = navigation.isLoading || context?.directory.isLoading || context?.directory.isRefreshing;
+  const key = owner ? `${owner.userUuid}/${owner.ownerAccountUuid}/${context?.companyUuid ?? ''}` : null;
+  const [admitted, setAdmitted] = useState<string | null>(null);
+  if (allowed && admitted !== key) setAdmitted(key);
+  if (admitted && (!key || (!allowed && !accessLoading && !accessError))) setAdmitted(null);
+  const showCompany = allowed || (!!key && admitted === key && (accessLoading || accessError));
   return (
     <PageTitle.Provider value="Profile">
       <Page>

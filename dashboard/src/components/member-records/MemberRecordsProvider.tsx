@@ -7,16 +7,16 @@ import { useMemberFreshness } from './useMemberFreshness';
 const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open: false };
 
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
+  return <MemberSession>{children}</MemberSession>;
+}
+
+function MemberSession({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const active = [DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path].some(
     (path) => path === pathname,
   );
-  return active ? <MemberSession>{children}</MemberSession> : children;
-}
-
-function MemberSession({ children }: { children: ReactNode }) {
   const read = useMemberRecords(() => crypto.randomUUID(), undefined, { coordinatedRefresh: true });
-  useMemberFreshness(read);
+  useMemberFreshness(read, active);
   return (
     <MemberState key={`${read.scopeOwner?.userUuid}/${read.scopeOwner?.ownerAccountUuid}`} read={read}>
       {children}
@@ -28,6 +28,9 @@ function MemberState({ children, read }: { children: ReactNode; read: ReturnType
   const location = useLocation();
   const navigate = useNavigate();
   const requested = new URLSearchParams(location.search).get('company');
+  const active = [DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path].some(
+    (path) => path === location.pathname,
+  );
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [token, setToken] = useState('');
   const selectionOwner = useRef<typeof read.owner>(null);
@@ -42,7 +45,7 @@ function MemberState({ children, read }: { children: ReactNode; read: ReturnType
     }
   }, [read.retry, read.requests, held]);
   useEffect(() => {
-    if (!read.owner || !read.listReady || read.busy || read.refreshing || read.retry) return;
+    if (!active || draft.open || !read.owner || !read.listReady || read.busy || read.refreshing || read.retry) return;
     const wanted = requested
       ? (read.records.find(({ company }) => company.uuid === requested)?.uuid ?? '')
       : read.records.length === 1
@@ -66,6 +69,8 @@ function MemberState({ children, read }: { children: ReactNode; read: ReturnType
     read.selectedUuid,
     read.select,
     requested,
+    active,
+    draft.open,
   ]);
   useEffect(() => {
     if (read.record && !held) {
@@ -87,12 +92,6 @@ function MemberState({ children, read }: { children: ReactNode; read: ReturnType
         token,
         select: (uuid) => {
           if (read.busy || read.refreshing || read.retry || !read.owner) return;
-          selectionOwner.current = read.owner;
-          initialHistory.current = '';
-          particularsRequest.current = '';
-          setToken('');
-          setDraft(EMPTY_DRAFT);
-          read.select(uuid);
           const company = read.records.find((record) => record.uuid === uuid)?.company.uuid;
           if (company) {
             const next = new URLSearchParams(location.search);

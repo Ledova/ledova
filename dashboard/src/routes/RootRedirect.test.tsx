@@ -10,7 +10,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, useNavigate } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
 import {
   APPOINTMENT,
@@ -27,6 +27,7 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { ownershipCompaniesKey } from '@hooks/useOwnershipCompanies';
 import { RootRedirect } from './RootRedirect';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';
+import { TestRouter } from '../testSupport/TestRouter';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -34,6 +35,7 @@ vi.mock('@services/apiClient', () => ({ default: api }));
 function ContextActions() {
   const context = useCompanyContext();
   const ledger = useLedgerNavigation();
+  const navigate = useNavigate();
   return (
     <>
       <output aria-label="Selected company">{context?.company?.name ?? 'No company selected'}</output>
@@ -41,6 +43,8 @@ function ContextActions() {
       <button onClick={() => context?.selectCompany('company-b')}>Choose company B</button>
       <button onClick={() => ledger.setState({ company: 'company-a', blocked: true, held: true })}>Hold action</button>
       <button onClick={() => ledger.setState({ company: 'company-a', blocked: false })}>Release action</button>
+      <button onClick={() => void navigate(-1)}>Browser Back</button>
+      <button onClick={() => void navigate(1)}>Browser Forward</button>
       <Link to="/">Check access</Link>
     </>
   );
@@ -102,7 +106,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     render(
       <QueryClientProvider client={client}>
         <ApiClientProvider client={api as unknown as AxiosInstance}>
-          <MemoryRouter initialEntries={[entry]}>
+          <TestRouter initialEntries={[entry]}>
             <LedgerNavigationProvider>
               <CompanyContextProvider>
                 <Routes>
@@ -114,6 +118,12 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
                         <Sidebar />
                         <main>
                           <p>Unified overview</p>
+                          <form>
+                            <label>
+                              Dashboard draft
+                              <input />
+                            </label>
+                          </form>
                           <ContextActions />
                         </main>
                       </>
@@ -142,7 +152,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
                 </Routes>
               </CompanyContextProvider>
             </LedgerNavigationProvider>
-          </MemoryRouter>
+          </TestRouter>
         </ApiClientProvider>
       </QueryClientProvider>,
     );
@@ -163,6 +173,32 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
       target: { value: 'Unfinished draft' },
     });
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }));
+    expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
+    expect(screen.queryByText('Unified overview')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect((screen.getByRole('textbox', { name: 'Draft reference' }) as HTMLInputElement).value).toBe(
+      'Unfinished draft',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
+    expect(await screen.findByText('Unified overview')).toBeTruthy();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Dashboard draft' }), {
+      target: { value: 'Unfinished dashboard draft' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Forward' }));
+    expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Ledger task' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect((screen.getByRole('textbox', { name: 'Dashboard draft' }) as HTMLInputElement).value).toBe(
+      'Unfinished dashboard draft',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Forward' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
+    await screen.findByRole('heading', { name: 'Ledger task' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
+      target: { value: 'Unfinished draft' },
+    });
     fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
     expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
     expect(screen.queryByText('Unified overview')).toBeNull();
@@ -175,6 +211,9 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     expect(await screen.findByText('Unified overview')).toBeTruthy();
     fireEvent.click(screen.getByRole('link', { name: 'Ledger' }));
     fireEvent.click(screen.getByRole('button', { name: 'Hold action' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Leave this page?' })).toBeNull());
+    expect(screen.getByRole('heading', { name: 'Ledger task' })).toBeTruthy();
     fireEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
     fireEvent.click(screen.getByRole('button', { name: 'Choose company B' }));
     expect(screen.getByRole('heading', { name: 'Ledger task' })).toBeTruthy();

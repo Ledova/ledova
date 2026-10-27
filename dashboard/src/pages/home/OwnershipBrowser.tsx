@@ -349,7 +349,11 @@ function SignedInOwnership({
                                     </>
                                   )}
                                   <Link
-                                    to={generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid })}
+                                    to={
+                                      context?.companyPath(
+                                        generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid }),
+                                      ) ?? generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid })
+                                    }
                                     state={{ registerCompany: company.uuid }}
                                     className="w-fit text-sm text-brand-light underline"
                                   >

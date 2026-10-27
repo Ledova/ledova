@@ -54,7 +54,7 @@ frame share, and `packages/shared` holds what both clients share.
 
 | `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                             |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `BrowserRouter`), fonts and stylesheets; `App.tsx` renders `Layout` around the route table                                                                                                                           |
+| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                                                                                                                           |
 | `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `TradingRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                   |
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `qr/`, and single components several areas show (`AwardStatus.tsx`) |
@@ -307,11 +307,11 @@ company context takes precedence. A single company opens directly. Company relat
 current company access, appointments and real member associations, including draft companies with
 no classes. Selection changes neither account audience nor authority.
 Company changes and return to the company list confirm before discarding an edited, still-open
-form; held Ledger work prevents those changes. The confirmation is bound to the current account
+form, including browser Back and Forward through React Router’s `useBlocker`; held Ledger or member work prevents those changes. The confirmation is bound to the current account
 and location. Authorised deep links and invitations remain usable without visiting Dashboard first.
 
-The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key, or
-`companyDashboard`, optionally with a view (`/company/ledger#shareholders`, `#awards`,
+The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key,
+optionally with a view (`/company/ledger#shareholders`, `#awards`,
 `#certificates`, `#ledger-exports`, `#company-pack`, `/home#documents`). The web also names
 Shareholders' `#member-access` and `#member-requests` views. Ledger's label opens its overview; a separate caret expands
 Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`), marking the active

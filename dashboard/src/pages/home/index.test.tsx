@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { TestRouter } from '../../testSupport/TestRouter';
+
 import { registerKey } from '@hooks/useRegisterAccess';
 import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
@@ -19,7 +21,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes } from 'react-router-dom';
 import { webcrypto } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -273,7 +275,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <MemoryRouter initialEntries={['/home']}>{children}</MemoryRouter>
+        <TestRouter initialEntries={['/home']}>{children}</TestRouter>
       </ApiClientProvider>
     </QueryClientProvider>
   );

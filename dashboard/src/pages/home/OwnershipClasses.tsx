@@ -47,7 +47,9 @@ export function OwnershipClasses({
       </p>
       {!complete && (
         <p role="status" className="text-sm text-text-muted">
-          Company totals are incomplete until every class has an opened ledger.
+          {classes.length
+            ? 'Company totals are incomplete until every class has an opened ledger.'
+            : 'Set up the ledger to record company ownership.'}
         </p>
       )}
       {total === '0' && <p className="text-sm text-text-muted">No issued shares yet.</p>}
@@ -130,7 +132,7 @@ export function OwnershipClasses({
       </div>
       <p className="text-xs text-text-muted">
         {personalOnly
-          ? 'Company ownership has not been shared. This ring shows only your issued shares.'
+          ? 'Company ownership is unavailable. This ring shows your issued shares.'
           : 'Share counts show composition, not voting power or value.'}
       </p>
     </>

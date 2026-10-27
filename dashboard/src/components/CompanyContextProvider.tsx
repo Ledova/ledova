@@ -1,11 +1,27 @@
-import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { matchPath, useLocation, useNavigate } from 'react-router-dom';
+import { useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  matchPath,
+  useBeforeUnload,
+  useBlocker,
+  useLocation,
+  useNavigate,
+  type BlockerFunction,
+} from 'react-router-dom';
 import { DESTINATIONS, useSubmissionOwner } from '@ledova/shared';
 import { CompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipCompanies } from '@hooks/useOwnershipCompanies';
+import { documentView } from '@utils/destinations';
 import { useLedgerNavigation } from './LedgerNavigation';
 import { Confirmation } from './Modal';
 import { MemberWorkspaceContext } from './member-records/useMemberWorkspace';
+
+function ledgerParams(pathname: string) {
+  return Object.values(DESTINATIONS)
+    .filter(({ path }) => path.startsWith(DESTINATIONS.companyRegister.path))
+    .sort((left, right) => Number(left.path.includes(':')) - Number(right.path.includes(':')))
+    .map(({ path }) => matchPath(path, pathname)?.params)
+    .find(Boolean);
+}
 
 export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const { owner, boundary } = useSubmissionOwner();
@@ -15,17 +31,12 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const ledger = useLedgerNavigation();
   const member = useContext(MemberWorkspaceContext);
   const dirtyForms = useRef(new WeakSet<HTMLFormElement>());
-  const [leaving, setLeaving] = useState<{
+  const requested = useRef(false);
+  const [blockedAt, setBlockedAt] = useState<{
     owner: typeof owner;
     location: string;
-    company: string | null;
-    path: string;
   } | null>(null);
-  const params = Object.values(DESTINATIONS)
-    .filter(({ path }) => path.startsWith(DESTINATIONS.companyRegister.path))
-    .sort((left, right) => Number(left.path.includes(':')) - Number(right.path.includes(':')))
-    .map(({ path }) => matchPath(path, location.pathname)?.params)
-    .find(Boolean);
+  const params = ledgerParams(location.pathname);
   const token = params?.uuid;
   const query = new URLSearchParams(location.search);
   const stated = typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : null;
@@ -37,16 +48,103 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const companyUuid =
     entered ?? ledgerCompany ?? (!token && directory.companies.length === 1 ? directory.companies[0]!.uuid : null);
   const company = directory.companies.find(({ uuid }) => uuid === companyUuid);
-  const held =
-    (location.pathname === DESTINATIONS.companyRegister.path && !!ledger.state?.held) ||
-    !!member?.read.busy ||
-    !!member?.read.retry;
+  const ledgerHeld = location.pathname === DESTINATIONS.companyRegister.path && !!ledger.state?.held;
+  const memberHeld = !!member?.read.busy || !!member?.read.retry;
+  const held = ledgerHeld || memberHeld;
   const allowed = (uuid: string | null) =>
     !!owner && boundary.get() === owner && !held && (!uuid || directory.companies.some((row) => row.uuid === uuid));
-  if (leaving && (leaving.owner !== owner || leaving.location !== location.key)) setLeaving(null);
+  const isDirty = useCallback(
+    () => [...document.querySelectorAll('main form')].some((form) => dirtyForms.current.has(form as HTMLFormElement)),
+    [],
+  );
+  const blocker = useBlocker(
+    useCallback<BlockerFunction>(
+      ({ currentLocation, nextLocation, historyAction }) => {
+        const internal = requested.current;
+        requested.current = false;
+        if (!owner || boundary.get() !== owner) return false;
+        const nextQuery = new URLSearchParams(nextLocation.search);
+        const currentQuery = new URLSearchParams(currentLocation.search);
+        const next = nextQuery.get('company');
+        nextQuery.delete('company');
+        currentQuery.delete('company');
+        nextQuery.sort();
+        currentQuery.sort();
+        const stated =
+          typeof nextLocation.state?.registerCompany === 'string' ? nextLocation.state.registerCompany : null;
+        const target =
+          ledgerParams(nextLocation.pathname)?.company ??
+          next ??
+          stated ??
+          (nextLocation.pathname === DESTINATIONS.home.path && directory.companies.length > 1 ? null : companyUuid);
+        const changingCompany = target !== companyUuid;
+        const hash = nextLocation.hash.slice(1);
+        if (
+          ledgerHeld &&
+          !memberHeld &&
+          !changingCompany &&
+          currentLocation.pathname === DESTINATIONS.companyRegister.path &&
+          nextLocation.pathname === currentLocation.pathname &&
+          nextQuery.toString() === currentQuery.toString() &&
+          (nextLocation.state?.registerToken ?? ledger.state?.token) ===
+            (currentLocation.state?.registerToken ?? ledger.state?.token) &&
+          (nextLocation.state?.registerCompany ?? companyUuid) ===
+            (currentLocation.state?.registerCompany ?? companyUuid) &&
+          (documentView(hash) || hash === ledger.state?.task)
+        )
+          return false;
+        const memberPages = [DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path];
+        const persistentDraft =
+          !!member?.draft.open &&
+          !changingCompany &&
+          memberPages.some((path) => path === currentLocation.pathname) &&
+          memberPages.some((path) => path === nextLocation.pathname);
+        const changingPage =
+          currentLocation.pathname !== nextLocation.pathname || currentLocation.hash !== nextLocation.hash;
+        const blocked =
+          held ||
+          (changingCompany && !!member?.draft.open) ||
+          (!persistentDraft && (changingCompany || internal || (historyAction === 'POP' && changingPage)) && isDirty());
+        if (blocked) setBlockedAt({ owner, location: currentLocation.key });
+        return blocked;
+      },
+      [
+        owner,
+        boundary,
+        companyUuid,
+        directory.companies.length,
+        member?.draft.open,
+        held,
+        ledgerHeld,
+        memberHeld,
+        ledger.state?.token,
+        ledger.state?.task,
+        isDirty,
+      ],
+    ),
+  );
+  useBeforeUnload(
+    useCallback(
+      (event) => {
+        if (!owner || boundary.get() !== owner || (!held && !member?.draft.open && !isDirty())) return;
+        event.preventDefault();
+        event.returnValue = '';
+      },
+      [owner, boundary, held, member?.draft.open, isDirty],
+    ),
+  );
   useEffect(() => {
     dirtyForms.current = new WeakSet();
+    requested.current = false;
   }, [owner]);
+  useEffect(() => {
+    if (
+      blocker.state === 'blocked' &&
+      (held || !blockedAt || blockedAt.owner !== owner || blockedAt.location !== location.key)
+    ) {
+      blocker.reset();
+    }
+  }, [blocker, blockedAt, held, owner, location.key]);
   useEffect(() => {
     if (
       location.pathname !== DESTINATIONS.home.path ||
@@ -83,23 +181,11 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     const value = next.toString();
     return `${pathname}${value ? `?${value}` : ''}${hash ? `#${hash}` : ''}`;
   };
-  const move = (uuid: string | null, path: string) => {
-    if (!allowed(uuid)) return false;
-    dirtyForms.current = new WeakSet();
-    setLeaving(null);
-    navigate(path);
-    return true;
-  };
   const request = (uuid: string | null, path: string) => {
     if (!allowed(uuid)) return false;
-    if (
-      (uuid !== companyUuid && member?.draft.open) ||
-      [...document.querySelectorAll('main form')].some((form) => dirtyForms.current.has(form as HTMLFormElement))
-    ) {
-      setLeaving({ owner, location: location.key, company: uuid, path });
-      return false;
-    }
-    return move(uuid, path);
+    requested.current = true;
+    void navigate(path);
+    return true;
   };
   const selectCompany = (uuid: string | null, preservePage = false) => {
     const next = new URLSearchParams(preservePage ? location.search : undefined);
@@ -127,14 +213,29 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     >
       {children}
       <Confirmation
-        isOpen={!!leaving}
+        isOpen={
+          blocker.state === 'blocked' && !held && blockedAt?.owner === owner && blockedAt.location === location.key
+        }
         title="Leave this page?"
         confirmLabel="Leave page"
-        confirmDisabled={!leaving || !allowed(leaving.company)}
-        onClose={() => setLeaving(null)}
+        confirmDisabled={held || blockedAt?.owner !== owner || blockedAt?.location !== location.key}
+        onClose={() => {
+          if (blocker.state === 'blocked') blocker.reset();
+          setBlockedAt(null);
+        }}
         onConfirm={() => {
-          if (leaving && boundary.get() === leaving.owner && location.key === leaving.location)
-            move(leaving.company, leaving.path);
+          if (
+            blocker.state === 'blocked' &&
+            !held &&
+            blockedAt &&
+            boundary.get() === blockedAt.owner &&
+            location.key === blockedAt.location
+          ) {
+            dirtyForms.current = new WeakSet();
+            member?.setDraft({ name: '', address: '', confirmed: false, open: false });
+            setBlockedAt(null);
+            blocker.proceed();
+          }
         }}
       >
         You have unsaved changes on this page.
