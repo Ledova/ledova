@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { Link, matchPath, useLocation } from 'react-router-dom';
+import { Link, matchPath, useLocation, type Location } from 'react-router-dom';
 import {
   HouseIcon,
   WalletIcon,
@@ -42,7 +42,7 @@ import {
   settingsView,
   type LedgerTask,
 } from '@utils/destinations';
-import { useLedgerNavigation } from './LedgerNavigation';
+import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';
 
 type Icon = React.ComponentType<{ size?: number; weight?: 'regular' | 'fill' }>;
 
@@ -100,6 +100,28 @@ const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, LedgerTask>> = {
 function itemPath(item: NavItem) {
   const path = DESTINATIONS[item.destination].path;
   return `${path}${item.view ? `#${item.view}` : ''}`;
+}
+
+function ledgerContext(
+  location: Location,
+  state: LedgerNavigationState | null,
+  companyUuid: string | null | undefined,
+) {
+  const path = DESTINATIONS.companyRegister.path;
+  const destination = destinationAt(location.pathname);
+  const classPath =
+    destination &&
+    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
+      ? DESTINATIONS[destination].path
+      : undefined;
+  const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
+  const company =
+    (location.pathname === path ? state?.company : classParams?.company) ??
+    (typeof location.state?.registerCompany === 'string'
+      ? location.state.registerCompany
+      : (new URLSearchParams(location.search).get('company') ?? companyUuid ?? undefined));
+  const token = location.pathname === path ? state?.token : classParams?.uuid;
+  return company || token ? { registerCompany: company, registerToken: token } : undefined;
 }
 
 function GroupLabel({ children }: { children: string }) {
@@ -245,20 +267,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
   const selectedChild = children.some(([key]) => key === selected);
   const blocked = location.pathname === path && (!state || state.blocked);
   const blocks = (view: string) => blocked && view !== (state?.shareholderView ?? selected);
-  const destination = destinationAt(location.pathname);
-  const classPath =
-    destination &&
-    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
-      ? DESTINATIONS[destination].path
-      : undefined;
-  const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
-  const company =
-    (location.pathname === path ? state?.company : classParams?.company) ??
-    (typeof location.state?.registerCompany === 'string'
-      ? location.state.registerCompany
-      : (new URLSearchParams(location.search).get('company') ?? companyContext?.companyUuid ?? undefined));
-  const token = location.pathname === path ? state?.token : classParams?.uuid;
-  const context = company || token ? { registerCompany: company, registerToken: token } : undefined;
+  const context = ledgerContext(location, state, companyContext?.companyUuid);
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
 
   if (shownPlace !== place) {
@@ -332,20 +341,7 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   const [expanded, setExpanded] = useState(active);
   const id = useId();
   const selected = location.pathname === path ? documentView(location.hash.slice(1)) : undefined;
-  const destination = destinationAt(location.pathname);
-  const classPath =
-    destination &&
-    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
-      ? DESTINATIONS[destination].path
-      : undefined;
-  const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
-  const company =
-    (location.pathname === path ? state?.company : classParams?.company) ??
-    (typeof location.state?.registerCompany === 'string'
-      ? location.state.registerCompany
-      : (new URLSearchParams(location.search).get('company') ?? companyContext?.companyUuid ?? undefined));
-  const token = location.pathname === path ? state?.token : classParams?.uuid;
-  const context = company || token ? { registerCompany: company, registerToken: token } : undefined;
+  const context = ledgerContext(location, state, companyContext?.companyUuid);
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
 
   if (shownPlace !== place) {
@@ -474,8 +470,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const tradingEnabled = useFeatureFlags().isEnabled('trading_enabled');
   const { isInvestor, isCompany } = useRole();
   const context = useCompanyContext();
-  const standaloneSettings = useSettingsNavigation();
-  const settings = standaloneSettings;
+  const settings = useSettingsNavigation();
   const companyTasks = !!(context?.company?.canReadRegister || context?.company?.canManage);
   const companyItems = context?.company?.canReadRegister
     ? COMPANY

@@ -190,7 +190,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const selectCompany = (uuid: string | null, preservePage = false) => {
     const next = new URLSearchParams(preservePage ? location.search : undefined);
     next.delete('class');
-    next.delete('search');
+    next.delete('q');
     next.delete('page');
     if (uuid) next.set('company', uuid);
     else next.delete('company');
@@ -204,7 +204,6 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         directory,
         companyUuid,
         company,
-        held,
         selectCompany,
         companyPath,
         openDashboard: () =>

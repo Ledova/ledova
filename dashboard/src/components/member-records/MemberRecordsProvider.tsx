@@ -7,10 +7,6 @@ import { useMemberFreshness } from './useMemberFreshness';
 const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open: false };
 
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
-  return <MemberSession>{children}</MemberSession>;
-}
-
-function MemberSession({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const active = [DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path].some(
     (path) => path === pathname,

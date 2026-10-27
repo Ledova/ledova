@@ -11,8 +11,8 @@ import {
 import { Page, PageAction } from '@components/Page';
 import { LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
 import { ListSearch, Pager } from '@components/List';
-import { OwnershipMetrics } from '@components/ownership/OwnershipMetrics';
-import { ownershipColor } from '@components/ownership/ownershipColors';
+import { OwnershipMetrics } from './OwnershipMetrics';
+import { ownershipColor } from './ownershipColors';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipMember } from './useOwnershipMember';
 import { useCompanyOwnership } from './useCompanyOwnership';
@@ -229,7 +229,7 @@ function SignedInOwnership({
                             .join(' · ')}
                         </p>
                         {view.summary ? (
-                          <OwnershipMetrics summary={view.summary} embedded />
+                          <OwnershipMetrics summary={view.summary} />
                         ) : (
                           <dl className="grid grid-cols-2 gap-4 border-b border-border-subtle pb-4">
                             <div>

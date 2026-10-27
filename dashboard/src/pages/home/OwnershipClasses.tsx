@@ -2,8 +2,8 @@ import { useId, useState } from 'react';
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatShareCount, searchRows, sharePercentage } from '@ledova/shared';
 import { ListSearch, Pager } from '@components/List';
-import { OwnershipRing } from '@components/ownership/OwnershipRing';
-import { ownershipColor } from '@components/ownership/ownershipColors';
+import { OwnershipRing } from './OwnershipRing';
+import { ownershipColor } from './ownershipColors';
 import { PAGE_SIZE, type ListParams } from '@hooks/useListParams';
 import type { OwnershipClass } from './ownershipView';
 

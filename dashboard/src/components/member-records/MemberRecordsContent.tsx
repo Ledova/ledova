@@ -5,15 +5,7 @@ import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { useMemberWorkspace } from './useMemberWorkspace';
 
-export function MemberRecordsContent({
-  children,
-  actions = true,
-  companyHeader = true,
-}: {
-  children: ReactNode;
-  actions?: boolean;
-  companyHeader?: boolean;
-}) {
+export function MemberRecordsContent({ children }: { children: ReactNode }) {
   const { read, select } = useMemberWorkspace();
   const requested = new URLSearchParams(useLocation().search).get('company');
   const record = read.record && (!requested || read.record.company.uuid === requested) ? read.record : null;
@@ -37,7 +29,7 @@ export function MemberRecordsContent({
           {read.error}
         </p>
       )}
-      {actions && read.retry && (
+      {read.retry && (
         <PageAction
           label="Retry original member action"
           disabled={read.busy || read.refreshing || read.readFailed || !read.owner}
@@ -50,7 +42,7 @@ export function MemberRecordsContent({
         <Loading>Loading member records…</Loading>
       ) : (
         <>
-          {(companyHeader || read.readFailed) && read.records.length > 1 && (
+          {read.records.length > 1 && (
             <div className="max-w-md">
               <CompanyPicker
                 companies={read.records.map((record) => ({ uuid: record.uuid, name: record.company.name }))}
@@ -62,9 +54,7 @@ export function MemberRecordsContent({
           )}
           {record && !read.readFailed && (
             <>
-              {companyHeader && (
-                <h2 className="break-words font-display text-xl text-text-primary">{record.company.name}</h2>
-              )}
+              <h2 className="break-words font-display text-xl text-text-primary">{record.company.name}</h2>
               {children}
             </>
           )}
