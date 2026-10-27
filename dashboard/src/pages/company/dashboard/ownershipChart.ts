@@ -1,4 +1,4 @@
-import { init, use as registerCharts, type ComposeOption, type EChartsType } from 'echarts/core';
+import { color as chartColor, init, use as registerCharts, type ComposeOption, type EChartsType } from 'echarts/core';
 import { PieChart, type PieSeriesOption } from 'echarts/charts';
 import { SVGRenderer } from 'echarts/renderers';
 import type { OwnershipRingProps } from './OwnershipRing';
@@ -44,12 +44,23 @@ export function renderOwnershipRing(
         stateAnimation: { duration: reducedMotion.matches ? 0 : 160, easing: 'cubicOut' },
         blur: { itemStyle: { opacity: 0.3 } },
         itemStyle: { borderColor: color('surface-raised'), borderWidth: 2 },
-        data: eligible.map((item) => ({
-          id: item.uuid,
-          name: item.name,
-          value: Number(item.issuedSupply!) / Number(issuedSupply),
-          itemStyle: { color: tokens.getPropertyValue(ownershipColor(classes, item.uuid).slice(4, -1)).trim() },
-        })),
+        data: eligible.map((item) => {
+          const sliceColor = tokens.getPropertyValue(ownershipColor(classes, item.uuid).slice(4, -1)).trim();
+          return {
+            id: item.uuid,
+            name: item.name,
+            value: Number(item.issuedSupply!) / Number(issuedSupply),
+            itemStyle: { color: sliceColor },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 12,
+                shadowColor: chartColor.modifyAlpha(sliceColor, 0.45),
+                shadowOffsetX: 0,
+                shadowOffsetY: 0,
+              },
+            },
+          };
+        }),
       },
     ],
   });
