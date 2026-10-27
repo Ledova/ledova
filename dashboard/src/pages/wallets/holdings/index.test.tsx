@@ -453,10 +453,7 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   includeOther = true;
   otherRecord = { ...otherRecordWithShares, classes: [] };
   await focusRead();
-  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  expect((screen.getByRole('button', { name: /^Second Demo Company\s*Member$/ }) as HTMLButtonElement).disabled).toBe(
-    false,
-  );
+  expect((screen.getByRole('combobox', { name: 'Your companies' }) as HTMLInputElement).disabled).toBe(false);
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   await choose('Company', otherRecord.company.name);
@@ -493,10 +490,8 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByText('Your issued shares')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
-  expect((screen.getByRole('button', { name: /^Second Demo Company\s*Member$/ }) as HTMLButtonElement).disabled).toBe(
-    false,
-  );
-  fireEvent.click(screen.getByRole('button', { name: /^Second Demo Company\s*Member$/ }));
+  expect((screen.getByRole('combobox', { name: 'Your companies' }) as HTMLInputElement).disabled).toBe(false);
+  await choose('Your companies', otherRecord.company.name);
   await ownShares('25');
   expect(screen.getByRole('heading', { name: otherRecord.company.name })).toBeTruthy();
   expect(screen.getByRole('list', { name: 'Share classes' })).toBeTruthy();

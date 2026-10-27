@@ -230,8 +230,8 @@ reply never acts for the new one
 ([clients](../engineering/frontend.md#clients-and-the-shared-package);
 [lists and forms](../engineering/frontend.md#lists-figures-and-currency)).
 
-On the web, one Dashboard explores all of the person's company relationships. A searchable company
-list opens that company's ownership overview; one company opens directly. A person who both
+On the web, one Dashboard explores all of the person's company relationships. Search and switch
+companies through **Your companies** at the top; one company opens directly. A person who both
 administers a company and holds its shares sees that company once, with their own position alongside
 the company information they may read. The sidebar keeps focused tasks for the selected company:
 

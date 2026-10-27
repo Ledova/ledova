@@ -216,11 +216,16 @@ async function closeSidebar(page: Page) {
 
 async function openTheSidebar(page: Page, role: Role) {
   const reads = await serveASignedInAccount(page, role);
+  const companyChoice = page
+    .getByRole('navigation', { name: 'Ownership trail' })
+    .getByRole('combobox', { name: 'Your companies', exact: true });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
   if (role === 'both') {
     await expect(page).toHaveURL(/\/home$/);
-    await page.getByRole('button', { name: new RegExp(`^${LONG_NAME}`) }).click();
+    await expect(page.getByRole('list', { name: 'Your companies', exact: true })).toHaveCount(0);
+    await companyChoice.fill('harbour robotics');
+    await page.getByRole('option', { name: new RegExp(`^${LONG_NAME}`) }).click();
   }
   await expect(page).toHaveURL(/\/home\?company=company$/);
   if (role === 'both') {
@@ -240,21 +245,17 @@ async function openTheSidebar(page: Page, role: Role) {
     );
     await page.getByRole('button', { name: 'All classes', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true })).toBeFocused();
-    await page
-      .getByRole('navigation', { name: 'Ownership trail' })
-      .getByRole('button', { name: 'Your companies', exact: true })
-      .click();
-    await page.getByRole('button', { name: /^Second Demo Pty Ltd/ }).click();
-    await expect(page).toHaveURL(/company=other-company/);
+    await page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Ordinary shares', exact: true })).toBeFocused();
+    await companyChoice.fill('second');
+    await page.getByRole('option', { name: /^Second Demo Pty Ltd/ }).click();
+    await expect(page).toHaveURL(/\/home\?company=other-company$/);
     await expect(page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true })).toContainText('12');
     let aside = await visibleSidebar(page);
     await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(0);
     await closeSidebar(page);
-    await page
-      .getByRole('navigation', { name: 'Ownership trail' })
-      .getByRole('button', { name: 'Your companies', exact: true })
-      .click();
-    await page.getByRole('button', { name: new RegExp(`^${LONG_NAME}`) }).click();
+    await companyChoice.fill('harbour robotics');
+    await page.getByRole('option', { name: new RegExp(`^${LONG_NAME}`) }).click();
     aside = await visibleSidebar(page);
     await expect(aside.getByRole('link', { name: 'Your certificates', exact: true })).toHaveAttribute(
       'href',
