@@ -198,8 +198,8 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(api.get.mock.calls.some(([url]) => String(url).endsWith('/ownership-holders/'))).toBe(false);
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
   fireEvent.click(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' }));
-  const table = await screen.findByRole('table', { name: 'ordinary shares shareholders' });
-  expect(within(table).getByText('9,007,199,254,740,966')).toBeTruthy();
+  const holders = await screen.findByRole('list', { name: 'ordinary shares shareholders' });
+  expect(within(holders).getByText('9,007,199,254,740,966')).toBeTruthy();
   const holderReads = api.get.mock.calls.filter(
     ([url]) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('ordinary'),
   ).length;
@@ -227,7 +227,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       queryKey: registerHoldersKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
     });
   });
-  expect(await screen.findByRole('table', { name: 'ordinary shares shareholders' })).toBeTruthy();
+  expect(await screen.findByRole('list', { name: 'ordinary shares shareholders' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /Next/ }));
   expect(await screen.findByText('26–28 of 28 shareholders')).toBeTruthy();
   fireEvent.change(screen.getByRole('searchbox', { name: 'Search shareholders' }), {
@@ -235,6 +235,11 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   });
   expect(await screen.findByText('1–1 of 1 shareholder')).toBeTruthy();
   expect(screen.queryByText('Example Shareholder')).toBeNull();
+  const filteredHolding = screen.getByRole('button', { name: 'Highlight Small holder 27’s holding' });
+  expect(within(filteredHolding).getByText('<0.01%')).toBeTruthy();
+  const filteredBar = filteredHolding.querySelector<HTMLElement>('[aria-hidden="true"] > span');
+  expect(Number.parseFloat(filteredBar!.style.width)).toBeGreaterThan(0);
+  expect(Number.parseFloat(filteredBar!.style.width)).toBeLessThan(0.01);
   mode = 'denied';
   await act(async () => {
     await client.refetchQueries({
@@ -265,7 +270,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   const lastClass = await screen.findByRole('button', { name: 'Explore class-25 shares (CLASS-25)' });
   expect(api.get.mock.calls.some(([url]) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('class-25'))).toBe(false);
   fireEvent.click(lastClass);
-  expect(await screen.findByRole('table', { name: 'class-25 shares shareholders' })).toBeTruthy();
+  expect(await screen.findByRole('list', { name: 'class-25 shares shareholders' })).toBeTruthy();
   const lastRead = api.get.mock.calls.find(([url]) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('class-25'));
   expect(lastRead?.[1].params).toMatchObject({ search: '', page: 1 });
   fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
@@ -274,7 +279,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(await screen.findByText('1 share class matches your search.')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Explore ordinary shares (ORDINARY)' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Explore class-25 shares (CLASS-25)' }));
-  expect(await screen.findByRole('table', { name: 'class-25 shares shareholders' })).toBeTruthy();
+  expect(await screen.findByRole('list', { name: 'class-25 shares shareholders' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
   expect((screen.getByRole('searchbox', { name: 'Search share classes' }) as HTMLInputElement).value).toBe('');
   mode = 'zero';

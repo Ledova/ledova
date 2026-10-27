@@ -499,11 +499,14 @@ amounts carry their offering's currency
 ([offerings](../business/issuing-shares.md#creating-and-submitting-an-offering)), and every amount
 names its currency (`formatMoney`).
 
-The company ownership ring uses Apache ECharts, with only its pie chart, tooltip and SVG renderer
+The company ownership ring uses Apache ECharts, with only its pie chart and SVG renderer
 loaded when the desktop overview is visible. Use one ring and a linked class list, with the existing
 design tokens and a bounded chart area. Hover or keyboard focus links each list row to its segment;
 the centre shows the exact total or highlighted class quantity. Keep class colours consistent across
-the ring and the list, including search and paging. Every class remains selectable in the list,
+the ring and the list, including search and paging. Use a small segment lift and short hover/focus
+transitions, without an entrance animation that could replay during fresh reads.
+Keep hover feedback in the centre and linked list rather than a duplicate floating tooltip; honour
+reduced motion, including changes while the page is open. Every class remains selectable in the list,
 including classes with no issued shares; do not merge small classes into an artificial Other class.
 Long class lists use the shared search and 25-row pager. Narrow screens and a failed chart load keep
 the same list without the ring. Other delivered charts retain their existing SVG implementation.
@@ -512,7 +515,11 @@ use exact share arithmetic; only normalised drawing coordinates use JavaScript n
 represents issued share counts, not voting power or economic value.
 
 Ownership overviews read company-scoped aggregates, then fetch the selected class's holders with
-server-side search and paging. Do not fetch every shareholder in every class to draw an overview.
+server-side search and paging. The selected class uses one ranked horizontal bar list in the server's
+largest-first order, with exact quantities and within-class percentages always visible. Bars use the
+full class's issued shares on a shared 0–100% scale through search and paging; do not renormalise the
+visible subset, inflate tiny holdings or introduce an Other group. Do not fetch every shareholder in
+every class to draw an overview.
 Bind detail reads to the overview's register sequence; a changed sequence rereads the overview.
 Account, company and appointment guards and incomplete-read states remain in force; ownership reads
 share the owner-scoped holdings query family so ordinary register changes invalidate them together.
@@ -694,9 +701,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
 
 - Company dashboard: `dashboard/src/pages/company/dashboard/useOwnership.ts` reads the selected
   company's exact ownership summary and sequence-bound holder pages. `OwnershipExplorer.tsx` in
-  that folder opens one class inline; `OwnershipRing.tsx` loads `ownershipChart.ts` for the ring.
-  The linked class list keeps every class accessible, with search and paging for long lists. The person's
-  own appointments (`useOwnAppointments`) give the status line and Getting
+  that folder opens one class inline; `OwnershipHolders.tsx` renders its ranked bars, and
+  `OwnershipRing.tsx` loads `ownershipChart.ts` for the ring. The linked class list keeps every class
+  accessible; the selected class's bar list keeps server search and paging. The person's own
+  appointments (`useOwnAppointments`) give the status line and Getting
   started, which reads the register step from the selected company's opened registers. Web tasks
   render only while incomplete; the existing parent condition hides the card when both tasks are
   complete.

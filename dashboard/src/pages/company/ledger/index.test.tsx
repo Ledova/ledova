@@ -2021,7 +2021,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByText('100.00%')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Explore Ordinary shares (ORD)' }));
   expect(
-    within(await screen.findByRole('table', { name: 'Ordinary shares shareholders' })).getByText('Example Shareholder'),
+    within(await screen.findByRole('list', { name: 'Ordinary shares shareholders' })).getByText('Example Shareholder'),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
   expect(await screen.findByRole('button', { name: 'Explore Ordinary shares (ORD)' })).toBeTruthy();

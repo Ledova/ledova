@@ -1,12 +1,10 @@
 import { init, use as registerCharts, type ComposeOption, type EChartsType } from 'echarts/core';
 import { PieChart, type PieSeriesOption } from 'echarts/charts';
-import { TooltipComponent, type TooltipComponentOption } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
-import { shareCount, sharePercentage } from '@ledova/shared';
 import type { OwnershipRingProps } from './OwnershipRing';
 import { ownershipColor } from './ownershipColors';
 
-registerCharts([PieChart, TooltipComponent, SVGRenderer]);
+registerCharts([PieChart, SVGRenderer]);
 
 export interface OwnershipRingController {
   highlight: (uuid: string | null) => void;
@@ -19,6 +17,7 @@ export function renderOwnershipRing(
 ): OwnershipRingController {
   const tokens = getComputedStyle(container);
   const color = (name: string) => tokens.getPropertyValue(`--color-${name}`).trim();
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const eligible = classes.filter((item) => item.issuedSupply !== null && BigInt(item.issuedSupply) > 0n);
   const rowFrom = (parameters: unknown) => {
     if (!parameters || typeof parameters !== 'object' || !('data' in parameters)) return;
@@ -26,22 +25,11 @@ export function renderOwnershipRing(
     if (!node || typeof node !== 'object' || !('id' in node)) return;
     return eligible.find((item) => item.uuid === node.id);
   };
-  const option: ComposeOption<PieSeriesOption | TooltipComponentOption> = {
-    animation: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  const option = (): ComposeOption<PieSeriesOption> => ({
+    animation: !reducedMotion.matches,
     animationDuration: 0,
-    animationDurationUpdate: 200,
-    tooltip: {
-      renderMode: 'richText',
-      backgroundColor: color('surface-raised'),
-      borderColor: color('border'),
-      textStyle: { color: color('text-primary'), fontFamily: tokens.fontFamily },
-      formatter: (parameters) => {
-        const row = rowFrom(parameters);
-        return row
-          ? `${row.name} (${row.symbol})\n${shareCount(row.issuedSupply!, 'issued')}\n${sharePercentage(row.issuedSupply!, issuedSupply)} of issued shares`
-          : '';
-      },
-    },
+    animationDurationUpdate: reducedMotion.matches ? 0 : 160,
+    animationEasing: 'cubicOut',
     series: [
       {
         type: 'pie',
@@ -52,7 +40,8 @@ export function renderOwnershipRing(
         selectedMode: false,
         label: { show: false },
         labelLine: { show: false },
-        emphasis: { scale: false, focus: 'self' },
+        emphasis: { scale: !reducedMotion.matches, scaleSize: 5, focus: 'self' },
+        stateAnimation: { duration: reducedMotion.matches ? 0 : 160, easing: 'cubicOut' },
         blur: { itemStyle: { opacity: 0.3 } },
         itemStyle: { borderColor: color('surface-raised'), borderWidth: 2 },
         data: eligible.map((item) => ({
@@ -63,7 +52,7 @@ export function renderOwnershipRing(
         })),
       },
     ],
-  };
+  });
   let chart: EChartsType | undefined;
   let highlighted: string | null = null;
   let nativeHover: string | null = null;
@@ -78,7 +67,7 @@ export function renderOwnershipRing(
     if (container.clientWidth === 0) return;
     if (!chart) {
       chart = init(container, undefined, { renderer: 'svg' });
-      chart.setOption(option);
+      chart.setOption(option());
       chart.on('click', (parameters) => {
         const row = rowFrom(parameters);
         if (row) onSelect(row.uuid);
@@ -103,12 +92,17 @@ export function renderOwnershipRing(
     } else chart.resize();
   };
   const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
-  observer?.observe(container);
+  const updateMotion = () => {
+    chart?.setOption(option());
+  };
   resize();
+  observer?.observe(container);
+  reducedMotion.addEventListener('change', updateMotion);
   return {
     highlight,
     dispose: () => {
       observer?.disconnect();
+      reducedMotion.removeEventListener('change', updateMotion);
       chart?.dispose();
     },
   };

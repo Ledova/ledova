@@ -42,7 +42,11 @@ Ledger's share-class summaries stack as full-width `Section` cards, using the wo
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The company Dashboard uses one
 ownership ring beside a linked class list: select a segment or class row to open the existing ranked,
-searchable holder table in the same panel. Hover and keyboard focus highlight the matching segment
+searchable holder bar list in the same panel. Each compact row aligns the shareholder's name, a
+horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
+with short transitions that honour reduced motion; keep all figures visible without a tooltip.
+Rows stack their name and figures above the bar on narrow screens. Hover and keyboard focus on the
+class list highlight the matching segment
 and its exact class quantity in the ring's centre; otherwise the centre shows the company total.
 Keep the ring aligned at the top beside its list, so a long list never pushes it below the overview.
 Keep class colours consistent in both views and through list search and paging. Long class lists
@@ -711,7 +715,8 @@ to revisit if registers grow large ([decision](../decisions.md#frontend-ux-stand
 
 Every table uses `Table`, apart from dashboard chart legends, which keep a compact layout with
 their own captions and header scopes. The company ring compares issued share counts across classes;
-its selected-class holder table shows percentages within that class. A member's chart shows only
+its selected-class bar list keeps server search and a 25-row pager, showing percentages of the full
+class even when only some holders are visible. A member's chart shows only
 their own shares by class, never company ownership, voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a
 record's own page.
 

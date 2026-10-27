@@ -67,7 +67,7 @@ export function OwnershipOverview({ classes, complete, issuedSupply, onSelect, l
                     data-class-uuid={row.uuid}
                     aria-label={`Explore ${row.name} (${row.symbol})`}
                     aria-describedby={`${id}-${row.uuid}`}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm hover:bg-surface-tertiary focus-visible:bg-surface-tertiary ${highlighted === row.uuid ? 'bg-surface-tertiary' : ''}`}
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm hover:bg-surface-tertiary focus-visible:bg-surface-tertiary motion-safe:transition-colors motion-safe:duration-150 ${highlighted === row.uuid ? 'bg-surface-tertiary' : ''}`}
                     onMouseEnter={() => setHovered(row.uuid)}
                     onMouseLeave={() => setHovered(null)}
                     onFocus={() => setFocused(row.uuid)}
