@@ -80,12 +80,8 @@ export function OwnershipOverview({ classes, complete, issuedSupply, onSelect, l
                       style={{ backgroundColor: ownershipColor(classes, row.uuid) }}
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium text-text-primary" title={row.symbol}>
-                        {row.symbol}
-                      </span>
-                      <span className="block truncate text-text-muted" title={row.name}>
-                        {row.name}
-                      </span>
+                      <span className="block break-words font-medium text-text-primary">{row.name}</span>
+                      <span className="block break-all text-text-muted">{row.symbol}</span>
                     </span>
                     <span id={`${id}-${row.uuid}`} className="shrink-0 text-right tabular-nums">
                       <span className="block text-text-primary">

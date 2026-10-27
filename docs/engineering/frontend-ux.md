@@ -41,8 +41,11 @@ keep secondary facts and copyable technical references on demand. Application su
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The company Dashboard uses one
-ownership ring beside a linked class list: select a segment or class row to open the existing ranked,
-searchable holder bar list in the same panel. Each compact row aligns the shareholder's name, a
+ownership ring beside a linked class list, with full class names before their secondary codes.
+Names wrap without displacing the figures. Select a segment or class row to open the existing ranked,
+searchable holder bar list in the same panel. Its class heading appears once, followed by one wrapping
+row for the code, totals and **All classes** control. Search stays compact on wider screens and takes
+the full width on narrow screens. Each compact holder row aligns the shareholder's name, a
 horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
 with short transitions that honour reduced motion; keep all figures visible without a tooltip.
 Rows stack their name and figures above the bar on narrow screens. Hover and keyboard focus on the
