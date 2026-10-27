@@ -70,12 +70,17 @@ Narrow screens show the linked list without squeezing the ring. A chart failure 
 list usable. Percentages name their denominator; issued share counts do not imply voting power,
 economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
 and keep record actions there.
-When a company enables aggregate sharing, the member Dashboard replaces its personal donut with
-one full-width company ownership ring and linked class list. Show all issued class totals alongside
+The member Dashboard defaults to **Your shares** for the selected company. When the company enables
+aggregate sharing, offer **Your shares** and **Company ownership** as two existing-style pressed
+buttons in one labelled group. The second view shows one full-width ownership ring and linked class list. Show all issued class totals alongside
 the member's own quantity and within-class percentage; class selection highlights that position
 without a separate detail panel or other holders' records.
 Keep other holders' identities and records out of this view. Without shared figures, keep the own
-shares overview. Awards remain separate in both modes. The own-only overview's shares and
+shares view without a redundant switch. Use the existing searchable Company selector only for
+several linked companies, initially selecting the first available one; both views stay within the selected company. Preserve the chosen view
+through normal revalidation, start at Your shares after a company/account change, and return there
+when sharing becomes unavailable. Do not store the choice as an account preference or combine
+different companies' shares into a single ownership percentage. Awards remain separate in both modes. The own-only overview's shares and
 awards cards share equal columns and stretch to the same height on wide screens, stacking naturally
 on smaller screens without fixed heights. Member awards show the promise and nonzero lifecycle
 quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly

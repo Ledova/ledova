@@ -39,11 +39,11 @@ function MemberState({ children, read }: { children: ReactNode; read: ReturnType
     }
   }, [read.retry, read.requests, held]);
   useEffect(() => {
-    if (read.owner && selectionOwner.current !== read.owner && read.records.length === 1 && !read.busy && !read.retry) {
+    if (read.owner && selectionOwner.current !== read.owner && read.records.length > 0 && !held) {
       selectionOwner.current = read.owner;
       read.select(read.records[0].uuid);
     }
-  }, [read.owner, read.records, read.busy, read.retry, read.select]);
+  }, [read.owner, read.records, held, read.select]);
   useEffect(() => {
     if (read.record && !held) {
       const item = read.record.classes.find((item) => item.uuid === token) ?? read.record.classes[0];

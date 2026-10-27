@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { formatDate, formatShareCount, shortReference } from '@ledova/shared';
 import { Disclosure, Row, Rows, Section } from '@components/Ledger';
-import { Page } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { Confirmation } from '@components/Modal';
 import { AwardStatus } from '@components/AwardStatus';
@@ -16,13 +16,23 @@ import { MemberCompanyOwnership } from './MemberCompanyOwnership';
 import { sharedMemberOwnership } from './memberOwnership';
 
 export default function MemberRecordsPage() {
+  const { read } = useMemberWorkspace();
+  return (
+    <MemberRecordPage key={`${read.scopeOwner?.userUuid}/${read.scopeOwner?.ownerAccountUuid}/${read.selectedUuid}`} />
+  );
+}
+
+function MemberRecordPage() {
   const { read, held, token, selectToken } = useMemberWorkspace();
   const record = read.record;
   const ownership = record ? sharedMemberOwnership(record) : null;
   const documentsOnly = useLocation().hash === '#documents';
   const selectedClass = record?.classes.find((item) => item.uuid === token) ?? record?.classes[0];
   const [withdrawing, setWithdrawing] = useState<{ uuid: string; createdAt: string } | null>(null);
+  const [companyView, setCompanyView] = useState(false);
+  const showCompany = companyView && !!ownership;
   const { running, track } = useRunningAction();
+  if (companyView && ((record && !ownership) || read.readFailed)) setCompanyView(false);
   return (
     <PageTitle.Provider value={pageTitle('home', documentsOnly ? 'documents' : undefined)}>
       <Page
@@ -46,11 +56,17 @@ export default function MemberRecordsPage() {
               />
             ) : (
               <>
-                {ownership && <MemberCompanyOwnership key={record.uuid} ownership={ownership} />}
+                {ownership && (
+                  <div role="group" aria-label="Ownership view" className="flex flex-wrap gap-2">
+                    <PageAction label="Your shares" pressed={!showCompany} onClick={() => setCompanyView(false)} />
+                    <PageAction label="Company ownership" pressed={showCompany} onClick={() => setCompanyView(true)} />
+                  </div>
+                )}
+                {showCompany && ownership && <MemberCompanyOwnership key={record.uuid} ownership={ownership} />}
                 <div
-                  className={`grid items-stretch gap-4 ${!ownership && record.awards.length > 0 ? 'xl:grid-cols-2' : ''}`}
+                  className={`grid items-stretch gap-4 ${!showCompany && record.awards.length > 0 ? 'xl:grid-cols-2' : ''}`}
                 >
-                  {!ownership && <OwnSharesOverview classes={record.classes} />}
+                  {!showCompany && <OwnSharesOverview classes={record.classes} />}
                   {record.awards.length > 0 && (
                     <Section title="Employee awards">
                       <div className="divide-y divide-border-subtle">
