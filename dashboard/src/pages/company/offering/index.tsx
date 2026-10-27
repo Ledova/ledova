@@ -17,7 +17,7 @@ import {
   type OfferingListItem,
   formatDateTime,
 } from '@ledova/shared';
-import { CompanySelection } from '@components/CompanySelection';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { CompanyReadNotice } from '@components/CompanyState';
 import { OfferingDocumentsEditor } from './OfferingDocumentsEditor';
 import { OfferingEditor } from './OfferingEditor';
@@ -124,7 +124,10 @@ function OfferingRecord({
 
 export default function OfferingPage() {
   const context = useCompanyContext();
-  const companyRead = useCompanySelection({ ownedOnly: true, selectedUuid: context?.companyUuid ?? undefined });
+  const companyRead = useCompanySelection({
+    ownedOnly: true,
+    selectedUuid: context ? (context.companyUuid ?? '') : undefined,
+  });
   return (
     <CompanyOfferings key={`${companyRead.scopeKey}/${companyRead.companyUuid ?? ''}`} companyRead={companyRead} />
   );
@@ -152,11 +155,10 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
   return (
     <>
       <Page loading={companyRead.isLoading || data.isLoading}>
-        <CompanySelection read={companyRead} />
         {companyRead.error ? (
           <CompanyReadNotice read={companyRead} />
         ) : !company ? (
-          <p className="text-sm text-text-muted">No company found. Please register your company first.</p>
+          <CompanyContextNotice />
         ) : (
           <>
             <CompanyReadNotice read={companyRead} />

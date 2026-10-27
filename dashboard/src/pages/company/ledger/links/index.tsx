@@ -1,3 +1,4 @@
+import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice, PreparationShell } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useLinkRegisters } from './useLinkRegisters';
@@ -47,8 +48,9 @@ function OwnLinks({
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.filter((item) => item.companyUuid === company) ?? [];
+  const companyMatches = useRecordCompany(listed.length ? company : undefined, guard);
   const appointment =
-    listed.length > 0 && appointments.data
+    companyMatches && listed.length > 0 && appointments.data
       ? appointmentForRegisterStep(appointments.data, company, 'prepare')
       : undefined;
   const registers = useLinkRegisters(owner, appointment, listed, guard);
@@ -78,7 +80,7 @@ function OwnLinks({
       ) : (
         <Loading>Loading the register…</Loading>
       );
-  else if (listed.length === 0)
+  else if (listed.length === 0 || !companyMatches)
     content = <p className="py-3 text-sm text-text-muted">This company is not in a register you can read.</p>;
   else if (!appointment)
     content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
@@ -122,7 +124,7 @@ function OwnLinks({
       </>
     );
   return (
-    <Page narrow lede={LEDE} back={registerPlace({ company, task: 'corrections' })}>
+    <Page narrow lede={LEDE} back={companyMatches ? registerPlace({ company, task: 'corrections' }) : undefined}>
       {content}
     </Page>
   );

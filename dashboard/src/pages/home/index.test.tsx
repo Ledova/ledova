@@ -6,6 +6,7 @@ import { registerKey } from '@hooks/useRegisterAccess';
 import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { CompanyRecordedDetails } from '@pages/settings/CompanyRecordedDetails';
 
 import {
@@ -31,6 +32,17 @@ import { FULFILLED_CERTIFICATE, MEMBER_PDF, OUTPUT_APPOINTMENT, OUTPUT_PREVIEW }
 import MemberRecordsPage from './index';
 import MemberInvitationPage from '../member-invitation';
 import { CompanyMemberAccess } from '../company/ledger/CompanyMemberAccess';
+
+function MemberPageLinks() {
+  const context = useCompanyContext();
+  return (
+    <nav>
+      <Link to={context!.companyPath('/home')}>Dashboard</Link>
+      <Link to={context!.companyPath('/home#documents')}>Documents</Link>
+      <Link to={context!.companyPath('/settings#company-recorded-details')}>Settings</Link>
+    </nav>
+  );
+}
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -442,11 +454,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     <MemberRecordsProvider>
       <LedgerNavigationProvider>
         <CompanyContextProvider>
-          <nav>
-            <Link to="/home">Dashboard</Link>
-            <Link to="/home#documents">Documents</Link>
-            <Link to="/settings#company-recorded-details">Settings</Link>
-          </nav>
+          <MemberPageLinks />
           <Routes>
             <Route path="/home" element={<MemberRecordsPage />} />
             <Route path="/settings" element={<CompanyRecordedDetails />} />

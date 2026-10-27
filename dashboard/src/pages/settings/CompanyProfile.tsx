@@ -9,11 +9,11 @@ import { CopyButton } from '@components/CopyButton';
 import { TOKENS_QUERY_KEY } from '@hooks/useTokensList';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
 import { EditCompanyForm } from './CompanyForms';
-import { CompanySelection } from '@components/CompanySelection';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
 
 export function CompanyProfile() {
   const context = useCompanyContext();
-  const data = useCompanySelection({ selectedUuid: context?.companyUuid ?? undefined });
+  const data = useCompanySelection({ selectedUuid: context ? (context.companyUuid ?? '') : undefined });
   return <CompanyDetails key={`${data.scopeKey}/${data.companyUuid ?? ''}`} data={data} />;
 }
 
@@ -50,7 +50,6 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
         <Loading>Loading company details…</Loading>
       ) : (
         <>
-          {!editing && <CompanySelection read={data} />}
           {editing ? (
             <EditCompanyForm
               key={`${data.scopeKey}/${editing.uuid}`}
@@ -64,7 +63,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
           ) : data.error ? (
             <CompanyReadNotice read={data} />
           ) : !company ? (
-            <p className="text-sm text-text-muted">Select a company with current administration or owner access.</p>
+            <CompanyContextNotice />
           ) : (
             <>
               <Rows>

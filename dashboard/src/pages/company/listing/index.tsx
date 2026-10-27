@@ -7,15 +7,19 @@ import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
-import { CompanySelection } from '@components/CompanySelection';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
 
 export default function ListingPage() {
   const context = useCompanyContext();
-  const read = useCompanySelection({ personalOnly: true, selectedUuid: context?.companyUuid ?? undefined });
+  const read = useCompanySelection({
+    personalOnly: true,
+    selectedUuid: context ? (context.companyUuid ?? '') : undefined,
+  });
   return <CompanyActivation key={`${read.scopeKey}/${read.companyUuid ?? ''}`} read={read} />;
 }
 
 function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelection> }) {
+  const context = useCompanyContext();
   const action = useCompanyActivation(read, () => crypto.randomUUID());
   const { company } = read;
   const opener = useRef<HTMLButtonElement>(null);
@@ -43,7 +47,6 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
   return (
     <Page loading={read.isLoading}>
       <div hidden={!!action.preview} className="space-y-5">
-        <CompanySelection read={read} />
         {action.busy && (
           <p role="status" className="text-sm text-text-muted">
             Checking activation…
@@ -52,11 +55,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
         {read.error ? (
           <CompanyReadNotice read={read} />
         ) : !company ? (
-          <p className="text-sm text-text-muted">
-            {read.companies.length
-              ? 'Choose a company above.'
-              : 'A current personal administrator appointment is required to activate a company.'}
-          </p>
+          <CompanyContextNotice />
         ) : (
           <>
             <Section title={company.name}>
@@ -105,7 +104,10 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                 )}
               </Disclosure>
             )}
-            <LinkRow to={DESTINATIONS.company.path} label={DESTINATIONS.company.title} />
+            <LinkRow
+              to={context?.companyPath(DESTINATIONS.company.path) ?? DESTINATIONS.company.path}
+              label={DESTINATIONS.company.title}
+            />
           </>
         )}
         <Section title={action.identityRequired ? 'Identity verification required' : 'Your identity'}>

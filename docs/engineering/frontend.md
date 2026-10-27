@@ -302,13 +302,20 @@ refused row.
 The web frame has no workspace selector or remembered company/personal mode.
 `CompanyContextProvider` (`dashboard/src/components/CompanyContextProvider.tsx`) and
 `useCompanyContext` (`dashboard/src/hooks/useCompanyContext.ts`) share the selected company with the
-Dashboard and task navigation. The address's `company` query identifies it; an explicit record's
-company context takes precedence. A single company opens directly. Company relationships come from
+Dashboard and task navigation. Dashboard is the only company switcher; task pages inherit its
+selection without another picker. The address's `company` query identifies it; an explicit record's
+company context takes precedence. A single company opens directly. With several companies and no
+selection, company-specific content uses `CompanyContextNotice`
+(`dashboard/src/components/CompanyContextNotice.tsx`) to link to Dashboard. Account-wide Profile,
+own appointments and invitation acceptance stay available. Company relationships come from
 current company access, appointments and real member associations, including draft companies with
 no classes. Selection changes neither account audience nor authority.
 Company changes and clearing the company selection confirm before discarding an edited, still-open
 form, including browser Back and Forward through React Router’s `useBlocker`; held Ledger or member work prevents those changes. The confirmation is bound to the current account
 and location. Authorised deep links and invitations remain usable without visiting Dashboard first.
+Class details and Ledger preparations use `dashboard/src/pages/company/ledger/shared/useRecordCompany.ts`
+to add the resolved record's company to an address that has none. A conflicting explicit company
+withholds that record and its form.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names items by `DESTINATIONS` key,
 optionally with a view (`/company/ledger#shareholders`, `#awards`,
@@ -543,8 +550,8 @@ decision) may reach the server though its reply is lost. Forms recover the same 
 reply never becomes a second effect:
 
 - A form keeps its original command, operation identifier, appointment and, for a decision, its
-  preview and decision key after an interrupted response or a failed refresh. Its inputs and the
-  company selector stay held until that command is recovered.
+  preview and decision key after an interrupted response or a failed refresh. Its inputs and company
+  context stay held until that command is recovered.
 - A successful write followed by a failed refresh never causes another upload or submission; a form
   that takes an upload keeps its retry key and confirmed receipt.
 - A form reuses its operation only for an identical request and takes a new one after a conflict.
@@ -749,7 +756,7 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
   their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
-  scope, disables the company and class selectors and other sidebar tasks, and pins held task
+  scope, prevents company changes, disables class selection and other sidebar tasks, and pins held task
   work to its task and class. The held task's sidebar link remains available from a sibling view
   so its original request can be resumed. `dashboard/src/components/LedgerNavigation.ts` carries
   this scope and navigation readiness between the page and frame, including `shareholderView` for

@@ -90,8 +90,7 @@ Resuming an unfinished signup:
 An owner of a draft company can also request initial authority outside signup, from
 **Settings → Team → Representative authority** on web.
 
-1. Use your verified account and the draft company you own, selecting it explicitly if you own
-   several.
+1. Use your verified account for the selected draft company you own.
 2. Choose your personal capabilities and, separately, the capabilities you intend to delegate.
    Initial admission requires Manage company information and team personally. Set an expiry if
    needed. Selecting capabilities grants nothing.
@@ -119,8 +118,8 @@ appointments, the selected company's team and issued invitations; **Invite a com
 Representative authority task.
 [Company eligibility](participants.md#company-eligibility-decisions) is under More on web.
 
-1. To invite someone, select the company and one of your current appointments that can delegate.
-   Choose the personal capabilities and, separately, any onward delegation for the invitee. Set an
+1. To invite someone, choose one of your current appointments that can delegate for the selected
+   company. Choose the personal capabilities and, separately, any onward delegation for the invitee. Set an
    appointment expiry and an acceptance deadline if needed.
 2. Create the invitation and share its one-time code privately with the intended person. The code
    is shown once, in the current form only; it disappears when the form is replaced or your account
@@ -216,10 +215,10 @@ rechecks the captured details.
 
 A current company administrator reads and edits the company's basic information at
 **Settings → Profile**, and manages supporting files at **Settings → Documents** on web
-([Settings](participants.md#profile-and-settings)). If several companies are available, select the
-company explicitly first.
+([Settings](participants.md#profile-and-settings)). On web,
+[choose the company on Dashboard](README.md#the-app-at-a-glance).
 
-1. Select the company and read its name, address, contact details and status.
+1. Read the selected company's name, address, contact details and status.
 2. Choose **Edit company** to change the permitted fields inline on web, save, and wait for the confirmed receipt
    and refreshed information.
 3. In **Documents**, a separate Settings page on web, view a retained file, upload a document of a chosen type, or confirm

@@ -5,7 +5,7 @@ import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { CompanyReadNotice } from '@components/CompanyState';
-import { CompanySelection } from '@components/CompanySelection';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { TOKENS_QUERY_KEY } from '@hooks/useTokensList';
 import { CompanyDocuments } from './CompanyDocuments';
@@ -19,7 +19,7 @@ export default function CompanyPage() {
 
 function DocumentsPage() {
   const context = useCompanyContext();
-  const data = useCompanySelection({ selectedUuid: context?.companyUuid ?? undefined });
+  const data = useCompanySelection({ selectedUuid: context ? (context.companyUuid ?? '') : undefined });
   return <Documents key={`${data.scopeKey}/${data.companyUuid ?? ''}`} data={data} />;
 }
 
@@ -35,12 +35,7 @@ function Documents({ data }: { data: ReturnType<typeof useCompanySelection> }) {
   return (
     <PageTitle.Provider value="Documents">
       <Page loading={data.isLoading}>
-        <CompanySelection read={data} />
-        {data.error ? (
-          <CompanyReadNotice read={data} />
-        ) : !data.company ? (
-          <p className="text-sm text-text-muted">Select a company with current administration or owner access.</p>
-        ) : null}
+        {data.error ? <CompanyReadNotice read={data} /> : !data.company ? <CompanyContextNotice /> : null}
         {data.retainedCompany && (
           <CompanyDocuments
             key={`${data.scopeKey}/${data.retainedCompany.uuid}`}

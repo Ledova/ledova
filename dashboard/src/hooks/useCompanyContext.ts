@@ -5,7 +5,7 @@ export interface CompanyContextValue {
   directory: ReturnType<typeof useOwnershipCompanies>;
   companyUuid: string | null;
   company: OwnershipCompany | undefined;
-  selectCompany: (uuid: string | null, preservePage?: boolean) => boolean;
+  selectCompany: (uuid: string) => boolean;
   companyPath: (path: string) => string;
   openDashboard: () => boolean;
 }

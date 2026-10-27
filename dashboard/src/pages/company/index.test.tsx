@@ -20,7 +20,7 @@ import { CompanyProfile } from '@pages/settings/CompanyProfile';
 import CompanyPage from '.';
 import CompanyTeamPage from './team';
 import CompanyEligibilityPage from './eligibility';
-import { APPOINTMENT, choose, companyPreferences, companyRecord, renderCompanyPage } from '../../testSupport/company';
+import { APPOINTMENT, companyPreferences, companyRecord, renderCompanyPage } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -180,8 +180,12 @@ it('shows focused company details without share classes, and uploads documents t
       return { data: [{ ...appointment, name: 'Private team administrator', email: 'administrator@example.test' }] };
     throw new Error(`Unexpected team request: ${url}`);
   });
-  renderCompanyPage(client, <CompanyTeamPage />, 'Company team');
+  renderCompanyPage(client, <CompanyTeamPage />, 'Company team', {
+    entry: `/company/team?company=${company.uuid}`,
+    path: '/company/team',
+  });
   await screen.findAllByText('Private team administrator');
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('button', { name: /Refresh/ })).toBeNull();
   const invitationOpener = screen.getByRole('button', { name: 'Invite a company user' });
@@ -268,14 +272,25 @@ it('shows focused company details without share classes, and uploads documents t
     }
     if (url === queueUrl) return { data: { ...EMPTY, count: 1, results: [eligibility] } };
     if (url === `${queueUrl}${requestUuid}/`) return { data: eligibility };
+    if (
+      [
+        '/api/v1/whitelist/company-wallet-nominations/',
+        '/api/v1/whitelist/company-wallet-targets/',
+        '/api/v1/whitelist/company-wallet-instructions/',
+      ].includes(url)
+    )
+      return { data: EMPTY };
     throw new Error(`Unexpected eligibility request: ${url}`);
   });
   api.post.mockImplementation(async (url: string) => {
     expect(url).toBe(`${queueUrl}${requestUuid}/decision-preview/`);
     return { data: { canDecide: true, previewDigest: 'synthetic-decision-digest', unmetRequirements: [] } };
   });
-  renderCompanyPage(client, <CompanyEligibilityPage />, 'Company eligibility');
-  await choose('Company', company.name);
+  renderCompanyPage(client, <CompanyEligibilityPage />, 'Company eligibility', {
+    entry: `/company/eligibility?company=${company.uuid}`,
+    path: '/company/eligibility',
+  });
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   await screen.findByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('button', { name: /Refresh/ })).toBeNull();
@@ -343,7 +358,6 @@ it('shows focused company details without share classes, and uploads documents t
   await act(async () => {
     client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences() });
   });
-  await choose('Company', company.name);
   await screen.findByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   const beforeAuthorityFailure = queueReads();
@@ -355,4 +369,28 @@ it('shows focused company details without share classes, and uploads documents t
   expect(queueReads()).toBe(beforeAuthorityFailure);
   expect(screen.queryByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Preview company decision' })).toBeNull();
+
+  cleanup();
+  client.clear();
+  failed = null;
+  const beforeUnavailableCompany = queueReads();
+  renderCompanyPage(client, <CompanyEligibilityPage />, 'Company eligibility', {
+    entry: '/company/eligibility?company=unavailable-company',
+    path: '/company/eligibility',
+  });
+  await screen.findByText(/Current personal prepare or approve authority is required to read this company/);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(queueReads()).toBe(beforeUnavailableCompany);
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
+  expect(screen.queryByText('Synthetic private eligibility declaration')).toBeNull();
+
+  cleanup();
+  client.clear();
+  renderCompanyPage(client, <CompanyEligibilityPage />, 'Company eligibility', {
+    entry: '/company/eligibility',
+    path: '/company/eligibility',
+  });
+  await screen.findByRole('link', { name: 'Choose company on Dashboard' });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(queueReads()).toBe(beforeUnavailableCompany);
 });

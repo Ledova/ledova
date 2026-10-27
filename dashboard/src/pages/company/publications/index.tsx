@@ -6,7 +6,7 @@ import { Section, LoadError } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { Page } from '@components/Page';
 import { CompanyReadNotice } from '@components/CompanyState';
-import { CompanySelection } from '@components/CompanySelection';
+import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { PublicationRecord } from './PublicationRecord';
 import { useIssuerPublications } from './useIssuerPublications';
 
@@ -17,7 +17,7 @@ export default function IssuerPublicationsPage() {
     ownedOnly: true,
     coordinatedReads: true,
     pausedScope: opening?.scope,
-    selectedUuid: context?.companyUuid ?? undefined,
+    selectedUuid: context ? (context.companyUuid ?? '') : undefined,
   });
   return (
     <CompanyPublications
@@ -52,11 +52,10 @@ function CompanyPublications({
       lede="Staff prepare and publish these records on your company's written instruction."
       loading={companyRead.isLoading || listing.isLoading}
     >
-      <CompanySelection read={companyRead} />
       {companyRead.error ? (
         <CompanyReadNotice read={companyRead} />
       ) : !company ? (
-        <p className="text-sm text-text-muted">No company information available.</p>
+        <CompanyContextNotice />
       ) : (
         <>
           {hasError ? (

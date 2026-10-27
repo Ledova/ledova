@@ -40,6 +40,7 @@ export function SearchSelect({
   id,
   error,
   label,
+  labelHidden = false,
   choices,
   value,
   onChange,
@@ -51,6 +52,7 @@ export function SearchSelect({
   id?: string;
   error?: string | null;
   label: string;
+  labelHidden?: boolean;
   choices: readonly SearchChoice[];
   value: string;
   onChange: (value: string) => void;
@@ -100,8 +102,8 @@ export function SearchSelect({
       >
         {({ open }) => (
           <>
-            <Label>{label}</Label>
-            <div className="relative mt-1" onKeyDownCapture={keepChoice(open)}>
+            <Label className={labelHidden ? 'sr-only' : undefined}>{label}</Label>
+            <div className={labelHidden ? 'relative' : 'relative mt-1'} onKeyDownCapture={keepChoice(open)}>
               <ComboboxInput
                 className={`${FIELD_BASE} pr-9`}
                 aria-invalid={error ? true : undefined}

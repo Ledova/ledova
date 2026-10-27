@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   downloadTokenRegister,
@@ -44,8 +43,8 @@ export function useCompanyRegister(
   retained?: { company: { uuid: string; name: string }; tokens: string[] },
   includeEmptyCompanies = false,
   requestedCompany?: string,
+  requestedToken?: string,
 ) {
-  const [selected, setSelected] = useState('');
   const classes = useRegisterClasses(owner, guard);
   const listed = classes.data ?? [];
   const appointments = useOwnAppointments(owner, guard, { enabled: includeEmptyCompanies });
@@ -58,13 +57,19 @@ export function useCompanyRegister(
   const companies = [
     ...new Map([...listed.map((item) => [item.companyUuid, item.companyName] as const), ...extra]).entries(),
   ].map(([uuid, name]) => ({ uuid, name }));
+  const tokenCompany = requestedToken ? listed.find(({ uuid }) => uuid === requestedToken)?.companyUuid : undefined;
+  const wanted = requestedToken
+    ? tokenCompany && (!requestedCompany || tokenCompany === requestedCompany)
+      ? tokenCompany
+      : ''
+    : requestedCompany;
   const company =
     retained?.company ??
-    (requestedCompany !== undefined
-      ? companies.find(({ uuid }) => uuid === requestedCompany)
+    (wanted !== undefined
+      ? companies.find(({ uuid }) => uuid === wanted)
       : companies.length === 1
         ? companies[0]
-        : companies.find(({ uuid }) => uuid === selected));
+        : undefined);
   const uuids = retained?.tokens ?? listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
   const empty = includeEmptyCompanies && !!company && uuids.length === 0;
   const registers = useQuery({
@@ -84,7 +89,6 @@ export function useCompanyRegister(
     classes,
     companies,
     company,
-    selectCompany: setSelected,
     registers,
     companyAppointments: appointments,
   };

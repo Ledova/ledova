@@ -16,8 +16,9 @@ export interface Landed {
 }
 
 export function registerPlace({ company, token, task, record, outcome }: RegisterPlace) {
+  const search = company ? `?${new URLSearchParams({ company })}` : '';
   return {
-    to: `${DESTINATIONS.companyRegister.path}${task ? `#${task}` : ''}`,
+    to: `${DESTINATIONS.companyRegister.path}${search}${task ? `#${task}` : ''}`,
     state: {
       registerCompany: company,
       registerToken: token,
