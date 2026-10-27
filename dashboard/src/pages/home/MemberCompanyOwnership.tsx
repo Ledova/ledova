@@ -68,7 +68,7 @@ export function MemberCompanyOwnership({ ownership }: { ownership: SharedOwnersh
             <>
               <div
                 aria-hidden="true"
-                className="grid grid-cols-[minmax(0,1fr)_5rem_5.5rem] gap-3 px-3 text-xs text-text-muted"
+                className="grid grid-cols-[minmax(0,1fr)_3.5rem_4rem] gap-2 px-2 text-xs text-text-muted sm:grid-cols-[minmax(0,1fr)_5rem_5.5rem] sm:gap-3 sm:px-3"
               >
                 <span>Share class</span>
                 <span className="text-right">Issued shares</span>
@@ -82,7 +82,7 @@ export function MemberCompanyOwnership({ ownership }: { ownership: SharedOwnersh
                       aria-label={`Highlight ${row.name} (${row.symbol})`}
                       aria-pressed={selected === row.uuid}
                       aria-describedby={`${id}-${row.uuid} ${id}-${row.uuid}-own`}
-                      className={`grid w-full grid-cols-[minmax(0,1fr)_5rem_5.5rem] items-center gap-3 rounded-lg px-3 py-3 text-left text-sm hover:bg-surface-tertiary focus-visible:bg-surface-tertiary motion-safe:transition-colors motion-safe:duration-150 ${highlighted === row.uuid ? 'bg-surface-tertiary' : ''}`}
+                      className={`grid w-full grid-cols-[minmax(0,1fr)_3.5rem_4rem] items-center gap-2 rounded-lg px-2 py-3 text-left text-sm hover:bg-surface-tertiary focus-visible:bg-surface-tertiary sm:grid-cols-[minmax(0,1fr)_5rem_5.5rem] sm:gap-3 sm:px-3 motion-safe:transition-colors motion-safe:duration-150 ${highlighted === row.uuid ? 'bg-surface-tertiary' : ''}`}
                       onMouseEnter={() => setHovered(row.uuid)}
                       onMouseLeave={() => setHovered(null)}
                       onFocus={() => setFocused(row.uuid)}
