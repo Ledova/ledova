@@ -414,7 +414,11 @@ it('updates own shares and awards automatically, preserves drafts and selected h
   includeOther = true;
   otherRecord = { ...otherRecordWithShares, classes: [] };
   await focusRead();
-  expect((screen.getByRole('combobox', { name: 'Company' }) as HTMLInputElement).disabled).toBe(false);
+  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
+  expect(
+    (screen.getByRole('button', { name: `Change company (${MEMBER_RECORD.company.name})` }) as HTMLButtonElement)
+      .disabled,
+  ).toBe(false);
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   await choose('Company', otherRecord.company.name);

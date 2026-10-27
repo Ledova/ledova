@@ -83,7 +83,9 @@ Keep other holders' identities and records out of this view. Without shared figu
 shares view without a redundant switch. Initially select the first available company; both views stay within the selected company. Preserve the chosen view
 through normal revalidation, start at Your shares after a company/account change, and return there
 when sharing becomes unavailable. Do not store the choice as an account preference or combine
-different companies' shares into a single ownership percentage. Awards remain in a separate card
+different companies' shares into a single ownership percentage. A failed selected-company read keeps
+the existing company selector available for recovery while withholding that company's figures.
+Awards remain in a separate card
 below the ownership panel in both modes. Member awards show the promise and nonzero lifecycle
 quantities, with the full breakdown and terms under **Award details**. Issued award shares stay clearly
 included in the holding. The member Dashboard contains only the shares and read-only award overview.

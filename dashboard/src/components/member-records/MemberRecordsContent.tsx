@@ -46,7 +46,7 @@ export function MemberRecordsContent({
         <Loading>Loading member records…</Loading>
       ) : (
         <>
-          {companyHeader && read.records.length > 1 && (
+          {(companyHeader || read.readFailed) && read.records.length > 1 && (
             <div className="max-w-md">
               <CompanyPicker
                 companies={read.records.map((record) => ({ uuid: record.uuid, name: record.company.name }))}

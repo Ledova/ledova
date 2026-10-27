@@ -733,8 +733,10 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   Its own-shares view sums issued shares with `BigInt` and charts only their shares by class.
   Keep view intent outside the gated content so ordinary revalidation does not reset it; key it to
   the account and selected association, and discard company-view intent when sharing becomes
-  unavailable. No new storage or refresh timer is needed. Read-only awards remain separate entitlements, with the promise
-  and nonzero lifecycle quantities above their full breakdown and terms in Award details.
+  unavailable. A failed selected-company read retains the existing company selector for recovery
+  and withholds its figures. No new storage or refresh timer is needed. Read-only awards remain
+  separate entitlements, with the promise and nonzero lifecycle quantities above their full
+  breakdown and terms in Award details.
   Company-recorded details in Settings groups current particulars and update-request records in one
   card, side by side on desktop and stacked on smaller screens, with one shared action footer.
   Request update opens a focused inline form; successful submission closes it and clears consent,
