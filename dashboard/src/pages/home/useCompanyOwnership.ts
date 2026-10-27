@@ -179,7 +179,6 @@ export function useCompanyOwnership(
         return;
       }
     },
-    selected,
     select,
     holders,
     list,

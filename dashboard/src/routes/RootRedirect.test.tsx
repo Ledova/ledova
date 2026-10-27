@@ -10,7 +10,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
-import { Link, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
 import {
   APPOINTMENT,
@@ -36,11 +36,17 @@ function ContextActions() {
   const context = useCompanyContext();
   const ledger = useLedgerNavigation();
   const navigate = useNavigate();
+  const location = useLocation();
   return (
     <>
       <output aria-label="Selected company">{context?.company?.name ?? 'No company selected'}</output>
+      <output aria-label="Company address">{location.pathname + location.search}</output>
       <button onClick={() => context?.selectCompany('company-a')}>Choose company A</button>
       <button onClick={() => context?.selectCompany('company-b')}>Choose company B</button>
+      <button onClick={() => void navigate('?company=company-a&q=Alex&class=ordinary&page=2')}>
+        Search this company
+      </button>
+      <button onClick={() => context?.selectCompany('company-b', true)}>Change company here</button>
       <button onClick={() => ledger.setState({ company: 'company-a', blocked: true, held: true })}>Hold action</button>
       <button onClick={() => ledger.setState({ company: 'company-a', blocked: false })}>Release action</button>
       <button onClick={() => void navigate(-1)}>Browser Back</button>
@@ -170,6 +176,14 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     );
     expect(screen.getAllByRole('link', { name: 'Dashboard' })).toHaveLength(1);
     fireEvent.click(ledgerLink);
+    fireEvent.click(screen.getByRole('button', { name: 'Search this company' }));
+    expect(screen.getByLabelText('Company address').textContent).toBe(
+      '/company/ledger?company=company-a&q=Alex&class=ordinary&page=2',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Change company here' }));
+    expect(screen.getByLabelText('Company address').textContent).toBe('/company/ledger?company=company-b');
+    fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Ledger' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
       target: { value: 'Unfinished draft' },
     });

@@ -716,8 +716,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   `dashboard/src/pages/home/useCompanyOwnership.ts` owns company aggregates and sequence-bound
   holder reads. `dashboard/src/pages/home/useOwnershipMember.ts` reads only the selected member
   association. `dashboard/src/hooks/useOwnershipCompanies.ts` merges company and member indexes with
-  current appointments for the directory. The overview uses the shared
-  `dashboard/src/components/ownership/OwnershipRing.tsx`, linked class list and exact metrics. Company-authorised readers obtain sequence-bound, server-paged holder details;
+  current appointments for the directory. The overview keeps its ownership ring
+  (`dashboard/src/pages/home/OwnershipRing.tsx`), linked class list and exact metrics in the page folder. Company-authorised readers obtain sequence-bound, server-paged holder details;
   members obtain only their own position and the optional shared aggregates from the existing
   association-bound read. A real member link, not a matching name or company appointment, supplies
   the personal position. No full-register reads are needed just to list companies.

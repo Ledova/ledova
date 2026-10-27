@@ -63,10 +63,9 @@ use shared search and a 25-row pager; small and zero-share classes remain direct
 While company ownership loads, reserve the dashboard's summary and chart space with a static,
 data-free placeholder. The same neutral ring covers the lazy chart import. Show confirmed data
 directly when ready, without artificial waiting time, placeholder figures or entrance tracking.
-While holders load, replace their rows with a static loading status and reserve the last settled
-holder panel height, with a modest first-load placeholder. Retain geometry only, never stale holder
-figures. Settled short results, empty states and errors take their natural height; preserve the
-existing access clearing and retry controls.
+Keep a modest minimum-height holder area, showing a static loading status instead of stale holder
+figures while reading. Short results, empty states and errors retain that minimum area; preserve
+the existing access clearing and retry controls.
 Narrow screens show the linked list without squeezing the ring. A chart failure leaves the same
 list usable. Percentages name their denominator; issued share counts do not imply voting power,
 economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
