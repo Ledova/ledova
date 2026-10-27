@@ -63,7 +63,6 @@ function OwnDashboard({
   const appointments = useOwnAppointments(owner, guard);
   const location = useLocation();
   const entered = useRef('');
-  const revealed = useRef(new Set<string>());
   useEffect(() => {
     const wanted = location.state?.registerCompany;
     if (typeof wanted !== 'string' || entered.current === wanted || !classes.isSuccess || classes.isFetching) return;
@@ -156,11 +155,6 @@ function OwnDashboard({
             issuedSupply={summary.issuedSupply}
             selected={selected?.uuid ?? null}
             onSelect={select}
-            onRingReady={() => {
-              if (revealed.current.has(company.uuid)) return false;
-              revealed.current.add(company.uuid);
-              return true;
-            }}
             holders={holders.isSuccess && !holders.isFetching ? holders.data : undefined}
             loading={!!selected?.initialized && (holders.isPending || holders.isFetching)}
             error={holders.error}

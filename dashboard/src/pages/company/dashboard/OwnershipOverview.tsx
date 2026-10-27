@@ -11,18 +11,10 @@ interface OwnershipOverviewProps {
   complete: boolean;
   issuedSupply: string | null;
   onSelect: (uuid: string) => void;
-  onRingReady: () => boolean;
   list: ListParams<string>;
 }
 
-export function OwnershipOverview({
-  classes,
-  complete,
-  issuedSupply,
-  onSelect,
-  onRingReady,
-  list,
-}: OwnershipOverviewProps) {
+export function OwnershipOverview({ classes, complete, issuedSupply, onSelect, list }: OwnershipOverviewProps) {
   const id = useId();
   const [hovered, setHovered] = useState<string | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
@@ -54,7 +46,6 @@ export function OwnershipOverview({
             onSelect={onSelect}
             highlighted={highlighted}
             onHighlight={setHovered}
-            onRingReady={onRingReady}
           />
         )}
         <div className="flex min-w-0 flex-col gap-3">

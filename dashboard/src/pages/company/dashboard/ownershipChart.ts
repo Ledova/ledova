@@ -13,7 +13,13 @@ export interface OwnershipRingController {
 
 export function renderOwnershipRing(
   container: HTMLDivElement,
-  { classes, issuedSupply, onSelect, onHighlight, onRingReady }: Omit<OwnershipRingProps, 'highlighted'>,
+  {
+    classes,
+    issuedSupply,
+    onSelect,
+    onHighlight,
+    onReady,
+  }: Omit<OwnershipRingProps, 'highlighted'> & { onReady: () => void },
 ): OwnershipRingController {
   const tokens = getComputedStyle(container);
   const color = (name: string) => tokens.getPropertyValue(`--color-${name}`).trim();
@@ -43,7 +49,7 @@ export function renderOwnershipRing(
         emphasis: { scale: !reducedMotion.matches, scaleSize: 5, focus: 'self' },
         stateAnimation: { duration: reducedMotion.matches ? 0 : 160, easing: 'cubicOut' },
         blur: { itemStyle: { opacity: 0.3 } },
-        itemStyle: { borderColor: color('surface-raised'), borderWidth: 2 },
+        itemStyle: { borderColor: color('surface-raised'), borderWidth: 2, borderRadius: 2 },
         data: eligible.map((item) => {
           const sliceColor = tokens.getPropertyValue(ownershipColor(classes, item.uuid).slice(4, -1)).trim();
           return {
@@ -65,7 +71,6 @@ export function renderOwnershipRing(
     ],
   });
   let chart: EChartsType | undefined;
-  let entrance: Animation | undefined;
   let highlighted: string | null = null;
   let nativeHover: string | null = null;
   const highlight = (uuid: string | null) => {
@@ -80,9 +85,7 @@ export function renderOwnershipRing(
     if (!chart) {
       chart = init(container, undefined, { renderer: 'svg' });
       chart.setOption(option());
-      if (onRingReady() && !reducedMotion.matches && typeof container.animate === 'function') {
-        entrance = container.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
-      }
+      onReady();
       chart.on('click', (parameters) => {
         const row = rowFrom(parameters);
         if (row) onSelect(row.uuid);
@@ -108,7 +111,6 @@ export function renderOwnershipRing(
   };
   const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
   const updateMotion = () => {
-    if (reducedMotion.matches) entrance?.finish();
     chart?.setOption(option());
   };
   resize();
@@ -119,7 +121,6 @@ export function renderOwnershipRing(
     dispose: () => {
       observer?.disconnect();
       reducedMotion.removeEventListener('change', updateMotion);
-      entrance?.cancel();
       chart?.dispose();
     },
   };

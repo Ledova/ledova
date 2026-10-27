@@ -704,8 +704,8 @@ Each page links to its business section; the audience is the `DESTINATIONS` audi
   that folder opens one class inline; `OwnershipHolders.tsx` renders its ranked bars, and
   `OwnershipRing.tsx` loads `ownershipChart.ts` for the ring. The linked class list keeps every class
   accessible; the selected class's bar list keeps server search and paging. `OwnershipLoading.tsx`
-  reserves the data-free loading frame, and the owner-scoped dashboard remembers which companies'
-  rings have appeared so normal updates do not replay their fade. The person's own
+  reserves a static, data-free loading frame, also used while the chart module loads. Confirmed
+  figures appear directly, without pulse or entrance tracking. The person's own
   appointments (`useOwnAppointments`) give the status line and Getting
   started, which reads the register step from the selected company's opened registers. Web tasks
   render only while incomplete; the existing parent condition hides the card when both tasks are
