@@ -214,12 +214,13 @@ dates, and correction or reversal references. Entries stay immutable; current re
 inspect retained supporting records and permitted downloads. The same view holds capability-guarded
 correction, opening, reconciliation acknowledgement, particulars and wallet-link workflows. Certificate
 preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
-survive navigation. Company Documents has **Certificates**, **Ledger exports** and **Company pack** views.
-Certificates and Ledger exports show one selected class, with one **Share class** selector only when
-there is more than one class. Company pack stays at company scope. Each view keeps the existing
-workspace frame, cards, responsive field grid and action footer, opening one focused inline
-preparation at a time. Certificate choices show the issue or transfer's date and share movements;
-the form uses the existing labelled summary rows for share movements, company date and PDF page
+survive navigation. Documents has one **Certificates** page for company and member records, plus
+**Ledger exports** and **Company pack** where company access permits them. Certificates and Ledger
+exports show one selected class, with a **Share class** selector only when there is more than one.
+On Certificates, the selector sits in the records card header.
+Company pack stays at company scope. Each uses the existing workspace frame, cards, responsive
+field grid and action footer, opening one focused main-page preparation at a time. Certificate
+preparation uses the existing labelled summary rows for share movements, company date and PDF page
 count after preview. No manual certificate reference is needed: the server records the exact-entry
 request when the file is generated. Keep technical metadata under **Record details** and one
 right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
@@ -229,12 +230,16 @@ with its sequence under Record details. Correction, particulars, wallet-link and
 responsive field grid; their records group document and decision actions in one wrapping footer. Keep current source and appointment validation and error retries, without routine
 refresh controls.
 
-Member Documents uses one **Certificates** card. Each share change groups its quantity, class and
-company date with the latest certificate-request status and its request, withdrawal or unsigned
-download actions. Entry numbers, ledger dates, recording timestamps and previous requests open
-under **Record details**; requests without a matching visible entry remain under **Other certificate
-requests**, with their own actions. A class chooser is only shown when there is more than one class.
-Particulars requests stay in Company-recorded details in Settings.
+Certificates uses one list for the selected company and class. Company readers see permitted
+company entries; members see only their own history, request status and actions. Mixed-role accounts
+see matching entries once. Use one aligned `Disclosure` row for the shareholder or change, shares,
+date and status, with details, previous requests and permitted preparation, request, withdrawal or
+unsigned-download actions opening inline. Company-only rows show certificate eligibility; request
+status comes only from an actual readable request. Keep entry numbers, ledger dates and recording
+timestamps inside the opened details. Requests without a matching visible entry remain under
+**Other certificate requests** with their own
+actions. Preparing a company PDF never marks a member request fulfilled. Particulars requests stay
+in Company-recorded details in Settings.
 
 The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
 Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order,
@@ -353,7 +358,7 @@ The Dashboard selects company context; there is no workspace or role selector. K
 company visible in the sidebar and preserve its context in task links. One person uses one account:
 company appointments and actual member associations independently determine the available tasks and
 records. Company context never grants authority or links someone to a same-named shareholder.
-Personal and company document destinations must say whose records they open. Preserve authorised
+The common Certificates page must identify whose records and actions each row permits. Preserve authorised
 direct links and invitations without forcing a visit through Dashboard. Protect edited forms before
 changing or clearing the company selection, and block those changes during held execution.
 Recheck the account and current location before confirming navigation.
@@ -364,7 +369,8 @@ an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Ledger exports** and **Company pack**, with its label opening Certificates. Settings uses the same
+**Ledger exports** and **Company pack** where permitted, with its label opening Certificates at
+`/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Documents**, **Team**, **Activation** and
 **Company-recorded details**, without an extra overview page. Profile always holds personal
 information and Account. Company Documents, Team, Activation and Company details follow current
@@ -387,7 +393,9 @@ in page headers or a Company administration link card.
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
 including Ledger, its views (Shareholders, Employee share scheme, Documents) and tasks
 (Issue shares, Transfer shares, History, Corrections), Set up your ledger, Ledger opening and Home's
-Documents view. The web exposes only Issue shares, Transfer shares and Corrections,
+Documents view. The web's neutral Certificates address is declared in `dashboard/src/utils/paths.ts`;
+old Dashboard and Ledger certificate links redirect there with their company and class. The web exposes
+only Issue shares, Transfer shares and Corrections,
 replacing an incoming `#history` with `#corrections` while retaining company/class context. The web sidebar,
 page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. Dashboard is one

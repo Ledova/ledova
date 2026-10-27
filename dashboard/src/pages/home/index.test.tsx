@@ -30,6 +30,8 @@ import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD, choose } from '../../testSupp
 import { AWARD_REQUEST, REGISTER, awardFrom } from '../../testSupport/company';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF, OUTPUT_APPOINTMENT, OUTPUT_PREVIEW } from '../../testSupport/company';
 import MemberRecordsPage from './index';
+import CertificatesPage from '../documents/certificates';
+import { CERTIFICATES_PATH } from '@utils/paths';
 import MemberInvitationPage from '../member-invitation';
 import { CompanyMemberAccess } from '../company/ledger/CompanyMemberAccess';
 
@@ -457,6 +459,7 @@ it('invites and associates a walletless member, recovers one exact request and r
           <MemberPageLinks />
           <Routes>
             <Route path="/home" element={<MemberRecordsPage />} />
+            <Route path={CERTIFICATES_PATH} element={<CertificatesPage />} />
             <Route path="/settings" element={<CompanyRecordedDetails />} />
           </Routes>
         </CompanyContextProvider>
@@ -670,24 +673,25 @@ it('invites and associates a walletless member, recovers one exact request and r
     within(screen.getByRole('heading', { name: 'Update requests' }).closest('section')!).getByText('Applied'),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
-  const certificatesCard = (await screen.findByRole('heading', { name: 'Certificates' })).closest('section')!;
-  expect(within(certificatesCard).getByRole('heading', { name: '+10 ORD shares' })).toBeTruthy();
-  expect(within(certificatesCard).getByText('Requested', { exact: true, selector: 'p.font-medium' })).toBeTruthy();
-  expect(within(certificatesCard).getByText('Not recorded')).toBeTruthy();
+  const certificatesCard = (await screen.findByRole('heading', { name: 'Certificate records' })).closest('section')!;
+  expect(within(certificatesCard).getByText('+10 ORD shares')).toBeTruthy();
+  const certificateRow = within(certificatesCard).getByRole('button', { name: new RegExp(MEMBER_RECORD.name) });
+  expect(within(certificateRow).getByText('Requested', { exact: true })).toBeTruthy();
+  expect(within(certificateRow).getByText('Not recorded')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
+  fireEvent.click(certificateRow);
   expect(within(certificatesCard).getByRole('button', { name: /Withdraw certificate request/ })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Share history' })).toBeNull();
   expect(screen.queryByRole('heading', { name: 'Your request status' })).toBeNull();
   expect(screen.queryByRole('heading', { name: 'Update requests' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
-  expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
-  fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Record details' }));
   expect(within(certificatesCard).getByRole('heading', { name: 'Previous requests' })).toBeTruthy();
   expect(within(certificatesCard).getByText('Ordinary · Withdrawn')).toBeTruthy();
   expect(within(certificatesCard).getByText('Ordinary · Fulfilled')).toBeTruthy();
   fireEvent.click(await screen.findByRole('button', { name: /Download unsigned certificate/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
   expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid), expect.anything());
-  fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Record details' }));
+  fireEvent.click(certificateRow);
   fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Other certificate requests' }));
   expect(within(certificatesCard).getByText('Share certificate · Fulfilled')).toBeTruthy();
   fireEvent.click(within(certificatesCard).getByRole('button', { name: /Download unsigned certificate/ }));
@@ -768,6 +772,8 @@ it('invites and associates a walletless member, recovers one exact request and r
   const finalCommand = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS).at(-1)![1];
   expect(finalCommand.operationId).not.toBe(commands[0][1].operationId);
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
+  const finalRecords = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(within(finalRecords).getByRole('button', { name: new RegExp(MEMBER_RECORD.name) }));
   fireEvent.click(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' }));
   await waitFor(() => expect(release).toBeTypeOf('function'));
   refused = true;

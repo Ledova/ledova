@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { DESTINATIONS, useMemberRecords } from '@ledova/shared';
+import { CERTIFICATES_PATH } from '@utils/paths';
 import { MemberWorkspaceContext, type MemberDraft } from './useMemberWorkspace';
 
 const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open: false };
@@ -8,8 +9,7 @@ const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const { pathname, hash } = useLocation();
   const active =
-    (pathname === DESTINATIONS.home.path && hash === '#documents') ||
-    (pathname === DESTINATIONS.settings.path && hash === '#company-recorded-details');
+    pathname === CERTIFICATES_PATH || (pathname === DESTINATIONS.settings.path && hash === '#company-recorded-details');
   const read = useMemberRecords(() => crypto.randomUUID(), undefined, { coordinatedRefresh: true, enabled: active });
   return (
     <MemberState key={`${read.scopeOwner?.userUuid}/${read.scopeOwner?.ownerAccountUuid}`} read={read} active={active}>
@@ -29,6 +29,8 @@ function MemberState({
 }) {
   const location = useLocation();
   const requested = new URLSearchParams(location.search).get('company');
+  const requestedClass =
+    location.pathname === CERTIFICATES_PATH ? new URLSearchParams(location.search).get('class') : null;
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [token, setToken] = useState('');
   const selectionOwner = useRef<typeof read.owner>(null);
@@ -68,14 +70,16 @@ function MemberState({
   ]);
   useEffect(() => {
     if (active && read.record && !held) {
-      const item = read.record.classes.find((item) => item.uuid === token) ?? read.record.classes[0];
+      const item = requestedClass
+        ? read.record.classes.find((item) => item.uuid === requestedClass)
+        : (read.record.classes.find((item) => item.uuid === token) ?? read.record.classes[0]);
       const selection = item ? `${read.record.uuid}/${item.uuid}` : '';
       if (selection === initialHistory.current) return;
       initialHistory.current = selection;
       setToken(item?.uuid ?? '');
       read.selectToken(item?.uuid ?? '');
     }
-  }, [active, read.record, read.selectToken, held, token]);
+  }, [active, read.record, read.selectToken, held, token, requestedClass]);
   return (
     <MemberWorkspaceContext.Provider
       value={{

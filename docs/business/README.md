@@ -237,10 +237,10 @@ administers a company and holds its shares sees that company once, with their ow
 the company information they may read. The sidebar keeps focused tasks for the selected company:
 
 - Ledger opens the class overview, with Issue shares, Transfer shares and Corrections beneath it.
-  Shareholders opens the people list, with ESS, Member access and Member requests. Company Documents
-  groups Certificates, Ledger exports and Company pack.
-- Personal certificates are named separately for people who also have company document access.
-  More retains permitted personal notices, investing and wallet pages and company eligibility,
+  Shareholders opens the people list, with ESS, Member access and Member requests. Documents opens
+  one Certificates page for company and member records, with Ledger exports and Company pack where
+  company access permits them. Matching company and own records appear once.
+- More retains permitted personal notices, investing and wallet pages and company eligibility,
   publication and Offering workflows.
 - Settings keeps personal Profile and Account, with company information, source Documents, Team,
   Activation and Company-recorded details according to current access.
@@ -270,7 +270,7 @@ and charts rather than showing zero. Detailed history and every action are on th
 The same web Dashboard shows the person's own register records, with no wallet needed. A company can opt into sharing an aggregate ownership overview with its current
 linked members on the web: all class totals and each member's own position, without other
 shareholders' identities or private records. Mobile retains its own-records view. Certificates and certificate
-requests are in personal Documents on the web, and in Documents and each share class's page on mobile
+requests are in Documents → Certificates on the web, and in Documents and each share class's page on mobile
 ([member records](member-records.md)).
 
 The mobile app has three tabs and a notifications bell, and opens on Holdings. **Holdings** lists

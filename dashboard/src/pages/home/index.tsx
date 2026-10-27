@@ -1,7 +1,12 @@
-import { useLocation } from 'react-router-dom';
-import { MemberDocuments } from './MemberDocuments';
+import { Navigate, useLocation } from 'react-router-dom';
+import { certificatesLocation } from '@utils/paths';
 import { OwnershipBrowser } from './OwnershipBrowser';
 
 export default function DashboardPage() {
-  return useLocation().hash === '#documents' ? <MemberDocuments /> : <OwnershipBrowser />;
+  const location = useLocation();
+  return location.hash === '#documents' ? (
+    <Navigate to={certificatesLocation(location)} state={location.state} replace />
+  ) : (
+    <OwnershipBrowser />
+  );
 }

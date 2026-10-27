@@ -259,9 +259,9 @@ async function openTheSidebar(page: Page, role: Role) {
     aside = await visibleSidebar(page);
     const documents = aside.getByRole('link', { name: 'Documents', exact: true }).locator('../..');
     await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
-    await expect(documents.getByRole('link', { name: 'Your certificates', exact: true })).toHaveAttribute(
+    await expect(documents.getByRole('link', { name: 'Certificates', exact: true })).toHaveAttribute(
       'href',
-      '/home?company=company#documents',
+      '/documents/certificates?company=company',
     );
   } else if (role === 'investor') {
     await expect(page.getByText('Your issued shares', { exact: true })).toBeVisible();
@@ -319,8 +319,11 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(page.getByRole('heading', { level: 1, name: 'Certificates', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Company', exact: true })).toHaveCount(0);
     aside = await visibleSidebar(page);
+    await expect(aside.getByRole('link', { name: 'Certificates', exact: true })).toHaveAttribute(
+      'href',
+      '/documents/certificates?company=company&class=ordinary',
+    );
     for (const [name, hash] of [
-      ['Certificates', 'certificates'],
       ['Ledger exports', 'ledger-exports'],
       ['Company pack', 'company-pack'],
     ])

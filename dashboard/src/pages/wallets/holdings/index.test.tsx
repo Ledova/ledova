@@ -26,6 +26,8 @@ import { Link, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import HomePage from './index';
 import MemberRecordsPage from '../../home/index';
+import CertificatesPage from '@pages/documents/certificates';
+import { CERTIFICATES_PATH } from '@utils/paths';
 import { choose, MEMBER_ENTRY, MEMBER_RECORD } from '../../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
@@ -104,7 +106,7 @@ function MemberNavigation() {
   const context = useCompanyContext();
   return (
     <>
-      <Link to={context!.companyPath('/home#documents')}>Test Documents navigation</Link>
+      <Link to={context!.companyPath(CERTIFICATES_PATH)}>Test Documents navigation</Link>
       <Link
         to={context!.companyPath('/home')}
         onClick={(event) => {
@@ -123,9 +125,16 @@ async function ownShares(quantity: string) {
   await waitFor(() => expect(screen.getByText('Your issued shares').nextElementSibling?.textContent).toBe(quantity));
 }
 
+async function certificateRequest() {
+  const records = await screen.findByRole('list', { name: 'Certificate records' });
+  const row = await within(records).findByRole('button', { name: new RegExp(MEMBER_RECORD.name) });
+  if (row.getAttribute('aria-expanded') === 'false') fireEvent.click(row);
+  return screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
+}
+
 async function chooseMemberCompany(name: string) {
   const settings = !!screen.queryByRole('heading', { name: 'Company-recorded details', level: 1 });
-  const documents = !!screen.queryByRole('heading', { name: 'Your certificates', level: 1 });
+  const documents = !!screen.queryByRole('heading', { name: 'Certificates', level: 1 });
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await choose('Your companies', name);
   if (screen.queryByRole('dialog', { name: 'Leave this page?' }))
@@ -255,6 +264,7 @@ it('updates ownership and member workflows after invalidation without idle refre
                   <MemberNavigation />
                   <Routes>
                     <Route path="/home" element={<MemberRecordsPage />} />
+                    <Route path={CERTIFICATES_PATH} element={<CertificatesPage />} />
                     <Route path="/settings" element={<CompanyRecordedDetails />} />
                   </Routes>
                 </PageTitle.Provider>
@@ -265,7 +275,7 @@ it('updates ownership and member workflows after invalidation without idle refre
       </ApiClientProvider>
     </QueryClientProvider>,
   );
-  await screen.findByText('No share changes yet.');
+  await screen.findByText('No eligible certificate records in the loaded entries.');
   const activeReads = api.get.mock.calls.length;
   await act(async () => {
     fireEvent(window, new Event('focus'));
@@ -278,7 +288,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   await waitFor(() => expect(client.isFetching()).toBe(0));
   record = MEMBER_RECORD;
   await refreshRead();
-  await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
+  await certificateRequest();
   expect(screen.queryByRole('button', { name: 'Ordinary · ORD' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await ownShares('10');
@@ -422,7 +432,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   expect(screen.queryByRole('textbox', { name: 'Requested name' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
-  await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
+  await certificateRequest();
   expect(screen.queryByRole('heading', { name: 'Update requests' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect(((await screen.findByRole('textbox', { name: 'Requested name' })) as HTMLInputElement).value).toBe(
@@ -448,10 +458,10 @@ it('updates ownership and member workflows after invalidation without idle refre
   });
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
-  expect(await screen.findByRole('heading', { name: 'Your certificates', level: 1 })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Certificates', level: 1 })).toBeTruthy();
   expect(screen.queryByText('Your issued shares')).toBeNull();
   expect(screen.queryByRole('img')).toBeNull();
-  expect(screen.getByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeTruthy();
+  expect(await certificateRequest()).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await ownShares('10');
   expect(screen.getByRole('list', { name: 'Share classes' })).toBeTruthy();
@@ -511,9 +521,9 @@ it('updates ownership and member workflows after invalidation without idle refre
   expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   await chooseMemberCompany(otherRecord.company.name);
-  await screen.findByText('No share changes yet.');
+  await screen.findByText('No eligible certificate records in the loaded entries.');
   await chooseMemberCompany(MEMBER_RECORD.company.name);
-  await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
+  await certificateRequest();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   otherRecord = otherRecordWithShares;
   await refreshRead();

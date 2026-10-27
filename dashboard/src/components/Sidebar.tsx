@@ -28,7 +28,7 @@ import { NotificationBell } from './NotificationBell';
 import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { SITE_PATHS } from '@utils/paths';
+import { CERTIFICATES_PATH, SITE_PATHS, certificatesLocation } from '@utils/paths';
 import {
   destinationAt,
   pageTitle,
@@ -97,6 +97,11 @@ const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, LedgerTask>> = {
 };
 
 function itemPath(item: NavItem) {
+  if (
+    (item.destination === 'companyRegister' && item.view === 'certificates') ||
+    (item.destination === 'home' && item.view === 'documents')
+  )
+    return CERTIFICATES_PATH;
   const path = DESTINATIONS[item.destination].path;
   return `${path}${item.view ? `#${item.view}` : ''}`;
 }
@@ -119,7 +124,12 @@ function ledgerContext(
     (typeof location.state?.registerCompany === 'string'
       ? location.state.registerCompany
       : (new URLSearchParams(location.search).get('company') ?? companyUuid ?? undefined));
-  const token = location.pathname === path ? state?.token : classParams?.uuid;
+  const token =
+    location.pathname === path
+      ? state?.token
+      : location.pathname === CERTIFICATES_PATH
+        ? (new URLSearchParams(location.search).get('class') ?? location.state?.registerToken)
+        : classParams?.uuid;
   return company || token ? { registerCompany: company, registerToken: token } : undefined;
 }
 
@@ -339,9 +349,17 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   const [shownPlace, setShownPlace] = useState(place);
   const [expanded, setExpanded] = useState(active);
   const id = useId();
-  const selected = location.pathname === path ? documentView(location.hash.slice(1)) : undefined;
-  const personal = location.pathname === DESTINATIONS.home.path && location.hash === '#documents';
+  const selected =
+    location.pathname === CERTIFICATES_PATH
+      ? 'certificates'
+      : location.pathname === path
+        ? documentView(location.hash.slice(1))
+        : undefined;
+  const views = DOCUMENT_VIEWS.filter(({ key }) => key === 'certificates' || companyContext?.company?.canReadRegister);
   const context = ledgerContext(location, state, companyContext?.companyUuid);
+  const certificateTarget = certificatesLocation({ search: '', state: context });
+  const certificatePath = `${certificateTarget.pathname}${certificateTarget.search}`;
+  const certificatesBlocked = location.pathname === path && !!state?.held;
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
 
   if (shownPlace !== place) {
@@ -353,10 +371,17 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
     <div>
       <div className="flex items-center gap-1">
         <Link
-          to={companyContext?.companyPath(`${path}#certificates`) ?? `${path}#certificates`}
+          to={companyContext?.companyPath(certificatePath) ?? certificatePath}
           state={context}
-          onClick={onNavigate}
-          className={`${ITEM_CLASS} min-w-0 flex-1 ${IDLE_CLASS}`}
+          onClick={(event) => {
+            if (certificatesBlocked) event.preventDefault();
+            else onNavigate?.();
+          }}
+          onAuxClick={(event) => {
+            if (certificatesBlocked) event.preventDefault();
+          }}
+          aria-disabled={certificatesBlocked || undefined}
+          className={`${ITEM_CLASS} min-w-0 flex-1 ${IDLE_CLASS} ${certificatesBlocked ? 'cursor-not-allowed opacity-50' : ''}`}
         >
           <FilesIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
           <span>Documents</span>
@@ -373,28 +398,28 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
         </button>
       </div>
       <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-        {DOCUMENT_VIEWS.map(({ key, label }) => (
+        {views.map(({ key, label }) => (
           <Link
             key={key}
-            to={companyContext?.companyPath(`${path}#${key}`) ?? `${path}#${key}`}
+            to={
+              companyContext?.companyPath(key === 'certificates' ? certificatePath : `${path}#${key}`) ??
+              (key === 'certificates' ? certificatePath : `${path}#${key}`)
+            }
             state={context}
-            onClick={onNavigate}
+            onClick={(event) => {
+              if (key === 'certificates' && certificatesBlocked) event.preventDefault();
+              else onNavigate?.();
+            }}
+            onAuxClick={(event) => {
+              if (key === 'certificates' && certificatesBlocked) event.preventDefault();
+            }}
             aria-current={selected === key ? 'page' : undefined}
-            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
+            aria-disabled={(key === 'certificates' && certificatesBlocked) || undefined}
+            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${key === 'certificates' && certificatesBlocked ? 'cursor-not-allowed opacity-50' : ''}`}
           >
             {label}
           </Link>
         ))}
-        {!!companyContext?.company?.memberUuids.length && (
-          <Link
-            to={companyContext.companyPath(`${DESTINATIONS.home.path}#documents`)}
-            onClick={onNavigate}
-            aria-current={personal ? 'page' : undefined}
-            className={`${ITEM_CLASS} ${personal ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
-          >
-            Your certificates
-          </Link>
-        )}
       </div>
     </div>
   );
@@ -540,7 +565,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         allItems.find((item) => item.destination === place.destination && !item.view),
     )
     .find(Boolean);
-  const activePath = activeItem && itemPath(activeItem);
+  const activePath = location.pathname === CERTIFICATES_PATH ? CERTIFICATES_PATH : activeItem && itemPath(activeItem);
 
   return (
     <aside className="flex h-full w-52 flex-col border-r border-border-subtle bg-surface-base">
@@ -566,7 +591,8 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                     active={itemPath(item) === activePath}
                     onNavigate={onNavigate}
                   />
-                ) : item.destination === 'companyRegister' && item.view === 'certificates' ? (
+                ) : (item.destination === 'companyRegister' && item.view === 'certificates') ||
+                  (item.destination === 'home' && item.view === 'documents') ? (
                   <DocumentsGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
                 ) : item.destination === 'settings' ? (
                   <SettingsGroup

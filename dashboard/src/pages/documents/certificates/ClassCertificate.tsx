@@ -1,8 +1,7 @@
-import { formatDate, formatDateTime } from '@ledova/shared';
+import { formatDate, formatDateTime, formatRegisterChanges } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Disclosure, Outcome, Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
-import { RegisterChanges } from './shared/RegisterChanges';
 import { useClassCertificate, type Source } from './useClassCertificate';
 
 type Editing = { onEditingChange?: (entry: string, open: boolean) => void };
@@ -79,7 +78,11 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
       <h3 className="text-sm font-medium text-text-primary">Unsigned certificate</h3>
       <Rows>
         <Row label="Share movements">
-          <RegisterChanges changes={entry.changes} />
+          {formatRegisterChanges(entry.changes).map((line, index) => (
+            <span key={index} className="block break-words">
+              {line}
+            </span>
+          ))}
         </Row>
         <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
         {target && <Row label="PDF pages">{target.preview.pageCount}</Row>}
