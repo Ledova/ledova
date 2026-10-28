@@ -230,7 +230,8 @@ inspect retained supporting records and permitted downloads. The same view holds
 correction, opening, reconciliation acknowledgement, particulars and wallet-link workflows. Certificate
 preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
 survive navigation. Documents has one **Certificates** page for company and member records, plus
-**Company pack** where company access permits it.
+**Inspection copies** and **Company pack** where company access permits them. Inspection
+copies shows one selected class, with **Share class** in the page heading's Filters popover when there is more than one.
 Certificates keeps the class visible in each record and in its filter panel. An icon button named
 **Filters**, with a tooltip, opens the popover for class selection, shareholder search and certificate
 status in the page heading's top-right actions. The collection heading has no repeated filter summary or match-count line. Fields are drafts
@@ -243,8 +244,9 @@ preparation uses the existing labelled summary rows for share movements, company
 count after preview. No manual certificate reference is needed: the server records the exact-entry
 request when the file is generated. Keep technical metadata under **Record details** and one
 right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
-Company pack opens from its preparation action; privacy and source guidance stays with the opened form
-or download. Correction, particulars, wallet-link and opening forms use the same
+Inspection copy and Company pack open from their preparation actions; privacy and source guidance stays with the opened form
+or download. Inspection copy shows editable request fields before preview and captured summary rows afterwards,
+with its sequence under Record details. Correction, particulars, wallet-link and opening forms use the same
 responsive field grid; their records group document and decision actions in one wrapping footer. Keep current source and appointment validation and error retries, without routine
 refresh controls.
 
@@ -397,8 +399,8 @@ opens a meaningful overview or the default child, and a separate caret expands t
 an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
-opening the people list. Documents uses the same pattern for **Certificates** (the default)
-and **Company pack** where permitted, with its label opening Certificates at
+opening the people list. Documents uses the same pattern for **Certificates** (the default),
+**Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Documents**, **Team**, **Activation** and
 **Company-recorded details**, without an extra overview page. Profile always holds personal
@@ -539,7 +541,7 @@ identifier in their own details. It reports:
 
 - a changed password, saved personal details, and an offering submitted for review, withdrawn or
   deleted;
-- the downloaded unsigned certificate and company pack;
+- the downloaded unsigned certificate, inspection copy and company pack;
 - a recorded team invitation, an accepted invitation and a representative authority request;
 - member access's recorded invitation, certificate fulfilment and particulars instruction;
 - a placed or recovered order with its share class, above Trading's orders, until another order
@@ -968,8 +970,8 @@ Some messages keep their own form:
   expiry, and a representative authority request's expiry, are the end of the chosen UTC day; the
   deadline is bounded to the next 30 days. A certificate date is bounded to the two years an
   accountant's certificate stays current.
-- **Other bases.** Offerings and company eligibility expiries are a local date and time
-  (`datetime-local`), labelled so.
+- **Other bases.** An inspection copy's request date is a Sydney date (`sydneyToday`). Offerings and
+  company eligibility expiries are a local date and time (`datetime-local`), labelled so.
 - **Helpers.** `isCalendarDate` checks a typed date, and `addCalendarDays` and `addCalendarYears`
   move a valid one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or
   split into a date in the dashboard's source.

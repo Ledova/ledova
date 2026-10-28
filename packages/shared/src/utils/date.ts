@@ -5,6 +5,15 @@ export function utcToday(at: Date = new Date()): string {
   return at.toISOString().slice(0, 10);
 }
 
+export function sydneyToday(at: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Australia/Sydney',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(at);
+}
+
 export function isCalendarDate(value: string): boolean {
   if (!CALENDAR_DATE.test(value)) return false;
   const time = Date.parse(`${value}T00:00:00Z`);

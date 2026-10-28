@@ -2218,6 +2218,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       <Link to="/#documents" state={{ registerCompany: company.uuid, registerToken: token.uuid }}>
         Open Documents
       </Link>
+      <Link to="/#ledger-exports">Open old Ledger exports link</Link>
       <Link to="/#company-pack">Open Company pack</Link>
       <Link
         to="/#history"
@@ -2310,10 +2311,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     state: { registerCompany: company.uuid, registerToken: token.uuid },
   });
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
+  fireEvent.click(screen.getByRole('link', { name: 'Open old Ledger exports link' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Inspection copies' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Prepare inspection copy' })).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Company pack' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Company pack' })).toBeTruthy();
-  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
   const correctionDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
   if (correctionDetails.getAttribute('aria-expanded') !== 'true') fireEvent.click(correctionDetails);

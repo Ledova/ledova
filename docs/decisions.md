@@ -24,7 +24,7 @@ stay here as history and are marked where they appear.
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                   |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                                                                         |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                                                                         |
-| [Ledger exports removed](#ledger-exports-removed)                                                               | 28 October 2026                                | Current; removes the register CSV download and inspection copies                                                |
+| [Register CSV download removed](#register-csv-download-removed)                                                 | 28 October 2026                                | Current; inspection copies kept under Documents                                                                 |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                                                                         |
 | [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion not planned (#870)                                                                           |
 | [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                                                                           |
@@ -378,7 +378,8 @@ The owner amended setup under
 entry, templates and parsing. Shareholders are entered and edited manually.
 Future LLM document extraction will populate these same forms for review; it is
 still deferred. This removes the setup input path, while existing register and
-inspection exports remain available.
+inspection exports remain available. The plain register CSV download was removed
+on 28 October 2026 ([decision](#register-csv-download-removed)); inspection copies remain.
 
 ## Cohesive signed-in web experience
 
@@ -449,8 +450,7 @@ states where it applies.
 
 The staff reviewer below was retired by the rules above, decided on 5 October
 and delivered under #864 by 7 October 2026. Inspection copies became
-company-run in [PR #954](https://github.com/Ledova/ledova/pull/954), and were
-removed on 28 October 2026 ([below](#ledger-exports-removed));
+company-run in [PR #954](https://github.com/Ledova/ledova/pull/954);
 certificates, notice figures and the company pack remain admin-only until
 #871. The register's authority, evidence, identity, event history and
 retention controls remain requirements.
@@ -531,8 +531,7 @@ company, and figures without documents. The register owns the mechanisms of
 [outputs due](business/member-records.md#the-due-list);
 [#871](https://github.com/Ledova/ledova/issues/871) moves their preparation to
 company appointments, and inspection copies came first
-([PR #954](https://github.com/Ledova/ledova/pull/954)). Inspection copies were
-removed on 28 October 2026 ([Ledger exports removed](#ledger-exports-removed)).
+([PR #954](https://github.com/Ledova/ledova/pull/954)).
 
 PyMuPDF, which checks uploaded PDFs and renders certificates, is licensed under
 the AGPL-3.0 or commercially by Artifex. The same day the owner chose to record
@@ -555,18 +554,20 @@ corrections exist; that is accepted during the synthetic experiment and settled
 before any real data. [The register](engineering/records.md#register-ledger) owns the
 mechanism.
 
-### Ledger exports removed
+### Register CSV download removed
 
 On 28 October 2026, during the signed-in web walkthrough, the owner asked to remove the Ledger
 exports page: "I think ledger exports is something that we don't need. So unless this is critical
-for the business, I very much would like to delete." Asked whether to keep inspection copies,
-because anyone may request a copy of a company's register and it is due within 7 days (s173(3)),
-while the Company pack already carries each class's register CSV, the owner chose "Delete both".
+for the business, I very much would like to delete." The owner first chose "Delete both", the CSV
+download and inspection copies, after being told that Company pack already carries the register CSV.
+Independent review found that premise incomplete: a company's own Company pack needs an
+administrator and covers only complete non-tokenised core packs, so most companies would have had no
+self-service copy of their register for an s173(3) request. Told this, the owner chose "Keep
+inspection copies (Recommended)".
 
-Ledova no longer offers the register CSV download or prepares inspection copies, and companies
-answer s173(3) requests outside Ledova. Company pack keeps its register CSVs. Export records already
-made stay until their retention purge. This supersedes the company-run inspection copies of
-[PR #954](https://github.com/Ledova/ledova/pull/954) recorded above.
+Ledova no longer offers the plain register CSV download. Inspection copies stay, as Documents →
+Inspection copies, so any register reader can still produce the s173(3) copy for every class.
+Earlier CSV export records stay until their retention purge.
 
 ## Company-scoped approvals
 
@@ -824,7 +825,8 @@ company processes:
 - Externally arranged investor capital and the company's approved allotment,
   with agreement, capital receipt and share issuance recorded distinctly.
 - Accurate ownership and history, member access to permitted records, and basic
-  certificates and register exports.
+  certificates and register exports. The plain CSV download was removed on 28 October 2026
+  ([decision](#register-csv-download-removed)); inspection copies and the company pack remain.
 
 Current register and chain grants are outright non-paid issues; attached terms
 do not implement vesting. A contractual award, an option and issued shares must

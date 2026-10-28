@@ -112,10 +112,10 @@ met, and the appointment has neither expired nor been revoked
 | Approve register changes (includes reading the register) | Approve or reject a prepared change, acknowledge a reconciliation discrepancy, and accept, refuse or revoke a participant's eligibility.                                                                                                                                                                           |
 | Apply authorised changes (includes reading the register) | Apply an approved change so that its effect is recorded.                                                                                                                                                                                                                                                           |
 | Manage company payments                                  | Recorded and delegable. No delivered workflow requires it yet; payment recording stays with platform staff.                                                                                                                                                                                                        |
-| Read company register                                    | Read the register, its history, proposals, decisions and evidence copies, and prepare unsigned certificates.                                                                                                                                                                                                       |
+| Read company register                                    | Read the register, its history, proposals, decisions and evidence copies, and prepare inspection copies and unsigned certificates.                                                                                                                                                                                 |
 
 Anyone holding prepare, approve or apply reads the full register, including residential addresses
-on member records and in retained evidence copies, because they work from member details; the
+in inspection copies and retained evidence copies, because they work from member details; the
 invitation labels say so
 ([owner's authority rules](../decisions.md#company-run-register-authority-and-evidence)).
 
@@ -238,8 +238,8 @@ the company information they may read. The sidebar keeps focused tasks for the s
 
 - Ledger opens the class overview, with Issue shares, Transfer shares and Corrections beneath it.
   Shareholders opens the people list, with ESS, Member access and Member requests. Documents opens
-  one Certificates page for company and member records, with Company pack where company access
-  permits it. Matching company and own records appear once.
+  one Certificates page for company and member records, with Inspection copies and Company pack where
+  company access permits them. Matching company and own records appear once.
 - Settings keeps personal Profile and Account, with company information, source Documents, Team,
   Activation and Company-recorded details according to current access.
 
@@ -299,7 +299,7 @@ Follow a company and its participants through Ledova:
 4. [Issuing shares](issuing-shares.md): share classes, employee awards and vesting,
    grants, externally arranged allotments, offerings and subscriptions.
 5. [Member access and register outputs](member-records.md): member invitations,
-   own records and requests, certificates, notice figures and the company pack.
+   own records and requests, inspection copies, certificates, notice figures and the company pack.
 6. [Shareholder publications](publications.md): documents, resolutions and
    ballots, and distributions with their payment records.
 7. [Wallets, transfers and trading](trading.md): wallet sends, the experimental

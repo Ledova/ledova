@@ -1,3 +1,4 @@
+import hashlib
 from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
@@ -38,6 +39,7 @@ from shared.tests.core_fixtures import (
     person,
 )
 from tokens.models import (
+    RegisterExport,
     RegisterGrant,
     RegisterGrantDecision,
     RegisterPersonRegistration,
@@ -841,3 +843,24 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(RegisterPosition.objects.get(member_id=recipient).shares, 0)
         self.token.stored_register.refresh_from_db()
         self.assertEqual((int(self.token.stored_register.issued_supply), self.token.stored_register.sequence), (100, 3))
+
+    def test_company_inspection_copy_serves_and_retains_the_real_register_bytes(self):
+        endpoint = f"/api/v1/tokens/{self.token.pk}/register/inspection-copy/"
+        preview = self.client.get(endpoint)
+        self.assertEqual(preview.status_code, 200, preview.content)
+        response = self.client.post(
+            endpoint,
+            {
+                "appointment": preview.json()["appointment"],
+                "sourceDigest": preview.json()["sourceDigest"],
+                "instruction": "SYNTHETIC-CORE-INSPECTION",
+                "requestedOn": timezone.now().date().isoformat(),
+                "recipient": "Synthetic Requester",
+            },
+            format="json",
+        )
+        self.assertEqual((response.status_code, response["Content-Type"]), (200, "text/csv"))
+        self.assertIn("Synthetic Member", response.content.decode())
+        record = RegisterExport.objects.get(token=self.token, kind="inspection_copy", requested_by_id=self.owner.pk)
+        self.assertEqual(record.digest, hashlib.sha256(response.content).hexdigest())
+        self.assertEqual(record.member_rows, 1)

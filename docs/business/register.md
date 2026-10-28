@@ -34,7 +34,7 @@ separately.
 One member ID serves every class of a company, and names never merge members.
 
 A register is opened once, by an import of the company's records or, for a class with a contract,
-from the chain; until then it has no members and no download. A class an import opened takes no
+from the chain; until then it has no members and no inspection copy. A class an import opened takes no
 chain opening, chain issue or settled-transfer instruction, even if later
 [deployed](issuing-shares.md#deploying-an-empty-class) while empty, and without a contract its
 issues and transfers are register entries needing no wallet.
@@ -132,7 +132,7 @@ treasury address beside another identity is Ambiguous. Every register output, pu
 former-member record reads a member this way.
 
 The shareholder table shows no residential address; addresses appear on a shareholder's page for
-someone with a current register appointment, in the recorded downloads and outputs, and in the
+someone with a current register appointment, in recorded outputs such as inspection copies, and in the
 import, particulars-change, grant, transfer, allotment and award records.
 
 ### Amount paid and date entered
@@ -181,9 +181,9 @@ ceased no later than the import's register date (and before the opening, where t
 opened from the chain) and within the retention period, and
 are listed without a wallet address and purged on the same clock from the date they ceased.
 
-Only the company owner, current register appointees and the operator read former members, in the CSV
-(with residential addresses), under Former shareholders on Shareholders and on a former member's
-own page. Particulars are
+Only the company owner, current register appointees and the operator read former members, under
+Former shareholders on Shareholders and on a former member's own page; register appointees also see
+them, with residential addresses, in inspection copies. Particulars are
 kept while a person is a member and for the retention period after they last held shares, at least
 seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)).
 
@@ -514,8 +514,8 @@ of zero shares, which anyone can send, are ignored.
 
 Each run is kept as Matched, Discrepant or Failed, with the block and register entry compared. An
 unreadable chain fails the reconciliation, never the register, and reconciliation never writes a
-register entry. The company cannot start a run; it sees the latest in the register view and the CSV
-summary. The register cannot follow a divergence it did not cause: no entry records an outside
+register entry. The company cannot start a run; it sees the latest in the register view and in an
+inspection copy's summary. The register cannot follow a divergence it did not cause: no entry records an outside
 transfer, and a correction only reverses an existing entry.
 
 ### What each discrepancy means
@@ -558,8 +558,8 @@ The selected company follows Dashboard. Ledger's sidebar label opens the share-c
 overview; its separate caret expands Issue shares, Transfer shares and Corrections.
 Shareholders and Documents remain beside Ledger; ESS is under Shareholders. Ledger and Shareholders
 keep their views on one page so switching between them preserves unfinished forms and recovery.
-Documents → Certificates has its own page for company and member records, while Company pack
-retains its existing workflow ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
+Documents → Certificates has its own page for company and member records, while Inspection copies and
+Company pack retain their existing workflows ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
 company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
 
@@ -616,8 +616,9 @@ Details is unavailable, so the work and its recovery stay on the page.
 
 The Employee share scheme view, ESS under Shareholders, shows one class's
 [awards](issuing-shares.md#employee-awards-and-vesting) at a time, chosen with Share class,
-each listing the non-paid issues prepared from it; Documents holds unsigned certificate preparation
-and the company pack as compact choices, opening one preparation form at a time.
+each listing the non-paid issues prepared from it; Documents holds each class's inspection copy,
+unsigned certificate preparation and the company pack as compact choices, opening one preparation
+form at a time.
 
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.

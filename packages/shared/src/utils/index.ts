@@ -7,6 +7,7 @@ export {
   isCalendarDate,
   parseDateString,
   formatDateToString,
+  sydneyToday,
   utcToday,
 } from './date';
 export {

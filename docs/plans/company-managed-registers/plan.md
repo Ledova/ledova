@@ -173,7 +173,7 @@ are delivered.
 | Investor capital and allotment | Record external agreement/capital evidence and approve exact allotment    | Provide particulars and investment documents                             | Separate commitment, receipt and actual issue; no new collection rail required                              |
 | Member access/link             | Resolve member identity and review particulars changes                    | Read permitted own records; prove wallet control only for a chain action | One account association under #866, exact identity and private access                                       |
 | Ownership change/correction    | Approve supported direct transfer or reasoned compensating correction     | Supply required instruments or correction evidence                       | Preserve quantities, actors, dates, atomic effects and immutable history                                    |
-| Certificates/access            | Prepare company-authorised certificates and company packs                 | Obtain permitted own outputs                                             | Genuine register sequence, evidence, provenance and access controls                                         |
+| Certificates/access            | Prepare company-authorised certificates, inspection copies and exports    | Obtain permitted own outputs                                             | Genuine register sequence, evidence, provenance and access controls                                         |
 
 New integrated payments and marketplace settlement (#869), advanced
 publications/voting/distributions (#870), and filing preparation/submission
@@ -191,7 +191,7 @@ flowchart LR
     A --> V
     V --> E[Record authorised share change]
     E --> R[Company register and audit history]
-    R --> D[Certificates and company packs]
+    R --> D[Certificates and exports]
     R --> H
     L[Ledova infrastructure and tools] -. supplies .-> V
     L -. runs bounded automation .-> E

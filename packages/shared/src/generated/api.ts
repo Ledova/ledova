@@ -1567,6 +1567,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/register/inspection-copy/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_inspection_copy_retrieve'];
+    put?: never;
+    post: ApiOperations['api_v1_tokens_register_inspection_copy_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/register/members/': {
     parameters: {
       query?: never;
@@ -7646,6 +7662,19 @@ export interface ApiComponents {
       stored: string | null;
       wallets: string[];
     };
+    RegisterInspectionPreview: {
+      appointment: string;
+      registerSequence: number;
+      sourceDigest: string;
+      token: string;
+    };
+    RegisterInspectionRequestRequest: {
+      appointment: string;
+      instruction: string;
+      recipient: string;
+      requestedOn: string;
+      sourceDigest: string;
+    };
     RegisterInstruction: {
       approvingDirector: string;
       authorityReference: string;
@@ -12344,6 +12373,54 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedShareRegisterEntryList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_inspection_copy_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterInspectionPreview'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_inspection_copy_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['RegisterInspectionRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterInspectionRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['RegisterInspectionRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/csv': Blob;
         };
       };
     };

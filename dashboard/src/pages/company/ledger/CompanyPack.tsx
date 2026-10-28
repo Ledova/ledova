@@ -12,11 +12,13 @@ export function CompanyPack({
   guard,
   company,
   sourceReady,
+  onEditingChange,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
   sourceReady: boolean;
+  onEditingChange?: (key: string, open: boolean) => void;
 }) {
   const { appointments, appointment, check } = useCompanyPackAuthority({ owner, guard, company });
   return (
@@ -32,6 +34,7 @@ export function CompanyPack({
           appointment={appointment.uuid}
           guard={check}
           sourceReady={sourceReady}
+          onEditingChange={onEditingChange}
         />
       ) : appointments.isSuccess && !appointments.isFetching ? (
         <p className="text-sm text-text-muted">A current administrator appointment for this company is required.</p>
@@ -47,18 +50,23 @@ function PackForm({
   appointment,
   guard,
   sourceReady,
+  onEditingChange,
 }: {
   company: string;
   appointment: string;
   guard: () => void;
   sourceReady: boolean;
+  onEditingChange?: (key: string, open: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const firstField = useRef<HTMLInputElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
+  const editingKey = `pack/${company}`;
   useEffect(() => {
+    onEditingChange?.(editingKey, open);
     if (open) firstField.current?.focus();
-  }, [open]);
+    return () => onEditingChange?.(editingKey, false);
+  }, [editingKey, onEditingChange, open]);
   const { instruction, setInstruction, recipient, setRecipient, busy, error, downloaded, problems, download } =
     useCompanyPack({ company, appointment, guard, sourceReady });
   const checks = useErrorSummary(problems);

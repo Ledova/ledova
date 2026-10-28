@@ -275,7 +275,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     expect(memberDocuments.getAttribute('href')).toBe('/documents/certificates?company=company-b');
     fireEvent.click(memberDocuments);
     expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.queryByRole('link', { name: 'Company pack' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Inspection copies' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
     await screen.findByRole('link', { name: 'Ledger' });
     fireEvent.click(screen.getByRole('link', { name: 'Unavailable company record' }));
@@ -300,7 +300,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     expect(managedMemberDocuments.getAttribute('href')).toBe('/documents/certificates?company=company-a');
     fireEvent.click(managedMemberDocuments);
     expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.queryByRole('link', { name: 'Company pack' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Inspection copies' })).toBeNull();
     act(() => {
       client.setQueryData(companyKey, [company]);
       client.setQueryData(ownAppointmentsKey(owner), [APPOINTMENT]);

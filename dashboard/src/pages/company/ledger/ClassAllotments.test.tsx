@@ -485,9 +485,12 @@ it('preserves original preparation and combined approval recovery through refres
   expect(allotments.getByRole('button', { name: /^Recover approve receipt/ })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Expand Documents navigation' }));
   expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(screen.getByRole('link', { name: 'Inspection copies' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Inspection copies' })).toBeTruthy();
+  expect(screen.getAllByRole('button', { name: 'Prepare inspection copy' })).toHaveLength(1);
+  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Company pack' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Company pack' })).toBeTruthy();
-  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   expect(screen.queryByLabelText('Share class')).toBeNull();
   await waitFor(() => expect(investorTask().getAttribute('aria-disabled')).toBeNull());
   expect(transferTask().getAttribute('aria-disabled')).toBe('true');
@@ -897,8 +900,8 @@ it('preserves original preparation and combined approval recovery through refres
   expect(screen.getByRole('button', { name: /^Recover approve receipt [(]transfer/ })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Expand Documents navigation' }));
   expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-disabled')).toBe('true');
-  fireEvent.click(screen.getByRole('link', { name: 'Company pack' }));
-  expect(await screen.findByRole('heading', { level: 1, name: 'Company pack' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: 'Inspection copies' }));
+  expect(await screen.findByRole('heading', { level: 1, name: 'Inspection copies' })).toBeTruthy();
   expect(transferLink().getAttribute('aria-disabled')).toBeNull();
   fireEvent.click(transferLink());
   expect(await screen.findByRole('heading', { level: 1, name: 'Transfer shares' })).toBeTruthy();
