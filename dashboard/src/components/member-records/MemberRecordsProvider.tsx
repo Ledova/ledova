@@ -83,7 +83,6 @@ function MemberState({
     if (!certificates) {
       if (!initialHistory.current || held) return;
       initialHistory.current = '';
-      setToken('');
       read.selectToken('');
     } else if (read.record && !held) {
       const item = requestedClass
