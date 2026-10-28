@@ -228,8 +228,15 @@ it('preserves original preparation and combined approval recovery through refres
   fireEvent.click(investorTask());
   expect(await screen.findByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
   expect(screen.queryByRole('link', { name: /Class details/ })).toBeNull();
-  const taskClass = () => screen.getByLabelText('Share class') as HTMLSelectElement;
-  fireEvent.change(await screen.findByLabelText('Share class'), { target: { value: REGISTER.token.uuid } });
+  const taskClass = () => {
+    const toggle = screen.getByRole('button', { name: 'Filters' });
+    if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle);
+    return screen.getByRole('combobox', { name: 'Share class' }) as HTMLSelectElement;
+  };
+  expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
+  fireEvent.change(taskClass(), { target: { value: REGISTER.token.uuid } });
+  expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Filters' }));
   const workflow = await screen.findByRole('region', { name: 'Share issue workflow' });
   const allotments = within(workflow);
   expect(await allotments.findByText('No share issues recorded yet.')).toBeTruthy();
@@ -404,9 +411,9 @@ it('preserves original preparation and combined approval recovery through refres
   const incomplete = await screen.findByRole('region', { name: 'Review share issue' });
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(allotments.queryByRole('button', { name: 'Prepare issue' })).toBeNull();
+  expect(document.activeElement).toBe(within(incomplete).getByRole('heading', { name: 'Review share issue' }));
   expect(taskClass().disabled).toBe(true);
   expect(transferTask().getAttribute('aria-disabled')).toBe('true');
-  expect(document.activeElement).toBe(within(incomplete).getByRole('heading', { name: 'Review share issue' }));
   await within(incomplete).findByText(COPY.OWNERSHIP_UNAVAILABLE);
   expect((within(incomplete).getByRole('button', { name: 'Approve' }) as HTMLButtonElement).disabled).toBe(true);
   expect(rows[0].decisions).toHaveLength(0);
@@ -835,7 +842,11 @@ it('preserves original preparation and combined approval recovery through refres
     'Ledger',
     { entry: '/company/ledger#transfer', path: '/company/ledger' },
   );
-  const transferClass = () => screen.getByLabelText('Share class') as HTMLSelectElement;
+  const transferClass = () => {
+    const toggle = screen.getByRole('button', { name: 'Filters' });
+    if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle);
+    return screen.getByRole('combobox', { name: 'Share class' }) as HTMLSelectElement;
+  };
   await screen.findByRole('link', { name: 'Transfer shares' });
   const transferLink = () => screen.getByRole('link', { name: 'Transfer shares' });
   const issueLink = () => screen.getByRole('link', { name: 'Issue shares' });

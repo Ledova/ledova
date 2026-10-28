@@ -55,30 +55,29 @@ export function SubscriptionsLedger({
   const data = read.isSuccess ? read.data : undefined;
   const empty = data?.count === 0 && !narrowed && !read.isPlaceholderData;
   return (
-    <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
-      <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
-      <SelectField
-        label="Offering"
-        options={offerings.map((row) => ({
-          value: row.uuid,
-          label: `${row.tokenName} · ${row.statusDisplay} · ${formatDate(row.createdAt)}`,
-          reference: shortReference(row.uuid),
-        }))}
-        value={offering.uuid}
-        onChange={(value) => list.setFilter('offering', value)}
-      />
-      {((data && !empty) || narrowed || read.isError) && (
-        <ListSearch
-          label="Search applications"
-          hint="Investor name, wallet address or payment reference"
-          list={list}
-          noun={NOUN}
-          count={data && !read.isPlaceholderData ? data.count : undefined}
-          filtered={!!status}
-        >
-          <div className="pt-6">
-            <FilterPopover active={!!status}>
-              {(close) => (
+    <Section
+      title={REGISTER_COPY.APPLICATIONS_TITLE}
+      header={
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">
+            {REGISTER_COPY.APPLICATIONS_TITLE}
+          </h2>
+          <FilterPopover active={!!status || !!list.filters.offering} resetKey={companyUuid}>
+            {(close) => (
+              <>
+                <SelectField
+                  label="Offering"
+                  options={offerings.map((row) => ({
+                    value: row.uuid,
+                    label: `${row.tokenName} · ${row.statusDisplay} · ${formatDate(row.createdAt)}`,
+                    reference: shortReference(row.uuid),
+                  }))}
+                  value={offering.uuid}
+                  onChange={(value) => {
+                    close();
+                    list.setFilter('offering', value);
+                  }}
+                />
                 <SelectField
                   label="Status"
                   options={[
@@ -91,10 +90,25 @@ export function SubscriptionsLedger({
                     list.setFilter('status', value);
                   }}
                 />
-              )}
-            </FilterPopover>
-          </div>
-        </ListSearch>
+              </>
+            )}
+          </FilterPopover>
+        </div>
+      }
+    >
+      <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
+      <p className="text-sm text-text-muted">
+        Offering: {offering.tokenName} · {offering.statusDisplay} · {formatDate(offering.createdAt)}
+      </p>
+      {((data && !empty) || narrowed || read.isError) && (
+        <ListSearch
+          label="Search applications"
+          hint="Investor name, wallet address or payment reference"
+          list={list}
+          noun={NOUN}
+          count={data && !read.isPlaceholderData ? data.count : undefined}
+          filtered={!!status}
+        />
       )}
       {read.isError && !gone ? (
         <CompanyReadNotice
