@@ -696,9 +696,12 @@ in that browser, not on the account, through reloads and sign-out.
 
 The dashboard's switches (Settings > Profile > Account > Dark theme, and the `ThemeToggle` icon in the
 signed-out and sign-up header, the desktop sidebar's account footer and the small-screen signed-in
-header) use `dashboard/src/hooks/useTheme.ts`. The public site always uses Paper and neither reads
-nor writes the dashboard's stored preference, even when both share an origin. Its screenshot
-provenance and update procedure are in the [site guide](../../site/README.md#product-screenshots).
+header) use `dashboard/src/hooks/useTheme.ts`. The public site's navbar has its own theme toggle
+and `ledova.site.theme` preference, applied before the first paint in `site/index.html`. Only an
+exact saved `dark` value enables Dark; Paper is the default, including when storage is unavailable.
+The site neither reads nor writes the dashboard's preference, even when both share an origin.
+Its screenshot provenance and update procedure are in the
+[site guide](../../site/README.md#product-screenshots).
 
 The dashboard stylesheet defines a `dark:` variant that follows `data-theme`, never the operating-system
 setting, for theme-specific adjustments: `QRCodeFrame`'s white quiet zone around QR codes, the
