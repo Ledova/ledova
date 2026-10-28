@@ -63,7 +63,7 @@ export function AppointmentRecord({
         <p>
           {appointment.expiresAt ? (
             <>
-              {appointment.status === 'expired' ? 'Expired' : appointment.status === 'active' ? 'Expires' : 'Expiry'}{' '}
+              {appointment.status === 'active' ? 'Expires' : 'Expiry'}{' '}
               <span className="whitespace-nowrap">{formatDateTime(appointment.expiresAt)}</span>
             </>
           ) : (

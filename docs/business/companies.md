@@ -88,7 +88,10 @@ Resuming an unfinished signup:
 ## Representative authority requests
 
 An owner of a draft company can also request initial authority outside signup, from
-**Settings → Team → Representative authority** on web.
+**Settings → Team → Representative authority** on web. The page lists your requests by company, ACN,
+submission date and status; each opens its own page with a **Request** card and, once admitted, an
+**Appointment** card with the recorded declaration behind **Show the declaration**, and the request's
+actions at the foot.
 
 1. Use your verified account for the selected draft company you own.
 2. Choose your personal capabilities and, separately, the capabilities you intend to delegate.
@@ -98,12 +101,12 @@ An owner of a draft company can also request initial authority outside signup, f
    is required, and files can instead be added later as company documents.
 4. Submit the request. The platform freezes the company and representative details, the
    capabilities, the expiry and any file, and shows what it captured.
-5. Accept the displayed declaration of your workspace and team authority, which also accepts the
+5. On the request's page, accept the displayed declaration of your workspace and team authority, which also accepts the
    Terms on the company's behalf, and admit the request. Where your instance requires a verified
    identity, an unverified one leaves the request pending. Admission runs no registry check and does
    not activate the company.
 6. Read the appointment's personal and delegatable capabilities, expiry and status. An attached
-   file stays available from the request history.
+   file stays available from the request's page (**Download evidence**).
 7. Withdraw a pending request you no longer want. After admission, **Revoke appointment** asks you
    to confirm the permanent loss of this appointment's authority under the revocation rules below;
    the declaration and any file stay in the history.

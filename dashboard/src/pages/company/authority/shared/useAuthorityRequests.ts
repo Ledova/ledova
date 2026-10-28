@@ -25,12 +25,21 @@ export function authorityCompaniesKey(owner: OrderSubmissionOwner) {
   return [...COMPANIES_QUERY_KEY, 'authority', owner.userUuid, owner.ownerAccountUuid];
 }
 
+export function authorityRequestStatus(request: CompanyAuthorityRequest) {
+  if (request.status === 'withdrawn') return 'Withdrawn';
+  if (request.status === 'pending') return 'Pending';
+  if (request.appointment?.status === 'revoked') return 'Appointment revoked';
+  return request.appointment?.status === 'expired' ? 'Appointment expired' : 'Admitted';
+}
+
 export function useAuthorityRequests({
   owner,
   currentOwner,
+  readCompanies = true,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  readCompanies?: boolean;
 }) {
   const guard = useCallback(() => {
     if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen representative authority.');
@@ -42,6 +51,7 @@ export function useAuthorityRequests({
   const historyKey = authorityRequestsKey(owner);
   const companies = useQuery({
     queryKey: authorityCompaniesKey(owner),
+    enabled: readCompanies,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
@@ -101,7 +111,6 @@ export function useAuthorityRequests({
         client.setQueryData<CompanyAuthorityRequest[]>(historyKey, (previous) =>
           previous?.map((item) => (item.uuid === request.uuid ? request : item)),
         );
-      setRecorded((previous) => (previous?.uuid === request.uuid ? request : previous));
     },
   });
   const opening = useMutation({
