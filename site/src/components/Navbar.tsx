@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { List as ListIcon, X as XIcon } from '@phosphor-icons/react';
 import { Logo } from './Logo';
-import { ThemeToggle } from './ThemeToggle';
 import { SIGN_IN_URL, SIGN_UP_URL } from '../appLinks';
 
 const NAV_LINKS = [
+  { label: 'Product', to: '/#product' },
   { label: 'How it works', to: '/#how-it-works' },
-  { label: 'Companies', to: '/#companies' },
-  { label: 'Investors', to: '/#investors' },
-  { label: 'About', to: '/about' },
+  { label: 'Questions', to: '/#questions' },
 ];
 
 export function Navbar() {
@@ -47,7 +45,6 @@ export function Navbar() {
         </div>
 
         <div className="col-start-3 flex items-center gap-1 justify-self-end md:gap-6">
-          <ThemeToggle />
           <a
             href={SIGN_IN_URL}
             className="hidden whitespace-nowrap text-[15px] font-medium text-text-primary transition-colors hover:text-brand-light md:inline"
@@ -56,9 +53,9 @@ export function Navbar() {
           </a>
           <a
             href={SIGN_UP_URL}
-            className="whitespace-nowrap rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover md:px-5 md:text-[15px]"
+            className="hidden whitespace-nowrap rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover min-[400px]:inline-flex md:px-5 md:text-[15px]"
           >
-            Register
+            Try the preview
           </a>
           <button
             type="button"

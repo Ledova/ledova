@@ -1,8 +1,6 @@
 @import 'tailwindcss';
 @import './tokens.css';
 
-@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
-
 @theme {
   --font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
   --font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
