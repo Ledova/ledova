@@ -10,13 +10,12 @@ import {
   REGISTER_COPY,
   type OfferingListItem,
   type SubscriptionStatus,
-  shortReference,
 } from '@ledova/shared';
 import { Section, Status, Loading } from '@components/Ledger';
 import { PageActions } from '@components/Page';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
-import { useCompanyOfferingSubscriptions } from './useOffering';
+import { useCompanyOfferingSubscriptions } from '@pages/company/offering/shared/useOffering';
 import type { CompanyActionRead } from '@components/CompanyState';
 
 const NOUN: Noun = ['application', 'applications'];
@@ -29,51 +28,37 @@ const COLUMNS = [
   { label: 'Allotment' },
 ];
 
-export function SubscriptionsLedger({
-  offerings,
+export function OfferingApplications({
+  offering,
   operatorName,
   companyUuid,
   companyRead,
 }: {
-  offerings: OfferingListItem[];
+  offering: OfferingListItem;
   operatorName: string;
   companyUuid: string;
   companyRead: CompanyActionRead;
 }) {
-  const list = useListParams(['offering', 'status']);
-  const offering = offerings.find((row) => row.uuid === list.filters.offering) ?? offerings[0];
+  const list = useListParams(['status']);
   const status = Object.prototype.hasOwnProperty.call(STATUSES, list.filters.status)
     ? (list.filters.status as SubscriptionStatus)
     : undefined;
-  const read = useCompanyOfferingSubscriptions(offering?.uuid, companyUuid, companyRead, {
+  const read = useCompanyOfferingSubscriptions(offering.uuid, companyUuid, companyRead, {
     search: list.search,
     status,
     page: list.page,
   });
   const gone = useFirstPageWhenGone(list, read.error);
-  if (!offering) return null;
   const narrowed = !!list.search || !!status;
   const data = read.isSuccess ? read.data : undefined;
   const empty = data?.count === 0 && !narrowed && !read.isPlaceholderData;
+  const searchable = (data && !empty) || narrowed || read.isError;
   return (
     <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
-      <PageActions>
-        <FilterPopover active={!!status || !!list.filters.offering} resetKey={companyUuid}>
-          {(close) => (
-            <>
-              <SelectField
-                label="Offering"
-                options={offerings.map((row) => ({
-                  value: row.uuid,
-                  label: `${row.tokenName} · ${row.statusDisplay} · ${formatDate(row.createdAt)}`,
-                  reference: shortReference(row.uuid),
-                }))}
-                value={offering.uuid}
-                onChange={(value) => {
-                  close();
-                  list.setFilter('offering', value);
-                }}
-              />
+      {searchable && (
+        <PageActions>
+          <FilterPopover active={!!status} resetKey={offering.uuid}>
+            {(close) => (
               <SelectField
                 label="Status"
                 options={[
@@ -86,15 +71,12 @@ export function SubscriptionsLedger({
                   list.setFilter('status', value);
                 }}
               />
-            </>
-          )}
-        </FilterPopover>
-      </PageActions>
+            )}
+          </FilterPopover>
+        </PageActions>
+      )}
       <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
-      <p className="text-sm text-text-muted">
-        Offering: {offering.tokenName} · {offering.statusDisplay} · {formatDate(offering.createdAt)}
-      </p>
-      {((data && !empty) || narrowed || read.isError) && (
+      {searchable && (
         <ListSearch
           label="Search applications"
           hint="Investor name, wallet address or payment reference"

@@ -73,6 +73,7 @@ export const DESTINATIONS = {
   companyListing: { path: '/company/listing', title: 'Activation', audience: 'everyone' },
   companyPublications: { path: '/company/publications', title: 'Published to your members', audience: 'company' },
   companyOffering: { path: '/company/offering', title: 'Offerings', audience: 'company' },
+  companyOfferingDetail: { path: '/company/offering/:uuid', title: 'Offering', audience: 'company' },
   userProfile: { path: '/user-profile', title: 'Profile', audience: 'everyone' },
   settings: { path: '/settings', title: 'Settings', audience: 'everyone' },
 } as const satisfies Record<string, Destination>;

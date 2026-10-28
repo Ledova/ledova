@@ -659,11 +659,24 @@ mapped holding against final chain evidence before claiming a mirror.
 ## The Offerings page
 
 Offerings, at `/company/offering` on web, lists every offering of the selected
-company the person owns, with its applications, followed by Investor directory and What happens
-next. Each offering shows its terms, status, any rejection, previous rejection or closing reason,
-and the actions its status allows. On the web, an approved offering also shows its **Offering ID** in full, with
-**Copy offering ID**, to give investors for their large-investment eligibility requests. New
-offering needs a deployed class; without one the page says to deploy a class first.
+company the person owns, followed by Investor directory and What happens next. Each row names the
+offering's class, price per share, opening and any closing time, and its status, and opens the
+offering's own page. New offering needs a deployed class; without one the page says to deploy a
+class first. Creating a draft opens its page.
+
+An offering's page, at `/company/offering/:uuid`, has these sections:
+
+- **Review:** the status, when the offering was created, submitted and by whom, reviewed, and
+  closed or withdrawn, with any rejection, previous rejection or closing reason. Withdraw, Delete
+  and Submit for review (Submit again after a rejection) appear as the status allows. Deleting a
+  draft returns to Offerings, which says it was deleted.
+- **Terms:** the price, bounds, window, exemption, how investors may pay, summary and use of
+  proceeds, with Edit while the offering can be edited. An approved offering also shows its
+  **Offering ID** in full, with **Copy offering ID**, to give investors for their large-investment
+  eligibility requests.
+- **Documents for investors:** the attached offer documents, with Add documents on an approved or
+  closed offering.
+- **Applications:** on an approved or closed offering.
 
 The offering form checks the price, ordered bounds, dates and available settlement choices before
 sending, requires a settlement asset that is no longer available to be removed explicitly, and
@@ -672,9 +685,9 @@ are refused. On an approved or closed offering, Add documents shows the attached
 and locked and sends only new choices; if the offering has since left approved or closed, the
 dialog says so and sends nothing.
 
-Applications lists the chosen offering's applications 25 at a time, newest first. It searches by
-investor name, wallet address or payment reference. The Filters icon opens a compact Status selector;
-selection applies immediately and closes it. Each application shows its
+Applications lists the offering's applications 25 at a time, newest first. Once there are any, it
+searches by investor name, wallet address or payment reference, and the Filters icon in the page
+heading opens a compact Status selector; selection applies immediately and closes it. Each application shows its
 requested and allotted shares, including zero allotments, as a read-only record; the company's paid
 issues are on the Share class page ([company paid issues](#company-paid-issues)).
 

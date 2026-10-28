@@ -42,8 +42,10 @@ status or revocation, expiry and source, with **Revoke appointment** at the row'
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
 acceptance or deadline and the appointment's expiry. Documents → Company documents has its own view, with Category and File in the inline upload.
 The remaining offering, publication, directory, application, wallet, activity and eligibility collections
-use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
-keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
+use this workspace frame, with their creation and record actions in the same footer. Each offering's row
+opens its own page, whose sections end with the actions they allow, and application summaries open their
+existing detail page. The other collections' short named/status summaries keep secondary facts and
+copyable technical references on demand.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
 ESS, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
@@ -157,7 +159,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   Member requests and Team rows don't expand: each shows its facts and status, with its permitted action right-aligned
   at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's
-  facts. Representative authority requests are `LinkRow`s that open each request's own page.
+  facts. Representative authority requests and offerings are `LinkRow`s that open each record's own page.
 - `Disclosure`: expandable page content, a button with `aria-expanded` and a leading
   caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
@@ -454,8 +456,9 @@ Employee share scheme by its short label, ESS, with the full name as the link's 
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
 link in the title row for a contextual task: Back to Team on Representative authority, Back to
-Representative authority on an authority request's page, Back to Shareholders on a shareholder's page,
-Back to Employee share scheme on an award's page, and Back to Corrections for ledger maintenance.
+Representative authority on an authority request's page, Back to Offerings on an offering's page,
+Back to Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, and
+Back to Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
 by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
@@ -553,7 +556,8 @@ account, and also before signing out and, in a native alert, before turning off 
 under the change or on the record you land on, and stays until the next action replaces it; there
 are no toasts. Its status region stays in place, empty and visually hidden, before there is anything
 to report, so a screen reader announces the sentence when it arrives; a preparation's line arrives
-with the record it lands on and is read because focus moves to that record. It names the record
+with the record it lands on and is read because focus moves to that record, and a deleted draft
+offering's line on Offerings is read because focus moves to it. It names the record
 rather than its identifier. It reports:
 
 - a changed password, saved personal details, and an offering submitted for review, withdrawn or
@@ -738,14 +742,13 @@ keys would re-sort the list at every step.
 ## Choosing from a bounded list
 
 A list too long for radio buttons that still cannot grow with the company, such as a person's own
-wallets, a company's share classes, its offerings or document types, or someone's appointments, is a
+wallets, a company's share classes or document types, or someone's appointments, is a
 native select in `SelectField` (`dashboard/src/components/SelectField.tsx`): the label above the
 field and options named in words:
 
 - an appointment reads as its actions and the date it was made;
 - an evidence source reads as its kind, status and date, and a classification claim as its kind and
   date;
-- an offering reads as its class, status and date;
 - a company ADD for a nominated wallet reads as when it was admitted and until when.
 
 These lists add a short record reference only to options that would otherwise read the same,
@@ -789,9 +792,9 @@ server:
   controls for hidden retained views; a header contribution escapes its original hidden container.
   Keep the
   selected class visible in the task or class heading. Class changes close the panel and retain
-  the existing editor and unfinished-work locks. Offering and Status share the Applications
-  page-heading panel, available even for an empty or failed offering read; the selected offering stays
-  visible. Search applications stays visible. Shareholders puts Search people inside the panel above Share class, keeping
+  the existing editor and unfinished-work locks. An offering's page shows the Applications Status
+  filter in its heading, with Search applications, once the offering has applications.
+  Shareholders puts Search people inside the panel above Share class, keeping
   its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
   scope without repeating it in a header summary or badge. Certificates and Activity keep labelled
   draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;
@@ -828,9 +831,9 @@ server:
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
-An offering's applications on Offerings are searched and paged by the server: search by investor
-name, wallet address or payment reference, filter by status, with the chosen offering kept in the
-address too. Company eligibility's request queue pages the same way, with no search box: its one
+An offering's applications, on that offering's page, are searched and paged by the server: search
+by investor name, wallet address or payment reference, and filter by status. Company eligibility's
+request queue pages the same way, with no search box: its one
 filter is the outcome, selected in the compact filter panel, which the server derives from each
 request's decision, withdrawal, revocation and expiry. While another page or outcome loads, its rows stay dimmed and
 their View buttons wait. Shareholders searches and pages the register the page has already read in
@@ -1107,7 +1110,7 @@ by a local helper or a browser `toLocale…` call:
   **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a
   directory-listed company or open offering under the field, or says it is not listed. The one
   exception shows those IDs in full, with `CopyButton`, for a company to give investors: its
-  **Company ID** in Settings → Profile, and each approved offering's **Offering ID** on Offerings.
+  **Company ID** in Settings → Profile, and each approved offering's **Offering ID** on its own page.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile's ESLint configuration has neither

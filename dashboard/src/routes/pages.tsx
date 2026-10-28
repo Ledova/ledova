@@ -29,6 +29,7 @@ import CompanyRegisterTransferPage from '@pages/company/ledger/transfer';
 import ListingPage from '@pages/company/listing';
 import IssuerPublicationsPage from '@pages/company/publications';
 import OfferingPage from '@pages/company/offering';
+import CompanyOfferingDetailPage from '@pages/company/offering/detail';
 import UserProfilePage from '@pages/user-profile';
 import SettingsPage from '@pages/settings';
 import { TradingRoute } from './TradingRoute';
@@ -66,6 +67,7 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   companyListing: <ListingPage />,
   companyPublications: <IssuerPublicationsPage />,
   companyOffering: <OfferingPage />,
+  companyOfferingDetail: <CompanyOfferingDetailPage />,
   userProfile: <UserProfilePage />,
   settings: <SettingsPage />,
 };

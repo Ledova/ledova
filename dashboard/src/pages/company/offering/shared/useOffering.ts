@@ -117,11 +117,17 @@ export function useOfferings(companyUuid: string | undefined, read: CompanyActio
   };
 }
 
-export function useCompanyOffering(uuid: string | undefined, companyUuid: string, read: CompanyActionRead) {
+export function useCompanyOffering(
+  uuid: string | undefined,
+  companyUuid: string,
+  read: CompanyActionRead,
+  enabled = true,
+) {
   return useQuery({
     queryKey: companyOfferingDetailKey(companyUuid, read.scopeKey, uuid),
-    enabled: !!uuid && !read.error && !read.isRefreshing,
+    enabled: enabled && !!uuid && !read.error && !read.isRefreshing,
     staleTime: 0,
+    retry: retryServerFailures,
     queryFn: async () => {
       read.assertCurrent(companyUuid, 'owner');
       const { data } = await getOffering(apiClient, uuid!);
