@@ -1,6 +1,6 @@
 export const REGISTER_ISSUE_COPY = {
   TITLE: 'Non-paid chain grants',
-  NOTE: 'Company-authorised outright non-paid grants use a genuine chain-opened Base register, an explicitly nominated approved wallet and a documented member link. Imported registers use their separate walletless grant workflow.',
+  NOTE: "Grant shares on chain without payment to a member's nominated wallet, once the company has approved the wallet and linked it to the member. Imported ledgers issue through Issue shares instead.",
   PREPARE: 'Prepare non-paid grant',
   PROVIDED_BY_COMPANY: 'Terms and documentary authority provided by the company.',
   PREPARATION_RECEIPT_FAILED: 'The grant receipt could not be confirmed. Recover its identical original request.',
@@ -10,7 +10,7 @@ export const REGISTER_ISSUE_COPY = {
   REJECTION_REASON: 'Reason for rejection',
   DECISIONS: { approve: 'Approve', apply: 'Apply', reject: 'Reject' },
   CONFIRMATIONS: {
-    approve: 'Approve the exact member, nomination, company ADD, shares, terms and evidence shown.',
+    approve: 'Approve the exact member, nominated wallet, wallet approval, shares, terms and evidence shown.',
     apply:
       'Admit this exact approved non-paid grant for execution once. Shares and the ISSUE entry wait for the genuine finalised mint.',
     reject: 'Reject this grant with the stated reason.',

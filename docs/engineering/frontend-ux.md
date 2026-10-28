@@ -749,7 +749,7 @@ field and options named in words:
 - an appointment reads as its actions and the date it was made;
 - an evidence source reads as its kind, status and date, and a classification claim as its kind and
   date;
-- a company ADD for a nominated wallet reads as when it was admitted and until when.
+- a company wallet approval for a nominated wallet reads as when it was admitted and until when.
 
 These lists add a short record reference only to options that would otherwise read the same,
 as with people who share a name and address; a delegating appointment adds the time it was made
@@ -1097,16 +1097,20 @@ by a local helper or a browser `toLocale…` call:
   maps, and its certificate and pending-change tags use its own words.
 - **Identifiers.** Records show names, dates and amounts. Issue, transfer, award, import and
   correction records, former shareholders, certificates, inspection copies, member access and
-  requests, Team, representative authority and Profile show no internal references, register
-  sequences, block numbers or fingerprints, and have no **Record details** or **Technical details**
-  section; an award shows who recorded it and when as one muted line. Where only an identifier
+  requests, Team, representative authority, Profile and a class's **Chain actions** show no internal
+  references, register sequences, block numbers, gas or fingerprints, and have no **Record details**
+  or **Technical details** section; an award shows who recorded it and when as one muted line. A
+  chain action's record gives its transaction as **View transaction** on the block explorer, or the
+  exact hash where the chain has none, and leaves out the technical sender, factory, chain ID,
+  transaction data and the company, class and contract the page already names; its decision dialog
+  names the class in one muted line. Where only an identifier
   tells records apart, such as two shareholders with one name or two options that read the same,
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user
-  numbers are not shown. Chain views still show their references, block numbers and fingerprints:
-  a class's **Chain actions** page, the reconciliation with the chain
-  under Corrections and an opening's chain-inclusion messages. So do the eligibility pages. Those
-  are later phases of #1378. Transaction hashes and wallet addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
+  numbers are not shown. The reconciliation with the chain under Corrections and an opening's
+  chain-inclusion messages still show their references, block numbers and fingerprints, and so do
+  the eligibility pages; those are later phases of #1378. Transaction hashes and wallet addresses
+  stay exact. The eligibility request and the claim take the exact **Company ID** or
   **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a
   directory-listed company or open offering under the field, or says it is not listed. The one
   exception shows those IDs in full, with `CopyButton`, for a company to give investors: its

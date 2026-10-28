@@ -1,5 +1,5 @@
 export const REGISTER_CAPITAL_INCREASE_COPY = {
-  TITLE: 'Company capital increases',
+  TITLE: 'Capital increases',
   NOTE: 'Increase the authorised cap with company terms and authority. This mints zero shares, changes no holding and records no payment.',
   PROVIDED_BY_COMPANY: 'Purpose, references and documentary authority provided by the company.',
   PREPARATION_RECEIPT_FAILED: 'The capital receipt could not be confirmed. Recover its identical original request.',

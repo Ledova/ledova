@@ -1,5 +1,5 @@
 import { useEntryReads } from '@hooks/useEntryReads';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
@@ -17,11 +17,13 @@ import {
   type RegisterPauseChange,
   refusalSentences,
   failureSentence,
-  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
+import { RecordShell, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePausePreparation, usePauseRecord, type Commands } from './useCompanyPauseFlow';
+import { PreparationSlot } from './PreparationSlot';
+import { TransactionRow } from './TransactionRow';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 const STAGES: Record<string, string> = COPY.STAGES;
@@ -30,79 +32,57 @@ const STATES = [
   ['paused', 'Paused'],
   ['unpaused', 'Unpaused'],
 ] as const;
-function SnapshotRows({
-  record,
-}: {
-  record: Pick<RegisterPauseChange, 'snapshot' | 'paused' | 'reason' | 'authorityReference'>;
-}) {
+
+function PauseRows({ record }: { record: Pick<RegisterPauseChange, 'paused' | 'reason' | 'authorityReference'> }) {
   return (
-    <Rows>
-      <Row label="Company">
-        {record.snapshot.company.name} · ACN {record.snapshot.company.acn}
-      </Row>
-      <Row label="Share class">
-        {record.snapshot.token.name} · {record.snapshot.token.symbol}
-      </Row>
+    <>
       <Row label="Requested state">
         {record.paused === true ? 'Paused' : record.paused === false ? 'Unpaused' : 'Not recorded'}
       </Row>
       <Row label="Reason">{record.reason}</Row>
       <Row label="Authority reference">{record.authorityReference}</Row>
-      <Row label="Contract">{record.snapshot.token.contractAddress}</Row>
-      <Row label="Technical sender">{record.snapshot.transaction.sender}</Row>
-    </Rows>
+    </>
   );
 }
 
 function PauseRecord({
   record,
+  chain,
+  classLabel,
   commands,
   onHeldChange,
 }: {
   record: RegisterPauseChange;
+  chain: string | undefined;
+  classLabel: string;
   commands: Commands;
   onHeldChange: (uuid: string, held: boolean) => void;
 }) {
   const { error, busy, download, execution } = usePauseRecord({ record, commands });
+  const context = `pause change prepared ${formatDateTime(record.createdAt)}`;
   return (
-    <div className="space-y-3 border-t border-border py-4">
+    <RecordShell hidden={!commands.visible}>
       {commands.visible && (
         <>
-          <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} pause change</h3>
-          <SnapshotRows record={record} />
+          <h3 className="font-medium">{record.paused === false ? 'Unpause the class' : 'Pause the class'}</h3>
           <Rows>
-            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
+            <RecordStage stage={record.stage}>{STAGES[record.stage] ?? record.stage}</RecordStage>
+            <PauseRows record={record} />
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
-
-            <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
+            <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
             <Row label="Execution">{registerPauseChangeExecutionState(record)}</Row>
+            {execution?.txHash && <TransactionRow chain={chain} hash={execution.txHash} />}
+            {execution?.observation && (
+              <Row label="Observed on">{formatDateTime(execution.observation.observedAt)}</Row>
+            )}
             {execution && (
-              <>
-                <Row label="Original submission">{shortReference(execution.submissionId)}</Row>
-                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
-                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
-                {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
-                {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
-                {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
-                {execution.gasUsed !== null && <Row label="Original receipt gas used">{execution.gasUsed}</Row>}
-                {execution.observation && (
-                  <>
-                    <Row label="Original observation block">{execution.observation.blockNumber}</Row>
-                    <Row label="Original observation block hash">{execution.observation.blockHash}</Row>
-                    <Row label="Original observation time">{formatDateTime(execution.observation.observedAt)}</Row>
-                  </>
-                )}
-                <Row label="Original completion date">
-                  {execution.completedAt ? formatDateTime(execution.completedAt) : 'Not recorded'}
-                </Row>
-              </>
+              <Row label="Completed on">
+                {execution.completedAt ? formatDateTime(execution.completedAt) : 'Not recorded'}
+              </Row>
             )}
           </Rows>
-          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-          <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
-          <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>
+          {record.status === 'applied' && <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>}
           {refusalSentences(record.executionUnmetRequirements, REGISTER_PAUSE_CHANGE_UNMET_COPY).map((sentence) => (
             <p key={sentence} className="text-sm text-text-muted">
               {sentence}
@@ -110,7 +90,7 @@ function PauseRecord({
           ))}
           <PageAction
             label="Download pause authority"
-            context={`pause ${shortReference(record.uuid)}`}
+            context={context}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
@@ -134,20 +114,31 @@ function PauseRecord({
         onRefused={commands.refresh}
         visible={commands.visible}
         onHeldChange={onHeldChange}
-        context={`pause ${shortReference(record.uuid)}`}
+        context={context}
       >
         {(preview) => (
           <>
-            <SnapshotRows record={preview} />
+            <p className="text-sm text-text-muted">{classLabel}</p>
+            <Rows>
+              <PauseRows record={preview} />
+            </Rows>
             <p className="text-sm text-text-muted">{COPY.NOTE}</p>
           </>
         )}
       </RegisterDecisions>
-    </div>
+    </RecordShell>
   );
 }
 
-function Preparation({ commands, onEditingChange }: { commands: Commands; onEditingChange: (held: boolean) => void }) {
+function Preparation({
+  commands,
+  onEditingChange,
+  onCancel,
+}: {
+  commands: Commands;
+  onEditingChange: (held: boolean) => void;
+  onCancel: () => void;
+}) {
   const {
     draft,
     setCaptured,
@@ -178,7 +169,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       disabled={waiting}
       className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
-      <h3 className="font-medium">Prepare a company pause change</h3>
+      <h3 className="font-medium">Prepare a pause change</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <PageAction
         label="Use current class details"
@@ -231,7 +222,9 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       )}
       <div className="sm:col-span-2">
         <FormActions>
+          <PageAction label="Cancel" disabled={waiting} onClick={onCancel} />
           <PageAction
+            primary
             label="Prepare pause change"
             busy={busy}
             busyLabel="Preparing…"
@@ -247,6 +240,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
 }
 
 export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
+  const [preparing, setPreparing] = useState(false);
   const onEditingChange = useCallback((held: boolean) => data.holdReads('pause/draft', held), [data.holdReads]);
   const onHeldChange = useCallback(
     (uuid: string, held: boolean) => data.holdReads('pause/decision/' + uuid, held),
@@ -258,7 +252,10 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
     paused: data.readingPaused,
-    onPrepared: () => onEditingChange(false),
+    onPrepared: () => {
+      onEditingChange(false);
+      setPreparing(false);
+    },
   });
   useEffect(() => {
     data.holdReads('pause/request', commands.working || !!commands.recovery);
@@ -270,10 +267,11 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
     refresh: commands.refresh,
   });
   if (!commands.owner) return null;
+  const token = data.token.data;
+  const classLabel = token ? `${token.name} · ${token.symbol}` : '';
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-
       {commands.appointments.isError ? (
         <LoadError retry={() => commands.refresh()} busy={commands.appointments.isFetching}>
           Your appointments could not be loaded.
@@ -303,17 +301,26 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
           receipts remain available.
         </LoadError>
       )}
-      {!!commands.company && (
-        <div hidden={!commands.visible || !commands.steps.prepare}>
-          <Preparation key={commands.scopeKey} commands={commands} onEditingChange={onEditingChange} />
-        </div>
+      {commands.visible && commands.records.length > 0 && (
+        <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
       )}
+      <ul className="divide-y divide-border-subtle">
+        {commands.records.map((record) => (
+          <PauseRecord
+            key={record.uuid}
+            record={record}
+            chain={token?.chain}
+            classLabel={classLabel}
+            commands={commands}
+            onHeldChange={onHeldChange}
+          />
+        ))}
+      </ul>
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original pause preparation response is unresolved. Recover its identical body and operation reference.
+            The original pause preparation response is unresolved. Recover it with its identical original request.
           </p>
-          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original pause preparation receipt"
             disabled={commands.busy}
@@ -322,9 +329,23 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
         </div>
       )}
       {commands.visible && commands.error && <p role="alert">{commands.error}</p>}
-      {commands.records.map((record) => (
-        <PauseRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
-      ))}
+      {!!commands.company && (
+        <PreparationSlot
+          label="Prepare pause change"
+          open={preparing}
+          available={commands.visible && !!commands.steps.prepare}
+          disabled={!commands.canPrepare}
+          hidden={!commands.visible || !commands.steps.prepare}
+          onOpen={() => setPreparing(true)}
+        >
+          <Preparation
+            key={commands.scopeKey}
+            commands={commands}
+            onEditingChange={onEditingChange}
+            onCancel={() => setPreparing(false)}
+          />
+        </PreparationSlot>
+      )}
     </Section>
   );
 }

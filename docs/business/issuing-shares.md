@@ -51,7 +51,10 @@ this empty-opening choice through the same draft, review and confirmation as cop
 
 On the web, the chain actions described below are on a class's own **Chain actions** page. The Share
 class page opens it from its **On chain** card once the class is deployed, or through **Put this
-class on chain** while the class is a draft without shares or is being deployed.
+class on chain** while the class is a draft without shares or is being deployed. Each action is a
+card listing its records, with its Prepare action at the foot; the form opens in the card, and
+Cancel or a prepared record closes it. Records show names, dates, amounts and their decisions, and
+a transaction as **View transaction** on the block explorer.
 
 ### Class rights
 
@@ -101,10 +104,11 @@ this increment.
 A company appointee can have Ledova's technical signer create the class's contract. Deployment
 issues no shares, takes no payment and changes no holding.
 
-1. On the class's Share class page, choose **Put this class on chain**, then under Empty-class
-   deployment choose Prepare deployment. The proposal captures the class, its whole-share cap and
-   identifier, the selected issuer address, the exact transaction and the register's state.
-2. Review the snapshot, then Approve deployment and Apply deployment.
+1. On the class's Share class page, choose **Put this class on chain**, then under Deployment choose
+   Prepare deployment. The proposal captures the class, its whole-share cap and identifier, the
+   selected issuer address, the exact transaction and the register's state.
+2. Review the authorised shares, issuer wallet and ledger shown, then Approve deployment and Apply
+   deployment.
 
 Applying means admitted, not deployed: the page shows admission, holds, a signed transaction
 awaiting confirmation and the outcome separately, and a contract address alone does not show
@@ -123,8 +127,8 @@ executes it is in [engineering](../engineering/chain.md#share-class-deployment).
 
 A company appointee can raise the authorised shares of a deployed class, including a paused one.
 
-1. On the class's Chain actions page, under Company capital increases, give the additional whole
-   shares and the new total, which must equal the current cap plus the addition (each from 1 to
+1. On the class's Chain actions page, under Capital increases, choose Prepare capital increase and
+   give the additional whole shares and the new total, which must equal the current cap plus the addition (each from 1 to
    2,147,483,647).
 2. Give the purpose, the board resolution reference, any shareholder approval reference and the
    authority document.
@@ -140,8 +144,8 @@ issued.
 ### Pausing and unpausing a class
 
 A company appointee can pause a deployed class, which stops every movement of its shares on chain,
-or unpause it: on the class's Chain actions page, under Company pause decisions, prepare the
-requested state with a reason, an authority reference and the authority document, then Approve and
+or unpause it: on the class's Chain actions page, under Pausing, choose Prepare pause change and give
+the requested state with a reason, an authority reference and the authority document, then Approve and
 Apply. Pausing needs no eligibility decision, nomination, payment or issue, and changes neither the
 cap nor the issued shares.
 
@@ -539,7 +543,7 @@ cut strands becomes a refund owed.
 ### Company paid issues
 
 The company issues the shares for a Paid application itself. On the class's Chain actions page,
-under Company paid issue decisions, the preparer chooses a Paid application, whose proposal captures
+under Paid issues, the preparer chooses Prepare paid issue and a Paid application, whose proposal captures
 the application, recipient, shares, price and payment facts (a partial receipt, a scaled-back
 quantity and a refund owed stay distinct from the requested shares and a refund paid), and adds the
 authority document, approving director, authority reference and reason; no new eligibility decision,
