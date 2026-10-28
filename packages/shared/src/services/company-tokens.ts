@@ -37,7 +37,10 @@ export const getRegisterClasses = (
   params: { page?: number; company_uuid?: string } = {},
   config: AxiosRequestConfig = {},
 ) =>
-  apiClient.get<PaginatedResponse<CompanyShareTokenListItem>>(COMPANY_TOKEN_ENDPOINTS.REGISTER, { ...config, params });
+  apiClient.get<PaginatedResponse<CompanyShareTokenListItem>>(COMPANY_TOKEN_ENDPOINTS.REGISTER, {
+    ...config,
+    params: { ...params, ordering: 'created_at' },
+  });
 
 export const getCompanyTokenHolders = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
   config === undefined
