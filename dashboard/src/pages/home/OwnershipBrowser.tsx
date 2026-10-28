@@ -291,6 +291,9 @@ function SignedInOwnership({
                                     label="Share class"
                                     options={[
                                       { value: '', label: 'All classes' },
+                                      ...(selectedClass
+                                        ? []
+                                        : [{ value: selected, label: 'Class unavailable', disabled: true }]),
                                       ...view.classes.map((row) => ({
                                         value: row.uuid,
                                         label: `${row.name} · ${row.symbol}`,

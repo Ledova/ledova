@@ -100,7 +100,7 @@ export function SearchSelect({
           setQuery('');
           moved.current = false;
         }}
-        immediate
+        immediate={!inline}
       >
         {({ open }) => (
           <>

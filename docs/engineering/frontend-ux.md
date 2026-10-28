@@ -48,8 +48,9 @@ together. A muted trailing chevron identifies class rows that open this detail; 
 highlight-only interaction. Show the relevant exact totals and own position, followed by the
 ranked holder list only for company-authorised readers. The popover holds their **Search
 shareholders** field and, for everyone, a **Share class** choice: picking another class switches the
-card, and **All classes** returns to the overview. **Class details** at the end of the card opens the
-class's Ledger page. Each compact holder row aligns the shareholder's name, a
+card, and **All classes** returns to the overview, also from a class the overview no longer lists.
+For those readers, **Class details** at the end of the card opens the class's Ledger page. Each
+compact holder row aligns the shareholder's name, a
 horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
 with short transitions that honour reduced motion; keep all figures visible without a tooltip.
 Rows stack their name and figures above the bar on narrow screens. Hover and keyboard focus on the
@@ -651,9 +652,9 @@ On web, Dashboard is the only place to change company context. With several comp
 icon named and titled **Switch company** opens the compact popover in the page heading's top-right
 actions. Inside it, `CompanyPicker` (`dashboard/src/components/CompanyPicker.tsx`) uses the same
 searchable list as [choosing a person](#choosing-a-person), showing company names and useful muted
-details, never internal identifiers. The list sits in the panel beneath its search field
-(`SearchSelect`'s `inline`), so opening the popover shows every company with the current one
-ticked. Its label remains accessible but visually hidden. An accepted
+details, never internal identifiers. The list sits in the panel beneath its search field, without
+a toggle and without opening on focus (`SearchSelect`'s `inline`), so opening the popover lists the
+companies with the current one ticked. Its label remains accessible but visually hidden. An accepted
 switch request closes the panel and returns focus to its icon; the existing form confirmation and
 held-work guards still decide navigation. Company selection has no separate row above the ownership
 view; class exploration keeps its breadcrumb.
