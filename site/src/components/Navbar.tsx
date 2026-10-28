@@ -53,9 +53,9 @@ export function Navbar() {
           </a>
           <a
             href={SIGN_UP_URL}
-            className="hidden whitespace-nowrap rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover min-[400px]:inline-flex md:px-5 md:text-[15px]"
+            className="inline-flex whitespace-nowrap rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover md:px-5 md:text-[15px]"
           >
-            Try the preview
+            Register
           </a>
           <button
             type="button"
