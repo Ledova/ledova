@@ -37,7 +37,10 @@ the task, `FormSteps` sits at its top, each step has a small heading, and one pr
 Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
 Company information, company documents, authority records and company team use this workspace frame too.
 Team invitations and acceptance replace their collection with one focused inline task, retaining its
-mounted editors and drafts. Documents → Company documents has its own view, with Category and File in the inline upload.
+mounted editors and drafts. Team's appointment rows show the company or person, actions, any delegation,
+status or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
+appointment's recorded declaration behind **Show the declaration**; issued invitations show their
+acceptance or deadline and the appointment's expiry. Documents → Company documents has its own view, with Category and File in the inline upload.
 The remaining offering, publication, directory, application, wallet, activity and eligibility collections
 use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
 keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
@@ -150,10 +153,10 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   cards, aligned right. Actions do not wait for a row to be selected.
 - `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
   that shows or hides long optional content in place, such as **Show all 5 share changes** or
-  **Show other certificate requests (2)**. Certificates, Corrections' **Changes** and Member
-  requests rows don't expand: each shows its facts and status, with its permitted action right-aligned
+  **Show other certificate requests (2)**. Certificates, Corrections' **Changes**, Member access,
+  Member requests and Team rows don't expand: each shows its facts and status, with its permitted action right-aligned
   at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
-  Certificates and Member requests); on narrower screens it sits beneath the row's facts.
+  Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's facts.
 - `Disclosure`: expandable page content, a button with `aria-expanded` and a leading
   caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
@@ -287,7 +290,8 @@ hide other rows and cannot hide a held preparation or its recovery. Both views u
 workspace width and Ledger's aligned change-row pattern;
 headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
 or class context and genuine dates in the row, without repeating the page title inside a card.
-Member access rows open their details and actions in place. Member requests rows don't expand: each
+A current person's Member access row ends with **Revoke access**, which opens the reason form beneath the
+row; its confirmation says what revocation does. A pending or expired invitation shows its acceptance deadline. Member requests rows don't expand: each
 shows the requested address of a details update and the creation date of a fulfilled certificate,
 with **Prepare update** or **Prepare certificate** at the row's end when the request can be prepared.
 Preparing a details update focuses its form heading and keeps the selected row and form together,

@@ -153,8 +153,8 @@ accepted an invitation, for transfers, or for shares recorded from the chain.
 
 ### Revoking member access
 
-A company administrator opens **Shareholders** → **Member access** in the web sidebar, then the
-relevant record under **People**, and chooses **Revoke access**, supplying a reason for that action;
+A company administrator opens **Shareholders** → **Member access** in the web sidebar and chooses
+**Revoke access** on the person's row under **People**, supplying a reason for that action;
 relinking needs a new invitation. Revocation
 stops the person's own-record access, file access and new requests, though they can still read the
 status of requests they made.

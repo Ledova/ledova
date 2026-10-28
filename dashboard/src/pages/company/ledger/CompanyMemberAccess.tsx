@@ -13,7 +13,7 @@ import {
   MEMBER_CERTIFICATE_STATUS_LABELS,
   searchRows,
 } from '@ledova/shared';
-import { Outcome, Section, Loading, LoadError, Disclosure, Rows, Row } from '@components/Ledger';
+import { Outcome, Section, Loading, LoadError, Rows, Row } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
 import { FormActions, PageAction, PageActions } from '@components/Page';
 import { Confirmation } from '@components/Modal';
@@ -190,6 +190,13 @@ export function CompanyMemberAccess({
         (item) => (item.kind === 'particulars' ? item.record.name : memberName(item.record.member)),
         filters.search,
       ).filter((item) => !requestType || item.kind === requestType);
+  const deadline = (item: (typeof invitations)[number]) =>
+    item.status === 'pending' || item.status === 'expired' ? (
+      <>
+        {item.status === 'pending' ? 'Accept before' : 'Deadline'}{' '}
+        <span className="whitespace-nowrap">{formatDateTime(item.acceptanceDeadline)}</span>
+      </>
+    ) : null;
   const matchingRequests = new Set(matches.map((item) => `${item.kind}/${item.record.uuid}`));
   return (
     <>
@@ -327,84 +334,76 @@ export function CompanyMemberAccess({
               <Section title="People">
                 <div
                   aria-hidden="true"
-                  className="hidden grid-cols-[minmax(0,1fr)_10rem_12rem] gap-6 pl-7 text-xs font-medium text-text-muted md:grid"
+                  className="hidden grid-cols-[minmax(0,1fr)_10rem_12rem] gap-6 text-xs font-medium text-text-muted md:grid xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
                 >
                   <span>Person</span>
                   <span>Linked</span>
                   <span>Status</span>
+                  <span className="sr-only">Action</span>
                 </div>
                 <ul aria-label="Member access records" className="divide-y divide-border-subtle">
                   {associations.map((association) => (
-                    <li key={association.uuid}>
-                      <Disclosure
-                        summary={
-                          <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6">
-                            <span className="min-w-0 break-words font-medium">
-                              {memberName(association.member)}
-                              <span className="block font-normal text-text-muted">{association.acceptedEmail}</span>
-                            </span>
-                            <span className="col-start-1 row-start-2 tabular-nums text-text-muted md:col-auto md:row-auto">
-                              <span className="md:sr-only">Linked: </span>
-                              {formatDate(association.createdAt)}
-                            </span>
-                            <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted md:col-auto md:row-auto">
-                              {association.current ? 'Current access' : 'Revoked access'}
-                            </span>
-                          </span>
-                        }
-                      >
-                        {!association.current && (
-                          <p className="text-sm text-text-muted">
-                            Access revoked. The person can still read the status of requests they made; relinking needs
-                            a new invitation.
-                          </p>
-                        )}
-                        {association.current && revokeMember !== association.uuid && (
+                    <li
+                      key={association.uuid}
+                      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
+                    >
+                      <span className="min-w-0 break-words font-medium">
+                        {memberName(association.member)}
+                        <span className="block font-normal text-text-muted">{association.acceptedEmail}</span>
+                      </span>
+                      <span className="col-start-1 row-start-2 tabular-nums text-text-muted md:col-auto md:row-auto">
+                        <span className="md:sr-only">Linked: </span>
+                        {formatDate(association.createdAt)}
+                      </span>
+                      <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted md:col-auto md:row-auto">
+                        {association.current ? 'Current access' : 'Revoked access'}
+                      </span>
+                      {association.current && revokeMember !== association.uuid && (
+                        <div className="col-span-2 flex items-start justify-end md:col-span-3 xl:col-span-1">
+                          <PageAction
+                            label="Revoke access"
+                            context={`${memberName(association.member)}, ${association.acceptedEmail}`}
+                            disabled={held}
+                            onClick={() => {
+                              checks.reset();
+                              setRequest('');
+                              setReason('');
+                              setRevokeMember(association.uuid);
+                            }}
+                          />
+                        </div>
+                      )}
+                      {association.current && revokeMember === association.uuid && (
+                        <form
+                          noValidate
+                          className="col-span-2 space-y-4 border-t border-border-subtle pt-4 md:col-span-3 xl:col-span-4"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            if (!held && checks.check(['reason']))
+                              setRevoking({ uuid: association.uuid, name: memberName(association.member) });
+                          }}
+                        >
+                          <Field {...checks.field('reason')} label="Company action reason">
+                            <TextArea
+                              maxLength={FIELD_LIMITS.REASON}
+                              value={reason}
+                              disabled={held}
+                              onChange={(event) => setReason(event.target.value)}
+                            />
+                          </Field>
                           <FormActions>
                             <PageAction
-                              label="Revoke access"
-                              context={memberName(association.member)}
+                              label="Cancel"
                               disabled={held}
                               onClick={() => {
                                 checks.reset();
-                                setRequest('');
-                                setRevokeMember(association.uuid);
+                                setRevokeMember('');
                               }}
                             />
+                            <PageAction label="Revoke access" type="submit" disabled={held} />
                           </FormActions>
-                        )}
-                        {association.current && revokeMember === association.uuid && (
-                          <form
-                            noValidate
-                            className="space-y-4"
-                            onSubmit={(event) => {
-                              event.preventDefault();
-                              if (!held && checks.check(['reason']))
-                                setRevoking({ uuid: association.uuid, name: memberName(association.member) });
-                            }}
-                          >
-                            <Field {...checks.field('reason')} label="Company action reason">
-                              <TextArea
-                                maxLength={FIELD_LIMITS.REASON}
-                                value={reason}
-                                disabled={held}
-                                onChange={(event) => setReason(event.target.value)}
-                              />
-                            </Field>
-                            <FormActions>
-                              <PageAction
-                                label="Cancel"
-                                disabled={held}
-                                onClick={() => {
-                                  checks.reset();
-                                  setRevokeMember('');
-                                }}
-                              />
-                              <PageAction label="Revoke access" type="submit" disabled={held} />
-                            </FormActions>
-                          </form>
-                        )}
-                      </Disclosure>
+                        </form>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -419,7 +418,7 @@ export function CompanyMemberAccess({
               <Section title="Invitations">
                 <div
                   aria-hidden="true"
-                  className="hidden grid-cols-[minmax(0,1fr)_10rem_12rem] gap-6 pl-7 text-xs font-medium text-text-muted md:grid"
+                  className="hidden grid-cols-[minmax(0,1fr)_10rem_12rem] gap-6 text-xs font-medium text-text-muted md:grid xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
                 >
                   <span>Person</span>
                   <span>Invited</span>
@@ -427,28 +426,23 @@ export function CompanyMemberAccess({
                 </div>
                 <ul aria-label="Member invitations" className="divide-y divide-border-subtle">
                   {invitations.map((item) => (
-                    <li key={item.uuid}>
-                      <Disclosure
-                        summary={
-                          <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6">
-                            <span className="min-w-0 break-words font-medium">
-                              {memberName(item.member)}
-                              <span className="block font-normal text-text-muted">{item.intendedEmail}</span>
-                            </span>
-                            <span className="col-start-1 row-start-2 tabular-nums text-text-muted md:col-auto md:row-auto">
-                              <span className="md:sr-only">Invited: </span>
-                              {formatDate(item.createdAt)}
-                            </span>
-                            <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted md:col-auto md:row-auto">
-                              {MEMBER_INVITATION_STATUS_LABELS[item.status]}
-                            </span>
-                          </span>
-                        }
-                      >
-                        <Rows>
-                          <Row label="Accept before">{formatDateTime(item.acceptanceDeadline)}</Row>
-                        </Rows>
-                      </Disclosure>
+                    <li
+                      key={item.uuid}
+                      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
+                    >
+                      <span className="min-w-0 break-words font-medium">
+                        {memberName(item.member)}
+                        <span className="block font-normal text-text-muted">{item.intendedEmail}</span>
+                      </span>
+                      <span className="col-start-1 row-start-2 tabular-nums text-text-muted md:col-auto md:row-auto">
+                        <span className="md:sr-only">Invited: </span>
+                        {formatDate(item.createdAt)}
+                      </span>
+                      <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted md:col-auto md:row-auto">
+                        {MEMBER_INVITATION_STATUS_LABELS[item.status]}
+                        {deadline(item) && <span className="hidden md:block">{deadline(item)}</span>}
+                      </span>
+                      {deadline(item) && <span className="col-span-2 text-text-muted md:hidden">{deadline(item)}</span>}
                     </li>
                   ))}
                 </ul>

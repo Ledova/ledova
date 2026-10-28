@@ -17,6 +17,10 @@ export function currentAppointment(appointment: OwnCompanyAppointment | CompanyT
   );
 }
 
+export function invitationOpen(invitation: { acceptedAt: string | null; acceptanceDeadline: string }) {
+  return !invitation.acceptedAt && Date.parse(invitation.acceptanceDeadline) > Date.now();
+}
+
 export function scopeLabels(values: CompanyCapability[]) {
   return (
     COMPANY_AUTHORITY_CAPABILITIES.filter(({ value }) => values.includes(value))
