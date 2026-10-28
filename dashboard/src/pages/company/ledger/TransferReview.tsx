@@ -1,11 +1,5 @@
 import type { ReactNode } from 'react';
-import {
-  REGISTER_TRANSFER_COPY as COPY,
-  formatDate,
-  shareCount,
-  type RegisterTransfer,
-  type RegisterTransferDecisionPreview,
-} from '@ledova/shared';
+import { formatDate, shareCount, type RegisterTransfer, type RegisterTransferDecisionPreview } from '@ledova/shared';
 import { Disclosure, Row, Rows, Section } from '@components/Ledger';
 import { Table } from '@components/List';
 
@@ -20,8 +14,8 @@ export function TransferReview({
   proposal: Pick<RegisterTransfer, 'authorityReference' | 'reason'>;
   showOwnership?: boolean;
 }) {
-  const from = preview.fromName || COPY.NAME_NOT_RECORDED;
-  const to = preview.name || COPY.NAME_NOT_RECORDED;
+  const from = preview.fromName || 'Name not recorded';
+  const to = preview.name || 'Name not recorded';
   return (
     <>
       <Section title="Transfer summary">

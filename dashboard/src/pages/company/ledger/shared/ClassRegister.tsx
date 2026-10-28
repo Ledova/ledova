@@ -124,6 +124,7 @@ export function FormerMembers({
                 {former.sourceEffectiveOn && (
                   <Row label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Row>
                 )}
+                {former.correctedBy && <Row label="Correction">Cessation corrected by a later entry</Row>}
                 {former.returnedOn && <Row label="Returned on">{formatDate(former.returnedOn)}</Row>}
                 {former.walletAddress && <Row label="Recorded wallet">{former.walletAddress}</Row>}
               </Rows>

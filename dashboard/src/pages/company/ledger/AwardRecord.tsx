@@ -77,9 +77,11 @@ export function AwardRecord({
   useLayoutEffect(() => () => editingCallback.current?.(false), []);
 
   const events = useRegisterAwardVestings(owner, award.company, award.uuid, guard);
-  const vestingLabel = (uuid: string) => {
+  const vestingName = (vesting: { shares: string; vestedOn: string }) =>
+    `${shareCount(vesting.shares)} dated ${formatDate(vesting.vestedOn)}`;
+  const originalVesting = (uuid: string) => {
     const vesting = events.data?.find((event) => event.uuid === uuid);
-    return vesting ? `${shareCount(vesting.shares)} on ${formatDate(vesting.vestedOn)}` : 'An earlier vesting';
+    return vesting ? vestingName(vesting) : 'An earlier vesting';
   };
 
   const ends = useRegisterAwardEnds(owner, award.company, award.uuid, guard);
@@ -209,14 +211,14 @@ export function AwardRecord({
                             download.variables.uuid === event.uuid
                           }
                           busyLabel="Downloading…"
-                          context={`${shareCount(event.shares)} dated ${formatDate(event.vestedOn)}`}
+                          context={vestingName(event)}
                           disabled={blocked || download.isPending || !eventReady}
                           onClick={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
                         />
                         {appointment && (
                           <PageAction
                             label={COPY.REVERSE}
-                            context={`${shareCount(event.shares)} dated ${formatDate(event.vestedOn)}`}
+                            context={vestingName(event)}
                             disabled={
                               blocked ||
                               !eventReady ||
@@ -234,7 +236,7 @@ export function AwardRecord({
                                 setAdjusting({
                                   appointment,
                                   vesting: event.uuid,
-                                  vestingLabel: `${shareCount(event.shares)} · ${formatDate(event.vestedOn)}`,
+                                  vestingLabel: vestingName(event),
                                 });
                             }}
                           />
@@ -287,7 +289,7 @@ export function AwardRecord({
                     <div key={event.uuid} className="space-y-2 border-t border-border-subtle pt-3">
                       <Rows>
                         <Row label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Row>
-                        <Row label="Original vesting">{vestingLabel(event.vesting)}</Row>
+                        <Row label="Original vesting">{originalVesting(event.vesting)}</Row>
                         <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
                         <Row label={COPY.REASON}>{event.reason}</Row>
                         <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
@@ -333,7 +335,8 @@ export function AwardRecord({
               </div>
             )}
             <p hidden={editing || !!adjusting} className="text-xs text-text-muted">
-              Recorded {formatDateTime(award.createdAt)} by {award.preparedByName || 'a name not recorded'}
+              Recorded {formatDateTime(award.createdAt)}
+              {award.preparedByName && ` by ${award.preparedByName}`}
             </p>
             {!editing && !adjusting && (
               <FormActions>

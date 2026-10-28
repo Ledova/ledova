@@ -547,7 +547,7 @@ rather than its identifier. It reports:
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and `CopyButton` (the payment instruction's values and the
-company's and an approved offering's UUIDs) confirms a copy with Copied beside the button.
+company's and an approved offering's IDs) confirms a copy with Copied beside the button.
 Ledger's other forms don't use `Outcome`. Mobile reports a changed password, some failures
 and a few warnings in native alerts.
 
@@ -1071,16 +1071,18 @@ by a local helper or a browser `toLocale…` call:
   for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
   register entry kinds). Mobile shows no status codes: its request statuses come from the shared
   maps, and its certificate and pending-change tags use its own words.
-- **Identifiers.** Records show names, dates and amounts. Register records, certificates, member
-  access, Team, representative authority and Profile show no internal references, register
+- **Identifiers.** Records show names, dates and amounts. Issue, transfer, award, import and
+  correction records, former shareholders, certificates, inspection copies, member access and
+  requests, Team, representative authority and Profile show no internal references, register
   sequences, block numbers or fingerprints, and have no **Record details** or **Technical details**
   section; an award shows who recorded it and when as one muted line. Where only an identifier
   tells records apart, such as two shareholders with one name or two options that read the same,
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user
-  numbers are not shown. The share class's **Technical details and chain workflows** and the
-  eligibility pages still show their references and fingerprints; transaction hashes and wallet
-  addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
+  numbers are not shown. Chain views still show their references, block numbers and fingerprints:
+  the share class's **Technical details and chain workflows**, the reconciliation with the chain
+  under Corrections and an opening's chain-inclusion messages. So do the eligibility pages. Those
+  are later phases of #1378. Transaction hashes and wallet addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
   **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a
   directory-listed company or open offering under the field, or says it is not listed. The one
   exception shows those IDs in full, with `CopyButton`, for a company to give investors: its

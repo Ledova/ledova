@@ -353,6 +353,12 @@ export function CompanyMemberAccess({
                           </span>
                         }
                       >
+                        {!association.current && (
+                          <p className="text-sm text-text-muted">
+                            Access revoked. The person can still read the status of requests they made; relinking needs
+                            a new invitation.
+                          </p>
+                        )}
                         {association.current && revokeMember !== association.uuid && (
                           <FormActions>
                             <PageAction
@@ -695,6 +701,11 @@ export function CompanyMemberAccess({
                         </>
                       ) : (
                         <>
+                          {item.record.status === 'withdrawn' && (
+                            <p className="text-sm text-text-muted">
+                              Withdrawn by the member; no certificate was created.
+                            </p>
+                          )}
                           {item.record.fulfilment && (
                             <Rows>
                               <Row label="Created on">{formatDate(item.record.fulfilment.createdAt)}</Row>

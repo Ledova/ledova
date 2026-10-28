@@ -91,7 +91,7 @@ function Confirmation({ action, busy, confirm, cancel, opener }: ConfirmationPro
         )}
         {action.uncertain && (
           <p role="status">
-            The previous outcome is uncertain. Retry this identical action and key to recover the retained result.
+            The previous outcome is uncertain. Retry this identical action to recover the retained result.
           </p>
         )}
         {requesting ? (

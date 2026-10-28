@@ -24,9 +24,9 @@ const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, approve: 'Appro
 function TransferRows({ transfer }: { transfer: RegisterTransfer }) {
   return (
     <Rows>
-      <Row label={COPY.FROM}>{transfer.fromName || COPY.NAME_NOT_RECORDED}</Row>
+      <Row label={COPY.FROM}>{transfer.fromName || 'Name not recorded'}</Row>
       <Row label="Transferor residential address">{transfer.fromResidentialAddress}</Row>
-      <Row label={COPY.TO}>{transfer.name || COPY.NAME_NOT_RECORDED}</Row>
+      <Row label={COPY.TO}>{transfer.name || 'Name not recorded'}</Row>
       <Row label={COPY.ADDRESS}>{transfer.residentialAddress}</Row>
       <Row label="Recipient particulars">
         {transfer.newParticulars ? 'Retained from the signed instrument' : 'Existing retained particulars'}
@@ -108,16 +108,16 @@ export function TransferRecord({
       {visible && (
         <>
           <h3 className="sr-only">
-            Transfer from {transfer.fromName || COPY.NAME_NOT_RECORDED} to {transfer.name || COPY.NAME_NOT_RECORDED}
+            Transfer from {transfer.fromName || 'Name not recorded'} to {transfer.name || 'Name not recorded'}
           </h3>
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
             <div className="min-w-0 space-y-1">
               <dt className="text-text-muted">From</dt>
-              <dd className="break-words font-medium">{transfer.fromName || COPY.NAME_NOT_RECORDED}</dd>
+              <dd className="break-words font-medium">{transfer.fromName || 'Name not recorded'}</dd>
             </div>
             <div className="min-w-0 space-y-1">
               <dt className="text-text-muted">To</dt>
-              <dd className="break-words font-medium">{transfer.name || COPY.NAME_NOT_RECORDED}</dd>
+              <dd className="break-words font-medium">{transfer.name || 'Name not recorded'}</dd>
             </div>
             <div className="min-w-0 space-y-1">
               <dt className="text-text-muted">Shares</dt>

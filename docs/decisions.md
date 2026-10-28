@@ -1648,15 +1648,6 @@ proposal are in #1174, and the owner approved it as recommended:
   approved offering's) on its own pages with a Copy button; investors paste it into the request as
   today." So Company shows the company's UUID in full with Copy, and Offerings each approved
   offering's: the one exception to short references.
-- **Records without internal identifiers (28 October 2026).** The owner asked for a UX review: make
-  the chevron sections more intuitive, remove or hide UUIDs and technical details, and reduce
-  clutter. After an assessment proposing five phases (#1378), the owner chose: "Start phase 1 with
-  your defaults: remove Record details/Technical details chevrons and internal IDs, fix the
-  colliding labels." So register records, certificates, member access, Team, representative
-  authority and Profile drop their **Record details** and **Technical details** sections and
-  internal references, and the identifiers a company hands out read as **Company ID** and
-  **Offering ID** wherever they are shown or typed. The share class's chain area and the
-  eligibility pages follow in later phases.
 
 On 22 October 2026, the owner accepted a further web refinement under #1165: **Add person** on
 Shareholders records a company person's particulars without shares or a login; transfers select
@@ -1664,6 +1655,16 @@ existing company people only. Recipients need not hold that class. Keep the shar
 control and the existing new-person paths for setup, issues and awards. The company person list
 distinguishes people without shares from current shareholders, and registration keeps company
 authority, an attributable source and the original request on retry. Mobile stays deferred.
+
+On 28 October 2026 the owner asked for a UX review: make the chevron sections more intuitive,
+remove or hide UUIDs and technical details, and reduce clutter. After an assessment proposing five
+phases (#1378), the owner chose: "Start phase 1 with your defaults: remove Record details/Technical
+details chevrons and internal IDs, fix the colliding labels." So the register's records outside
+the chain views, certificates, inspection copies, member access and requests, Team,
+representative authority and Profile drop their **Record details** and **Technical details**
+sections and internal references. The identifiers a company hands out read as **Company ID** and
+**Offering ID** wherever they are shown or typed. The chain views and the eligibility pages follow
+in later phases.
 
 ## Mobile app for shareholders
 

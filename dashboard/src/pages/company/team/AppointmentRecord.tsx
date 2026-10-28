@@ -73,7 +73,12 @@ export function AppointmentRecord({
         </Disclosure>
         {appointment.status !== 'revoked' && (
           <FormActions>
-            <PageAction label="Revoke appointment" context={title} disabled={disabled} onClick={onRevoke} />
+            <PageAction
+              label="Revoke appointment"
+              context={`${title} · ${scopeLabels(appointment.capabilities)}`}
+              disabled={disabled}
+              onClick={onRevoke}
+            />
           </FormActions>
         )}
       </Disclosure>

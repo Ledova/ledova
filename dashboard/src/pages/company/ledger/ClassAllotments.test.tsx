@@ -591,6 +591,10 @@ it('preserves original preparation and combined approval recovery through refres
   expect(rows[0].registerEntry).toBe('entry-a');
   expect(rows[0].decisions).toHaveLength(2);
   await waitFor(() => expect(taskClass().disabled).toBe(false));
+  expect(allotments.getByText(ALLOTMENT_REQUEST.agreementReference)).toBeTruthy();
+  fireEvent.change(taskClass(), { target: { value: preference.token.uuid } });
+  await waitFor(() => expect(screen.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull());
+  fireEvent.change(taskClass(), { target: { value: REGISTER.token.uuid } });
   await waitFor(() => expect(correctionsTask().getAttribute('aria-disabled')).toBeNull());
   expect(correctionsTask().getAttribute('aria-disabled')).toBeNull();
   fireEvent.click(correctionsTask());
@@ -600,7 +604,6 @@ it('preserves original preparation and combined approval recovery through refres
       (heading) => heading.closest('li'),
     ),
   ).toBeTruthy();
-  expect(screen.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   fireEvent.change(taskClass(), { target: { value: REGISTER.token.uuid } });
   fireEvent.click(investorTask());
   await allotments.findByText('Approved');
