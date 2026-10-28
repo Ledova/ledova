@@ -434,7 +434,10 @@ function OwnRegister({
                 onHeldChange={memberHeldChange}
               />
             </div>
-            <div hidden={view !== 'register' || selectedTask !== 'corrections'}>
+            <div
+              hidden={view !== 'register' || selectedTask !== 'corrections'}
+              className="flex flex-col gap-4 sm:gap-5 md:gap-6"
+            >
               <RegisterParticulars
                 key={`particulars/${scope.company.uuid}`}
                 landed={landed}
@@ -446,7 +449,7 @@ function OwnRegister({
                 onHeldChange={companyCorrectionHeld}
                 onReviewChange={particularsReviewChanged}
               />
-              <div hidden={reviewingParticulars}>
+              <div hidden={reviewingParticulars} className="empty:hidden">
                 <RegisterLinks
                   landed={landed}
                   owner={owner}
@@ -572,7 +575,7 @@ function OwnRegister({
         </div>
       )}
       {scope && ((includeEmptyCompanies && ownershipReady) || personHeld) && (
-        <div hidden={view !== 'shareholders'}>
+        <div hidden={view !== 'shareholders'} className="flex flex-col gap-4 sm:gap-5 md:gap-6">
           <CompanyPeople
             key={scope.company.uuid}
             owner={owner}

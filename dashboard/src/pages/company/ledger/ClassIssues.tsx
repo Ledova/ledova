@@ -132,9 +132,9 @@ export function ClassIssues({
   const browsing = !preparing && !reviewing;
   return (
     <div role="region" aria-label="Share issue workflow" className="space-y-5">
-      {investor.setup}
       <div hidden={!browsing}>
         <Section title="Share issues">
+          {investor.setup}
           {browsing && status}
           {investor.empty && nonPaid.empty && <p className="text-sm text-text-muted">No share issues recorded yet.</p>}
           <div hidden={investor.empty}>{investor.records}</div>
