@@ -80,7 +80,6 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
   const token = data.token.data;
   const onChain = token?.status === 'deployed' || token?.status === 'paused';
   if (onChain && deployments.isSuccess && !records.length && !uncertain && !error) return null;
-  const classLabel = token ? `${token.name} · ${token.symbol}` : '';
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
@@ -190,7 +189,9 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
                   >
                     {(preview) => (
                       <>
-                        <p className="text-sm text-text-muted">{classLabel}</p>
+                        <p className="text-sm text-text-muted">
+                          {preview.snapshot.token.name} · {preview.snapshot.token.symbol}
+                        </p>
                         <Rows>
                           <DeploymentRows snapshot={preview.snapshot} />
                         </Rows>

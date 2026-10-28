@@ -52,6 +52,10 @@ const NEW_MEMBER = [{ value: 'new', label: 'New member' }];
 const MEMBERS = ['member', 'members'] as const;
 const WALLETS = ['wallet', 'wallets'] as const;
 
+function linkedMember(row: { member: string; memberExists: boolean }, names: ReadonlyMap<string, string>) {
+  return names.get(row.member) || (row.memberExists ? `Member ${shortReference(row.member)}` : 'New member');
+}
+
 function MemberRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
   return (
     <>
@@ -69,13 +73,11 @@ function MemberRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
 function IssueRecord({
   record,
   chain,
-  classLabel,
   commands,
   onHeldChange,
 }: {
   record: RegisterIssue;
   chain: string | null | undefined;
-  classLabel: string;
   commands: Commands;
   onHeldChange: (uuid: string, held: boolean) => void;
 }) {
@@ -151,7 +153,9 @@ function IssueRecord({
       >
         {(preview) => (
           <>
-            <p className="text-sm text-text-muted">{classLabel}</p>
+            <p className="text-sm text-text-muted">
+              {preview.snapshot.token.name} · {preview.snapshot.token.symbol}
+            </p>
             <Rows>
               <MemberRows snapshot={preview.snapshot} />
               <Row label="Shares">{formatShareCount(preview.shares)}</Row>
@@ -204,8 +208,7 @@ function LinkRecord({
             <RecordStage stage={record.stage}>{REGISTER_LINK_COPY.STAGES[record.stage] ?? record.stage}</RecordStage>
             {record.mappingSummary.map((row) => (
               <Row key={row.address} label="Linked wallet">
-                <span className="break-all">{row.address}</span> →{' '}
-                {names.get(row.member) || (row.memberExists ? 'Existing member' : 'New member')}
+                <span className="break-all">{row.address}</span> → {linkedMember(row, names)}
               </Row>
             ))}
             <Row label="Authority reference">{record.authorityReference}</Row>
@@ -248,8 +251,8 @@ function LinkRecord({
             <Rows>
               {preview.links.map((row) => (
                 <Row key={row.address} label="Linked wallet">
-                  <span className="break-all">{row.address}</span> →{' '}
-                  {row.holderName || (row.memberExists ? 'Existing member' : 'New member')}
+                  <span className="break-all">{row.address}</span> → {linkedMember(row, names)}
+                  {row.holderName && <span className="block text-text-muted">Wallet holder: {row.holderName}</span>}
                 </Row>
               ))}
             </Rows>
@@ -512,7 +515,6 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
   };
   if (!commands.owner) return null;
   const token = data.token.data;
-  const classLabel = token ? `${token.name} · ${token.symbol}` : '';
   const readFailed =
     commands.visible &&
     (commands.instructions.isError ||
@@ -545,21 +547,22 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       {commands.visible && commands.records.length + commands.linksRecords.length > 0 && (
         <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
       )}
-      <ul className="divide-y divide-border-subtle">
-        {commands.linksRecords.map((record) => (
-          <LinkRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
-        ))}
-        {commands.records.map((record) => (
-          <IssueRecord
-            key={record.uuid}
-            record={record}
-            chain={token?.chain}
-            classLabel={classLabel}
-            commands={commands}
-            onHeldChange={onHeldChange}
-          />
-        ))}
-      </ul>
+      {commands.records.length + commands.linksRecords.length > 0 && (
+        <ul hidden={!commands.visible} className="divide-y divide-border-subtle">
+          {commands.linksRecords.map((record) => (
+            <LinkRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
+          ))}
+          {commands.records.map((record) => (
+            <IssueRecord
+              key={record.uuid}
+              record={record}
+              chain={token?.chain}
+              commands={commands}
+              onHeldChange={onHeldChange}
+            />
+          ))}
+        </ul>
+      )}
       {commands.visible && commands.recovery && (
         <>
           <p className="text-sm text-text-muted">

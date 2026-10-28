@@ -1,6 +1,5 @@
 import type {
   CompanyEligibilityRequest,
-  CompanyStatus,
   CompanyWalletInstruction,
   MemberCertificateRequest,
   MemberInvitation,
@@ -57,20 +56,6 @@ export const COMPANY_WALLET_ACTION_LABELS: Record<CompanyWalletInstruction['acti
 export const CHAIN_FAILURE_LABELS: Record<string, string> = {
   failed: 'Failed before signing',
   reverted: 'Reverted',
-};
-
-export const COMPANY_STATUS_LABELS: Record<CompanyStatus, string> = {
-  draft: 'Draft',
-  submitted: 'Submitted for Review',
-  review: 'Under Review',
-  info_required: 'Additional Information Required',
-  approved: 'Approved',
-  active: 'Active',
-  warning: 'Compliance Warning',
-  suspended: 'Suspended',
-  delisted: 'Delisted',
-  rejected: 'Rejected',
-  withdrawn: 'Withdrawn',
 };
 
 export const DEPLOYMENT_SWAP_APPROVAL_LABELS: Record<string, string> = {

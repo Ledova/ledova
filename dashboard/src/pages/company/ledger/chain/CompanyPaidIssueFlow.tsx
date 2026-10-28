@@ -89,13 +89,13 @@ function IssueRows({
 function PaidIssueRecord({
   record,
   chain,
-  classLabel,
+  isOwner,
   commands,
   onHeldChange,
 }: {
   record: RegisterPaidIssue;
   chain: string | null | undefined;
-  classLabel: string;
+  isOwner: boolean;
   commands: Commands;
   onHeldChange: (uuid: string, held: boolean) => void;
 }) {
@@ -132,11 +132,13 @@ function PaidIssueRecord({
               </>
             )}
           </Rows>
-          <LinkRow
-            to={companyContext?.companyPath(offering) ?? offering}
-            label={pageTitle('companyOfferingDetail')}
-            context={`for ${recipient}`}
-          />
+          {isOwner && (
+            <LinkRow
+              to={companyContext?.companyPath(offering) ?? offering}
+              label={pageTitle('companyOfferingDetail')}
+              context={`for ${recipient}`}
+            />
+          )}
           {record.status === 'applied' && <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>}
           {refusalSentences(record.executionUnmetRequirements, REGISTER_PAID_ISSUE_UNMET_COPY).map((sentence) => (
             <p key={sentence} className="text-sm text-text-muted">
@@ -173,7 +175,9 @@ function PaidIssueRecord({
       >
         {(preview) => (
           <>
-            <p className="text-sm text-text-muted">{classLabel}</p>
+            <p className="text-sm text-text-muted">
+              {preview.snapshot.token.name} · {preview.snapshot.token.symbol}
+            </p>
             <Rows>
               <IssueRows record={preview} />
             </Rows>
@@ -383,7 +387,6 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
   });
   if (!commands.owner) return null;
   const token = data.token.data;
-  const classLabel = token ? `${token.name} · ${token.symbol}` : '';
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
@@ -423,18 +426,20 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
           <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
         </>
       )}
-      <ul className="divide-y divide-border-subtle">
-        {commands.records.map((record) => (
-          <PaidIssueRecord
-            key={record.uuid}
-            record={record}
-            chain={token?.chain}
-            classLabel={classLabel}
-            commands={commands}
-            onHeldChange={onHeldChange}
-          />
-        ))}
-      </ul>
+      {commands.records.length > 0 && (
+        <ul hidden={!commands.visible} className="divide-y divide-border-subtle">
+          {commands.records.map((record) => (
+            <PaidIssueRecord
+              key={record.uuid}
+              record={record}
+              chain={token?.chain}
+              isOwner={data.isOwner}
+              commands={commands}
+              onHeldChange={onHeldChange}
+            />
+          ))}
+        </ul>
+      )}
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">

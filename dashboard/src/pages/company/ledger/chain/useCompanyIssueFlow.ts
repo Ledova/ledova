@@ -133,7 +133,7 @@ export function useIssuePreparation({ commands }: { commands: Commands }) {
     reference: !reference.trim() && 'Give the authority reference.',
     reason: !reason.trim() && 'Give the reason.',
     authorityDocument: !files.authority && 'Choose the authority document.',
-    approval: !approval && 'Choose the company ADD.',
+    approval: !approval && 'Choose the company wallet approval.',
     shares: requestShares(shares) === null && 'Enter whole shares from 1 to 2,147,483,647.',
     termsOn: (!isCalendarDate(termsOn) || termsOn > utcToday()) && 'Enter a terms date no later than today (UTC).',
     terms: !terms.trim() && 'Give the non-paid terms.',

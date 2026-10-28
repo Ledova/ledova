@@ -31,7 +31,8 @@ export const REGISTER_ISSUE_UNMET_COPY: Record<string, string> = {
   wallet_source_changed: 'The exact nominated wallet source changed.',
   wallet_proof_required: 'The participant must refresh genuine possession proof for this selected wallet.',
   eligibility_source_lapsed: 'The selected company GENERAL eligibility source is no longer current.',
-  wallet_approval_required: 'Apply a finite company ADD for this exact nomination and wait for its genuine outcome.',
+  wallet_approval_required:
+    'Apply a company wallet approval with an expiry for this nominated wallet and wait for its outcome on chain.',
   wallet_approval_lapsed: 'The selected finite company wallet approval has expired.',
   class_identity_changed: 'The class or chain configuration changed after preparation.',
   class_not_deployed: 'This class must be deployed and unpaused.',

@@ -196,6 +196,8 @@ Name a preview-opening action for that review, such as **Review and approve**; o
 The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
+A class's **Chain actions** cards are the exception: each card's form opens below its records, which
+stay visible, because a grant's wallet link is decided while the grant's draft stays open.
 Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
 keeps the selected class card and returns to its records after Cancel or a successful save. ESS uses the
 Share class selection in the page heading's Filters popover and one creation action; disable class selection while award preparation
@@ -1089,8 +1091,8 @@ by a local helper or a browser `toLocale…` call:
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
   shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
-  member invitations and requests, appointments, company wallet actions and chain failures, company
-  states, a deployment's swap approval, an application's status on company records, order states
+  member invitations and requests, appointments, company wallet actions and chain failures, a
+  deployment's swap approval, an application's status on company records, order states
   and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
   for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
   register entry kinds). Mobile shows no status codes: its request statuses come from the shared
@@ -1102,8 +1104,9 @@ by a local helper or a browser `toLocale…` call:
   or **Technical details** section; an award shows who recorded it and when as one muted line. A
   chain action's record gives its transaction as **View transaction** on the block explorer, or the
   exact hash where the chain has none, and leaves out the technical sender, factory, chain ID,
-  transaction data and the company, class and contract the page already names; its decision dialog
-  names the class in one muted line. Where only an identifier
+  transaction data and the company and class the page already names; only an applied deployment
+  shows its contract. Its decision dialog names the class it captured in one muted line, and a
+  wallet link names each member, or `Member` and its `shortReference` when the member has no name. Where only an identifier
   tells records apart, such as two shareholders with one name or two options that read the same,
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user

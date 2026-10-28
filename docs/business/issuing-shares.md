@@ -52,9 +52,10 @@ this empty-opening choice through the same draft, review and confirmation as cop
 On the web, the chain actions described below are on a class's own **Chain actions** page. The Share
 class page opens it from its **On chain** card once the class is deployed, or through **Put this
 class on chain** while the class is a draft without shares or is being deployed. Each action is a
-card listing its records, with its Prepare action at the foot; the form opens in the card, and
-Cancel or a prepared record closes it. Records show names, dates, amounts and their decisions, and
-a transaction as **View transaction** on the block explorer.
+card listing its records, with its Prepare action at the foot. Deployment prepares at once; the
+others open their form in the card below the records, and Cancel or a prepared record closes it,
+while a prepared wallet link keeps the grant's form open. Records show names, dates, amounts and
+their decisions, and a transaction as **View transaction** on the block explorer.
 
 ### Class rights
 
@@ -128,8 +129,8 @@ executes it is in [engineering](../engineering/chain.md#share-class-deployment).
 A company appointee can raise the authorised shares of a deployed class, including a paused one.
 
 1. On the class's Chain actions page, under Capital increases, choose Prepare capital increase and
-   give the additional whole shares and the new total, which must equal the current cap plus the addition (each from 1 to
-   2,147,483,647).
+   give the additional whole shares and the new total, which must equal the current cap plus the
+   addition (each from 1 to 2,147,483,647).
 2. Give the purpose, the board resolution reference, any shareholder approval reference and the
    authority document.
 3. Approve, then Apply.

@@ -48,13 +48,11 @@ function PauseRows({ record }: { record: Pick<RegisterPauseChange, 'paused' | 'r
 function PauseRecord({
   record,
   chain,
-  classLabel,
   commands,
   onHeldChange,
 }: {
   record: RegisterPauseChange;
   chain: string | null | undefined;
-  classLabel: string;
   commands: Commands;
   onHeldChange: (uuid: string, held: boolean) => void;
 }) {
@@ -64,7 +62,13 @@ function PauseRecord({
     <RecordShell hidden={!commands.visible}>
       {commands.visible && (
         <>
-          <h3 className="font-medium">{record.paused === false ? 'Unpause the class' : 'Pause the class'}</h3>
+          <h3 className="font-medium">
+            {record.paused === true
+              ? 'Pause the class'
+              : record.paused === false
+                ? 'Unpause the class'
+                : 'Pause change'}
+          </h3>
           <Rows>
             <RecordStage stage={record.stage}>{STAGES[record.stage] ?? record.stage}</RecordStage>
             <PauseRows record={record} />
@@ -118,7 +122,9 @@ function PauseRecord({
       >
         {(preview) => (
           <>
-            <p className="text-sm text-text-muted">{classLabel}</p>
+            <p className="text-sm text-text-muted">
+              {preview.snapshot.token.name} · {preview.snapshot.token.symbol}
+            </p>
             <Rows>
               <PauseRows record={preview} />
             </Rows>
@@ -268,7 +274,6 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
   });
   if (!commands.owner) return null;
   const token = data.token.data;
-  const classLabel = token ? `${token.name} · ${token.symbol}` : '';
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
@@ -304,18 +309,19 @@ export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnTyp
       {commands.visible && commands.records.length > 0 && (
         <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
       )}
-      <ul className="divide-y divide-border-subtle">
-        {commands.records.map((record) => (
-          <PauseRecord
-            key={record.uuid}
-            record={record}
-            chain={token?.chain}
-            classLabel={classLabel}
-            commands={commands}
-            onHeldChange={onHeldChange}
-          />
-        ))}
-      </ul>
+      {commands.records.length > 0 && (
+        <ul hidden={!commands.visible} className="divide-y divide-border-subtle">
+          {commands.records.map((record) => (
+            <PauseRecord
+              key={record.uuid}
+              record={record}
+              chain={token?.chain}
+              commands={commands}
+              onHeldChange={onHeldChange}
+            />
+          ))}
+        </ul>
+      )}
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
