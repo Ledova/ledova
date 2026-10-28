@@ -39,9 +39,10 @@ The remaining offering, publication, directory, application, wallet, activity an
 use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
 keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
-and the shared card heading and padding. Company pages list share classes in the order they were
-created, oldest first: Ledger's cards, the Shareholders columns, class choices and the default class,
-such as ESS's (owner, 28 October 2026). Ownership dashboards put their overview and charts before
+and the shared card heading and padding. The register pages (Ledger, Shareholders, ESS, Certificates
+and the register tasks) list share classes in the order they were created, oldest first, in their
+cards, columns, class choices and default class (owner, 28 October 2026). Dashboard ranks its class
+list by issued shares, and Offerings keeps its own order. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The selected company uses one
 ownership ring beside a linked class list, with full class names before their secondary codes.
 Names wrap without displacing the figures. Select a segment or class row to open an aligned class
@@ -51,7 +52,7 @@ highlight-only interaction. Show the relevant exact totals and own position, fol
 ranked holder list only for company-authorised readers. The popover holds their **Search
 shareholders** field and, for everyone, a **Share class** choice: picking another class switches the
 card, and **All classes** returns to the overview, also from a class the overview no longer lists.
-For those readers, **Class details** at the end of the card opens the class's Ledger page. Each
+For company-authorised readers, **Class details** at the end of the card opens the class's Ledger page. Each
 compact holder row aligns the shareholder's name, a
 horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
 with short transitions that honour reduced motion; keep all figures visible without a tooltip.
