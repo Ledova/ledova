@@ -41,9 +41,11 @@ export function useNewShareClass({
   checkCurrent,
   company,
   classes,
+  started,
   ready,
-}: Pick<FreshClassProps, 'guard' | 'checkCurrent' | 'company' | 'classes' | 'ready'>) {
-  const draftClasses = classes.filter((token) => token.status === 'draft');
+}: Pick<FreshClassProps, 'guard' | 'checkCurrent' | 'company' | 'classes' | 'ready'> & {
+  started: readonly { uuid: string }[];
+}) {
   const [choice, setChoice] = useState('ordinary');
   const [name, setName] = useState('Ordinary shares');
   const [symbol, setSymbol] = useState('ORD');
@@ -140,12 +142,11 @@ export function useNewShareClass({
   const existingCode = classes.find((token) => token.symbol === symbol);
   if (existingCode && !classLocked)
     problems.push(
-      existingCode.status === 'draft'
-        ? 'This class code already exists. Select the existing draft share class.'
-        : 'This class code already exists. Open its register or use the actual distinct code for a new class.',
+      started.some(({ uuid }) => uuid === existingCode.uuid)
+        ? 'This class code already exists. Continue that class above.'
+        : 'This class code already exists. Use a distinct code for a new class.',
     );
   return {
-    draftClasses,
     choice,
     setChoice,
     name,

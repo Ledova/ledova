@@ -66,6 +66,7 @@ export function BringRecords({
       )
     );
   const listed = draft.members.some((row) => started(row) && row.member !== editor?.member);
+  const count = draft.members.filter(started).length;
   const add = () => {
     if (busy || editorOpen) return;
     const blank = draft.members.find((row) => !started(row));
@@ -112,14 +113,12 @@ export function BringRecords({
             {!editorOpen && (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-text-muted">
-                  {draft.members.filter(started).length}{' '}
-                  {draft.members.filter(started).length === 1 ? 'shareholder' : 'shareholders'} in this draft
+                  {count === 0
+                    ? 'No shareholders added yet.'
+                    : `${count} ${count === 1 ? 'shareholder' : 'shareholders'} in this draft`}
                 </p>
-                <PageAction label="Add a shareholder" primary disabled={busy} onClick={add} />
+                <PageAction label="Add a shareholder" disabled={busy} onClick={add} />
               </div>
-            )}
-            {!draft.members.some(started) && !editorOpen && (
-              <p className="text-sm text-text-muted">No shareholders added yet.</p>
             )}
             {listed && (
               <Table

@@ -175,8 +175,14 @@ function FreshClass({
   onHeldChange,
   onConflict,
 }: FreshClassProps) {
+  const started = useStartedClasses(
+    owner,
+    guard,
+    company.uuid,
+    classes.filter((token) => token.status === 'draft'),
+    ready,
+  );
   const {
-    draftClasses,
     choice,
     setChoice,
     name,
@@ -189,8 +195,7 @@ function FreshClass({
     check,
     resolveRegister,
     problems,
-  } = useNewShareClass({ guard, checkCurrent, company, classes, ready });
-  const started = useStartedClasses(owner, guard, company.uuid, draftClasses, ready);
+  } = useNewShareClass({ guard, checkCurrent, company, classes, started, ready });
 
   return (
     <ImportForm

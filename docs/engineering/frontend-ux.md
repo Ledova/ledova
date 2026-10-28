@@ -32,6 +32,9 @@ simple task forms and most detailed records, including compact tables. Profile, 
 company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
 invitation reviews, company-recorded member details and wide tables take the standard workspace width. Inline preparation, review
 and result states retain their collection's frame. Tables scroll within their card on small screens.
+A stepped preparation (register setup, an investor issue, a transfer) is one card: its title names the class or
+the task, `FormSteps` sits at its top, each step has a small heading, and one primary action ends the step.
+Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
 Company information, company documents, authority records and company team use this workspace frame too.
 Team invitations and acceptance replace their collection with one focused inline task, retaining its
 mounted editors and drafts. Settings → Documents has its own view, with Category and File in the inline upload.
