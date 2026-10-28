@@ -40,8 +40,9 @@ export function AwardRecord({
   guard,
   blocked,
   onSettled,
-  visible = true,
+  visible,
   onHeldChange,
+  onEditingChange,
 }: {
   owner: OrderSubmissionOwner;
   award: RegisterAward;
@@ -50,8 +51,9 @@ export function AwardRecord({
   guard: () => void;
   blocked: boolean;
   onSettled: () => Promise<unknown>;
-  visible?: boolean;
-  onHeldChange?: (held: boolean) => void;
+  visible: boolean;
+  onHeldChange: (held: boolean) => void;
+  onEditingChange: (editing: boolean) => void;
 }) {
   const client = useQueryClient();
   const vestingsId = useId();
@@ -105,7 +107,7 @@ export function AwardRecord({
     ]);
     guard();
     setFormHeld(false);
-    onHeldChange?.(false);
+    onHeldChange(false);
     setEditing(false);
     setFormAppointment(null);
     setAdjusting(null);
@@ -116,6 +118,12 @@ export function AwardRecord({
     ? (remainingRegisterAwardVesting(correcting, reversals.data ?? []) ?? undefined)
     : undefined;
   const formOpen = editing || !!adjusting;
+  const downloadFailure = (
+    <RecordDownloadFailure>The retained document could not be downloaded. Refresh and try again.</RecordDownloadFailure>
+  );
+  useLayoutEffect(() => {
+    onEditingChange(formOpen);
+  }, [onEditingChange, formOpen]);
   const vestings = events.data ?? [];
   const changes = (ends.data?.length ?? 0) + (reversals.data?.length ?? 0);
   return (
@@ -169,7 +177,7 @@ export function AwardRecord({
                 canPrepare={appointment?.uuid === adjusting.appointment.uuid}
                 onHeldChange={(held) => {
                   setFormHeld(held);
-                  onHeldChange?.(held);
+                  onHeldChange(held);
                 }}
                 onRecorded={settle}
                 onCancel={() => setAdjusting(null)}
@@ -186,7 +194,7 @@ export function AwardRecord({
                 canPrepare={appointment?.uuid === formAppointment.uuid}
                 onHeldChange={(held) => {
                   setFormHeld(held);
-                  onHeldChange?.(held);
+                  onHeldChange(held);
                 }}
                 onRecorded={settle}
                 onCancel={() => {
@@ -230,73 +238,68 @@ export function AwardRecord({
               onClick={() => download.mutate(undefined)}
             />
           </FormActions>
-          {download.isError && (
-            <RecordDownloadFailure>
-              The retained document could not be downloaded. Refresh and try again.
-            </RecordDownloadFailure>
-          )}
+          {download.isError && !download.variables && downloadFailure}
         </Section>
       )}
       {visible && !formOpen && (
         <>
-          {events.isPending ? (
+          {events.isPending || events.isFetching ? (
             <Loading>Loading vesting events…</Loading>
           ) : (
             events.isSuccess &&
             vestings.length > 0 && (
               <Section title="Vesting history">
                 <div id={vestingsId} className="divide-y divide-border-subtle">
-                  {!events.isFetching &&
-                    (allVestings ? vestings : vestings.slice(0, LATEST_VESTINGS)).map((event) => (
-                      <div key={event.uuid} className="space-y-2 py-3 first:pt-0">
-                        <Rows>
-                          <Row label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Row>
-                          <Row label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Row>
-                        </Rows>
-                        <p className="text-xs text-text-muted">
-                          Recorded {formatDateTime(event.createdAt)}
-                          {event.preparedByName && ` by ${event.preparedByName}`}
-                        </p>
-                        <FormActions>
+                  {(allVestings ? vestings : vestings.slice(0, LATEST_VESTINGS)).map((event) => (
+                    <div key={event.uuid} className="space-y-2 py-3 first:pt-0">
+                      <Rows>
+                        <Row label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Row>
+                        <Row label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Row>
+                      </Rows>
+                      <p className="text-xs text-text-muted">
+                        Recorded {formatDateTime(event.createdAt)}
+                        {event.preparedByName && ` by ${event.preparedByName}`}
+                      </p>
+                      <FormActions>
+                        <PageAction
+                          label="Download vesting evidence"
+                          busy={
+                            download.isPending &&
+                            download.variables?.kind === 'vesting' &&
+                            download.variables.uuid === event.uuid
+                          }
+                          busyLabel="Downloading…"
+                          context={vestingName(event)}
+                          disabled={blocked || download.isPending || !eventReady}
+                          onClick={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
+                        />
+                        {appointment && (
                           <PageAction
-                            label="Download vesting evidence"
-                            busy={
-                              download.isPending &&
-                              download.variables?.kind === 'vesting' &&
-                              download.variables.uuid === event.uuid
-                            }
-                            busyLabel="Downloading…"
+                            label={COPY.REVERSE}
                             context={vestingName(event)}
-                            disabled={blocked || download.isPending || !eventReady}
-                            onClick={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
+                            disabled={
+                              blocked ||
+                              !eventReady ||
+                              formHeld ||
+                              BigInt(award.availableShares) === 0n ||
+                              remainingRegisterAwardVesting(event, reversals.data ?? []) === null ||
+                              BigInt(remainingRegisterAwardVesting(event, reversals.data ?? []) ?? '0') === 0n
+                            }
+                            onClick={() => {
+                              recordGuard();
+                              const remaining = remainingRegisterAwardVesting(event, reversals.data ?? []);
+                              if (remaining !== null)
+                                setAdjusting({
+                                  appointment,
+                                  vesting: event.uuid,
+                                  vestingLabel: vestingName(event),
+                                });
+                            }}
                           />
-                          {appointment && (
-                            <PageAction
-                              label={COPY.REVERSE}
-                              context={vestingName(event)}
-                              disabled={
-                                blocked ||
-                                !eventReady ||
-                                formHeld ||
-                                BigInt(award.availableShares) === 0n ||
-                                remainingRegisterAwardVesting(event, reversals.data ?? []) === null ||
-                                BigInt(remainingRegisterAwardVesting(event, reversals.data ?? []) ?? '0') === 0n
-                              }
-                              onClick={() => {
-                                recordGuard();
-                                const remaining = remainingRegisterAwardVesting(event, reversals.data ?? []);
-                                if (remaining !== null)
-                                  setAdjusting({
-                                    appointment,
-                                    vesting: event.uuid,
-                                    vestingLabel: vestingName(event),
-                                  });
-                              }}
-                            />
-                          )}
-                        </FormActions>
-                      </div>
-                    ))}
+                        )}
+                      </FormActions>
+                    </div>
+                  ))}
                 </div>
                 {vestings.length > LATEST_VESTINGS && (
                   <MoreToggle
@@ -307,6 +310,7 @@ export function AwardRecord({
                     {allVestings ? 'Show the latest vesting events' : `Show all ${vestings.length} vesting events`}
                   </MoreToggle>
                 )}
+                {download.isError && download.variables?.kind === 'vesting' && downloadFailure}
               </Section>
             )
           )}
@@ -375,6 +379,9 @@ export function AwardRecord({
                     </div>
                   ))}
                 </div>
+                {download.isError &&
+                  (download.variables?.kind === 'end' || download.variables?.kind === 'reversal') &&
+                  downloadFailure}
               </Section>
             )
           )}

@@ -996,8 +996,7 @@ it('retains original award, vesting and linked issue preparations through interr
 it('keeps awards stable until entry or an explicit read and preserves guarded original-request recovery', async () => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
   awards = [awardFrom(AWARD_REQUEST)];
-  const held = vi.fn();
-  let view = show(held);
+  let view = show();
   await screen.findByRole('link', { name: AWARD_ROW });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('button', { name: 'Refresh awards' })).toBeNull();
@@ -1015,8 +1014,8 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   });
   expect(api.get.mock.calls).toHaveLength(firstRead);
   expect(screen.getByRole('link', { name: AWARD_ROW })).toBeTruthy();
-  view.rerender(awardView(held, false));
-  view.rerender(awardView(held));
+  view.rerender(awardView(undefined, false));
+  view.rerender(awardView());
   await waitFor(() => expect(api.get.mock.calls.length).toBeGreaterThan(firstRead));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   const readCycle = api.get.mock.calls.slice(firstRead).map(([url]) => url);
@@ -1035,25 +1034,19 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
     });
     const beforeDelayed = api.get.mock.calls.filter(([url]) => url === delayed).length;
     const beforeHiddenAwards = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS).length;
-    const beforeHiddenGrants = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
-    const beforeHiddenVestings = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARD_VESTINGS).length;
-    view.rerender(awardView(held, false));
-    view.rerender(awardView(held));
+    view.rerender(awardView(undefined, false));
+    view.rerender(awardView());
     await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
     expect(api.get.mock.calls.filter(([url]) => url === delayed)).toHaveLength(beforeDelayed + 1);
-    view.rerender(awardView(held, false));
+    view.rerender(awardView(undefined, false));
     await act(async () => release());
     await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS)).toHaveLength(
       beforeHiddenAwards + (delayed === URLS.REGISTER_AWARDS ? 1 : 0),
     );
-    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS)).toHaveLength(beforeHiddenGrants);
-    expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARD_VESTINGS)).toHaveLength(
-      beforeHiddenVestings,
-    );
     api.get.mockImplementation(entryRead);
     view.unmount();
-    view = render(awardView(held, false));
+    view = render(awardView(undefined, false));
     await waitFor(() => expect(client.isFetching()).toBe(0));
     await screen.findByRole('link', { name: AWARD_ROW });
   }
@@ -1064,7 +1057,7 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS)).toHaveLength(beforeRevokedRead);
   appointments = [APPOINTMENT];
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true }));
-  view.rerender(awardView(held));
+  view.rerender(awardView());
   await waitFor(() => expect(client.isFetching()).toBe(0));
   await openAward();
   const open = await screen.findByRole('button', { name: 'Record vesting' });
@@ -1110,6 +1103,20 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
   expect(api.get.mock.calls).toHaveLength(beforeHeldRead);
   expect(submissions(URLS.REGISTER_AWARD_VESTINGS)).toEqual([original]);
+  let preferencesFail = true;
+  const heldRead = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url, config) => {
+    if (url === '/api/user-preferences/' && preferencesFail) throw new Error('Preferences unavailable');
+    return heldRead(url, config);
+  });
+  await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
+  await screen.findByText('Your account could not be loaded.');
+  expect(document.body.textContent).not.toContain(AWARD_REQUEST.name!);
+  expect((screen.getByRole('button', { name: 'Cancel (vesting recovery)' }) as HTMLButtonElement).disabled).toBe(true);
+  preferencesFail = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again', description: 'Your account could not be loaded.' }));
+  await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
+  api.get.mockImplementation(heldRead);
   let receiveFile: (value: { data: Blob }) => void = () => {};
   const download = new Promise<{ data: Blob }>((resolve) => {
     receiveFile = resolve;

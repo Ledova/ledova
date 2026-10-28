@@ -89,16 +89,14 @@ export function ClassAwards({
     !awards.isError &&
     !appointments.isFetching &&
     !appointments.isError;
-  const held = formHeld;
-  const editorOpen = editing;
-  const entryRead = useRef({ active, sourceReady, held, editorOpen });
+  const entryRead = useRef({ active, sourceReady, formHeld, editing });
   useLayoutEffect(() => {
-    entryRead.current = { active, sourceReady, held, editorOpen };
-  }, [active, sourceReady, held, editorOpen]);
+    entryRead.current = { active, sourceReady, formHeld, editing };
+  }, [active, sourceReady, formHeld, editing]);
   useLayoutEffect(() => {
     editingCallback.current = onEditingChange;
-    onEditingChange?.(token, editorOpen);
-  }, [onEditingChange, token, editorOpen]);
+    onEditingChange?.(token, editing);
+  }, [onEditingChange, token, editing]);
   useLayoutEffect(() => () => editingCallback.current?.(token, false), [token]);
   useEffect(() => {
     if (active && editing) preparation.current?.focus();
@@ -110,8 +108,8 @@ export function ClassAwards({
     }
   }, [active, editing, returnToAction, blocked]);
   useLayoutEffect(() => {
-    onHeldChange?.(token, held);
-  }, [onHeldChange, token, held]);
+    onHeldChange?.(token, formHeld);
+  }, [onHeldChange, token, formHeld]);
   useLayoutEffect(() => () => heldCallback.current?.(token, false), [token]);
   const refresh = async (throwOnError = false, available?: () => boolean) => {
     if (available && !available()) return;
@@ -147,8 +145,8 @@ export function ClassAwards({
     if (
       entered.current ||
       !sourceReady ||
-      held ||
-      editorOpen ||
+      formHeld ||
+      editing ||
       [appointments, awards].some((read) => read.isFetching || read.isPending)
     )
       return;
@@ -162,8 +160,8 @@ export function ClassAwards({
       live.current &&
       entryRead.current.active &&
       entryRead.current.sourceReady &&
-      !entryRead.current.held &&
-      !entryRead.current.editorOpen;
+      !entryRead.current.formHeld &&
+      !entryRead.current.editing;
     if (stale) void refresh(true, available).catch(() => {});
   });
   const status = (
@@ -233,12 +231,21 @@ export function ClassAwards({
                     to={awardPath(token, award.uuid, company)}
                     state={{ registerCompany: company, registerToken: token }}
                     label={award.recipientName}
-                    context="employee award"
+                    context={`employee award, agreement ${formatDate(award.termsOn)}`}
                     aside={
                       <span className="hidden w-[22.5rem] grid-cols-3 gap-6 text-right tabular-nums text-text-primary md:grid">
-                        <span>{formatShareCount(award.shares)}</span>
-                        <span>{formatShareCount(award.vestedShares)}</span>
-                        <span>{formatShareCount(award.issuedShares)}</span>
+                        <span>
+                          <span className="sr-only">Promised </span>
+                          {formatShareCount(award.shares)}
+                        </span>
+                        <span>
+                          <span className="sr-only">Vested </span>
+                          {formatShareCount(award.vestedShares)}
+                        </span>
+                        <span>
+                          <span className="sr-only">Issued </span>
+                          {formatShareCount(award.issuedShares)}
+                        </span>
                       </span>
                     }
                   >
@@ -301,7 +308,7 @@ export function ClassAwards({
             ref={prepareAction}
             label={COPY.PREPARE}
             primary
-            disabled={blocked || held}
+            disabled={blocked || formHeld}
             onClick={() => {
               setReturnToAction(false);
               setFormAppointment(appointment);

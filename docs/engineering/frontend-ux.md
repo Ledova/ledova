@@ -192,8 +192,8 @@ a focused preparation form in place of the list. Closing the form or successful 
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
 Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
 keeps the selected class card and returns to its records after Cancel or a successful save. ESS uses the
-Share class selection in the page heading's Filters popover and one creation action; disable class selection while an award editor or
-recovery is open, keeping every class controller mounted. Its preparation,
+Share class selection in the page heading's Filters popover and one creation action; disable class selection while award preparation
+or its recovery is open, keeping every class controller mounted. Its preparation,
 vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
 Award preparation groups the recipient and promised shares, with new-person details beneath. Agreement
 and vesting use the existing responsive two-column grid, stacking on smaller screens, with short

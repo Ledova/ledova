@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_AWARD_COPY as COPY,
+  USER_PREFERENCES_QUERY_KEY,
   appointmentForRegisterStep,
   formatDate,
   hasCurrentRegisterReadAuthority,
@@ -23,6 +24,7 @@ import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { registerKey } from '@hooks/useRegisterAccess';
 import { allPeopleKey } from '@pages/company/ledger/shared/usePeople';
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
+import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
 import { awardsKey, useRegisterAward } from '@pages/company/ledger/shared/useRegisterAwards';
 import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
@@ -69,6 +71,7 @@ function OwnAward({
   const client = useQueryClient();
   const { setState: setLedgerNavigation } = useLedgerNavigation();
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
+  const preferences = useUserPreferences();
   const classes = useRegisterClasses(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === token);
   const company = listed?.companyUuid ?? '';
@@ -106,8 +109,24 @@ function OwnAward({
   const supported = !!register?.initialized && register.token.status === 'draft';
   const appointment = readable ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const [held, setHeld] = useState(false);
-  const blocked = !readable || award.isFetching || award.isError || appointments.isFetching || appointments.isError;
-  const visible = readable && award.isSuccess && !award.isFetching && !appointments.isFetching && !appointments.isError;
+  const [editing, setEditing] = useState(false);
+  const preferenceState = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
+  const sourceReady =
+    preferenceState?.status === 'success' &&
+    preferenceState.fetchStatus === 'idle' &&
+    classes.isSuccess &&
+    classes.fetchStatus === 'idle' &&
+    registers.isSuccess &&
+    registers.fetchStatus === 'idle';
+  const blocked =
+    !readable || !sourceReady || award.isFetching || award.isError || appointments.isFetching || appointments.isError;
+  const visible =
+    readable &&
+    sourceReady &&
+    award.isSuccess &&
+    !award.isFetching &&
+    !appointments.isFetching &&
+    !appointments.isError;
   useEffect(() => {
     setLedgerNavigation({
       company: company || undefined,
@@ -132,26 +151,38 @@ function OwnAward({
   };
 
   let content: ReactNode;
-  if (classes.isError)
+  if (preferences.isError)
+    content = (
+      <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+        Your account could not be loaded.
+      </LoadError>
+    );
+  else if (classes.isError)
     content = (
       <LoadError retry={() => classes.refetch()} busy={classes.isFetching}>
         The register could not be loaded.
       </LoadError>
     );
   else if (!classes.data) content = <Loading>Loading the register…</Loading>;
-  else if (!listed) content = <p className="text-sm text-text-muted">This share class is not in your register.</p>;
+  else if (!listed || !companyMatches) content = <PreparationNotice />;
   else if (appointments.isError)
     content = (
       <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
         Your appointments could not be loaded.
       </LoadError>
     );
-  else if (!appointments.isSuccess || !companyMatches) content = <Loading>Loading your appointments…</Loading>;
+  else if (!appointments.isSuccess) content = <Loading>Loading your appointments…</Loading>;
   else if (!readable)
     content = (
       <p className="text-sm text-text-muted">
         A current company register appointment is required to read employee awards.
       </p>
+    );
+  else if (registers.isError)
+    content = (
+      <LoadError retry={() => registers.refetch()} busy={registers.isFetching}>
+        The share class could not be loaded.
+      </LoadError>
     );
   else if (award.isError)
     content = (
@@ -159,7 +190,7 @@ function OwnAward({
         This employee award could not be loaded.
       </LoadError>
     );
-  else if (!award.data) content = <Loading>Loading the employee award…</Loading>;
+  else if (!visible) content = <Loading>Loading the employee award…</Loading>;
   else content = null;
 
   const title = visible && award.data ? award.data.recipientName : DESTINATIONS.companyRegisterAward.title;
@@ -175,7 +206,9 @@ function OwnAward({
         back={{ state: company ? { registerCompany: company, registerToken: token } : undefined }}
         actions={
           visible &&
-          award.data && (
+          award.data &&
+          !held &&
+          !editing && (
             <PageLink
               to={shareholderPath(award.data.member, company)}
               label="Recipient details"
@@ -185,13 +218,8 @@ function OwnAward({
         }
       >
         {content}
-        {readable && !appointment && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
-        {registers.isError && (
-          <LoadError retry={() => registers.refetch()} busy={registers.isFetching}>
-            The share class could not be loaded.
-          </LoadError>
-        )}
-        {grants.isError && (
+        {visible && !appointment && <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>}
+        {visible && grants.isError && (
           <LoadError retry={() => grants.refetch()} busy={grants.isFetching}>
             The non-paid issues prepared from this award could not be loaded.
           </LoadError>
@@ -206,6 +234,7 @@ function OwnAward({
             blocked={blocked}
             visible={visible}
             onHeldChange={setHeld}
+            onEditingChange={setEditing}
             onSettled={refresh}
           />
         )}

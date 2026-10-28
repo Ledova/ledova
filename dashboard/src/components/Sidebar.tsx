@@ -90,7 +90,10 @@ function ledgerContext(
   const destination = destinationAt(location.pathname);
   const classPath =
     destination &&
-    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
+    (destination === 'companyClass' ||
+      destination === 'companyRegisterImport' ||
+      destination === 'companyRegisterAward' ||
+      LEDGER_TASK_PARENTS[destination])
       ? DESTINATIONS[destination].path
       : undefined;
   const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
@@ -156,7 +159,10 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const blocks = (task?: string) => blocked && !(task && state?.task === task && !routedTask);
   const classPath =
     destination &&
-    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
+    (destination === 'companyClass' ||
+      destination === 'companyRegisterImport' ||
+      destination === 'companyRegisterAward' ||
+      LEDGER_TASK_PARENTS[destination])
       ? DESTINATIONS[destination].path
       : undefined;
   const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
