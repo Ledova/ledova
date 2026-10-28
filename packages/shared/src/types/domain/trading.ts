@@ -16,8 +16,6 @@ export type OrderBook = ApiResponse<'api_v1_trading_tokens_order_book_retrieve'>
 
 export type GetOrdersParams = ApiQuery<'api_v1_trading_orders_list'>;
 
-export type WhitelistStatusState = ApiSchema<'WhitelistStatusStatusEnum'>;
-
 export type WhitelistStatus = ApiResponse<'api_v1_trading_whitelist_status_retrieve'>;
 
 export type WalletTokenBalance = ApiSchema<'TradingWalletTokenBalance'>;
