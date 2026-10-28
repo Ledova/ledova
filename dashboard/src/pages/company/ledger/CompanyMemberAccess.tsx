@@ -678,7 +678,7 @@ export function CompanyMemberAccess({
                       ? item.record.status === 'submitted' &&
                         access.prepare &&
                         selectedRequest?.uuid !== item.record.uuid && (
-                          <div className="col-span-2 flex justify-end xl:col-span-1">
+                          <div className="col-span-2 flex items-start justify-end xl:col-span-1">
                             <PageAction
                               ref={(element) => {
                                 if (element) requestOpeners.current.set(item.record.uuid, element);
@@ -697,7 +697,7 @@ export function CompanyMemberAccess({
                           </div>
                         )
                       : item.record.status === 'requested' && (
-                          <div className="col-span-2 flex justify-end xl:col-span-1">
+                          <div className="col-span-2 flex items-start justify-end xl:col-span-1">
                             <PageAction
                               ref={(element) => {
                                 if (element) certificateOpeners.current.set(item.record.uuid, element);

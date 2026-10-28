@@ -2243,8 +2243,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(transferEntry).getByText('Example Shareholder: -100')).toBeTruthy();
   expect(within(transferEntry).getByText('Taylor Demo: +100')).toBeTruthy();
   expect(within(transferEntry).getByText(formatDate('2026-10-20'))).toBeTruthy();
-  expect(within(transferEntry).getByText('Ledger date', { exact: false })).toBeTruthy();
-  expect(within(transferEntry).getByText(formatDate('2026-10-21'))).toBeTruthy();
+  expect(within(transferEntry).getByText('Ledger date', { exact: false }).textContent).toBe(
+    `Ledger date ${formatDate('2026-10-21')}`,
+  );
   expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
   expect(screen.queryByRole('link', { name: /^Correct \(entry/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();

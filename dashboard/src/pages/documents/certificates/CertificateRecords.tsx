@@ -204,7 +204,7 @@ export function CertificateRecords({
                   className={
                     focused
                       ? 'md:col-span-4 xl:col-span-5'
-                      : 'flex flex-wrap justify-end gap-2 md:col-span-4 xl:col-span-1'
+                      : 'flex flex-wrap items-start justify-end gap-2 empty:hidden md:col-span-4 xl:col-span-1'
                   }
                 >
                   {company && row.company && (

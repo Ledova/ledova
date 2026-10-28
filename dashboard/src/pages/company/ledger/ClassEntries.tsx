@@ -116,7 +116,7 @@ export function ClassEntries({
                     <Movements entry={entry} />
                   </div>
                   {action && (
-                    <div className="col-span-2 flex flex-wrap justify-end gap-2 md:col-span-1 md:col-start-4 md:row-start-1">
+                    <div className="col-span-2 flex flex-wrap items-start justify-end gap-2 md:col-span-1 md:col-start-4 md:row-start-1">
                       {action}
                     </div>
                   )}

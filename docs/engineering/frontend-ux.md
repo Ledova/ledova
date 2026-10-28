@@ -258,7 +258,7 @@ refresh controls.
 Certificates uses one list for the selected company and class. Company readers see permitted
 company entries; members see only their own history, request status and actions. Mixed-role accounts
 see matching entries once. Each aligned row shows the shareholder or change, shares, kind, class and
-entry number, date and status with the latest request's date, and its permitted action at the row's
+entry number, the date (with the ledger date beneath when it differs) and status with the latest request's date, and its permitted action at the row's
 end: **Prepare certificate**, **Request certificate**, **Withdraw request** or **Download PDF**. Rows
 don't expand; earlier requests for the same entry are listed beneath the row with their own actions.
 Company-only rows show certificate eligibility; request status comes only from an actual readable
