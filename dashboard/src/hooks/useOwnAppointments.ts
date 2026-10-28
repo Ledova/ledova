@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import {
   getOwnCompanyAppointments,
   readEveryPage,
-  useSubmissionOwner,
   type OrderSubmissionOwner,
   OWN_APPOINTMENTS_QUERY_KEY,
   CACHE_TIMING,
@@ -44,16 +43,5 @@ export function useOwnAppointments(
     refetchOnReconnect: READ_TIMING.refetchOnReconnect,
     ...(policy.passive ? { refetchOnMount: false, retryOnMount: false, retry: false } : {}),
     ...(policy.enabled === undefined ? {} : { enabled: policy.enabled }),
-  });
-}
-
-export function useSignedInAppointments(enabled = true) {
-  const { owner, boundary } = useSubmissionOwner();
-  const guard = () => {
-    if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed.');
-  };
-  return useOwnAppointments(owner!, guard, {
-    queryKey: owner ? ownAppointmentsKey(owner) : [...OWN_APPOINTMENTS_QUERY_KEY, null],
-    enabled: !!owner && enabled,
   });
 }
