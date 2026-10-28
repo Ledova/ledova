@@ -202,17 +202,16 @@ A revoked association or a changed source record blocks a new change or its appl
 
 A member can request a certificate for an uncorrected issue or transfer that gave them shares
 (**Request certificate** in web **Documents** → **Certificates** and in the mobile certificate sheet, **Request a new
-certificate** there once one is ready), and withdraw it (**Withdraw certificate request** on web,
-**Withdraw request** on mobile) until the company
+certificate** there once one is ready), and withdraw it (**Withdraw request**) until the company
 [fulfils it](#fulfilling-a-members-certificate-request).
 It reads **fulfilled** only once a real file exists, which the member downloads or shares
-(**Download unsigned certificate** on web, **Share PDF** on mobile) through their
+(**Download PDF** on web, **Share PDF** on mobile) through their
 current access, checked against its record. Nothing is signed automatically and no legal
 recognition is claimed.
 
-Web **Documents** → **Certificates** shows each shareholder or change, shares, date and status in
-one aligned row. Open the row for details, previous requests and permitted actions.
-**Other certificate requests** keeps older or other-class requests independently of the entry
+Web **Documents** → **Certificates** shows each shareholder or change, shares, entry, date and status
+in one aligned row, with its permitted action at the row's end and earlier requests for the entry
+beneath it. **Show other certificate requests** lists older or other-class requests independently of the entry
 filters, including their permitted withdrawals and downloads. Company preparation and member
 requests keep their separate permissions: company certificate eligibility is not a member request
 status, and generating a company PDF does not fulfil a member request or make it available as a
@@ -273,8 +272,8 @@ register, or a correction has since reversed the entry (the refusal names the co
 
 ### Preparing a certificate
 
-1. On web, open **Documents** → **Certificates**, select the share class and choose the issue or
-   transfer row, then **Prepare unsigned certificate**.
+1. On web, open **Documents** → **Certificates**, select the share class and choose
+   **Prepare certificate** on the issue or transfer row.
 2. In the focused main-page form, choose **Preview**. Check the share class, share movements, entry number,
    dates and PDF page count. Choose **Download PDF** to generate
    the unsigned file, or **Cancel** to close the form. The download action records the requester
@@ -287,8 +286,8 @@ fingerprint is recorded.
 
 ### Fulfilling a member's certificate request
 
-1. On web, open the member's **Unsigned certificate** request in **Shareholders** → **Member requests**,
-   then choose **Prepare certificate**. The focused view shows the member, share class
+1. On web, choose **Prepare certificate** on the member's **Unsigned certificate** request in
+   **Shareholders** → **Member requests**. The focused view shows the member, share class
    and request date. Enter the required
    **Company instruction**, then choose **Preview**.
 2. Check **Review certificate**: its unsigned single-recipient PDF summary, the entry number and the

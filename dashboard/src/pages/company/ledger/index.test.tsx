@@ -2238,20 +2238,16 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     hash: '#corrections',
     search: '?audit=1',
   });
-  const entryDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
-  expect(within(entryDetails).getByText('Transfer')).toBeTruthy();
-  const transferEntry = entryDetails.closest('li')!;
-  expect(entryDetails.getAttribute('aria-expanded')).toBe('false');
-  expect(within(entryDetails).getByText('Example Shareholder: -100')).toBeTruthy();
-  expect(within(entryDetails).getByText('Taylor Demo: +100')).toBeTruthy();
-  expect(within(entryDetails).getByText(formatDate('2026-10-20'))).toBeTruthy();
-  expect(document.getElementById(entryDetails.getAttribute('aria-controls')!)!.hidden).toBe(true);
-  expect(within(transferEntry).queryByRole('button', { name: 'Prepare unsigned certificate (entry 3)' })).toBeNull();
-  fireEvent.click(entryDetails);
-  expect(within(transferEntry).getByText('Ledger date')).toBeTruthy();
-  expect(within(transferEntry).getByText(formatDate('2026-10-21'))).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /Prepare unsigned certificate/ })).toBeNull();
-  expect(screen.queryByRole('link', { name: /^Correct this entry/ })).toBeNull();
+  const transferEntry = (await screen.findByText('Entry 3')).closest('li')!;
+  expect(within(transferEntry).getByText('Transfer')).toBeTruthy();
+  expect(within(transferEntry).getByText('Example Shareholder: -100')).toBeTruthy();
+  expect(within(transferEntry).getByText('Taylor Demo: +100')).toBeTruthy();
+  expect(within(transferEntry).getByText(formatDate('2026-10-20'))).toBeTruthy();
+  expect(within(transferEntry).getByText('Ledger date', { exact: false }).textContent).toBe(
+    `Ledger date ${formatDate('2026-10-21')}`,
+  );
+  expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
+  expect(screen.queryByRole('link', { name: /^Correct \(entry/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Acknowledge/ })).toBeNull();
   fireEvent.click(await screen.findByRole('button', { name: /^Correction of entry 3/ }));
@@ -2274,7 +2270,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(particularsReview).getByText('2 Example Street, Sydney NSW 2000')).toBeTruthy();
   expect(within(particularsReview).getByText(formatDate('2026-10-22'))).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Particulars changes' })).toBeNull();
-  expect(screen.queryByRole('button', { name: /^Details for entry 3:/ })).toBeNull();
+  expect(screen.queryByRole('list', { name: 'Ledger changes' })).toBeNull();
   expect(screen.queryByRole('button', { name: /^Approve \(correction of entry 3/ })).toBeNull();
   expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(beforeParticularsReview);
   fireEvent.click(within(particularsReview).getByRole('button', { name: 'Cancel' }));
@@ -2294,13 +2290,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     refreshingHistory = client.refetchQueries({ predicate: (query) => query.queryKey.includes('entries') });
   });
   await waitFor(() => expect(releaseHistory).toBeTypeOf('function'));
-  expect(screen.queryByRole('button', { name: /^Details for entry 3:/ })).toBeNull();
+  expect(screen.queryByText('Entry 3')).toBeNull();
   await act(async () => {
     pauseHistory = false;
     releaseHistory();
     await refreshingHistory;
   });
-  expect(await screen.findByRole('button', { name: /^Details for entry 3:/ })).toBeTruthy();
+  expect(await screen.findByText('Entry 3')).toBeTruthy();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
   expect(await screen.findByRole('heading', { name: 'Certificates destination' })).toBeTruthy();
@@ -2320,10 +2316,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
-  const correctionDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
-  if (correctionDetails.getAttribute('aria-expanded') !== 'true') fireEvent.click(correctionDetails);
-  expect(within(correctionDetails.closest('li')!).getByRole('link', { name: /^Correct this entry/ })).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /Prepare unsigned certificate/ })).toBeNull();
+  const correctionEntry = (await screen.findByText('Entry 3')).closest('li')!;
+  expect(within(correctionEntry).getByRole('link', { name: 'Correct (entry 3)' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Approve (correction of entry 3)' })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));

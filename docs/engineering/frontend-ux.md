@@ -148,6 +148,12 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. A web collection's primary creation action sits beneath its
   cards, aligned right. Actions do not wait for a row to be selected.
+- `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
+  that shows or hides long optional content in place, such as **Show all 5 share changes** or
+  **Show other certificate requests (2)**. Certificates, Corrections' **Changes** and Member
+  requests rows don't expand: each shows its facts and status, with its permitted action right-aligned
+  at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
+  Certificates and Member requests); on narrower screens it sits beneath the row's facts.
 - `Disclosure`: expandable page content, a button with `aria-expanded` and a leading
   caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
@@ -220,11 +226,11 @@ Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 
 Web Corrections starts with one full-width `Section` titled **Changes**, with compact ruled rows aligned under
-**Change**, **Date** and **Share movements**. Each whole row opens its details; on smaller screens,
-kind and date sit above the movements. Show the company date for an issue or transfer (ledger
-effective date for other kinds), and the first two signed movements plus a count of the rest.
-Details start closed and hold the full list, entry number, separate company, ledger and recording
-dates, and correction or reversal references. Entries stay immutable; current register readers can
+**Change**, **Date** and **Share movements**, and **Correct** at the end of a row the account may correct.
+Rows don't expand; on smaller screens, kind and date sit above the movements. Each row shows the kind,
+entry number and any correction or reversal reference; the company date for an issue or transfer
+(ledger effective date for other kinds), with the ledger date beneath when it differs; and the first
+two signed movements, with **Show all N share changes** for the rest. Entries stay immutable; current register readers can
 inspect retained supporting records and permitted downloads. The same view holds capability-guarded
 correction, opening, reconciliation acknowledgement, particulars and wallet-link workflows. Certificate
 preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
@@ -251,13 +257,13 @@ refresh controls.
 
 Certificates uses one list for the selected company and class. Company readers see permitted
 company entries; members see only their own history, request status and actions. Mixed-role accounts
-see matching entries once. Use one aligned `Disclosure` row for the shareholder or change, shares,
-date and status, with details, previous requests and permitted preparation, request, withdrawal or
-unsigned-download actions opening inline. Company-only rows show certificate eligibility; request
-status comes only from an actual readable request. Keep entry numbers, ledger dates and recording
-timestamps inside the opened details. Older or other-class requests remain under
-**Other certificate requests** with their own
-actions. Preparing a company PDF never marks a member request fulfilled. Particulars requests stay
+see matching entries once. Each aligned row shows the shareholder or change, shares, kind, class and
+entry number, the date (with the ledger date beneath when it differs) and status with the latest request's date, and its permitted action at the row's
+end: **Prepare certificate**, **Request certificate**, **Withdraw request** or **Download PDF**. Rows
+don't expand; earlier requests for the same entry are listed beneath the row with their own actions.
+Company-only rows show certificate eligibility; request status comes only from an actual readable
+request. Older or other-class requests sit behind **Show other certificate requests (N)** with their
+own actions. Preparing a company PDF never marks a member request fulfilled. Particulars requests stay
 in Profile's Company-recorded details.
 
 The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
@@ -273,8 +279,10 @@ arrays, with a simple no-match state. Keep request rows and active workflows mou
 hide other rows and cannot hide a held preparation or its recovery. Both views use the standard
 workspace width and Ledger's aligned change-row pattern;
 headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
-or class context and genuine dates before expansion, without repeating the page title inside a card.
-Each whole row opens its details and relevant actions together, including the full requested particulars.
+or class context and genuine dates in the row, without repeating the page title inside a card.
+Member access rows open their details and actions in place. Member requests rows don't expand: each
+shows the requested address of a details update and the creation date of a fulfilled certificate,
+with **Prepare update** or **Prepare certificate** at the row's end when the request can be prepared.
 Preparing a details update focuses its form heading and keeps the selected row and form together,
 with other rows mounted but hidden; Cancel restores the list and opener focus.
 Use only the form's top rule between the selected request and its form, suppressing the list divider.
@@ -791,13 +799,13 @@ server:
   by the first; a list searched in the browser shows its last page instead.
 - **Tables:** `Table` is the markup for lists on these controls: a flat table that scrolls
   sideways within its card, with a screen-reader caption, a header row of `scope="col"` cells and
-  each row named by its first cell as a row header. Aligned expandable record lists, such as
+  each row named by its first cell as a row header. Aligned record lists, such as
   Certificates, reuse `TABLE_SCROLL_CLASS` and `TABLE_HEADER_CLASS` from
   `dashboard/src/components/List.tsx` for overflow and small muted headers on the card's own surface.
   Use one outer `Section`, subtle row dividers and right-aligned tabular quantities, without an
-  inner rounded border or shaded header. Native table cells keep their padding; expandable lists
-  keep their disclosure alignment, with dates and status in muted text.
-  Keep their list and disclosure semantics and editor lifetimes;
+  inner rounded border or shaded header. Native table cells keep their padding; aligned lists
+  keep their column grid, with dates and status in muted text.
+  Keep their list semantics and editor lifetimes;
   focused editors remain unboxed. `Pager` under a paged table gives the rows shown, such as
   "1–25 of 1,240 applications", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it
