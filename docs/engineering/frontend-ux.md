@@ -1110,10 +1110,15 @@ by a local helper or a browser `toLocale…` call:
   tells records apart, such as two shareholders with one name or two options that read the same,
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user
-  numbers are not shown. The reconciliation with the chain under Corrections and an opening's
-  chain-inclusion messages still show their references, block numbers and fingerprints, and so do
-  the eligibility pages; those are later phases of #1378. Transaction hashes and wallet addresses
-  stay exact. The eligibility request and the claim take the exact **Company ID** or
+  numbers are not shown. The reconciliation with the chain under Corrections shows when it ran and,
+  for each discrepancy, the completed issue or transfer it concerns (with its `shortReference` only
+  where two rows would read the same), the member (named, or `Member` and its `shortReference`),
+  address, shares and transaction, with no block or register sequence. A chain opening says when
+  its holdings were read, with the holdings behind **Show the holdings** once it is decided (a
+  copied opening's shareholders behind **Show the shareholders**), and its chain-inclusion messages
+  name the kind of completion without its reference or block numbers.
+  The eligibility pages still show their references and fingerprints; they are a later phase of
+  #1378. Transaction hashes and wallet addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
   **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a
   directory-listed company or open offering under the field, or says it is not listed. The one
   exception shows those IDs in full, with `CopyButton`, for a company to give investors: its

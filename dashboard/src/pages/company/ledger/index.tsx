@@ -727,6 +727,7 @@ function OwnRegister({
                         owner={owner}
                         guard={guard}
                         token={register.token.uuid}
+                        chain={classes.data?.find((item) => item.uuid === register.token.uuid)?.chain}
                         company={scope.company.uuid}
                         holders={register.holders}
                         status={register.token.status}

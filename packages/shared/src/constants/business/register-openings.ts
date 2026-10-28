@@ -14,14 +14,14 @@ export const REGISTER_OPENING_UNMET_COPY: Record<string, string> = {
   evidence_unavailable:
     'The retained copy of the authority document no longer matches its record. Prepare a new opening.',
   boundary_changed:
-    'The chain no longer confirms the boundary block this opening was prepared at, or its finality policy changed. ' +
+    'The chain no longer confirms the holdings this opening was prepared from, or its finality policy changed. ' +
     'Reject it and prepare a new opening from the current holdings.',
   deployment_pending: 'A share-class deployment is pending. Wait for its outcome before deciding this opening.',
   register_initialized:
     "This share class's register already has an entry, so it cannot be opened again. Reject this opening.",
   completions_not_represented:
-    'A completed issue or transfer is not represented at the boundary block. Reject this opening and prepare a new ' +
-    'one.',
+    'A completed issue or transfer is not in the holdings this opening was prepared from. Reject this opening and ' +
+    'prepare a new one.',
   wallet_linked_elsewhere:
     'A mapped wallet address has since been linked to another member of the company. Reject this opening and ' +
     'prepare a new one.',
@@ -39,10 +39,10 @@ export const REGISTER_OPENING_COPY = {
     'You can read these openings. Preparing, approving and applying an opening needs an appointment with ' +
     'administration or that step.',
   BOUNDARY_NOTE:
-    'The boundary is the chain block captured when the opening is prepared. The chain is checked again before ' +
-    'the opening is approved and before it is applied.',
+    'The holdings are read from the chain when the opening is prepared, and the chain is checked again before it ' +
+    'is approved and before it is applied, to confirm those holdings still stand.',
   HOLDINGS_NOTE:
-    "The opening records the holdings at that block as the register's first entry, dated on the block's date. " +
+    "The opening records these holdings as the ledger's first entry, dated the day they were read. " +
     'Nothing changes on chain.',
   STAGES: {
     submitted: 'Prepared',
@@ -53,21 +53,21 @@ export const REGISTER_OPENING_COPY = {
   DECISIONS: { approve: 'Approve', apply: 'Apply', reject: 'Reject' } as Record<RegisterDecisionKind, string>,
   CONFIRMATIONS: {
     approve: 'Approve this opening exactly as prepared.',
-    apply: 'Apply this opening now, opening the register from its boundary. This cannot be undone.',
+    apply: 'Apply this opening now, opening the ledger from these holdings. This cannot be undone.',
     reject: 'Reject this opening with the reason given.',
   } as Record<RegisterDecisionKind, string>,
   REJECTION_REASON: 'Reason for rejection',
-  BOUNDARY: 'Boundary',
-  BOUNDARY_BLOCK: (block: number, date: string) => `Block ${block}, dated ${date}`,
-  HOLDINGS: 'Holdings at the boundary',
+  HOLDINGS_READ_ON: 'Holdings read on',
+  HOLDINGS: 'Holdings on chain',
   NO_HOLDINGS:
-    'No address held shares of this class at the boundary, so applying this opening records an empty register.',
+    'No address held shares of this class when the holdings were read, so applying this opening records an empty ' +
+    'ledger.',
   MEMBER: 'Member',
   NEW_MEMBER: 'New member',
   NEW_MEMBER_NUMBERED: (number: number) => `New member ${number}`,
   UNNAMED_MEMBER_NUMBERED: (number: number) => `Unnamed member ${number}`,
   LINKED_NOTE: 'This address is already linked to this member, so the opening keeps that link.',
-  HOLDERS_UNAVAILABLE: "The chain can't be read now, so the holdings at the boundary can't be shown. Try again later.",
+  HOLDERS_UNAVAILABLE: "The chain can't be read now, so the holdings can't be shown. Try again later.",
   HOLDINGS_MOVED:
     'The holdings on chain changed after they were read, so the addresses no longer match. Reload the holdings and ' +
     'map them again.',

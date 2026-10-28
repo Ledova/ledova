@@ -23,7 +23,7 @@ import { RecordShell, RecordStage } from '@pages/company/ledger/shared/RecordShe
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePausePreparation, usePauseRecord, type Commands } from './useCompanyPauseFlow';
 import { PreparationSlot } from './PreparationSlot';
-import { TransactionRow } from './TransactionRow';
+import { TransactionRow } from '@pages/company/ledger/shared/TransactionRow';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 const STAGES: Record<string, string> = COPY.STAGES;
