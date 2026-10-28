@@ -1,6 +1,6 @@
 import { AUTHORITY_REQUEST_TONES } from '@pages/company/shared/statusTones';
 import { SITE_PATHS } from '@utils/paths';
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
   COMPANY_SIGNUP_DECLARATION,
@@ -14,7 +14,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { Row, Rows, Status, Disclosure } from '@components/Ledger';
+import { MoreToggle, Row, Rows, Section, Status } from '@components/Ledger';
 import { Confirmation, Modal } from '@components/Modal';
 import { SITE_URL } from '@utils/siteUrl';
 
@@ -50,6 +50,8 @@ export function AuthorityRequestRecord({
   const [accepted, setAccepted] = useState(false);
   const acceptance = useErrorSummary({ accepted: !accepted && 'Accept the authority declaration and Terms.' });
   const [confirmingWithdrawal, setConfirmingWithdrawal] = useState(false);
+  const [declarationShown, setDeclarationShown] = useState(false);
+  const declarationId = useId();
   const [confirmingRevocation, setConfirmingRevocation] = useState<symbol | null>(null);
   const revocationConfirmation = useRef<symbol | null>(null);
   const appointment = request.appointment;
@@ -58,14 +60,9 @@ export function AuthorityRequestRecord({
     setConfirmingRevocation(null);
   };
   return (
-    <li className="py-4">
-      <Disclosure
-        summary={`${request.companyIdentityRaw.name} · ${request.status === 'withdrawn' ? 'Withdrawn' : request.status === 'admitted' ? 'Admitted' : 'Pending'}`}
-      >
+    <>
+      <Section title="Request">
         <Rows>
-          <Row label="Company">
-            {request.companyIdentityRaw.name} · {request.companyIdentityRaw.acn}
-          </Row>
           <Row label="Status">
             <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
               {request.status === 'withdrawn' ? 'Withdrawn' : request.status === 'admitted' ? 'Admitted' : 'Pending'}
@@ -135,119 +132,120 @@ export function AuthorityRequestRecord({
             )}
           </>
         )}
-        {appointment && (
-          <>
-            <Rows>
-              <Row label="Appointment status">{APPOINTMENT_STATUS_LABELS[appointment.status]}</Row>
-              <Row label="Current company authority">{appointment.isEffective ? 'Current' : 'Not current'}</Row>
-              <Row label="Admitted">{formatDateTime(appointment.createdAt)}</Row>
-              <Row label="Appointed actions">{scopeLabels(appointment.capabilities)}</Row>
-              <Row label="Appointed delegation">{scopeLabels(appointment.delegatableCapabilities)}</Row>
-              <Row label="Appointment expiry">
-                {appointment.expiresAt ? formatDateTime(appointment.expiresAt) : 'No expiry'}
-              </Row>
-              {appointment.revokedAt && <Row label="Revoked">{formatDateTime(appointment.revokedAt)}</Row>}
-            </Rows>
-            <Disclosure summary="Appointment and declaration record">
-              <div className="text-sm">
-                <div className="space-y-3 pt-3">
-                  <Rows>
-                    <Row label="Declaration version">{appointment.declarationVersion}</Row>
-                  </Rows>
-                  <p className="text-text-primary">{appointment.declarationText}</p>
-                  <p className="text-text-muted">
-                    This is your recorded self-declaration. Company information is provided by the company. An
-                    appointment does not activate the company or approve any register action.
-                  </p>
-                </div>
-              </div>
-            </Disclosure>
-            <p className="text-sm text-text-muted">
-              Revocation permanently removes this appointment&apos;s company authority. You cannot restore it by making
-              another initial self-declaration. Its declaration and evidence remain retained.
+      </Section>
+      {appointment && (
+        <Section title="Appointment">
+          <Rows>
+            <Row label="Appointment status">{APPOINTMENT_STATUS_LABELS[appointment.status]}</Row>
+            <Row label="Current company authority">{appointment.isEffective ? 'Current' : 'Not current'}</Row>
+            <Row label="Admitted">{formatDateTime(appointment.createdAt)}</Row>
+            <Row label="Appointed actions">{scopeLabels(appointment.capabilities)}</Row>
+            <Row label="Appointed delegation">{scopeLabels(appointment.delegatableCapabilities)}</Row>
+            <Row label="Appointment expiry">
+              {appointment.expiresAt ? formatDateTime(appointment.expiresAt) : 'No expiry'}
+            </Row>
+            {appointment.revokedAt && <Row label="Revoked">{formatDateTime(appointment.revokedAt)}</Row>}
+          </Rows>
+          <MoreToggle
+            open={declarationShown}
+            controls={declarationId}
+            onToggle={() => setDeclarationShown((value) => !value)}
+          >
+            {declarationShown ? 'Hide the declaration' : 'Show the declaration'}
+          </MoreToggle>
+          <div id={declarationId} hidden={!declarationShown} className="space-y-3 text-sm">
+            <p className="text-text-muted">Declaration version {appointment.declarationVersion}</p>
+            <p className="text-text-primary">{appointment.declarationText}</p>
+            <p className="text-text-muted">
+              This is your recorded self-declaration. Company information is provided by the company. An appointment
+              does not activate the company or approve any register action.
             </p>
-            <Modal
-              isOpen={!!confirmingRevocation}
-              onClose={closeRevocationConfirmation}
-              title="Revoke appointment permanently?"
-              showFooter
-              confirmLabel="Permanently revoke appointment"
-              destructive
-              busy={action === 'revoke'}
-              busyLabel="Revoking…"
-              confirmDisabled={!confirmingRevocation || blocked || appointment.status === 'revoked'}
-              onConfirm={() => {
-                if (
-                  !confirmingRevocation ||
-                  revocationConfirmation.current !== confirmingRevocation ||
-                  blocked ||
-                  appointment.status === 'revoked'
-                )
-                  return;
-                void onRevoke()
-                  .catch(() => undefined)
-                  .finally(closeRevocationConfirmation);
-              }}
-            >
-              <p className="text-sm text-text-primary">
-                Permanently remove your appointment for {request.companyIdentityRaw.name}? You will lose this
-                appointment&apos;s company authority and cannot restore it by making another initial self-declaration.
-                Its declaration and evidence remain retained.
-              </p>
-            </Modal>
-          </>
-        )}
-        {(request.fileUrl || request.status === 'pending' || (appointment && appointment.status !== 'revoked')) && (
-          <FormActions>
-            {request.fileUrl && (
+          </div>
+          <p className="text-sm text-text-muted">
+            Revocation permanently removes this appointment&apos;s company authority. You cannot restore it by making
+            another initial self-declaration. Its declaration and evidence remain retained.
+          </p>
+          <Modal
+            isOpen={!!confirmingRevocation}
+            onClose={closeRevocationConfirmation}
+            title="Revoke appointment permanently?"
+            showFooter
+            confirmLabel="Permanently revoke appointment"
+            destructive
+            busy={action === 'revoke'}
+            busyLabel="Revoking…"
+            confirmDisabled={!confirmingRevocation || blocked || appointment.status === 'revoked'}
+            onConfirm={() => {
+              if (
+                !confirmingRevocation ||
+                revocationConfirmation.current !== confirmingRevocation ||
+                blocked ||
+                appointment.status === 'revoked'
+              )
+                return;
+              void onRevoke()
+                .catch(() => undefined)
+                .finally(closeRevocationConfirmation);
+            }}
+          >
+            <p className="text-sm text-text-primary">
+              Permanently remove your appointment for {request.companyIdentityRaw.name}? You will lose this
+              appointment&apos;s company authority and cannot restore it by making another initial self-declaration. Its
+              declaration and evidence remain retained.
+            </p>
+          </Modal>
+        </Section>
+      )}
+      {(request.fileUrl || request.status === 'pending' || (appointment && appointment.status !== 'revoked')) && (
+        <FormActions>
+          {request.fileUrl && (
+            <PageAction
+              label="Download evidence"
+              context={request.originalFilename || request.companyIdentityRaw.name}
+              disabled={opening || blocked}
+              busy={downloading}
+              busyLabel="Downloading…"
+              onClick={onDownload}
+            />
+          )}
+          {request.status === 'pending' && (
+            <>
               <PageAction
-                label="Download evidence"
-                context={request.originalFilename || request.companyIdentityRaw.name}
-                disabled={opening || blocked}
-                busy={downloading}
-                busyLabel="Downloading…"
-                onClick={onDownload}
-              />
-            )}
-            {request.status === 'pending' && (
-              <>
-                <PageAction
-                  label="Withdraw request"
-                  context={request.companyIdentityRaw.name}
-                  disabled={blocked}
-                  onClick={() => setConfirmingWithdrawal(true)}
-                />
-                {request.requestedCapabilities.includes('admin') && (
-                  <PageAction
-                    label="Establish appointment"
-                    context={request.companyIdentityRaw.name}
-                    busy={action === 'admit'}
-                    busyLabel="Establishing appointment…"
-                    primary
-                    disabled={blocked}
-                    onClick={() => {
-                      if (acceptance.check()) onAdmit();
-                    }}
-                  />
-                )}
-              </>
-            )}
-            {appointment && appointment.status !== 'revoked' && (
-              <PageAction
-                label="Revoke appointment"
+                label="Withdraw request"
                 context={request.companyIdentityRaw.name}
                 disabled={blocked}
-                onClick={() => {
-                  if (blocked || revocationConfirmation.current) return;
-                  const confirmation = Symbol();
-                  revocationConfirmation.current = confirmation;
-                  setConfirmingRevocation(confirmation);
-                }}
+                onClick={() => setConfirmingWithdrawal(true)}
               />
-            )}
-          </FormActions>
-        )}
-      </Disclosure>
-    </li>
+              {request.requestedCapabilities.includes('admin') && (
+                <PageAction
+                  label="Establish appointment"
+                  context={request.companyIdentityRaw.name}
+                  busy={action === 'admit'}
+                  busyLabel="Establishing appointment…"
+                  primary
+                  disabled={blocked}
+                  onClick={() => {
+                    if (acceptance.check()) onAdmit();
+                  }}
+                />
+              )}
+            </>
+          )}
+          {appointment && appointment.status !== 'revoked' && (
+            <PageAction
+              label="Revoke appointment"
+              context={request.companyIdentityRaw.name}
+              disabled={blocked}
+              onClick={() => {
+                if (blocked || revocationConfirmation.current) return;
+                const confirmation = Symbol();
+                revocationConfirmation.current = confirmation;
+                setConfirmingRevocation(confirmation);
+              }}
+            />
+          )}
+        </FormActions>
+      )}
+    </>
   );
 }

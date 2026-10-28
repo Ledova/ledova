@@ -63,6 +63,11 @@ export const DESTINATIONS = {
   companyRegisterAward: { path: '/company/ledger/:uuid/awards/:award', title: 'Employee award', audience: 'everyone' },
   company: { path: '/company', title: 'Company', audience: 'everyone' },
   companyAuthority: { path: '/company/authority', title: 'Representative authority', audience: 'company' },
+  companyAuthorityRequest: {
+    path: '/company/authority/requests/:uuid',
+    title: 'Authority request',
+    audience: 'company',
+  },
   companyTeam: { path: '/company/team', title: 'Company team', audience: 'everyone' },
   companyEligibility: { path: '/company/eligibility', title: 'Company eligibility', audience: 'everyone' },
   companyListing: { path: '/company/listing', title: 'Activation', audience: 'everyone' },

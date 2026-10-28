@@ -64,7 +64,11 @@ export type SettingsView = (typeof SETTINGS_VIEWS)[number]['key'];
 
 export function settingsView(pathname: string, hash: string): SettingsView | undefined {
   if (pathname === DESTINATIONS.company.path) return 'profile';
-  if (pathname === DESTINATIONS.companyTeam.path || pathname === DESTINATIONS.companyAuthority.path)
+  if (
+    pathname === DESTINATIONS.companyTeam.path ||
+    pathname === DESTINATIONS.companyAuthority.path ||
+    matchPath(DESTINATIONS.companyAuthorityRequest.path, pathname)
+  )
     return 'company-team';
   if (pathname === DESTINATIONS.companyListing.path) return 'activation';
   if (pathname === DESTINATIONS.userProfile.path) return 'profile';
@@ -79,6 +83,7 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   companyListing: { destination: 'settings', back: false },
   userProfile: { destination: 'settings', back: false },
   companyAuthority: { destination: 'companyTeam' },
+  companyAuthorityRequest: { destination: 'companyAuthority' },
   companyEligibility: { destination: 'settings', back: false },
   companyPublications: { destination: 'settings', back: false },
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },

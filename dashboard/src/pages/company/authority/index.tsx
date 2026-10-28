@@ -1,11 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
+import { generatePath } from 'react-router-dom';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
-import { Outcome, Section, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, Outcome, Section, LoadError, Loading, Status } from '@components/Ledger';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { useSubmissionOwner, useUserPreferences, type OrderSubmissionOwner, failureSentence } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  formatDate,
+  useSubmissionOwner,
+  useUserPreferences,
+  type CompanyAuthorityRequest,
+  type OrderSubmissionOwner,
+} from '@ledova/shared';
+import { AUTHORITY_REQUEST_TONES } from '@pages/company/shared/statusTones';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
-import { AuthorityRequestRecord } from './AuthorityRequestRecord';
-import { useAuthorityRequests } from './useAuthorityRequests';
+import { useAuthorityRequests } from './shared/useAuthorityRequests';
+
+function requestStatus(request: CompanyAuthorityRequest) {
+  if (request.status === 'withdrawn') return 'Withdrawn';
+  if (request.status === 'pending') return 'Pending';
+  return request.appointment?.status === 'revoked' ? 'Appointment revoked' : 'Admitted';
+}
 
 export default function CompanyAuthorityPage() {
   const { owner, boundary } = useSubmissionOwner();
@@ -40,7 +54,7 @@ function OwnAuthorityRequests({
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
-  const { guard, recorded, setRecorded, companies, history, company, lifecycle, opening } = useAuthorityRequests({
+  const { guard, recorded, setRecorded, companies, history, company, lifecycle } = useAuthorityRequests({
     owner,
     currentOwner,
   });
@@ -70,34 +84,24 @@ function OwnAuthorityRequests({
           ) : (
             <ul className="divide-y divide-border-subtle">
               {(history.data ?? []).map((request) => (
-                <AuthorityRequestRecord
-                  key={request.uuid}
-                  request={request}
-                  blocked={lifecycle.isPending || history.isFetching}
-                  opening={opening.isPending}
-                  downloading={opening.isPending && opening.variables?.uuid === request.uuid}
-                  action={
-                    lifecycle.isPending && lifecycle.variables?.request.uuid === request.uuid
-                      ? lifecycle.variables.action
-                      : undefined
-                  }
-                  onDownload={() => opening.mutate(request)}
-                  onWithdraw={() => lifecycle.mutateAsync({ request, action: 'withdraw' })}
-                  onAdmit={() => lifecycle.mutate({ request, action: 'admit' })}
-                  onRevoke={() => lifecycle.mutateAsync({ request, action: 'revoke' })}
-                />
+                <li key={request.uuid}>
+                  <LinkRow
+                    to={generatePath(DESTINATIONS.companyAuthorityRequest.path, { uuid: request.uuid })}
+                    label={request.companyIdentityRaw.name}
+                    context={`authority request submitted ${formatDate(request.createdAt)}`}
+                    aside={
+                      <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
+                        {requestStatus(request)}
+                      </Status>
+                    }
+                  >
+                    <span className="block text-xs text-text-muted">
+                      ACN {request.companyIdentityRaw.acn} · submitted {formatDate(request.createdAt)}
+                    </span>
+                  </LinkRow>
+                </li>
               ))}
             </ul>
-          )}
-          {opening.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              {failureSentence(opening.error, 'Your evidence could not be downloaded.')}
-            </p>
-          )}
-          {lifecycle.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              {failureSentence(lifecycle.error, 'Your request outcome could not be confirmed. Refresh or retry.')}
-            </p>
           )}
         </Section>
       </div>

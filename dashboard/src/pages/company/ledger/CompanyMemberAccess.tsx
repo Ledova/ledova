@@ -665,9 +665,14 @@ export function CompanyMemberAccess({
                         ? MEMBER_PARTICULARS_STATUS_LABELS[item.record.status]
                         : MEMBER_CERTIFICATE_STATUS_LABELS[item.record.status]}
                       {item.kind === 'certificate' && item.record.fulfilment && (
-                        <span className="block">Created {formatDate(item.record.fulfilment.createdAt)}</span>
+                        <span className="hidden xl:block">Created {formatDate(item.record.fulfilment.createdAt)}</span>
                       )}
                     </span>
+                    {item.kind === 'certificate' && item.record.fulfilment && (
+                      <span className="col-span-2 text-text-muted xl:hidden">
+                        Created {formatDate(item.record.fulfilment.createdAt)}
+                      </span>
+                    )}
                     {item.kind === 'particulars'
                       ? item.record.status === 'submitted' &&
                         access.prepare &&
@@ -684,6 +689,7 @@ export function CompanyMemberAccess({
                               onClick={() => {
                                 checks.reset();
                                 setRevokeMember('');
+                                setReason('');
                                 requestReturnFocus.current = item.record.uuid;
                                 setRequest(item.record.uuid);
                               }}

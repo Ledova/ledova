@@ -156,7 +156,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   **Show other certificate requests (2)**. Certificates, Corrections' **Changes**, Member access,
   Member requests and Team rows don't expand: each shows its facts and status, with its permitted action right-aligned
   at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
-  Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's facts.
+  Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's
+  facts. Representative authority requests are `LinkRow`s that open each request's own page.
 - `Disclosure`: expandable page content, a button with `aria-expanded` and a leading
   caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
@@ -452,8 +453,9 @@ The sidebar shows
 Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
-link in the title row for a contextual task: Back to Team on Representative authority,
-Back to Shareholders on a shareholder's page, and Back to Corrections for ledger maintenance.
+link in the title row for a contextual task: Back to Team on Representative authority, Back to
+Representative authority on an authority request's page, Back to Shareholders on a shareholder's page,
+Back to Employee share scheme on an award's page, and Back to Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
 by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).

@@ -14,6 +14,7 @@ import CompanyEligibilityPage from '@pages/company/eligibility';
 import PublicationsPage from '@pages/publications';
 import CompanyPage from '@pages/company';
 import CompanyAuthorityPage from '@pages/company/authority';
+import CompanyAuthorityRequestPage from '@pages/company/authority/request';
 import CompanyTeamPage from '@pages/company/team';
 import ShareClassPage from '@pages/company/ledger/detail';
 import CompanyRegisterPage from '@pages/company/ledger';
@@ -60,6 +61,7 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   companyRegisterTransfer: <CompanyRegisterTransferPage />,
   company: <CompanyPage />,
   companyAuthority: <CompanyAuthorityPage />,
+  companyAuthorityRequest: <CompanyAuthorityRequestPage />,
   companyTeam: <CompanyTeamPage />,
   companyListing: <ListingPage />,
   companyPublications: <IssuerPublicationsPage />,
