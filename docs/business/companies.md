@@ -116,7 +116,8 @@ can open it too: accepting an invitation or reading your appointments needs no c
 appointments, the selected company's team and issued invitations; **Invite a company user** and
 **Accept a company invitation** open focused inline forms. It also keeps the owner's contextual
 Representative authority task.
-[Company eligibility](participants.md#company-eligibility-decisions) is under More on web.
+[Company eligibility](participants.md#company-eligibility-decisions) remains available at
+`/company/eligibility` on web to authorised company users.
 
 1. To invite someone, choose one of your current appointments that can delegate for the selected
    company. Choose the personal capabilities and, separately, any onward delegation for the invitee. Set an
@@ -359,7 +360,8 @@ On web, select the company in Dashboard. Settings opens Profile, combining perso
 company and account sections with separate editors and permissions. Company documents, Team and
 Activation have their own sidebar items where current access permits, without a repeated Company
 administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
-Company eligibility and **Published to your members** remain under More, retaining their existing access rules
+Company eligibility (`/company/eligibility`) and **Published to your members** (`/company/publications`)
+retain their existing routes and access rules
 ([the Published page](publications.md#the-published-page)).
 
 Share classes are listed and added only in [Ledger](register.md#bringing-in-existing-records).

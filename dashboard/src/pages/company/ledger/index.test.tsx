@@ -326,33 +326,45 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByText('26–26 of 26 people')).toBeTruthy();
   expect(within(pages).getByRole('button', { name: /^Next/ }).matches(':disabled')).toBe(true);
 
-  const search = screen.getByLabelText('Search people');
-  const filter = screen.getByLabelText('Share class');
-  fireEvent.change(search, { target: { value: ' eXaMpLe MeMbEr ' } });
+  const openFilters = () => {
+    const toggle = screen.getByRole('button', { name: 'Filters' });
+    if (toggle.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle);
+  };
+  const searchPeople = (value: string) => {
+    openFilters();
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value } });
+  };
+  const filterClass = (value: string) => {
+    openFilters();
+    fireEvent.change(screen.getByLabelText('Share class'), { target: { value } });
+  };
+  searchPeople(' eXaMpLe MeMbEr ');
   expect(await screen.findByText('1–2 of 2 people')).toBeTruthy();
   expect(screen.getByText('2 people match your search.')).toBeTruthy();
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(2);
-  fireEvent.change(filter, { target: { value: 'preference' } });
+  filterClass('preference');
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(1);
   expect(within(table).queryByText('<0.01%')).toBeNull();
   expect(screen.getByText('1–1 of 1 person')).toBeTruthy();
   expect(screen.getByText(/1 shareholder needs identity review/)).toBeTruthy();
-  fireEvent.change(filter, { target: { value: 'ordinary' } });
+  filterClass('ordinary');
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(2);
-  fireEvent.change(filter, { target: { value: '' } });
-  fireEvent.change(search, { target: { value: ' preference member NAME ' } });
+  filterClass('');
+  searchPeople(' preference member NAME ');
   expect(await screen.findByText('1–1 of 1 person')).toBeTruthy();
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(2);
-  fireEvent.change(filter, { target: { value: 'preference' } });
+  filterClass('preference');
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(1);
-  fireEvent.change(search, { target: { value: 'No such shareholder' } });
+  searchPeople('No such shareholder');
   expect(await screen.findByText('No people match your search.')).toBeTruthy();
+  fireEvent.keyDown(screen.getByLabelText('Search people'), { key: 'Escape' });
+  expect(screen.getByText('No people match these filters.')).toBeTruthy();
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
-  fireEvent.change(filter, { target: { value: '' } });
-  fireEvent.change(screen.getByLabelText('Search people'), { target: { value: '' } });
+  filterClass('');
+  searchPeople('');
   expect(await screen.findByText('1–25 of 26 people')).toBeTruthy();
   expect(within(screen.getByRole('table', { name: 'Company shareholders' })).getAllByRole('row')).toHaveLength(26);
   expect(api.post).not.toHaveBeenCalled();
@@ -3128,6 +3140,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
   await screen.findByText('Inland Example Pty Ltd', { selector: 'p' });
   fireEvent.click(screen.getByRole('link', { name: 'Use Harbour company' }));
   await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
+  fireEvent.click(await screen.findByRole('button', { name: 'Filters' }));
   fireEvent.change(await screen.findByLabelText('Search people'), { target: { value: 'Example' } });
   expect(await screen.findByText(/match(es)? your search\./)).toBeTruthy();
   await act(async () => {});

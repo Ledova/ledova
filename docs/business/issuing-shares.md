@@ -654,7 +654,7 @@ mapped holding against final chain evidence before claiming a mirror.
 
 ## The Offerings page
 
-Offerings, under More in the web sidebar, lists every offering of the selected
+Offerings, at `/company/offering` on web, lists every offering of the selected
 company the person owns, with its applications, followed by Investor directory and What happens
 next. Each offering shows its terms, status, any rejection, previous rejection or closing reason,
 and the actions its status allows. On the web, an approved offering also shows its UUID in full, with
@@ -669,7 +669,8 @@ and locked and sends only new choices; if the offering has since left approved o
 dialog says so and sends nothing.
 
 Applications lists the chosen offering's applications 25 at a time, newest first. It searches by
-investor name, wallet address or payment reference and filters by status. Each application shows its
+investor name, wallet address or payment reference. The Filters icon opens a compact Status selector;
+selection applies immediately and closes it. Each application shows its
 requested and allotted shares, including zero allotments, as a read-only record; the company's paid
 issues are on the Share class page ([company paid issues](#company-paid-issues)).
 

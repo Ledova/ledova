@@ -154,7 +154,7 @@ money through Ledova.
 
 ## The Market page
 
-**Market** (for investing accounts, under **More** while trading is enabled) shows each share
+**Market** (at `/trading` for investing accounts while trading is enabled) shows each share
 class's **For sale** and **Wanted** lists, places buy and sell orders, and lists **Your orders**.
 Selling needs the wallet's share and settlement balances from the chain; if they cannot be read,
 selling is unavailable rather than showing nothing held.
@@ -184,8 +184,9 @@ server's reason or "The purchase page could not be opened. Try again." **Wallet 
 ## The Activity page
 
 **Activity** lists recorded wallet transfers, read-only, with exact amounts, network fees and
-status. A share transfer's amount carries its class's own symbol. Filters cover whole local days,
-and each entry opens in place to its detail and a block-explorer link. Dividends are not transfers
+status. A share transfer's amount carries its class's own symbol. The Filters icon opens a compact
+panel for direction, network, wallet and dates, retaining Apply/Clear and whole-local-day bounds.
+Each entry opens in place to its detail and a block-explorer link. Dividends are not transfers
 and do not appear here; they are on [Notices](publications.md#the-notices-page).
 
 Next: [the register of members](register.md),

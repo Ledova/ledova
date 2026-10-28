@@ -1,4 +1,5 @@
 import { SelectField } from '@components/SelectField';
+import { FilterPopover } from '@components/FilterPopover';
 import { companySubscriptionTone } from '@components/statusTones';
 import { CompanyReadNotice } from '@components/CompanyState';
 import {
@@ -75,15 +76,24 @@ export function SubscriptionsLedger({
           count={data && !read.isPlaceholderData ? data.count : undefined}
           filtered={!!status}
         >
-          <SelectField
-            label="Status"
-            options={[
-              { value: '', label: 'All statuses' },
-              ...Object.entries(STATUSES).map(([value, label]) => ({ value, label })),
-            ]}
-            value={status ?? ''}
-            onChange={(value) => list.setFilter('status', value)}
-          />
+          <div className="pt-6">
+            <FilterPopover active={!!status}>
+              {(close) => (
+                <SelectField
+                  label="Status"
+                  options={[
+                    { value: '', label: 'All statuses' },
+                    ...Object.entries(STATUSES).map(([value, label]) => ({ value, label })),
+                  ]}
+                  value={status ?? ''}
+                  onChange={(value) => {
+                    close();
+                    list.setFilter('status', value);
+                  }}
+                />
+              )}
+            </FilterPopover>
+          </div>
         </ListSearch>
       )}
       {read.isError && !gone ? (

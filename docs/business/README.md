@@ -240,10 +240,12 @@ the company information they may read. The sidebar keeps focused tasks for the s
   Shareholders opens the people list, with ESS, Member access and Member requests. Documents opens
   one Certificates page for company and member records, with Ledger exports and Company pack where
   company access permits them. Matching company and own records appear once.
-- More retains permitted personal notices, investing and wallet pages and company eligibility,
-  publication and Offering workflows.
 - Settings keeps personal Profile and Account, with company information, source Documents, Team,
   Activation and Company-recorded details according to current access.
+
+The sidebar has no More group or Help & Support link. Existing offering, publication, eligibility,
+investing and wallet routes retain their access rules. The person's name and selected company sit
+together in the footer while the navigation scrolls above them.
 
 There is no workspace selector. Company selection grants no authority: appointments and real member
 associations still govern each task and record. The selected company stays visible, and the address

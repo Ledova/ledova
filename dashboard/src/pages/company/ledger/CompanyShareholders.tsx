@@ -1,4 +1,5 @@
 import { SelectField } from '@components/SelectField';
+import { FilterPopover } from '@components/FilterPopover';
 import {
   HOLDER_TYPE_LABELS,
   formatShareCount,
@@ -84,17 +85,35 @@ export function CompanyShareholders({
         <p className="text-sm text-text-muted">No current shareholders yet.</p>
       ) : (
         <>
-          <ListSearch label="Search people" list={list} noun={NOUN} count={count} filtered={!!classFilter}>
-            <SelectField
-              label="Share class"
-              options={[
-                { value: '', label: 'All classes' },
-                ...registers.map(({ token }) => ({ value: token.uuid, label: `${token.name} · ${token.symbol}` })),
-              ]}
-              value={classFilter}
-              onChange={(value) => list.setFilter('class', value)}
-            />
-          </ListSearch>
+          <div className="flex justify-end">
+            <FilterPopover active={!!classFilter || !!list.search}>
+              {(close) => (
+                <>
+                  <ListSearch label="Search people" list={list} noun={NOUN} count={count} filtered={!!classFilter} />
+                  <SelectField
+                    label="Share class"
+                    options={[
+                      { value: '', label: 'All classes' },
+                      ...registers.map(({ token }) => ({
+                        value: token.uuid,
+                        label: `${token.name} · ${token.symbol}`,
+                      })),
+                    ]}
+                    value={classFilter}
+                    onChange={(value) => {
+                      close();
+                      list.setFilter('class', value);
+                    }}
+                  />
+                </>
+              )}
+            </FilterPopover>
+          </div>
+          {count === 0 && (!!list.search || !!classFilter) && (
+            <p role="status" className="text-sm text-text-muted">
+              No people match these filters.
+            </p>
+          )}
           {unresolved > 0 && (
             <p role="status" className="text-sm text-text-muted">
               {unresolved} {unresolved === 1 ? 'shareholder needs' : 'shareholders need'} identity review. Open their

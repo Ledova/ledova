@@ -2,33 +2,23 @@ import { useId, useState } from 'react';
 import { Link, matchPath, useLocation, type Location } from 'react-router-dom';
 import {
   HouseIcon,
-  WalletIcon,
-  ArrowsClockwiseIcon,
-  LinkIcon,
   GearIcon,
-  ShieldCheckIcon,
-  MegaphoneIcon,
-  NewspaperIcon,
-  StorefrontIcon,
-  HandCoinsIcon,
   BookOpenIcon,
   FilesIcon,
   UsersThreeIcon,
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
-import { DESTINATIONS, useFeatureFlags, type DestinationKey } from '@ledova/shared';
+import { DESTINATIONS, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
-import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
-import { SITE_URL } from '@utils/siteUrl';
 import { Logo } from './Logo';
 import { NotificationBell } from './NotificationBell';
 import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { CERTIFICATES_PATH, SITE_PATHS, certificatesLocation } from '@utils/paths';
+import { CERTIFICATES_PATH, certificatesLocation } from '@utils/paths';
 import {
   destinationAt,
   pageTitle,
@@ -54,7 +44,6 @@ interface NavItem {
 
 interface NavGroup {
   id: string;
-  label?: string;
   items: NavItem[];
 }
 
@@ -68,20 +57,6 @@ const COMPANY: NavItem[] = [
 const PERSONAL: NavItem[] = [
   { destination: 'home', icon: HouseIcon },
   { destination: 'home', view: 'documents', icon: FilesIcon },
-];
-
-const HISTORY: NavItem[] = [
-  { destination: 'publications', icon: NewspaperIcon },
-  { destination: 'transactions', icon: LinkIcon },
-];
-
-const MARKET: NavItem = { destination: 'trading', icon: ArrowsClockwiseIcon };
-
-const INVEST: NavItem[] = [
-  { destination: 'directory', icon: StorefrontIcon },
-  { destination: 'subscriptions', icon: HandCoinsIcon },
-  MARKET,
-  { destination: 'investorEligibility', icon: ShieldCheckIcon },
 ];
 
 const YOURS: NavItem[] = [{ destination: 'settings', icon: GearIcon }];
@@ -131,12 +106,6 @@ function ledgerContext(
         ? (new URLSearchParams(location.search).get('class') ?? location.state?.registerToken)
         : classParams?.uuid;
   return company || token ? { registerCompany: company, registerToken: token } : undefined;
-}
-
-function GroupLabel({ children }: { children: string }) {
-  return (
-    <p className="mb-1 break-words px-3 text-xs font-medium uppercase tracking-wider text-text-muted">{children}</p>
-  );
 }
 
 function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate?: () => void }) {
@@ -502,8 +471,6 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps = {}) {
   const location = useLocation();
-  const tradingEnabled = useFeatureFlags().isEnabled('trading_enabled');
-  const { isInvestor, isCompany } = useRole();
   const context = useCompanyContext();
   const settings = useSettingsNavigation();
   const companyTasks = !!(context?.company?.canReadRegister || context?.company?.canManage);
@@ -521,33 +488,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     ...(!companyTasks ? [{ id: 'shares', items: PERSONAL }] : []),
     { id: 'yours', items: YOURS },
   ];
-  const secondaryGroups: NavGroup[] = [
-    ...(companyTasks
-      ? [
-          {
-            id: 'company-more',
-            items: [
-              ...(context?.company?.canReviewEligibility
-                ? [{ destination: 'companyEligibility' as const, icon: ShieldCheckIcon }]
-                : []),
-              ...(context?.company?.isOwner && isCompany
-                ? [{ destination: 'companyPublications' as const, icon: NewspaperIcon }]
-                : []),
-              ...(context?.company?.isOwner && isCompany
-                ? [{ destination: 'companyOffering' as const, icon: MegaphoneIcon }]
-                : []),
-            ],
-          },
-        ]
-      : []),
-    { id: 'history', items: HISTORY },
-    ...(isInvestor
-      ? [{ id: 'invest', label: 'Invest', items: INVEST.filter((item) => item !== MARKET || tradingEnabled) }]
-      : []),
-    { id: 'personal-more', items: [{ destination: 'wallets', icon: WalletIcon }] },
-  ];
-
-  const allItems = [...groups, ...secondaryGroups].flatMap((group) => group.items);
+  const allItems = groups.flatMap((group) => group.items);
   const activeItem = placesAt(location.pathname, location.hash)
     .map(
       (place) =>
@@ -574,14 +515,10 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         {withNotifications && <NotificationBell align="start" />}
       </div>
 
-      {context?.company && (
-        <p className="break-words px-6 pb-2 text-sm font-medium text-text-secondary">{context.company.name}</p>
-      )}
-      <div className="flex-1 overflow-y-auto px-3 py-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
         <nav aria-label="Main" className="space-y-6">
           {groups.map((group) => (
             <div key={group.id} className="space-y-1">
-              {group.label && <GroupLabel>{group.label}</GroupLabel>}
               {group.items.map((item) =>
                 item.destination === 'companyRegister' && !item.view ? (
                   <LedgerGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
@@ -612,40 +549,22 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
               )}
             </div>
           ))}
-          {secondaryGroups.some((group) => group.items.length > 0) && (
-            <details open={secondaryGroups.some((group) => group.items.some((item) => itemPath(item) === activePath))}>
-              <summary className={`${ITEM_CLASS} ${IDLE_CLASS} cursor-pointer`}>More</summary>
-              <div className="space-y-4 pt-2">
-                {secondaryGroups.map((group) => (
-                  <div key={group.id} className="space-y-1">
-                    {group.label && <GroupLabel>{group.label}</GroupLabel>}
-                    {group.items.map((item) => (
-                      <NavLink
-                        key={itemPath(item)}
-                        item={item}
-                        active={itemPath(item) === activePath}
-                        onNavigate={onNavigate}
-                      />
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
         </nav>
-        <a
-          href={`${SITE_URL}${SITE_PATHS.contact}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => onNavigate?.()}
-          className="mx-3 mt-6 block w-fit text-sm text-text-muted transition-colors hover:text-text-primary"
-        >
-          Help & Support
-        </a>
       </div>
 
-      <div className="border-t border-border-subtle p-3">
-        {person && <p className="break-words px-3 py-1 text-sm font-medium text-text-primary">{person}</p>}
+      <div className="shrink-0 border-t border-border-subtle p-3">
+        <div className="min-w-0 space-y-1 px-3 py-1">
+          {person && (
+            <p className="truncate text-xs font-medium text-text-primary" title={person}>
+              {person}
+            </p>
+          )}
+          {context?.company && (
+            <p className="truncate text-xs text-text-muted" title={context.company.name}>
+              {context.company.name}
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           <div className="min-w-0 flex-1">
             <SignOutButton variant="sidebar" />
