@@ -1,7 +1,7 @@
 import { useEntryReads } from '@hooks/useEntryReads';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
-import { Disclosure, Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -17,23 +17,20 @@ import {
   type RegisterCapitalIncrease,
   type RegisterCapitalIncreaseSnapshot,
   refusalSentences,
-  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
+import { RecordShell, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { useCapitalPreparation, useCapitalRecord, type Commands } from './useCompanyCapitalFlow';
+import { PreparationSlot } from './PreparationSlot';
+import { TransactionRow } from './TransactionRow';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
+
 const STAGES: Record<string, string> = COPY.STAGES;
 
-function SnapshotRows({ snapshot }: { snapshot: RegisterCapitalIncreaseSnapshot }) {
+function CapitalRows({ snapshot }: { snapshot: RegisterCapitalIncreaseSnapshot }) {
   return (
-    <Rows>
-      <Row label="Company">
-        {snapshot.company.name} · ACN {snapshot.company.acn}
-      </Row>
-      <Row label="Share class">
-        {snapshot.token.name} · {snapshot.token.symbol}
-      </Row>
+    <>
       <Row label="Captured authorised cap">{formatShareCount(snapshot.capital.priorAuthorizedTotal)}</Row>
       <Row label="Increase">{formatShareCount(snapshot.capital.additionalShares)}</Row>
       <Row label="New authorised cap">{formatShareCount(snapshot.capital.newAuthorizedTotal)}</Row>
@@ -42,56 +39,45 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterCapitalIncreaseSnapshot 
       <Row label="Shareholder approval reference">
         {snapshot.capital.shareholderApprovalReference || 'Not provided'}
       </Row>
-      <Row label="Shares minted">0</Row>
-      <Row label="Contract">{snapshot.token.contractAddress}</Row>
-      <Row label="Technical sender">{snapshot.transaction.sender}</Row>
-    </Rows>
+    </>
   );
 }
 
 function CapitalRecord({
   record,
+  chain,
   commands,
   onHeldChange,
 }: {
   record: RegisterCapitalIncrease;
+  chain: string | null | undefined;
   commands: Commands;
   onHeldChange: (uuid: string, held: boolean) => void;
 }) {
   const { error, busy, download, execution } = useCapitalRecord({ record, commands });
+  const context = `capital increase prepared ${formatDateTime(record.createdAt)}`;
   return (
-    <div className="space-y-3 border-t border-border py-4">
+    <RecordShell hidden={!commands.visible}>
       {commands.visible && (
         <>
-          <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} capital increase</h3>
-          <SnapshotRows snapshot={record.snapshot} />
+          <h3 className="font-medium">
+            Increase of {formatShareCount(record.snapshot.capital.additionalShares)} authorised shares
+          </h3>
           <Rows>
-            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
+            <RecordStage stage={record.stage}>{STAGES[record.stage] ?? record.stage}</RecordStage>
+            <CapitalRows snapshot={record.snapshot} />
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
-            <Row label="Original request">{shortReference(record.request)}</Row>
-            <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
+            <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
             <Row label="Execution">{registerCapitalIncreaseExecutionState(record)}</Row>
+            {execution?.txHash && <TransactionRow chain={chain} hash={execution.txHash} />}
             {execution && (
-              <>
-                <Row label="Original execution">{shortReference(execution.execution)}</Row>
-                <Row label="Dispatch">{shortReference(execution.dispatchId)}</Row>
-                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
-                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
-                {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
-                {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
-                {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
-                {execution.gasUsed !== null && <Row label="Original receipt gas used">{execution.gasUsed}</Row>}
-                <Row label="Original projection date">
-                  {execution.projectedAt ? formatDateTime(execution.projectedAt) : 'Not recorded'}
-                </Row>
-              </>
+              <Row label="Recorded on">
+                {execution.projectedAt ? formatDateTime(execution.projectedAt) : 'Not recorded'}
+              </Row>
             )}
           </Rows>
-          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-          <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
-          <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>
+          {record.status === 'applied' && <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>}
           {refusalSentences(record.executionUnmetRequirements, REGISTER_CAPITAL_INCREASE_UNMET_COPY).map((sentence) => (
             <p key={sentence} className="text-sm text-text-muted">
               {sentence}
@@ -99,7 +85,7 @@ function CapitalRecord({
           ))}
           <PageAction
             label="Download capital authority"
-            context={`capital ${shortReference(record.uuid)}`}
+            context={context}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
@@ -123,20 +109,33 @@ function CapitalRecord({
         onRefused={commands.refresh}
         visible={commands.visible}
         onHeldChange={onHeldChange}
-        context={`capital ${shortReference(record.uuid)}`}
+        context={context}
       >
         {(preview) => (
           <>
-            <SnapshotRows snapshot={preview.snapshot} />
+            <p className="text-sm text-text-muted">
+              {preview.snapshot.token.name} · {preview.snapshot.token.symbol}
+            </p>
+            <Rows>
+              <CapitalRows snapshot={preview.snapshot} />
+            </Rows>
             <p className="text-sm text-text-muted">{COPY.NOTE}</p>
           </>
         )}
       </RegisterDecisions>
-    </div>
+    </RecordShell>
   );
 }
 
-function Preparation({ commands, onEditingChange }: { commands: Commands; onEditingChange: (held: boolean) => void }) {
+function Preparation({
+  commands,
+  onEditingChange,
+  onCancel,
+}: {
+  commands: Commands;
+  onEditingChange: (held: boolean) => void;
+  onCancel: () => void;
+}) {
   const {
     draft,
     before,
@@ -169,17 +168,13 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       disabled={waiting}
       className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
-      <h3 className="font-medium">Prepare a company capital increase</h3>
+      <h3 className="font-medium">Prepare a capital increase</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
-      <div className="min-w-0 sm:col-span-2">
-        <Disclosure summary="Record details">
-          <Rows>
-            <Row label="Captured authorised cap">
-              <span className="min-w-0 break-all">{formatShareCount(before)}</span>
-            </Row>
-          </Rows>
-        </Disclosure>
-      </div>
+      <Rows>
+        <Row label="Captured authorised cap">
+          <span className="min-w-0 break-all">{formatShareCount(before)}</span>
+        </Row>
+      </Rows>
       {commands.source?.totalSupply !== before && (
         <PageAction
           label="Use current authorised cap"
@@ -233,7 +228,9 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       )}
       <div className="sm:col-span-2">
         <FormActions>
+          <PageAction label="Cancel" disabled={waiting} onClick={onCancel} />
           <PageAction
+            primary
             label="Prepare capital increase"
             busy={busy}
             busyLabel="Preparing…"
@@ -249,6 +246,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
 }
 
 export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
+  const [preparing, setPreparing] = useState(false);
   const onEditingChange = useCallback((held: boolean) => data.holdReads('capital/draft', held), [data.holdReads]);
   const onHeldChange = useCallback(
     (uuid: string, held: boolean) => data.holdReads('capital/decision/' + uuid, held),
@@ -260,7 +258,10 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
     paused: data.readingPaused,
-    onPrepared: () => onEditingChange(false),
+    onPrepared: () => {
+      onEditingChange(false);
+      setPreparing(false);
+    },
   });
   useEffect(() => {
     data.holdReads('capital/request', commands.working || !!commands.recovery);
@@ -272,10 +273,10 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
     refresh: commands.refresh,
   });
   if (!commands.owner) return null;
+  const token = data.token.data;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-
       {commands.appointments.isError ? (
         <LoadError retry={() => commands.refresh()} busy={commands.appointments.isFetching}>
           Your appointments could not be loaded.
@@ -306,17 +307,27 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
           receipts remain available.
         </LoadError>
       )}
-      {!!commands.company && (
-        <div hidden={!commands.visible || !commands.steps.prepare}>
-          <Preparation key={commands.scopeKey} commands={commands} onEditingChange={onEditingChange} />
-        </div>
+      {commands.visible && commands.records.length > 0 && (
+        <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
+      )}
+      {commands.records.length > 0 && (
+        <ul hidden={!commands.visible} className="divide-y divide-border-subtle">
+          {commands.records.map((record) => (
+            <CapitalRecord
+              key={record.uuid}
+              record={record}
+              chain={token?.chain}
+              commands={commands}
+              onHeldChange={onHeldChange}
+            />
+          ))}
+        </ul>
       )}
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original capital preparation response is unresolved. Recover its identical body and operation reference.
+            The original capital preparation response is unresolved. Recover it with its identical original request.
           </p>
-          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original capital preparation receipt"
             disabled={commands.busy}
@@ -325,9 +336,23 @@ export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnT
         </div>
       )}
       {commands.visible && commands.error && <p role="alert">{commands.error}</p>}
-      {commands.records.map((record) => (
-        <CapitalRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
-      ))}
+      {!!commands.company && (
+        <PreparationSlot
+          label="Prepare capital increase"
+          open={preparing}
+          available={commands.visible && !!commands.steps.prepare}
+          disabled={!commands.canPrepare}
+          hidden={!commands.visible || !commands.steps.prepare}
+          onOpen={() => setPreparing(true)}
+        >
+          <Preparation
+            key={commands.scopeKey}
+            commands={commands}
+            onEditingChange={onEditingChange}
+            onCancel={() => setPreparing(false)}
+          />
+        </PreparationSlot>
+      )}
     </Section>
   );
 }

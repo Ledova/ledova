@@ -29,7 +29,7 @@ export const REGISTER_DEPLOYMENT_UNMET_COPY: Record<string, string> = {
 };
 
 export const REGISTER_DEPLOYMENT_COPY = {
-  TITLE: 'Empty-class deployment',
+  TITLE: 'Deployment',
   PREPARE: 'Prepare deployment',
   EMPTY: 'No company deployment has been prepared for this class.',
   NOTE: 'Prepare the existing share class for an empty chain deployment. This creates no shares and does not mirror a populated register.',
@@ -49,7 +49,7 @@ export const REGISTER_DEPLOYMENT_COPY = {
   >,
   CONFIRMATIONS: {
     approve:
-      'Approve the exact company, share class, captured issuer address, register and transaction intent shown. No shares are issued.',
+      'Approve deploying this share class with the exact authorised shares, issuer wallet and ledger shown. No shares are issued.',
     apply:
       'Admit this approved deployment once for guarded execution. The contract appears only after confirmation and projection.',
     reject: 'Reject this deployment with the reason given.',

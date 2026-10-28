@@ -31,6 +31,7 @@ import {
   IDENTITY_SOURCE_LABELS,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
+import { RecordShell, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -41,58 +42,55 @@ import {
   type Commands,
   type EvidenceKind,
 } from './useCompanyIssueFlow';
+import { PreparationSlot } from './PreparationSlot';
+import { TransactionRow } from './TransactionRow';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 const stages: Record<string, string> = COPY.STAGES;
 
-const NEW_MEMBER = [{ value: 'new', label: 'Create a new member through the documentary link' }];
+const NEW_MEMBER = [{ value: 'new', label: 'New member' }];
 const MEMBERS = ['member', 'members'] as const;
 const WALLETS = ['wallet', 'wallets'] as const;
 
-function SnapshotRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
+function linkedMember(row: { member: string; memberExists: boolean }, names: ReadonlyMap<string, string>) {
+  return names.get(row.member) || (row.memberExists ? `Member ${shortReference(row.member)}` : 'New member');
+}
+
+function MemberRows({ snapshot }: { snapshot: RegisterIssueSnapshot }) {
   return (
-    <Rows>
-      <Row label="Company">
-        {snapshot.company.name} · ACN {snapshot.company.acn}
-      </Row>
-      <Row label="Share class">
-        {snapshot.token.name} · {snapshot.token.symbol}
-      </Row>
+    <>
       <Row label="Member">{snapshot.member.name}</Row>
       <Row label="Residential address">{snapshot.member.residentialAddress}</Row>
       <Row label="Identity source">{IDENTITY_SOURCE_LABELS[snapshot.member.identitySource] ?? 'Not identified'}</Row>
       <Row label="Nominated wallet">{snapshot.wallet.address}</Row>
-      <Row label="Nomination">{shortReference(snapshot.wallet.nomination)}</Row>
-      <Row label="Company ADD">{shortReference(snapshot.wallet.approval)}</Row>
-      <Row label="Approval expiry">{formatDateTime(snapshot.wallet.expiresAt)}</Row>
       <Row label="Proof completed">{formatDateTime(snapshot.wallet.proofCompletedAt)}</Row>
+      <Row label="Wallet approval expiry">{formatDateTime(snapshot.wallet.expiresAt)}</Row>
       <Row label="Eligibility expiry">{formatDateTime(snapshot.wallet.eligibilityExpiresAt)}</Row>
-      <Row label="Ledger opening">{shortReference(snapshot.register.opening)}</Row>
-      <Row label="Register sequence">{snapshot.register.sequence}</Row>
-      <Row label="Register head">{snapshot.register.headHash}</Row>
-      <Row label="Contract">{snapshot.token.contractAddress}</Row>
-      <Row label="Technical sender">{snapshot.transaction.sender}</Row>
-    </Rows>
+    </>
   );
 }
 
 function IssueRecord({
   record,
+  chain,
   commands,
   onHeldChange,
 }: {
   record: RegisterIssue;
+  chain: string | null | undefined;
   commands: Commands;
   onHeldChange: (uuid: string, held: boolean) => void;
 }) {
   const { error, downloading, download } = useIssueRecord({ record, commands });
+  const context = `non-paid grant for ${record.snapshot.member.name} prepared ${formatDateTime(record.createdAt)}`;
   return (
-    <div className="space-y-3 border-t border-border py-4">
+    <RecordShell hidden={!commands.visible}>
       {commands.visible && (
         <>
-          <h3 className="font-medium">{stages[record.stage] ?? record.stage} non-paid grant</h3>
-          <SnapshotRows snapshot={record.snapshot} />
+          <h3 className="font-medium">Non-paid grant to {record.snapshot.member.name}</h3>
           <Rows>
+            <RecordStage stage={record.stage}>{stages[record.stage] ?? record.stage}</RecordStage>
+            <MemberRows snapshot={record.snapshot} />
             <Row label="Shares">{formatShareCount(record.shares)}</Row>
             <Row label="Terms date">{formatDate(record.termsOn, 'Not recorded')}</Row>
             <Row label="Non-paid terms">{record.terms}</Row>
@@ -102,30 +100,15 @@ function IssueRecord({
             <Row label="Recipient acceptance">
               {record.acceptanceRequired ? 'Required; evidence retained' : 'Not required by these terms'}
             </Row>
-            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
-            <Row label="Original request">{record.request ? shortReference(record.request) : 'Not recorded'}</Row>
-            <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
+            <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
+            <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
+            <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
             <Row label="Execution">{registerIssueExecutionState(record)}</Row>
-            {record.execution && (
-              <>
-                <Row label="Original execution">{shortReference(record.execution.execution)}</Row>
-                <Row label="Dispatch">{shortReference(record.execution.dispatchId)}</Row>
-                {record.execution.operationId && (
-                  <Row label="Execution operation">{shortReference(record.execution.operationId)}</Row>
-                )}
-                {record.execution.txHash && <Row label="Transaction hash">{record.execution.txHash}</Row>}
-                {record.execution.registerEntry && (
-                  <Row label="Register entry">{shortReference(record.execution.registerEntry)}</Row>
-                )}
-                {record.execution.effectiveOn && (
-                  <Row label="Register entry date">{formatDate(record.execution.effectiveOn)}</Row>
-                )}
-              </>
+            {record.execution?.txHash && <TransactionRow chain={chain} hash={record.execution.txHash} />}
+            {record.execution?.effectiveOn && (
+              <Row label="Register entry date">{formatDate(record.execution.effectiveOn)}</Row>
             )}
           </Rows>
-          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-          <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
           {record.status === 'applied' && <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>}
           {refusalSentences(record.executionUnmetRequirements, REGISTER_ISSUE_UNMET_COPY).map((sentence) => (
             <p key={sentence} className="text-sm text-text-muted">
@@ -138,7 +121,7 @@ function IssueRecord({
                 <PageAction
                   key={kind}
                   label={`Download ${kind} document`}
-                  context={`grant ${shortReference(record.uuid)}`}
+                  context={context}
                   disabled={!!downloading}
                   busy={downloading === kind}
                   busyLabel="Downloading…"
@@ -166,12 +149,15 @@ function IssueRecord({
         onRefused={commands.refresh}
         visible={commands.visible}
         onHeldChange={onHeldChange}
-        context={`grant ${shortReference(record.uuid)}`}
+        context={context}
       >
         {(preview) => (
           <>
-            <SnapshotRows snapshot={preview.snapshot} />
+            <p className="text-sm text-text-muted">
+              {preview.snapshot.token.name} · {preview.snapshot.token.symbol}
+            </p>
             <Rows>
+              <MemberRows snapshot={preview.snapshot} />
               <Row label="Shares">{formatShareCount(preview.shares)}</Row>
               <Row label="Terms date">{formatDate(preview.termsOn)}</Row>
               <Row label="Non-paid terms">{preview.terms}</Row>
@@ -194,7 +180,7 @@ function IssueRecord({
           </>
         )}
       </RegisterDecisions>
-    </div>
+    </RecordShell>
   );
 }
 
@@ -208,26 +194,33 @@ function LinkRecord({
   onHeldChange: (uuid: string, held: boolean) => void;
 }) {
   const { error, busy, download } = useIssueLinkRecord({ record, commands });
+  const names = useMemo(
+    () => new Map(peopleFrom(commands.members.data).map((person) => [person.member, person.name])),
+    [commands.members.data],
+  );
+  const context = `wallet link prepared ${formatDateTime(record.createdAt)}`;
   return (
-    <div className="space-y-3 border-t border-border py-4">
+    <RecordShell hidden={!commands.visible}>
       {commands.visible && (
         <>
-          <h3 className="font-medium">{REGISTER_LINK_COPY.STAGES[record.stage] ?? record.stage} wallet link</h3>
+          <h3 className="font-medium">Wallet link</h3>
           <Rows>
-            {record.mapping.map((row) => (
-              <Row key={row.address} label="Documented link">
-                {row.address} → member {shortReference(row.member)}
+            <RecordStage stage={record.stage}>{REGISTER_LINK_COPY.STAGES[record.stage] ?? record.stage}</RecordStage>
+            {record.mappingSummary.map((row) => (
+              <Row key={row.address} label="Linked wallet">
+                <span className="break-all">{row.address}</span> → {linkedMember(row, names)}
               </Row>
             ))}
             <Row label="Authority reference">{record.authorityReference}</Row>
             <Row label="Approving director">{record.approvingDirector}</Row>
             <Row label="Reason">{record.reason}</Row>
-            <Row label="Link preparation">{shortReference(record.uuid)}</Row>
+            <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
+            <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
+            <DecisionTrail proposal={record} labels={REGISTER_LINK_COPY.DECISIONS} />
           </Rows>
-          <DecisionTrail proposal={record} labels={REGISTER_LINK_COPY.DECISIONS} />
           <PageAction
             label="Download link authority"
-            context={`link ${shortReference(record.uuid)}`}
+            context={context}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
@@ -251,14 +244,15 @@ function LinkRecord({
         onRefused={commands.refresh}
         visible={commands.visible}
         onHeldChange={onHeldChange}
-        context={`link ${shortReference(record.uuid)}`}
+        context={context}
       >
         {(preview) => (
           <>
             <Rows>
               {preview.links.map((row) => (
-                <Row key={row.address} label="Documented link">
-                  {row.address} → {row.holderName ?? `member ${shortReference(row.member)}`}
+                <Row key={row.address} label="Linked wallet">
+                  <span className="break-all">{row.address}</span> → {linkedMember(row, names)}
+                  {row.holderName && <span className="block text-text-muted">Wallet holder: {row.holderName}</span>}
                 </Row>
               ))}
             </Rows>
@@ -266,18 +260,25 @@ function LinkRecord({
           </>
         )}
       </RegisterDecisions>
-    </div>
+    </RecordShell>
   );
 }
 
-function Preparation({ commands, onEditingChange }: { commands: Commands; onEditingChange: (held: boolean) => void }) {
+function Preparation({
+  commands,
+  onEditingChange,
+  onCancel,
+}: {
+  commands: Commands;
+  onEditingChange: (held: boolean) => void;
+  onCancel: () => void;
+}) {
   const {
     draft,
     nomination,
     setNomination,
     member,
     setMember,
-    newMember,
     approval,
     setApproval,
     director,
@@ -318,12 +319,12 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       ),
     [commands.members.data],
   );
-  if (!commands.visible || !commands.steps.prepare) return null;
   return (
     <fieldset
       disabled={waiting}
       className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
+      <h3 className="font-medium">Prepare a non-paid grant</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <SearchSelect
         {...checks.field('nomination')}
@@ -343,7 +344,6 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       />
       {chosen && (
         <Rows>
-          <Row label="Nomination">{shortReference(chosen.uuid)}</Row>
           <Row label="Proof completed">{formatDateTime(chosen.proofCompletedAt)}</Row>
           <Row label="Eligibility expiry">{formatDateTime(chosen.eligibilityExpiresAt)}</Row>
         </Rows>
@@ -357,7 +357,9 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
         onChange={setMember}
         noun={MEMBERS}
       />
-      {member === 'new' && <p className="text-sm text-text-muted">New stable member: {shortReference(newMember)}</p>}
+      {member === 'new' && (
+        <p className="text-sm text-text-muted">The wallet link creates this new member when it is applied.</p>
+      )}
       <Field {...checks.field('director')} label="Approving director">
         <TextInput
           maxLength={FIELD_LIMITS.DIRECTOR}
@@ -382,13 +384,13 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
         onFile={(file) => setFiles({ ...files, authority: file ?? undefined })}
       />
       <p className="text-sm text-text-muted">
-        Apply the company documentary link before preparing the grant. It records this nominated address against the
-        chosen stable member.
+        Prepare the wallet link and have it applied before preparing the grant. It records this wallet against the
+        chosen member.
       </p>
       <div className="sm:col-span-2">
         <FormActions>
           <PageAction
-            label="Prepare nominated wallet link"
+            label="Prepare wallet link"
             busy={preparing === 'link'}
             busyLabel="Preparing wallet link…"
             disabled={waiting || !commands.canPrepare || !!commands.recovery}
@@ -400,9 +402,9 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       </div>
       <SelectField
         {...checks.field('approval')}
-        label="Company ADD"
+        label="Company wallet approval"
         options={[
-          { value: '', label: 'Select the genuine successful ADD for this nomination' },
+          { value: '', label: "Choose the company's approval for this wallet" },
           ...approvals.map((row) => ({
             value: row.changeId!,
             label: `Admitted ${formatDateTime(row.reviewedAt)} · ${
@@ -452,6 +454,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       )}
       <div className="sm:col-span-2">
         <FormActions>
+          <PageAction label="Cancel" disabled={waiting} onClick={onCancel} />
           <PageAction
             primary
             label={COPY.PREPARE}
@@ -474,6 +477,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
 }
 
 export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
+  const [preparingGrant, setPreparingGrant] = useState(false);
   const onEditingChange = useCallback((held: boolean) => data.holdReads('issue/draft', held), [data.holdReads]);
   const onHeldChange = useCallback(
     (uuid: string, held: boolean) => data.holdReads('issue/decision/' + uuid, held),
@@ -486,7 +490,9 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
     coordinatedReads: true,
     paused: data.readingPaused,
     onPrepared: (kind) => {
-      if (kind === 'issue') onEditingChange(false);
+      if (kind !== 'issue') return;
+      onEditingChange(false);
+      setPreparingGrant(false);
     },
   });
   useEffect(() => {
@@ -508,6 +514,7 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
     }
   };
   if (!commands.owner) return null;
+  const token = data.token.data;
   const readFailed =
     commands.visible &&
     (commands.instructions.isError ||
@@ -525,7 +532,6 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-
       {refreshError && <p role="alert">{refreshError}</p>}
       {commands.appointments.isError ? (
         <LoadError retry={refresh} busy={reading}>
@@ -538,12 +544,30 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
           <p className="text-sm text-text-muted">Current personal register read access is required.</p>
         )
       )}
-      <Preparation key={commands.scopeKey} commands={commands} onEditingChange={onEditingChange} />
+      {commands.visible && commands.records.length + commands.linksRecords.length > 0 && (
+        <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
+      )}
+      {commands.records.length + commands.linksRecords.length > 0 && (
+        <ul hidden={!commands.visible} className="divide-y divide-border-subtle">
+          {commands.linksRecords.map((record) => (
+            <LinkRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
+          ))}
+          {commands.records.map((record) => (
+            <IssueRecord
+              key={record.uuid}
+              record={record}
+              chain={token?.chain}
+              commands={commands}
+              onHeldChange={onHeldChange}
+            />
+          ))}
+        </ul>
+      )}
       {commands.visible && commands.recovery && (
         <>
           <p className="text-sm text-text-muted">
             The original {commands.recovery.kind === 'link' ? 'wallet link' : 'share issue'} preparation is uncertain.
-            Recover its identical body and operation (reference {shortReference(commands.recovery.body.operationId)}).
+            Recover it with its identical original request.
           </p>
           <PageAction
             label="Recover original preparation receipt"
@@ -553,18 +577,27 @@ export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnTyp
         </>
       )}
       {commands.visible && commands.error && <p role="alert">{commands.error}</p>}
-      {commands.linksRecords.map((record) => (
-        <LinkRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
-      ))}
-      {commands.records.map((record) => (
-        <IssueRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
-      ))}
       {readFailed && (
         <LoadError retry={refresh} busy={reading}>
           Current grant sources or history could not be {commands.instructions.data ? 'refreshed' : 'loaded'}. Retained
           original receipts are kept.
         </LoadError>
       )}
+      <PreparationSlot
+        label={COPY.PREPARE}
+        open={preparingGrant}
+        available={commands.visible && !!commands.steps.prepare}
+        disabled={!commands.canPrepare}
+        hidden={!commands.visible || !commands.steps.prepare}
+        onOpen={() => setPreparingGrant(true)}
+      >
+        <Preparation
+          key={commands.scopeKey}
+          commands={commands}
+          onEditingChange={onEditingChange}
+          onCancel={() => setPreparingGrant(false)}
+        />
+      </PreparationSlot>
     </Section>
   );
 }

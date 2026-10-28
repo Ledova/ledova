@@ -1,13 +1,17 @@
 import { useEntryReads } from '@hooks/useEntryReads';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { generatePath } from 'react-router-dom';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
-import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { SearchSelect } from '@components/SearchSelect';
+import { pageTitle } from '@utils/destinations';
 import {
   COMPANY_SUBSCRIPTION_STATUS_LABELS,
+  DESTINATIONS,
   FIELD_LIMITS,
   REGISTER_PAID_ISSUE_COPY as COPY,
   REGISTER_PAID_ISSUE_DECISIONS,
@@ -24,21 +28,22 @@ import {
   refusalSentences,
   failureSentence,
   shareCount,
-  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
+import { RecordShell, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePaidIssuePreparation, usePaidIssueRecord, type Commands } from './useCompanyPaidIssueFlow';
+import { PreparationSlot } from './PreparationSlot';
+import { TransactionRow } from './TransactionRow';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 const STAGES: Record<string, string> = COPY.STAGES;
 
 const SUBSCRIPTIONS = ['subscription', 'subscriptions'] as const;
+
 function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
   return (
-    <Rows>
-      <Row label="Subscription">{shortReference(source.subscription)}</Row>
-      <Row label="Offering">{shortReference(source.offering)}</Row>
+    <>
       <Row label="Recipient">
         {source.recipientName || 'Name not recorded'} · {source.recipientAddress}
       </Row>
@@ -62,94 +67,79 @@ function SourceRows({ source }: { source: RegisterPaidIssueSource }) {
       <Row label="Payment recorded on">
         {source.paymentConfirmedAt ? formatDateTime(source.paymentConfirmedAt) : 'Not recorded'}
       </Row>
-    </Rows>
+    </>
   );
 }
 
-function SnapshotRows({
+function IssueRows({
   record,
 }: {
-  record: Pick<RegisterPaidIssue, 'snapshot' | 'shares' | 'approvingDirector' | 'reason' | 'authorityReference'>;
+  record: Pick<RegisterPaidIssue, 'snapshot' | 'approvingDirector' | 'reason' | 'authorityReference'>;
 }) {
   return (
     <>
-      <Rows>
-        <Row label="Company">
-          {record.snapshot.company.name} · ACN {record.snapshot.company.acn}
-        </Row>
-        <Row label="Share class">
-          {record.snapshot.token.name} · {record.snapshot.token.symbol}
-        </Row>
-        <Row label="Approving director">{record.approvingDirector}</Row>
-        <Row label="Issue reason">{record.reason}</Row>
-        <Row label="Authority reference">{record.authorityReference}</Row>
-        <Row label="Contract">{record.snapshot.token.contractAddress}</Row>
-        <Row label="Technical sender">{record.snapshot.transaction.sender}</Row>
-      </Rows>
+      <Row label="Approving director">{record.approvingDirector}</Row>
+      <Row label="Issue reason">{record.reason}</Row>
+      <Row label="Authority reference">{record.authorityReference}</Row>
       <SourceRows source={record.snapshot.source} />
-      <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
     </>
   );
 }
 
 function PaidIssueRecord({
   record,
+  chain,
+  isOwner,
   commands,
   onHeldChange,
 }: {
   record: RegisterPaidIssue;
+  chain: string | null | undefined;
+  isOwner: boolean;
   commands: Commands;
   onHeldChange: (uuid: string, held: boolean) => void;
 }) {
   const { error, busy, download, execution } = usePaidIssueRecord({ record, commands });
+  const companyContext = useCompanyContext();
+  const offering = generatePath(DESTINATIONS.companyOfferingDetail.path, { uuid: record.snapshot.source.offering });
+  const recipient = record.snapshot.source.recipientName || 'Name not recorded';
+  const context = `paid issue for ${recipient} prepared ${formatDateTime(record.createdAt)}`;
   return (
-    <div className="space-y-3 border-t border-border py-4">
+    <RecordShell hidden={!commands.visible}>
       {commands.visible && (
         <>
-          <h3 className="font-medium">{STAGES[record.stage] ?? record.stage} paid issue</h3>
-          <SnapshotRows record={record} />
+          <h3 className="font-medium">Paid issue to {recipient}</h3>
           <Rows>
-            <Row label="Preparation reference">{shortReference(record.uuid)}</Row>
+            <RecordStage stage={record.stage}>{STAGES[record.stage] ?? record.stage}</RecordStage>
+            <IssueRows record={record} />
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
-
-            <Row label="Intent fingerprint">{record.intentDigest}</Row>
-            {record.approvalDecision && <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>}
+            <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
             <Row label="Execution">{registerPaidIssueExecutionState(record)}</Row>
-            <Row label="Original subscription status">
+            <Row label="Current subscription status">
               {COMPANY_SUBSCRIPTION_STATUS_LABELS[record.subscriptionStatus as SubscriptionStatus]}
             </Row>
             <Row label="Actual allotment recorded">
               {record.allottedAt ? formatDateTime(record.allottedAt) : 'Not recorded'}
             </Row>
-            <Row label="Original issuance request">
-              {record.request ? shortReference(record.request) : 'No issuance request admitted'}
-            </Row>
+            {execution?.txHash && <TransactionRow chain={chain} hash={execution.txHash} />}
             {execution && (
               <>
-                <Row label="Original execution">{shortReference(execution.execution)}</Row>
-                <Row label="Original dispatch">{shortReference(execution.dispatchId)}</Row>
-                {execution.operationId && <Row label="Original operation">{shortReference(execution.operationId)}</Row>}
-                {execution.claimId && <Row label="Original claim">{shortReference(execution.claimId)}</Row>}
-                {execution.txHash && <Row label="Transaction hash">{execution.txHash}</Row>}
-                {execution.blockNumber !== null && <Row label="Original receipt block">{execution.blockNumber}</Row>}
-                {execution.blockHash && <Row label="Original receipt block hash">{execution.blockHash}</Row>}
-                <Row label="Original completion date">
+                <Row label="Completed on">
                   {execution.completedAt ? formatDateTime(execution.completedAt) : 'Not recorded'}
                 </Row>
-                <Row label="Original issuance">
-                  {execution.issuance ? shortReference(execution.issuance) : 'Not recorded'}
-                </Row>
-                <Row label="Register entry">
-                  {execution.registerEntry ? shortReference(execution.registerEntry) : 'Not recorded'}
-                </Row>
-                <Row label="Entry effective date">{formatDate(execution.effectiveOn, 'Not recorded')}</Row>
+                <Row label="Register entry date">{formatDate(execution.effectiveOn, 'Not recorded')}</Row>
               </>
             )}
           </Rows>
-          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-          <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
-          <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>
+          {isOwner && (
+            <LinkRow
+              to={companyContext?.companyPath(offering) ?? offering}
+              label={pageTitle('companyOfferingDetail')}
+              context={`for ${recipient}`}
+            />
+          )}
+          {record.status === 'applied' && <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>}
           {refusalSentences(record.executionUnmetRequirements, REGISTER_PAID_ISSUE_UNMET_COPY).map((sentence) => (
             <p key={sentence} className="text-sm text-text-muted">
               {sentence}
@@ -157,7 +147,7 @@ function PaidIssueRecord({
           ))}
           <PageAction
             label="Download paid issue authority"
-            context={`paid issue ${shortReference(record.uuid)}`}
+            context={context}
             busy={busy}
             busyLabel="Downloading…"
             onClick={() => void download()}
@@ -181,20 +171,34 @@ function PaidIssueRecord({
         onRefused={commands.refresh}
         visible={commands.visible}
         onHeldChange={onHeldChange}
-        context={`paid issue ${shortReference(record.uuid)}`}
+        context={context}
       >
         {(preview) => (
           <>
-            <SnapshotRows record={preview} />
+            <p className="text-sm text-text-muted">
+              {preview.snapshot.token.name} · {preview.snapshot.token.symbol}
+            </p>
+            <Rows>
+              <IssueRows record={preview} />
+            </Rows>
+            <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
             <p className="text-sm text-text-muted">{COPY.NOTE}</p>
           </>
         )}
       </RegisterDecisions>
-    </div>
+    </RecordShell>
   );
 }
 
-function Preparation({ commands, onEditingChange }: { commands: Commands; onEditingChange: (held: boolean) => void }) {
+function Preparation({
+  commands,
+  onEditingChange,
+  onCancel,
+}: {
+  commands: Commands;
+  onEditingChange: (held: boolean) => void;
+  onCancel: () => void;
+}) {
   const {
     draft,
     captured,
@@ -228,7 +232,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       disabled={waiting}
       className="grid min-w-0 gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2 [&>*]:min-w-0 [&>p]:sm:col-span-2 [&>h3]:sm:col-span-2 [&>dl]:sm:col-span-2"
     >
-      <h3 className="font-medium">Prepare a company paid issue</h3>
+      <h3 className="font-medium">Prepare a paid issue</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
       <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
       {commands.availableSubscriptions.isPending && <Loading>Loading recorded paid sources…</Loading>}
@@ -267,7 +271,11 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
         placeholder="Type an investor name or address"
         noun={SUBSCRIPTIONS}
       />
-      {captured && <SourceRows source={captured.source} />}
+      {captured && (
+        <Rows>
+          <SourceRows source={captured.source} />
+        </Rows>
+      )}
       <PageAction
         label="Use current recorded source"
         disabled={!commands.canPrepare || !captured}
@@ -333,7 +341,9 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
       )}
       <div className="sm:col-span-2">
         <FormActions>
+          <PageAction label="Cancel" disabled={waiting} onClick={onCancel} />
           <PageAction
+            primary
             label="Prepare paid issue"
             busy={busy}
             busyLabel="Preparing…"
@@ -349,6 +359,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
 }
 
 export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
+  const [preparing, setPreparing] = useState(false);
   const onEditingChange = useCallback((held: boolean) => data.holdReads('paid/draft', held), [data.holdReads]);
   const onHeldChange = useCallback(
     (uuid: string, held: boolean) => data.holdReads('paid/decision/' + uuid, held),
@@ -360,7 +371,10 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
     paused: data.readingPaused,
-    onPrepared: () => onEditingChange(false),
+    onPrepared: () => {
+      onEditingChange(false);
+      setPreparing(false);
+    },
   });
   useEffect(() => {
     data.holdReads('paid/request', commands.working || !!commands.recovery);
@@ -372,10 +386,10 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
     refresh: commands.refresh,
   });
   if (!commands.owner) return null;
+  const token = data.token.data;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-
       {commands.appointments.isError ? (
         <LoadError retry={() => commands.refresh()} busy={commands.appointments.isFetching}>
           Your appointments could not be loaded.
@@ -406,18 +420,31 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
           receipts remain available.
         </LoadError>
       )}
-      {!!commands.company && (
-        <div hidden={!commands.visible || !commands.steps.prepare}>
-          <Preparation key={commands.scopeKey} commands={commands} onEditingChange={onEditingChange} />
-        </div>
+      {commands.visible && commands.records.length > 0 && (
+        <>
+          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
+          <p className="text-sm text-text-muted">{COPY.PAYMENT_NOTE}</p>
+        </>
+      )}
+      {commands.records.length > 0 && (
+        <ul hidden={!commands.visible} className="divide-y divide-border-subtle">
+          {commands.records.map((record) => (
+            <PaidIssueRecord
+              key={record.uuid}
+              record={record}
+              chain={token?.chain}
+              isOwner={token?.isOwner === true}
+              commands={commands}
+              onHeldChange={onHeldChange}
+            />
+          ))}
+        </ul>
       )}
       {commands.visible && commands.recovery && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
-            The original paid issue preparation response is unresolved. Recover its identical body and operation
-            reference.
+            The original paid issue preparation response is unresolved. Recover it with its identical original request.
           </p>
-          <p>Operation reference {shortReference(commands.recovery.body.operationId)}</p>
           <PageAction
             label="Recover original paid issue preparation receipt"
             disabled={commands.busy}
@@ -426,9 +453,23 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
         </div>
       )}
       {commands.visible && commands.error && <p role="alert">{commands.error}</p>}
-      {commands.records.map((record) => (
-        <PaidIssueRecord key={record.uuid} record={record} commands={commands} onHeldChange={onHeldChange} />
-      ))}
+      {!!commands.company && (
+        <PreparationSlot
+          label="Prepare paid issue"
+          open={preparing}
+          available={commands.visible && !!commands.steps.prepare}
+          disabled={!commands.canPrepare}
+          hidden={!commands.visible || !commands.steps.prepare}
+          onOpen={() => setPreparing(true)}
+        >
+          <Preparation
+            key={commands.scopeKey}
+            commands={commands}
+            onEditingChange={onEditingChange}
+            onCancel={() => setPreparing(false)}
+          />
+        </PreparationSlot>
+      )}
     </Section>
   );
 }

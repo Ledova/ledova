@@ -86,7 +86,7 @@ export function ChainHistory({ uuid, data }: { uuid: string; data: ReturnType<ty
       </History>
       <History
         title="Authorised share requests"
-        note="Requests made before capital increases became company decisions. New increases use Company capital increases."
+        note="Requests made before capital increases became company decisions. New increases use Capital increases."
         feed={capital}
         noun={['authorised share request', 'authorised share requests']}
       >

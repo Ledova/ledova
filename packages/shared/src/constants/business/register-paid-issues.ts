@@ -1,5 +1,5 @@
 export const REGISTER_PAID_ISSUE_COPY = {
-  TITLE: 'Company paid issue decisions',
+  TITLE: 'Paid issues',
   NOTE: 'Choose an existing recorded paid subscription and retain exact company issue authority. Preparation and approval admit no mint; application admits the original issuance.',
   PROVIDED_BY_COMPANY: 'Issue authority, named director, reference and documentary evidence provided by the company.',
   PAYMENT_NOTE: 'These are existing recorded payment facts. They do not prove cleared funds or authorise issuance.',

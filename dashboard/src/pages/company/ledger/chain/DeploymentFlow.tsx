@@ -1,4 +1,4 @@
-import { Row, Rows, Section, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { useCallback, useEffect } from 'react';
 import { useEntryReads } from '@hooks/useEntryReads';
 import { FormActions, PageAction } from '@components/Page';
@@ -13,55 +13,32 @@ import {
   type RegisterDeployment,
   type RegisterDeploymentSnapshot,
   refusalSentences,
-  COMPANY_STATUS_LABELS,
   DEPLOYMENT_SWAP_APPROVAL_LABELS,
-  type CompanyStatus,
-  shortReference,
 } from '@ledova/shared';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
+import { RecordShell, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { STAGE_TONES } from '@pages/company/shared/proposals';
 import { useDeploymentFlow } from './useDeploymentFlow';
+import { TransactionRow } from './TransactionRow';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
-function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
+function DeploymentRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
   const register = snapshot.register;
   return (
-    <Rows>
-      <Row label="Company">
-        {snapshot.company.name} · ACN {snapshot.company.acn}
-      </Row>
-      <Row label="Company state">{COMPANY_STATUS_LABELS[snapshot.company.status as CompanyStatus]}</Row>
-      <Row label="Share class">
-        {snapshot.token.name} · {snapshot.token.symbol} · {snapshot.token.identifier}
-      </Row>
+    <>
       <Row label="Authorised shares">{formatShareCount(snapshot.token.authorisedShares)}</Row>
-      <Row label="Decimals">{snapshot.token.decimals}</Row>
-      <Row label="Captured issuer address">
-        {snapshot.issuerWallet.address} · {snapshot.issuerWallet.chain}
+      <Row label="Issuer wallet">
+        <span className="break-all">{snapshot.issuerWallet.address}</span>
       </Row>
-      <Row label="Register">
-        {!register.present ? 'Absent' : register.initialized ? 'Opened' : 'Present; not opened'}
+      <Row label="Ledger">
+        {!register.present ? 'Not set up' : register.initialized ? 'Opened' : 'Set up, not opened'}
       </Row>
       {register.present && (
-        <>
-          <Row label="Register sequence">{register.sequence ?? 'Unavailable'}</Row>
-          <Row label="Register head">{register.headHash || 'No entries'}</Row>
-          <Row label="Issued supply">
-            {register.issuedSupply === null ? 'Unavailable' : formatShareCount(register.issuedSupply)}
-          </Row>
-        </>
+        <Row label="Issued shares">
+          {register.issuedSupply === null ? 'Unavailable' : formatShareCount(register.issuedSupply)}
+        </Row>
       )}
-      <Row label="Chain ID">{snapshot.transaction.chainId}</Row>
-      <Row label="Technical sender">{snapshot.transaction.sender}</Row>
-      <Row label="Factory">{snapshot.transaction.to}</Row>
-      <Row label="Transaction value">{snapshot.transaction.value}</Row>
-      <Row label="Transaction data">
-        <Disclosure summary="View exact deployment data">
-          <p className="break-all">{snapshot.transaction.data}</p>
-        </Disclosure>
-      </Row>
-    </Rows>
+    </>
   );
 }
 
@@ -100,27 +77,12 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
     refresh,
   });
   if (!owner) return null;
-  const onChain = data.token.data?.status === 'deployed' || data.token.data?.status === 'paused';
+  const token = data.token.data;
+  const onChain = token?.status === 'deployed' || token?.status === 'paused';
   if (onChain && deployments.isSuccess && !records.length && !uncertain && !error) return null;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-      {canPrepare && (
-        <FormActions>
-          <PageAction label={COPY.PREPARE} busy={busy} busyLabel="Preparing…" onClick={() => void prepare()} />
-        </FormActions>
-      )}
-      {uncertain && (
-        <>
-          <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
-          <PageAction label="Recover preparation receipt" disabled={busy} onClick={() => void prepare()} />
-        </>
-      )}
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
       {appointments.isSuccess && !appointments.isFetching && !Object.values(steps).some(Boolean) && (
         <p className="text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</p>
       )}
@@ -147,97 +109,116 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
           <p className="text-sm text-text-muted">{COPY.EMPTY}</p>
         ))
       ) : (
-        <ul className="divide-y divide-border-subtle">
-          {records.map((proposal) => (
-            <li key={proposal.uuid} className="flex flex-col gap-3 py-4">
-              <Rows>
-                <Row label="Stage">
-                  <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
-                    {COPY.STAGES[proposal.stage] ?? proposal.stage}
-                  </Status>
-                </Row>
-                <Row label="Prepared by">
-                  {proposal.preparedByName || 'Not recorded'} · {formatDateTime(proposal.createdAt)}
-                </Row>
-                <Row label="Original preparation">{shortReference(proposal.operationId)}</Row>
-                <Row label="Intent digest">{proposal.intentDigest}</Row>
-                <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
-                {proposal.deploymentId && (
-                  <Row label="Admitted deployment">{shortReference(proposal.deploymentId)}</Row>
-                )}
-                {proposal.approvalDecision && (
-                  <Row label="Consumed approval">{shortReference(proposal.approvalDecision)}</Row>
-                )}
-              </Rows>
-              <SnapshotRows snapshot={proposal.snapshot} />
-              <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-              {proposal.status === 'applied' && (
-                <>
-                  <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>
+        <>
+          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
+          <ul className="divide-y divide-border-subtle">
+            {records.map((proposal) => {
+              const context = `deployment prepared ${formatDateTime(proposal.createdAt)}`;
+              const applied = proposal.status === 'applied';
+              return (
+                <RecordShell key={proposal.uuid}>
                   <Rows>
-                    <Row label="Execution">{registerDeploymentExecutionState(proposal)}</Row>
-                    {proposal.execution?.operationId && (
-                      <Row label="Original execution">{shortReference(proposal.execution.operationId)}</Row>
-                    )}
-                    {proposal.execution?.txHash && <Row label="Transaction">{proposal.execution.txHash}</Row>}
-                    {proposal.execution?.contractAddress && (
-                      <Row label="Contract">{proposal.execution.contractAddress}</Row>
-                    )}
-                    {proposal.execution?.swapApprovalOutcome && (
-                      <Row label="Swap approval">
-                        {DEPLOYMENT_SWAP_APPROVAL_LABELS[proposal.execution.swapApprovalOutcome]}
-                      </Row>
+                    <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
+                    <DeploymentRows snapshot={proposal.snapshot} />
+                    <Row label="Prepared by">{proposal.preparedByName || 'Not recorded'}</Row>
+                    <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
+                    <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
+                    {applied && (
+                      <>
+                        <Row label="Execution">{registerDeploymentExecutionState(proposal)}</Row>
+                        {proposal.execution?.txHash && (
+                          <TransactionRow
+                            chain={proposal.snapshot.issuerWallet.chain}
+                            hash={proposal.execution.txHash}
+                          />
+                        )}
+                        {proposal.execution?.contractAddress && (
+                          <Row label="Contract">
+                            <span className="break-all">{proposal.execution.contractAddress}</span>
+                          </Row>
+                        )}
+                        {proposal.execution?.swapApprovalOutcome && (
+                          <Row label="Swap approval">
+                            {DEPLOYMENT_SWAP_APPROVAL_LABELS[proposal.execution.swapApprovalOutcome]}
+                          </Row>
+                        )}
+                      </>
                     )}
                   </Rows>
-                  {refusalSentences(proposal.executionUnmetRequirements, REGISTER_DEPLOYMENT_UNMET_COPY).map(
-                    (sentence) => (
-                      <p key={sentence} className="text-sm text-text-muted">
-                        {sentence}
-                      </p>
-                    ),
+                  {applied && (
+                    <>
+                      <p className="text-sm text-text-muted">{COPY.ADMITTED_NOTE}</p>
+                      {refusalSentences(proposal.executionUnmetRequirements, REGISTER_DEPLOYMENT_UNMET_COPY).map(
+                        (sentence) => (
+                          <p key={sentence} className="text-sm text-text-muted">
+                            {sentence}
+                          </p>
+                        ),
+                      )}
+                    </>
                   )}
-                </>
-              )}
-              <RegisterDecisions
-                family={REGISTER_DEPLOYMENT_DECISIONS}
-                copy={COPY}
-                noun=""
-                proposal={proposal}
-                steps={fresh && deployments.isSuccess && !deployments.isFetching ? steps : {}}
-                guard={guard}
-                newEffectGuard={(kind) => {
-                  guardNewEffect(kind);
-                  const retained = client
-                    .getQueryData<RegisterDeployment[]>(key)
-                    ?.find((row) => row.uuid === proposal.uuid);
-                  if (
-                    retained?.status !== 'submitted' ||
-                    retained.company !== proposal.company ||
-                    retained.token !== uuid
-                  )
-                    throw createUserFriendlyError('Refresh the original deployment before starting a new decision.');
-                }}
-                context={`deployment ${shortReference(proposal.uuid)}`}
-                onDecided={async (receipt) => {
-                  guard();
-                  retain(receipt);
-                  await refresh();
-                }}
-                onRefused={refresh}
-                onHeldChange={onHeldChange}
-              >
-                {(preview) => (
-                  <>
-                    <SnapshotRows snapshot={preview.snapshot} />
-                    <Rows>
-                      <Row label="Intent digest">{preview.intentDigest}</Row>
-                    </Rows>
-                  </>
-                )}
-              </RegisterDecisions>
-            </li>
-          ))}
-        </ul>
+                  <RegisterDecisions
+                    family={REGISTER_DEPLOYMENT_DECISIONS}
+                    copy={COPY}
+                    noun=""
+                    proposal={proposal}
+                    steps={fresh && deployments.isSuccess && !deployments.isFetching ? steps : {}}
+                    guard={guard}
+                    newEffectGuard={(kind) => {
+                      guardNewEffect(kind);
+                      const retained = client
+                        .getQueryData<RegisterDeployment[]>(key)
+                        ?.find((row) => row.uuid === proposal.uuid);
+                      if (
+                        retained?.status !== 'submitted' ||
+                        retained.company !== proposal.company ||
+                        retained.token !== uuid
+                      )
+                        throw createUserFriendlyError(
+                          'Refresh the original deployment before starting a new decision.',
+                        );
+                    }}
+                    context={context}
+                    onDecided={async (receipt) => {
+                      guard();
+                      retain(receipt);
+                      await refresh();
+                    }}
+                    onRefused={refresh}
+                    onHeldChange={onHeldChange}
+                  >
+                    {(preview) => (
+                      <>
+                        <p className="text-sm text-text-muted">
+                          {preview.snapshot.token.name} · {preview.snapshot.token.symbol}
+                        </p>
+                        <Rows>
+                          <DeploymentRows snapshot={preview.snapshot} />
+                        </Rows>
+                      </>
+                    )}
+                  </RegisterDecisions>
+                </RecordShell>
+              );
+            })}
+          </ul>
+        </>
+      )}
+      {uncertain && (
+        <>
+          <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>
+          <PageAction label="Recover preparation receipt" disabled={busy} onClick={() => void prepare()} />
+        </>
+      )}
+      {error && (
+        <p role="alert" className="text-sm text-error-light">
+          {error}
+        </p>
+      )}
+      {canPrepare && (
+        <FormActions>
+          <PageAction primary label={COPY.PREPARE} busy={busy} busyLabel="Preparing…" onClick={() => void prepare()} />
+        </FormActions>
       )}
     </Section>
   );

@@ -1,5 +1,5 @@
 export const REGISTER_PAUSE_CHANGE_COPY = {
-  TITLE: 'Company pause decisions',
+  TITLE: 'Pausing',
   NOTE: 'Record the requested pause state with company authority. Preparation and approval change no class state; application admits the original execution.',
   PROVIDED_BY_COMPANY: 'Reason, reference and documentary authority provided by the company.',
   PREPARATION_RECEIPT_FAILED: 'The pause receipt could not be confirmed. Recover its identical original request.',

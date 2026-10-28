@@ -196,6 +196,8 @@ Name a preview-opening action for that review, such as **Review and approve**; o
 The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
+A class's **Chain actions** cards are the exception: each card's form opens below its records, which
+stay visible, because a grant's wallet link is decided while the grant's draft stays open.
 Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
 keeps the selected class card and returns to its records after Cancel or a successful save. ESS uses the
 Share class selection in the page heading's Filters popover and one creation action; disable class selection while award preparation
@@ -749,7 +751,7 @@ field and options named in words:
 - an appointment reads as its actions and the date it was made;
 - an evidence source reads as its kind, status and date, and a classification claim as its kind and
   date;
-- a company ADD for a nominated wallet reads as when it was admitted and until when.
+- a company wallet approval for a nominated wallet reads as when it was admitted and until when.
 
 These lists add a short record reference only to options that would otherwise read the same,
 as with people who share a name and address; a delegating appointment adds the time it was made
@@ -1089,24 +1091,29 @@ by a local helper or a browser `toLocale…` call:
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
   shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
-  member invitations and requests, appointments, company wallet actions and chain failures, company
-  states, a deployment's swap approval, an application's status on company records, order states
+  member invitations and requests, appointments, company wallet actions and chain failures, a
+  deployment's swap approval, an application's status on company records, order states
   and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
   for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
   register entry kinds). Mobile shows no status codes: its request statuses come from the shared
   maps, and its certificate and pending-change tags use its own words.
 - **Identifiers.** Records show names, dates and amounts. Issue, transfer, award, import and
   correction records, former shareholders, certificates, inspection copies, member access and
-  requests, Team, representative authority and Profile show no internal references, register
-  sequences, block numbers or fingerprints, and have no **Record details** or **Technical details**
-  section; an award shows who recorded it and when as one muted line. Where only an identifier
+  requests, Team, representative authority, Profile and a class's **Chain actions** show no internal
+  references, register sequences, block numbers, gas or fingerprints, and have no **Record details**
+  or **Technical details** section; an award shows who recorded it and when as one muted line. A
+  chain action's record gives its transaction as **View transaction** on the block explorer, or the
+  exact hash where the chain has none, and leaves out the technical sender, factory, chain ID,
+  transaction data and the company and class the page already names; only an applied deployment
+  shows its contract. Its decision dialog names the class it captured in one muted line, and a
+  wallet link names each member, or `Member` and its `shortReference` when the member has no name. Where only an identifier
   tells records apart, such as two shareholders with one name or two options that read the same,
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user
-  numbers are not shown. Chain views still show their references, block numbers and fingerprints:
-  a class's **Chain actions** page, the reconciliation with the chain
-  under Corrections and an opening's chain-inclusion messages. So do the eligibility pages. Those
-  are later phases of #1378. Transaction hashes and wallet addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
+  numbers are not shown. The reconciliation with the chain under Corrections and an opening's
+  chain-inclusion messages still show their references, block numbers and fingerprints, and so do
+  the eligibility pages; those are later phases of #1378. Transaction hashes and wallet addresses
+  stay exact. The eligibility request and the claim take the exact **Company ID** or
   **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a
   directory-listed company or open offering under the field, or says it is not listed. The one
   exception shows those IDs in full, with `CopyButton`, for a company to give investors: its
