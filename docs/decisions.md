@@ -36,6 +36,7 @@ stay here as history and are marked where they appear.
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                         |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                                                                         |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                                                                         |
+| [Required CI and auto-merge on main](#required-ci-and-auto-merge-on-main)                                       | 29 October 2026                                | Current; #1409                                                                                                  |
 | [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation)                                 | 11 October 2026                                | Current                                                                                                         |
 | [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation)                      | 11 October 2026                                | Completed under #979; signer and funds decisions remain separate                                                |
 | [Backend migration baseline](#backend-migration-baseline)                                                       | 10 October 2026                                | Superseded 11 October                                                                                           |
@@ -1013,6 +1014,23 @@ activated by this decision. Local Mac preflight remains supported.
 source from the current scripts tree, superseding the earlier source-preservation
 instruction. Git history retains it; no separate retired folder is kept. Private
 configuration and evidence outside the repository are unchanged.
+
+### Required CI and auto-merge on main
+
+**Owner decision, 29 October 2026**, in [#1409](https://github.com/Ledova/ledova/issues/1409),
+after repeated merge prompts: "Can you stop asking to merge it and just merge it when is right to
+merge ?" The owner then approved "turn on Allow auto-merge for Ledova/ledova and use it on reviewed
+PRs" and "add a ruleset on main requiring the Django verdict and PR type and issue checks so
+auto-merge can land reviewed PRs, and update CONTRIBUTING to match."
+
+The repository allows auto-merge, and the **main: required CI** ruleset requires the
+`Django verdict` and `PR type and issue` checks from GitHub Actions on a branch up to date with
+`main`, with no bypass. This supersedes the earlier choice to leave branch protection unenforced.
+Reviews stay recorded on the pull request rather than enforced: auto-merge is turned on only once
+the independent review has passed at the exact head, and a pull request whose CI is already green
+is merged directly. Auto-merge stays on across later pushes, so it is turned off before any push
+other than a merge of `main` whose own changes are shown unchanged, and turned on again only after
+the delta's review passes.
 
 ## Binding caps and backup authorisation
 

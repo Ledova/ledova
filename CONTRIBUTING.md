@@ -114,9 +114,14 @@ carry changes through testing, pull requests and merge without repeated owner
 permission. This applies to all engineering paths, including authentication,
 wallets and payments.
 
-This workflow records the required reviews and checks on the PR without requiring
-enforced branch-protection or approval settings; revisit enforcement if the team
-grows.
+Reviews are recorded on the PR rather than enforced by GitHub. A ruleset on `main`
+requires the `Django verdict` and `PR type and issue` checks to pass on a branch up
+to date with `main`, so a pull request whose independent review has passed can be
+left to GitHub's auto-merge, which lands it once that CI is green
+([decision](docs/decisions.md#required-ci-and-auto-merge-on-main)). Auto-merge
+stays on across later pushes, so turn it off before pushing anything other than a
+merge of `main` whose own changes are shown unchanged (for example, by matching
+patch-ids), and turn it on again only after the delta's review passes.
 
 1. **Everything lands through a pull request.** Nothing is pushed to `main`
    directly, documentation included.
@@ -138,7 +143,8 @@ grows.
    pull request; a later passing review from someone else does not lift it.
 4. **Required CI green, on a branch up to date with `main`.** Green on the branch
    and green on `main` separately do not establish that the two are green
-   together.
+   together. The ruleset enforces this: a branch that falls behind waits until
+   `main` is merged into it.
 5. **Product and legal decisions remain the repository owner's.** Live
    deployment, live database migrations, signer activation and real-funds use
    also require the owner's explicit direction. The current operational
