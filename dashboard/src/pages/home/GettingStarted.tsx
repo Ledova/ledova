@@ -15,7 +15,6 @@ export function GettingStarted({ activated, registered }: { activated: boolean; 
             to={path(DESTINATIONS.companyListing.path)}
             label={COMPANY_ACTIVATION_COPY.STEP}
             note={COMPANY_ACTIVATION_COPY.CHECKS}
-            done={false}
           />
         )}
         {!registered && (
@@ -23,7 +22,6 @@ export function GettingStarted({ activated, registered }: { activated: boolean; 
             to={path(DESTINATIONS.companyRegister.path)}
             label={pageTitle('companyRegisterSetup')}
             note={REGISTER_IMPORT_COPY.SETUP_NOTE}
-            done={false}
           />
         )}
       </div>

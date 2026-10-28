@@ -649,11 +649,7 @@ function OwnRegister({
               <section
                 data-register-tasks
                 hidden={view === 'register' && (!selectedTask || selectedToken !== register.token.uuid)}
-                className={
-                  (view === 'register' && selectedTask) || view === 'awards' || view === 'documents'
-                    ? 'space-y-5'
-                    : 'space-y-5 rounded-xl border border-border bg-surface-raised p-4 sm:p-5'
-                }
+                className="space-y-5"
               >
                 <h2
                   hidden={

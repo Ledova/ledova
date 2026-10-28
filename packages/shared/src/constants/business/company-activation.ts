@@ -1,4 +1,4 @@
-import type { CompanyActivationAttempt, OwnCompanyAppointment } from '../../types';
+import type { CompanyActivationAttempt } from '../../types';
 
 const AWAITING_ACTIVATION: readonly string[] = [
   'draft',
@@ -18,18 +18,6 @@ export const COMPANY_ACTIVATION_COPY = {
 
 export function awaitsActivation(company: { status: string; activatedAt?: string | null }) {
   return !company.activatedAt && AWAITING_ACTIVATION.includes(company.status);
-}
-
-export function companiesAwaitingActivation(appointments: readonly OwnCompanyAppointment[]) {
-  const companies = new Map<string, string>();
-  for (const appointment of appointments)
-    if (
-      appointment.isEffective &&
-      appointment.capabilities.includes('admin') &&
-      awaitsActivation({ status: appointment.companyStatus })
-    )
-      companies.set(appointment.company, appointment.companyName);
-  return [...companies].map(([uuid, name]) => ({ uuid, name }));
 }
 
 const REASONS: Record<string, string> = {
