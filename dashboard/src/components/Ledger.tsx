@@ -184,6 +184,31 @@ export function MoreToggle({
   );
 }
 
+export function ShowMore({
+  show,
+  hide,
+  defaultOpen = false,
+  children,
+}: {
+  show: string;
+  hide: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
+  return (
+    <>
+      <MoreToggle open={open} controls={id} onToggle={() => setOpen((shown) => !shown)}>
+        {open ? hide : show}
+      </MoreToggle>
+      <div id={id} hidden={!open} className="flex flex-col gap-3">
+        {children}
+      </div>
+    </>
+  );
+}
+
 export function Rows({ children }: { children: ReactNode }) {
   return <dl className="divide-y divide-border-subtle">{children}</dl>;
 }

@@ -10,7 +10,7 @@ import {
   shareCount,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows, Status, Disclosure } from '@components/Ledger';
+import { Row, Rows, Status, ShowMore } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -142,7 +142,7 @@ export function TransferRecord({
               </dd>
             </div>
           </dl>
-          <Disclosure summary="Details and documents">
+          <ShowMore show="Show details and documents" hide="Hide details and documents">
             <Rows>
               <RecordStage stage={transfer.stage}>{COPY.STAGES[transfer.stage] ?? transfer.stage}</RecordStage>
               <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
@@ -154,7 +154,7 @@ export function TransferRecord({
             <TransferRows transfer={transfer} />
             <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
             {documents}
-          </Disclosure>
+          </ShowMore>
         </>
       )}
       <RegisterDecisions

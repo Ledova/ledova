@@ -537,7 +537,7 @@ it('preserves original preparation and combined approval recovery through refres
   });
   expect(previewCount()).toBe(previewsBeforeConfirmation + 1);
   expect(rows[0].decisions).toHaveLength(2);
-  fireEvent.click(allotments.getByText('Details and documents'));
+  fireEvent.click(allotments.getByRole('button', { name: 'Show details and documents' }));
   await allotments.findByText(ALLOTMENT_REQUEST.agreementReference);
   expect(rows[0].registerEntry).toBe('entry-a');
   fireEvent.click(allotments.getByRole('button', { name: /^Download receipt/ }));

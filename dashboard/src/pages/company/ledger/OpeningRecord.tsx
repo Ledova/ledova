@@ -1,4 +1,3 @@
-import { useId, useState } from 'react';
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
@@ -11,7 +10,7 @@ import {
   shareCount,
   formatDate,
 } from '@ledova/shared';
-import { MoreToggle, Row, Rows } from '@components/Ledger';
+import { Row, Rows, ShowMore } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
@@ -48,8 +47,6 @@ export function OpeningRecord({
   const holdings = summary ? largestHoldingsFirst(summary.holdings) : [];
   const labels = openingMemberLabels(holdings);
   const context = `opening prepared ${formatDateTime(proposal.createdAt)}`;
-  const [showHoldings, setShowHoldings] = useState(proposal.status === 'submitted');
-  const holdingsId = useId();
   const downloadAction = (
     <PageAction
       label={COPY.DOWNLOAD}
@@ -77,15 +74,12 @@ export function OpeningRecord({
               {holdings.length === 0 ? (
                 <p className="text-sm text-text-primary">{COPY.NO_HOLDINGS}</p>
               ) : (
-                <>
-                  <MoreToggle
-                    open={showHoldings}
-                    controls={holdingsId}
-                    onToggle={() => setShowHoldings((shown) => !shown)}
-                  >
-                    {showHoldings ? 'Hide the holdings' : `Show the holdings (${holdings.length})`}
-                  </MoreToggle>
-                  <ul id={holdingsId} hidden={!showHoldings} className="divide-y divide-border-subtle">
+                <ShowMore
+                  show={`Show the holdings (${holdings.length})`}
+                  hide="Hide the holdings"
+                  defaultOpen={proposal.status === 'submitted'}
+                >
+                  <ul className="divide-y divide-border-subtle">
                     {holdings.map((holding) => (
                       <li key={holding.address} className="flex flex-col gap-1 py-2">
                         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -100,7 +94,7 @@ export function OpeningRecord({
                       </li>
                     ))}
                   </ul>
-                </>
+                </ShowMore>
               )}
             </div>
           )}

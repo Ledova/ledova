@@ -300,7 +300,9 @@ it('reads every class page and groups exact holdings by member identity with sea
   const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;
   expect(within(formerSection).getByRole('heading', { name: /^Ordinary shares ·/ })).toBeTruthy();
   expect(within(formerSection).queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
-  fireEvent.click(within(formerSection).getByRole('button', { name: `${REGISTER_COPY.FORMER_TITLE} · 1` }));
+  fireEvent.click(
+    within(formerSection).getByRole('button', { name: `Show ${REGISTER_COPY.FORMER_TITLE.toLowerCase()} (1)` }),
+  );
   expect(within(formerSection).getByRole('link', { name: 'Details (Departed Shareholder)' }).getAttribute('href')).toBe(
     '/company/ledger/members/former-member-private?company=harbour',
   );
@@ -476,7 +478,6 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   expect(screen.getByText('No current shareholders yet.')).toBeTruthy();
   expect(screen.queryByText('Award recipient without shares')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Taylor Demo' }));
   expect(await screen.findByText('3 Fictional Lane, Sydney NSW 2000')).toBeTruthy();
   cleanup();
   client.clear();
@@ -2268,10 +2269,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('link', { name: /^Correct \(entry/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Acknowledge/ })).toBeNull();
-  fireEvent.click(await screen.findByRole('button', { name: /^Correction of entry 3/ }));
+  expect(await screen.findByRole('heading', { name: 'Correction of entry 3' })).toBeTruthy();
   expect(screen.getByText('Retained correction reason')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Example Shareholder · Prepared' }));
   expect(screen.getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
   appointment = decisionAppointment;

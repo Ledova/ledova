@@ -1,7 +1,7 @@
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_DECISIONS, formatDateTime, formatDate } from '@ledova/shared';
-import { Row, Rows, Disclosure } from '@components/Ledger';
+import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
@@ -47,10 +47,8 @@ export function CorrectionRecord({
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
-        <Disclosure
-          summary={`Correction of entry ${entry.sequence} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}
-          defaultOpen={proposal.status === 'submitted'}
-        >
+        <>
+          <h4 className="text-sm font-medium text-text-primary">Correction of entry {entry.sequence}</h4>
           <Rows>
             <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
             {proposal.preparedByName !== null && (
@@ -74,7 +72,7 @@ export function CorrectionRecord({
           <p className="text-sm text-text-muted">
             {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
           </p>
-        </Disclosure>
+        </>
       )}
       <FormActions>
         {downloadAction}

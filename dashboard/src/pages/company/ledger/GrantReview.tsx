@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { formatDate, shareCount, type RegisterGrant, type RegisterGrantDecisionPreview } from '@ledova/shared';
-import { Disclosure, Row, Rows, Section } from '@components/Ledger';
+import { ShowMore, Row, Rows, Section } from '@components/Ledger';
 
 export function GrantReview({
   preview,
@@ -75,7 +75,7 @@ export function GrantReview({
             </Rows>
           </div>
         </div>
-        <Disclosure summary="Details and documents">
+        <ShowMore show="Show details and documents" hide="Hide details and documents">
           <Rows>
             <Row label="Agreement terms">{preview.terms}</Row>
             <Row label="Residential address">{preview.residentialAddress}</Row>
@@ -87,7 +87,7 @@ export function GrantReview({
             <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
           </Rows>
           {documents}
-        </Disclosure>
+        </ShowMore>
       </Section>
     </>
   );

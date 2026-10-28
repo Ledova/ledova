@@ -1,6 +1,6 @@
-import { useId, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { formatDate, formatShareCount, shareCount } from '@ledova/shared';
-import { LoadError, Loading, MoreToggle, Section, Status } from '@components/Ledger';
+import { LoadError, Loading, Section, ShowMore, Status } from '@components/Ledger';
 import { LoadMore, type Noun } from '@components/List';
 import { requestTone } from '@pages/company/shared/statusTones';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
@@ -48,21 +48,6 @@ function History({
   );
 }
 
-function ExecutionNotes({ notes }: { notes: string }) {
-  const [open, setOpen] = useState(false);
-  const id = useId();
-  return (
-    <>
-      <MoreToggle open={open} controls={id} onToggle={() => setOpen((value) => !value)}>
-        {open ? 'Hide execution history' : 'Show execution history'}
-      </MoreToggle>
-      <p id={id} hidden={!open} className="whitespace-pre-wrap text-text-muted">
-        {notes}
-      </p>
-    </>
-  );
-}
-
 export function ChainHistory({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
   const { issuances, capital, requests } = useChainHistory(uuid, data);
   if (!data.isOwner) return null;
@@ -80,7 +65,11 @@ export function ChainHistory({ uuid, data }: { uuid: string; data: ReturnType<ty
             </p>
             <p className="text-xs text-text-muted">{formatDate(request.createdAt)}</p>
             {request.rejectionReason && <p className="text-text-muted">{request.rejectionReason}</p>}
-            {request.executionNotes && <ExecutionNotes notes={request.executionNotes} />}
+            {request.executionNotes && (
+              <ShowMore show="Show execution history" hide="Hide execution history">
+                <p className="whitespace-pre-wrap text-text-muted">{request.executionNotes}</p>
+              </ShowMore>
+            )}
           </li>
         ))}
       </History>

@@ -10,7 +10,7 @@ import {
 } from '@ledova/shared';
 import { LoadMore } from '@components/List';
 import { PAGE_SIZE } from '@hooks/useListParams';
-import { Rows, Row, Section, Status, type Tone, Disclosure } from '@components/Ledger';
+import { Rows, Row, Section, Status, type Tone, ShowMore } from '@components/Ledger';
 import { PageAction, PageLink } from '@components/Page';
 import { shareholderPath } from './shareholders';
 
@@ -84,8 +84,11 @@ export function FormerMembers({
   const [shown, setShown] = useState(PAGE_SIZE);
   if (!register.formerMembers?.length) return null;
   return (
-    <div className="border-t border-border-subtle">
-      <Disclosure summary={`${REGISTER_COPY.FORMER_TITLE} · ${register.formerMembers.length}`}>
+    <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
+      <ShowMore
+        show={`Show ${REGISTER_COPY.FORMER_TITLE.toLowerCase()} (${register.formerMembers.length})`}
+        hide={`Hide ${REGISTER_COPY.FORMER_TITLE.toLowerCase()}`}
+      >
         <p className="text-sm text-text-muted">{REGISTER_COPY.FORMER_NOTE}</p>
         {register.formerMembersStale && (
           <p role="status" className="text-sm text-text-muted">
@@ -138,7 +141,7 @@ export function FormerMembers({
           loading={false}
           onLoad={() => setShown(shown + PAGE_SIZE)}
         />
-      </Disclosure>
+      </ShowMore>
     </div>
   );
 }

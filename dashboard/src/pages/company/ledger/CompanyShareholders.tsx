@@ -8,7 +8,7 @@ import {
   sharePercentage,
   type Person,
 } from '@ledova/shared';
-import { Disclosure, Row, Rows, Section } from '@components/Ledger';
+import { Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { PageAction, PageActions, PageLink } from '@components/Page';
 import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
@@ -188,12 +188,9 @@ export function CompanyShareholders({
               <h3 className="text-base font-medium text-text-primary">People without shares</h3>
               <ul className="divide-y divide-border-subtle">
                 {shownPeople.map((person) => (
-                  <li key={person.member}>
-                    <Disclosure summary={person.name}>
-                      <Rows>
-                        <Row label="Residential address">{person.residentialAddress}</Row>
-                      </Rows>
-                    </Disclosure>
+                  <li key={person.member} className="flex flex-col gap-1 py-3">
+                    <span className="break-words text-sm text-text-primary">{person.name}</span>
+                    <span className="break-words text-sm text-text-muted">{person.residentialAddress}</span>
                   </li>
                 ))}
               </ul>

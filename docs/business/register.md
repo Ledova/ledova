@@ -406,8 +406,8 @@ account, payment, application or chain transaction.
    give the authority reference and reason, and attach the authority document. **Prepare transfer**
    saves the proposal; it moves no shares. Back and Continue keep the draft fields and selected
    files without saving or uploading.
-5. The saved record aligns From, To, Shares, Transfer date and Status, with **Details and documents**
-   available on demand. **Review and approve** opens a main-page preview of the parties, ownership
+5. The saved record aligns From, To, Shares, Transfer date and Status, with **Show details and
+   documents** for the rest. **Review and approve** opens a main-page preview of the parties, ownership
    effect, transfer instrument and company authority, with long terms, particulars and documents
    on demand. Cancel returns to the record and its opener. **Approve** records the company approval
    and ledger transfer together, requiring current approval and application authority. A current

@@ -8,7 +8,7 @@ import {
   type RegisterParticularsChange,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows, Disclosure, Section } from '@components/Ledger';
+import { Row, Rows, Section } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -81,12 +81,9 @@ export function ParticularsRecord({
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
-        <Disclosure
-          summary={`${member} · ${COPY.STAGES[change.stage] ?? change.stage}`}
-          defaultOpen={change.status === 'submitted'}
-        >
+        <>
+          <h3 className="font-medium text-text-primary">{member}</h3>
           <Rows>
-            <Row label={COPY.MEMBER}>{member}</Row>
             <RecordStage stage={change.stage}>{COPY.STAGES[change.stage] ?? change.stage}</RecordStage>
             {change.preparedByName !== null && <Row label="Prepared by">{change.preparedByName || 'Not provided'}</Row>}
             <Row label="Prepared on">{formatDateTime(change.createdAt)}</Row>
@@ -97,7 +94,7 @@ export function ParticularsRecord({
             <DecisionTrail proposal={change} labels={COPY.DECISIONS} />
           </Rows>
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-        </Disclosure>
+        </>
       )}
       <FormActions>
         {downloadAction}
@@ -132,12 +129,10 @@ export function ParticularsRecord({
                 <Particulars title={COPY.CURRENT_PARTICULARS} held={preview.current} />
                 <Particulars title={COPY.PROPOSED_PARTICULARS} held={preview} />
               </div>
-              <Disclosure summary="Reason and supporting document">
-                <Rows>
-                  <Row label={COPY.REASON}>{change.reason}</Row>
-                </Rows>
-                <FormActions>{downloadAction}</FormActions>
-              </Disclosure>
+              <Rows>
+                <Row label={COPY.REASON}>{change.reason}</Row>
+              </Rows>
+              <FormActions>{downloadAction}</FormActions>
               {download.isError && <RecordDownloadFailure error={download.error} />}
             </Section>
           )}

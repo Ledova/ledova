@@ -9,7 +9,7 @@ import {
   shareCount,
   type RegisterAllotmentDecisionPreview,
 } from '@ledova/shared';
-import { Disclosure, Row, Rows, Section } from '@components/Ledger';
+import { ShowMore, Row, Rows, Section } from '@components/Ledger';
 import { AllotmentOwnership } from './AllotmentOwnership';
 
 export function AllotmentReview({
@@ -80,7 +80,7 @@ export function AllotmentReview({
             </Rows>
           </div>
         </div>
-        <Disclosure summary="Details and documents">
+        <ShowMore show="Show details and documents" hide="Hide details and documents">
           <Rows>
             <Row label="Agreement terms">{preview.agreement.terms}</Row>
             <Row label="Residential address">{preview.residentialAddress}</Row>
@@ -90,7 +90,7 @@ export function AllotmentReview({
             <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
           </Rows>
           {documents}
-        </Disclosure>
+        </ShowMore>
       </Section>
     </>
   );

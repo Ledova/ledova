@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { formatDate, shareCount, type RegisterTransfer, type RegisterTransferDecisionPreview } from '@ledova/shared';
-import { Disclosure, Row, Rows, Section } from '@components/Ledger';
+import { ShowMore, Row, Rows, Section } from '@components/Ledger';
 import { Table } from '@components/List';
 
 export function TransferReview({
@@ -87,7 +87,7 @@ export function TransferReview({
             </Rows>
           </div>
         </div>
-        <Disclosure summary="Details and documents">
+        <ShowMore show="Show details and documents" hide="Hide details and documents">
           <Rows>
             <Row label="Transfer terms">{preview.terms}</Row>
             <Row label="Transferor residential address">{preview.fromResidentialAddress}</Row>
@@ -101,7 +101,7 @@ export function TransferReview({
             <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
           </Rows>
           {documents}
-        </Disclosure>
+        </ShowMore>
       </Section>
     </>
   );
