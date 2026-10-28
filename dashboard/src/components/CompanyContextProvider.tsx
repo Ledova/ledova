@@ -12,7 +12,7 @@ import { DESTINATIONS, useSubmissionOwner } from '@ledova/shared';
 import { CompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipCompanies } from '@hooks/useOwnershipCompanies';
 import { documentView } from '@utils/destinations';
-import { CERTIFICATES_PATH } from '@utils/paths';
+import { CERTIFICATES_PATH, COMPANY_DOCUMENTS_PATH } from '@utils/paths';
 import { lastCompany, rememberCompany } from '@utils/lastCompany';
 import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';
 import { Confirmation } from './Modal';
@@ -165,9 +165,13 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
       location.pathname === DESTINATIONS.company.path || location.pathname.startsWith(`${DESTINATIONS.company.path}/`);
     if (
       (!companyPage &&
-        ![DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path, CERTIFICATES_PATH].some(
-          (path) => path === location.pathname,
-        )) ||
+        ![
+          DESTINATIONS.home.path,
+          DESTINATIONS.memberRecords.path,
+          DESTINATIONS.settings.path,
+          CERTIFICATES_PATH,
+          COMPANY_DOCUMENTS_PATH,
+        ].some((path) => path === location.pathname)) ||
       token ||
       entered !== null ||
       directory.isLoading ||

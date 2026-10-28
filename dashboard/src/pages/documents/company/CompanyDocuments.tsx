@@ -1,7 +1,7 @@
 import { useRef, type MouseEvent } from 'react';
 import { apiErrorSentence, formatDate, type Company, type CompanyDocument } from '@ledova/shared';
 import { Section } from '@components/Ledger';
-import { PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { Modal } from '@components/Modal';
 import { useCompanyDocuments } from './useCompanyDocuments';
 import type { CompanyActionRead } from '@components/CompanyState';
@@ -116,6 +116,17 @@ export function CompanyDocuments({
                   ))}
                 </ul>
               )}
+              {editable && (
+                <FormActions>
+                  <PageAction
+                    ref={uploadAction}
+                    label="Upload document"
+                    primary
+                    disabled={!ready || !uploadChoice}
+                    onClick={() => uploadChoice && setUpload({ type: uploadChoice.type, label: uploadChoice.label })}
+                  />
+                </FormActions>
+              )}
             </div>
             {upload && (
               <CompanyDocumentForm
@@ -135,17 +146,6 @@ export function CompanyDocuments({
               />
             )}
           </Section>
-          {editable && !upload && (
-            <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <PageAction
-                ref={uploadAction}
-                label="Upload document"
-                primary
-                disabled={!ready || !uploadChoice}
-                onClick={() => uploadChoice && setUpload({ type: uploadChoice.type, label: uploadChoice.label })}
-              />
-            </div>
-          )}
         </div>
       )}
       {error && (

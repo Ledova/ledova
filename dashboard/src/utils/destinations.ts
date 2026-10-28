@@ -56,28 +56,19 @@ export function documentView(value: unknown): DocumentView | undefined {
 
 export const SETTINGS_VIEWS = [
   { key: 'profile', label: 'Profile', to: `${DESTINATIONS.settings.path}#profile` },
-  { key: 'company-documents', label: 'Documents', to: `${DESTINATIONS.company.path}#documents` },
   { key: 'company-team', label: 'Team', to: DESTINATIONS.companyTeam.path },
   { key: 'activation', label: 'Activation', to: DESTINATIONS.companyListing.path },
-  {
-    key: 'company-recorded-details',
-    label: 'Company-recorded details',
-    to: `${DESTINATIONS.settings.path}#company-recorded-details`,
-  },
 ] as const;
 
 export type SettingsView = (typeof SETTINGS_VIEWS)[number]['key'];
 
 export function settingsView(pathname: string, hash: string): SettingsView | undefined {
-  if (pathname === DESTINATIONS.company.path) return hash === '#documents' ? 'company-documents' : 'profile';
+  if (pathname === DESTINATIONS.company.path) return 'profile';
   if (pathname === DESTINATIONS.companyTeam.path || pathname === DESTINATIONS.companyAuthority.path)
     return 'company-team';
   if (pathname === DESTINATIONS.companyListing.path) return 'activation';
   if (pathname === DESTINATIONS.userProfile.path) return 'profile';
-  if (pathname === DESTINATIONS.settings.path) {
-    if (hash === '#company-recorded-details') return 'company-recorded-details';
-    if (hash === '#profile' || hash === '#account') return 'profile';
-  }
+  if (pathname === DESTINATIONS.settings.path && (hash === '#profile' || hash === '#account')) return 'profile';
   return undefined;
 }
 
@@ -98,7 +89,6 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
 
 function viewName(key: DestinationKey, view: string): string | undefined {
   if (key === 'settings' && (view === 'profile' || view === 'account')) return 'Profile';
-  if (key === 'settings' && view === 'company-recorded-details') return 'Company-recorded details';
   const destination: Destination = DESTINATIONS[key];
   const views = destination.views;
   if (key === 'companyRegister') {

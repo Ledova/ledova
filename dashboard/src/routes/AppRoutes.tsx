@@ -17,11 +17,13 @@ import SignupAccountType from '@pages/signup/account-type';
 import SignupCompanyRegistration from '@pages/signup/company-registration';
 import DashboardPage from '@pages/home';
 import CertificatesPage from '@pages/documents/certificates';
+import CompanyDocumentsPage from '@pages/documents/company';
 import { PageTitle } from '@components/PageTitle';
 import { ProtectedRoute } from './ProtectedRoute';
 import {
   COMPANY_DASHBOARD_PATH,
   CERTIFICATES_PATH,
+  COMPANY_DOCUMENTS_PATH,
   ROOT_PATH,
   SIGNIN_PATH,
   SIGNUP_PATHS,
@@ -66,6 +68,16 @@ export function AppRoutes() {
           <PageTitle.Provider value="Certificates">
             <ProtectedRoute audience="everyone">
               <CertificatesPage />
+            </ProtectedRoute>
+          </PageTitle.Provider>
+        }
+      />
+      <Route
+        path={COMPANY_DOCUMENTS_PATH}
+        element={
+          <PageTitle.Provider value="Company documents">
+            <ProtectedRoute audience="everyone">
+              <CompanyDocumentsPage />
             </ProtectedRoute>
           </PageTitle.Provider>
         }

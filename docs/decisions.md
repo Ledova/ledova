@@ -1337,6 +1337,14 @@ the standard." The web remembers each account's last company in the browser. An 
 no company opens it, or the first company in the person's list. Explicit company links are
 unchanged, and an unavailable explicit company keeps its refusal.
 
+Later the same day the owner asked to move the company's supporting documents out of Settings: "I
+think this page [/company#documents] should be in documents section, not in settings". The owner
+also asked about Company-recorded details: "this page … does not seems to be offering much so I
+wonder if we can just merge into Profile". Company documents now sit under Documents at
+`/documents/company`, and the old address redirects there. Profile shows the selected company's
+recorded details for a linked member, with its update request, and the separate Settings item is
+gone.
+
 ### Dashboard, Settings and Register for a new company
 
 Its mobile part (#1157) is superseded by the [26 October mobile decision](#mobile-app-for-shareholders).

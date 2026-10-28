@@ -99,8 +99,8 @@ Awards remain in a separate card below the ownership panel. Member awards show t
 nonzero lifecycle quantities, with the full breakdown and terms under **Award details**. Issued
 award shares are already included in the holding. The Dashboard contains the overview and read-only
 awards; requests, documents and record-management actions stay on their focused pages.
-**Company-recorded details** in Settings uses one **Your details** card in the standard workspace
-frame. **Current details** and **Update requests** form equal desktop groups separated by a hairline,
+Profile shows **Company-recorded details** as one card, after Personal information, for a member of
+the selected company. **Current details** and **Update requests** form equal desktop groups separated by a hairline,
 with aligned name and address rows; they stack on smaller screens without nested cards. Address previews
 stay on one line with an ellipsis when space runs out; **Ledger details** and **Record details** show
 the full original addresses without changing stored text. Each request's status and date use a labelled
@@ -259,7 +259,7 @@ status comes only from an actual readable request. Keep entry numbers, ledger da
 timestamps inside the opened details. Older or other-class requests remain under
 **Other certificate requests** with their own
 actions. Preparing a company PDF never marks a member request fulfilled. Particulars requests stay
-in Company-recorded details in Settings.
+in Profile's Company-recorded details.
 
 The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
 Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order,
@@ -400,16 +400,15 @@ an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
+**Company documents**, **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
-one-level group for **Profile** (the default), **Documents**, **Team**, **Activation** and
-**Company-recorded details**, without an extra overview page. Profile always holds personal
-information and Account. Company Documents, Team, Activation and Company details follow current
-company access; Company-recorded details follows an actual member association. Personal edits never
-change company-recorded particulars.
+one-level group for **Profile** (the default), **Team** and **Activation**, without an extra overview
+page. Profile always holds personal information and Account. Company documents, Team, Activation and
+Company details follow current company access; Profile's Company-recorded details follows an actual
+member association. Personal edits never change company-recorded particulars.
 Use one compact Account card for relevant identity status, password, appearance and notifications;
 keep export and deletion under Manage account, with their existing confirmations. Payslip evidence
-belongs alongside investor classification claims, not on Profile. Documents holds company source files, distinct from the top-level Documents group for generated outputs. Show company
+belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation. Company-recorded particulars stay on their separate member page.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents

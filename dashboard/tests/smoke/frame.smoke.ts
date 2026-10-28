@@ -352,6 +352,10 @@ async function openTheSidebar(page: Page, role: Role) {
     await aside.getByRole('link', { name: 'Company pack', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Company pack', exact: true })).toBeVisible();
     aside = await visibleSidebar(page);
+    await aside.getByRole('link', { name: 'Company documents', exact: true }).click();
+    await expect(page).toHaveURL(/\/documents\/company\?company=company$/);
+    await expect(page.getByRole('heading', { name: 'Supporting documents', exact: true })).toBeVisible();
+    aside = await visibleSidebar(page);
   }
   const settings = aside.getByRole('link', { name: 'Settings', exact: true }).locator('../..');
   const settingsLink = settings.getByRole('link', { name: 'Settings', exact: true });
@@ -362,11 +366,13 @@ async function openTheSidebar(page: Page, role: Role) {
     '/settings?company=company#profile',
   );
   await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
-  await expect(settings.getByRole('link', { name: 'Company-recorded details', exact: true })).toHaveCount(
-    role === 'company' ? 0 : 1,
-  );
+  for (const name of ['Documents', 'Company-recorded details'])
+    await expect(settings.getByRole('link', { name, exact: true })).toHaveCount(0);
   await settingsLink.click();
   await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Company-recorded details', exact: true })).toHaveCount(
+    role === 'company' ? 0 : 1,
+  );
   await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(
     role === 'investor' ? 0 : 1,
   );

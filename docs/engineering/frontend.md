@@ -325,21 +325,20 @@ marking the active child and opening the group on Ledger routes. The web replace
 `#history` with `#corrections` without dropping company/class context; shared task names retain
 History. Shareholders' label opens its people list, with the same caret pattern for ESS, Member
 access and Member requests.
-Documents opens one Certificates page (`/documents/certificates`), with Inspection copies and Company
-pack where company access permits them. There is no separate Your certificates item. Legacy
+Documents opens one Certificates page (`/documents/certificates`), with Company documents
+(`/documents/company`), Inspection copies and Company pack where company access permits them. There is no separate Your certificates item. Legacy
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
 preserving company, class and navigation state. A group without a meaningful overview opens its
 default child, without an extra Overview page or duplicate navigation.
-Settings uses the same one-level pattern: Profile, company Documents, Team and Activation where
-permitted, and Company-recorded details where a member association exists. Its default is Profile
-(`/settings#profile`), combining personal details, permitted company information and one compact
-Account card for identity status, password, appearance and notifications. These sections keep their separate records, editors and authority checks. Existing
-`/user-profile`, `/company` and `/settings#account` links redirect to Profile; company source documents
-remain at `/company#documents`, separate from the generated outputs in the top-level Documents group.
+Settings uses the same one-level pattern: Profile, Team and Activation where permitted. Its default
+is Profile (`/settings#profile`), combining personal details, permitted company information, a
+linked member's Company-recorded details and one compact Account card for identity status,
+password, appearance and notifications. These sections keep their separate records, editors and authority checks. Existing
+`/user-profile`, `/company`, `/settings#account` and `/settings#company-recorded-details` links redirect
+to Profile, and `/company#documents` redirects to Company documents.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
 Team remains available for company-invitation acceptance; Profile keeps an acceptance
-entry under Manage account before company access is granted. Company-recorded member particulars
-stay at `/settings#company-recorded-details`. The sidebar has no More group or Help & Support link;
+entry under Manage account before company access is granted. The sidebar has no More group or Help & Support link;
 their underlying routes retain existing audience and permission checks. Team keeps Representative
 authority as a contextual task, with its existing owner and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
@@ -444,7 +443,7 @@ Signed-in web pages do not poll while idle or refetch because of window focus, v
 reconnection. Web query defaults enforce that page-data policy. Another person's changes appear on a later
 entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
 content stable until a relevant read is needed, without mounting another workflow's reads behind
-an overview. Certificates and Company-recorded details read only while active, retaining
+an overview. Certificates and Profile's Company-recorded details read only while open, retaining
 unfinished drafts and original-request recovery across navigation.
 
 `dashboard/src/hooks/useEntryReads.ts` and
@@ -715,7 +714,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [Ledger, Shareholders, Employee share scheme and company outputs](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#inspection-copies` (legacy `#ledger-exports`), `#company-pack`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                                                   | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid`                                                                                                                                                      | everyone  |
-| [Company information, Documents, Team, Activation](../business/companies.md#the-company-page)                | `/settings#profile`, `/company#documents`, `/company/authority` (company), `/company/team`, `/company/listing`                                                               | everyone  |
+| [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` (company), `/company/team`, `/company/listing`                                                                                     | everyone  |
+| [Company documents](../business/companies.md#the-company-page)                                               | `/documents/company`; legacy `/company#documents` redirects with company context                                                                                             | everyone  |
 | [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                                       | everyone  |
 | [Offerings](../business/issuing-shares.md#the-offerings-page)                                                | `/company/offering`                                                                                                                                                          | company   |
 | [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                                                      | company   |
@@ -726,7 +726,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [Market](../business/trading.md#the-market-page)                                                             | `/trading`                                                                                                                                                                   | investing |
 | [Wallets](../business/trading.md#the-wallets-page)                                                           | `/wallets`                                                                                                                                                                   | everyone  |
 | [Activity](../business/trading.md#the-activity-page)                                                         | `/transactions`                                                                                                                                                              | everyone  |
-| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#company-recorded-details`; aliases `/user-profile`, `/company`, `/settings#account`                                                | everyone  |
+| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default); aliases `/user-profile`, `/company`, `/settings#account`, `/settings#company-recorded-details`                                                | everyone  |
 
 ### Page mechanics
 
@@ -770,8 +770,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   eligibility. Preparation opens a focused main-page form. The existing
   preparation, request, withdrawal and recipient-download controllers retain their separate guards;
   preparing a company PDF does not fulfil a member request.
-- Certificates and Company-recorded details share an owner-bound member-records controller.
-  Settings groups current particulars and update-request records in one card, side by side on
+- Certificates and Profile's Company-recorded details share an owner-bound member-records controller.
+  Profile groups current particulars and update-request records in one card, side by side on
   desktop and stacked on smaller screens, with one shared action footer. Request update opens a
   focused inline form; successful submission closes it and clears consent, while pending requests
   keep the requested particulars and status visible together. The controller retains an unfinished

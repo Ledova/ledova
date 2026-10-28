@@ -116,7 +116,7 @@ function MemberNavigation() {
       >
         Test Dashboard navigation
       </Link>
-      <Link to={context!.companyPath('/settings#company-recorded-details')}>Test Settings navigation</Link>
+      <Link to={context!.companyPath('/settings#profile')}>Test Settings navigation</Link>
     </>
   );
 }
@@ -140,7 +140,7 @@ async function openCompanySwitch() {
 }
 
 async function chooseMemberCompany(name: string) {
-  const settings = !!screen.queryByRole('heading', { name: 'Company-recorded details', level: 1 });
+  const settings = !!screen.queryByRole('heading', { name: /^(Company-recorded details|Request update)$/ });
   const documents = !!screen.queryByRole('heading', { name: 'Certificates', level: 1 });
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await openCompanySwitch();

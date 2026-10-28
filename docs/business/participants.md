@@ -383,8 +383,9 @@ On web, Dashboard selects the company used across company-related pages, without
 pickers or a workspace or role selector. Company appointments and actual member links determine the
 available records and actions; choosing a company grants neither.
 
-Settings opens Profile. Company Documents, Team and Activation appear where company access permits;
-Company-recorded details appears for linked member records. Team remains reachable for accepting
+Settings opens Profile. Team and Activation appear where company access permits, and company
+documents are under **Documents** → **Company documents**. Profile shows a linked member's
+Company-recorded details. Team remains reachable for accepting
 a company invitation. Before company access is granted, **Settings → Profile → Manage account**
 provides **Accept a company invitation**, opening the same guarded workflow. Member access stays
 under company [Shareholders](register.md#the-register-page).
@@ -393,8 +394,7 @@ under company [Shareholders](register.md#the-register-page).
 Account includes
 relevant identity status, **Change password**, **Dark theme** (remembered in this browser with Paper as
 the default) and **Transaction alerts** for transaction status changes. Each editor retains its own
-permissions; changing personal details does not update a company's records. **Documents** holds company source files; generated certificates and exports stay under the
-top-level Documents group. **Activation** retains the
+permissions; changing personal details does not update a company's records. **Activation** retains the
 [company activation workflow](companies.md#activation-and-the-registry-check).
 
 **Manage account**, inside the Account card, keeps member-since and last-login details and these less frequent actions:
@@ -406,8 +406,8 @@ top-level Documents group. **Activation** retains the
   register entries are kept. The confirmation says so, and the browser's copy of the account's data
   is cleared once the server confirms.
 
-For linked members, web Settings also opens **Company-recorded details**: the person's name and residential address
-held by each linked company, with a company-reviewed update request and its status. These are
+For linked members, Profile also shows **Company-recorded details**: the person's name and residential address
+held by the selected company, with a company-reviewed update request and its status. These are
 separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
 
 On mobile, the Account tab opens Profile and offers biometric sign-in, **App lock** (biometrics

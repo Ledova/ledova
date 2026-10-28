@@ -357,9 +357,9 @@ and address. Administrators see **Edit company**. It also shows the company's UU
 ([requesting a decision](participants.md#requesting-a-decision)).
 
 On web, select the company in Dashboard. Settings opens Profile, combining personal, permitted
-company and account sections with separate editors and permissions. Company documents, Team and
-Activation have their own sidebar items where current access permits, without a repeated Company
-administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
+company and account sections with separate editors and permissions. Team and Activation have their
+own Settings items, and **Documents** → **Company documents** holds the company's supporting
+documents, where current access permits, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
 Company eligibility (`/company/eligibility`) and **Published to your members** (`/company/publications`)
 retain their existing routes and access rules
 ([the Published page](publications.md#the-published-page)).

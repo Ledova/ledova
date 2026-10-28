@@ -8,8 +8,7 @@ const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open
 
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const { pathname, hash } = useLocation();
-  const active =
-    pathname === CERTIFICATES_PATH || (pathname === DESTINATIONS.settings.path && hash === '#company-recorded-details');
+  const active = pathname === CERTIFICATES_PATH || (pathname === DESTINATIONS.settings.path && hash === '#profile');
   const read = useMemberRecords(() => crypto.randomUUID(), undefined, { coordinatedRefresh: true, enabled: active });
   return (
     <MemberState key={`${read.scopeOwner?.userUuid}/${read.scopeOwner?.ownerAccountUuid}`} read={read} active={active}>

@@ -42,7 +42,7 @@ function MemberPageLinks() {
     <nav>
       <Link to={context!.companyPath('/home')}>Dashboard</Link>
       <Link to={context!.companyPath('/home#documents')}>Documents</Link>
-      <Link to={context!.companyPath('/settings#company-recorded-details')}>Settings</Link>
+      <Link to={context!.companyPath('/settings#profile')}>Settings</Link>
       <Link to="/home?company=unavailable-company">Open unavailable company</Link>
     </nav>
   );

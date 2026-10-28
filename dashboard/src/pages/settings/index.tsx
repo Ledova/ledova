@@ -15,7 +15,6 @@ import { AccountSettings } from './AccountSettings';
 
 export default function SettingsPage() {
   const { hash, search, state } = useLocation();
-  if (hash === '#company-recorded-details') return <CompanyRecordedDetails />;
   if (hash !== '#profile')
     return <Navigate to={{ pathname: DESTINATIONS.settings.path, search, hash: '#profile' }} state={state} replace />;
   return <Profile />;
@@ -55,6 +54,7 @@ function Profile() {
         ) : null}
         {showCompany && <CompanyProfile />}
         <PersonalProfile profile={profile} />
+        {!!context?.company?.memberUuids.length && <CompanyRecordedDetails />}
         <AccountSettings profile={profile} />
       </Page>
     </PageTitle.Provider>

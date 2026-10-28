@@ -7,6 +7,7 @@ export const SIGNUP_PATH = '/signup';
 export const NOT_FOUND_PATH = '*';
 export const COMPANY_DASHBOARD_PATH = '/company/dashboard';
 export const CERTIFICATES_PATH = '/documents/certificates';
+export const COMPANY_DOCUMENTS_PATH = '/documents/company';
 
 export function certificatesLocation(location: Pick<Location, 'search' | 'state'>) {
   const query = new URLSearchParams(location.search);
