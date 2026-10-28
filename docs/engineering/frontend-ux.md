@@ -143,17 +143,17 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `Disclosure`: expandable page content, a button with `aria-expanded` and a leading
   caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
-  independently through `useOpenRows` from `@ledova/shared`), Activity's filter and Wallets' sort
+  independently through `useOpenRows` from `@ledova/shared`) and Wallets' sort
   hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
   so unfinished input survives. Saved issue and transfer records start with their details closed. The
-  sidebar's group caret is a separate navigation button; More keeps its native toggle.
-  Activity's filter and Wallets' sort (once a chain holds two wallets) are a `Disclosure` at the top of the card
-  naming what it applies; applying or clearing closes it and every open entry and returns focus to
-  its button. Substantial record reviews use the main page; brief confirmations and signing steps
-  can use dialogs.
+  sidebar's group caret is a separate navigation button. Wallets' sort (once a chain holds two
+  wallets) remains a `Disclosure` at the top of the card naming what it applies. Substantial record
+  reviews use the main page; brief confirmations and signing steps can use dialogs.
 - `Popover`: compact secondary controls, such as filters and notifications, may open an anchored
-  panel without moving page content. Reuse Headless UI's `Popover`, `PopoverButton` and
-  `PopoverPanel`, as the notification bell does, with the existing surface, border and spacing.
+  panel without moving page content. Filters use `FilterPopover`
+  (`dashboard/src/components/FilterPopover.tsx`), which shares Headless UI's `Popover`,
+  `PopoverButton` and `PopoverPanel` pattern with the notification bell and owns only the trigger,
+  panel, focus and viewport bounds. Pages keep their fields, data, drafts and validation.
   The [filter rules](#lists-search-filters-and-paging) describe its interaction. Editing records,
   preparation and substantial reviews stay on the main page.
 - `SwitchRow`: a setting that takes effect at once (Transaction alerts; Dark theme; Show this
@@ -166,8 +166,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   `dashboard/src/components/statusTones.ts`. Personal applications retain their moving fallback,
   company applications their waiting fallback, and an open offering retains its override.
 
-On workflow collections, show the saved records first, with company and class context once above
-them. Keep each recipient, status and key facts together, its details on demand, and its next action
+On workflow collections, show the saved records first, with class context once where needed.
+The sidebar footer identifies the current company. Keep each recipient, status and key facts together,
+its details on demand, and its next action
 in a right-aligned footer after secondary actions.
 Particulars changes keep supporting-document download and decision actions together in one right-aligned,
 wrapping footer, with download errors visible beside that action group.
@@ -257,7 +258,12 @@ with compact rows aligned under Person, Linked or Invited, and Status. People re
 revoked access records; invitations remain separate records. **Member requests** uses one **Requests**
 card, with Person, Request, Requested and Status columns. Identify each request as a details update
 or an unsigned certificate, with the certificate's share class when available. Keep all retained
-statuses in the list. Both views use the standard workspace width and Ledger's aligned change-row pattern;
+statuses in the list. The Requests title row holds the Filters icon; its panel searches the person's
+name and selects All requests, Details update or Certificate. Name search applies after 300 ms;
+type selection applies immediately and closes the panel. Match the complete permitted request
+arrays, with a simple no-match state. Keep request rows and active workflows mounted: filters only
+hide other rows and cannot hide a held preparation or its recovery. Both views use the standard
+workspace width and Ledger's aligned change-row pattern;
 headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
 or class context and genuine dates before expansion, without repeating the page title inside a card.
 Each whole row opens its details and relevant actions together, including the full requested particulars.
@@ -288,7 +294,7 @@ visible, with one right-aligned Cancel/Preview or Cancel/Create certificate row.
 span the workspace; the Member requests collection returns when the task closes.
 
 For a substantial record review, replace the collection and its creation action with a focused review
-on the same page. Keep company and class context once, then the issue or transfer summary, ownership
+on the same page. Keep the class and exact decision target clear, then the issue or transfer summary, ownership
 impact and supporting facts. Agreement and receipt, or the transfer instrument, sit beside company
 authority on wider screens and stack on
 smaller screens; long terms, documents and audit references open on demand. Keep Cancel and the
@@ -365,7 +371,13 @@ is open, and Escape or a choice closes it. The first Tab on a signed-in page rea
 content", which moves focus to the page's heading.
 
 The Dashboard selects company context; there is no workspace or role selector. Keep the selected
-company visible in the sidebar and preserve its context in task links. One person uses one account:
+company below the person's name in the sidebar footer and preserve its context in task links. Both
+names use small text (`text-xs`), retain stored capitalization and stay on one truncated line with
+the full name in a title. The navigation scrolls between the fixed brand header and footer.
+Do not repeat the current company name as a passive heading, subtitle or card label in signed-in
+content. Keep it where it identifies a functional company picker, a company Profile field, a record
+in a multi-company list or asset holding, or the exact legal, declaration, snapshot or recovery target.
+One person uses one account:
 company appointments and actual member associations independently determine the available tasks and
 records. Company context never grants authority or links someone to a same-named shareholder.
 The common Certificates page must identify whose records and actions each row permits. Preserve authorised
@@ -393,8 +405,9 @@ and member destinations from current access and context; Team stays available fo
 invitation. Company-recorded particulars stay on their separate member page.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
-[separately](mobile.md#navigation). Company eligibility and Published to your members stay under More,
-distinct from personal Notices. Representative authority remains a contextual task in Team.
+[separately](mobile.md#navigation). The sidebar has no More group or Help & Support link. Removing
+these links changes no underlying route, audience or permission. Representative authority remains
+a contextual task in Team.
 Page controls start or complete work for that page or record: Add person, Invite a member,
 Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
 actions remain beside their records. Keep section navigation in the sidebar rather than repeating it
@@ -639,7 +652,8 @@ internal identifiers. The selected name and dropdown affordance identify the con
 remains accessible but visually hidden.
 
 A single company opens directly. Other company-related pages inherit the selection through their
-address and task links, showing the company name without another company picker. With several
+address and task links; the sidebar footer identifies it without another company picker or passive
+page label. With several
 companies and no selection, or an unavailable selected company, `CompanyContextNotice`
 (`dashboard/src/components/CompanyContextNotice.tsx`) links to Dashboard. Never silently select a
 different company. Valid company and record links still open directly. Account-wide Profile,
@@ -675,13 +689,14 @@ answers. It asks for:
 - the requested state of a pause change;
 - the exemption an offering relies on;
 - a company eligibility decision's outcome and a wallet instruction's action;
-- the direction and network in Activity's filter, and the network for a new or imported wallet;
+- the network for a new or imported wallet;
 - the professional body behind an accountant's certificate;
 - the type of a profile document, where answers not yet offered stay listed, disabled and marked
   "coming soon".
 
 A question with no answer yet shows no button chosen. The answer takes effect with the form or
-filter it belongs to. Wallets' sort is the exception: each sort applies as soon as it is chosen, so
+filter it belongs to. [Compact filters](#lists-search-filters-and-paging) use labelled selectors to
+keep their secondary panels small. Wallets' sort is the exception: each sort applies as soon as it is chosen, so
 its answers are a row of buttons marked pressed, since moving through radio buttons with the arrow
 keys would re-sort the list at every step.
 
@@ -726,25 +741,39 @@ server:
   It searches 300 ms after typing stops. The server matches every typed word, ignoring case. While
   a search or filter applies, a polite status line counts the matches, such as "3 applications match
   your search" or "No applications match".
-- **Compact filters:** secondary filters may share one **Filters** button and anchored popover;
-  a search central to the page's main task stays visible. The button may use an icon with an
-  accessible name and tooltip. The controls and record rows can identify the applied scope without
-  repeating it in a header summary or badge. Use labelled controls and one Clear/Apply row.
-  Edits remain drafts until Apply; incidental dismissal retains them without changing results.
-  Apply and Clear close the panel and return focus to its button. Escape and an outside click
-  dismiss it, and all controls remain keyboard accessible. Fit the panel within the viewport,
-  scrolling inside when needed rather than overflowing or shifting the table. Applying filters
-  keeps their URL, full-history matching and loading/error rules; opening the panel or editing a
-  draft does not start a new results read. Certificates uses this pattern; Activity's filter and
-  Wallets' sort keep their existing disclosures.
+- **Compact filters:** secondary filters use `FilterPopover`: an icon button named **Filters** with
+  a tooltip, opening an anchored panel. Place its icon in the collection's title row or beside an
+  existing visible search field, without reserving a separate row above the records.
+  Search applications stays visible, as do offering and Ledger
+  task scope selectors. Shareholders puts Search people inside the panel above Share class, keeping
+  its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
+  scope without repeating it in a header summary or badge. Certificates and Activity keep labelled
+  draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;
+  Apply and Clear close the panel and return focus to its button. Activity retains its date
+  validation, whole-local-day bounds and separate wallet-read retry. Shareholders' class filter,
+  Member requests' type, offering applications' Status and company eligibility's Outcome apply
+  immediately, closing the panel on selection. Member requests' person search stays inside its panel
+  and uses the existing 300 ms timing, without an Apply action. Escape and an outside click dismiss
+  it, and all controls remain keyboard
+  accessible. Fit the panel within the viewport, scrolling inside when needed rather than
+  overflowing or shifting the table. Preserve each page's URL, paging, full-history matching and
+  loading/error rules; opening the panel or editing a draft does not start a new results read.
+  Wallets' sort keeps its separate existing disclosure.
 - **The address:** `useListParams` (`dashboard/src/hooks/useListParams.ts`) keeps the search
   (`q`), the filters and the page in the URL, so Back, a refresh or a shared link keep them. Typing
   replaces the history entry, while a filter or page change adds one. Any change but the page
   returns to the first page. On a list paged by the server, a page that no longer exists is replaced
   by the first; a list searched in the browser shows its last page instead.
-- **Tables:** `Table` is the markup for lists on these controls: a framed table that scrolls
+- **Tables:** `Table` is the markup for lists on these controls: a flat table that scrolls
   sideways within its card, with a screen-reader caption, a header row of `scope="col"` cells and
-  each row named by its first cell as a row header. `Pager` under it gives the rows shown, such as
+  each row named by its first cell as a row header. Aligned expandable record lists, such as
+  Certificates, reuse `TABLE_SCROLL_CLASS` and `TABLE_HEADER_CLASS` from
+  `dashboard/src/components/List.tsx` for overflow and small muted headers on the card's own surface.
+  Use one outer `Section`, subtle row dividers and right-aligned tabular quantities, without an
+  inner rounded border or shaded header. Native table cells keep their padding; expandable lists
+  keep their disclosure alignment, with dates and status in muted text.
+  Keep their list and disclosure semantics and editor lifetimes;
+  focused editors remain unboxed. `Pager` under a paged table gives the rows shown, such as
   "1–25 of 1,240 applications", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it
   is loading.
@@ -756,12 +785,13 @@ server:
 An offering's applications on Offerings are searched and paged by the server: search by investor
 name, wallet address or payment reference, filter by status, with the chosen offering kept in the
 address too. Company eligibility's request queue pages the same way, with no search box: its one
-filter is the outcome, as radio buttons, which the server derives from each request's decision,
-withdrawal, revocation and expiry. While another page or outcome loads, its rows stay dimmed and
+filter is the outcome, selected in the compact filter panel, which the server derives from each
+request's decision, withdrawal, revocation and expiry. While another page or outcome loads, its rows stay dimmed and
 their View buttons wait. Shareholders searches and pages the register the page has already read in
-full, since its ownership totals need every holding: the same box and pager, matching every word
-ignoring case and accents (`searchRows` in `packages/shared/src/utils/search.ts`), with the share
-class as its filter.
+full, since its ownership totals need every holding: Search people and the class filter share the
+popover, with the same search timing and pager. Search matches every word, ignoring case and accents
+(`searchRows` in `packages/shared/src/utils/search.ts`); selecting a class applies it immediately and
+closes the panel.
 
 The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
 your members, a class's register entries, a share class's issuance requests, authorised share
@@ -877,7 +907,8 @@ Some messages keep their own form:
   has a rule, and its label or message names the time zone where it matters.
 - **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
   `FormSteps` (`dashboard/src/components/FormSteps.tsx`), with one step visible at a time.
-  Show company and class context once above the form, without a duplicate information card or
+  Show class context once above the form; the footer identifies the current company. Keep exact
+  company names in declarations or captured review targets, without a duplicate information card or
   routine technical and upload descriptions. Transfer preparation follows the investor pattern:
   People and shares, Transfer documents, then Company authority and review.
   Keep the same fields, card, typography and `FormActions`: Back and Continue for local

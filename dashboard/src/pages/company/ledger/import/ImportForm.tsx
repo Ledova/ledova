@@ -33,7 +33,6 @@ export function ImportForm({
   guard,
   newEffectGuard = guard,
   company,
-  companyName,
   shareClass,
   register,
   appointment,
@@ -113,11 +112,10 @@ export function ImportForm({
 
   return (
     <div className="space-y-6">
-      {visible && companyName && (
+      {visible && shareClass?.name && (
         <p className="text-sm text-text-muted">
-          {companyName}
-          {shareClass?.name && ` · ${shareClass.name}`}
-          {shareClass?.name && shareClass.symbol && ` (${shareClass.symbol})`}
+          {shareClass.name}
+          {shareClass.symbol && ` (${shareClass.symbol})`}
         </p>
       )}
       {(!visible || proposal?.status !== 'applied') && (

@@ -91,7 +91,7 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
     <>
       <Section title={token.name}>
         <p className="text-sm text-text-muted">
-          {token.companyName} · {token.symbol} · {token.tokenTypeDisplay}
+          {token.symbol} · {token.tokenTypeDisplay}
         </p>
         {preferencesRead?.status === 'error' ? (
           <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>

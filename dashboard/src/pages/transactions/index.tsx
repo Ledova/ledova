@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { useOpenRows, useTransactions, type TransactionFilters } from '@ledova/shared';
 import { Page, PageAction } from '@components/Page';
 import { Section, LoadError, Loading } from '@components/Ledger';
@@ -31,12 +31,10 @@ const TransactionsPage = () => {
     loadMore,
   } = useTransactions();
   const entries = useOpenRows();
-  const [filterOpen, setFilterOpen] = useState(false);
   const filterToggle = useRef<HTMLButtonElement>(null);
   const handleFilterChange = (field: keyof TransactionFilters, value: string) =>
     updateFilters({ ...filters, [field]: value || undefined });
   const settleFilters = () => {
-    setFilterOpen(false);
     entries.closeAll();
     filterToggle.current?.focus();
   };
@@ -51,22 +49,27 @@ const TransactionsPage = () => {
 
   return (
     <Page>
-      <Section title="Transfers">
-        <TransactionFilter
-          ref={filterToggle}
-          open={filterOpen}
-          onToggle={() => setFilterOpen((open) => !open)}
-          applied={appliedFilters}
-          filters={filters}
-          wallets={wallets}
-          walletsLoading={walletsLoading}
-          walletsFailed={walletsFailed}
-          walletsRefreshing={walletsRefreshing}
-          onRetryWallets={() => void retryWallets()}
-          onFilterChange={handleFilterChange}
-          onApply={handleApplyFilters}
-          onClear={handleClearFilters}
-        />
+      <Section
+        title="Transfers"
+        header={
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Transfers</h2>
+            <TransactionFilter
+              ref={filterToggle}
+              applied={appliedFilters}
+              filters={filters}
+              wallets={wallets}
+              walletsLoading={walletsLoading}
+              walletsFailed={walletsFailed}
+              walletsRefreshing={walletsRefreshing}
+              onRetryWallets={() => void retryWallets()}
+              onFilterChange={handleFilterChange}
+              onApply={handleApplyFilters}
+              onClear={handleClearFilters}
+            />
+          </div>
+        }
+      >
         {isLoading ? (
           <Loading>Loading activity…</Loading>
         ) : hasError ? (

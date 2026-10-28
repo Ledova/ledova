@@ -4,6 +4,7 @@ type Role = 'investor' | 'company' | 'both';
 
 const EMPTY = { results: [], count: 0, next: null, previous: null };
 const LONG_NAME = 'HARBOUR ROBOTICS AND AUTONOMOUS MARINE SYSTEMS HOLDINGS PTY LTD';
+const LONG_PERSON = 'Ada Augusta Byron King Lovelace Harbour Robotics Company Administrator';
 const ORDINARY = {
   token: { uuid: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', status: 'draft', totalSupply: '1000' },
   initialized: true,
@@ -124,7 +125,7 @@ async function serveASignedInAccount(page: Page, role: Role) {
       return answer({
         ...EMPTY,
         count: 1,
-        results: [{ uuid: 'profile', isSignupCompleted: true, fullName: 'Ada Lovelace', email: 'ada@example.test' }],
+        results: [{ uuid: 'profile', isSignupCompleted: true, fullName: LONG_PERSON, email: 'ada@example.test' }],
       });
     if (path === '/api/feature-flags/')
       return answer({ ...EMPTY, count: 1, results: [{ name: 'trading_enabled', enabled: true }] });
@@ -387,10 +388,9 @@ async function openTheSidebar(page: Page, role: Role) {
   await page.goto('/settings?company=company#profile');
   await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
   aside = await visibleSidebar(page);
-  const more = aside.locator('summary').filter({ hasText: 'More' });
-  if ((await more.locator('..').getAttribute('open')) === null) await more.click();
-  await expect(aside.getByRole('link', { name: 'Wallets', exact: true })).toBeVisible();
-  if (role !== 'company') await expect(aside.getByText('Invest', { exact: true })).toBeVisible();
+  await expect(aside.getByText('More', { exact: true })).toHaveCount(0);
+  await expect(aside.getByRole('link', { name: 'Help & Support' })).toHaveCount(0);
+  await expect(aside.getByRole('link', { name: 'Wallets', exact: true })).toHaveCount(0);
   await expect(aside.getByRole('combobox', { name: 'Workspace' })).toHaveCount(0);
   expect(reads.memberLists).toBeGreaterThan(0);
   return aside;
@@ -403,21 +403,35 @@ function bottomOf(box: { y: number; height: number } | null) {
 async function checkTheCutEdge(aside: ReturnType<Page['locator']>) {
   const list = aside.locator('nav').locator('..');
   const foot = aside.locator(':scope > :last-child');
-  const help = aside.getByRole('link', { name: 'Help & Support' });
-  expect(await list.evaluate((node) => node.scrollHeight - node.clientHeight)).toBeGreaterThan(0);
   expect(await list.evaluate((node) => node.nextElementSibling === node.parentElement?.lastElementChild)).toBe(true);
   await expect(foot).toContainText('Sign out');
   await expect(foot).toHaveCSS('border-top-style', 'solid');
   await expect(foot).toHaveCSS('border-top-width', '1px');
   expect(Math.abs((await foot.boundingBox())!.y - bottomOf(await list.boundingBox()))).toBeLessThan(0.5);
-  expect(await list.evaluate((node) => node.lastElementChild?.textContent)).toBe('Help & Support');
+  const person = foot.getByText(LONG_PERSON, { exact: true });
+  const company = foot.getByText(LONG_NAME, { exact: true });
+  for (const [name, label] of [
+    [person, LONG_PERSON],
+    [company, LONG_NAME],
+  ] as const) {
+    await expect(name).toHaveAttribute('title', label);
+    await expect(name).toHaveCSS('font-size', '12px');
+    await expect(name).toHaveCSS('white-space', 'nowrap');
+    await expect(name).toHaveCSS('text-overflow', 'ellipsis');
+    expect(await name.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
+  }
+  expect(await person.evaluate((node) => node.nextElementSibling?.textContent)).toBe(LONG_NAME);
+  await expect(aside.getByText(LONG_NAME, { exact: true })).toHaveCount(1);
+  const before = await foot.boundingBox();
   await list.evaluate((node) => {
     node.scrollTop = node.scrollHeight;
   });
-  expect(bottomOf(await help.boundingBox())).toBeLessThanOrEqual(bottomOf(await list.boundingBox()));
+  const after = await foot.boundingBox();
+  expect(after?.y).toBe(before?.y);
+  expect(await aside.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
 }
 
-test.describe('the signed-in sidebar when its list is longer than the screen', () => {
+test.describe('the signed-in sidebar and compact account footer', () => {
   const layouts = [
     {
       name: 'the phone drawer',
@@ -428,9 +442,7 @@ test.describe('the signed-in sidebar when its list is longer than the screen', (
   ];
   for (const layout of layouts)
     for (const role of layout.roles) {
-      test(`cuts the ${role} list at the foot's rule in ${layout.name}, with Help & Support at the list's end`, async ({
-        page,
-      }) => {
+      test(`keeps the ${role} account footer below the contained list in ${layout.name}`, async ({ page }) => {
         await page.setViewportSize(layout.viewport);
         await checkTheCutEdge(await openTheSidebar(page, role));
         if (role === 'investor') {

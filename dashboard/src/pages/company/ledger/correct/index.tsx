@@ -111,9 +111,7 @@ function OwnCorrection({
     content = (
       <>
         <Section title={listed.name}>
-          <p className="text-sm text-text-muted">
-            {listed.companyName} · {listed.symbol}
-          </p>
+          <p className="text-sm text-text-muted">{listed.symbol}</p>
           <Rows>
             <Row label={COPY.ORIGINAL_CHANGES}>
               <span className="block">{describeEntry(corrected.data)}</span>

@@ -196,7 +196,6 @@ function FreshClass({
       guard={guard}
       newEffectGuard={check}
       company={company.uuid}
-      companyName={company.name}
       shareClass={{ name, symbol }}
       companyMembers={companyMembers}
       appointment={steps.prepare!}

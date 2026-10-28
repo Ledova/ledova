@@ -326,33 +326,45 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByText('26–26 of 26 people')).toBeTruthy();
   expect(within(pages).getByRole('button', { name: /^Next/ }).matches(':disabled')).toBe(true);
 
-  const search = screen.getByLabelText('Search people');
-  const filter = screen.getByLabelText('Share class');
-  fireEvent.change(search, { target: { value: ' eXaMpLe MeMbEr ' } });
+  const openFilters = () => {
+    const toggle = screen.getByRole('button', { name: 'Filters' });
+    if (toggle.getAttribute('aria-expanded') === 'false') fireEvent.click(toggle);
+  };
+  const searchPeople = (value: string) => {
+    openFilters();
+    fireEvent.change(screen.getByLabelText('Search people'), { target: { value } });
+  };
+  const filterClass = (value: string) => {
+    openFilters();
+    fireEvent.change(screen.getByLabelText('Share class'), { target: { value } });
+  };
+  searchPeople(' eXaMpLe MeMbEr ');
   expect(await screen.findByText('1–2 of 2 people')).toBeTruthy();
   expect(screen.getByText('2 people match your search.')).toBeTruthy();
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(2);
-  fireEvent.change(filter, { target: { value: 'preference' } });
+  filterClass('preference');
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(1);
   expect(within(table).queryByText('<0.01%')).toBeNull();
   expect(screen.getByText('1–1 of 1 person')).toBeTruthy();
   expect(screen.getByText(/1 shareholder needs identity review/)).toBeTruthy();
-  fireEvent.change(filter, { target: { value: 'ordinary' } });
+  filterClass('ordinary');
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(2);
-  fireEvent.change(filter, { target: { value: '' } });
-  fireEvent.change(search, { target: { value: ' preference member NAME ' } });
+  filterClass('');
+  searchPeople(' preference member NAME ');
   expect(await screen.findByText('1–1 of 1 person')).toBeTruthy();
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(2);
-  fireEvent.change(filter, { target: { value: 'preference' } });
+  filterClass('preference');
   expect(within(table).getAllByRole('row', { name: /Example Member/ })).toHaveLength(1);
   expect(within(table).getAllByText('9,007,199,254,740,993')).toHaveLength(1);
-  fireEvent.change(search, { target: { value: 'No such shareholder' } });
+  searchPeople('No such shareholder');
   expect(await screen.findByText('No people match your search.')).toBeTruthy();
+  fireEvent.keyDown(screen.getByLabelText('Search people'), { key: 'Escape' });
+  expect(screen.getByText('No people match these filters.')).toBeTruthy();
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
-  fireEvent.change(filter, { target: { value: '' } });
-  fireEvent.change(screen.getByLabelText('Search people'), { target: { value: '' } });
+  filterClass('');
+  searchPeople('');
   expect(await screen.findByText('1–25 of 26 people')).toBeTruthy();
   expect(within(screen.getByRole('table', { name: 'Company shareholders' })).getAllByRole('row')).toHaveLength(26);
   expect(api.post).not.toHaveBeenCalled();
@@ -1813,7 +1825,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   };
   showJourney();
   fireEvent.click(await screen.findByRole('link', { name: 'Add share class' }));
-  expect(await screen.findByText(`${company.name} · Ordinary shares (ORD)`)).toBeTruthy();
+  expect(await screen.findByText('Ordinary shares (ORD)')).toBeTruthy();
   expect(screen.queryByLabelText('Authorised shares')).toBeNull();
   expect(screen.queryByLabelText('Reason')).toBeNull();
   expect(screen.queryByLabelText('Record source')).toBeNull();
@@ -2529,15 +2541,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   pick('Another class');
   fireEvent.change(screen.getByLabelText('Class name'), { target: { value: 'Company A shares' } });
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: 'A' } });
-  expect(screen.getByText(`${company.name} · Company A shares (A)`)).toBeTruthy();
+  expect(screen.getByText('Company A shares (A)')).toBeTruthy();
   expect((screen.getByLabelText('Class code') as HTMLInputElement).maxLength).toBe(5);
   pick('Preference (PRF)');
-  expect(screen.getByText(`${company.name} · Preference shares (PRF)`)).toBeTruthy();
+  expect(screen.getByText('Preference shares (PRF)')).toBeTruthy();
   expect(screen.queryByLabelText('Class name')).toBeNull();
   expect(screen.queryByLabelText('Class code')).toBeNull();
   expect(screen.queryByRole('group', { name: 'Class type' })).toBeNull();
   pick('Redeemable (RED)');
-  expect(screen.getByText(`${company.name} · Redeemable shares (RED)`)).toBeTruthy();
+  expect(screen.getByText('Redeemable shares (RED)')).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   expect(screen.getByRole('link', { name: 'open Ledger' }).getAttribute('href')).toBe(
     `/company/ledger?company=${company.uuid}`,
@@ -3066,6 +3078,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
     'investor',
     <>
       <CompanyRegisterPage />
+      <LedgerLocation />
       <Link to="/" state={{ registerCompany: 'inland', registerToken: 'ordinary' }}>
         Open mismatched dashboard class
       </Link>
@@ -3097,7 +3110,7 @@ it("retains a dashboard's validated company/class context and reads only the cho
   )!;
   await waitFor(() => expect(document.activeElement).toBe(preference.closest('li')));
   expect(within(preference.closest('li')!).getByRole('heading', { name: 'Changes' })).toBeTruthy();
-  expect(screen.getByText('Inland Example Pty Ltd', { selector: 'p' })).toBeTruthy();
+  expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!).state.registerCompany).toBe('inland');
   expect(screen.queryByRole('link', { name: 'Share class' })).toBeNull();
   expect(screen.queryByRole('heading', { name: /^Ordinary shares ·/ })).toBeNull();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
@@ -3105,11 +3118,13 @@ it("retains a dashboard's validated company/class context and reads only the cho
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
 
   fireEvent.click(screen.getByRole('link', { name: 'Use Harbour company' }));
-  await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
+  await waitFor(() =>
+    expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!).search).toBe('?company=harbour'),
+  );
   expect(
     (await screen.findAllByRole('heading', { name: /^Ordinary shares ·/ })).find((heading) => heading.closest('li')),
   ).toBeTruthy();
-  expect(screen.getByText('Harbour Example Pty Ltd', { selector: 'p' })).toBeTruthy();
+  expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!).search).toBe('?company=harbour');
   expect(screen.queryByRole('heading', { name: /^Preference shares ·/ })).toBeNull();
   expect(
     readUrls().filter(
@@ -3125,14 +3140,22 @@ it("retains a dashboard's validated company/class context and reads only the cho
     ]);
 
   fireEvent.click(screen.getByRole('link', { name: 'Open dashboard shareholders' }));
-  await screen.findByText('Inland Example Pty Ltd', { selector: 'p' });
+  await waitFor(() =>
+    expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!).state.registerCompany).toBe('inland'),
+  );
+  await screen.findByRole('columnheader', { name: /PREFERENCE/ });
   fireEvent.click(screen.getByRole('link', { name: 'Use Harbour company' }));
-  await screen.findByText('Harbour Example Pty Ltd', { selector: 'p' });
+  await waitFor(() =>
+    expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!).search).toBe('?company=harbour'),
+  );
+  await screen.findByRole('columnheader', { name: /ORDINARY/ });
+  fireEvent.click(await screen.findByRole('button', { name: 'Filters' }));
   fireEvent.change(await screen.findByLabelText('Search people'), { target: { value: 'Example' } });
   expect(await screen.findByText(/match(es)? your search\./)).toBeTruthy();
   await act(async () => {});
-  expect(screen.getByText('Harbour Example Pty Ltd', { selector: 'p' })).toBeTruthy();
-  expect(screen.queryByText('Inland Example Pty Ltd', { selector: 'p' })).toBeNull();
+  expect(
+    new URLSearchParams(JSON.parse(screen.getByLabelText('Ledger location').textContent!).search).get('company'),
+  ).toBe('harbour');
 });
 
 it("starts again for another signed-in account without showing the previous account's register or choice", async () => {

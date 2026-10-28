@@ -101,9 +101,7 @@ function OwnOpening({
     content = (
       <>
         <Section title={listed.name}>
-          <p className="text-sm text-text-muted">
-            {listed.companyName} · {listed.symbol}
-          </p>
+          <p className="text-sm text-text-muted">{listed.symbol}</p>
           <Rows>
             <Row label="Holdings read at">
               {COPY.BOUNDARY_BLOCK(holders.data.block.number, formatDate(holders.data.block.date))}

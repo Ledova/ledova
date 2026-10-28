@@ -536,7 +536,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   expect((screen.getByRole('combobox', { name: 'Your companies' }) as HTMLInputElement).disabled).toBe(false);
   await choose('Your companies', otherRecord.company.name);
   await ownShares('25');
-  expect(screen.getByRole('heading', { name: otherRecord.company.name })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Ownership overview' })).toBeTruthy();
   expect(screen.getByRole('list', { name: 'Share classes' })).toBeTruthy();
   expect(screen.getByText('Your issued shares').nextElementSibling?.textContent).not.toBe('10');
   expect(screen.queryByRole('alert')).toBeNull();

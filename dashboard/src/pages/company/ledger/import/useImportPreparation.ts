@@ -53,7 +53,6 @@ export type ImportFormProps = {
   guard: () => void;
   newEffectGuard?: () => void;
   company: string;
-  companyName?: string;
   shareClass?: { name: string; symbol: string };
   register?: TokenHoldersResponse;
   appointment?: OwnCompanyAppointment;
@@ -93,7 +92,7 @@ export function useImportPreparation({
   emptyOpeningAllowed = false,
   visible = true,
   onHeldChange,
-}: Omit<ImportFormProps, 'companyName' | 'shareClass' | 'classFields'>) {
+}: Omit<ImportFormProps, 'shareClass' | 'classFields'>) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const importDescription = useId();

@@ -1,4 +1,5 @@
 import { SelectField } from '@components/SelectField';
+import { FilterPopover } from '@components/FilterPopover';
 import {
   HOLDER_TYPE_LABELS,
   formatShareCount,
@@ -73,8 +74,40 @@ export function CompanyShareholders({
   const end = page * PAGE_SIZE;
   const shownPeople = withoutShares.slice(Math.max(0, start - found.length), Math.max(0, end - found.length));
   const unresolved = shareholders.filter(({ holdings }) => holdings.some(needsIdentityReview)).length;
+  const filters = (shareholders.length > 0 || people.length > 0) && (
+    <FilterPopover active={!!classFilter || !!list.search}>
+      {(close) => (
+        <>
+          <ListSearch label="Search people" list={list} noun={NOUN} count={count} filtered={!!classFilter} />
+          <SelectField
+            label="Share class"
+            options={[
+              { value: '', label: 'All classes' },
+              ...registers.map(({ token }) => ({
+                value: token.uuid,
+                label: `${token.name} · ${token.symbol}`,
+              })),
+            ]}
+            value={classFilter}
+            onChange={(value) => {
+              close();
+              list.setFilter('class', value);
+            }}
+          />
+        </>
+      )}
+    </FilterPopover>
+  );
   return (
-    <Section title="Current shareholders">
+    <Section
+      title="Current shareholders"
+      header={
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Current shareholders</h2>
+          {filters}
+        </div>
+      }
+    >
       {registers.some(({ initialized }) => !initialized) && (
         <p role="status" className="text-sm text-text-muted">
           Unopened classes have no recorded holdings. This list includes only the opened registers.
@@ -84,17 +117,11 @@ export function CompanyShareholders({
         <p className="text-sm text-text-muted">No current shareholders yet.</p>
       ) : (
         <>
-          <ListSearch label="Search people" list={list} noun={NOUN} count={count} filtered={!!classFilter}>
-            <SelectField
-              label="Share class"
-              options={[
-                { value: '', label: 'All classes' },
-                ...registers.map(({ token }) => ({ value: token.uuid, label: `${token.name} · ${token.symbol}` })),
-              ]}
-              value={classFilter}
-              onChange={(value) => list.setFilter('class', value)}
-            />
-          </ListSearch>
+          {count === 0 && (!!list.search || !!classFilter) && (
+            <p role="status" className="text-sm text-text-muted">
+              No people match these filters.
+            </p>
+          )}
           {unresolved > 0 && (
             <p role="status" className="text-sm text-text-muted">
               {unresolved} {unresolved === 1 ? 'shareholder needs' : 'shareholders need'} identity review. Open their

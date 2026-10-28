@@ -160,11 +160,12 @@ attached to it. You can withdraw a pending or accepted request; a refusal stays 
 
 ### Deciding, withdrawing and revoking
 
-Company approvers open **More → Company eligibility** on web.
+Company approvers open **Company eligibility** at `/company/eligibility` on web.
 
 1. Choose your exact appointment for the selected company, then read the request queue and a
    request's summary. On the web the queue shows 25 requests a page, newest first, and can be filtered by
-   outcome (pending, accepted, refused, withdrawn, revoked or expired).
+   outcome (pending, accepted, refused, withdrawn, revoked or expired) using the Filters icon.
+   Selecting an outcome applies it immediately and closes the panel.
 2. Prepare an acceptance with an expiry, or a refusal with its reason, and confirm the previewed
    decision.
 3. To revoke an accepted request, give a reason and confirm.

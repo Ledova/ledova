@@ -96,7 +96,7 @@ function OwnLinks({
   else
     content = (
       <>
-        <Section title={listed[0].companyName}>
+        <Section title="Wallet links">
           <p className="text-sm text-text-muted">{COPY.APPLY_NOTE}</p>
         </Section>
         <Section title={COPY.PREPARE}>

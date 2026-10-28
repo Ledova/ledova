@@ -43,17 +43,7 @@ import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 
 const ON_CHAIN = ['deployed', 'paused'];
-function RegisterPage({
-  companyName,
-  sections,
-  task,
-  children,
-}: {
-  companyName?: string;
-  sections?: ReactNode;
-  task?: LedgerTask;
-  children: ReactNode;
-}) {
+function RegisterPage({ sections, task, children }: { sections?: ReactNode; task?: LedgerTask; children: ReactNode }) {
   const { hash } = useLocation();
   const hashTask = hash.slice(1);
   const documents = documentView(hashTask);
@@ -84,7 +74,6 @@ function RegisterPage({
                             : 'Share classes and current ownership.'
         }
       >
-        {companyName && <p className="text-sm text-text-muted">{companyName}</p>}
         {children}
         {sections}
       </Page>
@@ -424,7 +413,6 @@ function OwnRegister({
   return (
     <RegisterPage
       task={view === 'register' ? selectedTask : undefined}
-      companyName={readable && sourceReady ? scope?.company.name : undefined}
       sections={
         scope && (
           <>

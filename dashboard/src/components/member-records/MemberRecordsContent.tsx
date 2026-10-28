@@ -43,12 +43,7 @@ export function MemberRecordsContent({ children }: { children: ReactNode }) {
       ) : (
         <>
           {!requested && !read.readFailed && read.records.length > 0 && <CompanyContextNotice />}
-          {record && !read.readFailed && (
-            <>
-              <h2 className="break-words font-display text-xl text-text-primary">{record.company.name}</h2>
-              {children}
-            </>
-          )}
+          {record && !read.readFailed && children}
           {!read.readFailed && !record && associated && requested && <Loading>Loading your company record…</Loading>}
           {!read.readFailed && !associated && (
             <p className="text-sm text-text-muted">Your account has no member record for this company.</p>

@@ -139,46 +139,46 @@ function SignedInOwnership({
         </Section>
       ) : (
         <>
-          <nav aria-label="Ownership trail" className="flex min-w-0 flex-wrap items-end gap-3 text-sm">
-            {directory.companies.length > 1 || !company ? (
-              <div className="w-full max-w-sm">
-                <CompanyPicker
-                  label="Your companies"
-                  labelHidden
-                  companies={directory.companies.map((item) => ({
-                    uuid: item.uuid,
-                    name: item.name,
-                    detail: [
-                      item.canManage ? 'Company administrator' : item.canReadRegister ? 'Company access' : null,
-                      item.memberUuids.length ? 'Member' : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · '),
-                  }))}
-                  value={company?.uuid ?? ''}
-                  onChange={(uuid) => context?.selectCompany(uuid)}
-                />
-              </div>
-            ) : selected ? (
-              <button
-                type="button"
-                onClick={() => ownership.select(null)}
-                className="max-w-full break-words text-text-muted hover:text-text-primary"
-              >
-                {company.name}
-              </button>
-            ) : (
-              <span className="break-words font-medium">{company.name}</span>
-            )}
-            {selectedClass && (
-              <span className="flex min-w-0 max-w-full items-center gap-3 py-3 font-medium">
-                <span aria-hidden className="shrink-0 text-text-muted">
-                  /
+          {(directory.companies.length > 1 || !company || !!selected) && (
+            <nav aria-label="Ownership trail" className="flex min-w-0 flex-wrap items-end gap-3 text-sm">
+              {directory.companies.length > 1 || !company ? (
+                <div className="w-full max-w-sm">
+                  <CompanyPicker
+                    label="Your companies"
+                    labelHidden
+                    companies={directory.companies.map((item) => ({
+                      uuid: item.uuid,
+                      name: item.name,
+                      detail: [
+                        item.canManage ? 'Company administrator' : item.canReadRegister ? 'Company access' : null,
+                        item.memberUuids.length ? 'Member' : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · '),
+                    }))}
+                    value={company?.uuid ?? ''}
+                    onChange={(uuid) => context?.selectCompany(uuid)}
+                  />
+                </div>
+              ) : selected ? (
+                <button
+                  type="button"
+                  onClick={() => ownership.select(null)}
+                  className="max-w-full break-words text-text-muted hover:text-text-primary"
+                >
+                  Company ownership
+                </button>
+              ) : null}
+              {selectedClass && (
+                <span className="flex min-w-0 max-w-full items-center gap-3 py-3 font-medium">
+                  <span aria-hidden className="shrink-0 text-text-muted">
+                    /
+                  </span>
+                  <span className="min-w-0 break-words">{selectedClass.symbol}</span>
                 </span>
-                <span className="min-w-0 break-words">{selectedClass.symbol}</span>
-              </span>
-            )}
-          </nav>
+              )}
+            </nav>
+          )}
           <div className="flex min-w-0 flex-col gap-5">
             {!company ? (
               <Section title={companyUuid ? 'Company unavailable' : 'Ownership overview'}>
@@ -201,7 +201,7 @@ function SignedInOwnership({
                 )}
                 {view ? (
                   <>
-                    <Section title={company.name}>
+                    <Section title="Ownership overview">
                       <p className="text-sm text-text-muted">
                         {[
                           company.canManage

@@ -1,4 +1,5 @@
 import { SelectField } from '@components/SelectField';
+import { FilterPopover } from '@components/FilterPopover';
 import { Choices } from '@components/Choices';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
@@ -110,10 +111,9 @@ export default function CompanyEligibilityPage() {
                 decision. Recording a decision or revocation requires your own approve appointment.
               </p>
               {!read.companyUuid && <CompanyContextNotice />}
-              {read.companyUuid && (
+              {read.companyUuid && context?.companyUuid !== read.companyUuid && (
                 <p className="text-sm text-text-muted">
-                  {read.companies.find((company) => company.uuid === read.companyUuid)?.name ??
-                    (context?.companyUuid === read.companyUuid ? context.company?.name : 'Original company')}
+                  {read.companies.find((company) => company.uuid === read.companyUuid)?.name ?? 'Original company'}
                 </p>
               )}
               {!read.readFailed && read.companies.length === 0 && (
@@ -144,13 +144,27 @@ export default function CompanyEligibilityPage() {
               )}
             </Section>
             {read.companyUuid && (
-              <Section title="Company request queue">
-                <Choices
-                  legend="Outcome"
-                  options={QUEUE_OUTCOMES}
-                  value={outcome ?? ''}
-                  onChange={(value) => list.setFilter('outcome', value)}
-                />
+              <Section
+                title="Company request queue"
+                header={
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Company request queue</h2>
+                    <FilterPopover active={!!outcome}>
+                      {(close) => (
+                        <SelectField
+                          label="Outcome"
+                          options={QUEUE_OUTCOMES.map(([value, label]) => ({ value, label }))}
+                          value={outcome ?? ''}
+                          onChange={(value) => {
+                            close();
+                            list.setFilter('outcome', value);
+                          }}
+                        />
+                      )}
+                    </FilterPopover>
+                  </div>
+                }
+              >
                 {queue?.settled && queue.rows.length === 0 ? (
                   <p role="status" className="text-sm text-text-muted">
                     {outcome ? 'No requests match.' : 'No requests yet.'}

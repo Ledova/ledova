@@ -327,14 +327,13 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
               Your appointments could not be loaded.
             </LoadError>
           )}
-          {data.companyUuid ? (
-            <p className="text-sm text-text-muted">
-              {data.companies.find((company) => company.uuid === data.companyUuid)?.name ??
-                (context?.companyUuid === data.companyUuid ? context.company?.name : 'Original company')}
-            </p>
-          ) : (
+          {!data.companyUuid ? (
             <CompanyContextNotice />
-          )}
+          ) : context?.companyUuid !== data.companyUuid ? (
+            <p className="text-sm text-text-muted">
+              {data.companies.find((company) => company.uuid === data.companyUuid)?.name ?? 'Original company'}
+            </p>
+          ) : null}
           {data.error && (
             <p role="alert" className="text-sm text-error-light">
               {data.error}

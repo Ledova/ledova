@@ -12,6 +12,7 @@ import {
   MEMBER_PARTICULARS_STATUS_LABELS,
   MEMBER_CERTIFICATE_STATUS_LABELS,
   shortReference,
+  searchRows,
 } from '@ledova/shared';
 import { Outcome, Section, Loading, LoadError, Disclosure, Rows, Row } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
@@ -19,6 +20,9 @@ import { FormActions, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useListParams } from '@hooks/useListParams';
+import { FilterPopover } from '@components/FilterPopover';
+import { SelectField } from '@components/SelectField';
 import { INVITATION_FIELDS, PARTICULARS_FIELDS, useCompanyMemberRequests } from './useCompanyMemberRequests';
 
 export function CompanyMemberAccess({
@@ -67,6 +71,7 @@ export function CompanyMemberAccess({
     prepare,
   } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember });
   const checks = useErrorSummary(problems);
+  const filters = useListParams(['request_type']);
   const [heldView, setHeldView] = useState(view);
   if (!held && heldView !== view) {
     setHeldView(view);
@@ -170,6 +175,21 @@ export function CompanyMemberAccess({
     ...particulars.map((record) => ({ kind: 'particulars' as const, record })),
     ...certificates.map((record) => ({ kind: 'certificate' as const, record })),
   ];
+  const requestType = ['particulars', 'certificate'].includes(filters.filters.request_type)
+    ? filters.filters.request_type
+    : '';
+  const filtersHeld = held || requestOpen || certificateOpen || !access.requests;
+  useEffect(() => {
+    if (filtersHeld && filters.typed !== filters.search) filters.type(filters.search);
+  }, [filtersHeld, filters.typed, filters.search, filters.type]);
+  const matches = filtersHeld
+    ? memberRequests
+    : searchRows(
+        memberRequests,
+        (item) => (item.kind === 'particulars' ? item.record.name : memberName(item.record.member)),
+        filters.search,
+      ).filter((item) => !requestType || item.kind === requestType);
+  const matchingRequests = new Set(matches.map((item) => `${item.kind}/${item.record.uuid}`));
   return (
     <>
       <div className="space-y-4">
@@ -571,12 +591,58 @@ export function CompanyMemberAccess({
           )}
         </div>
         <div hidden={view !== 'requests' || certificateOpen}>
-          <Section title="Requests">
+          <Section
+            title="Requests"
+            header={
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Requests</h2>
+                <FilterPopover active={!!filters.search || !!requestType} resetKey={certificateContext}>
+                  {(close) => (
+                    <>
+                      <Field label="Person">
+                        <TextInput
+                          type="search"
+                          maxLength={100}
+                          autoComplete="off"
+                          data-1p-ignore
+                          disabled={filtersHeld}
+                          value={filters.typed}
+                          onChange={(event) => {
+                            if (!filtersHeld) filters.type(event.target.value);
+                          }}
+                        />
+                      </Field>
+                      <SelectField
+                        label="Request type"
+                        options={[
+                          { value: '', label: 'All requests' },
+                          { value: 'particulars', label: 'Details update' },
+                          { value: 'certificate', label: 'Certificate' },
+                        ]}
+                        value={requestType}
+                        disabled={filtersHeld}
+                        onChange={(value) => {
+                          if (filtersHeld) return;
+                          close();
+                          filters.setFilter('request_type', value);
+                        }}
+                      />
+                    </>
+                  )}
+                </FilterPopover>
+              </div>
+            }
+          >
             {!access.readFailed && !access.requests && <Loading>Loading member requests…</Loading>}
             {!access.readFailed && access.requests && !hasRequests && (
               <p className="text-sm text-text-muted">No member requests yet.</p>
             )}
-            {hasRequests && (
+            {hasRequests && matches.length === 0 && (
+              <p role="status" className="text-sm text-text-muted">
+                No member requests match these filters.
+              </p>
+            )}
+            {matches.length > 0 && (
               <div
                 aria-hidden="true"
                 className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_10rem] gap-6 pl-7 text-xs font-medium text-text-muted lg:grid"
@@ -598,9 +664,10 @@ export function CompanyMemberAccess({
                   <li
                     key={`${item.kind}/${record.uuid}`}
                     hidden={
-                      !!selectedRequest &&
-                      !!access.prepare &&
-                      (item.kind !== 'particulars' || item.record.uuid !== selectedRequest.uuid)
+                      !matchingRequests.has(`${item.kind}/${record.uuid}`) ||
+                      (!!selectedRequest &&
+                        !!access.prepare &&
+                        (item.kind !== 'particulars' || item.record.uuid !== selectedRequest.uuid))
                     }
                   >
                     <Disclosure

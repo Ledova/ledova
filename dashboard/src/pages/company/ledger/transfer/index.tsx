@@ -127,11 +127,7 @@ function OwnTransfer({
     );
   return (
     <Page
-      lede={
-        companyMatches && listed && appointment
-          ? `${listed.companyName} · ${listed.name} (${listed.symbol})`
-          : undefined
-      }
+      lede={companyMatches && listed && appointment ? `${listed.name} (${listed.symbol})` : undefined}
       back={{ to: undefined }}
     >
       {content}

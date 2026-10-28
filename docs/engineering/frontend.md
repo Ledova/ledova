@@ -338,23 +338,28 @@ remain at `/company#documents`, separate from the generated outputs in the top-l
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
 Team remains available for company-invitation acceptance; Profile keeps an acceptance
 entry under Manage account before company access is granted. Company-recorded member particulars
-stay at `/settings#company-recorded-details`. Company eligibility, Published to your members and
-Offerings stay under More; personal Notices, Activity, Wallets and permitted investing pages
-stay under More. Team keeps Representative authority as a contextual task, with its existing owner
-and audience checks.
+stay at `/settings#company-recorded-details`. The sidebar has no More group or Help & Support link;
+their underlying routes retain existing audience and permission checks. Team keeps Representative
+authority as a contextual task, with its existing owner and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
 stay siblings where the selected company's current access permits them. Certificates combines the
 permitted company records and the person's own linked records in one list; company output actions
 still require register access, and member actions require a current association.
-The investing group follows the investing role and Market `trading_enabled` ([the app at a
+Market still requires the investing role and `trading_enabled` ([the app at a
 glance](../business/README.md#the-app-at-a-glance)). Direct Settings children have their own active item
 and omit Back to Settings; a contextual page marks its nearest sidebar parent, such as Team
 on Representative authority and Shareholders on a shareholder's page. The register hashes switch the
 visible view without unmounting register forms or their recovery ([page mechanics](#page-mechanics)).
 The sidebar and phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a
-bounded grid. Its items are links, and below `lg` the drawer is a dialog
+bounded grid. Its navigation scrolls between the brand header and footer. The footer shows the
+person's name and, below it, the selected company, both as small single-line text with ellipsis and
+full-name titles, retaining their stored capitalization. Its items are links, and below `lg` the
+drawer is a dialog
 ([navigation](frontend-ux.md#navigation)). Native navigation is declared separately
 ([navigation](mobile.md#navigation)).
+The footer owns the passive current-company label across signed-in pages. Functional pickers,
+company fields, multi-company records and exact legal or retained targets keep meaningful identities;
+page headings and collection wrappers do not repeat the context name.
 
 ### Sign-up routes
 
@@ -469,6 +474,19 @@ authorisation failures or turn a cancelled read into an empty successful result.
 
 Every list follows these rules:
 
+- Web list filters use the UI-only `FilterPopover`
+  (`dashboard/src/components/FilterPopover.tsx`); pages retain their data and field state. Certificates
+  and Activity keep Apply/Clear drafts, while Shareholders' class, offering applications' status and
+  company eligibility's outcome retain immediate selection. Member requests uses debounced person
+  search and immediate request-type selection inside its panel. Shareholders keeps Search people inside
+  its panel above the class selector, with its existing debounce, Clear and match counts. Offering
+  applications' search and workflow scope selectors stay visible; Wallets' sort remains separate.
+  The filter icon sits in the collection title row or beside visible search, without its own row.
+- `Table` and aligned expandable collections share `TABLE_SCROLL_CLASS` and `TABLE_HEADER_CLASS`
+  from `dashboard/src/components/List.tsx` for horizontal overflow and muted, transparent headers.
+  Keep collections flat within their outer `Section`, with subtle row dividers and no inner rounded
+  border or shaded header. Native table cells retain their padding; expandable lists retain their
+  disclosure alignment. Preserve numeric alignment, semantics, detail lifetimes and unboxed editors.
 - It pages as [lists, search, filters and paging](frontend-ux.md#lists-search-filters-and-paging)
   describes. A failed first read offers a retry, not an empty list.
 - A failed later page keeps the known rows and labels the list incomplete (`useLaterPages`).
@@ -728,7 +746,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   `CertificateRecords.tsx` merges matching company and own entries without duplicate rows. Aligned
   `Disclosure` rows show the shareholder or change, shares, date and status; details, previous
   requests and permitted actions open inline. Each record keeps its class visible; an icon button
-  with the accessible name and tooltip Filters opens one compact anchored popover for draft class,
+  with the accessible name and tooltip Filters opens `FilterPopover` for draft class,
   shareholder search and certificate status. The heading has no repeated filter summary or match
   count; dismissing the panel preserves the unapplied draft.
   Apply writes `class`, `q` and `certificate_status` to the URL; Clear preserves the class and removes search and
@@ -757,7 +775,12 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   ownership overview or header task switches. It keeps every class's controllers for register
   decisions mounted, merely hidden, so changing view, task or class (the Share class selector)
   keeps an unfinished request with its class, payload and retry key. People and member controllers
-  also stay mounted across the three Shareholders views. Controllers
+  also stay mounted across the three Shareholders views. Member requests keeps the full permitted
+  particulars and certificate request arrays for selected requests and
+  recovery. Member requests stores `q` and `request_type` in the URL; `searchRows` matches every
+  name word, ignoring case and accents, before unmatched rows are hidden. Held work disables its
+  controls and bypasses filtering for the active workflow, without changing any request's status.
+  Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
   their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
