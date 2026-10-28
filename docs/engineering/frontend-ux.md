@@ -1104,7 +1104,7 @@ by a local helper or a browser `toLocale…` call:
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user
   numbers are not shown. Chain views still show their references, block numbers and fingerprints:
-  the share class's **Technical details and chain workflows**, the reconciliation with the chain
+  a class's **Chain actions** page, the reconciliation with the chain
   under Corrections and an opening's chain-inclusion messages. So do the eligibility pages. Those
   are later phases of #1378. Transaction hashes and wallet addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
   **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a

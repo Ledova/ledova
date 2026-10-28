@@ -29,7 +29,7 @@ import {
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePaidIssuePreparation, usePaidIssueRecord, type Commands } from './useCompanyPaidIssueFlow';
-import type { useShareClass } from './useShareClass';
+import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 const STAGES: Record<string, string> = COPY.STAGES;
 
@@ -348,15 +348,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
   );
 }
 
-export function CompanyPaidIssueFlow({
-  uuid,
-  data,
-  active = true,
-}: {
-  uuid: string;
-  data: ReturnType<typeof useShareClass>;
-  active?: boolean;
-}) {
+export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
   const onEditingChange = useCallback((held: boolean) => data.holdReads('paid/draft', held), [data.holdReads]);
   const onHeldChange = useCallback(
     (uuid: string, held: boolean) => data.holdReads('paid/decision/' + uuid, held),
@@ -375,7 +367,7 @@ export function CompanyPaidIssueFlow({
     return () => data.holdReads('paid/request', false);
   }, [commands.working, commands.recovery, data.holdReads]);
   useEntryReads({
-    scope: active && commands.owner ? data.scopeKey + '/paid' : null,
+    scope: commands.owner ? data.scopeKey + '/paid' : null,
     paused: data.readingPaused || commands.readingPaused,
     refresh: commands.refresh,
   });

@@ -1,3 +1,4 @@
+import { generatePath } from 'react-router-dom';
 import { DESTINATIONS } from '@ledova/shared';
 import type { LedgerTask } from '@utils/destinations';
 
@@ -13,6 +14,11 @@ export interface Landed {
   record: string;
   key: string;
   outcome?: string;
+}
+
+export function classPath(destination: 'companyClass' | 'companyClassChain', uuid: string, company?: string) {
+  const search = company ? `?${new URLSearchParams({ company })}` : '';
+  return `${generatePath(DESTINATIONS[destination].path, { uuid })}${search}`;
 }
 
 export function registerPlace({ company, token, task, record, outcome }: RegisterPlace) {

@@ -451,8 +451,9 @@ unfinished drafts and original-request recovery across navigation.
 `dashboard/src/hooks/useEntryReads.ts` and
 `dashboard/src/pages/company/ledger/useIssueEntryRead.ts` retain ordered entry reads:
 confirm current authority or association before dependent records, and defer a read while an editor,
-decision review or original-request recovery is open. Class-operation entry reads run only while
-Technical details is open. Closing it stops new entry work without discarding retained controllers.
+decision review or original-request recovery is open. Class-operation entry reads run only on a
+class's Chain actions page; the Share class page reads none of them, and leaving the page discards
+its unfinished drafts as leaving any page does.
 
 Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
@@ -718,7 +719,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [Ledger, Shareholders, Employee share scheme and company outputs](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#inspection-copies` (legacy `#ledger-exports`), `#company-pack`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                                                   | everyone  |
 | [An employee award's page](../business/issuing-shares.md#employee-awards-and-vesting)                        | `/company/ledger/:uuid/awards/:award?company=`                                                                                                                               | everyone  |
-| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid`                                                                                                                                                      | everyone  |
+| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid` and its Chain actions page, `/company/ledger/:uuid/chain?company=`                                                                                   | everyone  |
 | [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`, `/company/listing`                                             | everyone  |
 | [Company documents](../business/companies.md#company-information-and-documents)                              | `/documents/company`; legacy `/company#documents` redirects with company context                                                                                             | everyone  |
 | [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                                       | everyone  |

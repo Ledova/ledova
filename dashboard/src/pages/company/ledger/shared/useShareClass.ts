@@ -5,9 +5,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCompanyToken,
   getCompanyTokenHolders,
-  getCompanyTokenIssuances,
-  getCapitalIncreases,
-  getShareIssuanceRequests,
   ownershipSummary,
   wholeShares,
   useSubmissionOwner,
@@ -15,8 +12,6 @@ import {
   type CompanyShareToken,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { guarded } from '@pages/company/ledger/shared/registerReads';
-import { useRecordFeed } from './useRecordFeed';
 
 export function shareClassKey(uuid: string) {
   return ['token', uuid];
@@ -96,24 +91,6 @@ export function useShareClass(uuid: string) {
       return data;
     },
   });
-  const issuances = useRecordFeed(
-    [...tokenKey, 'issuances'],
-    (page) => guarded(guard, () => getCompanyTokenIssuances(apiClient, uuid, { page }, config)),
-    isOwner,
-    { paused: readingPaused },
-  );
-  const capital = useRecordFeed(
-    [...tokenKey, 'capital-increases'],
-    (page) => guarded(guard, () => getCapitalIncreases(apiClient, { token: uuid, page }, config)),
-    isOwner,
-    { paused: readingPaused },
-  );
-  const requests = useRecordFeed(
-    [...tokenKey, 'issuance-requests'],
-    (page) => guarded(guard, () => getShareIssuanceRequests(apiClient, { token: uuid, page }, config)),
-    isOwner,
-    { paused: readingPaused },
-  );
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: shareClassKey(uuid) }),
@@ -131,9 +108,6 @@ export function useShareClass(uuid: string) {
     isOwner,
     token,
     register,
-    issuances,
-    capital,
-    requests,
     refresh,
   };
 }

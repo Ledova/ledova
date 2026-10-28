@@ -22,7 +22,7 @@ import {
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { useCapitalPreparation, useCapitalRecord, type Commands } from './useCompanyCapitalFlow';
-import type { useShareClass } from './useShareClass';
+import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 const STAGES: Record<string, string> = COPY.STAGES;
 
 function SnapshotRows({ snapshot }: { snapshot: RegisterCapitalIncreaseSnapshot }) {
@@ -248,15 +248,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
   );
 }
 
-export function CompanyCapitalFlow({
-  uuid,
-  data,
-  active = true,
-}: {
-  uuid: string;
-  data: ReturnType<typeof useShareClass>;
-  active?: boolean;
-}) {
+export function CompanyCapitalFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
   const onEditingChange = useCallback((held: boolean) => data.holdReads('capital/draft', held), [data.holdReads]);
   const onHeldChange = useCallback(
     (uuid: string, held: boolean) => data.holdReads('capital/decision/' + uuid, held),
@@ -275,7 +267,7 @@ export function CompanyCapitalFlow({
     return () => data.holdReads('capital/request', false);
   }, [commands.working, commands.recovery, data.holdReads]);
   useEntryReads({
-    scope: active && commands.owner ? data.scopeKey + '/capital' : null,
+    scope: commands.owner ? data.scopeKey + '/capital' : null,
     paused: data.readingPaused || commands.readingPaused,
     refresh: commands.refresh,
   });

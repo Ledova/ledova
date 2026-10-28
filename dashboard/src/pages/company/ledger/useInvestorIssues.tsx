@@ -157,16 +157,17 @@ export function useInvestorIssues({
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
             ? 'Set up this share register before issuing shares.'
-            : 'Tokenised share issue controls remain on the Share class page.'}
+            : 'Chain grants and paid issues for this class are under Chain actions.'}
         </p>
       )}
       {appointment && privateReady && (
         <LinkRow
           to={generatePath(
-            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
+            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClassChain)
+              .path,
             { uuid: token },
           )}
-          label={pageTitle(register.token.status === 'draft' ? 'companyRegisterImport' : 'companyClass')}
+          label={pageTitle(register.token.status === 'draft' ? 'companyRegisterImport' : 'companyClassChain')}
         />
       )}
     </>
