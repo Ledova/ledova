@@ -15,6 +15,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
+import { classPath } from '@pages/company/ledger/shared/registerPlace';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
@@ -157,16 +158,19 @@ export function useInvestorIssues({
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
             ? 'Set up this share register before issuing shares.'
-            : 'Tokenised share issue controls remain on the Share class page.'}
+            : register.token.status === 'deploying'
+              ? 'This class is being put on chain. Follow its deployment under Chain actions.'
+              : 'Chain grants and paid issues for this class are under Chain actions.'}
         </p>
       )}
       {appointment && privateReady && (
         <LinkRow
-          to={generatePath(
-            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
-            { uuid: token },
-          )}
-          label={pageTitle(register.token.status === 'draft' ? 'companyRegisterImport' : 'companyClass')}
+          to={
+            register.token.status === 'draft'
+              ? generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: token })
+              : classPath('companyClassChain', token, company)
+          }
+          label={pageTitle(register.token.status === 'draft' ? 'companyRegisterImport' : 'companyClassChain')}
         />
       )}
     </>

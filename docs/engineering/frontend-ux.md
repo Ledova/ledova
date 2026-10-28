@@ -457,8 +457,8 @@ and the web parent overrides give each contextual task its parent. Direct Settin
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
 link in the title row for a contextual task: Back to Team on Representative authority, Back to
 Representative authority on an authority request's page, Back to Offerings on an offering's page,
-Back to Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, and
-Back to Corrections for ledger maintenance.
+Back to Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, Back
+to Share class on a class's Chain actions page, and Back to Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
 by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
@@ -1104,7 +1104,7 @@ by a local helper or a browser `toLocale…` call:
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user
   numbers are not shown. Chain views still show their references, block numbers and fingerprints:
-  the share class's **Technical details and chain workflows**, the reconciliation with the chain
+  a class's **Chain actions** page, the reconciliation with the chain
   under Corrections and an opening's chain-inclusion messages. So do the eligibility pages. Those
   are later phases of #1378. Transaction hashes and wallet addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
   **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a

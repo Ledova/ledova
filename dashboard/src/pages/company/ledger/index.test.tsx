@@ -47,13 +47,14 @@ import CompanyDashboardPage from '@pages/home';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { ShareClass } from './detail/ShareClass';
+import CompanyClassChainPage from './chain';
 import { MemberDocuments } from './shared/MemberDocuments';
 import { ClassReconciliation } from './ClassReconciliation';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
-import { useShareClass } from './detail/useShareClass';
-import { useDeploymentFlow } from './detail/useDeploymentFlow';
+import { useShareClass } from './shared/useShareClass';
+import { useDeploymentFlow } from './chain/useDeploymentFlow';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, readPeople } from './shared/usePeople';
 import {
@@ -601,8 +602,6 @@ it('reads every class page and groups exact holdings by member identity with sea
   });
   fireEvent.click(rightsForm.getByRole('button', { name: 'Add document' }));
   fireEvent.change(rightsForm.getByLabelText('File'), { target: { files: [rightsFile] } });
-  const technicalWhileEditing = screen.getByRole('button', { name: 'Technical details and chain workflows' });
-  fireEvent.click(technicalWhileEditing);
   await waitFor(() => expect(client.isFetching()).toBe(0));
   const editingForm = screen.getByRole('form', { name: 'Edit class rights' });
   const termsControl = rightsForm.getByLabelText('Additional terms');
@@ -619,7 +618,6 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(rightsForm.getByText(rightsFile.name)).toBeTruthy();
   expect(document.activeElement).toBe(termsControl);
   expect(screen.queryByRole('button', { name: /^Refresh / })).toBeNull();
-  fireEvent.click(technicalWhileEditing);
   api.post.mockImplementation(async (url: string, body: ClassRightsRequest | FormData, config) => {
     config?.ledovaSubmissionGuard();
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE) {
@@ -842,20 +840,23 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByRole('link', { name: 'Back to Ledger' }).getAttribute('href')).toBe(
     '/company/ledger?company=harbour',
   );
-  const technical = screen.getByRole('button', { name: 'Technical details and chain workflows' });
-  expect(technical.getAttribute('aria-expanded')).toBe('false');
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  const readsBeforeTechnical = api.get.mock.calls.length;
-  const writesBeforeTechnical = api.post.mock.calls.length;
-  fireEvent.click(technical);
-  expect(technical.getAttribute('aria-expanded')).toBe('true');
-  await waitFor(() =>
-    expect(api.get.mock.calls.slice(readsBeforeTechnical).some(([url]) => url === APPOINTMENTS)).toBe(true),
+  expect(screen.queryByRole('button', { name: 'Technical details and chain workflows' })).toBeNull();
+  const onChain = within(screen.getByRole('heading', { name: 'On chain' }).closest('section')!);
+  expect(onChain.getByRole('link', { name: 'Chain actions' }).getAttribute('href')).toBe(
+    '/company/ledger/ordinary/chain?company=harbour',
   );
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(api.post.mock.calls).toHaveLength(writesBeforeTechnical);
-  fireEvent.click(technical);
-  expect(technical.getAttribute('aria-expanded')).toBe('false');
+  const chainReads: string[] = [
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_DEPLOYMENTS,
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_ISSUES,
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_PAID_ISSUES,
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_CAPITAL_INCREASES,
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_PAUSE_CHANGES,
+    COMPANY_TOKEN_ENDPOINTS.ISSUANCES('ordinary'),
+    COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES,
+    COMPANY_TOKEN_ENDPOINTS.ISSUANCE_REQUESTS,
+  ];
+  expect(api.get.mock.calls.filter(([url]) => chainReads.includes(url))).toEqual([]);
 
   pauseHolders = true;
   const holderKey = ['token', 'ordinary', 'profile-one', 'account-one', 'holders'];
@@ -959,6 +960,20 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByText(rightsFile.name)).toBeNull();
   expect(() => rightsFileGuard()).toThrow(/signed-in account changed/);
   expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+
+  cleanup();
+  const readsBeforeChain = api.get.mock.calls.length;
+  const writesBeforeChain = api.post.mock.calls.length;
+  show('investor', <CompanyClassChainPage />, 'Chain actions', {
+    entry: '/company/ledger/ordinary/chain?company=harbour',
+    path: DESTINATIONS.companyClassChain.path,
+  });
+  expect(await screen.findByRole('heading', { name: 'Non-paid chain grants' })).toBeTruthy();
+  await waitFor(() =>
+    expect(api.get.mock.calls.slice(readsBeforeChain).some(([url]) => url === APPOINTMENTS)).toBe(true),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(api.post.mock.calls).toHaveLength(writesBeforeChain);
 
   cleanup();
   client.clear();

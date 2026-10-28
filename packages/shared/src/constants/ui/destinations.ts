@@ -25,6 +25,7 @@ export const DESTINATIONS = {
   eligibilityRequests: { path: '/eligibility-requests', title: 'Your company eligibility', audience: 'investing' },
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
   companyClass: { path: '/company/ledger/:uuid', title: 'Share class', audience: 'everyone' },
+  companyClassChain: { path: '/company/ledger/:uuid/chain', title: 'Chain actions', audience: 'everyone' },
   companyRegister: {
     path: '/company/ledger',
     title: 'Ledger',

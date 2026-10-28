@@ -91,6 +91,7 @@ function ledgerContext(
   const classPath =
     destination &&
     (destination === 'companyClass' ||
+      destination === 'companyClassChain' ||
       destination === 'companyRegisterImport' ||
       destination === 'companyRegisterAward' ||
       LEDGER_TASK_PARENTS[destination])
@@ -160,6 +161,7 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const classPath =
     destination &&
     (destination === 'companyClass' ||
+      destination === 'companyClassChain' ||
       destination === 'companyRegisterImport' ||
       destination === 'companyRegisterAward' ||
       LEDGER_TASK_PARENTS[destination])

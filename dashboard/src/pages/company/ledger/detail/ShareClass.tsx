@@ -2,15 +2,22 @@ import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany'
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { REGISTER_COPY, USER_PREFERENCES_QUERY_KEY, formatShareCount, useUserPreferences } from '@ledova/shared';
+import {
+  REGISTER_COPY,
+  TECHNICAL_SHARE_LIMIT,
+  USER_PREFERENCES_QUERY_KEY,
+  formatShareCount,
+  useUserPreferences,
+  wholeShares,
+} from '@ledova/shared';
 import { Page } from '@components/Page';
-import { LoadError, Loading, Section, Status } from '@components/Ledger';
-import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
-import { useShareClass } from './useShareClass';
+import { LinkRow, LoadError, Loading, Section, Status } from '@components/Ledger';
+import { classPath, registerPlace } from '@pages/company/ledger/shared/registerPlace';
+import { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 import { ClassRights } from './ClassRights';
 import { useClassRights } from './useClassRights';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
-import { ShareClassTechnical } from './ShareClassTechnical';
+import { OnChain } from './OnChain';
 
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
@@ -24,7 +31,6 @@ export function ShareClass({ uuid }: { uuid: string }) {
   return (
     <Page back={{ ...registerPlace({ company: data.token.data?.companyUuid }), label: 'Back to Ledger' }}>
       <ShareClassRecord data={data} uuid={uuid} />
-      <ShareClassTechnical uuid={uuid} data={data} />
     </Page>
   );
 }
@@ -124,6 +130,15 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
                 {register.initialized ? 'Ledger opened' : 'Ledger not opened'}
               </Status>
             </p>
+            {token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
+              <p className="text-sm text-text-muted">
+                Authorised shares ·{' '}
+                <span className="break-all font-medium text-text-primary">{formatShareCount(token.totalSupply)}</span>
+              </p>
+            )}
+            {!token.isTransferable && (
+              <p className="text-sm text-text-muted">This share class is recorded as non-transferable.</p>
+            )}
             {!register.initialized ? (
               <p className="text-sm text-text-muted">{REGISTER_COPY.NOT_OPENED_NOTE}</p>
             ) : register.waitingEffects === null ? (
@@ -136,6 +151,23 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
               </p>
             ) : null}
           </section>
+        )}
+        {(token.status === 'deploying' ||
+          (token.status === 'draft' &&
+            !!register &&
+            (!register.initialized || wholeShares(register.issuedSupply ?? '') === 0n))) && (
+          <LinkRow
+            to={classPath('companyClassChain', token.uuid, token.companyUuid)}
+            label="Put this class on chain"
+            context={token.status === 'deploying' ? token.statusDisplay.toLowerCase() : undefined}
+            aside={token.status === 'deploying' && <Status tone="moving">{token.statusDisplay}</Status>}
+          >
+            <span className="block text-xs text-text-muted">
+              {token.status === 'deploying'
+                ? 'The deployment waits for confirmation on chain.'
+                : 'Creates its contract. It issues no shares and changes no holding.'}
+            </span>
+          </LinkRow>
         )}
       </Section>
       {rights}
@@ -156,6 +188,7 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
           }))}
         />
       )}
+      {(token.status === 'deployed' || token.status === 'paused') && <OnChain token={token} />}
     </>
   );
 }

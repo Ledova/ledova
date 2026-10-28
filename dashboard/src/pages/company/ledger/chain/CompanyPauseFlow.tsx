@@ -22,7 +22,7 @@ import {
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePausePreparation, usePauseRecord, type Commands } from './useCompanyPauseFlow';
-import type { useShareClass } from './useShareClass';
+import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 const STAGES: Record<string, string> = COPY.STAGES;
 
@@ -246,15 +246,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
   );
 }
 
-export function CompanyPauseFlow({
-  uuid,
-  data,
-  active = true,
-}: {
-  uuid: string;
-  data: ReturnType<typeof useShareClass>;
-  active?: boolean;
-}) {
+export function CompanyPauseFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
   const onEditingChange = useCallback((held: boolean) => data.holdReads('pause/draft', held), [data.holdReads]);
   const onHeldChange = useCallback(
     (uuid: string, held: boolean) => data.holdReads('pause/decision/' + uuid, held),
@@ -273,7 +265,7 @@ export function CompanyPauseFlow({
     return () => data.holdReads('pause/request', false);
   }, [commands.working, commands.recovery, data.holdReads]);
   useEntryReads({
-    scope: active && commands.owner ? data.scopeKey + '/pause' : null,
+    scope: commands.owner ? data.scopeKey + '/pause' : null,
     paused: data.readingPaused || commands.readingPaused,
     refresh: commands.refresh,
   });

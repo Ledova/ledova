@@ -41,7 +41,7 @@ import {
   type Commands,
   type EvidenceKind,
 } from './useCompanyIssueFlow';
-import type { useShareClass } from './useShareClass';
+import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 const stages: Record<string, string> = COPY.STAGES;
 
@@ -473,15 +473,7 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
   );
 }
 
-export function CompanyIssueFlow({
-  uuid,
-  data,
-  active = true,
-}: {
-  uuid: string;
-  data: ReturnType<typeof useShareClass>;
-  active?: boolean;
-}) {
+export function CompanyIssueFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
   const onEditingChange = useCallback((held: boolean) => data.holdReads('issue/draft', held), [data.holdReads]);
   const onHeldChange = useCallback(
     (uuid: string, held: boolean) => data.holdReads('issue/decision/' + uuid, held),
@@ -502,7 +494,7 @@ export function CompanyIssueFlow({
     return () => data.holdReads('issue/request', false);
   }, [commands.working, commands.recovery, data.holdReads]);
   useEntryReads({
-    scope: active && commands.owner ? data.scopeKey + '/issue' : null,
+    scope: commands.owner ? data.scopeKey + '/issue' : null,
     paused: data.readingPaused || commands.readingPaused,
     refresh: commands.refresh,
   });

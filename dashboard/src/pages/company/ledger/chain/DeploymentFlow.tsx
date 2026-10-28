@@ -22,7 +22,7 @@ import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { STAGE_TONES } from '@pages/company/shared/proposals';
 import { useDeploymentFlow } from './useDeploymentFlow';
-import type { useShareClass } from './useShareClass';
+import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
   const register = snapshot.register;
@@ -65,15 +65,7 @@ function SnapshotRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {
   );
 }
 
-export function DeploymentFlow({
-  uuid,
-  data,
-  active = true,
-}: {
-  uuid: string;
-  data: ReturnType<typeof useShareClass>;
-  active?: boolean;
-}) {
+export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<typeof useShareClass> }) {
   const {
     owner,
     guard,
@@ -103,11 +95,13 @@ export function DeploymentFlow({
     return () => data.holdReads('deployment/request', false);
   }, [working, uncertain, data.holdReads]);
   useEntryReads({
-    scope: active && owner ? data.scopeKey + '/deployment' : null,
+    scope: owner ? data.scopeKey + '/deployment' : null,
     paused: data.readingPaused || working || uncertain,
     refresh,
   });
   if (!owner) return null;
+  const onChain = data.token.data?.status === 'deployed' || data.token.data?.status === 'paused';
+  if (onChain && deployments.isSuccess && !records.length && !uncertain && !error) return null;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>

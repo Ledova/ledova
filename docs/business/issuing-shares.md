@@ -49,8 +49,9 @@ ISSUE; a subsequent approved grant or investor allotment records the first share
 this empty-opening choice through the same draft, review and confirmation as copied holdings
 ([register setup](register.md#bringing-in-existing-records)).
 
-On the web, the chain actions described below are under **Technical details and chain workflows**
-on the Share class page, separate from its current register summary and Class rights.
+On the web, the chain actions described below are on a class's own **Chain actions** page. The Share
+class page opens it from its **On chain** card once the class is deployed, or through **Put this
+class on chain** while the class is a draft without shares or is being deployed.
 
 ### Class rights
 
@@ -100,9 +101,9 @@ this increment.
 A company appointee can have Ledova's technical signer create the class's contract. Deployment
 issues no shares, takes no payment and changes no holding.
 
-1. On the class's Share class page, under Empty-class deployment, choose Prepare deployment. The
-   proposal captures the class, its whole-share cap and identifier, the selected issuer address, the
-   exact transaction and the register's state.
+1. On the class's Share class page, choose **Put this class on chain**, then under Empty-class
+   deployment choose Prepare deployment. The proposal captures the class, its whole-share cap and
+   identifier, the selected issuer address, the exact transaction and the register's state.
 2. Review the snapshot, then Approve deployment and Apply deployment.
 
 Applying means admitted, not deployed: the page shows admission, holds, a signed transaction
@@ -122,8 +123,9 @@ executes it is in [engineering](../engineering/chain.md#share-class-deployment).
 
 A company appointee can raise the authorised shares of a deployed class, including a paused one.
 
-1. On the Share class page, under Company capital increases, give the additional whole shares and
-   the new total, which must equal the current cap plus the addition (each from 1 to 2,147,483,647).
+1. On the class's Chain actions page, under Company capital increases, give the additional whole
+   shares and the new total, which must equal the current cap plus the addition (each from 1 to
+   2,147,483,647).
 2. Give the purpose, the board resolution reference, any shareholder approval reference and the
    authority document.
 3. Approve, then Apply.
@@ -138,10 +140,10 @@ issued.
 ### Pausing and unpausing a class
 
 A company appointee can pause a deployed class, which stops every movement of its shares on chain,
-or unpause it: on the Share class page, under Company pause decisions, prepare the requested state
-with a reason, an authority reference and the authority document, then Approve and Apply. Pausing
-needs no eligibility decision, nomination, payment or issue, and changes neither the cap nor the
-issued shares.
+or unpause it: on the class's Chain actions page, under Company pause decisions, prepare the
+requested state with a reason, an authority reference and the authority document, then Approve and
+Apply. Pausing needs no eligibility decision, nomination, payment or issue, and changes neither the
+cap nor the issued shares.
 
 Approval or admitted work does not mean transfers have stopped or resumed: the page shows the
 requested state and its outcome apart from the class's current state. If the class is already in the
@@ -171,8 +173,8 @@ open on demand. **Prepare issue**, beneath the records, asks **What kind of issu
 Preparation replaces the record list with the chosen form. Switching between the two keeps what
 was entered in each form until it is closed or an issue is prepared, when the records return.
 A sibling group is hidden only after a current successful read proves it empty; loading and failed
-reads remain visible. For a deployed class the task links to Share class, where chain grants and
-paid issues stay.
+reads remain visible. For a deployed class the task links to the class's Chain actions page, where
+chain grants and paid issues stay.
 
 ### What each record changes
 
@@ -386,10 +388,10 @@ chain; a class opened by an import cannot use it. It needs, separately:
 - a [wallet link](register.md#linking-wallets-to-members) from that wallet to the member, made
   before the first grant to a new or existing member.
 
-On the Share class page, under Non-paid chain grants, choose Prepare non-paid grant, select the
-member, their nomination and the company's approval, and give the shares, terms, approving director
-and documents, including acceptance evidence where the terms require it. Then Approve and Apply.
-Matching an address alone never identifies the approval or the member.
+On the class's Chain actions page, under Non-paid chain grants, choose Prepare non-paid grant,
+select the member, their nomination and the company's approval, and give the shares, terms,
+approving director and documents, including acceptance evidence where the terms require it. Then
+Approve and Apply. Matching an address alone never identifies the approval or the member.
 
 Applying admits the original mint; it creates no holding. The register records the Issue once the
 mint is final, and until then the allocation keeps reserving authorised shares. If authority or the
@@ -536,12 +538,12 @@ cut strands becomes a refund owed.
 
 ### Company paid issues
 
-The company issues the shares for a Paid application itself. On the Share class page, under Company
-paid issue decisions, the preparer chooses a Paid application, whose proposal captures the
-application, recipient, shares, price and payment facts (a partial receipt, a scaled-back quantity
-and a refund owed stay distinct from the requested shares and a refund paid), and adds the authority
-document, approving director, authority reference and reason; no new eligibility decision, wallet
-nomination, member choice, grant terms or acceptance is needed. Then Approve and Apply.
+The company issues the shares for a Paid application itself. On the class's Chain actions page,
+under Company paid issue decisions, the preparer chooses a Paid application, whose proposal captures
+the application, recipient, shares, price and payment facts (a partial receipt, a scaled-back
+quantity and a refund owed stay distinct from the requested shares and a refund paid), and adds the
+authority document, approving director, authority reference and reason; no new eligibility decision,
+wallet nomination, member choice, grant terms or acceptance is needed. Then Approve and Apply.
 
 Preparation and approval admit nothing; applying admits the original mint. The issue must fit both
 the offering's remaining cap and the authorised shares less those issued and still to be minted; the
@@ -689,7 +691,7 @@ Applications lists the offering's applications 25 at a time, newest first. Once 
 searches by investor name, wallet address or payment reference, and the Filters icon in the page
 heading opens a compact Status selector; selection applies immediately and closes it. Each application shows its
 requested and allotted shares, including zero allotments, as a read-only record; the company's paid
-issues are on the Share class page ([company paid issues](#company-paid-issues)).
+issues are on the class's Chain actions page ([company paid issues](#company-paid-issues)).
 
 Next: [register of members](register.md), [member records and register outputs](member-records.md),
 [participants and eligibility](participants.md) and

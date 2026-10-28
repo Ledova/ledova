@@ -684,9 +684,16 @@ Each class opens directly from **Class details** on its Ledger card. Its details
 name, code, type, state and current register summary, followed by the company's optional
 [Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
 and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and
-register downloads on Documents. **Technical details and chain workflows** opens the retained
-technical metadata, request history and company-authorised deployment, chain issue, capital and
-pause workflows ([share classes](issuing-shares.md#share-classes)).
+register downloads on Documents. The summary gives the authorised shares when the class has a limit
+other than the internal quantity guard, and says when the class is recorded as non-transferable. A
+deployed or paused class adds an **On chain** card: its state, deployment date and exact contract
+address with **Copy contract address**, links to the contract and its deployment transaction on the
+block explorer, and **Chain actions**, which opens the class's own page of company-authorised chain
+grant, paid issue, capital and pause workflows, its deployment and any earlier issuance and capital
+requests. A draft class without shares offers **Put this class on chain** in its summary instead,
+which opens the same page at its deployment, and keeps that row, marked Deploying, while the
+deployment waits for confirmation. A draft class with shares offers neither, because deployment
+cannot mirror its holdings ([share classes](issuing-shares.md#share-classes)).
 
 Next: [share classes and issuing shares](issuing-shares.md),
 [member records and register outputs](member-records.md),

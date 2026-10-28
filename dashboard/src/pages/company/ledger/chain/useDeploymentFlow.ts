@@ -21,7 +21,7 @@ import { registerSteps } from '@pages/company/shared/proposals';
 import apiClient from '@services/apiClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
-import type { useShareClass } from './useShareClass';
+import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 export function deploymentKey(tokenKey: readonly unknown[]) {
   return [...tokenKey, 'deployments'];
