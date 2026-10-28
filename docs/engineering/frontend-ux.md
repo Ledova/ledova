@@ -732,7 +732,9 @@ server:
   a search or filter applies, a polite status line counts the matches, such as "3 applications match
   your search" or "No applications match".
 - **Compact filters:** secondary filters use `FilterPopover`: an icon button named **Filters** with
-  a tooltip, opening an anchored panel. Search applications stays visible, as do offering and Ledger
+  a tooltip, opening an anchored panel. Place its icon in the collection's title row or beside an
+  existing visible search field, without reserving a separate row above the records.
+  Search applications stays visible, as do offering and Ledger
   task scope selectors. Shareholders puts Search people inside the panel above Share class, keeping
   its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
   scope without repeating it in a header summary or badge. Certificates and Activity keep labelled
@@ -752,7 +754,11 @@ server:
   by the first; a list searched in the browser shows its last page instead.
 - **Tables:** `Table` is the markup for lists on these controls: a framed table that scrolls
   sideways within its card, with a screen-reader caption, a header row of `scope="col"` cells and
-  each row named by its first cell as a row header. `Pager` under it gives the rows shown, such as
+  each row named by its first cell as a row header. Aligned expandable record lists, such as
+  Certificates, reuse `TABLE_FRAME_CLASS` and `TABLE_HEADER_CLASS` from
+  `dashboard/src/components/List.tsx`: the same rounded border, shaded column header, horizontal row padding
+  and right-aligned tabular quantities. Keep their list and disclosure semantics and editor lifetimes;
+  focused editors remain unboxed. `Pager` under a paged table gives the rows shown, such as
   "1–25 of 1,240 applications", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it
   is loading.

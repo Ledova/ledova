@@ -477,6 +477,11 @@ Every list follows these rules:
   company eligibility's outcome retain immediate selection. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts. Offering
   applications' search and workflow scope selectors stay visible; Wallets' sort remains separate.
+  The filter icon sits in the collection title row or beside visible search, without its own row.
+- `Table` and aligned expandable collections share `TABLE_FRAME_CLASS` and `TABLE_HEADER_CLASS`
+  from `dashboard/src/components/List.tsx` for their border and header treatment. Match their horizontal padding
+  and numeric alignment while retaining each collection's semantics, detail lifetimes and unboxed
+  focused editors.
 - It pages as [lists, search, filters and paging](frontend-ux.md#lists-search-filters-and-paging)
   describes. A failed first read offers a retry, not an empty list.
 - A failed later page keeps the known rows and labels the list incomplete (`useLaterPages`).
