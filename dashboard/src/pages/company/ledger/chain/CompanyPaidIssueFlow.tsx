@@ -433,7 +433,7 @@ export function CompanyPaidIssueFlow({ uuid, data }: { uuid: string; data: Retur
               key={record.uuid}
               record={record}
               chain={token?.chain}
-              isOwner={data.isOwner}
+              isOwner={token?.isOwner === true}
               commands={commands}
               onHeldChange={onHeldChange}
             />
