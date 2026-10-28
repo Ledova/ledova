@@ -1,4 +1,5 @@
 import { SelectField } from '@components/SelectField';
+import { FilterPopover } from '@components/FilterPopover';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Navigate, generatePath, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -43,7 +44,17 @@ import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 
 const ON_CHAIN = ['deployed', 'paused'];
-function RegisterPage({ sections, task, children }: { sections?: ReactNode; task?: LedgerTask; children: ReactNode }) {
+function RegisterPage({
+  actions,
+  sections,
+  task,
+  children,
+}: {
+  actions?: ReactNode;
+  sections?: ReactNode;
+  task?: LedgerTask;
+  children: ReactNode;
+}) {
   const { hash } = useLocation();
   const hashTask = hash.slice(1);
   const documents = documentView(hashTask);
@@ -52,6 +63,7 @@ function RegisterPage({ sections, task, children }: { sections?: ReactNode; task
   return (
     <PageTitle.Provider value={title}>
       <Page
+        actions={actions}
         lede={
           shownTask === 'issue'
             ? 'Record a company-approved share issue.'
@@ -358,6 +370,7 @@ function OwnRegister({
   const selectedToken = scope?.registers.some(({ token }) => token.uuid === candidateToken)
     ? candidateToken
     : scope?.registers[0]?.token.uuid;
+  const selectedClass = scope?.registers.find(({ token }) => token.uuid === selectedToken)?.token;
   const canAddClass =
     !held &&
     sourceReady &&
@@ -413,6 +426,40 @@ function OwnRegister({
   return (
     <RegisterPage
       task={view === 'register' ? selectedTask : undefined}
+      actions={
+        scope &&
+        ((view === 'register' && selectedTask) || view === 'awards' || documents === 'ledger-exports') &&
+        !reviewingParticulars &&
+        sourceReady &&
+        scope.registers.length > 1 && (
+          <FilterPopover
+            resetKey={`${scope.company.uuid}/${documents ?? (view === 'awards' ? 'awards' : selectedTask)}`}
+          >
+            {(close) => (
+              <SelectField
+                label="Share class"
+                options={scope.registers.map(({ token }) => ({
+                  value: token.uuid,
+                  label: `${token.name} · ${token.symbol}`,
+                }))}
+                value={selectedToken}
+                disabled={held || (view === 'awards' && editingAwards.size > 0)}
+                onChange={(token) => {
+                  if (!held && (view !== 'awards' || editingAwards.size === 0) && sourceReady) {
+                    close();
+                    setTaskSelection({
+                      company: scope.company.uuid,
+                      token,
+                      task: documents ?? (view === 'awards' ? 'awards' : selectedTask!),
+                      locationKey: location.key,
+                    });
+                  }
+                }}
+              />
+            )}
+          </FilterPopover>
+        )
+      }
       sections={
         scope && (
           <>
@@ -583,39 +630,14 @@ function OwnRegister({
               />
             </div>
           )}
-          <section
-            aria-label={documents ? 'Document scope' : 'Ledger tasks'}
-            hidden={reviewingParticulars}
-            className="space-y-4"
-          >
-            {(selectedTask || view === 'awards' || documents) && sourceReady && scope.registers.length === 1 && (
+          {((view === 'register' && selectedTask) || documents === 'ledger-exports') &&
+            !reviewingParticulars &&
+            sourceReady &&
+            selectedClass && (
               <p className="text-sm text-text-muted">
-                {scope.registers[0].token.name} · {scope.registers[0].token.symbol}
+                {selectedClass.name} · {selectedClass.symbol}
               </p>
             )}
-            {(selectedTask || view === 'awards' || documents) && sourceReady && scope.registers.length > 1 && (
-              <div className="max-w-sm">
-                <SelectField
-                  label="Share class"
-                  options={scope.registers.map(({ token }) => ({
-                    value: token.uuid,
-                    label: `${token.name} · ${token.symbol}`,
-                  }))}
-                  value={selectedToken}
-                  disabled={held || (view === 'awards' && editingAwards.size > 0)}
-                  onChange={(token) => {
-                    if (!held && (view !== 'awards' || editingAwards.size === 0) && sourceReady)
-                      setTaskSelection({
-                        company: scope.company.uuid,
-                        token,
-                        task: documents ?? (view === 'awards' ? 'awards' : selectedTask!),
-                        locationKey: location.key,
-                      });
-                  }}
-                />
-              </div>
-            )}
-          </section>
         </>
       )}
       {scope && (

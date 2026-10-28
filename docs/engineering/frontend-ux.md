@@ -178,7 +178,7 @@ a focused preparation form in place of the list. Closing the form or successful 
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
 Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
 keeps the selected class card and returns to its records after Cancel or a successful save. ESS uses the
-existing Share class selector and one creation action; disable class selection while an award editor or
+Share class selection in the page heading's Filters popover and one creation action; disable class selection while an award editor or
 recovery is open, keeping every class controller mounted. Its preparation,
 vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
 Award preparation groups the recipient and promised shares, with new-person details beneath. Agreement
@@ -221,8 +221,8 @@ inspect retained supporting records and permitted downloads. The same view holds
 correction, opening, reconciliation acknowledgement, particulars and wallet-link workflows. Certificate
 preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
 survive navigation. Documents has one **Certificates** page for company and member records, plus
-**Ledger exports** and **Company pack** where company access permits them. Certificates and Ledger
-exports show one selected class, with a **Share class** selector only when there is more than one.
+**Ledger exports** and **Company pack** where company access permits them. Ledger
+exports shows one selected class, with **Share class** in the page heading's Filters popover when there is more than one.
 Certificates keeps the class visible in each record and in its filter panel. An icon button named
 **Filters**, with a tooltip, opens the popover for class selection, shareholder search and certificate
 status. The collection heading has no repeated filter summary or match-count line. Fields are drafts
@@ -743,9 +743,12 @@ server:
   your search" or "No applications match".
 - **Compact filters:** secondary filters use `FilterPopover`: an icon button named **Filters** with
   a tooltip, opening an anchored panel. Place its icon in the collection's title row or beside an
-  existing visible search field, without reserving a separate row above the records.
-  Search applications stays visible, as do offering and Ledger
-  task scope selectors. Shareholders puts Search people inside the panel above Share class, keeping
+  existing visible search field, without reserving a separate row above the records. Shared Ledger
+  task, ESS and Ledger exports scopes use the existing page heading for this control; keep the
+  selected class visible in the task or class heading. Class changes close the panel and retain
+  the existing editor and unfinished-work locks. Offering and Status share the Applications
+  heading's panel, available even for an empty or failed offering read; the selected offering stays
+  visible. Search applications stays visible. Shareholders puts Search people inside the panel above Share class, keeping
   its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
   scope without repeating it in a header summary or badge. Certificates and Activity keep labelled
   draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;

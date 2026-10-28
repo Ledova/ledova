@@ -480,8 +480,10 @@ Every list follows these rules:
   company eligibility's outcome retain immediate selection. Member requests uses debounced person
   search and immediate request-type selection inside its panel. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts. Offering
-  applications' search and workflow scope selectors stay visible; Wallets' sort remains separate.
-  The filter icon sits in the collection title row or beside visible search, without its own row.
+  applications' search stays visible; its Offering scope shares the Status panel even when the
+  selected offering is empty or failed. Wallets' sort remains separate.
+  The filter icon sits in the collection title row or beside visible search, without its own row;
+  shared Ledger task, ESS and Ledger exports class scope uses the existing page heading.
 - `Table` and aligned expandable collections share `TABLE_SCROLL_CLASS` and `TABLE_HEADER_CLASS`
   from `dashboard/src/components/List.tsx` for horizontal overflow and muted, transparent headers.
   Keep collections flat within their outer `Section`, with subtle row dividers and no inner rounded
@@ -804,7 +806,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   apply. Supporting attachments stay with their person, class or company Settings; member-request
   fulfilment stays under Shareholders. ESS uses the
   shared class-card spacing and shows only the selected class, with one preparation action below its records.
-  The Share class selector locks while any award editor or recovery is open; all class controllers stay
+  Share class selection lives in the page heading's Filters popover and locks while any award editor or recovery is open; all class controllers stay
   mounted. Preparation replaces that class's record list while preserving its controllers. A section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is

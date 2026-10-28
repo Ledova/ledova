@@ -493,17 +493,24 @@ it('retains original award, vesting and linked issue preparations through interr
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('heading', { name: 'Preference shares · PRF' })).toBeNull();
   expect(screen.getAllByRole('button', { name: COPY.PREPARE })).toHaveLength(1);
-  const awardClass = screen.getByLabelText('Share class') as HTMLSelectElement;
-  fireEvent.change(awardClass, { target: { value: siblingRegister.token.uuid } });
+  const scopeClass = () => {
+    const toggle = screen.getByRole('button', { name: 'Filters' });
+    if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle);
+    return screen.getByRole('combobox', { name: 'Share class' }) as HTMLSelectElement;
+  };
+  expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
+  fireEvent.change(scopeClass(), { target: { value: siblingRegister.token.uuid } });
+  expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Filters' }));
   expect(await screen.findByRole('heading', { name: 'Preference shares · PRF' })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Ordinary shares · ORD' })).toBeNull();
   expect(screen.getAllByRole('button', { name: COPY.PREPARE })).toHaveLength(1);
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  fireEvent.change(awardClass, { target: { value: REGISTER.token.uuid } });
+  fireEvent.change(scopeClass(), { target: { value: REGISTER.token.uuid } });
   await screen.findByRole('link', { name: 'Issue vested shares' });
   const ordinaryClass = screen.getByRole('heading', { name: 'Ordinary shares · ORD' }).closest('li')!;
   fireEvent.click(within(ordinaryClass).getByRole('button', { name: COPY.PREPARE }));
-  expect(awardClass.disabled).toBe(true);
+  expect(scopeClass().disabled).toBe(true);
   const draftDocument = (await within(ordinaryClass).findByLabelText('Document')) as HTMLInputElement;
   fireEvent.change(draftDocument, { target: { files: [FILE] } });
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -521,13 +528,12 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(draftDocument.files?.[0]).toBe(FILE);
   expect(within(draftDocument.parentElement!).getByText(FILE.name)).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Open issue task' }));
-  const issueClass = screen.getByLabelText('Share class') as HTMLSelectElement;
-  expect(issueClass.disabled).toBe(false);
-  fireEvent.change(issueClass, { target: { value: siblingRegister.token.uuid } });
-  expect(issueClass.value).toBe(siblingRegister.token.uuid);
+  expect(scopeClass().disabled).toBe(false);
+  fireEvent.change(scopeClass(), { target: { value: siblingRegister.token.uuid } });
+  expect(scopeClass().value).toBe(siblingRegister.token.uuid);
   fireEvent.click(screen.getByRole('link', { name: 'Return to ESS' }));
-  expect((screen.getByLabelText('Share class') as HTMLSelectElement).value).toBe(REGISTER.token.uuid);
-  expect((screen.getByLabelText('Share class') as HTMLSelectElement).disabled).toBe(true);
+  expect(scopeClass().value).toBe(REGISTER.token.uuid);
+  expect(scopeClass().disabled).toBe(true);
   expect(within(ordinaryClass).getByLabelText('Document')).toBe(draftDocument);
   expect(draftDocument.files?.[0]).toBe(FILE);
   fireEvent.click(within(ordinaryClass).getByRole('button', { name: 'Cancel (award preparation)' }));
@@ -620,7 +626,7 @@ it('retains original award, vesting and linked issue preparations through interr
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
   expect(awards[0].issuedShares).toBe('0');
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  expect((screen.getByLabelText('Share class') as HTMLSelectElement).value).toBe(REGISTER.token.uuid);
+  expect(scopeClass().value).toBe(REGISTER.token.uuid);
   expect(screen.getByText('Non-paid issues from this award · 1')).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: /^10 shares, prepared/, hidden: true }));
   await waitFor(() => expect(document.activeElement).toBe(awardIssueRecord()));
@@ -634,8 +640,8 @@ it('retains original award, vesting and linked issue preparations through interr
     let review = await screen.findByRole('region', { name: 'Review share issue' });
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(issues.queryByRole('button', { name: 'Prepare issue' })).toBeNull();
-    expect((screen.getByRole('combobox', { name: 'Share class' }) as HTMLSelectElement).disabled).toBe(true);
     expect(document.activeElement).toBe(within(review).getByRole('heading', { name: 'Review share issue' }));
+    expect(scopeClass().disabled).toBe(true);
     if (label === 'Approve') {
       fireEvent.click(within(review).getByRole('button', { name: 'Cancel' }));
       await waitFor(() => expect(screen.queryByRole('region', { name: 'Review share issue' })).toBeNull());
@@ -664,9 +670,7 @@ it('retains original award, vesting and linked issue preparations through interr
   const originalIssue = submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter(
     (row) => row.kind === 'apply',
   )[0];
-  expect((screen.getByRole('combobox', { name: 'Share class', hidden: true }) as HTMLSelectElement).disabled).toBe(
-    true,
-  );
+  expect(scopeClass().disabled).toBe(true);
   preferencesFailed = true;
   await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
   expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.status).toBe('error');
@@ -706,9 +710,7 @@ it('retains original award, vesting and linked issue preparations through interr
   fireEvent.click(await screen.findByRole('button', { name: /^Recover record issue receipt/ }));
   await issues.findByText('Shares issued');
   await waitFor(() => expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull());
-  await waitFor(() =>
-    expect((screen.getByRole('combobox', { name: 'Share class' }) as HTMLSelectElement).disabled).toBe(false),
-  );
+  await waitFor(() => expect(scopeClass().disabled).toBe(false));
   slowReads = false;
   expect(submissions(URLS.REGISTER_GRANT_DECIDE(retainedGrant!.uuid)).filter((row) => row.kind === 'apply')).toEqual([
     originalIssue,

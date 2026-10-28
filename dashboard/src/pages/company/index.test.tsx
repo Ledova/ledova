@@ -338,7 +338,7 @@ it('shows focused company details without share classes, and uploads documents t
   previewOpener.focus();
   fireEvent.click(previewOpener);
   const reviewHeading = await screen.findByRole('heading', { name: 'Review exact action' });
-  expect(document.activeElement).toBe(reviewHeading);
+  await waitFor(() => expect(document.activeElement).toBe(reviewHeading));
   expect(screen.queryByRole('heading', { name: 'Company request queue' })).toBeNull();
   const duringReview = ownReads();
   await act(async () => {
