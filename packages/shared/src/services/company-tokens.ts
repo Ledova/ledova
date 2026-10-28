@@ -57,9 +57,6 @@ export const getClassOwnershipHolders = (
   config: AxiosRequestConfig = {},
 ) => apiClient.get<ClassOwnershipHolders>(COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS(uuid), { ...config, params });
 
-export const downloadTokenRegister = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
-  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT(uuid), { ...config, responseType: 'blob' });
-
 export const getRegisterInspectionPreview = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
   apiClient.get<RegisterInspectionPreview>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), config);
 

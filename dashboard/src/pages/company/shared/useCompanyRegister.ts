@@ -1,15 +1,8 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
-import {
-  downloadTokenRegister,
-  getCompanyTokenHolders,
-  hasCurrentRegisterReadAuthority,
-  useSubmissionOwner,
-  type OrderSubmissionOwner,
-} from '@ledova/shared';
+import { useQuery } from '@tanstack/react-query';
+import { getCompanyTokenHolders, hasCurrentRegisterReadAuthority, type OrderSubmissionOwner } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { READ_TIMING } from '@hooks/useRegisterAccess';
 import { registerHoldersKey, useRegisterClasses } from '@hooks/useRegisterClasses';
-import { saveFile } from '@utils/saveFile';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 export async function readRegister(uuid: string, guard: () => void) {
@@ -92,20 +85,4 @@ export function useCompanyRegister(
     registers,
     companyAppointments: appointments,
   };
-}
-
-export function useRegisterDownload(uuid: string, symbol: string | undefined) {
-  const { owner, boundary } = useSubmissionOwner();
-  return useMutation({
-    mutationFn: async () => {
-      const guard = () => {
-        if (!owner || boundary.get() !== owner)
-          throw new Error('Your signed-in account changed. Reopen the register to download it.');
-      };
-      guard();
-      const { data } = await downloadTokenRegister(apiClient, uuid, { ledovaSubmissionGuard: guard });
-      guard();
-      saveFile(data, `register-${symbol ?? uuid}.csv`);
-    },
-  });
 }

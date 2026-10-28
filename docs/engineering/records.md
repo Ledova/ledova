@@ -680,8 +680,8 @@ comparison.
 The reads under `/api/v1/tokens/` are `register/` (classes whose register the caller may read),
 `{uuid}/holders/` (the stored register with `waitingEffects` and former members, with their as-at
 time, block and staleness), `{uuid}/register/entries/` (newest first; repeat `entry` to read chosen
-entries, or give `member` to read one member's entries), `{uuid}/register/waiting/`, `{uuid}/register/members/` and `{uuid}/register/export/` (the
-[register CSV](#register-csv)). They admit `ShareToken.objects.register_readable_by`: the company
+entries, or give `member` to read one member's entries), `{uuid}/register/waiting/` and
+`{uuid}/register/members/`. They admit `ShareToken.objects.register_readable_by`: the company
 owner or a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`; no
 other capability, delegation-only scope, staff or superuser status admits ([who runs
 what](../business/register.md#who-runs-what)).
@@ -689,9 +689,8 @@ what](../business/register.md#who-runs-what)).
 They run on the operator connection, because a members' register carries each holder's name and
 residential address, which no policy admits to the principal reading it; without it the register
 would print `unidentified` and blank addresses. The current-member API omits residential addresses;
-former-member rows include them. Exporting a register with no opening is refused with 409
-`register_not_initialized`, and the export route refuses `HEAD`, which would record a sheet it never
-sends.
+former-member rows include them. An inspection copy of a register with no opening is refused with 409
+`register_not_initialized`.
 
 ### Waiting effects
 
@@ -737,7 +736,9 @@ are built, with the requester's id, the class, the kind, the register sequence, 
 former-member row counts and the time; a refused or failed output records nothing. Check constraints
 require each kind's fields and refuse another kind's:
 
-- `register_csv`: the head's sequence and the member rows exported.
+- `register_csv`: the head's sequence and the member rows exported. No longer produced since the
+  plain CSV download was removed ([decision](../decisions.md#register-csv-download-removed)); earlier
+  rows stay until their purge.
 - `inspection_copy`: as the CSV, with the SHA-256 of the bytes served, the instruction, request
   date, recipient and late flag.
 - `certificate`: the certified entry's sequence and one or two pages, with the SHA-256 and the
@@ -769,7 +770,8 @@ deadline is in its own business section
 
 ### Register CSV
 
-The CSV has three sections of different widths; read them by their headers, not by column position:
+The register CSV, the base of every inspection copy and of each class's `register.csv` in the
+[company pack](#pack-files), has three sections of different widths; read them by their headers, not by column position:
 
 1. Current members, under a header row starting "Member ID": Member ID, Name, Residential address,
    Wallet addresses, Holder type, Class, Shares held, Percentage of issued supply (as `N%`), Balance

@@ -31,29 +31,27 @@ statutory time limits given in each section are the company's obligations, with 
 
 A register reader is a person with a current appointment for the exact company holding
 administration or any register capability (read, prepare, approve or apply). Ownership,
-shareholding, member access and staff permissions give no output authority, except that the
-company owner may download the register CSV.
+shareholding, member access and staff permissions give no output authority.
 
 On web, **Documents** opens one **Certificates** page for the selected company. Register readers
 can prepare permitted company outputs; members can request, track and download only their own
 certificates. A person with both kinds of access sees matching entries once. Existing request
 fulfilment remains in **Shareholders** → **Member requests**.
-**Ledger exports** and **Company pack** remain alongside Certificates where company access permits
-them. Certificates and Ledger exports use one selected share class. Certificates keeps the class
+**Inspection copies** and **Company pack** remain alongside Certificates where company access permits
+them. Certificates and Inspection copies use one selected share class. Certificates keeps the class
 visible in each record; the **Filters** icon opens a compact panel with **Share class** when there is
 more than one, shareholder search and certificate status. **Apply** filters the full permitted history;
 **Clear** removes search and status while keeping the class. Company pack covers the company. Supporting attachments stay
 with the person, share class or company Settings.
 
-| Output               | Who prepares it                            | Where                                                   | What Ledova keeps                                        |
-| -------------------- | ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
-| Register CSV         | The company owner or a register reader     | **Documents** → **Ledger exports**: **Download CSV**    | Who took it, the class, the entry it runs to, row counts |
-| Inspection copy      | A register reader                          | **Documents** → **Ledger exports**: **Inspection copy** | SHA-256, instruction, request date, recipient, late flag |
-| Certificate          | A register reader                          | **Documents** → **Certificates**                        | SHA-256 and instruction                                  |
-| Member's certificate | A register reader, on the member's request | **Shareholders** → **Member requests**                  | The PDF itself, as a certificate record                  |
-| Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**                             | SHA-256, period and instruction                          |
-| Core company pack    | A company administrator                    | **Documents** → **Company pack**                        | Manifest SHA-256, instruction, recipient, per class      |
-| Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**                                | As for a core pack                                       |
+| Output               | Who prepares it                            | Where                                  | What Ledova keeps                                        |
+| -------------------- | ------------------------------------------ | -------------------------------------- | -------------------------------------------------------- |
+| Inspection copy      | A register reader                          | **Documents** → **Inspection copies**  | SHA-256, instruction, request date, recipient, late flag |
+| Certificate          | A register reader                          | **Documents** → **Certificates**       | SHA-256 and instruction                                  |
+| Member's certificate | A register reader, on the member's request | **Shareholders** → **Member requests** | The PDF itself, as a certificate record                  |
+| Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**            | SHA-256, period and instruction                          |
+| Core company pack    | A company administrator                    | **Documents** → **Company pack**       | Manifest SHA-256, instruction, recipient, per class      |
+| Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**               | As for a core pack                                       |
 
 Ledova keeps a fingerprint, not the file, except for a member's certificate. Output records cannot
 be rewritten, are read only by platform staff and are kept for the register's seven-year floor
@@ -238,7 +236,7 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
-2. On web, open **Documents** → **Ledger exports** for the selected company, choose the share class,
+2. On web, open **Documents** → **Inspection copies** for the selected company, choose the share class,
    then **Prepare inspection copy**. Enter the reference, recipient and request date.
 3. Choose **Preview inspection copy**, check the request and register sequence, then **Confirm and
    download inspection copy**.

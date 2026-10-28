@@ -230,8 +230,8 @@ inspect retained supporting records and permitted downloads. The same view holds
 correction, opening, reconciliation acknowledgement, particulars and wallet-link workflows. Certificate
 preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
 survive navigation. Documents has one **Certificates** page for company and member records, plus
-**Ledger exports** and **Company pack** where company access permits them. Ledger
-exports shows one selected class, with **Share class** in the page heading's Filters popover when there is more than one.
+**Inspection copies** and **Company pack** where company access permits them. Inspection
+copies shows one selected class, with **Share class** in the page heading's Filters popover when there is more than one.
 Certificates keeps the class visible in each record and in its filter panel. An icon button named
 **Filters**, with a tooltip, opens the popover for class selection, shareholder search and certificate
 status in the page heading's top-right actions. The collection heading has no repeated filter summary or match-count line. Fields are drafts
@@ -400,7 +400,7 @@ an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Ledger exports** and **Company pack** where permitted, with its label opening Certificates at
+**Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Documents**, **Team**, **Activation** and
 **Company-recorded details**, without an extra overview page. Profile always holds personal

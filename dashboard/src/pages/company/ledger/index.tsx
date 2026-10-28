@@ -5,7 +5,6 @@ import { Navigate, generatePath, useLocation, useNavigate } from 'react-router-d
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
-  REGISTER_COPY,
   appointmentForRegisterStep,
   ownershipSummary,
   useSubmissionOwner,
@@ -38,7 +37,7 @@ import { CompanyPack } from './CompanyPack';
 import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { RegisterSetup } from './RegisterSetup';
-import { useCompanyRegister, useRegisterDownload } from '@pages/company/shared/useCompanyRegister';
+import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
@@ -62,8 +61,8 @@ function RegisterPage({ sections, task, children }: { sections?: ReactNode; task
                 ? 'Prepare and review changes while preserving the original records.'
                 : hash === '#awards'
                   ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
-                  : documents === 'ledger-exports'
-                    ? 'Download ledger records or prepare an inspection copy.'
+                  : documents === 'inspection-copies'
+                    ? 'Prepare a copy of the register for someone who requests one.'
                     : documents === 'company-pack'
                       ? 'Prepare a package of the company’s records.'
                       : hash === '#shareholders'
@@ -79,29 +78,6 @@ function RegisterPage({ sections, task, children }: { sections?: ReactNode; task
         {sections}
       </Page>
     </PageTitle.Provider>
-  );
-}
-
-function RegisterDownload({ register }: { register: TokenHoldersResponse }) {
-  const download = useRegisterDownload(register.token.uuid, register.token.symbol);
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-text-muted">{REGISTER_COPY.PRIVACY_NOTE}</p>
-      <div className="flex flex-wrap justify-end gap-2">
-        <PageAction
-          label={REGISTER_COPY.DOWNLOAD}
-          onClick={() => download.mutate()}
-          disabled={!register.initialized}
-          busy={download.isPending}
-          busyLabel="Downloading…"
-        />
-      </div>
-      {download.isError && (
-        <p role="alert" className="text-sm text-error-light">
-          {REGISTER_COPY.DOWNLOAD_FAILED}
-        </p>
-      )}
-    </div>
   );
 }
 
@@ -477,7 +453,7 @@ function OwnRegister({
       }
     >
       {scope &&
-        ((view === 'register' && selectedTask) || view === 'awards' || documents === 'ledger-exports') &&
+        ((view === 'register' && selectedTask) || view === 'awards' || documents === 'inspection-copies') &&
         !reviewingParticulars &&
         sourceReady &&
         scope.registers.length > 1 && (
@@ -589,7 +565,7 @@ function OwnRegister({
           />
         </div>
       )}
-      {scope && (view === 'register' || view === 'awards' || documents === 'ledger-exports') && (
+      {scope && (view === 'register' || view === 'awards' || documents === 'inspection-copies') && (
         <>
           {view === 'register' && !selectedTask && ownershipReady && scope.registers.length === 0 && (
             <Section title="Share classes">
@@ -622,7 +598,7 @@ function OwnRegister({
               />
             </div>
           )}
-          {((view === 'register' && selectedTask) || documents === 'ledger-exports') &&
+          {((view === 'register' && selectedTask) || documents === 'inspection-copies') &&
             !reviewingParticulars &&
             sourceReady &&
             selectedClass && (
@@ -777,35 +753,26 @@ function OwnRegister({
                       active={view === 'awards' && selectedToken === register.token.uuid}
                     />
                   </div>
-                  <div hidden={view !== 'documents'} className="space-y-5">
+                  <div
+                    hidden={
+                      documents !== 'inspection-copies' ||
+                      (!!documentTask && documentTask !== `inspection/${register.token.uuid}`)
+                    }
+                  >
                     {readable && (
-                      <>
-                        <div hidden={documents !== 'ledger-exports' || !!documentTask}>
-                          <Section title="CSV download">
-                            <RegisterDownload register={register} />
-                          </Section>
-                        </div>
-                        <div
-                          hidden={
-                            documents !== 'ledger-exports' ||
-                            (!!documentTask && documentTask !== `inspection/${register.token.uuid}`)
+                      <Section title="Inspection copy">
+                        <ClassInspectionCopy
+                          register={register}
+                          guard={guard}
+                          sourceReady={
+                            sourceReady &&
+                            documents === 'inspection-copies' &&
+                            selectedToken === register.token.uuid &&
+                            (!documentTask || documentTask === `inspection/${register.token.uuid}`)
                           }
-                        >
-                          <Section title="Inspection copy">
-                            <ClassInspectionCopy
-                              register={register}
-                              guard={guard}
-                              sourceReady={
-                                sourceReady &&
-                                documents === 'ledger-exports' &&
-                                selectedToken === register.token.uuid &&
-                                (!documentTask || documentTask === `inspection/${register.token.uuid}`)
-                              }
-                              onEditingChange={documentEditing}
-                            />
-                          </Section>
-                        </div>
-                      </>
+                          onEditingChange={documentEditing}
+                        />
+                      </Section>
                     )}
                   </div>
                 </div>

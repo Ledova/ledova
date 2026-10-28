@@ -1567,22 +1567,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/tokens/{uuid}/register/export/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_register_export_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/tokens/{uuid}/register/inspection-copy/': {
     parameters: {
       query?: never;
@@ -12389,27 +12373,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedShareRegisterEntryList'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_export_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'text/csv': string;
         };
       };
     };

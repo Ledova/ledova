@@ -1,4 +1,3 @@
-import csv
 from uuid import UUID
 
 from django.http import HttpResponse
@@ -62,9 +61,7 @@ from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.member_access import own_company_association
 from tokens.services.ownership import class_ownership_holders, company_ownership
 from tokens.services.register import (
-    REGISTER_HEADERS,
     api_holders,
-    export_rows,
     stored_entries,
     stored_register,
     stored_waiting_list,
@@ -99,7 +96,6 @@ class ShareTokenViewSet(
             "holders",
             "register",
             "register_entries",
-            "register_export",
             "register_inspection_copy",
             "register_certificate",
             "register_opening_holders",
@@ -124,7 +120,7 @@ class ShareTokenViewSet(
         "the classification refuses any other connection. "
         "The reader stays IsAuthenticated: an issuer is entitled to this and is not an administrator. "
         "Register entries name each changed member as the register does, from the same identity sources. "
-        "Register reads (the class list, holders, entries, export and waiting effects) also admit a current "
+        "Register reads (the class list, holders, entries and waiting effects) also admit a current "
         "company appointment holding administration or a register capability, alongside the owner. "
         "The opening holders read reads the chain for a class whose register is not opened, so it admits only a "
         "current appointment holding administration or prepare, and names linked members from the same sources. "
@@ -141,7 +137,6 @@ class ShareTokenViewSet(
             "register",
             "holders",
             "register_entries",
-            "register_export",
             "register_waiting",
             "register_members",
             "register_inspection_copy",
@@ -412,19 +407,6 @@ class ShareTokenViewSet(
     @action(detail=True, methods=["get"], url_path="register/opening-holders")
     def register_opening_holders(self, request, uuid=None):
         return Response(RegisterOpeningHoldersSerializer(opening_holders(self.get_object())).data)
-
-    @extend_schema(responses={(200, "text/csv"): OpenApiTypes.STR})
-    @action(detail=True, methods=["get"], url_path="register/export", http_method_names=["get", "options"])
-    def register_export(self, request, uuid=None):
-        token = self.get_object()
-        rows = export_rows(token, request.user)
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = f'attachment; filename="register-{token.symbol}.csv"'
-        writer = csv.writer(response)
-        writer.writerow(REGISTER_HEADERS)
-        for row in rows:
-            writer.writerow(row)
-        return response
 
     @extend_schema(methods=["GET"], responses=RegisterInspectionPreviewSerializer)
     @extend_schema(

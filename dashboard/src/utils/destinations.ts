@@ -43,14 +43,14 @@ export const SHAREHOLDER_VIEWS = {
 
 export const DOCUMENT_VIEWS = [
   { key: 'certificates', label: 'Certificates' },
-  { key: 'ledger-exports', label: 'Ledger exports' },
+  { key: 'inspection-copies', label: 'Inspection copies' },
   { key: 'company-pack', label: 'Company pack' },
 ] as const;
 
 export type DocumentView = (typeof DOCUMENT_VIEWS)[number]['key'];
 
 export function documentView(value: unknown): DocumentView | undefined {
-  const view = value === 'documents' ? 'certificates' : value;
+  const view = value === 'documents' ? 'certificates' : value === 'ledger-exports' ? 'inspection-copies' : value;
   return DOCUMENT_VIEWS.find(({ key }) => key === view)?.key;
 }
 

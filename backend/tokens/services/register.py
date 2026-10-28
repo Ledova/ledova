@@ -749,13 +749,6 @@ def _record_export(token, requested_by, register, kind, **request):
     )
 
 
-def export_rows(token, requested_by) -> list[list]:
-    register = _opened_register(token)
-    rows = _sheet(token, register)
-    _record_export(token, requested_by, register, RegisterExportKind.REGISTER_CSV)
-    return rows
-
-
 def _inspection_source(token):
     register = _opened_register(token)
     rows = [REGISTER_HEADERS, *_sheet(token, register)]

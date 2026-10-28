@@ -339,15 +339,15 @@ async function openTheSidebar(page: Page, role: Role) {
       '/documents/certificates?company=company&class=ordinary',
     );
     for (const [name, hash] of [
-      ['Ledger exports', 'ledger-exports'],
+      ['Inspection copies', 'inspection-copies'],
       ['Company pack', 'company-pack'],
     ])
       await expect(aside.getByRole('link', { name, exact: true })).toHaveAttribute(
         'href',
         `/company/ledger?company=company#${hash}`,
       );
-    await aside.getByRole('link', { name: 'Ledger exports', exact: true }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Ledger exports', exact: true })).toBeVisible();
+    await aside.getByRole('link', { name: 'Inspection copies', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Inspection copies', exact: true })).toBeVisible();
     aside = await visibleSidebar(page);
     await aside.getByRole('link', { name: 'Company pack', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Company pack', exact: true })).toBeVisible();

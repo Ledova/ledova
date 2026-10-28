@@ -40770,46 +40770,6 @@
         ]
       }
     },
-    "/api/v1/tokens/{uuid}/register/export/": {
-      "get": {
-        "operationId": "api_v1_tokens_register_export_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/tokens/{uuid}/register/inspection-copy/": {
       "get": {
         "operationId": "api_v1_tokens_register_inspection_copy_retrieve",

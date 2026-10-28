@@ -86,7 +86,6 @@ export {
   getCompanyTokenHolders,
   getCompanyOwnership,
   getClassOwnershipHolders,
-  downloadTokenRegister,
   getRegisterInspectionPreview,
   createRegisterInspectionCopy,
   getRegisterCertificatePreview,

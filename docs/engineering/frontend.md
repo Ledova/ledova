@@ -325,7 +325,7 @@ marking the active child and opening the group on Ledger routes. The web replace
 `#history` with `#corrections` without dropping company/class context; shared task names retain
 History. Shareholders' label opens its people list, with the same caret pattern for ESS, Member
 access and Member requests.
-Documents opens one Certificates page (`/documents/certificates`), with Ledger exports and Company
+Documents opens one Certificates page (`/documents/certificates`), with Inspection copies and Company
 pack where company access permits them. There is no separate Your certificates item. Legacy
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
 preserving company, class and navigation state. A group without a meaningful overview opens its
@@ -708,25 +708,25 @@ display text and Instrument Sans for everything else (`@fontsource-variable`).
 Each page links to its business section. Shared destinations use their `DESTINATIONS` audience;
 web-only routes declare the same guard beside their address ([guards](#routes-audiences-and-guards)).
 
-| Page and business section                                                                                    | Routes                                                                                                                                          | Audience  |
-| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| [Dashboard](../business/README.md#the-app-at-a-glance)                                                       | `/home`, `/company/dashboard` and `/member-records` (web aliases); company/class query context                                                  | everyone  |
-| [Certificates](../business/member-records.md#certificates)                                                   | `/documents/certificates`; legacy Dashboard `#documents` and `/company/ledger#certificates` or `#documents` redirect with company/class context | everyone  |
-| [Ledger, Shareholders, Employee share scheme and company exports](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#ledger-exports`, `#company-pack`; preparation routes  | everyone  |
-| [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                      | everyone  |
-| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid`                                                                                                                         | everyone  |
-| [Company information, Documents, Team, Activation](../business/companies.md#the-company-page)                | `/settings#profile`, `/company#documents`, `/company/authority` (company), `/company/team`, `/company/listing`                                  | everyone  |
-| [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                          | everyone  |
-| [Offerings](../business/issuing-shares.md#the-offerings-page)                                                | `/company/offering`                                                                                                                             | company   |
-| [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                         | company   |
-| [Notices](../business/publications.md#the-notices-page)                                                      | `/publications`                                                                                                                                 | everyone  |
-| [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                        | `/wallets/holdings`                                                                                                                             | everyone  |
-| [Verification, Your company eligibility](../business/participants.md#the-verification-page)                  | `/investor-eligibility`, `/eligibility-requests`                                                                                                | investing |
-| [Directory, Applications](../business/participants.md#the-directory-page)                                    | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`                                                                      | investing |
-| [Market](../business/trading.md#the-market-page)                                                             | `/trading`                                                                                                                                      | investing |
-| [Wallets](../business/trading.md#the-wallets-page)                                                           | `/wallets`                                                                                                                                      | everyone  |
-| [Activity](../business/trading.md#the-activity-page)                                                         | `/transactions`                                                                                                                                 | everyone  |
-| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#company-recorded-details`; aliases `/user-profile`, `/company`, `/settings#account`                   | everyone  |
+| Page and business section                                                                                    | Routes                                                                                                                                                                       | Audience  |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| [Dashboard](../business/README.md#the-app-at-a-glance)                                                       | `/home`, `/company/dashboard` and `/member-records` (web aliases); company/class query context                                                                               | everyone  |
+| [Certificates](../business/member-records.md#certificates)                                                   | `/documents/certificates`; legacy Dashboard `#documents` and `/company/ledger#certificates` or `#documents` redirect with company/class context                              | everyone  |
+| [Ledger, Shareholders, Employee share scheme and company outputs](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#inspection-copies` (legacy `#ledger-exports`), `#company-pack`; preparation routes | everyone  |
+| [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                                                   | everyone  |
+| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid`                                                                                                                                                      | everyone  |
+| [Company information, Documents, Team, Activation](../business/companies.md#the-company-page)                | `/settings#profile`, `/company#documents`, `/company/authority` (company), `/company/team`, `/company/listing`                                                               | everyone  |
+| [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                                       | everyone  |
+| [Offerings](../business/issuing-shares.md#the-offerings-page)                                                | `/company/offering`                                                                                                                                                          | company   |
+| [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                                                      | company   |
+| [Notices](../business/publications.md#the-notices-page)                                                      | `/publications`                                                                                                                                                              | everyone  |
+| [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                        | `/wallets/holdings`                                                                                                                                                          | everyone  |
+| [Verification, Your company eligibility](../business/participants.md#the-verification-page)                  | `/investor-eligibility`, `/eligibility-requests`                                                                                                                             | investing |
+| [Directory, Applications](../business/participants.md#the-directory-page)                                    | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`                                                                                                   | investing |
+| [Market](../business/trading.md#the-market-page)                                                             | `/trading`                                                                                                                                                                   | investing |
+| [Wallets](../business/trading.md#the-wallets-page)                                                           | `/wallets`                                                                                                                                                                   | everyone  |
+| [Activity](../business/trading.md#the-activity-page)                                                         | `/transactions`                                                                                                                                                              | everyone  |
+| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#company-recorded-details`; aliases `/user-profile`, `/company`, `/settings#account`                                                | everyone  |
 
 ### Page mechanics
 
@@ -780,7 +780,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
-  Member requests, Employee share scheme (ESS), Ledger exports and Company pack views by hash.
+  Member requests, Employee share scheme (ESS), Inspection copies and Company pack views by hash.
   Legacy certificate hashes redirect to the dedicated Certificates page.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
@@ -811,7 +811,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Member access.
   Corrections shows immutable recorded entries and retained supporting records with details and permitted
   downloads on demand, alongside their capability-guarded append-only maintenance workflows. Register-read
-  access alone grants no mutation. Ledger exports keeps class CSV and inspection-copy preparation;
+  access alone grants no mutation. Inspection copies keeps class inspection-copy preparation;
   Company pack stays at company scope. `documentTask` isolates one focused output form in the existing
   frame. Its keyed forms retire previews when their context or source readiness changes; draft
   retention depends on each form's lifetime. Current appointment and exact-source validation still

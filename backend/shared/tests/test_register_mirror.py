@@ -324,9 +324,6 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(picker.status_code, 200, picker.content)
         selected = next(row for row in picker.json()["members"] if row["member"] == payload["members"][0]["member"])
         self.assertEqual(selected["enteredOn"], "2018-01-01")
-        exported = self.client.get(f"/api/v1/tokens/{token.pk}/register/export/")
-        self.assertEqual(exported.status_code, 200, exported.content)
-        self.assertIn("2018-01-01", exported.content.decode())
         self.assertEqual(RegisterPosition.objects.get(register__token=token).entered_on, opening.effective_on)
         invitation = self.client.post(
             "/api/v1/tokens/member-invitations/",
