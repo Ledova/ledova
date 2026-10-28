@@ -1,6 +1,13 @@
-import { formatDate, formatShareCount, shortReference, type OwnMemberRecord } from '@ledova/shared';
+import { formatDate, formatShareCount, type OwnMemberRecord } from '@ledova/shared';
 import { Disclosure, Section } from '@components/Ledger';
 import { AwardStatus } from '@components/AwardStatus';
+
+function vestingLabel(award: OwnMemberRecord['awards'][number], uuid: string) {
+  const vesting = award.vestings.find((item) => item.uuid === uuid);
+  return vesting
+    ? `from ${formatShareCount(vesting.shares)} vested ${formatDate(vesting.vestedOn)}`
+    : 'from an earlier vesting';
+}
 
 export function MemberAwards({ record, token }: { record: OwnMemberRecord; token: string | null }) {
   const awards = record.awards.filter((award) => !token || award.token === token);
@@ -33,8 +40,8 @@ export function MemberAwards({ record, token }: { record: OwnMemberRecord; token
                 ))}
                 {award.vestingReversals.map((event) => (
                   <p key={event.uuid}>
-                    {formatDate(event.companyEventOn)} · {formatShareCount(event.reversedShares)} vesting reversed ·
-                    original {shortReference(event.vesting)} · {event.reason}
+                    {formatDate(event.companyEventOn)} · {formatShareCount(event.reversedShares)} vesting reversed ·{' '}
+                    {vestingLabel(award, event.vesting)} · {event.reason}
                   </p>
                 ))}
               </div>

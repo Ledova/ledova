@@ -11,7 +11,6 @@ import {
   MEMBER_INVITATION_STATUS_LABELS,
   MEMBER_PARTICULARS_STATUS_LABELS,
   MEMBER_CERTIFICATE_STATUS_LABELS,
-  shortReference,
   searchRows,
 } from '@ledova/shared';
 import { Outcome, Section, Loading, LoadError, Disclosure, Rows, Row } from '@components/Ledger';
@@ -248,19 +247,10 @@ export function CompanyMemberAccess({
                     </div>
                     {certificateTarget ? (
                       <>
-                        <Disclosure summary="Record details">
-                          <Rows>
-                            <Row label="Entry">{certificateTarget.preview.sequence}</Row>
-                            <Row label="Register sequence">{certificateTarget.preview.registerSequence}</Row>
-                            <Row label="Company instruction">{certificateTarget.command.payload.instruction}</Row>
-                            <Row label="Request reference">{shortReference(selectedCertificate.uuid)}</Row>
-                            <Row label="Entry reference">{shortReference(certificateTarget.preview.entry)}</Row>
-                            <Row label="Appointment reference">
-                              {shortReference(certificateTarget.preview.appointment)}
-                            </Row>
-                            <Row label="Source fingerprint">{certificateTarget.preview.sourceDigest}</Row>
-                          </Rows>
-                        </Disclosure>
+                        <Rows>
+                          <Row label="Entry">{certificateTarget.preview.sequence}</Row>
+                          <Row label="Company instruction">{certificateTarget.command.payload.instruction}</Row>
+                        </Rows>
                         <p className="text-sm text-text-muted">
                           Unsigned PDF for this recipient only. The company arranges signing and permitted use.
                         </p>
@@ -363,13 +353,6 @@ export function CompanyMemberAccess({
                           </span>
                         }
                       >
-                        <Disclosure summary="Technical details">
-                          <Rows>
-                            <Row label="Member reference">{shortReference(association.member)}</Row>
-                            <Row label="Account reference">{shortReference(association.userAccount)}</Row>
-                            <Row label="Access reference">{shortReference(association.uuid)}</Row>
-                          </Rows>
-                        </Disclosure>
                         {association.current && revokeMember !== association.uuid && (
                           <FormActions>
                             <PageAction
@@ -459,12 +442,6 @@ export function CompanyMemberAccess({
                         <Rows>
                           <Row label="Accept before">{formatDateTime(item.acceptanceDeadline)}</Row>
                         </Rows>
-                        <Disclosure summary="Technical details">
-                          <Rows>
-                            <Row label="Invitation reference">{shortReference(item.uuid)}</Row>
-                            <Row label="Member reference">{shortReference(item.member)}</Row>
-                          </Rows>
-                        </Disclosure>
                       </Disclosure>
                     </li>
                   ))}
@@ -544,13 +521,6 @@ export function CompanyMemberAccess({
                     <p className="text-sm text-text-muted">
                       Record a member or employee award before inviting its recipient.
                     </p>
-                  )}
-                  {member && (
-                    <Disclosure summary="Technical details">
-                      <Rows>
-                        <Row label="Member reference">{shortReference(member.uuid)}</Row>
-                      </Rows>
-                    </Disclosure>
                   )}
                   <p className="text-sm text-text-muted">
                     Emails this person a link to accept access to their own shares and employee awards.
@@ -730,20 +700,6 @@ export function CompanyMemberAccess({
                               <Row label="Created on">{formatDate(item.record.fulfilment.createdAt)}</Row>
                             </Rows>
                           )}
-                          <Disclosure summary="Technical details">
-                            <Rows>
-                              <Row label="Request reference">{shortReference(item.record.uuid)}</Row>
-                              <Row label="Member reference">{shortReference(item.record.member)}</Row>
-                              <Row label="Entry reference">{shortReference(item.record.entry)}</Row>
-                              {item.record.fulfilment && (
-                                <>
-                                  <Row label="Unsigned PDF">{shortReference(item.record.fulfilment.uuid)}</Row>
-                                  <Row label="SHA-256">{item.record.fulfilment.digest}</Row>
-                                  <Row label="File size">{item.record.fulfilment.fileSize} bytes</Row>
-                                </>
-                              )}
-                            </Rows>
-                          </Disclosure>
                           {item.record.status === 'requested' && (
                             <FormActions>
                               <PageAction

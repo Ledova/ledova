@@ -509,7 +509,7 @@ it('preserves original preparation and combined approval recovery through refres
   await act(async () => releaseRead!());
   pendingReadRelease = undefined;
   await allotments.findByText(/External allotments could not be loaded/);
-  expect(allotments.queryByText('entry-a')).toBeNull();
+  expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   pauseRead = false;
   failedRead = false;
   appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
@@ -538,14 +538,13 @@ it('preserves original preparation and combined approval recovery through refres
   expect(previewCount()).toBe(previewsBeforeConfirmation + 1);
   expect(rows[0].decisions).toHaveLength(2);
   fireEvent.click(allotments.getByText('Details and documents'));
-  await allotments.findByText('entry-a');
+  await allotments.findByText(ALLOTMENT_REQUEST.agreementReference);
   expect(rows[0].registerEntry).toBe('entry-a');
   fireEvent.click(allotments.getByRole('button', { name: /^Download receipt/ }));
   await waitFor(() => expect(releaseFile).toBeTypeOf('function'));
   failedRead = true;
   await refreshAllotments();
   await allotments.findByText(/External allotments could not be loaded/);
-  expect(allotments.queryByText('entry-a')).toBeNull();
   expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   expect(allotments.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
   await act(async () => releaseFile!());
@@ -554,12 +553,10 @@ it('preserves original preparation and combined approval recovery through refres
   failedRead = false;
   fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
   await allotments.findByText('Approved');
-  expect(allotments.getByText('entry-a')).toBeTruthy();
   expect(allotments.getByText(ALLOTMENT_REQUEST.agreementReference)).toBeTruthy();
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
   await refreshAllotments();
-  await waitFor(() => expect(allotments.queryByText('entry-a')).toBeNull());
-  expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
+  await waitFor(() => expect(allotments.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull());
   expect(allotments.queryByRole('button', { name: /^Download receipt/ })).toBeNull();
   interruptedAbsentPreparation = true;
   appointments = [APPOINTMENT];
@@ -603,7 +600,7 @@ it('preserves original preparation and combined approval recovery through refres
       (heading) => heading.closest('li'),
     ),
   ).toBeTruthy();
-  expect(screen.queryByText('entry-a')).toBeNull();
+  expect(screen.queryByText(ALLOTMENT_REQUEST.agreementReference)).toBeNull();
   fireEvent.change(taskClass(), { target: { value: REGISTER.token.uuid } });
   fireEvent.click(investorTask());
   await allotments.findByText('Approved');

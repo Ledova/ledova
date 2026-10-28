@@ -6,7 +6,7 @@ import { MemberRecordsContent } from '@components/member-records/MemberRecordsCo
 import { useMemberWorkspace } from '@components/member-records/useMemberWorkspace';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useRunningAction } from '@hooks/useRunningAction';
-import { FIELD_LIMITS, MEMBER_PARTICULARS_STATUS_LABELS, formatDate, shortReference } from '@ledova/shared';
+import { FIELD_LIMITS, MEMBER_PARTICULARS_STATUS_LABELS, formatDate } from '@ledova/shared';
 
 export function CompanyRecordedDetails() {
   const { read } = useMemberWorkspace();
@@ -40,9 +40,7 @@ function MemberParticulars() {
           <Rows>
             <Row label="Name">{request.name}</Row>
             <Row label="Residential address">
-              <span className="block truncate" title={request.residentialAddress}>
-                {request.residentialAddress}
-              </span>
+              <span className="whitespace-pre-line break-words">{request.residentialAddress}</span>
             </Row>
             <Row label="Status">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -55,15 +53,6 @@ function MemberParticulars() {
               </div>
             </Row>
           </Rows>
-          <Disclosure summary="Record details">
-            <Rows>
-              <Row label="Full address">
-                <span className="whitespace-pre-line">{request.residentialAddress}</span>
-              </Row>
-              <Row label="Request">{shortReference(request.uuid)}</Row>
-              {request.change && <Row label="Company instruction">{shortReference(request.change)}</Row>}
-            </Rows>
-          </Disclosure>
         </div>
       ))}
     </div>
@@ -144,18 +133,11 @@ function MemberParticulars() {
                 <Rows>
                   <Row label="Name">{read.record.name}</Row>
                   <Row label="Residential address">
-                    <span className="block truncate" title={read.record.residentialAddress}>
-                      {read.record.residentialAddress}
-                    </span>
+                    <span className="whitespace-pre-line break-words">{read.record.residentialAddress}</span>
                   </Row>
                 </Rows>
                 <div className="text-sm lg:mt-auto">
                   <Disclosure summary="Ledger details">
-                    <Rows>
-                      <Row label="Full address">
-                        <span className="whitespace-pre-line">{read.record.residentialAddress}</span>
-                      </Row>
-                    </Rows>
                     <p className="text-sm text-text-muted">
                       Provided by the company, not verified by Ledova. Profile edits do not change this register.
                     </p>

@@ -118,10 +118,10 @@ export function ClaimModal({
         {needsCompany && (
           <Field
             {...checks.field('company')}
-            label="Issuer company UUID"
+            label="Company ID"
             hint={
               directory.company(company.trim()) ??
-              'Enter the exact company UUID provided by the issuer. The server checks that it is active.'
+              'Enter the company ID provided by the issuer. The server checks that it is active.'
             }
           >
             <TextInput

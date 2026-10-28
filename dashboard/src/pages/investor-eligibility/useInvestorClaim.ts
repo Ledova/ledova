@@ -85,7 +85,7 @@ export function useInvestorClaim({
     | 'file'
     | 'declaration'
   > = {
-    company: needsCompany && !isUuid(company.trim()) && 'Enter the exact company UUID provided by the issuer.',
+    company: needsCompany && !isUuid(company.trim()) && 'Enter the company ID provided by the issuer.',
     certificateIssuedAt:
       needsCertifier &&
       (!isCalendarDate(certificateIssuedAt) ||

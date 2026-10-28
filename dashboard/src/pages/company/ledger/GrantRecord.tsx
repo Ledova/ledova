@@ -8,7 +8,6 @@ import {
   type RegisterGrant,
   shareCount,
   formatDate,
-  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -24,7 +23,7 @@ const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record 
 function GrantRows({ grant }: { grant: RegisterGrant }) {
   return (
     <Rows>
-      {grant.award && <Row label="Employee award">{shortReference(grant.award)}</Row>}
+      {grant.award && <Row label="Source">Employee award</Row>}
       <Row label="Member">{grant.name}</Row>
       <Row label={COPY.RESIDENTIAL_ADDRESS}>{grant.residentialAddress}</Row>
       <Row label="Member record">{grant.newMember ? 'New member' : 'Existing member'}</Row>
@@ -128,15 +127,10 @@ export function GrantRecord({
               <Row label={COPY.AUTHORITY_REFERENCE}>{grant.authorityReference}</Row>
               <Row label={COPY.REASON}>{grant.reason}</Row>
               <DecisionTrail proposal={grant} labels={DECISION_COPY.DECISIONS} />
-              {!!grant.registerEntry && <Row label="Register entry">{shortReference(grant.registerEntry)}</Row>}
             </Rows>
             <GrantRows grant={grant} />
             <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
             {documentsView}
-            <Rows>
-              <Row label="Issue record">{shortReference(grant.uuid)}</Row>
-              <Row label="Member reference">{shortReference(grant.member)}</Row>
-            </Rows>
           </Disclosure>
         </>
       )}

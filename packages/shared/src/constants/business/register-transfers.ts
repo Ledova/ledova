@@ -36,6 +36,7 @@ export const REGISTER_TRANSFER_COPY = {
   READ_ONLY_NOTE: 'Preparing, approving and applying a transfer needs current company administration or that step.',
   FROM: 'Transferor',
   TO: 'Recipient',
+  NAME_NOT_RECORDED: 'Name not recorded',
   ADDRESS: 'Recipient residential address',
   SHARES: 'Shares to transfer',
   SIGNED_ON: 'Instrument signed on',

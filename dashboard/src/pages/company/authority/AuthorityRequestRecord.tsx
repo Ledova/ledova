@@ -9,7 +9,6 @@ import {
   type CompanyAuthorityRequest,
   type CompanyCapability,
   APPOINTMENT_STATUS_LABELS,
-  shortReference,
 } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { CheckboxField } from '@components/Field';
@@ -77,16 +76,9 @@ export function AuthorityRequestRecord({
           </Row>
           <Row label="Requested actions">{scopeLabels(request.requestedCapabilities)}</Row>
           <Row label="Requested delegation">{scopeLabels(request.delegatableCapabilities)}</Row>
+          <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
+          {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
         </Rows>
-        <Disclosure summary="Request record">
-          <div className="text-sm">
-            <Rows>
-              <Row label="Request">{shortReference(request.uuid)}</Row>
-              <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
-              {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
-            </Rows>
-          </div>
-        </Disclosure>
         <p className="text-sm text-text-muted">{request.verificationMessage}</p>
         {request.status === 'pending' && (
           <>
@@ -160,7 +152,6 @@ export function AuthorityRequestRecord({
               <div className="text-sm">
                 <div className="space-y-3 pt-3">
                   <Rows>
-                    <Row label="Appointment">{shortReference(appointment.uuid)}</Row>
                     <Row label="Declaration version">{appointment.declarationVersion}</Row>
                   </Rows>
                   <p className="text-text-primary">{appointment.declarationText}</p>

@@ -14,7 +14,6 @@ import {
   shareCount,
   formatShareCount,
   formatDate,
-  shortReference,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Status, LoadError, Loading, Disclosure } from '@components/Ledger';
 import { FormActions, PageAction, PageLink } from '@components/Page';
@@ -78,6 +77,10 @@ export function AwardRecord({
   useLayoutEffect(() => () => editingCallback.current?.(false), []);
 
   const events = useRegisterAwardVestings(owner, award.company, award.uuid, guard);
+  const vestingLabel = (uuid: string) => {
+    const vesting = events.data?.find((event) => event.uuid === uuid);
+    return vesting ? `${shareCount(vesting.shares)} on ${formatDate(vesting.vestedOn)}` : 'An earlier vesting';
+  };
 
   const ends = useRegisterAwardEnds(owner, award.company, award.uuid, guard);
   const reversals = useRegisterAwardVestingReversals(owner, award.company, award.uuid, guard);
@@ -284,7 +287,7 @@ export function AwardRecord({
                     <div key={event.uuid} className="space-y-2 border-t border-border-subtle pt-3">
                       <Rows>
                         <Row label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Row>
-                        <Row label="Original vesting">{shortReference(event.vesting)}</Row>
+                        <Row label="Original vesting">{vestingLabel(event.vesting)}</Row>
                         <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
                         <Row label={COPY.REASON}>{event.reason}</Row>
                         <Row label="Recorded on">{formatDateTime(event.createdAt)}</Row>
@@ -329,16 +332,9 @@ export function AwardRecord({
                 </Disclosure>
               </div>
             )}
-            <div hidden={editing || !!adjusting}>
-              <Disclosure summary="Record details">
-                <Rows>
-                  <Row label="Member reference">{shortReference(award.member)}</Row>
-                  <Row label="Award reference">{shortReference(award.uuid)}</Row>
-                  <Row label="Recorded on">{formatDateTime(award.createdAt)}</Row>
-                  <Row label="Recorded by">{award.preparedByName || 'Name not recorded'}</Row>
-                </Rows>
-              </Disclosure>
-            </div>
+            <p hidden={editing || !!adjusting} className="text-xs text-text-muted">
+              Recorded {formatDateTime(award.createdAt)} by {award.preparedByName || 'a name not recorded'}
+            </p>
             {!editing && !adjusting && (
               <FormActions>
                 {!formHeld && (

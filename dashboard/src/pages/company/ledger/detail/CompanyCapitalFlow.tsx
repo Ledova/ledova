@@ -1,7 +1,7 @@
 import { useEntryReads } from '@hooks/useEntryReads';
 import { useCallback, useEffect } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
-import { Disclosure, Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, Loading, LoadError } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -171,15 +171,11 @@ function Preparation({ commands, onEditingChange }: { commands: Commands; onEdit
     >
       <h3 className="font-medium">Prepare a company capital increase</h3>
       <ErrorSummary {...checks.summary} className="sm:col-span-2" />
-      <div className="min-w-0 sm:col-span-2">
-        <Disclosure summary="Record details">
-          <Rows>
-            <Row label="Captured authorised cap">
-              <span className="min-w-0 break-all">{formatShareCount(before)}</span>
-            </Row>
-          </Rows>
-        </Disclosure>
-      </div>
+      <Rows>
+        <Row label="Authorised cap now">
+          <span className="min-w-0 break-all">{formatShareCount(before)}</span>
+        </Row>
+      </Rows>
       {commands.source?.totalSupply !== before && (
         <PageAction
           label="Use current authorised cap"

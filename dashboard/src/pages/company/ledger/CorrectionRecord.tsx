@@ -95,7 +95,6 @@ export function CorrectionRecord({
         >
           {(preview) => (
             <Rows>
-              <Row label="Register sequence">{preview.registerSequence}</Row>
               <Row label={COPY.EFFECTIVE_ON}>{formatDate(preview.effectiveOn)}</Row>
               <Row label={COPY.ORIGINAL_CHANGES}>
                 <RegisterChanges changes={preview.originalChanges} named={entry.changes} />

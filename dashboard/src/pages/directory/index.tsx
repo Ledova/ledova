@@ -75,7 +75,7 @@ export default function DirectoryPage() {
             No share classes available under your current company decisions.
           </p>
           <p className="text-sm text-text-muted">
-            Use the company or offering UUID supplied to you to request eligibility.
+            Use the company ID or offering ID supplied to you to request eligibility.
           </p>
           <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
         </Section>

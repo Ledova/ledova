@@ -416,8 +416,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.getByText('Unsigned certificate · 1 page')).toBeTruthy();
   expect(screen.queryByRole('textbox', { name: 'Company instruction' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Invite a member' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Record details' }));
-  expect(screen.getByText('Synthetic recipient instruction')).toBeTruthy();
+  expect(within(certificateReview).getByText('Synthetic recipient instruction')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Create certificate' }));
   await screen.findByText(/The unsigned recipient certificate is recorded/);
   expect(api.post).toHaveBeenCalledWith(
@@ -831,7 +830,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     confirmation: true,
   });
   expect(screen.getByText(MEMBER_RECORD.name)).toBeTruthy();
-  expect(screen.getByTitle(MEMBER_RECORD.residentialAddress)).toBeTruthy();
+  expect(screen.getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Update requests' })).toBeTruthy();
   expect(
     within(screen.getByRole('heading', { name: 'Update requests' }).closest('section')!).getByText('Submitted'),
@@ -839,7 +838,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.queryByRole('textbox')).toBeNull();
   const updateRequests = screen.getByRole('heading', { name: 'Update requests' }).closest('section')!;
   expect(within(updateRequests).getByText('Requested Member Name')).toBeTruthy();
-  expect(within(updateRequests).getByTitle('Requested synthetic address')).toBeTruthy();
+  expect(within(updateRequests).getByText('Requested synthetic address')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Request update' }));
   expect((screen.getByLabelText('Requested name') as HTMLInputElement).value).toBe('');
   expect((screen.getByLabelText('Requested residential address') as HTMLTextAreaElement).value).toBe('');
@@ -854,7 +853,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(screen.getByRole('button', { name: 'Send request' }));
   await screen.findByRole('heading', { name: 'Current details' });
   expect(screen.queryByRole('textbox')).toBeNull();
-  expect(screen.getByTitle('Second requested address')).toBeTruthy();
+  expect(screen.getByText('Second requested address')).toBeTruthy();
   const finalCommand = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS).at(-1)![1];
   expect(finalCommand.operationId).not.toBe(commands[0][1].operationId);
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));

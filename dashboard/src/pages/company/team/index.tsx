@@ -13,7 +13,6 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   formatDateTime,
-  shortReference,
   DESTINATIONS,
 } from '@ledova/shared';
 import { scopeLabels } from '@pages/company/shared/appointments';
@@ -225,11 +224,6 @@ function OwnTeam({
                       <Row label="Accepted">{formatDateTime(item.acceptedAt, 'Not yet accepted')}</Row>
                       <Row label="Appointment expiry">{formatDateTime(item.appointmentExpiresAt, 'No expiry')}</Row>
                     </Rows>
-                    <Disclosure summary="Invitation record">
-                      <Rows>
-                        <Row label="Invitation">{shortReference(item.uuid)}</Row>
-                      </Rows>
-                    </Disclosure>
                   </Disclosure>
                 </li>
               ))}
@@ -265,7 +259,7 @@ function OwnTeam({
                 ...sources.map((item) => ({
                   value: item.uuid,
                   label: `${scopeLabels(item.delegatableCapabilities)} · appointed ${formatDate(item.createdAt)}`,
-                  reference: shortReference(item.uuid),
+                  reference: formatDateTime(item.createdAt),
                 })),
               ]}
               value={sourceId}
