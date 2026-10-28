@@ -157,6 +157,30 @@ export function Disclosure({
   );
 }
 
+export function MoreToggle({
+  open,
+  controls,
+  onToggle,
+  children,
+}: {
+  open: boolean;
+  controls?: string;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-controls={controls}
+      onClick={onToggle}
+      className="w-fit text-left text-sm text-brand-light hover:underline"
+    >
+      {children}
+    </button>
+  );
+}
+
 export function Rows({ children }: { children: ReactNode }) {
   return <dl className="divide-y divide-border-subtle">{children}</dl>;
 }

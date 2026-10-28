@@ -489,11 +489,11 @@ Every list follows these rules:
   (`dashboard/src/components/Page.tsx`), a UI-only portal to the stable header target supplied by
   `PageActionsTarget` (`dashboard/src/components/PageTitle.ts`). Filter state stays under its owner.
   Hidden retained views explicitly omit their header contribution; their controllers remain mounted.
-- `Table` and aligned expandable collections share `TABLE_SCROLL_CLASS` and `TABLE_HEADER_CLASS`
+- `Table` and aligned collections share `TABLE_SCROLL_CLASS` and `TABLE_HEADER_CLASS`
   from `dashboard/src/components/List.tsx` for horizontal overflow and muted, transparent headers.
   Keep collections flat within their outer `Section`, with subtle row dividers and no inner rounded
-  border or shaded header. Native table cells retain their padding; expandable lists retain their
-  disclosure alignment. Preserve numeric alignment, semantics, detail lifetimes and unboxed editors.
+  border or shaded header. Native table cells retain their padding; aligned lists retain their
+  column grid. Preserve numeric alignment, semantics, detail lifetimes and unboxed editors.
 - It pages as [lists, search, filters and paging](frontend-ux.md#lists-search-filters-and-paging)
   describes. A failed first read offers a retry, not an empty list.
 - A failed later page keeps the known rows and labels the list incomplete (`useLaterPages`).
@@ -760,8 +760,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   certificate preparation and association-bound member tracking in one class-selected list. Company
   reads mount only with confirmed register access; member-only access never reads the full company register.
   `CertificateRecords.tsx` merges matching company and own entries without duplicate rows. Aligned
-  `Disclosure` rows show the shareholder or change, shares, date and status; details, previous
-  requests and permitted actions open inline. Each record keeps its class visible; the page heading's
+  rows show the shareholder or change, shares, entry, date and status, with permitted actions at the
+  row's end and earlier requests beneath; rows don't expand. Each record keeps its class visible; the page heading's
   top-right icon button with the accessible name and tooltip Filters opens `FilterPopover` for draft class,
   shareholder search and certificate status. The heading has no repeated filter summary or match
   count; dismissing the panel preserves the unapplied draft.

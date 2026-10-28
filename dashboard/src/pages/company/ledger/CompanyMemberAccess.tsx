@@ -620,12 +620,13 @@ export function CompanyMemberAccess({
             {matches.length > 0 && (
               <div
                 aria-hidden="true"
-                className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_10rem] gap-6 pl-7 text-xs font-medium text-text-muted lg:grid"
+                className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_12rem_10rem] gap-6 text-xs font-medium text-text-muted lg:grid"
               >
                 <span>Person</span>
                 <span>Request</span>
                 <span>Requested</span>
                 <span>Status</span>
+                <span className="sr-only">Action</span>
               </div>
             )}
             <ul aria-label="Member requests" className={requestOpen ? '' : 'divide-y divide-border-subtle'}>
@@ -644,94 +645,75 @@ export function CompanyMemberAccess({
                         !!access.prepare &&
                         (item.kind !== 'particulars' || item.record.uuid !== selectedRequest.uuid))
                     }
+                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_12rem_10rem] lg:gap-6"
                   >
-                    <Disclosure
-                      summary={
-                        <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 text-sm lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_10rem] lg:gap-6">
-                          <span className="min-w-0 break-words font-medium">
-                            {item.kind === 'particulars' ? item.record.name : memberName(item.record.member)}
-                          </span>
-                          <span className="col-span-2 min-w-0 break-words text-text-muted lg:col-span-1">
-                            <span className="sr-only">Request: </span>
-                            {item.kind === 'particulars' ? 'Details update' : 'Unsigned certificate'}
-                            {shareClass && (
-                              <span className="block">
-                                {shareClass.name} · {shareClass.symbol}
-                              </span>
-                            )}
-                          </span>
-                          <span className="col-span-2 tabular-nums text-text-muted lg:col-span-1">
-                            <span className="lg:sr-only">Requested: </span>
-                            {formatDate(record.createdAt)}
-                          </span>
-                          <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted lg:col-auto lg:row-auto">
-                            {item.kind === 'particulars'
-                              ? MEMBER_PARTICULARS_STATUS_LABELS[item.record.status]
-                              : MEMBER_CERTIFICATE_STATUS_LABELS[item.record.status]}
-                          </span>
+                    <span className="min-w-0 break-words font-medium">
+                      {item.kind === 'particulars' ? item.record.name : memberName(item.record.member)}
+                    </span>
+                    <span className="col-span-2 min-w-0 break-words text-text-muted lg:col-span-1">
+                      <span className="sr-only">Request: </span>
+                      {item.kind === 'particulars' ? 'Details update' : 'Unsigned certificate'}
+                      {shareClass && (
+                        <span className="block">
+                          {shareClass.name} · {shareClass.symbol}
                         </span>
-                      }
-                    >
-                      {item.kind === 'particulars' ? (
-                        <>
-                          <Rows>
-                            <Row label="Residential address">{item.record.residentialAddress}</Row>
-                          </Rows>
-                          {item.record.status === 'submitted' &&
-                            access.prepare &&
-                            selectedRequest?.uuid !== item.record.uuid && (
-                              <FormActions>
-                                <PageAction
-                                  ref={(element) => {
-                                    if (element) requestOpeners.current.set(item.record.uuid, element);
-                                    else requestOpeners.current.delete(item.record.uuid);
-                                  }}
-                                  label="Prepare update"
-                                  context={item.record.name}
-                                  disabled={held}
-                                  onClick={() => {
-                                    checks.reset();
-                                    setRevokeMember('');
-                                    requestReturnFocus.current = item.record.uuid;
-                                    setRequest(item.record.uuid);
-                                  }}
-                                />
-                              </FormActions>
-                            )}
-                        </>
-                      ) : (
-                        <>
-                          {item.record.status === 'withdrawn' && (
-                            <p className="text-sm text-text-muted">
-                              Withdrawn by the member; no certificate was created.
-                            </p>
-                          )}
-                          {item.record.fulfilment && (
-                            <Rows>
-                              <Row label="Created on">{formatDate(item.record.fulfilment.createdAt)}</Row>
-                            </Rows>
-                          )}
-                          {item.record.status === 'requested' && (
-                            <FormActions>
-                              <PageAction
-                                ref={(element) => {
-                                  if (element) certificateOpeners.current.set(item.record.uuid, element);
-                                  else certificateOpeners.current.delete(item.record.uuid);
-                                }}
-                                label="Prepare certificate"
-                                context={memberName(item.record.member)}
-                                disabled={held}
-                                onClick={() => {
-                                  checks.reset();
-                                  certificateReturnFocus.current = item.record.uuid;
-                                  setCertificateRequest(item.record.uuid);
-                                }}
-                              />
-                            </FormActions>
-                          )}
-                        </>
                       )}
-                    </Disclosure>
+                      {item.kind === 'particulars' && (
+                        <span className="block whitespace-pre-line">{item.record.residentialAddress}</span>
+                      )}
+                    </span>
+                    <span className="col-span-2 tabular-nums text-text-muted lg:col-span-1">
+                      <span className="lg:sr-only">Requested: </span>
+                      {formatDate(record.createdAt)}
+                    </span>
+                    <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted lg:col-auto lg:row-auto">
+                      {item.kind === 'particulars'
+                        ? MEMBER_PARTICULARS_STATUS_LABELS[item.record.status]
+                        : MEMBER_CERTIFICATE_STATUS_LABELS[item.record.status]}
+                      {item.kind === 'certificate' && item.record.fulfilment && (
+                        <span className="block">Created {formatDate(item.record.fulfilment.createdAt)}</span>
+                      )}
+                    </span>
+                    {item.kind === 'particulars'
+                      ? item.record.status === 'submitted' &&
+                        access.prepare &&
+                        selectedRequest?.uuid !== item.record.uuid && (
+                          <div className="col-span-2 flex justify-end lg:col-span-1">
+                            <PageAction
+                              ref={(element) => {
+                                if (element) requestOpeners.current.set(item.record.uuid, element);
+                                else requestOpeners.current.delete(item.record.uuid);
+                              }}
+                              label="Prepare update"
+                              context={item.record.name}
+                              disabled={held}
+                              onClick={() => {
+                                checks.reset();
+                                setRevokeMember('');
+                                requestReturnFocus.current = item.record.uuid;
+                                setRequest(item.record.uuid);
+                              }}
+                            />
+                          </div>
+                        )
+                      : item.record.status === 'requested' && (
+                          <div className="col-span-2 flex justify-end lg:col-span-1">
+                            <PageAction
+                              ref={(element) => {
+                                if (element) certificateOpeners.current.set(item.record.uuid, element);
+                                else certificateOpeners.current.delete(item.record.uuid);
+                              }}
+                              label="Prepare certificate"
+                              context={memberName(item.record.member)}
+                              disabled={held}
+                              onClick={() => {
+                                checks.reset();
+                                certificateReturnFocus.current = item.record.uuid;
+                                setCertificateRequest(item.record.uuid);
+                              }}
+                            />
+                          </div>
+                        )}
                   </li>
                 );
               })}

@@ -48,7 +48,7 @@ function CertificateRequest({ onEditingChange, ...source }: Source & Editing) {
   ) : (
     <PageAction
       ref={opener}
-      label="Prepare unsigned certificate"
+      label="Prepare certificate"
       context={`entry ${source.entry.sequence}`}
       disabled={!source.sourceReady || !source.register.initialized}
       onClick={() => setOpen(true)}

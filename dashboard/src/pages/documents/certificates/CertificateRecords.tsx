@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import {
   MEMBER_CERTIFICATE_STATUS_LABELS,
   REGISTER_CORRECTION_COPY,
@@ -15,7 +15,7 @@ import {
   type TokenHoldersResponse,
   type useMemberRecords,
 } from '@ledova/shared';
-import { Disclosure, Row, Rows } from '@components/Ledger';
+import { MoreToggle } from '@components/Ledger';
 import { LoadMore, TABLE_SCROLL_CLASS, TABLE_HEADER_CLASS } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { ClassCertificate } from './ClassCertificate';
@@ -34,6 +34,8 @@ export type CompanyCertificateSource = {
   more: { hasMore: boolean; failed: boolean; loading: boolean; onLoad: () => unknown };
 };
 type CertificateRecord = { uuid: string; company?: RegisterEntry; own?: OwnMemberEntry };
+
+const ROW_COLUMNS = 'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_10rem]';
 
 export function CertificateRecords({
   read,
@@ -59,8 +61,8 @@ export function CertificateRecords({
   filters: CertificateFilterValues;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [otherExpanded, setOtherExpanded] = useState(false);
+  const otherId = useId();
   const retry = read.retry;
   const record =
     read.record?.company.uuid === companyUuid && read.selectedUuid === read.record.uuid ? read.record : null;
@@ -108,6 +110,7 @@ export function CertificateRecords({
   const otherActive =
     (retry?.kind === 'certificate' && otherRequests.some((request) => request.entry === retry.entry)) ||
     (retry?.kind === 'withdraw' && otherRequests.some((request) => request.uuid === retry.uuid));
+  const otherShown = otherExpanded || otherActive;
   const actions = (request: MemberCertificateRequest) => (
     <CertificateActions key={request.uuid} read={read} request={request} held={held} onWithdraw={onWithdraw} />
   );
@@ -136,11 +139,12 @@ export function CertificateRecords({
       <div className={ordered.length > 0 && !editing ? TABLE_SCROLL_CLASS : undefined}>
         {ordered.length > 0 && !editing && (
           <div className={`${TABLE_HEADER_CLASS} hidden py-3 font-medium md:block`} aria-hidden="true">
-            <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 pl-7">
+            <div className={`grid gap-4 ${ROW_COLUMNS}`}>
               <span>Shareholder</span>
               <span className="text-right">Shares</span>
               <span>Date</span>
               <span>Certificate</span>
+              <span className="sr-only">Action</span>
             </div>
           </div>
         )}
@@ -159,82 +163,63 @@ export function CertificateRecords({
               { member: record!.member, name: record!.name, shares: row.own!.delta },
             ];
             const focused = editing === row.uuid;
-            const active =
-              running === `certificate:${row.uuid}` ||
-              (retry?.kind === 'certificate' && retry.entry === row.uuid) ||
-              (retry?.kind === 'withdraw' && related.some((request) => request.uuid === retry.uuid));
             return (
-              <li key={`${selectedClass?.uuid}/${row.uuid}`} hidden={!!editing && !focused} className="text-sm">
-                <Disclosure
-                  open={focused || active || expanded === row.uuid}
-                  keepMounted
-                  onToggle={() => {
-                    if (!focused && !active) setExpanded((current) => (current === row.uuid ? null : row.uuid));
-                  }}
-                  summary={
-                    <span className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] md:gap-4">
-                      <span className="min-w-0 space-y-1 md:col-span-2">
-                        {changes.map((change) => (
-                          <span key={change.member} className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
-                            <span className="break-words font-medium">{change.name ?? 'Shareholder'}</span>
-                            <span className="break-words text-right tabular-nums">
-                              {shareChange(change.shares)} {selectedClass?.symbol} shares
-                            </span>
-                          </span>
-                        ))}
-                        <span className="block text-text-muted">
-                          {kind} · {selectedClass?.symbol}
-                        </span>
-                      </span>
-                      <span className="text-text-muted">
-                        {['issue', 'transfer'].includes(entry.kind.toLowerCase())
-                          ? formatDate(entry.companyEventOn, 'Not recorded')
-                          : formatDate(entry.effectiveOn)}
-                      </span>
-                      <span className="text-text-muted">
-                        {CERTIFICATE_STATUSES.find(([value]) => value === statusOf(row))?.[1]}
+              <li
+                key={`${selectedClass?.uuid}/${row.uuid}`}
+                hidden={!!editing && !focused}
+                className={`grid gap-3 py-4 text-sm md:gap-4 ${ROW_COLUMNS}`}
+              >
+                <span className="min-w-0 space-y-1 md:col-span-2">
+                  {changes.map((change) => (
+                    <span key={change.member} className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
+                      <span className="break-words font-medium">{change.name ?? 'Shareholder'}</span>
+                      <span className="break-words text-right tabular-nums">
+                        {shareChange(change.shares)} {selectedClass?.symbol} shares
                       </span>
                     </span>
-                  }
-                >
-                  <div hidden={focused}>
-                    <Rows>
-                      <Row label="Entry">{entry.sequence}</Row>
-                      <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
-                      <Row label="Recorded">{formatDateTime(row.company?.recordedAt ?? row.own!.createdAt)}</Row>
-                      {latest && <Row label="Requested">{formatDateTime(latest.createdAt)}</Row>}
-                    </Rows>
-                    {related.length > 1 && (
-                      <div className="divide-y divide-border-subtle">
-                        <h4 className="pt-3 text-sm font-medium">Previous requests</h4>
-                        {related.slice(1).map(requestRecord)}
-                      </div>
-                    )}
+                  ))}
+                  <span className="block text-text-muted">
+                    {kind} · {selectedClass?.symbol} · entry {entry.sequence}
+                  </span>
+                </span>
+                <span className="text-text-muted">
+                  {['issue', 'transfer'].includes(entry.kind.toLowerCase())
+                    ? formatDate(entry.companyEventOn, 'Not recorded')
+                    : formatDate(entry.effectiveOn)}
+                </span>
+                <span className="text-text-muted">
+                  {CERTIFICATE_STATUSES.find(([value]) => value === statusOf(row))?.[1]}
+                  {latest && <span className="block">Requested {formatDate(latest.createdAt)}</span>}
+                </span>
+                <div className={focused ? 'md:col-span-5' : 'flex flex-wrap justify-end gap-2 md:items-start'}>
+                  {company && row.company && (
+                    <ClassCertificate
+                      sourceKey={`${company.owner.userUuid}/${company.owner.ownerAccountUuid}`}
+                      register={company.register}
+                      entry={row.company}
+                      guard={company.guard}
+                      sourceReady={company.sourceReady && !held}
+                      onEditingChange={editingChange}
+                    />
+                  )}
+                  {!focused && receiving && (
+                    <PageAction
+                      label="Request certificate"
+                      context={`${selectedClass?.name ?? 'Shares'}, entry ${entry.sequence}`}
+                      busy={running === `certificate:${row.uuid}`}
+                      busyLabel="Requesting…"
+                      disabled={held}
+                      onClick={() => onRequest(row.uuid)}
+                    />
+                  )}
+                  {!focused && latest && actions(latest)}
+                </div>
+                {!focused && related.length > 1 && (
+                  <div className="divide-y divide-border-subtle md:col-span-5">
+                    <h4 className="text-sm font-medium">Earlier requests</h4>
+                    {related.slice(1).map(requestRecord)}
                   </div>
-                  <div className={focused ? 'w-full' : 'flex flex-wrap justify-end gap-2'}>
-                    {company && row.company && (
-                      <ClassCertificate
-                        sourceKey={`${company.owner.userUuid}/${company.owner.ownerAccountUuid}`}
-                        register={company.register}
-                        entry={row.company}
-                        guard={company.guard}
-                        sourceReady={company.sourceReady && !held}
-                        onEditingChange={editingChange}
-                      />
-                    )}
-                    {!focused && receiving && (
-                      <PageAction
-                        label="Request certificate"
-                        context={`${selectedClass?.name ?? 'Shares'}, entry ${entry.sequence}`}
-                        busy={running === `certificate:${row.uuid}`}
-                        busyLabel="Requesting…"
-                        disabled={held}
-                        onClick={() => onRequest(row.uuid)}
-                      />
-                    )}
-                    {!focused && latest && actions(latest)}
-                  </div>
-                </Disclosure>
+                )}
               </li>
             );
           })}
@@ -250,17 +235,21 @@ export function CertificateRecords({
         </div>
       )}
       {otherRequests.length > 0 && (
-        <div hidden={!!editing}>
-          <Disclosure
-            summary="Other certificate requests"
-            open={otherExpanded || otherActive}
-            keepMounted
+        <div hidden={!!editing} className="space-y-2">
+          <MoreToggle
+            open={otherShown}
+            controls={otherId}
             onToggle={() => {
               if (!otherActive) setOtherExpanded((current) => !current);
             }}
           >
-            <div className="divide-y divide-border-subtle">{otherRequests.map(requestRecord)}</div>
-          </Disclosure>
+            {otherShown
+              ? 'Hide other certificate requests'
+              : `Show other certificate requests (${otherRequests.length})`}
+          </MoreToggle>
+          <div id={otherId} hidden={!otherShown} className="divide-y divide-border-subtle">
+            {otherRequests.map(requestRecord)}
+          </div>
         </div>
       )}
     </>
@@ -281,7 +270,7 @@ function CertificateActions({
   if (request.status === 'requested')
     return (
       <PageAction
-        label="Withdraw certificate request"
+        label="Withdraw request"
         context={`requested ${formatDateTime(request.createdAt)}`}
         disabled={held}
         onClick={() => onWithdraw(request)}
@@ -297,8 +286,8 @@ function MemberCertificateDownload({ read, request }: { read: Read; request: Mem
   return (
     <>
       <PageAction
-        label="Download unsigned certificate"
-        context={`requested ${formatDateTime(request.createdAt)}`}
+        label="Download PDF"
+        context={`unsigned certificate requested ${formatDateTime(request.createdAt)}`}
         busy={busy}
         busyLabel="Downloading…"
         disabled={read.busy || !!read.retry}

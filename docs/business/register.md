@@ -328,8 +328,7 @@ A correction exactly reverses one entry, which stays and is named by it. An entr
 once, and a correction can itself be corrected; partial corrections and replacement transactions are
 not built.
 
-1. In Ledger's Corrections view, expand the entry and choose Correct this entry,
-   which shows the exact inverse.
+1. In Ledger's Corrections view, choose Correct on the entry, which shows the exact inverse.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
    transfers.
@@ -578,12 +577,11 @@ selector and without the overview cards: Issue shares
 
 Corrections starts with a full-width Changes card, newest entries first, with compact rows aligned under
 Change, Date and Share movements. On smaller screens, the kind and date sit above the movements.
-Each entry shows its company date for an issue or transfer (ledger effective date for other kinds),
-and its first two signed shareholder movements plus a count of the rest. Select the row to expand
-its initially closed details: the full movement list, entry number, separate company, ledger and
-recording dates, and correction or reversal references. An older issue or transfer with no company
-date says Date not recorded in its summary and Not
-recorded in its details. Retained source imports, chain openings, corrections, reconciliation,
+Each entry shows its kind, entry number and any correction or reversal reference; its company date
+for an issue or transfer (ledger effective date for other kinds), with the ledger date beneath when it
+differs; and its first two signed shareholder movements, with Show all for the rest. Rows don't
+expand, and Correct sits at the end of a row that may be corrected. An older issue or transfer with
+no company date says Date not recorded. Retained source imports, chain openings, corrections, reconciliation,
 particulars and wallet-link records remain available on demand, with permitted evidence downloads.
 Entries remain immutable. Current register readers can inspect the records; preparation, approval,
 application and acknowledgement controls still require their respective company appointments.

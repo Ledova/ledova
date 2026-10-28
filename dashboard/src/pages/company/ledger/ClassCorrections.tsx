@@ -89,7 +89,7 @@ export function ClassCorrections({
           ready && privateReady && steps?.prepare && entry.correctable ? (
             <PageLink
               to={generatePath(DESTINATIONS.companyRegisterCorrection.path, { uuid: token, entry: entry.uuid })}
-              label={COPY.PREPARE}
+              label="Correct"
               context={`entry ${entry.sequence}`}
             />
           ) : null

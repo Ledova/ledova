@@ -127,8 +127,7 @@ async function ownShares(quantity: string) {
 
 async function certificateRequest() {
   const records = await screen.findByRole('list', { name: 'Certificate records' });
-  const row = await within(records).findByRole('button', { name: new RegExp(MEMBER_RECORD.name) });
-  if (row.getAttribute('aria-expanded') === 'false') fireEvent.click(row);
+  await within(records).findByText(MEMBER_RECORD.name);
   return screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
 }
 

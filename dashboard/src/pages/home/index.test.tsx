@@ -336,29 +336,26 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.getByRole('list', { name: 'Member requests' })).toBe(requestList);
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   fireEvent.change(screen.getByRole('combobox', { name: 'Request type' }), { target: { value: 'certificate' } });
-  expect(within(requestList).queryByRole('button', { name: /^Private queued member name/ })).toBeNull();
-  expect(
-    within(requestList).getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }),
-  ).toBeTruthy();
+  expect(within(requestList).queryByRole('button', { name: 'Prepare update (Private queued member name)' })).toBeNull();
+  expect(within(requestList).getByRole('button', { name: `Prepare certificate (${MEMBER_RECORD.name})` })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   fireEvent.change(screen.getByRole('searchbox', { name: 'Person' }), { target: { value: 'mÉmBeR PrÍvate' } });
   await screen.findByText('No member requests match these filters.');
-  expect(within(requestList).getByRole('button', { name: /^Private queued member name/, hidden: true })).toBeTruthy();
-  fireEvent.change(screen.getByRole('combobox', { name: 'Request type' }), { target: { value: 'particulars' } });
-  expect(within(requestList).getByRole('button', { name: /^Private queued member name/ })).toBeTruthy();
   expect(
-    within(requestList).queryByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }),
-  ).toBeNull();
+    within(requestList).getByRole('button', { name: 'Prepare update (Private queued member name)', hidden: true }),
+  ).toBeTruthy();
+  fireEvent.change(screen.getByRole('combobox', { name: 'Request type' }), { target: { value: 'particulars' } });
+  expect(within(requestList).getByRole('button', { name: 'Prepare update (Private queued member name)' })).toBeTruthy();
+  expect(within(requestList).queryByRole('button', { name: `Prepare certificate (${MEMBER_RECORD.name})` })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   fireEvent.change(screen.getByRole('searchbox', { name: 'Person' }), { target: { value: '' } });
   fireEvent.change(screen.getByRole('combobox', { name: 'Request type' }), { target: { value: '' } });
   await waitFor(() =>
     expect(
-      within(requestList).getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }),
+      within(requestList).getByRole('button', { name: `Prepare certificate (${MEMBER_RECORD.name})` }),
     ).toBeTruthy(),
   );
-  fireEvent.click(screen.getByRole('button', { name: /^Private queued member name/ }));
-  expect(screen.getByText('Private queued member address')).toBeTruthy();
+  expect(within(requestList).getByText('Private queued member address')).toBeTruthy();
   expect(screen.getByText(/member@example.test/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   fireEvent.change(screen.getByRole('searchbox', { name: 'Person' }), { target: { value: 'Unapplied filter' } });
@@ -367,7 +364,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(document.activeElement).toBe(
     screen.getByRole('heading', { name: "Prepare Private queued member name's particulars update" }),
   );
-  expect(screen.queryByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) })).toBeNull();
+  expect(screen.queryByRole('button', { name: `Prepare certificate (${MEMBER_RECORD.name})` })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   expect((screen.getByRole('searchbox', { name: 'Person' }) as HTMLInputElement).disabled).toBe(true);
   expect((screen.getByRole('searchbox', { name: 'Person' }) as HTMLInputElement).value).toBe('');
@@ -391,8 +388,9 @@ it('invites and associates a walletless member, recovers one exact request and r
   preferencesRefused = false;
   particulars = [];
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
-  fireEvent.click(await screen.findByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }));
-  const prepareCertificate = screen.getByRole('button', { name: `Prepare certificate (${MEMBER_RECORD.name})` });
+  const prepareCertificate = await screen.findByRole('button', {
+    name: `Prepare certificate (${MEMBER_RECORD.name})`,
+  });
   expect(screen.queryByRole('textbox', { name: 'Company instruction' })).toBeNull();
   fireEvent.click(prepareCertificate);
   await screen.findByRole('heading', { name: 'Prepare certificate' });
@@ -526,8 +524,8 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.queryByText('Recent changes · Ordinary')).toBeNull();
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
-  expect(screen.queryByRole('button', { name: /Withdraw certificate request/ })).toBeNull();
-  expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Withdraw request/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Download PDF/ })).toBeNull();
   const ownership: NonNullable<OwnMemberRecord['ownership']> = {
     company: MEMBER_RECORD.company.uuid,
     companyName: MEMBER_RECORD.company.name,
@@ -749,26 +747,25 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   const certificatesCard = (await screen.findByRole('heading', { name: 'Certificate records' })).closest('section')!;
   expect(await within(certificatesCard).findByText('+10 ORD shares')).toBeTruthy();
-  const certificateRow = within(certificatesCard).getByRole('button', { name: new RegExp(MEMBER_RECORD.name) });
+  const certificateRow = within(certificatesCard).getByText(MEMBER_RECORD.name).closest('li')!;
   expect(within(certificateRow).getByText('Requested', { exact: true })).toBeTruthy();
   expect(within(certificateRow).getByText('Not recorded')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /Download unsigned certificate/ })).toBeNull();
-  fireEvent.click(certificateRow);
-  expect(within(certificatesCard).getByRole('button', { name: /Withdraw certificate request/ })).toBeTruthy();
+  expect(within(certificateRow).getByRole('button', { name: /Withdraw request/ })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Share history' })).toBeNull();
   expect(screen.queryByRole('heading', { name: 'Your request status' })).toBeNull();
   expect(screen.queryByRole('heading', { name: 'Update requests' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
-  expect(within(certificatesCard).getByRole('heading', { name: 'Previous requests' })).toBeTruthy();
-  expect(within(certificatesCard).getByText('Ordinary · Withdrawn')).toBeTruthy();
-  expect(within(certificatesCard).getByText('Ordinary · Fulfilled')).toBeTruthy();
-  fireEvent.click(await screen.findByRole('button', { name: /Download unsigned certificate/ }));
+  expect(within(certificateRow).getByRole('heading', { name: 'Earlier requests' })).toBeTruthy();
+  expect(within(certificateRow).getByText('Ordinary · Withdrawn')).toBeTruthy();
+  expect(within(certificateRow).getByText('Ordinary · Fulfilled')).toBeTruthy();
+  fireEvent.click(within(certificateRow).getByRole('button', { name: /Download PDF/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
   expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid), expect.anything());
-  fireEvent.click(certificateRow);
-  fireEvent.click(within(certificatesCard).getByRole('button', { name: 'Other certificate requests' }));
-  expect(within(certificatesCard).getByText('Share certificate · Fulfilled')).toBeTruthy();
-  fireEvent.click(within(certificatesCard).getByRole('button', { name: /Download unsigned certificate/ }));
+  const showOthers = within(certificatesCard).getByRole('button', { name: 'Show other certificate requests (1)' });
+  fireEvent.click(showOthers);
+  const others = within(document.getElementById(showOthers.getAttribute('aria-controls')!)!);
+  expect(others.getByText('Share certificate · Fulfilled')).toBeTruthy();
+  fireEvent.click(others.getByRole('button', { name: /Download PDF/ }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(2));
   expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(otherCertificate.uuid), expect.anything());
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
@@ -858,8 +855,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(finalCommand.operationId).not.toBe(commands[0][1].operationId);
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   const finalRecords = await screen.findByRole('list', { name: 'Certificate records' });
-  fireEvent.click(within(finalRecords).getByRole('button', { name: new RegExp(MEMBER_RECORD.name) }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' }));
+  fireEvent.click(await within(finalRecords).findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' }));
   await waitFor(() => expect(release).toBeTypeOf('function'));
   refused = true;
   await act(async () => {
