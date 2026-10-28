@@ -1,4 +1,4 @@
-import { RecordDownloadFailure } from './RecordShell';
+import { RecordDownloadFailure } from '@pages/company/ledger/shared/RecordShell';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -28,7 +28,7 @@ import {
 } from '@pages/company/ledger/shared/useRegisterAwards';
 import { AwardVestingForm } from './AwardVestingForm';
 import { AwardAdjustmentForm } from './AwardAdjustmentForm';
-import { useAwardRecordDownload } from './useRegisterRecordDownload';
+import { useAwardRecordDownload } from './useAwardRecordDownload';
 
 const LATEST_VESTINGS = 3;
 

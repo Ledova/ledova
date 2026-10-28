@@ -654,7 +654,7 @@ appointment it opened with and holds confirmation if a refresh changes it. Form 
 with each procedure in [the register of members](../business/register.md).
 
 The web register's repeated row wrappers, stage rows and download failures use
-`dashboard/src/pages/company/ledger/RecordShell.tsx`; `shared/DecisionTrail.tsx` serves both
+`dashboard/src/pages/company/ledger/shared/RecordShell.tsx`; `shared/DecisionTrail.tsx` serves both
 the Ledger and share-class detail page. Six records use `useRegisterTaskGuard.ts` for their existing visible-task
 check, while grant, allotment and award keep their distinct guards and wrappers. The preparation
 pages share `PreparationShell.tsx` for Back, preference fallback and read-only paragraphs, and

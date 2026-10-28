@@ -26,7 +26,7 @@ import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany'
 import { awardsKey, useRegisterAward } from '@pages/company/ledger/shared/useRegisterAwards';
 import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
-import { AwardRecord } from '../AwardRecord';
+import { AwardRecord } from './AwardRecord';
 
 export default function CompanyRegisterAwardPage() {
   const { uuid: token = '', award = '' } = useParams();
