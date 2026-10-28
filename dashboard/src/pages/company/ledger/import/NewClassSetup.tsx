@@ -1,6 +1,7 @@
 import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { useNewShareClass, type FreshClassProps } from './useNewShareClass';
+import { useStartedClasses } from './useStartedClasses';
 import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { generatePath, Link, useSearchParams } from 'react-router-dom';
@@ -174,8 +175,14 @@ function FreshClass({
   onHeldChange,
   onConflict,
 }: FreshClassProps) {
+  const started = useStartedClasses(
+    owner,
+    guard,
+    company.uuid,
+    classes.filter((token) => token.status === 'draft'),
+    ready,
+  );
   const {
-    draftClasses,
     choice,
     setChoice,
     name,
@@ -188,7 +195,7 @@ function FreshClass({
     check,
     resolveRegister,
     problems,
-  } = useNewShareClass({ guard, checkCurrent, company, classes, ready });
+  } = useNewShareClass({ guard, checkCurrent, company, classes, started, ready });
 
   return (
     <ImportForm
@@ -209,10 +216,10 @@ function FreshClass({
       classProblems={problems}
       classFields={
         <fieldset className="space-y-5">
-          {draftClasses.length > 0 && !classLocked && (
+          {started.length > 0 && !classLocked && (
             <p className="text-sm text-text-muted">
               Continue a class you started:{' '}
-              {draftClasses.map((token, index) => (
+              {started.map((token, index) => (
                 <Fragment key={token.uuid}>
                   {index > 0 && ', '}
                   <Link
