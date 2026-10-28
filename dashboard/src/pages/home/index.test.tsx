@@ -42,7 +42,7 @@ function MemberPageLinks() {
     <nav>
       <Link to={context!.companyPath('/home')}>Dashboard</Link>
       <Link to={context!.companyPath('/home#documents')}>Documents</Link>
-      <Link to={context!.companyPath('/settings#company-recorded-details')}>Settings</Link>
+      <Link to={context!.companyPath('/settings#profile')}>Settings</Link>
       <Link to="/home?company=unavailable-company">Open unavailable company</Link>
     </nav>
   );
@@ -749,7 +749,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   ).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   const certificatesCard = (await screen.findByRole('heading', { name: 'Certificate records' })).closest('section')!;
-  expect(within(certificatesCard).getByText('+10 ORD shares')).toBeTruthy();
+  expect(await within(certificatesCard).findByText('+10 ORD shares')).toBeTruthy();
   const certificateRow = within(certificatesCard).getByRole('button', { name: new RegExp(MEMBER_RECORD.name) });
   expect(within(certificateRow).getByText('Requested', { exact: true })).toBeTruthy();
   expect(within(certificateRow).getByText('Not recorded')).toBeTruthy();

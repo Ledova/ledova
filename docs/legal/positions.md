@@ -383,9 +383,9 @@ those holdings already reflect. A scheduled job reconciles the stored register
 with the chain and retains each result. Former members are stored, and an
 import records members' particulars and pre-platform former members, and opens a
 class not yet on chain from the company's register. Company appointees prepare
-the s173(3) copy in the Register
+the s173(3) copy in **Documents** → **Inspection copies**
 ([inspection copies](../business/member-records.md#inspection-copies)),
-on the company's written instruction: the register as exported, with the request date, the
+on the company's written instruction: the register CSV, with the request date, the
 instruction's reference and the recipient, marked late when prepared more than
 seven days after the request. Ledova keeps its SHA-256 and the request details,
 not the file; the company decides whether a request is proper and hands the copy

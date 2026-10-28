@@ -12,7 +12,7 @@ import { DESTINATIONS, useSubmissionOwner } from '@ledova/shared';
 import { CompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipCompanies } from '@hooks/useOwnershipCompanies';
 import { documentView } from '@utils/destinations';
-import { CERTIFICATES_PATH } from '@utils/paths';
+import { CERTIFICATES_PATH, COMPANY_DOCUMENTS_PATH } from '@utils/paths';
 import { lastCompany, rememberCompany } from '@utils/lastCompany';
 import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';
 import { Confirmation } from './Modal';
@@ -72,7 +72,10 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const allowed = (uuid: string | null) =>
     !!owner && boundary.get() === owner && !held && (!uuid || directory.companies.some((row) => row.uuid === uuid));
   const isDirty = useCallback(
-    () => [...document.querySelectorAll('main form')].some((form) => dirtyForms.current.has(form as HTMLFormElement)),
+    (memberDraft = true) =>
+      [...document.querySelectorAll(memberDraft ? 'main form' : 'main form:not([data-member-draft])')].some((form) =>
+        dirtyForms.current.has(form as HTMLFormElement),
+      ),
     [],
   );
   const blocker = useBlocker(
@@ -120,7 +123,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         const blocked =
           held ||
           (changingCompany && !!member?.draft.open) ||
-          (!persistentDraft && (changingCompany || internal || (historyAction === 'POP' && changingPage)) && isDirty());
+          ((changingCompany || internal || (historyAction === 'POP' && changingPage)) && isDirty(!persistentDraft));
         if (blocked) setBlockedAt({ owner, location: currentLocation.key });
         return blocked;
       },
@@ -165,9 +168,13 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
       location.pathname === DESTINATIONS.company.path || location.pathname.startsWith(`${DESTINATIONS.company.path}/`);
     if (
       (!companyPage &&
-        ![DESTINATIONS.home.path, DESTINATIONS.memberRecords.path, DESTINATIONS.settings.path, CERTIFICATES_PATH].some(
-          (path) => path === location.pathname,
-        )) ||
+        ![
+          DESTINATIONS.home.path,
+          DESTINATIONS.memberRecords.path,
+          DESTINATIONS.settings.path,
+          CERTIFICATES_PATH,
+          COMPANY_DOCUMENTS_PATH,
+        ].some((path) => path === location.pathname)) ||
       token ||
       entered !== null ||
       directory.isLoading ||

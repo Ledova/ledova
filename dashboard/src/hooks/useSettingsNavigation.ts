@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   appointmentForRegisterStep,
   canAdministerCompany,
@@ -7,10 +7,7 @@ import {
   OWN_APPOINTMENTS_QUERY_KEY,
   DESTINATIONS,
   getCompanies,
-  getOwnMemberRecords,
-  ownMemberRecordsKey,
   readEveryPage,
-  USER_PREFERENCES_QUERY_KEY,
   useSubmissionOwner,
   useUserPreferences,
   CACHE_TIMING,
@@ -21,7 +18,6 @@ import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
 
 export function useSettingsNavigation() {
   const { owner, boundary } = useSubmissionOwner();
-  const client = useQueryClient();
   const preferences = useUserPreferences();
   const companyAudience = !!preferences.userAccount && canOpen(preferences.userAccount.role, 'company');
   const guard = () => {
@@ -50,30 +46,6 @@ export function useSettingsNavigation() {
         return result;
       }),
   });
-  const members = useQuery({
-    queryKey: ownMemberRecordsKey(owner),
-    enabled: !!owner && !!preferences.preferences && !preferences.isError && !preferences.isFetching,
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    gcTime: CACHE_TIMING.MEDIUM_GC_TIME,
-    refetchOnMount: false,
-    retryOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    retry: false,
-    queryFn: () =>
-      readEveryPage(async (page) => {
-        const check = () => {
-          guard();
-          const state = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
-          if (state?.status !== 'success' || state.fetchStatus !== 'idle')
-            throw new Error('Your signed-in account changed.');
-        };
-        check();
-        const result = await getOwnMemberRecords(apiClient, page, { ledovaSubmissionGuard: check });
-        check();
-        return result;
-      }),
-  });
   const current = !!owner && !!preferences.preferences && !preferences.isError && !preferences.isFetching;
   const own = current && appointments.isSuccess && !appointments.isFetching ? appointments.data : [];
   const companyRows = current && companyAudience && companies.isSuccess && !companies.isFetching ? companies.data : [];
@@ -85,13 +57,7 @@ export function useSettingsNavigation() {
   );
   const hasOwnedCompany = companyRows.some((company) => company.isOwner === true);
   const canManageCompany = canActivate || companyRows.some(canAdministerCompany) || hasOwnedCompany;
-  const hasMemberRecords = current && members.isSuccess && members.data.length > 0;
-  const items = SETTINGS_VIEWS.filter(({ key }) => {
-    if (key === 'company-documents') return canManageCompany;
-    if (key === 'activation') return canActivate;
-    if (key === 'company-recorded-details') return hasMemberRecords || members.isError;
-    return true;
-  });
+  const items = SETTINGS_VIEWS.filter(({ key }) => key !== 'activation' || canActivate);
   return {
     defaultPath: `${DESTINATIONS.settings.path}#profile`,
     isLoading:
@@ -102,15 +68,11 @@ export function useSettingsNavigation() {
       appointments.isFetching ||
       (companyAudience && (companies.isPending || companies.isFetching)),
     isError: preferences.isError || appointments.isError || (companyAudience && companies.isError),
-    isFetching:
-      preferences.isFetching ||
-      appointments.isFetching ||
-      (companyAudience && companies.isFetching) ||
-      members.isFetching,
+    isFetching: preferences.isFetching || appointments.isFetching || (companyAudience && companies.isFetching),
     retry: async () => {
       const refreshed = await preferences.refetch();
       if (refreshed.isError || !owner || boundary.get() !== owner) return;
-      await Promise.all([appointments.refetch(), ...(companyAudience ? [companies.refetch()] : []), members.refetch()]);
+      await Promise.all([appointments.refetch(), ...(companyAudience ? [companies.refetch()] : [])]);
     },
     items,
     canManageCompany,

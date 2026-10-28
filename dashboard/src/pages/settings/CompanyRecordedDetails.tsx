@@ -1,7 +1,6 @@
 import { CheckboxField, Field, TextArea, TextInput } from '@components/Field';
 import { Disclosure, Row, Rows, Section, Status } from '@components/Ledger';
-import { FormActions, Page, PageAction } from '@components/Page';
-import { PageTitle } from '@components/PageTitle';
+import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberRecordsContent } from '@components/member-records/MemberRecordsContent';
 import { useMemberWorkspace } from '@components/member-records/useMemberWorkspace';
@@ -12,11 +11,9 @@ import { FIELD_LIMITS, MEMBER_PARTICULARS_STATUS_LABELS, formatDate, shortRefere
 export function CompanyRecordedDetails() {
   const { read } = useMemberWorkspace();
   return (
-    <PageTitle.Provider value="Company-recorded details">
-      <Page lede="Details held by the company, separate from your personal profile.">
-        <MemberRecordsContent>{read.record && <MemberParticulars key={read.record.uuid} />}</MemberRecordsContent>
-      </Page>
-    </PageTitle.Provider>
+    <Section title="Company-recorded details">
+      <MemberRecordsContent>{read.record && <MemberParticulars key={read.record.uuid} />}</MemberRecordsContent>
+    </Section>
   );
 }
 
@@ -73,9 +70,10 @@ function MemberParticulars() {
   );
   return (
     read.record && (
-      <Section title={particularsOpen ? 'Request update' : 'Your details'}>
+      <>
         {particularsOpen ? (
           <form
+            data-member-draft
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
@@ -135,6 +133,9 @@ function MemberParticulars() {
           </form>
         ) : (
           <>
+            <p className="text-sm text-text-muted">
+              Held by {read.record.company.name} in its register, separate from your personal information.
+            </p>
             <div
               className={`grid gap-6 ${pendingParticulars.length > 0 || previousParticulars.length > 0 ? 'lg:grid-cols-2' : ''}`}
             >
@@ -187,7 +188,7 @@ function MemberParticulars() {
             </FormActions>
           </>
         )}
-      </Section>
+      </>
     )
   );
 }

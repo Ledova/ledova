@@ -129,8 +129,8 @@ separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
 breakdown and terms under **Award details**. This read-only overview is the whole web Dashboard.
-**Company-recorded details** in Settings groups **Current details** and **Update requests** in one
-**Your details** card, separate from the personal Profile. Pending requests show the requested
+**Settings** → **Profile** shows a **Company-recorded details** card for a member of the selected
+company. It groups **Current details** and **Update requests**, separate from the personal information. Pending requests show the requested
 particulars, status and date together;
 completed requests open on demand. Share history, certificates and certificate requests
 are in web **Documents** → **Certificates**, without duplicate particulars status. On mobile, each share class's page,
@@ -179,7 +179,7 @@ original request
 ### Particulars requests
 
 A member, including an award recipient before any shares are issued, asks the company to change
-their recorded name and residential address: **Settings** → **Company-recorded details** →
+their recorded name and residential address: **Settings** → **Profile** → **Company-recorded details** →
 **Request update** on web, then **Send request** (**Request a particulars change**, then
 **Send particulars request** under **Your details** on the company's page on mobile). Sending changes nothing on the register.
 On mobile, **Account** → **Details at each company** lists each company's recorded name and address

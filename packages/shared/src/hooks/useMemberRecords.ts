@@ -40,7 +40,11 @@ export function ownMemberRecordsKey(owner: OrderSubmissionOwner | null, epoch = 
 export function useMemberRecords(
   newKey: () => string,
   session?: OrderSubmissionSession,
-  { coordinatedRefresh = false, enabled = true }: { coordinatedRefresh?: boolean; enabled?: boolean } = {},
+  {
+    coordinatedRefresh = false,
+    enabled = true,
+    readList = true,
+  }: { coordinatedRefresh?: boolean; enabled?: boolean; readList?: boolean } = {},
 ) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -65,13 +69,15 @@ export function useMemberRecords(
       live.current = false;
     };
   }, []);
-  useEffect(() => {
+  const [selectionOwner, setSelectionOwner] = useState(owner);
+  if (selectionOwner !== owner) {
+    setSelectionOwner(owner);
     setSelected('');
     setToken('');
     setRetry(null);
     setError(null);
     setRefreshing(false);
-  }, [owner]);
+  }
   const guard = () => {
     const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
     if (
@@ -88,7 +94,7 @@ export function useMemberRecords(
   const list = useQuery({
     ...refreshOptions,
     queryKey: key,
-    enabled: enabled && !!owner,
+    enabled: enabled && readList && !!owner,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();

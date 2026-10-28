@@ -55,7 +55,7 @@ The initial appointment gives you Manage company information and team personally
 capabilities as delegatable so that you can build the team afterwards. It records you, the company,
 the declaration version and text and the admission time.
 
-After signup, add optional supporting files at **Settings → Documents** and invite users at
+After signup, add optional supporting files at **Documents → Company documents** and invite users at
 **Settings → Team**.
 Later documents do not alter the retained signup request. The company remains Draft until
 activation passes the registry check: registration does not incorporate a company with ASIC,
@@ -215,7 +215,7 @@ rechecks the captured details.
 ## Company information and documents
 
 A current company administrator reads and edits the company's basic information at
-**Settings → Profile**, and manages supporting files at **Settings → Documents** on web
+**Settings → Profile**, and manages supporting files at **Documents → Company documents** on web
 ([Settings](participants.md#profile-and-settings)). On web,
 [choose the company on Dashboard](README.md#the-app-at-a-glance).
 
@@ -357,9 +357,9 @@ and address. Administrators see **Edit company**. It also shows the company's UU
 ([requesting a decision](participants.md#requesting-a-decision)).
 
 On web, select the company in Dashboard. Settings opens Profile, combining personal, permitted
-company and account sections with separate editors and permissions. Company documents, Team and
-Activation have their own sidebar items where current access permits, without a repeated Company
-administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
+company and account sections with separate editors and permissions. Team and Activation have their
+own Settings items, and **Documents** → **Company documents** holds the company's supporting
+documents, where current access permits, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
 Company eligibility (`/company/eligibility`) and **Published to your members** (`/company/publications`)
 retain their existing routes and access rules
 ([the Published page](publications.md#the-published-page)).
