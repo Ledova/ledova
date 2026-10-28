@@ -1846,7 +1846,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   };
   showJourney();
   fireEvent.click(await screen.findByRole('link', { name: 'Add share class' }));
-  expect(await screen.findByText('Ordinary shares (ORD)')).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Ordinary shares · ORD' })).toBeTruthy();
   expect(screen.queryByLabelText('Authorised shares')).toBeNull();
   expect(screen.queryByLabelText('Reason')).toBeNull();
   expect(screen.queryByLabelText('Record source')).toBeNull();
@@ -2382,7 +2382,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   proposal = { ...proposal, correctionAllowed: true };
   showJourney(`${importPath}?record=${proposal.uuid}`);
   const recorded = await screen.findByRole('region', { name: 'Recorded ledger' });
-  expect(within(recorded).getByRole('heading', { name: 'Recorded' })).toBeTruthy();
+  expect(within(recorded).getByText('Recorded')).toBeTruthy();
   expect(screen.queryByRole('list', { name: 'Ledger setup steps' })).toBeNull();
   expect(within(recorded).queryByText(/Editing retires this prepared draft/)).toBeNull();
   expect(within(recorded).queryByRole('button', { name: 'Confirm' })).toBeNull();
@@ -2556,15 +2556,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   pick('Another class');
   fireEvent.change(screen.getByLabelText('Class name'), { target: { value: 'Company A shares' } });
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: 'A' } });
-  expect(screen.getByText('Company A shares (A)')).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Company A shares · A' })).toBeTruthy();
   expect((screen.getByLabelText('Class code') as HTMLInputElement).maxLength).toBe(5);
   pick('Preference (PRF)');
-  expect(screen.getByText('Preference shares (PRF)')).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Preference shares · PRF' })).toBeTruthy();
   expect(screen.queryByLabelText('Class name')).toBeNull();
   expect(screen.queryByLabelText('Class code')).toBeNull();
   expect(screen.queryByRole('group', { name: 'Class type' })).toBeNull();
   pick('Redeemable (RED)');
-  expect(screen.getByText('Redeemable shares (RED)')).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Redeemable shares · RED' })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   expect(screen.getByRole('link', { name: 'open Ledger' }).getAttribute('href')).toBe(
     `/company/ledger?company=${company.uuid}`,
@@ -2971,7 +2971,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     throw new Error('Class result lost');
   });
   const createHook = () =>
-    renderHook(() => useNewShareClass({ guard: () => {}, checkCurrent: () => {}, company, classes: [], ready: true }));
+    renderHook(() =>
+      useNewShareClass({ guard: () => {}, checkCurrent: () => {}, company, classes: [], started: [], ready: true }),
+    );
   const uncertainClass = createHook();
   await act(async () => {
     await expect(uncertainClass.result.current.resolveRegister()).rejects.toThrow('Class result lost');

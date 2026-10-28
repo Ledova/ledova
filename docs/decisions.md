@@ -44,7 +44,7 @@ stay here as history and are marked where they appear.
 | [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                                                                         |
 | [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October                             |
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey superseded 26 October                                          |
-| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 to 27 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360) |
+| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 to 28 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web); mobile (#1157) superseded 26 October                                                      |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                          |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
@@ -1327,6 +1327,13 @@ recovery. Company appointments and real member associations remain separate; sel
 grants neither. Sharing stays opt-in and aggregate-only for members, awards stay separate from
 issued shares, and this adds no valuation or named-holder disclosure. Reuse the existing chart
 library and ring with a selectable list; mobile is unchanged by this web increment.
+
+On 28 October 2026, after seeing pages ask people with several companies to choose one on
+Dashboard, the owner asked that sign-in always land in a company: "open the company I used last at
+sign-in, falling back to the first company in my list, keep explicit links as they are, and update
+the standard." The web remembers each account's last company in the browser. An address that names
+no company opens it, or the first company in the person's list. Explicit company links are
+unchanged, and an unavailable explicit company keeps its refusal.
 
 ### Dashboard, Settings and Register for a new company
 

@@ -48,10 +48,7 @@ function Profile() {
           </Section>
         ) : accessLoading && !showCompany ? (
           <Loading>Loading company access…</Loading>
-        ) : !showCompany &&
-          context &&
-          ((!!context.companyUuid && !context.company) ||
-            (!context.companyUuid && context.directory.companies.some((company) => company.canManage))) ? (
+        ) : !showCompany && context && !!context.companyUuid && !context.company ? (
           <Section title="Company details">
             <CompanyContextNotice />
           </Section>

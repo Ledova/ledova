@@ -13,6 +13,7 @@ import { CompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipCompanies } from '@hooks/useOwnershipCompanies';
 import { documentView } from '@utils/destinations';
 import { CERTIFICATES_PATH } from '@utils/paths';
+import { lastCompany, rememberCompany } from '@utils/lastCompany';
 import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';
 import { Confirmation } from './Modal';
 import { MemberWorkspaceContext } from './member-records/useMemberWorkspace';
@@ -29,17 +30,19 @@ function companyScopeAt(
   location: Pick<Location, 'pathname' | 'search' | 'state'>,
   ledger: LedgerNavigationState | null,
   companies: readonly { uuid: string }[],
+  remembered: string | null,
 ) {
   const params = ledgerParams(location.pathname);
   const token = params?.uuid;
   const query = new URLSearchParams(location.search);
   const stated = typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : null;
-  const entered = params?.company ?? query.get('company') ?? stated;
+  const entered = params?.company ?? (query.get('company') || null) ?? stated;
   const ledgerCompany =
     location.pathname === DESTINATIONS.companyRegister.path || (token && ledger?.token === token)
       ? ledger?.company
       : undefined;
-  const companyUuid = entered ?? ledgerCompany ?? (!token && companies.length === 1 ? companies[0]!.uuid : null);
+  const fallback = companies.find(({ uuid }) => uuid === remembered) ?? companies[0];
+  const companyUuid = entered ?? ledgerCompany ?? (!token && fallback ? fallback.uuid : null);
   return { companyUuid, token, entered };
 }
 
@@ -56,7 +59,12 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     owner: typeof owner;
     location: string;
   } | null>(null);
-  const { companyUuid, token, entered } = companyScopeAt(location, ledger.state, directory.companies);
+  const { companyUuid, token, entered } = companyScopeAt(
+    location,
+    ledger.state,
+    directory.companies,
+    lastCompany(owner),
+  );
   const company = directory.companies.find(({ uuid }) => uuid === companyUuid);
   const ledgerHeld = location.pathname === DESTINATIONS.companyRegister.path && !!ledger.state?.held;
   const memberHeld = !!member?.read.busy || !!member?.read.retry;
@@ -79,7 +87,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         currentQuery.delete('company');
         nextQuery.sort();
         currentQuery.sort();
-        const target = companyScopeAt(nextLocation, ledger.state, directory.companies).companyUuid;
+        const target = companyScopeAt(nextLocation, ledger.state, directory.companies, lastCompany(owner)).companyUuid;
         const changingCompany = target !== companyUuid;
         const hash = nextLocation.hash.slice(1);
         if (
@@ -165,13 +173,17 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
       directory.isLoading ||
       directory.isRefreshing ||
       directory.hasError ||
-      directory.companies.length !== 1
+      !companyUuid
     )
       return;
     const next = new URLSearchParams(location.search);
-    next.set('company', directory.companies[0]!.uuid);
+    next.set('company', companyUuid);
     navigate({ search: next.toString(), hash: location.hash }, { replace: true, state: location.state });
-  }, [directory, entered, location, navigate, token]);
+  }, [directory, entered, location, navigate, token, companyUuid]);
+  const companyId = company?.uuid;
+  useEffect(() => {
+    if (owner && companyId) rememberCompany(owner, companyId);
+  }, [owner, companyId]);
   useEffect(() => {
     const changed = (event: Event) => {
       const control = event.target;

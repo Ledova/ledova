@@ -299,19 +299,20 @@ entry's audience:
 The guard decides pages, not data: the API decides which rows a person sees, answering 404 for a
 refused row.
 
-The web frame has no workspace selector or remembered company/personal mode.
+The web frame has no workspace selector or personal mode; it remembers only each account's last
+company in the browser ([choosing a company](frontend-ux.md#choosing-a-company)).
 `CompanyContextProvider` (`dashboard/src/components/CompanyContextProvider.tsx`) and
 `useCompanyContext` (`dashboard/src/hooks/useCompanyContext.ts`) share the selected company with the
 Dashboard and task navigation. Dashboard is the only company switcher; task pages inherit its
 selection without another picker. The address's `company` query identifies it; an explicit record's
-company context takes precedence. A single company opens directly. With several companies and no
-selection, company-specific content uses `CompanyContextNotice`
-(`dashboard/src/components/CompanyContextNotice.tsx`) to link to Dashboard. Account-wide Profile,
-own appointments and invitation acceptance stay available. Company relationships come from
-current company access, appointments and real member associations, including draft companies with
-no classes. Selection changes neither account audience nor authority.
-Company changes and clearing the company selection confirm before discarding an edited, still-open
-form, including browser Back and Forward through React Router’s `useBlocker`; held Ledger or member work prevents those changes. The confirmation is bound to the current account
+company context takes precedence. An address that names no company opens the remembered company, or
+the first in the person's list. When the named company is unavailable, company-specific content uses
+`CompanyContextNotice` (`dashboard/src/components/CompanyContextNotice.tsx`) to link to Dashboard.
+Account-wide Profile, own appointments and invitation acceptance stay available. Company
+relationships come from current company access, appointments and real member associations,
+including draft companies with no classes. Selection changes neither account audience nor authority.
+Company changes confirm before discarding an edited, still-open form, including browser Back and
+Forward through React Router’s `useBlocker`; held Ledger or member work prevents those changes. The confirmation is bound to the current account
 and location. Authorised deep links and invitations remain usable without visiting Dashboard first.
 Class details and Ledger preparations use `dashboard/src/pages/company/ledger/shared/useRecordCompany.ts`
 to add the resolved record's company to an address that has none. A conflicting explicit company
@@ -730,9 +731,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 ### Page mechanics
 
 - Dashboard: `dashboard/src/pages/home/OwnershipBrowser.tsx` combines current company relationships,
-  opening a single company directly or choosing through `CompanyPicker` inside the page heading's
-  top-right **Switch company** popover. It reuses `FilterPopover` with a company icon and label,
-  and lists the companies in the panel; the shared presentation owns no company state. The switcher
+  opening the company last used in this browser (or the first in the person's list) and changing it
+  through `CompanyPicker` inside the page heading's top-right **Switch company** popover. It reuses
+  `FilterPopover` with a company icon and label, and lists the companies in the panel; the shared
+  presentation owns no company state. The switcher
   hides for single-company accounts. The class details card holds its own **Filters** popover for
   the server-searched holder list and the **Share class** choice, whose **All classes** returns to
   the overview.

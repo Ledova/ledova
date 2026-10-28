@@ -247,7 +247,8 @@ The sidebar has no More group or Help & Support link. Existing offering, publica
 investing and wallet routes retain their access rules. The person's name and selected company sit
 together in the footer while the navigation scrolls above them.
 
-There is no workspace selector. Company selection grants no authority: appointments and real member
+There is no workspace selector. Signing in opens the company the person used last in that browser,
+or the first in their list. Company selection grants no authority: appointments and real member
 associations still govern each task and record. The selected company stays visible, and the address
 retains company/class context for browser Back/Forward. Direct links and invitations remain usable.
 Failed reads offer retry, an edited form asks before a company change discards it, and held execution
