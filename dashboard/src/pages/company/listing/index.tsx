@@ -1,6 +1,12 @@
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
-import { DESTINATIONS, companyActivationOutcome, useCompanyActivation, useCompanySelection } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  awaitsActivation,
+  companyActivationOutcome,
+  useCompanyActivation,
+  useCompanySelection,
+} from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { Disclosure, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { CheckboxField } from '@components/Field';
@@ -68,13 +74,33 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                   <CompanyStatusMark status={company.status} label={company.statusDisplay} />
                 </Row>
               </Rows>
-              {company.status === 'active' && <p className="text-sm text-text-muted">This company is active.</p>}
               {action.latestAttempt && (
                 <div className="space-y-2 text-sm text-text-muted">
                   <p>{companyActivationOutcome(action.latestAttempt)}</p>
                   <p>This attempt was recorded from your administrator appointment.</p>
                 </div>
               )}
+              {events.length > 0 && (
+                <Disclosure summary="Historical record">
+                  <Timeline events={events} />
+                  {company.rejectionReason && (
+                    <p className="text-sm text-text-muted">Rejection reason: {company.rejectionReason}</p>
+                  )}
+                  {company.withdrawalReason && (
+                    <p className="text-sm text-text-muted">Withdrawal reason: {company.withdrawalReason}</p>
+                  )}
+                  {company.infoRequestReason && (
+                    <p className="text-sm text-text-muted">Information requested: {company.infoRequestReason}</p>
+                  )}
+                  {company.additionalInfoResponse && (
+                    <p className="text-sm text-text-muted">Previous response: {company.additionalInfoResponse}</p>
+                  )}
+                </Disclosure>
+              )}
+              <LinkRow
+                to={context?.companyPath(DESTINATIONS.company.path) ?? DESTINATIONS.company.path}
+                label={DESTINATIONS.company.title}
+              />
               {action.canActivate && (
                 <FormActions>
                   <PageAction
@@ -87,35 +113,16 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                 </FormActions>
               )}
             </Section>
-            {events.length > 0 && (
-              <Disclosure summary="Historical record">
-                <Timeline events={events} />
-                {company.rejectionReason && (
-                  <p className="text-sm text-text-muted">Rejection reason: {company.rejectionReason}</p>
-                )}
-                {company.withdrawalReason && (
-                  <p className="text-sm text-text-muted">Withdrawal reason: {company.withdrawalReason}</p>
-                )}
-                {company.infoRequestReason && (
-                  <p className="text-sm text-text-muted">Information requested: {company.infoRequestReason}</p>
-                )}
-                {company.additionalInfoResponse && (
-                  <p className="text-sm text-text-muted">Previous response: {company.additionalInfoResponse}</p>
-                )}
-              </Disclosure>
+            {(action.identityRequired || awaitsActivation(company)) && (
+              <Section title={action.identityRequired ? 'Identity verification required' : 'Your identity'}>
+                <p className="text-sm text-text-muted">
+                  Use your own profile to complete the configured identity verification before activation.
+                </p>
+                <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title} />
+              </Section>
             )}
-            <LinkRow
-              to={context?.companyPath(DESTINATIONS.company.path) ?? DESTINATIONS.company.path}
-              label={DESTINATIONS.company.title}
-            />
           </>
         )}
-        <Section title={action.identityRequired ? 'Identity verification required' : 'Your identity'}>
-          <p className="text-sm text-text-muted">
-            Use your own profile to complete the configured identity verification before activation.
-          </p>
-          <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title} />
-        </Section>
       </div>
       {action.preview && <ActivationConfirmation action={action} />}
       {action.error && (
