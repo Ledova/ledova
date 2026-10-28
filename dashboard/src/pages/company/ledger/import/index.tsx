@@ -198,7 +198,8 @@ function OwnImport({
       return (
         <Section title={`${listed.name} · ${listed.symbol}`}>
           <p className="text-sm text-text-muted">
-            This ledger is already open, so its opening cannot be replaced safely. Record later changes in{' '}
+            This opening cannot be replaced safely because later entries or linked member records depend on it. Correct
+            individual entries in{' '}
             <Link to={corrections.to} state={corrections.state} className="text-brand-light underline">
               Corrections
             </Link>

@@ -12,7 +12,7 @@ export function useStartedClasses<T extends { uuid: string }>(
   enabled: boolean,
 ) {
   const ownership = useQuery({
-    queryKey: [...registerHoldersKey(owner), 'setup', company],
+    queryKey: [...registerHoldersKey(owner), 'setup', company, ...drafts.map(({ uuid }) => uuid)],
     enabled: enabled && drafts.length > 0,
     queryFn: async () => {
       guard();

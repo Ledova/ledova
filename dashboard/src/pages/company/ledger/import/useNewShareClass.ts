@@ -143,7 +143,7 @@ export function useNewShareClass({
   if (existingCode && !classLocked)
     problems.push(
       started.some(({ uuid }) => uuid === existingCode.uuid)
-        ? 'This class code already exists. Continue that class above.'
+        ? 'This class code already exists. Continue it from “Continue a class you started”.'
         : 'This class code already exists. Use a distinct code for a new class.',
     );
   return {
