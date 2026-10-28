@@ -556,7 +556,8 @@ account, and also before signing out and, in a native alert, before turning off 
 under the change or on the record you land on, and stays until the next action replaces it; there
 are no toasts. Its status region stays in place, empty and visually hidden, before there is anything
 to report, so a screen reader announces the sentence when it arrives; a preparation's line arrives
-with the record it lands on and is read because focus moves to that record. It names the record
+with the record it lands on and is read because focus moves to that record, and a deleted draft
+offering's line on Offerings is read because focus moves to it. It names the record
 rather than its identifier. It reports:
 
 - a changed password, saved personal details, and an offering submitted for review, withdrawn or

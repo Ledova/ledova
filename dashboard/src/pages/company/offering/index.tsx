@@ -62,9 +62,11 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
             {!data.error && (
               <>
                 <Section title={`Your offerings (${data.offerings.length})`}>
-                  <div ref={landed} tabIndex={outcome ? -1 : undefined} className="focus:outline-none">
-                    <Outcome>{outcome}</Outcome>
-                  </div>
+                  {outcome && (
+                    <div ref={landed} tabIndex={-1} className="focus:outline-none">
+                      <Outcome>{outcome}</Outcome>
+                    </div>
+                  )}
                   {data.offerings.length === 0 ? (
                     <p className="text-sm text-text-muted">No offerings yet. Create one and submit it for review.</p>
                   ) : (
