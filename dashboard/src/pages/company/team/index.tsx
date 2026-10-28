@@ -15,7 +15,7 @@ import {
   formatDateTime,
   DESTINATIONS,
 } from '@ledova/shared';
-import { scopeLabels } from '@pages/company/shared/appointments';
+import { scopeLabels, invitationOpen } from '@pages/company/shared/appointments';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
 import { AppointmentRecord } from './AppointmentRecord';
 import { TeamInvitationForm } from './TeamInvitationForm';
@@ -206,7 +206,7 @@ function OwnTeam({
               {(invitations.data ?? []).map((item) => (
                 <li
                   key={item.uuid}
-                  className="grid min-w-0 gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_14rem]"
+                  className="grid min-w-0 gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_14rem] xl:grid-cols-[minmax(0,1fr)_14rem_12rem]"
                 >
                   <div className="min-w-0 space-y-1 break-words">
                     <p className="font-medium text-text-primary">{item.companyName}</p>
@@ -216,12 +216,30 @@ function OwnTeam({
                     )}
                   </div>
                   <div className="min-w-0 space-y-1 break-words text-text-muted">
-                    <p>{item.acceptedAt ? `Accepted ${formatDateTime(item.acceptedAt)}` : 'Not accepted'}</p>
-                    {!item.acceptedAt && <p>Accept before {formatDateTime(item.acceptanceDeadline)}</p>}
                     <p>
-                      {item.appointmentExpiresAt
-                        ? `Appointment expires ${formatDateTime(item.appointmentExpiresAt)}`
-                        : 'No appointment expiry'}
+                      {item.acceptedAt ? (
+                        <>
+                          Accepted <span className="whitespace-nowrap">{formatDateTime(item.acceptedAt)}</span>
+                        </>
+                      ) : (
+                        'Not accepted'
+                      )}
+                    </p>
+                    {!item.acceptedAt && (
+                      <p>
+                        {invitationOpen(item) ? 'Accept before' : 'Deadline passed'}{' '}
+                        <span className="whitespace-nowrap">{formatDateTime(item.acceptanceDeadline)}</span>
+                      </p>
+                    )}
+                    <p>
+                      {item.appointmentExpiresAt ? (
+                        <>
+                          Appointment expires{' '}
+                          <span className="whitespace-nowrap">{formatDateTime(item.appointmentExpiresAt)}</span>
+                        </>
+                      ) : (
+                        'No appointment expiry'
+                      )}
                     </p>
                   </div>
                 </li>

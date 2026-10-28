@@ -190,6 +190,13 @@ export function CompanyMemberAccess({
         (item) => (item.kind === 'particulars' ? item.record.name : memberName(item.record.member)),
         filters.search,
       ).filter((item) => !requestType || item.kind === requestType);
+  const deadline = (item: (typeof invitations)[number]) =>
+    item.status === 'pending' || item.status === 'expired' ? (
+      <>
+        {item.status === 'pending' ? 'Accept before' : 'Deadline'}{' '}
+        <span className="whitespace-nowrap">{formatDateTime(item.acceptanceDeadline)}</span>
+      </>
+    ) : null;
   const matchingRequests = new Set(matches.map((item) => `${item.kind}/${item.record.uuid}`));
   return (
     <>
@@ -355,11 +362,12 @@ export function CompanyMemberAccess({
                         <div className="col-span-2 flex items-start justify-end md:col-span-3 xl:col-span-1">
                           <PageAction
                             label="Revoke access"
-                            context={memberName(association.member)}
+                            context={`${memberName(association.member)}, ${association.acceptedEmail}`}
                             disabled={held}
                             onClick={() => {
                               checks.reset();
                               setRequest('');
+                              setReason('');
                               setRevokeMember(association.uuid);
                             }}
                           />
@@ -375,10 +383,6 @@ export function CompanyMemberAccess({
                               setRevoking({ uuid: association.uuid, name: memberName(association.member) });
                           }}
                         >
-                          <p className="text-sm text-text-muted">
-                            Revocation stops their own-record access, file access and new requests; they can still read
-                            the status of requests they made. Relinking needs a new invitation.
-                          </p>
                           <Field {...checks.field('reason')} label="Company action reason">
                             <TextArea
                               maxLength={FIELD_LIMITS.REASON}
@@ -414,7 +418,7 @@ export function CompanyMemberAccess({
               <Section title="Invitations">
                 <div
                   aria-hidden="true"
-                  className="hidden grid-cols-[minmax(0,1fr)_10rem_12rem] gap-6 text-xs font-medium text-text-muted md:grid"
+                  className="hidden grid-cols-[minmax(0,1fr)_10rem_12rem] gap-6 text-xs font-medium text-text-muted md:grid xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
                 >
                   <span>Person</span>
                   <span>Invited</span>
@@ -424,7 +428,7 @@ export function CompanyMemberAccess({
                   {invitations.map((item) => (
                     <li
                       key={item.uuid}
-                      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6"
+                      className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
                     >
                       <span className="min-w-0 break-words font-medium">
                         {memberName(item.member)}
@@ -436,10 +440,9 @@ export function CompanyMemberAccess({
                       </span>
                       <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted md:col-auto md:row-auto">
                         {MEMBER_INVITATION_STATUS_LABELS[item.status]}
-                        {item.status === 'pending' && (
-                          <span className="block">Accept before {formatDateTime(item.acceptanceDeadline)}</span>
-                        )}
+                        {deadline(item) && <span className="hidden md:block">{deadline(item)}</span>}
                       </span>
+                      {deadline(item) && <span className="col-span-2 text-text-muted md:hidden">{deadline(item)}</span>}
                     </li>
                   ))}
                 </ul>
