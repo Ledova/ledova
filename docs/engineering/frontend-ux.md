@@ -225,7 +225,7 @@ survive navigation. Documents has one **Certificates** page for company and memb
 exports shows one selected class, with **Share class** in the page heading's Filters popover when there is more than one.
 Certificates keeps the class visible in each record and in its filter panel. An icon button named
 **Filters**, with a tooltip, opens the popover for class selection, shareholder search and certificate
-status. The collection heading has no repeated filter summary or match-count line. Fields are drafts
+status in the page heading's top-right actions. The collection heading has no repeated filter summary or match-count line. Fields are drafts
 until **Apply** updates the URL; **Clear** removes search and status while keeping the class. Filter
 the complete permitted history, not just loaded rows, and keep older or other-class requests outside
 these entry filters.
@@ -258,7 +258,7 @@ with compact rows aligned under Person, Linked or Invited, and Status. People re
 revoked access records; invitations remain separate records. **Member requests** uses one **Requests**
 card, with Person, Request, Requested and Status columns. Identify each request as a details update
 or an unsigned certificate, with the certificate's share class when available. Keep all retained
-statuses in the list. The Requests title row holds the Filters icon; its panel searches the person's
+statuses in the list. The page heading's top-right actions hold the Filters icon; its panel searches the person's
 name and selects All requests, Details update or Certificate. Name search applies after 300 ms;
 type selection applies immediately and closes the panel. Match the complete permitted request
 arrays, with a simple no-match state. Keep request rows and active workflows mounted: filters only
@@ -737,17 +737,20 @@ a list that grows with a company reads one page at a time, with its search and f
 server:
 
 - **Search box:** `ListSearch` (`dashboard/src/components/List.tsx`) is a labelled search field
-  with a hint naming what it searches, Clear while it holds text, and the list's filters beside it.
+  with a hint naming what it searches and Clear while it holds text.
   It searches 300 ms after typing stops. The server matches every typed word, ignoring case. While
   a search or filter applies, a polite status line counts the matches, such as "3 applications match
   your search" or "No applications match".
 - **Compact filters:** secondary filters use `FilterPopover`: an icon button named **Filters** with
-  a tooltip, opening an anchored panel. Place its icon in the collection's title row or beside an
-  existing visible search field, without reserving a separate row above the records. Shared Ledger
-  task, ESS and Ledger exports scopes use the existing page heading for this control; keep the
+  a tooltip, opening an anchored panel. Place its icon in the page heading's top-right actions on
+  every filtered page, without a separate row or another control in a card heading. Page owners use
+  `Page.actions`; deeper owners contribute through `PageActions` in
+  `dashboard/src/components/Page.tsx`. Keep filter state with its owner and explicitly omit header
+  controls for hidden retained views; a header contribution escapes its original hidden container.
+  Keep the
   selected class visible in the task or class heading. Class changes close the panel and retain
   the existing editor and unfinished-work locks. Offering and Status share the Applications
-  heading's panel, available even for an empty or failed offering read; the selected offering stays
+  page-heading panel, available even for an empty or failed offering read; the selected offering stays
   visible. Search applications stays visible. Shareholders puts Search people inside the panel above Share class, keeping
   its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
   scope without repeating it in a header summary or badge. Certificates and Activity keep labelled

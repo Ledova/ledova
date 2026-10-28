@@ -16,7 +16,7 @@ import {
 } from '@ledova/shared';
 import { Outcome, Section, Loading, LoadError, Disclosure, Rows, Row } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
-import { FormActions, PageAction } from '@components/Page';
+import { FormActions, PageAction, PageActions } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -32,6 +32,7 @@ export function CompanyMemberAccess({
   guard,
   registers,
   sourceReady = true,
+  visible = true,
   inviteMember,
   onHeldChange,
 }: {
@@ -41,6 +42,7 @@ export function CompanyMemberAccess({
   guard: () => void;
   registers: TokenHoldersResponse[];
   sourceReady?: boolean;
+  visible?: boolean;
   inviteMember?: string;
   onHeldChange?: (held: boolean, view: 'access' | 'requests') => void;
 }) {
@@ -591,11 +593,9 @@ export function CompanyMemberAccess({
           )}
         </div>
         <div hidden={view !== 'requests' || certificateOpen}>
-          <Section
-            title="Requests"
-            header={
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Requests</h2>
+          <Section title="Requests">
+            {visible && view === 'requests' && !certificateOpen && (
+              <PageActions>
                 <FilterPopover active={!!filters.search || !!requestType} resetKey={certificateContext}>
                   {(close) => (
                     <>
@@ -630,9 +630,8 @@ export function CompanyMemberAccess({
                     </>
                   )}
                 </FilterPopover>
-              </div>
-            }
-          >
+              </PageActions>
+            )}
             {!access.readFailed && !access.requests && <Loading>Loading member requests…</Loading>}
             {!access.readFailed && access.requests && !hasRequests && (
               <p className="text-sm text-text-muted">No member requests yet.</p>

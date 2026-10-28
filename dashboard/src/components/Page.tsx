@@ -1,6 +1,7 @@
-import { useContext, useEffect, useId, type MouseEvent, type ReactNode, type Ref } from 'react';
+import { useContext, useEffect, useId, useState, type MouseEvent, type ReactNode, type Ref } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, type To } from 'react-router-dom';
-import { PageBack, PageTitle, type PageBackLink } from './PageTitle';
+import { PageActionsTarget, PageBack, PageTitle, type PageBackLink } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
 
 interface PageProps {
@@ -19,6 +20,7 @@ export function Page({ actions, back, documentTitle, lede, loading = false, narr
   const link = { ...parent, ...back };
   const inFrame = useContext(InSignedInFrame);
   const ledeId = useId();
+  const [actionsTarget, setActionsTarget] = useState<HTMLDivElement | null>(null);
   const tabTitle = documentTitle ?? title;
   useEffect(() => {
     if (!tabTitle) return;
@@ -29,40 +31,45 @@ export function Page({ actions, back, documentTitle, lede, loading = false, narr
   }, [tabTitle]);
 
   return (
-    <div
-      className={`${inFrame ? 'ml-0' : 'mx-auto'} ${narrow ? 'max-w-4xl' : inFrame ? 'max-w-7xl' : 'max-w-6xl'} flex w-full min-w-0 flex-col gap-4 px-4 pb-16 sm:gap-5 sm:px-6 md:gap-6 lg:px-8`}
-    >
-      <header>
-        <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
-          <h1
-            tabIndex={-1}
-            aria-describedby={lede ? ledeId : undefined}
-            className="font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none"
-          >
-            {title}
-          </h1>
-          {(link.to || actions) && (
-            <div className="flex flex-wrap items-center gap-2">
+    <PageActionsTarget.Provider value={actionsTarget}>
+      <div
+        className={`${inFrame ? 'ml-0' : 'mx-auto'} ${narrow ? 'max-w-4xl' : inFrame ? 'max-w-7xl' : 'max-w-6xl'} flex w-full min-w-0 flex-col gap-4 px-4 pb-16 sm:gap-5 sm:px-6 md:gap-6 lg:px-8`}
+      >
+        <header>
+          <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
+            <h1
+              tabIndex={-1}
+              aria-describedby={lede ? ledeId : undefined}
+              className="font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none"
+            >
+              {title}
+            </h1>
+            <div ref={setActionsTarget} className="flex flex-wrap items-center gap-2 empty:hidden">
               {link.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />}
               {actions}
             </div>
+          </div>
+          {lede && (
+            <p id={ledeId} className="break-words text-sm text-text-muted">
+              {lede}
+            </p>
           )}
-        </div>
-        {lede && (
-          <p id={ledeId} className="break-words text-sm text-text-muted">
-            {lede}
-          </p>
+        </header>
+        {loading ? (
+          <div role="status" aria-label="Loading" className="flex items-center justify-center py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-subtle border-t-brand" />
+          </div>
+        ) : (
+          children
         )}
-      </header>
-      {loading ? (
-        <div role="status" aria-label="Loading" className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-subtle border-t-brand" />
-        </div>
-      ) : (
-        children
-      )}
-    </div>
+      </div>
+    </PageActionsTarget.Provider>
   );
+}
+
+export function PageActions({ children }: { children: ReactNode }) {
+  const target = useContext(PageActionsTarget);
+  return target ? createPortal(children, target) : null;
 }
 
 interface ActionContent {

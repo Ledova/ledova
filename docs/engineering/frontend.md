@@ -482,8 +482,11 @@ Every list follows these rules:
   its panel above the class selector, with its existing debounce, Clear and match counts. Offering
   applications' search stays visible; its Offering scope shares the Status panel even when the
   selected offering is empty or failed. Wallets' sort remains separate.
-  The filter icon sits in the collection title row or beside visible search, without its own row;
-  shared Ledger task, ESS and Ledger exports class scope uses the existing page heading.
+  Every filter icon sits in the page heading's top-right actions, without a separate row or
+  card-specific placement. Page-level owners pass `Page.actions`; deeper owners use `PageActions`
+  (`dashboard/src/components/Page.tsx`), a UI-only portal to the stable header target supplied by
+  `PageActionsTarget` (`dashboard/src/components/PageTitle.ts`). Filter state stays under its owner.
+  Hidden retained views explicitly omit their header contribution; their controllers remain mounted.
 - `Table` and aligned expandable collections share `TABLE_SCROLL_CLASS` and `TABLE_HEADER_CLASS`
   from `dashboard/src/components/List.tsx` for horizontal overflow and muted, transparent headers.
   Keep collections flat within their outer `Section`, with subtle row dividers and no inner rounded
@@ -747,8 +750,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   reads mount only with confirmed register access; member-only access never reads the full company register.
   `CertificateRecords.tsx` merges matching company and own entries without duplicate rows. Aligned
   `Disclosure` rows show the shareholder or change, shares, date and status; details, previous
-  requests and permitted actions open inline. Each record keeps its class visible; an icon button
-  with the accessible name and tooltip Filters opens `FilterPopover` for draft class,
+  requests and permitted actions open inline. Each record keeps its class visible; the page heading's
+  top-right icon button with the accessible name and tooltip Filters opens `FilterPopover` for draft class,
   shareholder search and certificate status. The heading has no repeated filter summary or match
   count; dismissing the panel preserves the unapplied draft.
   Apply writes `class`, `q` and `certificate_status` to the URL; Clear preserves the class and removes search and

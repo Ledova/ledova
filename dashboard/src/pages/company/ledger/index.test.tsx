@@ -268,7 +268,16 @@ it('reads every class page and groups exact holdings by member identity with sea
         : page([harbour('ordinary')], 'https://example.test/tokens/register/?page=2');
     return noCommands(url) ?? { data: url.includes('preference') ? preference : ordinary };
   });
-  show('company', <CompanyRegisterPage />, 'Register', { entry: '/#shareholders' });
+  show(
+    'company',
+    <>
+      <CompanyRegisterPage />
+      <Link to="/#awards">Open ESS</Link>
+      <Link to="/">Open Ledger overview</Link>
+    </>,
+    'Register',
+    { entry: '/#shareholders' },
+  );
   const table = await screen.findByRole('table', { name: 'Company shareholders' });
   expect(api.get).toHaveBeenCalledWith(REGISTER, {
     params: { page: 1 },
@@ -281,6 +290,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.getByRole('heading', { level: 1, name: 'Shareholders' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Current shareholders' })).toBeTruthy();
+  expect(screen.getAllByRole('button', { name: 'Filters' })).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'Filters' }).closest('header')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Member access' })).toBeNull();
   expect(screen.queryByRole('heading', { name: 'Member requests' })).toBeNull();
   for (const name of ['Issue shares', 'Transfer shares', 'Corrections'])
@@ -371,6 +382,16 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
+
+  fireEvent.keyDown(screen.getByLabelText('Search people'), { key: 'Escape' });
+  fireEvent.click(screen.getByRole('link', { name: 'Open ESS' }));
+  await screen.findByRole('heading', { name: 'Employee share scheme', level: 1 });
+  expect(screen.getAllByRole('button', { name: 'Filters' })).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'Filters' }).closest('header')).toBeTruthy();
+  expect(screen.queryByLabelText('Search people')).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Open Ledger overview' }));
+  await screen.findByRole('heading', { name: 'Ledger', level: 1 });
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
 
   cleanup();
   client.clear();
