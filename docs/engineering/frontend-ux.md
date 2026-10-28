@@ -387,7 +387,7 @@ company appointments and actual member associations independently determine the 
 records. Company context never grants authority or links someone to a same-named shareholder.
 The common Certificates page must identify whose records and actions each row permits. Preserve authorised
 direct links and invitations without forcing a visit through Dashboard. Protect edited forms before
-changing or clearing the company selection, and block those changes during held execution.
+changing the company selection, and block those changes during held execution.
 Recheck the account and current location before confirming navigation.
 
 The sidebar owns navigation between sections. A related group has one level of children: its label
@@ -661,15 +661,17 @@ switch request closes the panel and returns focus to its icon; the existing form
 held-work guards still decide navigation. Company selection has no separate row above the ownership
 view; class exploration keeps its breadcrumb.
 
-A single company opens directly and hides the switcher. If an explicit address names an unavailable
-company, Dashboard offers **Open your company** when only one company remains, without silently
-replacing the address's scope. Other company-related pages inherit the selection through their
+A single company opens directly and hides the switcher. With several companies, an address that names
+no company, including sign-in, opens the company the person chose last in this browser (remembered per
+account by `dashboard/src/utils/lastCompany.ts`), or the first company in their list when that one is
+no longer available or none was chosen yet (owner, 28 October 2026). If an explicit address names an
+unavailable company, Dashboard offers **Open your company** when only one company remains, without
+silently replacing the address's scope. Other company-related pages inherit the selection through their
 address and task links; the sidebar footer identifies it without another company picker or passive
-page label. With several
-companies and no selection, or an unavailable selected company, `CompanyContextNotice`
-(`dashboard/src/components/CompanyContextNotice.tsx`) links to Dashboard. Never silently select a
-different company. Valid company and record links still open directly. Account-wide Profile,
-own appointments and invitation acceptance remain available without a company selection.
+page label. When the selected company is unavailable, `CompanyContextNotice`
+(`dashboard/src/components/CompanyContextNotice.tsx`) links to Dashboard. An explicit company link is
+never silently replaced with a different company. Valid company and record links still open directly.
+Account-wide Profile, own appointments and invitation acceptance do not depend on the selected company.
 
 Share-class, person, wallet and other record choices stay with their tasks. These rules and the
 company-change safeguards are checked in review and the existing dashboard journeys.

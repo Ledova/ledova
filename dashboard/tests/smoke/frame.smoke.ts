@@ -238,9 +238,8 @@ async function openTheSidebar(page: Page, role: Role) {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true })).toBeVisible();
   if (role === 'both') {
-    await expect(page).toHaveURL(/\/home$/);
     await expect(page.getByRole('list', { name: 'Your companies', exact: true })).toHaveCount(0);
-    await chooseCompany('harbour robotics', new RegExp(`^${LONG_NAME}`));
+    await expect(companySwitch).toHaveCount(1);
   } else {
     await expect(page.getByRole('button', { name: 'Switch company', exact: true })).toHaveCount(0);
     await expect(companyChoice).toHaveCount(0);

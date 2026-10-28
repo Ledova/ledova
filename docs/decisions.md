@@ -1312,6 +1312,13 @@ grants neither. Sharing stays opt-in and aggregate-only for members, awards stay
 issued shares, and this adds no valuation or named-holder disclosure. Reuse the existing chart
 library and ring with a selectable list; mobile is unchanged by this web increment.
 
+On 28 October 2026, after seeing pages ask people with several companies to choose one on
+Dashboard, the owner asked that sign-in always land in a company: "open the company I used last at
+sign-in, falling back to the first company in my list, keep explicit links as they are, and update
+the standard." The web remembers each account's last company in the browser. An address that names
+no company opens it, or the first company in the person's list. Explicit company links are
+unchanged, and an unavailable explicit company keeps its refusal.
+
 ### Dashboard, Settings and Register for a new company
 
 Its mobile part (#1157) is superseded by the [26 October mobile decision](#mobile-app-for-shareholders).
