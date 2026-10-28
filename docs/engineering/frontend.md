@@ -84,7 +84,7 @@ ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/107
 and cross-area reads live outside screen internals ([mobile architecture](mobile.md#architecture)).
 Profile, operator and publication-list reads live once in `packages/shared`; client adapters retain
 their current session, cache, labels and result policies. `site/src` is a separate flat app (one
-file per page in `pages/`, `components/`, `styles.ts`, `theme.ts`) that cannot import the shared
+file per page in `pages/`, `components/`, `styles.ts`) that cannot import the shared
 package; only the file-naming rules apply to it.
 
 ## Frontend layers
@@ -687,7 +687,7 @@ value; the generator fails if the themes would emit different variables. The sit
 `border-border-faint` and `brand-tint`. Never edit either file: `make check`, which CI runs, fails
 when they differ from the generator's `--check` output.
 
-Before the first paint, a script in each `index.html` applies Dark (`data-theme="dark"` on `<html>`,
+Before the first paint, a script in `dashboard/index.html` applies Dark (`data-theme="dark"` on `<html>`,
 with its `theme-color`) only when `ledova.theme` (`THEME_STORAGE_KEY`) in browser storage is exactly
 `dark`; anything else means Paper, the default (`parseTheme`), and the `ledova-theme` key of an
 earlier, removed switch is not read. The choice is written only when someone picks a theme and stays
@@ -695,12 +695,11 @@ in that browser, not on the account, through reloads and sign-out.
 
 The dashboard's switches (Settings > Profile > Account > Dark theme, and the `ThemeToggle` icon in the
 signed-out and sign-up header, the desktop sidebar's account footer and the small-screen signed-in
-header) use `dashboard/src/hooks/useTheme.ts`. The site's navbar toggle uses `site/src/theme.ts`,
-which repeats the key, parsing rule and theme colours because the site cannot import
-`@ledova/shared`. Storage is per origin, so one choice serves both where they share one, as on
-ledova.io, and each keeps its own on separate origins, such as local development.
+header) use `dashboard/src/hooks/useTheme.ts`. The public site always uses Paper and neither reads
+nor writes the dashboard's stored preference, even when both share an origin. Its screenshot
+provenance and update procedure are in the [site guide](../../site/README.md#product-screenshots).
 
-Both web stylesheets define a `dark:` variant that follows `data-theme`, never the operating-system
+The dashboard stylesheet defines a `dark:` variant that follows `data-theme`, never the operating-system
 setting, for theme-specific adjustments: `QRCodeFrame`'s white quiet zone around QR codes, the
 active sidebar item's `bg-brand-tint`, and signed-out primary buttons without their green glow. The
 identity check's widget opens in its dark theme on Dark. Both web clients bundle Newsreader for
