@@ -159,6 +159,7 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
           <LinkRow
             to={classPath('companyClassChain', token.uuid, token.companyUuid)}
             label="Put this class on chain"
+            context={token.status === 'deploying' ? token.statusDisplay.toLowerCase() : undefined}
             aside={token.status === 'deploying' && <Status tone="moving">{token.statusDisplay}</Status>}
           >
             <span className="block text-xs text-text-muted">
