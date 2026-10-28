@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { LinkRow, Outcome, Section, LoadError, Loading, Status } from '@components/Ledger';
 import { FormActions, Page, PageAction } from '@components/Page';
 import {
@@ -8,18 +9,11 @@ import {
   formatDate,
   useSubmissionOwner,
   useUserPreferences,
-  type CompanyAuthorityRequest,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { AUTHORITY_REQUEST_TONES } from '@pages/company/shared/statusTones';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
-import { useAuthorityRequests } from './shared/useAuthorityRequests';
-
-function requestStatus(request: CompanyAuthorityRequest) {
-  if (request.status === 'withdrawn') return 'Withdrawn';
-  if (request.status === 'pending') return 'Pending';
-  return request.appointment?.status === 'revoked' ? 'Appointment revoked' : 'Admitted';
-}
+import { authorityRequestStatus, useAuthorityRequests } from './shared/useAuthorityRequests';
 
 export default function CompanyAuthorityPage() {
   const { owner, boundary } = useSubmissionOwner();
@@ -54,10 +48,15 @@ function OwnAuthorityRequests({
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
-  const { guard, recorded, setRecorded, companies, history, company, lifecycle } = useAuthorityRequests({
+  const { guard, recorded, setRecorded, companies, history, company } = useAuthorityRequests({
     owner,
     currentOwner,
   });
+  const context = useCompanyContext();
+  const requestPath = (uuid: string) => {
+    const path = generatePath(DESTINATIONS.companyAuthorityRequest.path, { uuid });
+    return context?.companyPath(path) ?? path;
+  };
   const [preparing, setPreparing] = useState(false);
   const form = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
@@ -86,12 +85,12 @@ function OwnAuthorityRequests({
               {(history.data ?? []).map((request) => (
                 <li key={request.uuid}>
                   <LinkRow
-                    to={generatePath(DESTINATIONS.companyAuthorityRequest.path, { uuid: request.uuid })}
+                    to={requestPath(request.uuid)}
                     label={request.companyIdentityRaw.name}
-                    context={`authority request submitted ${formatDate(request.createdAt)}`}
+                    context={`authority request submitted ${formatDate(request.createdAt)}, ${authorityRequestStatus(request).toLowerCase()}`}
                     aside={
                       <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
-                        {requestStatus(request)}
+                        {authorityRequestStatus(request)}
                       </Status>
                     }
                   >
@@ -144,7 +143,6 @@ function OwnAuthorityRequests({
             ref={opener}
             label="Request authority"
             primary
-            disabled={lifecycle.isPending}
             onClick={() => {
               setRecorded(null);
               setPreparing(true);

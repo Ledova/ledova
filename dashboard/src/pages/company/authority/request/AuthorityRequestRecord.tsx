@@ -12,6 +12,7 @@ import {
 } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { CheckboxField } from '@components/Field';
+import { authorityRequestStatus } from '@pages/company/authority/shared/useAuthorityRequests';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { MoreToggle, Row, Rows, Section, Status } from '@components/Ledger';
@@ -30,7 +31,6 @@ export function AuthorityRequestRecord({
   request,
   blocked,
   opening,
-  downloading,
   action,
   onDownload,
   onWithdraw,
@@ -40,7 +40,6 @@ export function AuthorityRequestRecord({
   request: CompanyAuthorityRequest;
   blocked: boolean;
   opening: boolean;
-  downloading: boolean;
   action?: 'withdraw' | 'admit' | 'revoke';
   onDownload: () => void;
   onWithdraw: () => Promise<unknown>;
@@ -65,7 +64,7 @@ export function AuthorityRequestRecord({
         <Rows>
           <Row label="Status">
             <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
-              {request.status === 'withdrawn' ? 'Withdrawn' : request.status === 'admitted' ? 'Admitted' : 'Pending'}
+              {authorityRequestStatus(request)}
             </Status>
           </Row>
           <Row label="Requested expiry">
@@ -203,7 +202,7 @@ export function AuthorityRequestRecord({
               label="Download evidence"
               context={request.originalFilename || request.companyIdentityRaw.name}
               disabled={opening || blocked}
-              busy={downloading}
+              busy={opening}
               busyLabel="Downloading…"
               onClick={onDownload}
             />

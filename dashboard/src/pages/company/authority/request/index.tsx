@@ -10,6 +10,7 @@ import {
 import { LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
+import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useAuthorityRequests } from '@pages/company/authority/shared/useAuthorityRequests';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
 
@@ -50,7 +51,9 @@ function OwnAuthorityRequest({
   currentOwner: () => OrderSubmissionOwner | null;
   uuid: string;
 }) {
-  const { history, lifecycle, opening } = useAuthorityRequests({ owner, currentOwner });
+  const { history, lifecycle, opening } = useAuthorityRequests({ owner, currentOwner, readCompanies: false });
+  const context = useCompanyContext();
+  const back = context?.companyPath(DESTINATIONS.companyAuthority.path) ?? DESTINATIONS.companyAuthority.path;
   const request = history.data?.find((item) => item.uuid === uuid);
   let content: ReactNode;
   if (history.isError)
@@ -59,7 +62,7 @@ function OwnAuthorityRequest({
         Your authority requests could not be loaded.
       </LoadError>
     );
-  else if (!history.data) content = <Loading>Loading your request…</Loading>;
+  else if (!history.data || (!request && history.isFetching)) content = <Loading>Loading your request…</Loading>;
   else if (!request) content = <p className="text-sm text-text-muted">This authority request is not one of yours.</p>;
   else
     content = (
@@ -68,7 +71,6 @@ function OwnAuthorityRequest({
           request={request}
           blocked={lifecycle.isPending || history.isFetching}
           opening={opening.isPending}
-          downloading={opening.isPending}
           action={lifecycle.isPending ? lifecycle.variables?.action : undefined}
           onDownload={() => opening.mutate(request)}
           onWithdraw={() => lifecycle.mutateAsync({ request, action: 'withdraw' })}
@@ -93,6 +95,7 @@ function OwnAuthorityRequest({
     >
       <Page
         documentTitle={DESTINATIONS.companyAuthorityRequest.title}
+        back={{ to: back }}
         lede={request && !history.isError ? `Authority request · ACN ${request.companyIdentityRaw.acn}` : undefined}
       >
         {content}
