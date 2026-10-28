@@ -728,7 +728,7 @@ field and options named in words:
 These lists add a short record reference only to options that would otherwise read the same,
 as with people who share a name and address. Wallet options show the wallet's name or address.
 
-Register setup offers a class already started as links in a sentence, and the new class's kind as
+Register setup offers a class already started but not yet opened (its ledger has no recorded entry) as links in a sentence, and the new class's kind as
 radio buttons, so choosing never moves the page by itself. Sign-up keeps its own presentation: its
 company type is Headless UI's `Select` inside the field so the label names it, and the phone number's
 country code is a native select named "Country code" beside the number. The select is transparent
