@@ -24,6 +24,7 @@ stay here as history and are marked where they appear.
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                   |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current                                                                                                         |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                                                                         |
+| [Ledger exports removed](#ledger-exports-removed)                                                               | 28 October 2026                                | Current; removes the register CSV download and inspection copies                                                |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                                                                         |
 | [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion not planned (#870)                                                                           |
 | [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                                                                           |
@@ -448,7 +449,8 @@ states where it applies.
 
 The staff reviewer below was retired by the rules above, decided on 5 October
 and delivered under #864 by 7 October 2026. Inspection copies became
-company-run in [PR #954](https://github.com/Ledova/ledova/pull/954);
+company-run in [PR #954](https://github.com/Ledova/ledova/pull/954), and were
+removed on 28 October 2026 ([below](#ledger-exports-removed));
 certificates, notice figures and the company pack remain admin-only until
 #871. The register's authority, evidence, identity, event history and
 retention controls remain requirements.
@@ -529,7 +531,8 @@ company, and figures without documents. The register owns the mechanisms of
 [outputs due](business/member-records.md#the-due-list);
 [#871](https://github.com/Ledova/ledova/issues/871) moves their preparation to
 company appointments, and inspection copies came first
-([PR #954](https://github.com/Ledova/ledova/pull/954)).
+([PR #954](https://github.com/Ledova/ledova/pull/954)). Inspection copies were
+removed on 28 October 2026 ([Ledger exports removed](#ledger-exports-removed)).
 
 PyMuPDF, which checks uploaded PDFs and renders certificates, is licensed under
 the AGPL-3.0 or commercially by Artifex. The same day the owner chose to record
@@ -551,6 +554,19 @@ transfer enters one. A mistaken opening import strands its class until partial
 corrections exist; that is accepted during the synthetic experiment and settled
 before any real data. [The register](engineering/records.md#register-ledger) owns the
 mechanism.
+
+### Ledger exports removed
+
+On 28 October 2026, during the signed-in web walkthrough, the owner asked to remove the Ledger
+exports page: "I think ledger exports is something that we don't need. So unless this is critical
+for the business, I very much would like to delete." Asked whether to keep inspection copies,
+because anyone may request a copy of a company's register and it is due within 7 days (s173(3)),
+while the Company pack already carries each class's register CSV, the owner chose "Delete both".
+
+Ledova no longer offers the register CSV download or prepares inspection copies, and companies
+answer s173(3) requests outside Ledova. Company pack keeps its register CSVs. Export records already
+made stay until their retention purge. This supersedes the company-run inspection copies of
+[PR #954](https://github.com/Ledova/ledova/pull/954) recorded above.
 
 ## Company-scoped approvals
 

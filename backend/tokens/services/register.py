@@ -35,7 +35,6 @@ from shared.db import atomic, current_alias
 from shared.utils import csv_cell
 from tokens.constants import (
     CERTIFICATE_MARGIN,
-    INSPECTION_COPY_DAYS,
     ISSUE_CERTIFICATE_MONTHS,
     NOTICE_FIGURES_DAYS,
     STATUTORY_CALENDAR,
@@ -129,12 +128,8 @@ FORMER_MEMBER_HEADERS = [
 AS_AT_ROW = "As at"
 NEVER_FOLDED = "never read"
 STALE = "stale"
-INSPECTION_COPY_HEADING = "Inspection copy under s173(3) of the Corporations Act"
-REQUESTED_ON_ROW = "Requested on"
 INSTRUCTION_ROW = "Company's written instruction"
-RECIPIENT_ROW = "Recipient"
 PRODUCED_ON_ROW = "Produced on"
-LATE_ROW = f"Produced more than {INSPECTION_COPY_DAYS} days after the request"
 NOTICE_FIGURES_HEADING = (
     "Figures for the company's notices of share issues and of changes to members and share structure"
 )
@@ -721,13 +716,6 @@ def _reconciliation_row(record, on_chain):
     return [RECONCILED_ROW, outcome, reached, record.created_at.isoformat()]
 
 
-def _opened_register(token):
-    register = stored_register(token)
-    if register is None:
-        raise RegisterNotInitialized()
-    return register
-
-
 def _sheet(token, register) -> list[list]:
     return (
         [_csv_row(row) for row in register["rows"]]
@@ -735,75 +723,6 @@ def _sheet(token, register) -> list[list]:
         + _summary_rows(register)
         + former_member_rows(token, register["former_members"], register["on_chain"])
     )
-
-
-def _record_export(token, requested_by, register, kind, **request):
-    RegisterExport.objects.create(
-        token=token,
-        requested_by_id=requested_by.pk,
-        kind=kind,
-        register_sequence=register["sequence"],
-        member_rows=len(register["rows"]),
-        former_rows=len(register["former_members"]),
-        **request,
-    )
-
-
-def export_rows(token, requested_by) -> list[list]:
-    register = _opened_register(token)
-    rows = _sheet(token, register)
-    _record_export(token, requested_by, register, RegisterExportKind.REGISTER_CSV)
-    return rows
-
-
-def _inspection_source(token):
-    register = _opened_register(token)
-    rows = [REGISTER_HEADERS, *_sheet(token, register)]
-    sheet = io.StringIO()
-    csv.writer(sheet).writerows(rows)
-    source = f"{token.pk}/{register['sequence']}\n".encode() + sheet.getvalue().encode()
-    return register, rows, hashlib.sha256(source).hexdigest()
-
-
-def inspection_copy_preview(token):
-    register, _, digest = _inspection_source(token)
-    return {"token": token.pk, "register_sequence": register["sequence"], "source_digest": digest}
-
-
-def prepare_inspection_copy(token, requested_by, *, instruction, requested_on, recipient, source_digest=None) -> bytes:
-    produced_on = timezone.localdate(timezone=STATUTORY_CALENDAR)
-    if requested_on > produced_on:
-        raise ValidationError("The request date cannot be in the future.")
-    register, rows, digest = _inspection_source(token)
-    if source_digest is not None and source_digest != digest:
-        raise RegisterChangeConflict("The register changed. Refresh the inspection copy before preparing it.")
-    late = produced_on - requested_on > timedelta(days=INSPECTION_COPY_DAYS)
-    sheet = io.StringIO()
-    csv.writer(sheet).writerows(
-        [
-            *rows,
-            [],
-            [INSPECTION_COPY_HEADING],
-            [REQUESTED_ON_ROW, requested_on.isoformat()],
-            [INSTRUCTION_ROW, csv_cell(instruction)],
-            [RECIPIENT_ROW, csv_cell(recipient)],
-            [PRODUCED_ON_ROW, produced_on.isoformat()],
-            [LATE_ROW, "yes" if late else "no"],
-        ]
-    )
-    content = sheet.getvalue().encode()
-    _record_export(
-        token,
-        requested_by,
-        register,
-        RegisterExportKind.INSPECTION_COPY,
-        digest=hashlib.sha256(content).hexdigest(),
-        instruction=instruction,
-        requested_on=requested_on,
-        recipient=recipient,
-        late=late,
-    )
-    return content
 
 
 def _holdings_after(entry, members) -> dict:

@@ -2,9 +2,9 @@
 
 [Business processes](README.md) · [Documentation](../README.md)
 
-How members reach their own records, and how a company obtains copies of its register (inspection
-copies, certificates, notice figures and the company pack), with the staff procedures done on a
-company's written instruction. File formats are in
+How members reach their own records, and how a company obtains outputs from its register
+(certificates, notice figures and the company pack), with the staff procedures done on a company's
+written instruction. File formats are in
 [output formats](../engineering/records.md#output-formats) and how each output is recorded in
 [export records](../engineering/records.md#export-records).
 
@@ -31,29 +31,26 @@ statutory time limits given in each section are the company's obligations, with 
 
 A register reader is a person with a current appointment for the exact company holding
 administration or any register capability (read, prepare, approve or apply). Ownership,
-shareholding, member access and staff permissions give no output authority, except that the
-company owner may download the register CSV.
+shareholding, member access and staff permissions give no output authority.
 
 On web, **Documents** opens one **Certificates** page for the selected company. Register readers
 can prepare permitted company outputs; members can request, track and download only their own
 certificates. A person with both kinds of access sees matching entries once. Existing request
 fulfilment remains in **Shareholders** → **Member requests**.
-**Ledger exports** and **Company pack** remain alongside Certificates where company access permits
-them. Certificates and Ledger exports use one selected share class. Certificates keeps the class
-visible in each record; the **Filters** icon opens a compact panel with **Share class** when there is
-more than one, shareholder search and certificate status. **Apply** filters the full permitted history;
+**Company pack** remains alongside Certificates where company access permits it. Certificates uses
+one selected share class and keeps it visible in each record; the **Filters** icon opens a compact
+panel with **Share class** when there is more than one, shareholder search and certificate status.
+**Apply** filters the full permitted history;
 **Clear** removes search and status while keeping the class. Company pack covers the company. Supporting attachments stay
 with the person, share class or company Settings.
 
-| Output               | Who prepares it                            | Where                                                   | What Ledova keeps                                        |
-| -------------------- | ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------- |
-| Register CSV         | The company owner or a register reader     | **Documents** → **Ledger exports**: **Download CSV**    | Who took it, the class, the entry it runs to, row counts |
-| Inspection copy      | A register reader                          | **Documents** → **Ledger exports**: **Inspection copy** | SHA-256, instruction, request date, recipient, late flag |
-| Certificate          | A register reader                          | **Documents** → **Certificates**                        | SHA-256 and instruction                                  |
-| Member's certificate | A register reader, on the member's request | **Shareholders** → **Member requests**                  | The PDF itself, as a certificate record                  |
-| Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**                             | SHA-256, period and instruction                          |
-| Core company pack    | A company administrator                    | **Documents** → **Company pack**                        | Manifest SHA-256, instruction, recipient, per class      |
-| Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**                                | As for a core pack                                       |
+| Output               | Who prepares it                            | Where                                  | What Ledova keeps                                   |
+| -------------------- | ------------------------------------------ | -------------------------------------- | --------------------------------------------------- |
+| Certificate          | A register reader                          | **Documents** → **Certificates**       | SHA-256 and instruction                             |
+| Member's certificate | A register reader, on the member's request | **Shareholders** → **Member requests** | The PDF itself, as a certificate record             |
+| Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**            | SHA-256, period and instruction                     |
+| Core company pack    | A company administrator                    | **Documents** → **Company pack**       | Manifest SHA-256, instruction, recipient, per class |
+| Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**               | As for a core pack                                  |
 
 Ledova keeps a fingerprint, not the file, except for a member's certificate. Output records cannot
 be rewritten, are read only by platform staff and are kept for the register's seven-year floor
@@ -224,30 +221,11 @@ recipient's retained file.
 ## Inspection copies
 
 Anyone may ask a company for a copy of its register, and the company must provide it within 7 days
-of a proper request (s173(3)). A register reader prepares the copy (platform staff cannot); the
-company decides whether the request is proper and how to deliver it.
-
-The copy is the register CSV plus the request's details and whether it was produced more than 7
-days after the request ([format](../engineering/records.md#inspection-copy-format)). Days are
-counted in Sydney's calendar. No state or territory capital's date is ever ahead of Sydney's, so
-for a company elsewhere the late flag can only err towards late, and a request dated that
-company's today is never refused as a future date. The flag counts calendar days and does not
-extend a limit that ends on a weekend or public holiday, which also errs towards late.
-
-### Preparing an inspection copy
-
-1. Keep the company's written instruction, noting its reference, the request date and the
-   recipient.
-2. On web, open **Documents** → **Ledger exports** for the selected company, choose the share class,
-   then **Prepare inspection copy**. Enter the reference, recipient and request date.
-3. Choose **Preview inspection copy**, check the request and register sequence, then **Confirm and
-   download inspection copy**.
-
-The file is `register-<symbol>-inspection-copy.csv`.
-A register with no opening, a request date after today and a blank field are refused. If the
-register or the person's appointment changes after the preview, confirmation is refused and the
-person previews again. Editing, closing, changing account or class, and refreshing the register
-retire a prepared request, and a failed preview delivers no file.
+of a proper request (s173(3)). Ledova no longer prepares these copies: on 28 October 2026 the owner
+removed inspection copies, with the Ledger exports page and its register CSV download
+([decision](../decisions.md#ledger-exports-removed)). The company prepares and delivers the copy
+outside Ledova. Records of copies prepared before then stay with the other output records until
+their retention purge.
 
 ## Certificates
 
@@ -374,7 +352,8 @@ company's legal event date. A direct-transfer certificate still uses its retaine
 
 A calendar month ends on the same day number, or the month's last day when shorter, so 31 January
 plus one month is 28 or 29 February. An item is overdue once its due date is before today in
-Sydney's calendar. Openings and corrections are never listed.
+Sydney's calendar. No state or territory capital's date is ever ahead of Sydney's, so for a company
+elsewhere an item can only turn overdue early. Openings and corrections are never listed.
 
 The list stores and records nothing, and knows what Ledova prepared, not what the company lodged or
 delivered: an output produced elsewhere, or a certificate the company does not need, stays listed,

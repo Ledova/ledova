@@ -680,8 +680,8 @@ comparison.
 The reads under `/api/v1/tokens/` are `register/` (classes whose register the caller may read),
 `{uuid}/holders/` (the stored register with `waitingEffects` and former members, with their as-at
 time, block and staleness), `{uuid}/register/entries/` (newest first; repeat `entry` to read chosen
-entries, or give `member` to read one member's entries), `{uuid}/register/waiting/`, `{uuid}/register/members/` and `{uuid}/register/export/` (the
-[register CSV](#register-csv)). They admit `ShareToken.objects.register_readable_by`: the company
+entries, or give `member` to read one member's entries), `{uuid}/register/waiting/` and
+`{uuid}/register/members/`. They admit `ShareToken.objects.register_readable_by`: the company
 owner or a current appointment holding `admin`, `read_register`, `prepare`, `approve` or `apply`; no
 other capability, delegation-only scope, staff or superuser status admits ([who runs
 what](../business/register.md#who-runs-what)).
@@ -709,15 +709,13 @@ has completed on chain for the class, and both are `null` once something has.
 
 ### Output routes
 
-Inspection copies (`{uuid}/register/inspection-copy/`) and certificates
-(`{uuid}/register/certificate/`, by `?sequence=N`) are previewed with `GET`, which answers the
-source digest and a certificate's page count, and produced with `POST`, which answers the CSV or
-`certificate-<symbol>-<sequence>.pdf` with `Cache-Control: private, no-store`. Both run inside a
-locked company operation binding the exact current register-reading appointment before and after the
-output is built; ownership and staff permission supply no output authority. The inspection source
-digest is the SHA-256 of `<class id>/<register sequence>\n` followed by the base CSV bytes; the
-certificate's, of `<class id>/<entry id>/<register sequence>\n` followed by the PDF bytes. A changed
-source refuses with a conflict.
+Certificates (`{uuid}/register/certificate/`, by `?sequence=N`) are previewed with `GET`, which
+answers the source digest and the page count, and produced with `POST`, which answers
+`certificate-<symbol>-<sequence>.pdf` with `Cache-Control: private, no-store`. Both requests run
+inside a locked company operation binding the exact current register-reading appointment before and
+after the output is built; ownership and staff permission supply no output authority. The source
+digest is the SHA-256 of `<class id>/<entry id>/<register sequence>\n` followed by the PDF bytes. A
+changed source refuses with a conflict.
 
 A member's certificate (`member-certificate-requests/{uuid}/fulfilment-preview/`, `fulfil/`,
 `file/`) is filtered to the requesting member before anyone else's particulars are read, uses the
@@ -752,24 +750,26 @@ route that touches it runs on the operator connection. Each output, from a compa
 staff register outputs page or either company pack, and each member certificate fulfilment records
 its row there. The register outputs page and the company pack read the existing rows to list the
 certificates and notice figures still owed. Staff query it in admin. Its purge is in
-[retention clocks](security.md#retention-clocks).
+[retention clocks](security.md#retention-clocks). Ledova no longer produces `register_csv` or
+`inspection_copy` rows ([Ledger exports removed](../decisions.md#ledger-exports-removed)); earlier
+ones stay until that purge.
 
 ## Output formats
 
 Every output reads one snapshot of the stored register through the export's own code. Days are
 counted in Sydney's calendar (`STATUTORY_CALENDAR`;
-[why](../business/member-records.md#inspection-copies)). Every CSV cell goes through `csv_cell`,
+[why](../business/member-records.md#the-due-list)). Every CSV cell goes through `csv_cell`,
 which prefixes an apostrophe to a value opening with a formula character, except the notice figures'
 counts, entry numbers and changes, plain numbers so a negative change reads as one. Each output's
 deadline is in its own business section
-([inspection copies](../business/member-records.md#inspection-copies),
-[certificates](../business/member-records.md#certificates),
+([certificates](../business/member-records.md#certificates),
 [notice figures](../business/member-records.md#notice-figures)), and
 [the due list](../business/member-records.md#the-due-list) gives the computed due dates.
 
 ### Register CSV
 
-The CSV has three sections of different widths; read them by their headers, not by column position:
+Each class's `register.csv` in the [company pack](#pack-files) has three sections of different
+widths; read them by their headers, not by column position:
 
 1. Current members, under a header row starting "Member ID": Member ID, Name, Residential address,
    Wallet addresses, Holder type, Class, Shares held, Percentage of issued supply (as `N%`), Balance
@@ -787,13 +787,6 @@ The CSV has three sections of different widths; read them by their headers, not 
    ceased, Identity source and Identity recorded at. A final As at row gives the fold's time, block
    and `stale` when stale; `never read` and `stale` before a chain class's first fold; or
    `not on chain` for an import-opened class the fold has never read.
-
-### Inspection copy format
-
-`prepare_inspection_copy` builds the register CSV with its header row and adds a fourth section
-headed "Inspection copy under s173(3) of the Corporations Act": Requested on, Company's written
-instruction, Recipient, Produced on, and "Produced more than 7 days after the request" (`yes` or
-`no`).
 
 ### Certificate format
 
@@ -919,7 +912,7 @@ table column, link or tag. Values Ledova produces are left as they are, and the 
   authority or decision record; `documents/evidence/<record kind>-<source>/<record id>.<extension>`
   a record's second source (an import's `asic` extract, a grant's or chain grant's `terms` and
   `acceptance`, a transfer's `instrument`).
-- `classes/<class id>/`: `class.json`, `register.csv` (from the export's own code, with no export
+- `classes/<class id>/`: `class.json`, `register.csv` (the [register CSV](#register-csv), with no export
   record, absent while the register has no opening), `entries.json` (with each entry's `preimage`),
   `authority.json` (register instructions include chain grants and paid issues), `chain.json`,
   `settlements.json`, `issues.json`, `former_members.json`, `reconciliations.json`, `waiting.json`

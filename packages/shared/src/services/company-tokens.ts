@@ -10,8 +10,6 @@ import type {
   ClassOwnershipQuery,
   RegisterCertificatePreview,
   RegisterCertificateRequest,
-  RegisterInspectionPreview,
-  RegisterInspectionRequest,
   TokenIssuance,
   CapitalIncreaseListItem,
   PaginatedResponse,
@@ -56,23 +54,6 @@ export const getClassOwnershipHolders = (
   params: ClassOwnershipQuery,
   config: AxiosRequestConfig = {},
 ) => apiClient.get<ClassOwnershipHolders>(COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS(uuid), { ...config, params });
-
-export const downloadTokenRegister = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
-  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_EXPORT(uuid), { ...config, responseType: 'blob' });
-
-export const getRegisterInspectionPreview = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
-  apiClient.get<RegisterInspectionPreview>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), config);
-
-export const createRegisterInspectionCopy = (
-  apiClient: AxiosInstance,
-  uuid: string,
-  data: RegisterInspectionRequest,
-  config: AxiosRequestConfig = {},
-) =>
-  apiClient.post<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), data, {
-    ...config,
-    responseType: 'blob',
-  });
 
 export const getCompanyTokenIssuances = (
   apiClient: AxiosInstance,

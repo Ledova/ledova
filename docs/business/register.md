@@ -558,8 +558,8 @@ The selected company follows Dashboard. Ledger's sidebar label opens the share-c
 overview; its separate caret expands Issue shares, Transfer shares and Corrections.
 Shareholders and Documents remain beside Ledger; ESS is under Shareholders. Ledger and Shareholders
 keep their views on one page so switching between them preserves unfinished forms and recovery.
-Documents → Certificates has its own page for company and member records, while Ledger exports and
-Company pack retain their existing workflows ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
+Documents → Certificates has its own page for company and member records, while Company pack
+retains its existing workflow ([the app at a glance](README.md#the-app-at-a-glance)). Ledger starts with the
 company's share classes and current structure; who holds the shares is on Shareholders
 ([decision](../decisions.md#share-classes-shareholders-and-employee-awards)).
 
@@ -616,9 +616,8 @@ Details is unavailable, so the work and its recovery stay on the page.
 
 The Employee share scheme view, ESS under Shareholders, shows one class's
 [awards](issuing-shares.md#employee-awards-and-vesting) at a time, chosen with Share class,
-each listing the non-paid issues prepared from it; Documents holds each class's CSV download and
-inspection copy, unsigned certificate preparation and the company pack as compact choices, opening
-one preparation form at a time.
+each listing the non-paid issues prepared from it; Documents holds unsigned certificate preparation
+and the company pack as compact choices, opening one preparation form at a time.
 
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.

@@ -304,7 +304,6 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(formerSection).getByRole('link', { name: 'Details (Departed Shareholder)' }).getAttribute('href')).toBe(
     '/company/ledger/members/former-member-private?company=harbour',
   );
-  expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   expect(within(table).getAllByRole('row')).toHaveLength(26);
   const namesakes = within(table).getAllByRole('row', { name: /Example Member/ });
   expect(namesakes).toHaveLength(2);
@@ -2219,7 +2218,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       <Link to="/#documents" state={{ registerCompany: company.uuid, registerToken: token.uuid }}>
         Open Documents
       </Link>
-      <Link to="/#ledger-exports">Open Ledger exports</Link>
       <Link to="/#company-pack">Open Company pack</Link>
       <Link
         to="/#history"
@@ -2312,15 +2310,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     state: { registerCompany: company.uuid, registerToken: token.uuid },
   });
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
-  fireEvent.click(screen.getByRole('link', { name: 'Open Ledger exports' }));
-  expect(await screen.findByRole('heading', { level: 1, name: 'Ledger exports' })).toBeTruthy();
-  expect(await screen.findByRole('button', { name: 'Prepare inspection copy' })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Download CSV' })).toBeTruthy();
-  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Company pack' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Company pack' })).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
   const correctionDetails = await screen.findByRole('button', { name: /^Details for entry 3:/ });
   if (correctionDetails.getAttribute('aria-expanded') !== 'true') fireEvent.click(correctionDetails);
@@ -3059,7 +3052,6 @@ it('shows an account without register access a calm empty state, reads no member
   expect(await screen.findByText(NO_REGISTER)).toBeTruthy();
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.queryByRole('button', { name: /shares/ })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   cleanup();
   show('investor', <SettingsPage />, 'Settings', { entry: '/settings', path: '/settings' });
   expect(await screen.findByRole('heading', { level: 1, name: 'Profile' })).toBeTruthy();

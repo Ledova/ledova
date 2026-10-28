@@ -23,14 +23,9 @@ export const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
 
 export const REGISTER_COPY = {
   QUANTITY_GUARD: 'Internal quantity guard',
-  DOWNLOAD: 'Download CSV',
-  DOWNLOAD_FAILED: 'The register could not be downloaded. Try again.',
-  PRIVACY_NOTE:
-    'Names, holder types and holdings are shown here. Residential addresses are in the CSV only, and every ' +
-    'download is logged.',
   NOT_OPENED_NOTE:
-    'The register for this share class has not been opened yet, so no members are listed and the CSV cannot be ' +
-    'downloaded. An applied register opening or register import starts it.',
+    'The register for this share class has not been opened yet, so no members are listed. An applied register ' +
+    'opening or register import starts it.',
   WAITING_NOTE: (count: number) =>
     `${count} completed ${count === 1 ? 'issue or transfer waits' : 'issues or transfers wait'} to be recorded, ` +
     'so these holdings leave them out. Recording stops at the first one that cannot be recorded yet, such as one ' +

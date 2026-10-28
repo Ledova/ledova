@@ -382,15 +382,11 @@ from them with the chain unreachable. A correction is a compensating entry that
 those holdings already reflect. A scheduled job reconciles the stored register
 with the chain and retains each result. Former members are stored, and an
 import records members' particulars and pre-platform former members, and opens a
-class not yet on chain from the company's register. Company appointees prepare
-the s173(3) copy in the Register
-([inspection copies](../business/member-records.md#inspection-copies)),
-on the company's written instruction: the register as exported, with the request date, the
-instruction's reference and the recipient, marked late when prepared more than
-seven days after the request. Ledova keeps its SHA-256 and the request details,
-not the file; the company decides whether a request is proper and hands the copy
-over. See [inspection copies](../business/member-records.md#inspection-copies).
-Staff also prepare certificates, on the company's written instruction, for an
+class not yet on chain from the company's register. Ledova does not prepare the
+s173(3) copy: the owner removed inspection copies on 28 October 2026, so the
+company produces and delivers a copy of its register on a proper request outside
+Ledova ([inspection copies](../business/member-records.md#inspection-copies)).
+Staff prepare certificates, on the company's written instruction, for an
 issue or transfer entry: an unsigned PDF with a page for the member the entry
 moved shares to and a balance certificate for a transferor who still holds
 shares, which the company executes. Ledova keeps its SHA-256 and the entry's

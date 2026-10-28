@@ -43,7 +43,6 @@ export const SHAREHOLDER_VIEWS = {
 
 export const DOCUMENT_VIEWS = [
   { key: 'certificates', label: 'Certificates' },
-  { key: 'ledger-exports', label: 'Ledger exports' },
   { key: 'company-pack', label: 'Company pack' },
 ] as const;
 
