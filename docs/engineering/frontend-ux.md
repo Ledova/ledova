@@ -37,7 +37,7 @@ the task, `FormSteps` sits at its top, each step has a small heading, and one pr
 Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
 Company information, company documents, authority records and company team use this workspace frame too.
 Team invitations and acceptance replace their collection with one focused inline task, retaining its
-mounted editors and drafts. Settings → Documents has its own view, with Category and File in the inline upload.
+mounted editors and drafts. Documents → Company documents has its own view, with Category and File in the inline upload.
 The remaining offering, publication, directory, application, wallet, activity and eligibility collections
 use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
 keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
@@ -410,7 +410,7 @@ Use one compact Account card for relevant identity status, password, appearance 
 keep export and deletion under Manage account, with their existing confirmations. Payslip evidence
 belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
-invitation. Company-recorded particulars stay on their separate member page.
+invitation. Company-recorded particulars are a Profile card for a member of the selected company.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
 [separately](mobile.md#navigation). The sidebar has no More group or Help & Support link. Removing

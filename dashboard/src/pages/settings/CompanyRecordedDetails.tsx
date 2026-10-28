@@ -10,7 +10,11 @@ import { FIELD_LIMITS, MEMBER_PARTICULARS_STATUS_LABELS, formatDate, shortRefere
 
 export function CompanyRecordedDetails() {
   const { read } = useMemberWorkspace();
-  return <MemberRecordsContent>{read.record && <MemberParticulars key={read.record.uuid} />}</MemberRecordsContent>;
+  return (
+    <Section title="Company-recorded details">
+      <MemberRecordsContent>{read.record && <MemberParticulars key={read.record.uuid} />}</MemberRecordsContent>
+    </Section>
+  );
 }
 
 function MemberParticulars() {
@@ -66,9 +70,10 @@ function MemberParticulars() {
   );
   return (
     read.record && (
-      <Section title={particularsOpen ? 'Request update' : 'Company-recorded details'}>
+      <>
         {particularsOpen ? (
           <form
+            data-member-draft
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
@@ -183,7 +188,7 @@ function MemberParticulars() {
             </FormActions>
           </>
         )}
-      </Section>
+      </>
     )
   );
 }

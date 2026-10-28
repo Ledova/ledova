@@ -55,7 +55,7 @@ The initial appointment gives you Manage company information and team personally
 capabilities as delegatable so that you can build the team afterwards. It records you, the company,
 the declaration version and text and the admission time.
 
-After signup, add optional supporting files at **Settings → Documents** and invite users at
+After signup, add optional supporting files at **Documents → Company documents** and invite users at
 **Settings → Team**.
 Later documents do not alter the retained signup request. The company remains Draft until
 activation passes the registry check: registration does not incorporate a company with ASIC,
@@ -215,7 +215,7 @@ rechecks the captured details.
 ## Company information and documents
 
 A current company administrator reads and edits the company's basic information at
-**Settings → Profile**, and manages supporting files at **Settings → Documents** on web
+**Settings → Profile**, and manages supporting files at **Documents → Company documents** on web
 ([Settings](participants.md#profile-and-settings)). On web,
 [choose the company on Dashboard](README.md#the-app-at-a-glance).
 

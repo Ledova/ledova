@@ -20,6 +20,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Link, useLocation } from 'react-router-dom';
 import { CompanyProfile } from '@pages/settings/CompanyProfile';
 import CompanyDocumentsPage from '@pages/documents/company';
+import { COMPANY_DOCUMENTS_PATH } from '@utils/paths';
 import CompanyTeamPage from './team';
 import CompanyEligibilityPage from './eligibility';
 import { APPOINTMENT, companyPreferences, companyRecord, renderCompanyPage } from '../../testSupport/company';
@@ -34,17 +35,17 @@ let client: QueryClient;
 let company: Company;
 let failed: string | null;
 function CompanyView() {
-  return useLocation().hash === '#documents' ? <CompanyDocumentsPage /> : <CompanyProfile />;
+  return useLocation().pathname === COMPANY_DOCUMENTS_PATH ? <CompanyDocumentsPage /> : <CompanyProfile />;
 }
 function show() {
   return renderCompanyPage(
     client,
     <>
       <CompanyView />
-      <Link to="/company#documents">Open company documents</Link>
+      <Link to={COMPANY_DOCUMENTS_PATH}>Open company documents</Link>
     </>,
     'Profile',
-    { entry: '/company', path: '/company' },
+    { entry: '/settings', path: '*' },
   );
 }
 beforeEach(() => {

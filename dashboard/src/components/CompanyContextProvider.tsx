@@ -72,7 +72,10 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const allowed = (uuid: string | null) =>
     !!owner && boundary.get() === owner && !held && (!uuid || directory.companies.some((row) => row.uuid === uuid));
   const isDirty = useCallback(
-    () => [...document.querySelectorAll('main form')].some((form) => dirtyForms.current.has(form as HTMLFormElement)),
+    (memberDraft = true) =>
+      [...document.querySelectorAll(memberDraft ? 'main form' : 'main form:not([data-member-draft])')].some((form) =>
+        dirtyForms.current.has(form as HTMLFormElement),
+      ),
     [],
   );
   const blocker = useBlocker(
@@ -120,7 +123,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         const blocked =
           held ||
           (changingCompany && !!member?.draft.open) ||
-          (!persistentDraft && (changingCompany || internal || (historyAction === 'POP' && changingPage)) && isDirty());
+          ((changingCompany || internal || (historyAction === 'POP' && changingPage)) && isDirty(!persistentDraft));
         if (blocked) setBlockedAt({ owner, location: currentLocation.key });
         return blocked;
       },

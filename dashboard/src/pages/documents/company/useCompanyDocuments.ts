@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   COMPANY_DOCUMENT_TYPES,
@@ -18,20 +17,13 @@ export function useCompanyDocuments({
   read,
   editable,
   refresh,
-  onAction,
 }: {
   company: Company;
   read: CompanyActionRead;
   editable: boolean;
   refresh: () => Promise<unknown>;
-  onAction?: () => void;
 }) {
   const client = useQueryClient();
-  const documentsSection = useRef<HTMLDivElement | null>(null);
-  const documentsRequested = useLocation().hash === '#documents';
-  useEffect(() => {
-    if (documentsRequested && read.canAdmin) documentsSection.current?.scrollIntoView({ block: 'start' });
-  }, [documentsRequested, read.canAdmin, company.uuid]);
   const [upload, setUpload] = useState<{ type: DocumentType; label: string } | null>(null);
   const [removing, setRemoving] = useState<CompanyDocument | null>(null);
   const confirmationRef = useRef<CompanyDocument | null>(null);
@@ -112,7 +104,6 @@ export function useCompanyDocuments({
     }
   };
   const removeDocument = (document: CompanyDocument) => {
-    onAction?.();
     remove.reset();
     const next = { ...document };
     confirmationRef.current = next;
@@ -129,7 +120,6 @@ export function useCompanyDocuments({
   );
   const uploadChoice = availableTypes.find((item) => item.type === 'other');
   return {
-    documentsSection,
     error,
     removing,
     confirmationRef,

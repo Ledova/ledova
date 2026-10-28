@@ -53,16 +53,13 @@ export function CompanyDocuments({
   read,
   editable,
   refresh,
-  onAction,
 }: {
   company: Company;
   read: CompanyActionRead;
   editable: boolean;
   refresh: () => Promise<unknown>;
-  onAction?: () => void;
 }) {
   const {
-    documentsSection,
     error,
     removing,
     confirmationRef,
@@ -77,7 +74,7 @@ export function CompanyDocuments({
     upload,
     setUpload,
     setRemoving,
-  } = useCompanyDocuments({ company, read, editable, refresh, onAction });
+  } = useCompanyDocuments({ company, read, editable, refresh });
   const uploadAction = useRef<HTMLButtonElement>(null);
   const closeUpload = () => {
     setUpload(null);
@@ -91,62 +88,60 @@ export function CompanyDocuments({
         </p>
       )}
       {((!read.error && read.canAdmin) || upload) && (
-        <div ref={documentsSection} id="documents" className="scroll-mt-4">
-          <Section title={upload ? 'Upload document' : 'Supporting documents'}>
-            <div hidden={!!upload} className="space-y-4">
-              <p className="text-sm text-text-muted">Private supporting documents for company administrators.</p>
-              {populatedTypes.length === 0 ? (
-                <p className="text-sm text-text-muted">No supporting documents yet.</p>
-              ) : (
-                <ul className="divide-y divide-border-subtle">
-                  {populatedTypes.map(({ type, label, documents }) => (
-                    <li key={type} className="space-y-4 py-4">
-                      <h3 className="text-sm font-medium text-text-primary">{label}</h3>
-                      {documents.map((document) => (
-                        <DocumentRecord
-                          key={document.uuid}
-                          document={document}
-                          editable={editable}
-                          ready={ready}
-                          onView={viewDocument}
-                          onRemove={removeDocument}
-                        />
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {editable && (
-                <FormActions>
-                  <PageAction
-                    ref={uploadAction}
-                    label="Upload document"
-                    primary
-                    disabled={!ready || !uploadChoice}
-                    onClick={() => uploadChoice && setUpload({ type: uploadChoice.type, label: uploadChoice.label })}
-                  />
-                </FormActions>
-              )}
-            </div>
-            {upload && (
-              <CompanyDocumentForm
-                key={company.uuid}
-                companyUuid={company.uuid}
-                documentType={upload.type}
-                documentTypes={availableTypes}
-                onTypeChange={(type) => {
-                  const choice = availableTypes.find((item) => item.type === type);
-                  if (choice) setUpload({ type: choice.type, label: choice.label });
-                }}
-                label={upload.label}
-                canUpload={ready}
-                read={read}
-                onClose={closeUpload}
-                onSuccess={refresh}
-              />
+        <Section title={upload ? 'Upload document' : 'Supporting documents'}>
+          <div hidden={!!upload} className="space-y-4">
+            <p className="text-sm text-text-muted">Private supporting documents for company administrators.</p>
+            {populatedTypes.length === 0 ? (
+              <p className="text-sm text-text-muted">No supporting documents yet.</p>
+            ) : (
+              <ul className="divide-y divide-border-subtle">
+                {populatedTypes.map(({ type, label, documents }) => (
+                  <li key={type} className="space-y-4 py-4">
+                    <h3 className="text-sm font-medium text-text-primary">{label}</h3>
+                    {documents.map((document) => (
+                      <DocumentRecord
+                        key={document.uuid}
+                        document={document}
+                        editable={editable}
+                        ready={ready}
+                        onView={viewDocument}
+                        onRemove={removeDocument}
+                      />
+                    ))}
+                  </li>
+                ))}
+              </ul>
             )}
-          </Section>
-        </div>
+            {editable && (
+              <FormActions>
+                <PageAction
+                  ref={uploadAction}
+                  label="Upload document"
+                  primary
+                  disabled={!ready || !uploadChoice}
+                  onClick={() => uploadChoice && setUpload({ type: uploadChoice.type, label: uploadChoice.label })}
+                />
+              </FormActions>
+            )}
+          </div>
+          {upload && (
+            <CompanyDocumentForm
+              key={company.uuid}
+              companyUuid={company.uuid}
+              documentType={upload.type}
+              documentTypes={availableTypes}
+              onTypeChange={(type) => {
+                const choice = availableTypes.find((item) => item.type === type);
+                if (choice) setUpload({ type: choice.type, label: choice.label });
+              }}
+              label={upload.label}
+              canUpload={ready}
+              read={read}
+              onClose={closeUpload}
+              onSuccess={refresh}
+            />
+          )}
+        </Section>
       )}
       {error && (
         <p role="alert" className="text-sm text-error-light">

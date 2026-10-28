@@ -140,7 +140,7 @@ async function openCompanySwitch() {
 }
 
 async function chooseMemberCompany(name: string) {
-  const settings = !!screen.queryByRole('heading', { name: /^(Company-recorded details|Request update)$/ });
+  const settings = !!screen.queryByRole('heading', { name: 'Company-recorded details' });
   const documents = !!screen.queryByRole('heading', { name: 'Certificates', level: 1 });
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await openCompanySwitch();
@@ -254,7 +254,10 @@ it('updates ownership and member workflows after invalidation without idle refre
       if (detailRefused) throw Object.assign(new Error('Selected record unavailable'), { response: { status: 500 } });
       return { data: record };
     }
-    if (url === URLS.MEMBER_RECORD(otherRecord.uuid)) return { data: otherRecord };
+    if (url === URLS.MEMBER_RECORD(otherRecord.uuid)) {
+      if (!includeOther) throw Object.assign(new Error('Association revoked'), { response: { status: 404 } });
+      return { data: otherRecord };
+    }
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
     if (url === URLS.MEMBER_ENTRIES(otherRecord.uuid)) return { data: { entries: [{ ...MEMBER_ENTRY, delta: '25' }] } };
     if (url === URLS.MEMBER_PARTICULARS_REQUESTS || url === URLS.MEMBER_CERTIFICATE_REQUESTS)
@@ -569,6 +572,8 @@ it('updates ownership and member workflows after invalidation without idle refre
   detailRefused = false;
   currentPreferences = preferences;
   await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences }));
+  await screen.findByText('Your member records could not be loaded.');
+  await refreshRead();
   await screen.findByText('Your account has no member record for this company.');
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await ownShares('10');

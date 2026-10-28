@@ -286,6 +286,12 @@ async function openTheSidebar(page: Page, role: Role) {
       page.getByText('Only your own holdings and awards are shown. Other shareholders’ records are private.'),
     ).toBeVisible();
     await showAllClasses(page);
+    const documents = (await visibleSidebar(page))
+      .getByRole('link', { name: 'Documents', exact: true })
+      .locator('../..');
+    await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
+    await expect(documents.getByRole('link', { name: 'Certificates', exact: true })).toBeVisible();
+    await expect(documents.getByRole('link', { name: 'Company documents', exact: true })).toHaveCount(0);
   } else {
     await expect(page.getByRole('region', { name: 'Company ownership summary' })).toContainText(
       'Issued sharesNot complete',

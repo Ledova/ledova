@@ -443,7 +443,9 @@ Signed-in web pages do not poll while idle or refetch because of window focus, v
 reconnection. Web query defaults enforce that page-data policy. Another person's changes appear on a later
 entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
 content stable until a relevant read is needed, without mounting another workflow's reads behind
-an overview. Certificates and Profile's Company-recorded details read only while open, retaining
+an overview. Certificates re-reads the member list on entry; Profile's Company-recorded details reads only the
+selected record and its requests, using the member list the company directory already holds, so opening Profile
+never empties the company context. Both read only while open, retaining
 unfinished drafts and original-request recovery across navigation.
 
 `dashboard/src/hooks/useEntryReads.ts` and
@@ -715,7 +717,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                                                   | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid`                                                                                                                                                      | everyone  |
 | [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` (company), `/company/team`, `/company/listing`                                                                                     | everyone  |
-| [Company documents](../business/companies.md#the-company-page)                                               | `/documents/company`; legacy `/company#documents` redirects with company context                                                                                             | everyone  |
+| [Company documents](../business/companies.md#company-information-and-documents)                              | `/documents/company`; legacy `/company#documents` redirects with company context                                                                                             | everyone  |
 | [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                                       | everyone  |
 | [Offerings](../business/issuing-shares.md#the-offerings-page)                                                | `/company/offering`                                                                                                                                                          | company   |
 | [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                                                      | company   |

@@ -453,7 +453,7 @@ invisible to them while submitted or under review.
 
 ### Offer documents
 
-The company uploads offer documents under **Settings → Documents** on web
+The company uploads offer documents under **Documents → Company documents** on web
 ([company information and documents](companies.md#company-information-and-documents)), and the
 offering form lists only the offer types: prospectus or information memorandum, risk disclosure,
 business plan, financial statements, auditor report, constitution and shareholder agreement.

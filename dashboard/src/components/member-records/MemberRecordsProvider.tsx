@@ -8,10 +8,20 @@ const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open
 
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const { pathname, hash } = useLocation();
-  const active = pathname === CERTIFICATES_PATH || (pathname === DESTINATIONS.settings.path && hash === '#profile');
-  const read = useMemberRecords(() => crypto.randomUUID(), undefined, { coordinatedRefresh: true, enabled: active });
+  const certificates = pathname === CERTIFICATES_PATH;
+  const active = certificates || (pathname === DESTINATIONS.settings.path && hash === '#profile');
+  const read = useMemberRecords(() => crypto.randomUUID(), undefined, {
+    coordinatedRefresh: true,
+    enabled: active,
+    readList: certificates,
+  });
   return (
-    <MemberState key={`${read.scopeOwner?.userUuid}/${read.scopeOwner?.ownerAccountUuid}`} read={read} active={active}>
+    <MemberState
+      key={`${read.scopeOwner?.userUuid}/${read.scopeOwner?.ownerAccountUuid}`}
+      read={read}
+      active={active}
+      certificates={certificates}
+    >
       {children}
     </MemberState>
   );
@@ -21,10 +31,12 @@ function MemberState({
   children,
   read,
   active,
+  certificates,
 }: {
   children: ReactNode;
   read: ReturnType<typeof useMemberRecords>;
   active: boolean;
+  certificates: boolean;
 }) {
   const location = useLocation();
   const requested = new URLSearchParams(location.search).get('company');
@@ -68,7 +80,7 @@ function MemberState({
     draft.open,
   ]);
   useEffect(() => {
-    if (active && read.record && !held) {
+    if (certificates && read.record && !held) {
       const item = requestedClass
         ? read.record.classes.find((item) => item.uuid === requestedClass)
         : (read.record.classes.find((item) => item.uuid === token) ?? read.record.classes[0]);
@@ -78,7 +90,7 @@ function MemberState({
       setToken(item?.uuid ?? '');
       read.selectToken(item?.uuid ?? '');
     }
-  }, [active, read.record, read.selectToken, held, token, requestedClass]);
+  }, [certificates, read.record, read.selectToken, held, token, requestedClass]);
   return (
     <MemberWorkspaceContext.Provider
       value={{

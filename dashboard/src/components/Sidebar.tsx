@@ -330,11 +330,21 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   const certificateTarget = certificatesLocation({ search: '', state: context });
   const certificatePath = `${certificateTarget.pathname}${certificateTarget.search}`;
   const certificatesBlocked = location.pathname === path && !!state?.held;
-  const links: { key: string; label: string; to: string }[] = DOCUMENT_VIEWS.filter(
+  const links: { key: string; label: string; to: string; blocked: boolean }[] = DOCUMENT_VIEWS.filter(
     ({ key }) => key === 'certificates' || companyContext?.company?.canReadRegister,
-  ).map(({ key, label }) => ({ key, label, to: key === 'certificates' ? certificatePath : `${path}#${key}` }));
+  ).map(({ key, label }) => ({
+    key,
+    label,
+    to: key === 'certificates' ? certificatePath : `${path}#${key}`,
+    blocked: key === 'certificates' && certificatesBlocked,
+  }));
   if (companyContext?.company?.canManage)
-    links.splice(1, 0, { key: 'company-documents', label: 'Company documents', to: COMPANY_DOCUMENTS_PATH });
+    links.splice(1, 0, {
+      key: 'company-documents',
+      label: 'Company documents',
+      to: COMPANY_DOCUMENTS_PATH,
+      blocked: certificatesBlocked,
+    });
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
 
   if (shownPlace !== place) {
@@ -373,21 +383,21 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
         </button>
       </div>
       <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-        {links.map(({ key, label, to }) => (
+        {links.map(({ key, label, to, blocked }) => (
           <Link
             key={key}
             to={companyContext?.companyPath(to) ?? to}
             state={context}
             onClick={(event) => {
-              if (key === 'certificates' && certificatesBlocked) event.preventDefault();
+              if (blocked) event.preventDefault();
               else onNavigate?.();
             }}
             onAuxClick={(event) => {
-              if (key === 'certificates' && certificatesBlocked) event.preventDefault();
+              if (blocked) event.preventDefault();
             }}
             aria-current={selected === key ? 'page' : undefined}
-            aria-disabled={(key === 'certificates' && certificatesBlocked) || undefined}
-            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${key === 'certificates' && certificatesBlocked ? 'cursor-not-allowed opacity-50' : ''}`}
+            aria-disabled={blocked || undefined}
+            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocked ? 'cursor-not-allowed opacity-50' : ''}`}
           >
             {label}
           </Link>
@@ -506,9 +516,11 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         allItems.find((item) => item.destination === place.destination && !item.view),
     )
     .find(Boolean);
-  const activePath = [CERTIFICATES_PATH, COMPANY_DOCUMENTS_PATH].includes(location.pathname)
-    ? CERTIFICATES_PATH
-    : activeItem && itemPath(activeItem);
+  const activePath =
+    [CERTIFICATES_PATH, COMPANY_DOCUMENTS_PATH].includes(location.pathname) ||
+    (location.pathname === DESTINATIONS.company.path && location.hash === '#documents')
+      ? CERTIFICATES_PATH
+      : activeItem && itemPath(activeItem);
 
   return (
     <aside className="flex h-full w-52 flex-col border-r border-border-subtle bg-surface-base">
