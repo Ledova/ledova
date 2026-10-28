@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_AWARD_COPY as COPY,
   appointmentForRegisterStep,
+  formatDate,
+  formatShareCount,
   hasCurrentRegisterReadAuthority,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
@@ -11,19 +13,12 @@ import {
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
-import { AwardRecord } from './AwardRecord';
 import { ownAppointmentsKey, READ_TIMING, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { registerKey } from '@hooks/useRegisterAccess';
 import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
-import {
-  awardsKey,
-  awardVestingsKey,
-  awardEndsKey,
-  awardVestingReversalsKey,
-  useRegisterAwards,
-} from '@pages/company/ledger/shared/useRegisterAwards';
-import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
-import { LoadError, Loading, Section } from '@components/Ledger';
+import { awardsKey, useRegisterAwards } from '@pages/company/ledger/shared/useRegisterAwards';
+import { awardPath } from '@pages/company/ledger/shared/awards';
+import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 
 export function ClassAwards({
   owner,
@@ -48,8 +43,6 @@ export function ClassAwards({
   const [editing, setEditing] = useState(false);
   const [formAppointment, setFormAppointment] = useState<OwnCompanyAppointment | null>(null);
   const [formHeld, setFormHeld] = useState(false);
-  const [recordHolds, setRecordHolds] = useState<Record<string, boolean>>({});
-  const [recordEdits, setRecordEdits] = useState<Record<string, boolean>>({});
   const [returnToAction, setReturnToAction] = useState(false);
   const preparation = useRef<HTMLDivElement>(null);
   const prepareAction = useRef<HTMLButtonElement>(null);
@@ -83,7 +76,6 @@ export function ClassAwards({
   );
   const token = register.token.uuid;
   const awards = useRegisterAwards(owner, company, token, check, readable);
-  const grants = useRegisterGrants(owner, company, token, check, readable && sourceReady);
   const appointment =
     readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const supported = register.initialized && register.token.status === 'draft';
@@ -97,8 +89,8 @@ export function ClassAwards({
     !awards.isError &&
     !appointments.isFetching &&
     !appointments.isError;
-  const held = formHeld || Object.values(recordHolds).some(Boolean);
-  const editorOpen = editing || Object.values(recordEdits).some(Boolean);
+  const held = formHeld;
+  const editorOpen = editing;
   const entryRead = useRef({ active, sourceReady, held, editorOpen });
   useLayoutEffect(() => {
     entryRead.current = { active, sourceReady, held, editorOpen };
@@ -134,7 +126,7 @@ export function ClassAwards({
       !hasCurrentRegisterReadAuthority(current.data ?? [], company)
     )
       return;
-    const currentAwards = await awards.refetch({ cancelRefetch: false, throwOnError });
+    await awards.refetch({ cancelRefetch: false, throwOnError });
     check();
     if (available && !available()) return;
     await Promise.all([
@@ -142,19 +134,9 @@ export function ClassAwards({
         queryKey: awardsKey(owner, token),
         predicate: ({ queryKey }) => queryKey.length > awardsKey(owner, token).length,
       }),
-      ...(currentAwards.isSuccess
-        ? currentAwards.data.flatMap((award) =>
-            [
-              awardVestingsKey(owner, award.uuid),
-              awardEndsKey(owner, award.uuid),
-              awardVestingReversalsKey(owner, award.uuid),
-            ].map((queryKey) => client.invalidateQueries({ queryKey, exact: true }, { cancelRefetch: false })),
-          )
-        : []),
       client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
       client.invalidateQueries({ queryKey: [...registerKey(owner), 'invitation-awards', company] }),
       client.invalidateQueries({ queryKey: [...registerKey(owner), 'member-awards', company] }),
-      client.invalidateQueries({ queryKey: grantsKey(owner, token) }),
     ]);
   };
   useEffect(() => {
@@ -167,20 +149,11 @@ export function ClassAwards({
       !sourceReady ||
       held ||
       editorOpen ||
-      [appointments, awards, grants].some((read) => read.isFetching || read.isPending)
+      [appointments, awards].some((read) => read.isFetching || read.isPending)
     )
       return;
     entered.current = true;
-    const keys = [
-      ownAppointmentsKey(owner),
-      awardsKey(owner, token),
-      grantsKey(owner, token),
-      ...(awards.data ?? []).flatMap((award) => [
-        awardVestingsKey(owner, award.uuid),
-        awardEndsKey(owner, award.uuid),
-        awardVestingReversalsKey(owner, award.uuid),
-      ]),
-    ];
+    const keys = [ownAppointmentsKey(owner), awardsKey(owner, token)];
     const stale = keys.some((queryKey) => {
       const query = client.getQueryCache().find({ queryKey, exact: true });
       return query?.state.status === 'success' && query.isStaleByTime(READ_TIMING.staleTime);
@@ -216,11 +189,6 @@ export function ClassAwards({
           Employee awards could not be loaded.
         </LoadError>
       )}
-      {grants.isError && (
-        <LoadError retry={() => grants.refetch()} busy={grants.isFetching}>
-          The non-paid issues prepared from these awards could not be loaded.
-        </LoadError>
-      )}
     </>
   );
   return (
@@ -243,40 +211,45 @@ export function ClassAwards({
         <div hidden={editing} className="space-y-4">
           {visible && awards.data?.length === 0 && <p className="text-sm text-text-muted">{COPY.EMPTY}</p>}
           {visible && !!awards.data?.length && (
-            <div
-              aria-hidden="true"
-              className="hidden grid-cols-[minmax(0,1fr)_repeat(3,7rem)] gap-6 pl-7 text-xs font-medium text-text-muted md:grid"
-            >
-              <span>Recipient</span>
-              <span className="text-right">Promised</span>
-              <span className="text-right">Vested</span>
-              <span className="text-right">Issued</span>
+            <div aria-hidden="true" className="hidden items-center gap-4 text-xs font-medium text-text-muted md:flex">
+              <span className="flex-1">Recipient</span>
+              <span className="grid w-[22.5rem] grid-cols-3 gap-6 text-right">
+                <span>Promised</span>
+                <span>Vested</span>
+                <span>Issued</span>
+              </span>
+              <span className="w-4" />
             </div>
           )}
-          <ul aria-label="Employee awards" hidden={!awards.data?.length}>
-            {awards.data?.map((award) => (
-              <AwardRecord
-                key={award.uuid}
-                owner={owner}
-                award={award}
-                grants={grants.isSuccess ? grants.data.filter((grant) => grant.award === award.uuid) : []}
-                appointment={supported ? appointment : undefined}
-                guard={check}
-                blocked={blocked}
-                visible={visible && !editing}
-                onHeldChange={(recordHeld) =>
-                  setRecordHolds((previous) =>
-                    previous[award.uuid] === recordHeld ? previous : { ...previous, [award.uuid]: recordHeld },
-                  )
-                }
-                onEditingChange={(recordEditing) =>
-                  setRecordEdits((previous) =>
-                    previous[award.uuid] === recordEditing ? previous : { ...previous, [award.uuid]: recordEditing },
-                  )
-                }
-                onSettled={() => refresh(true)}
-              />
-            ))}
+          <ul
+            aria-label="Employee awards"
+            hidden={!visible || !awards.data?.length}
+            className="divide-y divide-border-subtle"
+          >
+            {visible &&
+              awards.data?.map((award) => (
+                <li key={award.uuid}>
+                  <LinkRow
+                    to={awardPath(token, award.uuid, company)}
+                    state={{ registerCompany: company, registerToken: token }}
+                    label={award.recipientName}
+                    context="employee award"
+                    aside={
+                      <span className="hidden w-[22.5rem] grid-cols-3 gap-6 text-right tabular-nums text-text-primary md:grid">
+                        <span>{formatShareCount(award.shares)}</span>
+                        <span>{formatShareCount(award.vestedShares)}</span>
+                        <span>{formatShareCount(award.issuedShares)}</span>
+                      </span>
+                    }
+                  >
+                    <span className="block text-xs text-text-muted">Agreement {formatDate(award.termsOn)}</span>
+                    <span className="block text-xs text-text-muted md:hidden">
+                      {formatShareCount(award.shares)} promised · {formatShareCount(award.vestedShares)} vested ·{' '}
+                      {formatShareCount(award.issuedShares)} issued
+                    </span>
+                  </LinkRow>
+                </li>
+              ))}
           </ul>
         </div>
         <div ref={preparation} tabIndex={-1} hidden={!editing} className="space-y-4 focus:outline-none">

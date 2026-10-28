@@ -256,7 +256,11 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 | Remaining unissued        | Promise less issued shares and both ended pools                                |
 
 On the web, **Shareholders → ESS** shows the selected class's awards as compact rows: recipient,
-agreement date, promised, vested and issued quantities. Open a row for its chart, records and actions.
+agreement date, promised, vested and issued quantities. Each row opens the award's own page, with
+**Back to Employee share scheme** and **Recipient details** at the top. Its **Entitlement** card holds the
+chart and the award's actions, followed by **Agreement and vesting schedule**, **Vesting history** (the
+latest three events, with Show all), **Entitlement changes** and **Non-paid issues from this award**, each
+shown only when it has records.
 Choose **Share class**, then the single **Record an employee award** action below its card to open preparation; Cancel or a successful save returns to
 the records. Preparation groups recipient and promised shares above Agreement and Vesting, side by side
 on wide screens and stacked on smaller ones. Preparation, vesting and entitlement-change forms keep Cancel beside their recording
@@ -270,14 +274,14 @@ refreshes. Failed reads retain Try again, and an interrupted submission keeps it
    residential address, which later awards, issues and transfers use. They are not on the register
    of members, or on Shareholders, until shares are issued. Each award shows the recipient's current
    name and address, and Recipient details opens their page.
-2. Choose Record vesting on the award for a company-confirmed event with its shares, date and
+2. Choose Record vesting on the award's page for a company-confirmed event with its shares, date and
    evidence. The quantity is for that event, not a cumulative vested total. Dates are no later than today (UTC), an event cannot predate the agreement, and total
    vesting cannot exceed the remaining unvested entitlement.
 3. When vested shares are available, choose Issue vested shares. Ledger opens Issue shares with
    Non-paid issue chosen. The grant form shows the recipient and available quantity, and is bound to
    the award's class, recipient and retained agreement. Upload the authority document, name the
    approving director and add any required acceptance. Preparing keeps you on Issue shares, with the
-   new issue among the class's records; approve, then choose Record issue. The award lists the
+   new issue among the class's records; approve, then choose Record issue. The award's page lists the
    non-paid issues prepared from it, each with its stage and a link to its record on Ledger.
 4. To reduce or end an entitlement, choose End unissued rights. Enter exactly how many unvested and/or
    vested-but-unissued rights the company ends, its event date, reason and evidence. Zero is allowed

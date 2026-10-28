@@ -240,7 +240,12 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
   const [expanded, setExpanded] = useState(active);
   const id = useId();
   const children = Object.entries(SHAREHOLDER_VIEWS);
-  const routedView = location.pathname === path ? location.hash.slice(1) : '';
+  const routedView =
+    location.pathname === path
+      ? location.hash.slice(1)
+      : destinationAt(location.pathname) === 'companyRegisterAward'
+        ? 'awards'
+        : '';
   const selected = state?.blocked && state.shareholderView ? state.shareholderView : routedView;
   const selectedChild = children.some(([key]) => key === selected);
   const blocked = location.pathname === path && (!state || state.blocked);

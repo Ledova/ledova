@@ -715,6 +715,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [Certificates](../business/member-records.md#certificates)                                                   | `/documents/certificates`; legacy Dashboard `#documents` and `/company/ledger#certificates` or `#documents` redirect with company/class context                              | everyone  |
 | [Ledger, Shareholders, Employee share scheme and company outputs](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#inspection-copies` (legacy `#ledger-exports`), `#company-pack`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                                                   | everyone  |
+| [An employee award's page](../business/issuing-shares.md#employee-awards-and-vesting)                        | `/company/ledger/:uuid/awards/:award?company=`                                                                                                                               | everyone  |
 | [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid`                                                                                                                                                      | everyone  |
 | [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` (company), `/company/team`, `/company/listing`                                                                                     | everyone  |
 | [Company documents](../business/companies.md#company-information-and-documents)                              | `/documents/company`; legacy `/company#documents` redirects with company context                                                                                             | everyone  |
@@ -820,8 +821,11 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   apply. Supporting attachments stay with their person, class or company Settings; member-request
   fulfilment stays under Shareholders. ESS uses the
   shared class-card spacing and shows only the selected class, with one preparation action below its records.
-  Share class selection lives in the page heading's Filters popover and locks while any award editor or recovery is open; all class controllers stay
-  mounted. Preparation replaces that class's record list while preserving its controllers. A section whose
+  Share class selection lives in the page heading's Filters popover and locks while award preparation or its recovery is open; all class controllers stay
+  mounted. Preparation replaces that class's award list while preserving its controllers. Each award row
+  links to `pages/company/ledger/award`, which reads the award, its class register, grants and appointments,
+  hosts `AwardRecord`'s vesting and entitlement-change forms, and publishes its held state through
+  `LedgerNavigation` so `CompanyContextProvider` blocks leaving while an outcome is uncertain. A section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current

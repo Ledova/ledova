@@ -5,10 +5,11 @@ import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { awardsKey } from './shared/useRegisterAwards';
 import { grantsKey } from './shared/useRegisterGrants';
 import { allotmentsKey } from './useRegisterAllotments';
-import { registerHoldersKey } from '@hooks/useRegisterClasses';
+import { registerClassesKey, registerHoldersKey } from '@hooks/useRegisterClasses';
 
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
+  DESTINATIONS,
   REGISTER_AWARD_COPY as COPY,
   REGISTER_GRANT_COPY as GRANT,
   ApiClientProvider,
@@ -25,7 +26,7 @@ import type {
 } from '@ledova/shared';
 import { focusManager, onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { Link, MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   APPOINTMENT,
@@ -38,6 +39,8 @@ import {
 } from '../../../testSupport/company';
 import { ClassAwards } from './ClassAwards';
 import { GrantForm } from './GrantForm';
+import CompanyRegisterAwardPage from './award';
+import { LedgerNavigation, type LedgerNavigationState } from '@components/LedgerNavigation';
 
 import apiClient from '@services/apiClient';
 import CompanyRegisterPage from '.';
@@ -57,6 +60,14 @@ let ends: RegisterAwardEnd[];
 let reversals: RegisterAwardVestingReversal[];
 let mismatchedEndReceipt: boolean;
 let failedRead: 'award' | 'vesting' | 'change' | null;
+let ledgerStates: (LedgerNavigationState | null)[];
+const AWARD_ROW = new RegExp(`^${AWARD_REQUEST.name}`);
+const ledgerNavigation = {
+  state: null,
+  setState: (value: unknown) => {
+    ledgerStates.push(typeof value === 'function' ? null : (value as LedgerNavigationState | null));
+  },
+};
 const submissions = (url: string) =>
   api.post.mock.calls.filter(([endpoint]) => endpoint === url).map(([, body]) => body);
 
@@ -64,26 +75,38 @@ function awardView(onHeldChange?: (token: string, held: boolean) => void, active
   return (
     <QueryClientProvider client={client}>
       <ApiClientProvider client={apiClient}>
-        <MemoryRouter>
-          <ClassAwards
-            owner={OWNER}
-            company={APPOINTMENT.company}
-            register={REGISTER}
-            guard={guard}
-            onHeldChange={onHeldChange}
-            active={active}
-            sourceReady={sourceReady}
-          />
-        </MemoryRouter>
+        <LedgerNavigation.Provider value={ledgerNavigation}>
+          <MemoryRouter initialEntries={['/company/ledger#awards']}>
+            <Routes>
+              <Route
+                path={DESTINATIONS.companyRegister.path}
+                element={
+                  <ClassAwards
+                    owner={OWNER}
+                    company={APPOINTMENT.company}
+                    register={REGISTER}
+                    guard={guard}
+                    onHeldChange={onHeldChange}
+                    active={active}
+                    sourceReady={sourceReady}
+                  />
+                }
+              />
+              <Route path={DESTINATIONS.companyRegisterAward.path} element={<CompanyRegisterAwardPage />} />
+            </Routes>
+          </MemoryRouter>
+        </LedgerNavigation.Provider>
       </ApiClientProvider>
     </QueryClientProvider>
   );
 }
 
-async function expandAward() {
-  const row = await screen.findByRole('button', { name: new RegExp(`Award for.*${AWARD_REQUEST.name}`) });
-  if (row.getAttribute('aria-expanded') !== 'true') fireEvent.click(row);
+async function openAward() {
+  fireEvent.click(await screen.findByRole('link', { name: AWARD_ROW }));
+  await screen.findByRole('heading', { level: 1, name: AWARD_REQUEST.name! });
 }
+
+const awardHeld = () => ledgerStates.filter(Boolean).at(-1)?.held;
 
 function show(onHeldChange?: (token: string, held: boolean) => void) {
   return render(awardView(onHeldChange));
@@ -104,9 +127,27 @@ beforeEach(() => {
   reversals = [];
   mismatchedEndReceipt = false;
   failedRead = null;
+  ledgerStates = [];
+  prepareCompanyClient(client);
   api.save.mockReset();
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/v1/company-authority/appointments/') return { data: { results: appointments, next: null } };
+    if (url === '/api/user-preferences/') return { data: companyPreferences() };
+    if (url === '/api/auth/verify/') return { data: { valid: true } };
+    if (url === URLS.REGISTER)
+      return {
+        data: {
+          results: [
+            { uuid: REGISTER.token.uuid, companyUuid: APPOINTMENT.company, companyName: APPOINTMENT.companyName },
+          ],
+          next: null,
+        },
+      };
+    if (url === URLS.HOLDERS(REGISTER.token.uuid)) return { data: REGISTER };
+    if (awards.some((award) => url === URLS.REGISTER_AWARD(award.uuid))) {
+      if (failedRead === 'award') throw new Error('The recorded award could not be refreshed');
+      return { data: awards.find((award) => url === URLS.REGISTER_AWARD(award.uuid)) };
+    }
     if (url === URLS.REGISTER_AWARDS) {
       if (failedRead === 'award') throw new Error('Recorded awards could not be refreshed');
       return { data: { results: awards, next: null } };
@@ -208,7 +249,7 @@ it('retains original award, vesting and linked issue preparations through interr
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const view = show();
   for (const kind of ['award', 'vesting'] as const) {
-    if (kind === 'vesting') await expandAward();
+    if (kind === 'vesting') await openAward();
     const open = await screen.findByRole('button', { name: kind === 'award' ? COPY.PREPARE : 'Record vesting' });
     await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(open);
@@ -282,6 +323,8 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
   expect(screen.getByRole('img', { name: /0 unvested, 100 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   view.unmount();
+  client.removeQueries({ queryKey: registerClassesKey(OWNER) });
+  client.removeQueries({ queryKey: registerHoldersKey(OWNER) });
   const post = api.post.getMockImplementation()!;
   let retainedGrant: RegisterGrant | null = null;
   let slowReads = false;
@@ -480,15 +523,17 @@ it('retains original award, vesting and linked issue preparations through interr
             },
           ]}
         >
-          <CompanyRegisterPage />
+          <Routes>
+            <Route path={DESTINATIONS.companyRegister.path} element={<CompanyRegisterPage />} />
+            <Route path={DESTINATIONS.companyRegisterAward.path} element={<CompanyRegisterAwardPage />} />
+          </Routes>
           <Link to={`/company/ledger?company=${APPOINTMENT.company}#issue`}>Open issue task</Link>
           <Link to={`/company/ledger?company=${APPOINTMENT.company}#awards`}>Return to ESS</Link>
         </MemoryRouter>
       </ApiClientProvider>
     </QueryClientProvider>,
   );
-  await expandAward();
-  await screen.findByRole('link', { name: 'Issue vested shares' });
+  await screen.findByRole('link', { name: AWARD_ROW });
   await waitFor(() => expect(screen.queryByText('Loading employee awards…')).toBeNull());
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('heading', { name: 'Preference shares · PRF' })).toBeNull();
@@ -507,7 +552,7 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(screen.getAllByRole('button', { name: COPY.PREPARE })).toHaveLength(1);
   await waitFor(() => expect(client.isFetching()).toBe(0));
   fireEvent.change(scopeClass(), { target: { value: REGISTER.token.uuid } });
-  await screen.findByRole('link', { name: 'Issue vested shares' });
+  await screen.findByRole('link', { name: AWARD_ROW });
   const ordinaryClass = screen.getByRole('heading', { name: 'Ordinary shares · ORD' }).closest('li')!;
   fireEvent.click(within(ordinaryClass).getByRole('button', { name: COPY.PREPARE }));
   expect(scopeClass().disabled).toBe(true);
@@ -549,8 +594,9 @@ it('retains original award, vesting and linked issue preparations through interr
       ([url, config]) => url === URLS.REGISTER_AWARDS && config?.params?.token === siblingRegister.token.uuid,
     ),
   ).toHaveLength(beforeOtherClassPoll);
+  await openAward();
   fireEvent.click(await screen.findByRole('link', { name: 'Issue vested shares' }));
-  const issues = within(await screen.findByRole('region', { name: 'Share issue workflow' }));
+  let issues = within(await screen.findByRole('region', { name: 'Share issue workflow' }));
   expect(screen.queryByRole('button', { name: 'Refresh grants' })).toBeNull();
   expect((issues.getByRole('radio', { name: 'Non-paid issue' }) as HTMLInputElement).checked).toBe(true);
   expect(await issues.findByText(AWARD_REQUEST.name!)).toBeTruthy();
@@ -627,8 +673,11 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(awards[0].issuedShares).toBe('0');
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(scopeClass().value).toBe(REGISTER.token.uuid);
-  expect(screen.getByText('Non-paid issues from this award · 1')).toBeTruthy();
-  fireEvent.click(screen.getByRole('link', { name: /^10 shares, prepared/, hidden: true }));
+  fireEvent.click(screen.getByRole('link', { name: 'Return to ESS' }));
+  await openAward();
+  expect(screen.getByRole('heading', { name: 'Non-paid issues from this award' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: /^10 shares, prepared/ }));
+  issues = within(await screen.findByRole('region', { name: 'Share issue workflow' }));
   await waitFor(() => expect(document.activeElement).toBe(awardIssueRecord()));
   expect(screen.queryByRole('button', { name: /^Record issue [(]grant/ })).toBeNull();
   for (const label of ['Approve', 'Record issue']) {
@@ -719,10 +768,6 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(effectCount).toBe(1);
   expect(awards[0].issuedShares).toBe('10');
   expect(awards[0].availableShares).toBe('90');
-  await waitFor(() =>
-    expect(within(screen.getByText('Issued from award').parentElement!).getByText('10 shares')).toBeTruthy(),
-  );
-  expect(within(screen.getByText('Vested, awaiting issue').parentElement!).getByText('90 shares')).toBeTruthy();
   retainedGrant = { ...retainedGrant!, companyEventOn: null };
   allotmentsFailed = true;
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -800,6 +845,12 @@ it('retains original award, vesting and linked issue preparations through interr
   await issues.findByText('Shares issued');
   expect(effectCount).toBe(1);
   expect(within(screen.getByText('Ledger date').parentElement!).getByText(formatDate('2026-10-06'))).toBeTruthy();
+  fireEvent.click(screen.getByRole('link', { name: 'Return to ESS' }));
+  await openAward();
+  await waitFor(() =>
+    expect(within(screen.getByText('Issued from award').parentElement!).getByText('10 shares')).toBeTruthy(),
+  );
+  expect(within(screen.getByText('Vested, awaiting issue').parentElement!).getByText('90 shares')).toBeTruthy();
   preparedView.unmount();
   const beforeClosedPoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
@@ -847,7 +898,7 @@ it('retains original award, vesting and linked issue preparations through interr
   });
   const changes = show();
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
-  await expandAward();
+  await openAward();
   const ending = await screen.findByRole('button', { name: COPY.END });
   await waitFor(() => expect((ending as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(ending);
@@ -909,7 +960,6 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(submissions(URLS.REGISTER_AWARD_ENDS)).toEqual([endRequest]);
   appointments = [APPOINTMENT];
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
-  fireEvent.click(screen.getByText(/Recorded vesting history/));
   const correct = await screen.findByRole('button', { name: new RegExp(`^${COPY.REVERSE}`) });
   await waitFor(() => expect((correct as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(correct);
@@ -948,7 +998,7 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   awards = [awardFrom(AWARD_REQUEST)];
   const held = vi.fn();
   let view = show(held);
-  await expandAward();
+  await screen.findByRole('link', { name: AWARD_ROW });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('button', { name: 'Refresh awards' })).toBeNull();
   const firstRead = api.get.mock.calls.length;
@@ -964,7 +1014,7 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
   expect(api.get.mock.calls).toHaveLength(firstRead);
-  expect(screen.getByRole('heading', { name: AWARD_REQUEST.name! })).toBeTruthy();
+  expect(screen.getByRole('link', { name: AWARD_ROW })).toBeTruthy();
   view.rerender(awardView(held, false));
   view.rerender(awardView(held));
   await waitFor(() => expect(api.get.mock.calls.length).toBeGreaterThan(firstRead));
@@ -1005,21 +1055,18 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
     view.unmount();
     view = render(awardView(held, false));
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    await expandAward();
-    await waitFor(() =>
-      expect((screen.getByRole('button', { name: 'Record vesting' }) as HTMLButtonElement).disabled).toBe(false),
-    );
+    await screen.findByRole('link', { name: AWARD_ROW });
   }
   const beforeRevokedRead = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS).length;
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true }));
-  await waitFor(() => expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('link', { name: AWARD_ROW })).toBeNull());
   expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS)).toHaveLength(beforeRevokedRead);
   appointments = [APPOINTMENT];
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER), exact: true }));
   view.rerender(awardView(held));
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  await expandAward();
+  await openAward();
   const open = await screen.findByRole('button', { name: 'Record vesting' });
   await waitFor(() => expect((open as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(open);
@@ -1058,7 +1105,7 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   fireEvent.click(screen.getByRole('button', { name: 'Record vesting' }));
   await screen.findByRole('alert');
   const original = submissions(URLS.REGISTER_AWARD_VESTINGS)[0];
-  expect(held).toHaveBeenLastCalledWith(REGISTER.token.uuid, true);
+  expect(awardHeld()).toBe(true);
   const beforeHeldRead = api.get.mock.calls.length;
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
   expect(api.get.mock.calls).toHaveLength(beforeHeldRead);
@@ -1071,20 +1118,21 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   api.get.mockImplementation(async (url, config) =>
     url === URLS.REGISTER_AWARD_FILE(awards[0].uuid) ? download : get(url, config),
   );
-  fireEvent.click(screen.getByText('Agreement and vesting schedule'));
   fireEvent.click(screen.getByRole('button', { name: /^Download agreement/ }));
   await waitFor(() =>
     expect(api.get.mock.calls.some(([url]) => url === URLS.REGISTER_AWARD_FILE(awards[0].uuid))).toBe(true),
   );
   failedRead = 'award';
-  await act(async () => client.refetchQueries({ queryKey: awardsKey(OWNER, REGISTER.token.uuid), exact: true }));
-  await screen.findByText(/Employee awards could not be loaded/);
+  await act(async () =>
+    client.refetchQueries({ queryKey: [...awardsKey(OWNER, REGISTER.token.uuid), awards[0].uuid], exact: true }),
+  );
+  await screen.findByText(/This employee award could not be loaded/);
   expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull();
   await act(async () => receiveFile({ data: new Blob(['private agreement'], { type: 'application/pdf' }) }));
   expect(api.save).not.toHaveBeenCalled();
   failedRead = null;
   fireEvent.click(
-    screen.getByRole('button', { name: 'Try again', description: /Employee awards could not be loaded/ }),
+    screen.getByRole('button', { name: 'Try again', description: /This employee award could not be loaded/ }),
   );
   await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
@@ -1097,7 +1145,7 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   expect(document.body.textContent).not.toContain(AWARD_REQUEST.name!);
   expect(screen.queryByRole('button', { name: new RegExp(AWARD_REQUEST.name!) })).toBeNull();
   expect((screen.getByRole('button', { name: 'Cancel (vesting recovery)' }) as HTMLButtonElement).disabled).toBe(true);
-  expect(held).toHaveBeenLastCalledWith(REGISTER.token.uuid, true);
+  expect(awardHeld()).toBe(true);
   appointments = [{ ...APPOINTMENT, capabilities: ['read_register'] }];
   await client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) });
   await screen.findByRole('heading', { name: AWARD_REQUEST.name! });
@@ -1112,6 +1160,6 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   );
   expect(submissions(URLS.REGISTER_AWARD_VESTINGS)).toEqual([original]);
   expect(submissions(URLS.REGISTER_EVIDENCE)).toHaveLength(1);
-  expect(held).toHaveBeenLastCalledWith(REGISTER.token.uuid, false);
+  expect(awardHeld()).toBe(false);
   expect(api.get.mock.calls.some(([url]) => url === URLS.REGISTER_AWARD_VESTING(original.operationId))).toBe(true);
 });
