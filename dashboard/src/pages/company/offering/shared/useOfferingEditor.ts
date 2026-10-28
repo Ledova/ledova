@@ -18,6 +18,7 @@ export function useOfferingEditor({
   companyRead,
   data,
   onClose,
+  onCreated,
 }: {
   uuid?: string;
   targetCompany: string;
@@ -25,6 +26,7 @@ export function useOfferingEditor({
   companyRead: CompanyActionRead;
   data: ReturnType<typeof useOfferings>;
   onClose: () => void;
+  onCreated?: (uuid: string) => void;
 }) {
   const detail = useCompanyOffering(uuid, targetCompany, companyRead);
   const client = useQueryClient();
@@ -81,11 +83,12 @@ export function useOfferingEditor({
     onSettled: () => {
       pendingRef.current = false;
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       guard();
       await data.refresh();
       guard();
       onClose();
+      if (!uuid) onCreated?.(result.data.uuid);
     },
   });
   const refetch = async () => {

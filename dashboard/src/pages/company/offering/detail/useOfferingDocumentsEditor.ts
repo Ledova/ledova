@@ -9,7 +9,11 @@ import { type CompanyActionRead } from '@components/CompanyState';
 import apiClient from '@services/apiClient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { companyOfferingDetailKey, useCompanyOffering, type useOfferings } from './useOffering';
+import {
+  companyOfferingDetailKey,
+  useCompanyOffering,
+  type useOfferings,
+} from '@pages/company/offering/shared/useOffering';
 
 export function useOfferingDocumentsEditor({
   uuid,

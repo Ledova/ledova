@@ -91,10 +91,10 @@ export function useCompanyOfferings({ companyRead }: { companyRead: ReturnType<t
     !!company && !companyRead.error && !companyRead.isRefreshing && !data.error && !data.isRefreshing && !busy;
   const run = async (action: 'submit' | 'withdraw' | 'remove', uuid: string) => {
     const offering = data.offerings.find((row) => row.uuid === uuid);
-    if (!ready || !offering || actionPending.current) return;
-    if (action === 'submit' && !offering.canBeEdited) return;
-    if (action === 'remove' && !offering.canBeDeleted) return;
-    if (action === 'withdraw' && !OFFERING_WITHDRAWABLE_STATUSES.includes(offering.status)) return;
+    if (!ready || !offering || actionPending.current) return false;
+    if (action === 'submit' && !offering.canBeEdited) return false;
+    if (action === 'remove' && !offering.canBeDeleted) return false;
+    if (action === 'withdraw' && !OFFERING_WITHDRAWABLE_STATUSES.includes(offering.status)) return false;
     setActionError(null);
     setNotice('');
     actionPending.current = true;
@@ -109,11 +109,13 @@ export function useCompanyOfferings({ companyRead }: { companyRead: ReturnType<t
             ? `The ${offering.tokenName} offering was withdrawn.`
             : `The ${offering.tokenName} draft offering was deleted.`,
       );
+      return true;
     } catch (error) {
       setActionError({
         listing: false,
         message: apiErrorSentence(error, 'The request could not be completed. Try again.'),
       });
+      return false;
     } finally {
       actionPending.current = false;
     }

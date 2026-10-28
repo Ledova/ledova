@@ -12,6 +12,7 @@ export function OfferingEditor({
   companyRead,
   data,
   onClose,
+  onCreated,
 }: {
   uuid?: string;
   targetCompany: string;
@@ -19,6 +20,7 @@ export function OfferingEditor({
   companyRead: CompanyActionRead;
   data: ReturnType<typeof useOfferings>;
   onClose: () => void;
+  onCreated?: (uuid: string) => void;
 }) {
   const { detail, pendingRef, belongs, editable, blocked, request, refetch } = useOfferingEditor({
     uuid,
@@ -27,6 +29,7 @@ export function OfferingEditor({
     companyRead,
     data,
     onClose,
+    onCreated,
   });
   return (
     <Modal isOpen title={uuid ? 'Edit offering' : 'New offering'} size="xl" busy={request.isPending} onClose={onClose}>
