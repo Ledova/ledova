@@ -1,5 +1,6 @@
 import { useMemo, useRef, useEffect } from 'react';
 import { generatePath, Link } from 'react-router-dom';
+import { BuildingsIcon } from '@phosphor-icons/react';
 import {
   DESTINATIONS,
   formatShareCount,
@@ -12,6 +13,8 @@ import { Page, PageAction } from '@components/Page';
 import { LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
 import { ListSearch, Pager } from '@components/List';
 import { CompanyPicker } from '@components/CompanyPicker';
+import { FilterPopover } from '@components/FilterPopover';
+import { ICON_MD } from '@components/iconSizes';
 import { OwnershipMetrics } from './OwnershipMetrics';
 import { ownershipColor } from './ownershipColors';
 import { useCompanyContext } from '@hooks/useCompanyContext';
@@ -95,22 +98,22 @@ function SignedInOwnership({
   const selected = ownership.list.filters.class;
   const selectedClass = view?.classes.find(({ uuid }) => uuid === selected);
   const details = useRef<HTMLHeadingElement>(null);
-  const previous = useRef(selected);
+  const previous = useRef({ companyUuid, selected });
   useEffect(() => {
-    if (previous.current === selected) return;
     const returned = previous.current;
-    previous.current = selected;
+    previous.current = { companyUuid, selected };
+    if (returned.companyUuid !== companyUuid || returned.selected === selected) return;
     if (selected) details.current?.focus();
     else {
       const rows = Array.from(document.querySelectorAll<HTMLButtonElement>('button[data-class-uuid]'));
       const target =
-        rows.find((row) => row.dataset.classUuid === returned) ??
+        rows.find((row) => row.dataset.classUuid === returned.selected) ??
         document.querySelector<HTMLInputElement>('input[type="search"][aria-label="Search share classes"]') ??
         document.querySelector<HTMLInputElement>('label + div input[type="search"]') ??
         rows[0];
       target?.focus();
     }
-  }, [selected, ready]);
+  }, [companyUuid, selected, ready]);
   const failed =
     directory?.hasError ||
     memberInvalid ||
@@ -123,7 +126,36 @@ function SignedInOwnership({
       ...(memberSummary ? [member.refetch()] : []),
     ]);
   return (
-    <Page lede="Explore your companies and their share ownership.">
+    <Page
+      lede="Explore your companies and their share ownership."
+      actions={
+        current &&
+        directory.companies.length > 1 && (
+          <FilterPopover label="Switch company" icon={<BuildingsIcon size={ICON_MD} aria-hidden="true" />}>
+            {(close) => (
+              <CompanyPicker
+                label="Your companies"
+                labelHidden
+                companies={directory.companies.map((item) => ({
+                  uuid: item.uuid,
+                  name: item.name,
+                  detail: [
+                    item.canManage ? 'Company administrator' : item.canReadRegister ? 'Company access' : null,
+                    item.memberUuids.length ? 'Member' : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · '),
+                }))}
+                value={company?.uuid ?? ''}
+                onChange={(uuid) => {
+                  if (context?.selectCompany(uuid)) close();
+                }}
+              />
+            )}
+          </FilterPopover>
+        )
+      }
+    >
       {!directory || directory.hasError ? (
         <LoadError retry={retry} busy={directory?.isRefreshing}>
           Your ownership records could not be loaded.
@@ -139,36 +171,15 @@ function SignedInOwnership({
         </Section>
       ) : (
         <>
-          {(directory.companies.length > 1 || !company || !!selected) && (
+          {selected && (
             <nav aria-label="Ownership trail" className="flex min-w-0 flex-wrap items-end gap-3 text-sm">
-              {directory.companies.length > 1 || !company ? (
-                <div className="w-full max-w-sm">
-                  <CompanyPicker
-                    label="Your companies"
-                    labelHidden
-                    companies={directory.companies.map((item) => ({
-                      uuid: item.uuid,
-                      name: item.name,
-                      detail: [
-                        item.canManage ? 'Company administrator' : item.canReadRegister ? 'Company access' : null,
-                        item.memberUuids.length ? 'Member' : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · '),
-                    }))}
-                    value={company?.uuid ?? ''}
-                    onChange={(uuid) => context?.selectCompany(uuid)}
-                  />
-                </div>
-              ) : selected ? (
-                <button
-                  type="button"
-                  onClick={() => ownership.select(null)}
-                  className="max-w-full break-words text-text-muted hover:text-text-primary"
-                >
-                  Company ownership
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => ownership.select(null)}
+                className="max-w-full break-words text-text-muted hover:text-text-primary"
+              >
+                Company ownership
+              </button>
               {selectedClass && (
                 <span className="flex min-w-0 max-w-full items-center gap-3 py-3 font-medium">
                   <span aria-hidden className="shrink-0 text-text-muted">
@@ -187,6 +198,12 @@ function SignedInOwnership({
                     ? 'This company is no longer available to your account.'
                     : 'Choose a company to explore its shares and your position.'}
                 </p>
+                {directory.companies.length === 1 && (
+                  <PageAction
+                    label="Open your company"
+                    onClick={() => context?.selectCompany(directory.companies[0]!.uuid)}
+                  />
+                )}
               </Section>
             ) : failed ? (
               <LoadError retry={retry} busy={directory.isRefreshing}>

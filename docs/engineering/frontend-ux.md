@@ -645,13 +645,18 @@ name and pressing Enter), a transfer and member invitations.
 
 ## Choosing a company
 
-On web, Dashboard is the only place to change company context. Its `CompanyPicker`
-(`dashboard/src/components/CompanyPicker.tsx`) uses the same searchable list as
-[choosing a person](#choosing-a-person), showing company names and useful muted details, never
-internal identifiers. The selected name and dropdown affordance identify the control; its label
-remains accessible but visually hidden.
+On web, Dashboard is the only place to change company context. With several companies, a company
+icon named and titled **Switch company** opens the compact popover in the page heading's top-right
+actions. Inside it, `CompanyPicker` (`dashboard/src/components/CompanyPicker.tsx`) uses the same
+searchable list as [choosing a person](#choosing-a-person), showing company names and useful muted
+details, never internal identifiers. Its label remains accessible but visually hidden. An accepted
+switch request closes the panel and returns focus to its icon; the existing form confirmation and
+held-work guards still decide navigation. Company selection has no separate row above the ownership
+view; class exploration keeps its breadcrumb.
 
-A single company opens directly. Other company-related pages inherit the selection through their
+A single company opens directly and hides the switcher. If an explicit address names an unavailable
+company, Dashboard offers **Open your company** when only one company remains, without silently
+replacing the address's scope. Other company-related pages inherit the selection through their
 address and task links; the sidebar footer identifies it without another company picker or passive
 page label. With several
 companies and no selection, or an unavailable selected company, `CompanyContextNotice`

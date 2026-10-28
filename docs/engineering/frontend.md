@@ -730,7 +730,11 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 ### Page mechanics
 
 - Dashboard: `dashboard/src/pages/home/OwnershipBrowser.tsx` combines current company relationships,
-  opening a single company directly or choosing through `CompanyPicker` in the top ownership trail.
+  opening a single company directly or choosing through `CompanyPicker` inside the page heading's
+  top-right **Switch company** popover. It reuses `FilterPopover` with a company icon and label;
+  the shared presentation owns no company state. The switcher hides for single-company accounts.
+  An unavailable explicit company address keeps its refusal and offers **Open your company** when
+  only one company remains. Selection still uses `CompanyContextProvider` and its navigation guards.
   Company and class context belong in the address, so browser Back/Forward and task links retain the
   selected scope.
   `dashboard/src/pages/home/useCompanyOwnership.ts` owns company aggregates and sequence-bound
