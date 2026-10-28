@@ -53,7 +53,7 @@ function PauseRecord({
   onHeldChange,
 }: {
   record: RegisterPauseChange;
-  chain: string | undefined;
+  chain: string | null | undefined;
   classLabel: string;
   commands: Commands;
   onHeldChange: (uuid: string, held: boolean) => void;

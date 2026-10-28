@@ -1,7 +1,7 @@
 import { getBlockExplorerTxUrl } from '@ledova/shared';
 import { Row } from '@components/Ledger';
 
-export function TransactionRow({ chain, hash }: { chain: string | undefined; hash: string }) {
+export function TransactionRow({ chain, hash }: { chain: string | null | undefined; hash: string }) {
   const url = chain ? getBlockExplorerTxUrl(chain, hash) : '';
   return (
     <Row label="Transaction">
