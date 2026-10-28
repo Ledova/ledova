@@ -51,7 +51,6 @@ function ContextActions() {
       <button onClick={() => context?.selectCompany('company-b')}>Change company on Dashboard</button>
       <button onClick={() => ledger.setState({ company: 'company-a', blocked: true, held: true })}>Hold action</button>
       <button onClick={() => ledger.setState({ company: 'company-a', blocked: false })}>Release action</button>
-      <button onClick={() => void navigate({ search: '', hash: location.hash })}>Clear company in address</button>
       <button onClick={() => void navigate(-1)}>Browser Back</button>
       <button onClick={() => void navigate(1)}>Browser Forward</button>
       <Link to={context?.companyPath('/company/ledger?company=company-b') ?? '/company/ledger?company=company-b'}>
@@ -187,7 +186,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     expect(await screen.findByText('Unified overview')).toBeTruthy();
     await waitFor(() => expect(client.isFetching()).toBe(0));
     expect(screen.queryByRole('combobox', { name: 'Workspace' })).toBeNull();
-    expect(screen.getByLabelText('Selected company').textContent).toBe('No company selected');
+    expect(screen.getByLabelText('Selected company').textContent).toBe('Company A');
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
     const ledgerLink = await screen.findByRole('link', { name: 'Ledger' });
     expect(ledgerLink.getAttribute('href')).toBe('/company/ledger?company=company-a');
@@ -217,7 +216,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
       target: { value: 'Unfinished draft' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Clear company in address' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Explicit company record' }));
     expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByLabelText('Company address').textContent).toBe('/company/ledger?company=company-a');

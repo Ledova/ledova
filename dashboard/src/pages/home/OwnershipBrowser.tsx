@@ -193,11 +193,9 @@ function SignedInOwnership({
           )}
           <div className="flex min-w-0 flex-col gap-5">
             {!company ? (
-              <Section title={companyUuid ? 'Company unavailable' : 'Ownership overview'}>
-                <p role={companyUuid ? 'alert' : undefined} className="text-sm text-text-muted">
-                  {companyUuid
-                    ? 'This company is no longer available to your account.'
-                    : 'Choose a company to explore its shares and your position.'}
+              <Section title="Company unavailable">
+                <p role="alert" className="text-sm text-text-muted">
+                  This company is no longer available to your account.
                 </p>
                 {directory.companies.length === 1 && (
                   <PageAction
