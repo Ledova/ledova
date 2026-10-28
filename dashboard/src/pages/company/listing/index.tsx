@@ -25,6 +25,7 @@ export default function ListingPage() {
 }
 
 function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelection> }) {
+  const context = useCompanyContext();
   const action = useCompanyActivation(read, () => crypto.randomUUID());
   const { company } = read;
   const opener = useRef<HTMLButtonElement>(null);
@@ -108,17 +109,18 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                 </FormActions>
               )}
             </Section>
-            {(action.identityRequired || awaitsActivation(company)) && (
-              <Section title="Your identity">
-                <p className="text-sm text-text-muted">
-                  {action.identityRequired
-                    ? 'Activation needs your identity verification. Complete it in your own profile, then try activation again.'
-                    : 'Use your own profile to complete the configured identity verification before activation.'}
-                </p>
-                <LinkRow to={DESTINATIONS.userProfile.path} label={DESTINATIONS.userProfile.title} />
-              </Section>
-            )}
           </>
+        )}
+        {(!company || awaitsActivation(company)) && (
+          <Section title="Your identity">
+            <p className="text-sm text-text-muted">
+              Use your own profile to complete the configured identity verification before activation.
+            </p>
+            <LinkRow
+              to={context?.companyPath(DESTINATIONS.userProfile.path) ?? DESTINATIONS.userProfile.path}
+              label={DESTINATIONS.userProfile.title}
+            />
+          </Section>
         )}
       </div>
       {action.preview && <ActivationConfirmation action={action} />}

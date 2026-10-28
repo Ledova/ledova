@@ -39,8 +39,8 @@ The remaining offering, publication, directory, application, wallet, activity an
 use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
 keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
-and the shared card heading and padding. The register pages (Ledger, Shareholders, ESS, Certificates
-and the register tasks) list share classes in the order they were created, oldest first, in their
+and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
+ESS, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
 cards, columns, class choices and default class (owner, 28 October 2026). Dashboard ranks its class
 list by issued shares, and Offerings keeps its own order. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The selected company uses one

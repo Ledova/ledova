@@ -633,14 +633,15 @@ function OwnRegister({
         </>
       )}
       {scope && (
-        <ul hidden={includeEmptyCompanies || reviewingParticulars} className="space-y-6">
+        <ul hidden={includeEmptyCompanies || reviewingParticulars} className="flex flex-col gap-6">
           {scope.registers.map((register) => (
             <li
               key={register.token.uuid}
               hidden={
                 ((view === 'awards' || view === 'documents') && selectedToken !== register.token.uuid) ||
                 documents === 'company-pack' ||
-                (view === 'documents' && !!documentTask && documentTask !== `inspection/${register.token.uuid}`)
+                (view === 'documents' && !!documentTask && documentTask !== `inspection/${register.token.uuid}`) ||
+                (view === 'register' && (!selectedTask || selectedToken !== register.token.uuid))
               }
               tabIndex={-1}
               className="scroll-mt-6"
@@ -649,11 +650,7 @@ function OwnRegister({
                 else classSections.current.delete(register.token.uuid);
               }}
             >
-              <section
-                data-register-tasks
-                hidden={view === 'register' && (!selectedTask || selectedToken !== register.token.uuid)}
-                className="space-y-5"
-              >
+              <section className="flex flex-col gap-5">
                 <h2
                   hidden={
                     view === 'awards' ||
@@ -668,7 +665,7 @@ function OwnRegister({
                 >
                   {sourceReady ? `${register.token.name} · ${register.token.symbol}` : 'Ledger task recovery'}
                 </h2>
-                <div className="space-y-5">
+                <div className="flex flex-col gap-5">
                   <div hidden={view !== 'register' || selectedTask !== 'issue'}>
                     <ClassIssues
                       key={`issues/${scope.company.uuid}/${register.token.uuid}`}
