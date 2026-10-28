@@ -80,7 +80,12 @@ function MemberState({
     draft.open,
   ]);
   useEffect(() => {
-    if (certificates && read.record && !held) {
+    if (!certificates) {
+      if (!initialHistory.current || held) return;
+      initialHistory.current = '';
+      setToken('');
+      read.selectToken('');
+    } else if (read.record && !held) {
       const item = requestedClass
         ? read.record.classes.find((item) => item.uuid === requestedClass)
         : (read.record.classes.find((item) => item.uuid === token) ?? read.record.classes[0]);
