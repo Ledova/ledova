@@ -19,7 +19,7 @@ import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RecordShell, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { useDeploymentFlow } from './useDeploymentFlow';
-import { TransactionRow } from './TransactionRow';
+import { TransactionRow } from '@pages/company/ledger/shared/TransactionRow';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 function DeploymentRows({ snapshot }: { snapshot: RegisterDeploymentSnapshot }) {

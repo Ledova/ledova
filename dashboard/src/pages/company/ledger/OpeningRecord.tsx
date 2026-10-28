@@ -1,3 +1,4 @@
+import { useId, useState } from 'react';
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
@@ -10,7 +11,7 @@ import {
   shareCount,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows, Disclosure } from '@components/Ledger';
+import { MoreToggle, Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
@@ -47,6 +48,8 @@ export function OpeningRecord({
   const holdings = summary ? largestHoldingsFirst(summary.holdings) : [];
   const labels = openingMemberLabels(holdings);
   const context = `opening prepared ${formatDateTime(proposal.createdAt)}`;
+  const [showHoldings, setShowHoldings] = useState(proposal.status === 'submitted');
+  const holdingsId = useId();
   const downloadAction = (
     <PageAction
       label={COPY.DOWNLOAD}
@@ -59,41 +62,45 @@ export function OpeningRecord({
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
-        <Disclosure
-          summary={`Chain opening · ${formatDateTime(proposal.createdAt)} · ${COPY.STAGES[proposal.stage] ?? proposal.stage}`}
-          defaultOpen={proposal.status === 'submitted'}
-        >
+        <>
+          <h4 className="text-sm font-medium text-text-primary">Chain opening</h4>
           <Rows>
             <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
             {proposal.preparedByName !== null && (
               <Row label="Prepared by">{proposal.preparedByName || 'Not provided'}</Row>
             )}
             <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
-            <Row label={COPY.BOUNDARY}>
-              {summary ? COPY.BOUNDARY_BLOCK(summary.blockNumber, formatDate(summary.date)) : 'Not captured'}
-            </Row>
+            <Row label={COPY.HOLDINGS_READ_ON}>{summary ? formatDate(summary.date) : 'Not captured'}</Row>
           </Rows>
           {summary && (
             <div className="flex flex-col gap-1">
-              <p className="text-sm text-text-muted">{COPY.HOLDINGS}</p>
               {holdings.length === 0 ? (
                 <p className="text-sm text-text-primary">{COPY.NO_HOLDINGS}</p>
               ) : (
-                <ul className="divide-y divide-border-subtle">
-                  {holdings.map((holding) => (
-                    <li key={holding.address} className="flex flex-col gap-1 py-2">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="min-w-0 break-words text-sm text-text-primary">
-                          {(holding.member !== null && labels.get(holding.member)) || COPY.NEW_MEMBER}
-                        </span>
-                        <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
-                          {shareCount(holding.shares)}
-                        </span>
-                      </div>
-                      <span className="break-all text-xs text-text-muted">{holding.address}</span>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <MoreToggle
+                    open={showHoldings}
+                    controls={holdingsId}
+                    onToggle={() => setShowHoldings((shown) => !shown)}
+                  >
+                    {showHoldings ? 'Hide the holdings' : `Show the holdings (${holdings.length})`}
+                  </MoreToggle>
+                  <ul id={holdingsId} hidden={!showHoldings} className="divide-y divide-border-subtle">
+                    {holdings.map((holding) => (
+                      <li key={holding.address} className="flex flex-col gap-1 py-2">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                          <span className="min-w-0 break-words text-sm text-text-primary">
+                            {(holding.member !== null && labels.get(holding.member)) || COPY.NEW_MEMBER}
+                          </span>
+                          <span className="ml-auto break-all text-right text-sm tabular-nums text-text-primary">
+                            {shareCount(holding.shares)}
+                          </span>
+                        </div>
+                        <span className="break-all text-xs text-text-muted">{holding.address}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               )}
             </div>
           )}
@@ -107,7 +114,7 @@ export function OpeningRecord({
           <p className="text-sm text-text-muted">
             {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
           </p>
-        </Disclosure>
+        </>
       )}
       <FormActions>
         {downloadAction}

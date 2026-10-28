@@ -1,3 +1,4 @@
+import { useId, useState } from 'react';
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
@@ -11,7 +12,7 @@ import {
   type RegisterImport,
   type RegisterImportDecisionPreview,
 } from '@ledova/shared';
-import { Row, Rows, Disclosure } from '@components/Ledger';
+import { MoreToggle, Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -85,6 +86,8 @@ export function ImportRecord({
   const check = useRegisterTaskGuard(visible, guard);
   const download = useImportRecordDownload(proposal, check);
   const totals = registerImportTotals(proposal.members);
+  const [showMembers, setShowMembers] = useState(proposal.status === 'submitted');
+  const membersId = useId();
   const downloadActions = (
     <>
       {(proposal.registerEvidence || proposal.sourceDocument) && (
@@ -110,10 +113,10 @@ export function ImportRecord({
   return (
     <RecordShell hidden={!visible}>
       {visible && (
-        <Disclosure
-          summary={`${proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'} · ${formatDate(proposal.asAt)} · ${REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}`}
-          defaultOpen={proposal.status === 'submitted'}
-        >
+        <>
+          <h4 className="text-sm font-medium text-text-primary">
+            {proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'}
+          </h4>
           <Rows>
             <RecordStage stage={proposal.stage}>
               {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
@@ -147,8 +150,13 @@ export function ImportRecord({
           <p className="text-sm text-text-primary">
             {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
           </p>
-          <MemberRecords members={proposal.members} />
-        </Disclosure>
+          <MoreToggle open={showMembers} controls={membersId} onToggle={() => setShowMembers((shown) => !shown)}>
+            {showMembers ? 'Hide the shareholders' : `Show the shareholders (${totals.count})`}
+          </MoreToggle>
+          <div id={membersId} hidden={!showMembers}>
+            <MemberRecords members={proposal.members} />
+          </div>
+        </>
       )}
       <FormActions>
         {downloadActions}

@@ -25,6 +25,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 import { reconciliationKey, useLatestReconciliation } from './useLatestReconciliation';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { registerInclusionMessage } from './shared/inclusionMessage';
+import { TransactionRow } from './shared/TransactionRow';
 
 type Holders = TokenHoldersResponse['holders'];
 type Field = keyof typeof REGISTER_RECONCILIATION_COPY.FIELDS;
@@ -37,24 +38,33 @@ const CHANGED = 'The reconciliation or your appointment changed or could not be 
 
 function fieldValue(row: RegisterDiscrepancy, field: Field, holders: Holders) {
   const value = String(row[field]);
-  if (field === 'member') return holders.find((holder) => holder.member === value)?.name || shortReference(value);
-  if (field === 'source') return shortReference(value);
+  if (field === 'member')
+    return holders.find((holder) => holder.member === value)?.name || `Member ${shortReference(value)}`;
   if (field === 'detail') return registerInclusionMessage(value);
   return field === 'chain' || field === 'expected' ? formatShareCount(value) : value;
 }
 
-function Discrepancy({ row, holders }: { row: RegisterDiscrepancy; holders: Holders }) {
+function Discrepancy({
+  row,
+  holders,
+  chain,
+}: {
+  row: RegisterDiscrepancy;
+  holders: Holders;
+  chain: string | null | undefined;
+}) {
   const fields = FIELDS.filter((field) => row[field] !== undefined);
   return (
     <>
       <p className="text-sm text-text-primary">{COPY.KINDS[row.kind] ?? row.kind}</p>
-      {fields.length > 0 && (
+      {(fields.length > 0 || !!row.transaction) && (
         <Rows>
           {fields.map((field) => (
             <Row key={field} label={COPY.FIELDS[field]}>
               <span className="break-all">{fieldValue(row, field, holders)}</span>
             </Row>
           ))}
+          {row.transaction && <TransactionRow chain={chain} hash={row.transaction} />}
         </Rows>
       )}
     </>
@@ -65,6 +75,7 @@ export function ClassReconciliation({
   owner,
   guard,
   token,
+  chain,
   company,
   holders,
   status,
@@ -74,6 +85,7 @@ export function ClassReconciliation({
   owner: OrderSubmissionOwner;
   guard: () => void;
   token: string;
+  chain?: string | null;
   company: string;
   holders: Holders;
   status: TokenHoldersResponse['token']['status'];
@@ -176,8 +188,6 @@ export function ClassReconciliation({
             <Row label="Status">
               <Status tone={TONES[record.status] ?? 'waiting'}>{COPY.STATUSES[record.status] ?? record.status}</Status>
             </Row>
-            <Row label={COPY.FIELDS.block}>{record.blockNumber ?? 'Not recorded'}</Row>
-            <Row label="Register sequence compared">{record.registerSequence ?? 'Not recorded'}</Row>
             <Row label="Reconciled on">{formatDateTime(record.createdAt)}</Row>
           </Rows>
           {record.status === 'failed' && (
@@ -190,7 +200,7 @@ export function ClassReconciliation({
             <ul className="divide-y divide-border-subtle">
               {record.discrepancies.map((item, index) => (
                 <li key={index} className="flex flex-col gap-2 py-4">
-                  <Discrepancy row={item} holders={holders} />
+                  <Discrepancy row={item} holders={holders} chain={chain} />
                   {item.acknowledgement && (
                     <>
                       <Rows>
@@ -241,7 +251,7 @@ export function ClassReconciliation({
           {privateReady ? (
             <div className="flex flex-col gap-3">
               <ErrorSummary {...checks.summary} />
-              {row && <Discrepancy row={row} holders={holders} />}
+              {row && <Discrepancy row={row} holders={holders} chain={chain} />}
               <p className="text-sm text-text-muted">{COPY.ACKNOWLEDGEMENT_NOTE}</p>
               <Field {...checks.field('reason')} label={COPY.ACKNOWLEDGE_REASON}>
                 <TextArea

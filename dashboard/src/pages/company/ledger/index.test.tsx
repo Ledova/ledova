@@ -32,7 +32,6 @@ import {
   type ClassRightsRequest,
   type RegisterMemberDocument,
   type RegisterMemberDocumentRequest,
-  shortReference,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
@@ -1115,6 +1114,12 @@ it('reads every class page and groups exact holdings by member identity with sea
     `The completed transfer ${transfer} is not in the captured boundary's canonical history at block 20, ` +
       'so this boundary does not represent it. Prepare a fresh opening.',
   ];
+  const plainDetails = [
+    "A completed issue has no confirmed final inclusion on chain, so an opening can't include or exclude it until it is attributed.",
+    "A completed transfer has no confirmed final inclusion on chain, so an opening can't include or exclude it until it is attributed.",
+    "A completed issue was included on chain after these holdings were read, so this opening doesn't show it. Prepare a fresh opening.",
+    "A completed transfer isn't in the chain's history where these holdings were read, so this opening doesn't show it. Prepare a fresh opening.",
+  ];
   const unrelatedDetail = `The completed issue ${issue} needs another review. Transaction ${transaction}.`;
   const retainedReconciliation = {
     uuid: 'retained-reconciliation',
@@ -1156,10 +1161,8 @@ it('reads every class page and groups exact holdings by member identity with sea
       status="deployed"
     />,
   );
-  for (const detail of knownDetails) {
-    expect(
-      await screen.findByText(detail.replace(issue, shortReference(issue)).replace(transfer, shortReference(transfer))),
-    ).toBeTruthy();
+  for (const [index, detail] of knownDetails.entries()) {
+    expect(await screen.findByText(plainDetails[index])).toBeTruthy();
     expect(screen.queryByText(detail)).toBeNull();
   }
   expect(screen.getByText(unrelatedDetail)).toBeTruthy();
@@ -2340,7 +2343,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
-  const copiedSummary = await screen.findByRole('button', { name: /^Copied opening ·/ });
+  const copiedSummary = await screen.findByRole('button', { name: /^Show the shareholders/ });
   expect(copiedSummary.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(copiedSummary);
   expect(copiedSummary.getAttribute('aria-expanded')).toBe('true');

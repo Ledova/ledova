@@ -43,7 +43,7 @@ import {
   type EvidenceKind,
 } from './useCompanyIssueFlow';
 import { PreparationSlot } from './PreparationSlot';
-import { TransactionRow } from './TransactionRow';
+import { TransactionRow } from '@pages/company/ledger/shared/TransactionRow';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 const stages: Record<string, string> = COPY.STAGES;
