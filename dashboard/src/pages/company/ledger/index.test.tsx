@@ -281,11 +281,11 @@ it('reads every class page and groups exact holdings by member identity with sea
   );
   const table = await screen.findByRole('table', { name: 'Company shareholders' });
   expect(api.get).toHaveBeenCalledWith(REGISTER, {
-    params: { page: 1 },
+    params: { page: 1, ordering: 'created_at' },
     ledovaSubmissionGuard: expect.any(Function),
   });
   expect(api.get).toHaveBeenCalledWith(REGISTER, {
-    params: { page: 2 },
+    params: { page: 2, ordering: 'created_at' },
     ledovaSubmissionGuard: expect.any(Function),
   });
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
