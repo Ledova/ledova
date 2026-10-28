@@ -40,7 +40,7 @@ export function AppointmentRecord({
         }
       >
         <Rows>
-          <Row label="Company">{companyName}</Row>
+          {!teamRecord && <Row label="Company">{companyName}</Row>}
           {teamRecord && 'email' in appointment && (
             <>
               <Row label="Name">{appointment.name || 'Not provided'}</Row>

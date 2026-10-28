@@ -26,6 +26,7 @@ import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components
 import { Field, TextInput } from '@components/Field';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 import { scopeLabels } from '@pages/company/shared/appointments';
+import { pageTitle } from '@utils/destinations';
 
 const OUTCOMES = [
   ['accepted', 'Accept'],
@@ -127,7 +128,7 @@ export default function CompanyEligibilityPage() {
             <Section title="Your personal company authority">
               <LinkRow
                 to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
-                label={DESTINATIONS.companyTeam.title}
+                label={pageTitle('companyTeam')}
               />
               <p className="text-sm text-text-muted">
                 Current personal prepare or approve authority permits reading this company&apos;s queue and preparing a

@@ -112,11 +112,9 @@ export function CompanyPeople({
         </LoadError>
       )}
       {person.editing ? (
-        <div className="mt-4">
-          <PersonForm person={person} />
-        </div>
+        <PersonForm person={person} />
       ) : person.canPrepare ? (
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <PageAction
             ref={add}
             primary
