@@ -118,7 +118,10 @@ Reviews are recorded on the PR rather than enforced by GitHub. A ruleset on `mai
 requires the `Django verdict` and `PR type and issue` checks to pass on a branch up
 to date with `main`, so a pull request whose independent review has passed can be
 left to GitHub's auto-merge, which lands it once that CI is green
-([decision](docs/decisions.md#required-ci-and-auto-merge-on-main)).
+([decision](docs/decisions.md#required-ci-and-auto-merge-on-main)). Auto-merge
+stays on across later pushes, so turn it off before pushing anything other than a
+merge of `main` whose own changes are shown unchanged (for example, by matching
+patch-ids), and turn it on again only after the delta's review passes.
 
 1. **Everything lands through a pull request.** Nothing is pushed to `main`
    directly, documentation included.

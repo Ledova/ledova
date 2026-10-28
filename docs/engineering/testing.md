@@ -127,7 +127,9 @@ Every pull request, main and manual CI run uses the same lean checks on GitHub's
 `make backend-test`. There is no file-based routing and no self-hosted pool
 ([decision](../decisions.md#github-runners-and-mac-retirement)). The verdict fails closed: a
 failed, cancelled or missing required job is a failure, and no rerun is automatic. The
-[PR metadata gate](gates.md#the-pr-metadata-gate) runs as its own workflow.
+[PR metadata gate](gates.md#the-pr-metadata-gate) runs as its own workflow. The `main` ruleset
+requires `Django verdict` and the gate's `PR type and issue` check
+([review and merge](../../CONTRIBUTING.md#review-and-merge)).
 
 The targets are the whole PR run within ten minutes on GitHub's runners and all tests together
 within five minutes on the Mac. Record actual suite counts, commands and setup, queue, test and job

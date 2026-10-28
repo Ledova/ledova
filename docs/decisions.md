@@ -1028,7 +1028,9 @@ The repository allows auto-merge, and the **main: required CI** ruleset requires
 `main`, with no bypass. This supersedes the earlier choice to leave branch protection unenforced.
 Reviews stay recorded on the pull request rather than enforced: auto-merge is turned on only once
 the independent review has passed at the exact head, and a pull request whose CI is already green
-is merged directly.
+is merged directly. Auto-merge stays on across later pushes, so it is turned off before any push
+other than a merge of `main` whose own changes are shown unchanged, and turned on again only after
+the delta's review passes.
 
 ## Binding caps and backup authorisation
 
