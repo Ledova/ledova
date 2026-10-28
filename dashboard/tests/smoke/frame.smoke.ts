@@ -202,6 +202,11 @@ async function visibleSidebar(page: Page) {
   return aside;
 }
 
+async function showAllClasses(page: Page) {
+  await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Share class', exact: true }).selectOption({ label: 'All classes' });
+}
+
 async function closeSidebar(page: Page) {
   if (page.viewportSize()!.width < 1024) {
     const opener = page.getByRole('button', { name: 'Open navigation' });
@@ -256,7 +261,7 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(holders.getByRole('button', { name: 'Highlight Investor’s holding' })).toHaveAccessibleDescription(
       '35 shares 25.93% of ORD',
     );
-    await page.getByRole('button', { name: 'All classes', exact: true }).click();
+    await showAllClasses(page);
     await expect(page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true })).toBeFocused();
     await page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Ordinary shares', exact: true })).toBeFocused();
@@ -281,7 +286,7 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(
       page.getByText('Only your own holdings and awards are shown. Other shareholders’ records are private.'),
     ).toBeVisible();
-    await page.getByRole('button', { name: 'All classes', exact: true }).click();
+    await showAllClasses(page);
   } else {
     await expect(page.getByRole('region', { name: 'Company ownership summary' })).toContainText(
       'Issued sharesNot complete',

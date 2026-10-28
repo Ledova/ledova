@@ -48,6 +48,7 @@ export function SearchSelect({
   placeholder = 'Type to search',
   disabled = false,
   noun = ['option', 'options'],
+  inline = false,
 }: {
   id?: string;
   error?: string | null;
@@ -60,6 +61,7 @@ export function SearchSelect({
   placeholder?: string;
   disabled?: boolean;
   noun?: readonly [string, string];
+  inline?: boolean;
 }) {
   const [query, setQuery] = useState('');
   const moved = useRef(false);
@@ -105,7 +107,7 @@ export function SearchSelect({
             <Label className={labelHidden ? 'sr-only' : undefined}>{label}</Label>
             <div className={labelHidden ? 'relative' : 'relative mt-1'} onKeyDownCapture={keepChoice(open)}>
               <ComboboxInput
-                className={`${FIELD_BASE} pr-9`}
+                className={inline ? FIELD_BASE : `${FIELD_BASE} pr-9`}
                 aria-invalid={error ? true : undefined}
                 autoComplete="off"
                 data-1p-ignore
@@ -122,15 +124,22 @@ export function SearchSelect({
                   event.currentTarget.select();
                 }}
               />
-              <ComboboxButton className="absolute inset-y-0 right-0 flex items-center px-2.5 text-text-muted transition-colors hover:text-text-primary">
-                <CaretDownIcon size={ICON_SM} aria-hidden />
-              </ComboboxButton>
+              {!inline && (
+                <ComboboxButton className="absolute inset-y-0 right-0 flex items-center px-2.5 text-text-muted transition-colors hover:text-text-primary">
+                  <CaretDownIcon size={ICON_SM} aria-hidden />
+                </ComboboxButton>
+              )}
             </div>
             {error && <Description className="mt-1 text-sm text-error-light">{error}</Description>}
             <ComboboxOptions
-              anchor="bottom start"
+              static={inline}
+              anchor={inline ? undefined : 'bottom start'}
               modal={false}
-              className="z-50 max-h-72 w-[var(--input-width)] overflow-y-auto rounded-lg border border-border bg-surface-raised py-1 shadow-lg [--anchor-gap:4px] empty:invisible"
+              className={
+                inline
+                  ? 'mt-2 max-h-72 overflow-y-auto'
+                  : 'z-50 max-h-72 w-[var(--input-width)] overflow-y-auto rounded-lg border border-border bg-surface-raised py-1 shadow-lg [--anchor-gap:4px] empty:invisible'
+              }
             >
               {!typed && first.map((choice) => <Choice key={choice.value} choice={choice} />)}
               {found.slice(0, SHOWN).map((choice) => (

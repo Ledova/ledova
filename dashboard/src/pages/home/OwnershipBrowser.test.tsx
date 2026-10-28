@@ -19,7 +19,13 @@ import CompanyDashboardPage from '.';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
-import { companyPreferences, companyRecord, prepareCompanyClient, renderCompanyPage } from '../../testSupport/company';
+import {
+  companyPreferences,
+  companyRecord,
+  prepareCompanyClient,
+  renderCompanyPage,
+  showAllClasses,
+} from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -306,6 +312,11 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(await screen.findByRole('list', { name: 'ordinary shares shareholders' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /Next/ }));
   expect(await screen.findByText('26–28 of 28 shareholders')).toBeTruthy();
+  const holderFilters = screen.getByRole('button', { name: 'Filters' });
+  expect(holderFilters.closest('section')).toBe(
+    screen.getByRole('heading', { name: 'ordinary shares' }).closest('section'),
+  );
+  fireEvent.click(holderFilters);
   fireEvent.change(screen.getByRole('searchbox', { name: 'Search shareholders' }), {
     target: { value: 'Small holder 27' },
   });
@@ -334,7 +345,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('region', { name: 'Company ownership summary' })).toBeTruthy();
   expect(await screen.findByText('Small holder 27')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
+  showAllClasses();
   expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' }));
 
   mode = 'many';
@@ -349,20 +360,20 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(await screen.findByRole('list', { name: 'class-25 shares shareholders' })).toBeTruthy();
   const lastRead = api.get.mock.calls.find(([url]) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('class-25'));
   expect(lastRead?.[1].params).toMatchObject({ search: '', page: 1 });
-  fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
+  showAllClasses();
   expect(document.activeElement).toBe(screen.getByRole('searchbox', { name: 'Search share classes' }));
   fireEvent.change(screen.getByRole('searchbox', { name: 'Search share classes' }), { target: { value: 'class-25' } });
   expect(await screen.findByText('1 share class matches your search.')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Explore ordinary shares (ORDINARY)' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Explore class-25 shares (CLASS-25)' }));
   expect(await screen.findByRole('list', { name: 'class-25 shares shareholders' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
+  showAllClasses();
   expect((screen.getByRole('searchbox', { name: 'Search share classes' }) as HTMLInputElement).value).toBe('');
   mode = 'zero';
   await refresh();
   fireEvent.click(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' }));
   expect(await screen.findByText('No current shareholders yet.')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
+  showAllClasses();
   mode = 'unopened';
   await refresh();
   expect(await screen.findByText(/Company totals are not complete/)).toBeTruthy();

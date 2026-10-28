@@ -43,11 +43,13 @@ and the shared card heading and padding. Ownership dashboards put their overview
 record-management details, with awards separate from issued shares. The selected company uses one
 ownership ring beside a linked class list, with full class names before their secondary codes.
 Names wrap without displacing the figures. Select a segment or class row to open an aligned class
-details card beneath the overview, with the class heading and **All classes** control together.
-A muted trailing chevron identifies class rows that open this detail; holder rows keep their
+details card beneath the overview, with the class heading and the card's own **Filters** popover
+together. A muted trailing chevron identifies class rows that open this detail; holder rows keep their
 highlight-only interaction. Show the relevant exact totals and own position, followed by the
-ranked, searchable holder list only for company-authorised readers. Search stays compact on wider
-screens and takes the full width on narrow screens. Each compact holder row aligns the shareholder's name, a
+ranked holder list only for company-authorised readers. The popover holds their **Search
+shareholders** field and, for everyone, a **Share class** choice: picking another class switches the
+card, and **All classes** returns to the overview. **Class details** at the end of the card opens the
+class's Ledger page. Each compact holder row aligns the shareholder's name, a
 horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
 with short transitions that honour reduced motion; keep all figures visible without a tooltip.
 Rows stack their name and figures above the bar on narrow screens. Hover and keyboard focus on the
@@ -71,8 +73,8 @@ list usable. Percentages name their denominator; issued share counts do not impl
 economic value or a fully diluted option pool. Preserve the sidebar for navigation to other pages
 and keep record actions there.
 The web Dashboard is one Ownership browser for a person's company relationships. With several
-companies, its top trail holds the searchable company name, with an accessible label kept visually
-hidden; the overview uses the full workspace width. A single company opens directly. Show a company
+companies, **Switch company** in the page heading chooses one ([choosing a company](#choosing-a-company));
+the overview uses the full workspace width. A single company opens directly. Show a company
 once even when the person both administers it and holds shares. Use the same ownership ring, linked
 class list and hover/focus treatment across relationships, with the person's own position beside the
 company figures they may read. Selection progresses from company to class to permitted detail;
@@ -649,7 +651,9 @@ On web, Dashboard is the only place to change company context. With several comp
 icon named and titled **Switch company** opens the compact popover in the page heading's top-right
 actions. Inside it, `CompanyPicker` (`dashboard/src/components/CompanyPicker.tsx`) uses the same
 searchable list as [choosing a person](#choosing-a-person), showing company names and useful muted
-details, never internal identifiers. Its label remains accessible but visually hidden. An accepted
+details, never internal identifiers. The list sits in the panel beneath its search field
+(`SearchSelect`'s `inline`), so opening the popover shows every company with the current one
+ticked. Its label remains accessible but visually hidden. An accepted
 switch request closes the panel and returns focus to its icon; the existing form confirmation and
 held-work guards still decide navigation. Company selection has no separate row above the ownership
 view; class exploration keeps its breadcrumb.
@@ -748,7 +752,11 @@ server:
   your search" or "No applications match".
 - **Compact filters:** secondary filters use `FilterPopover`: an icon button named **Filters** with
   a tooltip, opening an anchored panel. Place its icon in the page heading's top-right actions on
-  every filtered page, without a separate row or another control in a card heading. Page owners use
+  every filtered page, without a separate row or another control in a card heading. The one
+  exception, at the owner's request on 28 October 2026, is Dashboard's class details card: its own
+  Filters icon in the card heading holds the holder search and the **Share class** choice with
+  **All classes**, since the page heading holds **Switch company** and both apply only to the
+  selected class. Page owners use
   `Page.actions`; deeper owners contribute through `PageActions` in
   `dashboard/src/components/Page.tsx`. Keep filter state with its owner and explicitly omit header
   controls for hidden retained views; a header contribution escapes its original hidden container.

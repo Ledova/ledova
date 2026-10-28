@@ -27,6 +27,7 @@ export function CompanyPicker({
       placeholder="Type a company name"
       disabled={disabled}
       noun={COMPANIES}
+      inline
     />
   );
 }

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect } from 'react';
-import { generatePath, Link } from 'react-router-dom';
+import { generatePath } from 'react-router-dom';
 import { BuildingsIcon } from '@phosphor-icons/react';
 import {
   DESTINATIONS,
@@ -9,11 +9,12 @@ import {
   useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { Page, PageAction } from '@components/Page';
+import { Page, PageAction, PageLink } from '@components/Page';
 import { LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
 import { ListSearch, Pager } from '@components/List';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { FilterPopover } from '@components/FilterPopover';
+import { SelectField } from '@components/SelectField';
 import { ICON_MD } from '@components/iconSizes';
 import { OwnershipMetrics } from './OwnershipMetrics';
 import { ownershipColor } from './ownershipColors';
@@ -172,16 +173,16 @@ function SignedInOwnership({
       ) : (
         <>
           {selected && (
-            <nav aria-label="Ownership trail" className="flex min-w-0 flex-wrap items-end gap-3 text-sm">
+            <nav aria-label="Ownership trail" className="flex min-w-0 flex-wrap items-center gap-3 text-sm">
               <button
                 type="button"
                 onClick={() => ownership.select(null)}
-                className="max-w-full break-words text-text-muted hover:text-text-primary"
+                className="max-w-full break-words py-2 text-text-muted hover:text-text-primary"
               >
                 Company ownership
               </button>
               {selectedClass && (
-                <span className="flex min-w-0 max-w-full items-center gap-3 py-3 font-medium">
+                <span className="flex min-w-0 max-w-full items-center gap-3 font-medium">
                   <span aria-hidden className="shrink-0 text-text-muted">
                     /
                   </span>
@@ -271,7 +272,39 @@ function SignedInOwnership({
                             <h2 ref={details} tabIndex={-1} className="font-display text-xl focus:outline-none">
                               {selectedClass?.name ?? 'Class unavailable'}
                             </h2>
-                            <PageAction label="All classes" onClick={() => ownership.select(null)} />
+                            <FilterPopover active={!!ownership.list.search}>
+                              {(close) => (
+                                <>
+                                  {company.canReadRegister && selectedClass?.initialized && (
+                                    <ListSearch
+                                      label="Search shareholders"
+                                      list={ownership.list}
+                                      noun={['shareholder', 'shareholders']}
+                                      count={
+                                        ownership.holders.isSuccess && !ownership.holders.isFetching
+                                          ? ownership.holders.data.count
+                                          : undefined
+                                      }
+                                    />
+                                  )}
+                                  <SelectField
+                                    label="Share class"
+                                    options={[
+                                      { value: '', label: 'All classes' },
+                                      ...view.classes.map((row) => ({
+                                        value: row.uuid,
+                                        label: `${row.name} · ${row.symbol}`,
+                                      })),
+                                    ]}
+                                    value={selected}
+                                    onChange={(value) => {
+                                      close();
+                                      ownership.select(value || null);
+                                    }}
+                                  />
+                                </>
+                              )}
+                            </FilterPopover>
                           </div>
                         }
                       >
@@ -316,16 +349,6 @@ function SignedInOwnership({
                                   </p>
                                 ) : (
                                   <>
-                                    <ListSearch
-                                      label="Search shareholders"
-                                      list={ownership.list}
-                                      noun={['shareholder', 'shareholders']}
-                                      count={
-                                        ownership.holders.isSuccess && !ownership.holders.isFetching
-                                          ? ownership.holders.data.count
-                                          : undefined
-                                      }
-                                    />
                                     <div
                                       className="min-h-48"
                                       aria-busy={ownership.holders.isPending || ownership.holders.isFetching}
@@ -361,17 +384,16 @@ function SignedInOwnership({
                                     )}
                                   </>
                                 )}
-                                <Link
+                                <PageLink
                                   to={
                                     context?.companyPath(
                                       generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid }),
                                     ) ?? generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid })
                                   }
                                   state={{ registerCompany: company.uuid }}
-                                  className="w-fit text-sm text-brand-light underline"
-                                >
-                                  Class rights and documents
-                                </Link>
+                                  label="Class details"
+                                  context={selectedClass.name}
+                                />
                               </>
                             ) : (
                               <p className="text-sm text-text-muted">

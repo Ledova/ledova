@@ -71,6 +71,7 @@ import {
   companyPreferences,
   prepareCompanyClient,
   renderCompanyPage,
+  showAllClasses,
 } from '../../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -2108,7 +2109,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(
     within(await screen.findByRole('list', { name: 'Ordinary shares shareholders' })).getByText('Example Shareholder'),
   ).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'All classes' }));
+  showAllClasses();
   expect(await screen.findByRole('button', { name: 'Explore Ordinary shares (ORD)' })).toBeTruthy();
   expect(proposal!.status).toBe('applied');
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
