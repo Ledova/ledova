@@ -16,16 +16,14 @@ export function OnChain({ token }: { token: CompanyShareToken }) {
           <Status tone={SHARE_CLASS_STATUS_TONES.get(token.status) ?? 'waiting'}>{token.statusDisplay}</Status>
         </Row>
         {token.deployedAt && <Row label="Deployed on">{formatDate(token.deployedAt)}</Row>}
-        <Row label="Contract">
-          {token.contractAddress ? (
+        {token.contractAddress && (
+          <Row label="Contract">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <span className="min-w-0 break-all">{token.contractAddress}</span>
               <CopyButton key={token.contractAddress} value={token.contractAddress} label="Copy contract address" />
             </div>
-          ) : (
-            'Shown once the deployment is confirmed'
-          )}
-        </Row>
+          </Row>
+        )}
       </Rows>
       {(addressUrl || txUrl) && (
         <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -45,11 +43,7 @@ export function OnChain({ token }: { token: CompanyShareToken }) {
         to={classPath('companyClassChain', token.uuid, token.companyUuid)}
         label={pageTitle('companyClassChain')}
       >
-        <span className="block text-xs text-text-muted">
-          {token.status === 'deploying'
-            ? 'The deployment and its progress'
-            : 'Chain grants, paid issues, capital increases and pausing'}
-        </span>
+        <span className="block text-xs text-text-muted">Chain grants, paid issues, capital increases and pausing</span>
       </LinkRow>
     </Section>
   );

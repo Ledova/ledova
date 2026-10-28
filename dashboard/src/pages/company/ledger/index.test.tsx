@@ -47,6 +47,7 @@ import CompanyDashboardPage from '@pages/home';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { ShareClass } from './detail/ShareClass';
+import CompanyClassChainPage from './chain';
 import { MemberDocuments } from './shared/MemberDocuments';
 import { ClassReconciliation } from './ClassReconciliation';
 import CompanyRegisterImportPage from './import';
@@ -845,7 +846,17 @@ it('reads every class page and groups exact holdings by member identity with sea
     '/company/ledger/ordinary/chain?company=harbour',
   );
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(api.get.mock.calls.some(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_DEPLOYMENTS)).toBe(false);
+  const chainReads: string[] = [
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_DEPLOYMENTS,
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_ISSUES,
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_PAID_ISSUES,
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_CAPITAL_INCREASES,
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_PAUSE_CHANGES,
+    COMPANY_TOKEN_ENDPOINTS.ISSUANCES('ordinary'),
+    COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES,
+    COMPANY_TOKEN_ENDPOINTS.ISSUANCE_REQUESTS,
+  ];
+  expect(api.get.mock.calls.filter(([url]) => chainReads.includes(url))).toEqual([]);
 
   pauseHolders = true;
   const holderKey = ['token', 'ordinary', 'profile-one', 'account-one', 'holders'];
@@ -949,6 +960,20 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByText(rightsFile.name)).toBeNull();
   expect(() => rightsFileGuard()).toThrow(/signed-in account changed/);
   expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+
+  cleanup();
+  const readsBeforeChain = api.get.mock.calls.length;
+  const writesBeforeChain = api.post.mock.calls.length;
+  show('investor', <CompanyClassChainPage />, 'Chain actions', {
+    entry: '/company/ledger/ordinary/chain?company=harbour',
+    path: DESTINATIONS.companyClassChain.path,
+  });
+  expect(await screen.findByRole('heading', { name: 'Non-paid chain grants' })).toBeTruthy();
+  await waitFor(() =>
+    expect(api.get.mock.calls.slice(readsBeforeChain).some(([url]) => url === APPOINTMENTS)).toBe(true),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(api.post.mock.calls).toHaveLength(writesBeforeChain);
 
   cleanup();
   client.clear();

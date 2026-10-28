@@ -152,10 +152,19 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
             ) : null}
           </section>
         )}
-        {token.status === 'draft' && register?.initialized && wholeShares(register.issuedSupply ?? '') === 0n && (
-          <LinkRow to={classPath('companyClassChain', token.uuid, token.companyUuid)} label="Put this class on chain">
+        {(token.status === 'deploying' ||
+          (token.status === 'draft' &&
+            !!register &&
+            (!register.initialized || wholeShares(register.issuedSupply ?? '') === 0n))) && (
+          <LinkRow
+            to={classPath('companyClassChain', token.uuid, token.companyUuid)}
+            label="Put this class on chain"
+            aside={token.status === 'deploying' && <Status tone="moving">{token.statusDisplay}</Status>}
+          >
             <span className="block text-xs text-text-muted">
-              Creates its contract. It issues no shares and changes no holding.
+              {token.status === 'deploying'
+                ? 'The deployment waits for confirmation on chain.'
+                : 'Creates its contract. It issues no shares and changes no holding.'}
             </span>
           </LinkRow>
         )}
@@ -178,7 +187,7 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
           }))}
         />
       )}
-      {token.status !== 'draft' && <OnChain token={token} />}
+      {(token.status === 'deployed' || token.status === 'paused') && <OnChain token={token} />}
     </>
   );
 }

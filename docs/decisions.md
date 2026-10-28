@@ -1667,7 +1667,14 @@ sections and internal references. The identifiers a company hands out read as **
 in later phases. The owner then chose: "Start phase 2 with your defaults: lists with visible actions
 and an ESS award page." So Certificates, Corrections and Member requests rows show their action
 without expanding, and each employee award opens its own page with headed cards instead of nested
-chevrons.
+chevrons. Next: "Start phase 3 with your defaults: Member access, Team, Representative authority and
+Offerings rows." So Member access and Team rows show their status and action without expanding, and
+each representative authority request and each offering opens its own page. Then: "Start phase 4
+with your defaults: the share class chain area." The default was one **On chain** card only for a
+class on chain and a single entry for putting a class on chain otherwise, with empty cards and the
+internal quantity guard removed and the chain workflows condensed rather than removed. So the Share
+class page drops **Technical details and chain workflows**, and the chain workflows move to the
+class's own **Chain actions** page.
 
 ## Mobile app for shareholders
 

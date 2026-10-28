@@ -23,7 +23,7 @@ function ClassChain({ uuid }: { uuid: string }) {
   const companyMatches = useRecordCompany(company, data.guard);
   if (!companyMatches)
     return (
-      <Page>
+      <Page back={{ to: classPath('companyClass', uuid) }}>
         <PreparationNotice />
       </Page>
     );
@@ -52,7 +52,7 @@ function ClassChain({ uuid }: { uuid: string }) {
             </>
           )}
           <DeploymentFlow key={owner} uuid={uuid} data={data} />
-          <ChainHistory uuid={uuid} data={data} />
+          {token.status !== 'draft' && <ChainHistory uuid={uuid} data={data} />}
         </>
       )}
     </Page>

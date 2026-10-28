@@ -100,8 +100,8 @@ export function DeploymentFlow({ uuid, data }: { uuid: string; data: ReturnType<
     refresh,
   });
   if (!owner) return null;
-  if (data.token.data?.status !== 'draft' && deployments.isSuccess && !records.length && !uncertain && !error)
-    return null;
+  const onChain = data.token.data?.status === 'deployed' || data.token.data?.status === 'paused';
+  if (onChain && deployments.isSuccess && !records.length && !uncertain && !error) return null;
   return (
     <Section title={COPY.TITLE}>
       <p className="text-sm text-text-muted">{COPY.NOTE}</p>

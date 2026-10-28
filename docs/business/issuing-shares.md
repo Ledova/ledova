@@ -50,8 +50,8 @@ this empty-opening choice through the same draft, review and confirmation as cop
 ([register setup](register.md#bringing-in-existing-records)).
 
 On the web, the chain actions described below are on a class's own **Chain actions** page. The Share
-class page opens it from its **On chain** card once the class has a contract, or through **Put this
-class on chain** while the class is an opened, empty draft.
+class page opens it from its **On chain** card once the class is deployed, or through **Put this
+class on chain** while the class is a draft without shares or is being deployed.
 
 ### Class rights
 
