@@ -16,7 +16,7 @@ import {
   type useMemberRecords,
 } from '@ledova/shared';
 import { Disclosure, Row, Rows } from '@components/Ledger';
-import { LoadMore, TABLE_FRAME_CLASS, TABLE_HEADER_CLASS } from '@components/List';
+import { LoadMore, TABLE_SCROLL_CLASS, TABLE_HEADER_CLASS } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { ClassCertificate } from './ClassCertificate';
 import { useMemberCertificateDownload } from './useMemberCertificateDownload';
@@ -133,9 +133,9 @@ export function CertificateRecords({
       {ordered.length === 0 && !filtered && (
         <p className="text-sm text-text-muted">No eligible certificate records in the loaded entries.</p>
       )}
-      <div className={ordered.length > 0 && !editing ? TABLE_FRAME_CLASS : undefined}>
+      <div className={ordered.length > 0 && !editing ? TABLE_SCROLL_CLASS : undefined}>
         {ordered.length > 0 && !editing && (
-          <div className={`${TABLE_HEADER_CLASS} hidden px-4 py-3 font-medium md:block`} aria-hidden="true">
+          <div className={`${TABLE_HEADER_CLASS} hidden py-3 font-medium md:block`} aria-hidden="true">
             <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 pl-7">
               <span>Shareholder</span>
               <span className="text-right">Shares</span>
@@ -164,11 +164,7 @@ export function CertificateRecords({
               (retry?.kind === 'certificate' && retry.entry === row.uuid) ||
               (retry?.kind === 'withdraw' && related.some((request) => request.uuid === retry.uuid));
             return (
-              <li
-                key={`${selectedClass?.uuid}/${row.uuid}`}
-                hidden={!!editing && !focused}
-                className={editing ? 'text-sm' : 'px-4 text-sm'}
-              >
+              <li key={`${selectedClass?.uuid}/${row.uuid}`} hidden={!!editing && !focused} className="text-sm">
                 <Disclosure
                   open={focused || active || expanded === row.uuid}
                   keepMounted
@@ -190,12 +186,12 @@ export function CertificateRecords({
                           {kind} · {selectedClass?.symbol}
                         </span>
                       </span>
-                      <span>
+                      <span className="text-text-muted">
                         {['issue', 'transfer'].includes(entry.kind.toLowerCase())
                           ? formatDate(entry.companyEventOn, 'Not recorded')
                           : formatDate(entry.effectiveOn)}
                       </span>
-                      <span className="font-medium">
+                      <span className="text-text-muted">
                         {CERTIFICATE_STATUSES.find(([value]) => value === statusOf(row))?.[1]}
                       </span>
                     </span>

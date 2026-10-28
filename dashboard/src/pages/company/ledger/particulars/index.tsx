@@ -132,7 +132,6 @@ function OwnParticulars({
     content = (
       <>
         <Section title={found.name || COPY.UNNAMED_MEMBER}>
-          <p className="text-sm text-text-muted">{found.company.name}</p>
           <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>
         </Section>
         <Section title={COPY.PREPARE}>

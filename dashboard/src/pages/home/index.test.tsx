@@ -322,14 +322,46 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(mailCommands[0][1]).toEqual(mailCommands[1][1]);
   expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
   company.rerender(companyView('requests'));
+  const requestList = screen.getByRole('list', { name: 'Member requests' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Request type' }), { target: { value: 'certificate' } });
+  expect(within(requestList).queryByRole('button', { name: /^Private queued member name/ })).toBeNull();
+  expect(
+    within(requestList).getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }),
+  ).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Person' }), { target: { value: 'mÉmBeR PrÍvate' } });
+  await screen.findByText('No member requests match these filters.');
+  expect(within(requestList).getByRole('button', { name: /^Private queued member name/, hidden: true })).toBeTruthy();
+  fireEvent.change(screen.getByRole('combobox', { name: 'Request type' }), { target: { value: 'particulars' } });
+  expect(within(requestList).getByRole('button', { name: /^Private queued member name/ })).toBeTruthy();
+  expect(
+    within(requestList).queryByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }),
+  ).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Person' }), { target: { value: '' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Request type' }), { target: { value: '' } });
+  await waitFor(() =>
+    expect(
+      within(requestList).getByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) }),
+    ).toBeTruthy(),
+  );
   fireEvent.click(screen.getByRole('button', { name: /^Private queued member name/ }));
   expect(screen.getByText('Private queued member address')).toBeTruthy();
   expect(screen.getByText(/member@example.test/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Person' }), { target: { value: 'Unapplied filter' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   fireEvent.click(screen.getByRole('button', { name: 'Prepare update (Private queued member name)' }));
   expect(document.activeElement).toBe(
     screen.getByRole('heading', { name: "Prepare Private queued member name's particulars update" }),
   );
   expect(screen.queryByRole('button', { name: new RegExp(`^${MEMBER_RECORD.name}.*Requested$`) })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  expect((screen.getByRole('searchbox', { name: 'Person' }) as HTMLInputElement).disabled).toBe(true);
+  expect((screen.getByRole('searchbox', { name: 'Person' }) as HTMLInputElement).value).toBe('');
+  expect((screen.getByRole('combobox', { name: 'Request type' }) as HTMLSelectElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   await waitFor(() =>
     expect(document.activeElement).toBe(
@@ -852,15 +884,17 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   const companyView = (uuid: string, registers: TokenHoldersResponse[], sourceReady = true) => (
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <CompanyMemberAccess
-          view="access"
-          owner={owner}
-          company={uuid}
-          registers={registers}
-          guard={guard}
-          sourceReady={sourceReady}
-          onHeldChange={onHeldChange}
-        />
+        <TestRouter initialEntries={['/company/ledger#member-access']}>
+          <CompanyMemberAccess
+            view="access"
+            owner={owner}
+            company={uuid}
+            registers={registers}
+            guard={guard}
+            sourceReady={sourceReady}
+            onHeldChange={onHeldChange}
+          />
+        </TestRouter>
       </ApiClientProvider>
     </QueryClientProvider>
   );

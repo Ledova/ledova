@@ -408,7 +408,6 @@ function OwnShareholder({
   return (
     <PageTitle.Provider value={title}>
       <Page
-        lede={data.company?.name}
         documentTitle={DESTINATIONS.companyShareholder.title}
         back={{ state: company ? { registerCompany: company } : undefined }}
       >

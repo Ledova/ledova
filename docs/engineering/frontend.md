@@ -357,6 +357,9 @@ full-name titles, retaining their stored capitalization. Its items are links, an
 drawer is a dialog
 ([navigation](frontend-ux.md#navigation)). Native navigation is declared separately
 ([navigation](mobile.md#navigation)).
+The footer owns the passive current-company label across signed-in pages. Functional pickers,
+company fields, multi-company records and exact legal or retained targets keep meaningful identities;
+page headings and collection wrappers do not repeat the context name.
 
 ### Sign-up routes
 
@@ -474,14 +477,16 @@ Every list follows these rules:
 - Web list filters use the UI-only `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`); pages retain their data and field state. Certificates
   and Activity keep Apply/Clear drafts, while Shareholders' class, offering applications' status and
-  company eligibility's outcome retain immediate selection. Shareholders keeps Search people inside
+  company eligibility's outcome retain immediate selection. Member requests uses debounced person
+  search and immediate request-type selection inside its panel. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts. Offering
   applications' search and workflow scope selectors stay visible; Wallets' sort remains separate.
   The filter icon sits in the collection title row or beside visible search, without its own row.
-- `Table` and aligned expandable collections share `TABLE_FRAME_CLASS` and `TABLE_HEADER_CLASS`
-  from `dashboard/src/components/List.tsx` for their border and header treatment. Match their horizontal padding
-  and numeric alignment while retaining each collection's semantics, detail lifetimes and unboxed
-  focused editors.
+- `Table` and aligned expandable collections share `TABLE_SCROLL_CLASS` and `TABLE_HEADER_CLASS`
+  from `dashboard/src/components/List.tsx` for horizontal overflow and muted, transparent headers.
+  Keep collections flat within their outer `Section`, with subtle row dividers and no inner rounded
+  border or shaded header. Native table cells retain their padding; expandable lists retain their
+  disclosure alignment. Preserve numeric alignment, semantics, detail lifetimes and unboxed editors.
 - It pages as [lists, search, filters and paging](frontend-ux.md#lists-search-filters-and-paging)
   describes. A failed first read offers a retry, not an empty list.
 - A failed later page keeps the known rows and labels the list incomplete (`useLaterPages`).
@@ -770,7 +775,12 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   ownership overview or header task switches. It keeps every class's controllers for register
   decisions mounted, merely hidden, so changing view, task or class (the Share class selector)
   keeps an unfinished request with its class, payload and retry key. People and member controllers
-  also stay mounted across the three Shareholders views. Controllers
+  also stay mounted across the three Shareholders views. Member requests keeps the full permitted
+  particulars and certificate request arrays for selected requests and
+  recovery. Member requests stores `q` and `request_type` in the URL; `searchRows` matches every
+  name word, ignoring case and accents, before unmatched rows are hidden. Held work disables its
+  controls and bypasses filtering for the active workflow, without changing any request's status.
+  Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
   their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class

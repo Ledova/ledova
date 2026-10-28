@@ -207,7 +207,6 @@ function OwnImport({
       guard={guard}
       newEffectGuard={checkNew}
       company={retained.listed.companyUuid}
-      companyName={retained.listed.companyName}
       shareClass={{ name: retained.listed.name, symbol: retained.listed.symbol }}
       register={retained.register}
       companyMembers={(members.data ?? retained.members).members}

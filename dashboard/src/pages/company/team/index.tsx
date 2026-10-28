@@ -145,11 +145,7 @@ function OwnTeam({
           />
         </div>
         <Section title="Team">
-          {companyName ? (
-            <p className="text-sm text-text-muted">{companyName}</p>
-          ) : !own.isPending && !own.isFetching && !own.isError ? (
-            <CompanyContextNotice />
-          ) : null}
+          {!companyName && !own.isPending && !own.isFetching && !own.isError && <CompanyContextNotice />}
           {company &&
             (own.isFetching ? (
               <Loading>Loading company team…</Loading>
@@ -261,7 +257,7 @@ function OwnTeam({
           </Section>
         </div>
         <div hidden={task !== 'invite'}>
-          <Section title={companyName || 'Company invitation'}>
+          <Section title="Company invitation">
             <SelectField
               label="Delegating appointment"
               options={[

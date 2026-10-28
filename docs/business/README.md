@@ -253,7 +253,7 @@ retains company/class context for browser Back/Forward. Direct links and invitat
 Failed reads offer retry, an edited form asks before a company change discards it, and held execution
 blocks context changes.
 
-The selected company overview keeps its name visible. Until setup is complete, a personal
+The footer identifies the selected company. Until setup is complete, a personal
 administrator also sees **Getting started**: **Verify and activate your
 company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your ledger**
 ([register setup](register.md#bringing-in-existing-records)). Completed tasks disappear; once both

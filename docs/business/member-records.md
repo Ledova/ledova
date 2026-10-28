@@ -163,7 +163,10 @@ status of requests they made.
 
 The web sidebar separates **Member access** from **Member requests** under Shareholders. Member access
 shows **People** and **Invitations**; Member requests is one list identifying each request's type, date
-and status. The rows keep names and relevant details together. Access, invitation and certificate
+and status. Its Filters icon searches by person name or selects details updates or certificates
+across the complete permitted request list, including retained statuses. Filtering changes no request
+and leaves active preparation and recovery available. The rows keep names and relevant details together.
+Access, invitation and certificate
 records place technical references under **Technical details**.
 Task fields open only when needed;
 an empty queue does not ask for a company reason or certificate reference. Web reads update on entry

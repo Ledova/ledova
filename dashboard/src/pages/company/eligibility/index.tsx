@@ -111,10 +111,9 @@ export default function CompanyEligibilityPage() {
                 decision. Recording a decision or revocation requires your own approve appointment.
               </p>
               {!read.companyUuid && <CompanyContextNotice />}
-              {read.companyUuid && (
+              {read.companyUuid && context?.companyUuid !== read.companyUuid && (
                 <p className="text-sm text-text-muted">
-                  {read.companies.find((company) => company.uuid === read.companyUuid)?.name ??
-                    (context?.companyUuid === read.companyUuid ? context.company?.name : 'Original company')}
+                  {read.companies.find((company) => company.uuid === read.companyUuid)?.name ?? 'Original company'}
                 </p>
               )}
               {!read.readFailed && read.companies.length === 0 && (

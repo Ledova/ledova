@@ -7,8 +7,8 @@ import { LoadError } from '@components/Ledger';
 
 export type Noun = readonly [string, string];
 
-export const TABLE_FRAME_CLASS = 'relative max-w-full overflow-x-auto rounded-xl border border-border-subtle';
-export const TABLE_HEADER_CLASS = 'bg-surface-tertiary text-xs text-text-muted';
+export const TABLE_SCROLL_CLASS = 'relative max-w-full overflow-x-auto';
+export const TABLE_HEADER_CLASS = 'text-xs text-text-muted';
 
 const counted = (count: number, [one, many]: Noun) => `${formatShareCount(String(count))} ${count === 1 ? one : many}`;
 
@@ -21,7 +21,7 @@ export interface Column {
 
 export function Table({ caption, columns, children }: { caption: string; columns: Column[]; children: ReactNode }) {
   return (
-    <div className={TABLE_FRAME_CLASS}>
+    <div className={TABLE_SCROLL_CLASS}>
       <table className="w-full text-left text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className={TABLE_HEADER_CLASS}>

@@ -111,9 +111,7 @@ function OwnAuthorityRequests({
             </LoadError>
           ) : !company ? (
             <CompanyContextNotice />
-          ) : (
-            <p className="text-sm text-text-muted">{company.name}</p>
-          )}
+          ) : null}
           {!recorded && company && (
             <AuthorityRequestForm
               key={company.uuid}
