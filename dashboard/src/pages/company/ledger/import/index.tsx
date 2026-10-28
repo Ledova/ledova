@@ -29,13 +29,14 @@ import { peopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';
-import { LoadError, Loading, Row, Rows } from '@components/Ledger';
+import { LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
+import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
   return (
-    <Page narrow>
+    <Page>
       {owner && !preferences.isError ? (
         uuid ? (
           <OwnImport
@@ -178,25 +179,35 @@ function OwnImport({
       return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
     if (!mirrorAllowed)
       return (
-        <p className="text-sm text-text-muted">
-          This class cannot open from copied records.{' '}
-          <Link
-            to={`${DESTINATIONS.companyRegister.path}?company=${listed.companyUuid}`}
-            state={{ registerCompany: listed.companyUuid }}
-            className="text-brand-light underline"
-          >
-            Open Ledger
-          </Link>{' '}
-          to open it from the chain or check its deployment state.
-        </p>
+        <Section title={`${listed.name} · ${listed.symbol}`}>
+          <p className="text-sm text-text-muted">
+            This class cannot open from copied records.{' '}
+            <Link
+              to={`${DESTINATIONS.companyRegister.path}?company=${listed.companyUuid}`}
+              state={{ registerCompany: listed.companyUuid }}
+              className="text-brand-light underline"
+            >
+              Open Ledger
+            </Link>{' '}
+            to open it from the chain or check its deployment state.
+          </p>
+        </Section>
       );
-    if (!correctable)
+    if (!correctable) {
+      const corrections = registerPlace({ company: listed.companyUuid, token: listed.uuid, task: 'corrections' });
       return (
-        <p className="text-sm text-text-muted">
-          This opening cannot be replaced safely. Later changes or linked member records need their own supported
-          correction.
-        </p>
+        <Section title={`${listed.name} · ${listed.symbol}`}>
+          <p className="text-sm text-text-muted">
+            This opening cannot be replaced safely because later entries or linked member records depend on it. Correct
+            individual entries in{' '}
+            <Link to={corrections.to} state={corrections.state} className="text-brand-light underline">
+              Corrections
+            </Link>
+            .
+          </p>
+        </Section>
       );
+    }
     if (!canOpen) return <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
     return <Loading>Loading the register…</Loading>;
   }

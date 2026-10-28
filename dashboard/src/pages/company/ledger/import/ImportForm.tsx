@@ -9,7 +9,7 @@ import {
   registerImportTotals,
   refusalSentences,
 } from '@ledova/shared';
-import { Row, Rows, Disclosure } from '@components/Ledger';
+import { Row, Rows, Disclosure, Section, Status } from '@components/Ledger';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { FormSteps } from '@components/FormSteps';
@@ -110,14 +110,13 @@ export function ImportForm({
     onHeldChange,
   });
 
+  const title =
+    [shareClass?.name ?? register?.token.name, shareClass?.symbol ?? register?.token.symbol]
+      .filter(Boolean)
+      .join(' · ') || 'New share class';
+
   return (
-    <div className="space-y-6">
-      {visible && shareClass?.name && (
-        <p className="text-sm text-text-muted">
-          {shareClass.name}
-          {shareClass.symbol && ` (${shareClass.symbol})`}
-        </p>
-      )}
+    <Section title={title}>
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps label="Ledger setup steps" steps={SETUP_STEPS} current={phase} />
       )}
@@ -126,7 +125,7 @@ export function ImportForm({
           {mutable ? (
             canPrepare ? (
               <form
-                className="space-y-6 rounded-2xl border border-border bg-surface-raised p-4 sm:p-6"
+                className="space-y-5"
                 noValidate
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -140,9 +139,9 @@ export function ImportForm({
                   } else if (!holderEditor) void prepare();
                 }}
               >
-                <h2 className="font-display text-xl text-text-primary">
+                <h3 className="text-base font-medium text-text-primary">
                   {phase === 'details' ? 'Share details' : 'Shareholders'}
-                </h2>
+                </h3>
                 <ErrorSummary
                   attempt={tries}
                   claim={(count) => count > focusedTry.current && (focusedTry.current = count) === count}
@@ -231,24 +230,19 @@ export function ImportForm({
             proposal && (
               <section
                 aria-label={proposal.status === 'applied' ? 'Recorded ledger' : 'Review ledger'}
-                className="space-y-6 rounded-2xl border border-border bg-surface-raised p-4 sm:p-6"
+                className="space-y-5"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-display text-xl text-text-primary">
-                    {proposal.status === 'applied' ? 'Recorded' : 'Review'}
-                  </h2>
+                  {proposal.status === 'applied' ? (
+                    <Status tone="done">Recorded</Status>
+                  ) : (
+                    <h3 className="text-base font-medium text-text-primary">Review</h3>
+                  )}
                   <p className="text-sm text-text-muted">
                     Record date · <time dateTime={proposal.asAt}>{formatDate(proposal.asAt)}</time>
                   </p>
                 </div>
-                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <div className="col-span-2 min-w-0 sm:col-span-1">
-                    <dt className="text-xs text-text-muted">Share class</dt>
-                    <dd className="mt-2 break-words text-lg font-medium text-text-primary">
-                      {shareClass?.name ?? register?.token.name ?? 'Share class'}
-                    </dd>
-                    <dd className="mt-1 text-xs text-text-muted">{shareClass?.symbol ?? register?.token.symbol}</dd>
-                  </div>
+                <dl className="grid grid-cols-2 gap-3">
                   <div className="min-w-0">
                     <dt className="text-xs text-text-muted">Shares held</dt>
                     <dd className="mt-2 break-words text-2xl font-medium tabular-nums text-text-primary">
@@ -434,6 +428,6 @@ export function ImportForm({
           Refresh current company access before showing these records or starting another action.
         </p>
       )}
-    </div>
+    </Section>
   );
 }

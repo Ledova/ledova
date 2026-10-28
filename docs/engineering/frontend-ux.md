@@ -32,6 +32,9 @@ simple task forms and most detailed records, including compact tables. Profile, 
 company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
 invitation reviews, company-recorded member details and wide tables take the standard workspace width. Inline preparation, review
 and result states retain their collection's frame. Tables scroll within their card on small screens.
+A stepped preparation (register setup, an investor issue, a transfer) is one card: its title names the class or
+the task, `FormSteps` sits at its top, each step has a small heading, and one primary action ends the step.
+Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
 Company information, company documents, authority records and company team use this workspace frame too.
 Team invitations and acceptance replace their collection with one focused inline task, retaining its
 mounted editors and drafts. Settings → Documents has its own view, with Category and File in the inline upload.
@@ -39,9 +42,10 @@ The remaining offering, publication, directory, application, wallet, activity an
 use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
 keep secondary facts and copyable technical references on demand. Application summaries open their existing detail page.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
-and the shared card heading and padding. Company pages list share classes in the order they were
-created, oldest first: Ledger's cards, the Shareholders columns, class choices and the default class,
-such as ESS's (owner, 28 October 2026). Ownership dashboards put their overview and charts before
+and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
+ESS, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
+cards, columns, class choices and default class (owner, 28 October 2026). Dashboard ranks its class
+list by issued shares, and Offerings keeps its own order. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The selected company uses one
 ownership ring beside a linked class list, with full class names before their secondary codes.
 Names wrap without displacing the figures. Select a segment or class row to open an aligned class
@@ -51,7 +55,7 @@ highlight-only interaction. Show the relevant exact totals and own position, fol
 ranked holder list only for company-authorised readers. The popover holds their **Search
 shareholders** field and, for everyone, a **Share class** choice: picking another class switches the
 card, and **All classes** returns to the overview, also from a class the overview no longer lists.
-For those readers, **Class details** at the end of the card opens the class's Ledger page. Each
+For company-authorised readers, **Class details** at the end of the card opens the class's Ledger page. Each
 compact holder row aligns the shareholder's name, a
 horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
 with short transitions that honour reduced motion; keep all figures visible without a tooltip.
@@ -730,7 +734,7 @@ field and options named in words:
 These lists add a short record reference only to options that would otherwise read the same,
 as with people who share a name and address. Wallet options show the wallet's name or address.
 
-Register setup offers a class already started as links in a sentence, and the new class's kind as
+Register setup offers a class already started but not yet opened (its ledger has no recorded entry) as links in a sentence, and the new class's kind as
 radio buttons, so choosing never moves the page by itself. Sign-up keeps its own presentation: its
 company type is Headless UI's `Select` inside the field so the label names it, and the phone number's
 country code is a native select named "Country code" beside the number. The select is transparent
