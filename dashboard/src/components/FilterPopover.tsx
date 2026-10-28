@@ -1,7 +1,22 @@
-import type { ReactNode, Ref } from 'react';
+import { useEffect, useRef, type ReactNode, type Ref } from 'react';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
 import { FunnelIcon } from '@phosphor-icons/react';
 import { ICON_MD } from './iconSizes';
+
+const FIELDS =
+  'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)';
+
+function PanelFields({ children }: { children: ReactNode }) {
+  const fields = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    fields.current?.querySelector<HTMLElement>(FIELDS)?.focus({ preventScroll: true });
+  }, []);
+  return (
+    <div ref={fields} className="contents">
+      {children}
+    </div>
+  );
+}
 
 export function FilterPopover({
   ref,
@@ -33,7 +48,7 @@ export function FilterPopover({
         focus
         className="z-50 flex max-h-[calc(100dvh-2rem)] w-80 max-w-[calc(100vw-2rem)] flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-surface-raised p-4 shadow-lg [--anchor-gap:8px] [--anchor-padding:16px]"
       >
-        {({ close }) => <>{children(close)}</>}
+        {({ close }) => <PanelFields>{children(close)}</PanelFields>}
       </PopoverPanel>
     </Popover>
   );

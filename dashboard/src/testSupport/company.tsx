@@ -41,6 +41,11 @@ export async function choose(label: string, option: string, search = option) {
   fireEvent.mouseDown(await screen.findByRole('option', { name: (name) => name.startsWith(option) }));
 }
 
+export function showAllClasses() {
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Share class' }), { target: { value: '' } });
+}
+
 export function companyPreferences(role: AccountRole = 'company'): UserPreferences {
   return {
     uuid: 'preferences-one',
