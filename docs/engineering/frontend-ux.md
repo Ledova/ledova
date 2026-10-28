@@ -150,8 +150,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   cards, aligned right. Actions do not wait for a row to be selected.
 - `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
   that shows or hides long optional content in place, such as **Show all 5 share changes** or
-  **Show other certificate requests (2)**. Certificates, Corrections' **Changes** and Member
-  requests rows don't expand: each shows its facts and status, with its permitted action right-aligned
+  **Show other certificate requests (2)**. Certificates, Corrections' **Changes**, Member access,
+  Member requests and Team rows don't expand: each shows its facts and status, with its permitted action right-aligned
   at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
   Certificates and Member requests); on narrower screens it sits beneath the row's facts.
 - `Disclosure`: expandable page content, a button with `aria-expanded` and a leading
@@ -287,7 +287,8 @@ hide other rows and cannot hide a held preparation or its recovery. Both views u
 workspace width and Ledger's aligned change-row pattern;
 headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
 or class context and genuine dates in the row, without repeating the page title inside a card.
-Member access rows open their details and actions in place. Member requests rows don't expand: each
+A current person's Member access row ends with **Revoke access**, which opens the reason form beneath the
+row with what revocation does; a pending invitation shows its acceptance deadline. Member requests rows don't expand: each
 shows the requested address of a details update and the creation date of a fulfilled certificate,
 with **Prepare update** or **Prepare certificate** at the row's end when the request can be prepared.
 Preparing a details update focuses its form heading and keeps the selected row and form together,
@@ -687,6 +688,9 @@ page label. When the selected company is unavailable, `CompanyContextNotice`
 (`dashboard/src/components/CompanyContextNotice.tsx`) links to Dashboard. An explicit company link is
 never silently replaced with a different company. Valid company and record links still open directly.
 Account-wide Profile, own appointments and invitation acceptance do not depend on the selected company.
+Team's appointment rows show the company or person, actions, any delegation, status, expiry and source, with
+**Revoke appointment** at the row's end and an own self-declaration behind **Show the declaration**; issued
+invitations show their acceptance and the appointment's expiry.
 
 Share-class, person, wallet and other record choices stay with their tasks. These rules and the
 company-change safeguards are checked in review and the existing dashboard journeys.
