@@ -106,12 +106,14 @@ export function ClassEntries({
                     <span className="sr-only">Date: </span>
                     {formatDate(companyDated ? entry.companyEventOn : entry.effectiveOn, 'Date not recorded')}
                     {companyDated && entry.effectiveOn !== entry.companyEventOn && (
-                      <span className="block">Ledger date {formatDate(entry.effectiveOn)}</span>
+                      <span className="block">
+                        Ledger date <span className="whitespace-nowrap">{formatDate(entry.effectiveOn)}</span>
+                      </span>
                     )}
                   </p>
                   <div className="col-span-2 min-w-0 tabular-nums text-text-primary md:col-span-1">
                     <span className="sr-only">Share movements: </span>
-                    <Movements changes={entry.changes} />
+                    <Movements entry={entry} />
                   </div>
                   {action && (
                     <div className="col-span-2 flex flex-wrap justify-end gap-2 md:col-span-1 md:col-start-4 md:row-start-1">
@@ -136,9 +138,10 @@ export function ClassEntries({
   );
 }
 
-function Movements({ changes }: { changes: RegisterEntry['changes'] }) {
+function Movements({ entry }: { entry: RegisterEntry }) {
   const id = useId();
   const [all, setAll] = useState(false);
+  const { changes } = entry;
   return (
     <>
       <span id={id} className="block">
@@ -147,6 +150,7 @@ function Movements({ changes }: { changes: RegisterEntry['changes'] }) {
       {changes.length > 2 && (
         <MoreToggle open={all} controls={id} onToggle={() => setAll((value) => !value)}>
           {all ? 'Show fewer share changes' : `Show all ${changes.length} share changes`}
+          <span className="sr-only"> (entry {entry.sequence})</span>
         </MoreToggle>
       )}
     </>

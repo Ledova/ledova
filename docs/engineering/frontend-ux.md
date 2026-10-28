@@ -151,8 +151,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
   that shows or hides long optional content in place, such as **Show all 5 share changes** or
   **Show other certificate requests (2)**. Certificates, Corrections' **Changes** and Member
-  requests rows don't expand: each shows its facts and status, with its permitted action in a
-  fixed-width column at the row's end.
+  requests rows don't expand: each shows its facts and status, with its permitted action right-aligned
+  at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
+  Certificates and Member requests); on narrower screens it sits beneath the row's facts.
 - `Disclosure`: expandable page content, a button with `aria-expanded` and a leading
   caret that opens its detail in place under its row; a summary
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
@@ -804,7 +805,7 @@ server:
   Use one outer `Section`, subtle row dividers and right-aligned tabular quantities, without an
   inner rounded border or shaded header. Native table cells keep their padding; aligned lists
   keep their column grid, with dates and status in muted text.
-  Keep their list and disclosure semantics and editor lifetimes;
+  Keep their list semantics and editor lifetimes;
   focused editors remain unboxed. `Pager` under a paged table gives the rows shown, such as
   "1–25 of 1,240 applications", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it

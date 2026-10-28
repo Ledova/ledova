@@ -620,7 +620,7 @@ export function CompanyMemberAccess({
             {matches.length > 0 && (
               <div
                 aria-hidden="true"
-                className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_12rem_10rem] gap-6 text-xs font-medium text-text-muted lg:grid"
+                className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_12rem_10rem] gap-6 text-xs font-medium text-text-muted xl:grid"
               >
                 <span>Person</span>
                 <span>Request</span>
@@ -645,12 +645,12 @@ export function CompanyMemberAccess({
                         !!access.prepare &&
                         (item.kind !== 'particulars' || item.record.uuid !== selectedRequest.uuid))
                     }
-                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_12rem_10rem] lg:gap-6"
+                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_12rem_10rem] xl:gap-6"
                   >
                     <span className="min-w-0 break-words font-medium">
                       {item.kind === 'particulars' ? item.record.name : memberName(item.record.member)}
                     </span>
-                    <span className="col-span-2 min-w-0 break-words text-text-muted lg:col-span-1">
+                    <span className="col-span-2 min-w-0 break-words text-text-muted xl:col-span-1">
                       <span className="sr-only">Request: </span>
                       {item.kind === 'particulars' ? 'Details update' : 'Unsigned certificate'}
                       {shareClass && (
@@ -662,11 +662,11 @@ export function CompanyMemberAccess({
                         <span className="block whitespace-pre-line">{item.record.residentialAddress}</span>
                       )}
                     </span>
-                    <span className="col-span-2 tabular-nums text-text-muted lg:col-span-1">
-                      <span className="lg:sr-only">Requested: </span>
+                    <span className="col-span-2 tabular-nums text-text-muted xl:col-span-1">
+                      <span className="xl:sr-only">Requested: </span>
                       {formatDate(record.createdAt)}
                     </span>
-                    <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted lg:col-auto lg:row-auto">
+                    <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted xl:col-auto xl:row-auto">
                       {item.kind === 'particulars'
                         ? MEMBER_PARTICULARS_STATUS_LABELS[item.record.status]
                         : MEMBER_CERTIFICATE_STATUS_LABELS[item.record.status]}
@@ -678,7 +678,7 @@ export function CompanyMemberAccess({
                       ? item.record.status === 'submitted' &&
                         access.prepare &&
                         selectedRequest?.uuid !== item.record.uuid && (
-                          <div className="col-span-2 flex justify-end lg:col-span-1">
+                          <div className="col-span-2 flex justify-end xl:col-span-1">
                             <PageAction
                               ref={(element) => {
                                 if (element) requestOpeners.current.set(item.record.uuid, element);
@@ -697,7 +697,7 @@ export function CompanyMemberAccess({
                           </div>
                         )
                       : item.record.status === 'requested' && (
-                          <div className="col-span-2 flex justify-end lg:col-span-1">
+                          <div className="col-span-2 flex justify-end xl:col-span-1">
                             <PageAction
                               ref={(element) => {
                                 if (element) certificateOpeners.current.set(item.record.uuid, element);

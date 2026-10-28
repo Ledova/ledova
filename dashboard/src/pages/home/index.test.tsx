@@ -748,7 +748,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   const certificatesCard = (await screen.findByRole('heading', { name: 'Certificate records' })).closest('section')!;
   expect(await within(certificatesCard).findByText('+10 ORD shares')).toBeTruthy();
   const certificateRow = within(certificatesCard).getByText(MEMBER_RECORD.name).closest('li')!;
-  expect(within(certificateRow).getByText('Requested', { exact: true })).toBeTruthy();
+  expect(within(certificateRow).getAllByText(/^Requested \d/)).toHaveLength(3);
   expect(within(certificateRow).getByText('Not recorded')).toBeTruthy();
   expect(within(certificateRow).getByRole('button', { name: /Withdraw request/ })).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Share history' })).toBeNull();

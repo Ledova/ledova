@@ -160,11 +160,13 @@ export function Disclosure({
 export function MoreToggle({
   open,
   controls,
+  disabled = false,
   onToggle,
   children,
 }: {
   open: boolean;
-  controls?: string;
+  controls: string;
+  disabled?: boolean;
   onToggle: () => void;
   children: ReactNode;
 }) {
@@ -173,8 +175,9 @@ export function MoreToggle({
       type="button"
       aria-expanded={open}
       aria-controls={controls}
+      disabled={disabled}
       onClick={onToggle}
-      className="w-fit text-left text-sm text-brand-light hover:underline"
+      className="w-fit text-left text-sm text-brand-light hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline"
     >
       {children}
     </button>

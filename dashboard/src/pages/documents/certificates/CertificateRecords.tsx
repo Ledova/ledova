@@ -35,7 +35,8 @@ export type CompanyCertificateSource = {
 };
 type CertificateRecord = { uuid: string; company?: RegisterEntry; own?: OwnMemberEntry };
 
-const ROW_COLUMNS = 'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_10rem]';
+const ROW_COLUMNS =
+  'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_10rem]';
 
 export function CertificateRecords({
   read,
@@ -163,6 +164,7 @@ export function CertificateRecords({
               { member: record!.member, name: record!.name, shares: row.own!.delta },
             ];
             const focused = editing === row.uuid;
+            const companyDated = ['issue', 'transfer'].includes(entry.kind.toLowerCase());
             return (
               <li
                 key={`${selectedClass?.uuid}/${row.uuid}`}
@@ -183,15 +185,28 @@ export function CertificateRecords({
                   </span>
                 </span>
                 <span className="text-text-muted">
-                  {['issue', 'transfer'].includes(entry.kind.toLowerCase())
-                    ? formatDate(entry.companyEventOn, 'Not recorded')
-                    : formatDate(entry.effectiveOn)}
+                  {companyDated ? formatDate(entry.companyEventOn, 'Not recorded') : formatDate(entry.effectiveOn)}
+                  {companyDated && entry.effectiveOn !== entry.companyEventOn && (
+                    <span className="block">
+                      Ledger date <span className="whitespace-nowrap">{formatDate(entry.effectiveOn)}</span>
+                    </span>
+                  )}
                 </span>
                 <span className="text-text-muted">
-                  {CERTIFICATE_STATUSES.find(([value]) => value === statusOf(row))?.[1]}
-                  {latest && <span className="block">Requested {formatDate(latest.createdAt)}</span>}
+                  {latest?.status === 'requested'
+                    ? `Requested ${formatDate(latest.createdAt)}`
+                    : CERTIFICATE_STATUSES.find(([value]) => value === statusOf(row))?.[1]}
+                  {latest && latest.status !== 'requested' && (
+                    <span className="block">Requested {formatDate(latest.createdAt)}</span>
+                  )}
                 </span>
-                <div className={focused ? 'md:col-span-5' : 'flex flex-wrap justify-end gap-2 md:items-start'}>
+                <div
+                  className={
+                    focused
+                      ? 'md:col-span-4 xl:col-span-5'
+                      : 'flex flex-wrap justify-end gap-2 md:col-span-4 xl:col-span-1'
+                  }
+                >
                   {company && row.company && (
                     <ClassCertificate
                       sourceKey={`${company.owner.userUuid}/${company.owner.ownerAccountUuid}`}
@@ -214,8 +229,8 @@ export function CertificateRecords({
                   )}
                   {!focused && latest && actions(latest)}
                 </div>
-                {!focused && related.length > 1 && (
-                  <div className="divide-y divide-border-subtle md:col-span-5">
+                {related.length > 1 && (
+                  <div hidden={focused} className="divide-y divide-border-subtle md:col-span-4 xl:col-span-5">
                     <h4 className="text-sm font-medium">Earlier requests</h4>
                     {related.slice(1).map(requestRecord)}
                   </div>
@@ -239,9 +254,8 @@ export function CertificateRecords({
           <MoreToggle
             open={otherShown}
             controls={otherId}
-            onToggle={() => {
-              if (!otherActive) setOtherExpanded((current) => !current);
-            }}
+            disabled={otherActive}
+            onToggle={() => setOtherExpanded((current) => !current)}
           >
             {otherShown
               ? 'Hide other certificate requests'
