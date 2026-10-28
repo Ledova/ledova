@@ -1,8 +1,9 @@
 import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { useNewShareClass, type FreshClassProps } from './useNewShareClass';
+import { useStartedClasses } from './useStartedClasses';
 import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { generatePath, Link, useSearchParams } from 'react-router-dom';
 import {
   FIELD_LIMITS,
@@ -11,7 +12,6 @@ import {
   AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
   createUserFriendlyError,
-  getCompanyOwnership,
   type Company,
   type OwnCompanyAppointment,
   type OrderSubmissionOwner,
@@ -19,12 +19,10 @@ import {
   type RegisterTransferMembers,
 } from '@ledova/shared';
 
-import apiClient from '@services/apiClient';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { useRegisterClasses, registerClassesKey, registerHoldersKey } from '@hooks/useRegisterClasses';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
+import { useRegisterClasses, registerClassesKey } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
@@ -192,22 +190,7 @@ function FreshClass({
     resolveRegister,
     problems,
   } = useNewShareClass({ guard, checkCurrent, company, classes, ready });
-  const ownership = useQuery({
-    queryKey: [...registerHoldersKey(owner), 'setup', company.uuid],
-    enabled: ready && draftClasses.length > 0,
-    queryFn: async () => {
-      guard();
-      const { data } = await getCompanyOwnership(apiClient, company.uuid, { ledovaSubmissionGuard: guard });
-      guard();
-      return data;
-    },
-    ...READ_TIMING,
-  });
-  const started = draftClasses.filter(
-    ({ uuid }) =>
-      ownership.data?.company === company.uuid &&
-      ownership.data.classes.some((row) => row.uuid === uuid && !row.initialized),
-  );
+  const started = useStartedClasses(owner, guard, company.uuid, draftClasses, ready);
 
   return (
     <ImportForm
