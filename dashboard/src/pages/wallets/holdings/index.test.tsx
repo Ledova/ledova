@@ -132,10 +132,18 @@ async function certificateRequest() {
   return screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
 }
 
+async function openCompanySwitch() {
+  const toggle = await screen.findByRole('button', { name: 'Switch company' });
+  expect(toggle.closest('header')).toBeTruthy();
+  if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle);
+  return screen.getByRole('combobox', { name: 'Your companies' }) as HTMLInputElement;
+}
+
 async function chooseMemberCompany(name: string) {
   const settings = !!screen.queryByRole('heading', { name: 'Company-recorded details', level: 1 });
   const documents = !!screen.queryByRole('heading', { name: 'Certificates', level: 1 });
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
+  await openCompanySwitch();
   await choose('Your companies', name);
   if (screen.queryByRole('dialog', { name: 'Leave this page?' }))
     fireEvent.click(screen.getByRole('button', { name: 'Leave page' }));
@@ -292,6 +300,8 @@ it('updates ownership and member workflows after invalidation without idle refre
   expect(screen.queryByRole('button', { name: 'Ordinary · ORD' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await ownShares('10');
+  expect(screen.queryByRole('button', { name: 'Switch company' })).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Your companies' })).toBeNull();
   expect(screen.getByRole('img', { name: /3 unvested, 2 vested, awaiting issue, 0 issued from award/ })).toBeTruthy();
   const awardsCard = screen.getByRole('heading', { name: 'Your employee awards' }).closest('section')!;
   expect(within(awardsCard).getByText('5 shares promised')).toBeTruthy();
@@ -490,12 +500,13 @@ it('updates ownership and member workflows after invalidation without idle refre
   includeOther = true;
   otherRecord = { ...otherRecordWithShares, classes: [] };
   await refreshRead();
-  expect((screen.getByRole('combobox', { name: 'Your companies' }) as HTMLInputElement).disabled).toBe(false);
+  expect((await openCompanySwitch()).disabled).toBe(false);
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect(((await screen.findByRole('textbox', { name: 'Requested name' })) as HTMLInputElement).value).toBe(
     'Retained draft',
   );
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
+  await openCompanySwitch();
   await choose('Your companies', otherRecord.company.name);
   const leaveReview = await screen.findByRole('dialog', { name: 'Leave this page?' });
   fireEvent.click(within(leaveReview).getByRole('button', { name: 'Cancel' }));
@@ -533,7 +544,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByText('Your issued shares')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
-  expect((screen.getByRole('combobox', { name: 'Your companies' }) as HTMLInputElement).disabled).toBe(false);
+  expect((await openCompanySwitch()).disabled).toBe(false);
   await choose('Your companies', otherRecord.company.name);
   await ownShares('25');
   expect(screen.getByRole('heading', { name: 'Ownership overview' })).toBeTruthy();

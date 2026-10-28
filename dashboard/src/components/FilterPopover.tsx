@@ -5,11 +5,15 @@ import { ICON_MD } from './iconSizes';
 
 export function FilterPopover({
   ref,
+  label = 'Filters',
+  icon = <FunnelIcon size={ICON_MD} aria-hidden="true" />,
   active = false,
   resetKey,
   children,
 }: {
   ref?: Ref<HTMLButtonElement>;
+  label?: string;
+  icon?: ReactNode;
   active?: boolean;
   resetKey?: string;
   children: (close: () => void) => ReactNode;
@@ -18,11 +22,11 @@ export function FilterPopover({
     <Popover key={resetKey} className="shrink-0">
       <PopoverButton
         ref={ref}
-        aria-label="Filters"
-        title="Filters"
+        aria-label={label}
+        title={label}
         className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition-colors hover:bg-surface-tertiary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-mid ${active ? 'border-brand-mid text-brand-light' : 'border-border text-text-primary'}`}
       >
-        <FunnelIcon size={ICON_MD} aria-hidden="true" />
+        {icon}
       </PopoverButton>
       <PopoverPanel
         anchor="bottom end"

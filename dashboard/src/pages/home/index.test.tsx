@@ -43,6 +43,7 @@ function MemberPageLinks() {
       <Link to={context!.companyPath('/home')}>Dashboard</Link>
       <Link to={context!.companyPath('/home#documents')}>Documents</Link>
       <Link to={context!.companyPath('/settings#company-recorded-details')}>Settings</Link>
+      <Link to="/home?company=unavailable-company">Open unavailable company</Link>
     </nav>
   );
 }
@@ -510,6 +511,8 @@ it('invites and associates a walletless member, recovers one exact request and r
   );
   const memberView = render(memberPages, { wrapper });
   await screen.findByText('Your issued shares');
+  expect(screen.queryByRole('button', { name: 'Switch company' })).toBeNull();
+  expect(screen.queryByRole('combobox', { name: 'Your companies' })).toBeNull();
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   expect(screen.queryByRole('group', { name: 'Ownership view' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
@@ -670,21 +673,50 @@ it('invites and associates a walletless member, recovers one exact request and r
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey.slice(0, -1), exact: true }));
   memberView.unmount();
   render(memberPages, { wrapper });
-  await screen.findByRole('combobox', { name: 'Your companies' });
+  const switchCompany = async (name: string, search = name) => {
+    const toggle = await screen.findByRole('button', { name: 'Switch company' });
+    expect(toggle.closest('header')).toBeTruthy();
+    expect(toggle.getAttribute('title')).toBe('Switch company');
+    fireEvent.click(toggle);
+    await choose('Your companies', name, search);
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Your companies' })).toBeNull());
+    expect(document.activeElement).toBe(toggle);
+  };
+  await screen.findByRole('button', { name: 'Switch company' });
+  expect(screen.queryByRole('combobox', { name: 'Your companies' })).toBeNull();
   expect(screen.queryByRole('list', { name: 'Your companies' })).toBeNull();
-  await choose('Your companies', 'Company 2', 'company 2');
+  await switchCompany('Company 2', 'company 2');
   expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('2,000');
   expect(screen.getByRole('list', { name: 'Share classes' }).textContent).toContain('You: 20');
   expect(screen.queryByText('1,500')).toBeNull();
-  await choose('Your companies', 'Company 3', 'company 3');
+  await switchCompany('Company 3', 'company 3');
   expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('3,000');
   expect(screen.getByRole('list', { name: 'Share classes' }).textContent).toContain('You: 30');
   expect(screen.queryByText('2,000')).toBeNull();
-  await choose('Your companies', MEMBER_RECORD.company.name);
+  await switchCompany(MEMBER_RECORD.company.name);
+  expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('1,500');
+  fireEvent.click(screen.getByRole('button', { name: 'Explore Ordinary (ORD)' }));
+  const selectedOrdinary = await screen.findByRole('heading', { name: 'Ordinary' });
+  await waitFor(() => expect(document.activeElement).toBe(selectedOrdinary));
+  expect(screen.getByRole('button', { name: 'Company ownership' })).toBeTruthy();
+  await switchCompany('Company 2', 'company 2');
+  expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('2,000');
+  expect(screen.queryByRole('heading', { name: 'Ordinary' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Company ownership' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'All classes' })).toBeNull();
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Switch company' }));
+  await switchCompany(MEMBER_RECORD.company.name);
   expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('1,500');
   additionalRecords = [];
   await act(async () => client.refetchQueries({ queryKey: ownDetailKey.slice(0, -1), exact: true }));
-  await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Your companies' })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Switch company' })).toBeNull());
+  expect(screen.queryByRole('combobox', { name: 'Your companies' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Open unavailable company' }));
+  await screen.findByRole('heading', { name: 'Company unavailable' });
+  expect(screen.queryByRole('button', { name: 'Switch company' })).toBeNull();
+  expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Open your company' }));
+  expect((await screen.findByRole('region', { name: 'Company ownership summary' })).textContent).toContain('1,500');
   currentMemberRecord = { ...MEMBER_RECORD, ownership: null };
   holdMemberRecord = true;
   release = undefined;
