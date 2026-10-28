@@ -613,7 +613,7 @@ it('retains original award, vesting and linked issue preparations through interr
     fireEvent.change(screen.getByLabelText(GRANT.AUTHORITY_DOCUMENT), { target: { files: [FILE] } });
   };
   expect(screen.queryByLabelText(GRANT.TERMS_DOCUMENT)).toBeNull();
-  const agreementDetails = issues.getByRole('button', { name: 'Award record details' });
+  const agreementDetails = issues.getByRole('button', { name: 'Show award record details' });
   expect(agreementDetails.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(agreementDetails);
   expect((screen.getByLabelText(GRANT.TERMS_ON) as HTMLInputElement).value).toBe(awards[0].termsOn);

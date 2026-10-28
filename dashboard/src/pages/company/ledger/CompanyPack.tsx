@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type OrderSubmissionOwner } from '@ledova/shared';
-import { Outcome, Section, LoadError, Loading, Disclosure } from '@components/Ledger';
+import { Outcome, Section, LoadError, Loading, ShowMore } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -87,7 +87,7 @@ function PackForm({
         This company ZIP includes residential addresses and private records. Current company administration, a written
         instruction and a named recipient are required; the captured records and generation time are retained.
       </p>
-      <Disclosure summary="Included records and limitations">
+      <ShowMore show="Show included records and limitations" hide="Hide included records and limitations">
         <div className="text-sm text-text-muted">
           <p className="mt-2">
             Packs include non-tokenised registers, employee awards and fully paid external allotments. Unsupported
@@ -95,7 +95,7 @@ function PackForm({
             instead.
           </p>
         </div>
-      </Disclosure>
+      </ShowMore>
       <ErrorSummary {...checks.summary} />
       <fieldset disabled={busy || !sourceReady} className="grid gap-4 sm:grid-cols-2">
         <Field {...checks.field('instruction')} label="Pack instruction reference">

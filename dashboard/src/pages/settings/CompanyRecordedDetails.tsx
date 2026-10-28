@@ -1,5 +1,5 @@
 import { CheckboxField, Field, TextArea, TextInput } from '@components/Field';
-import { Disclosure, Row, Rows, Section, Status } from '@components/Ledger';
+import { ShowMore, Row, Rows, Section, Status } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberRecordsContent } from '@components/member-records/MemberRecordsContent';
@@ -137,7 +137,7 @@ function MemberParticulars() {
                   </Row>
                 </Rows>
                 <div className="text-sm lg:mt-auto">
-                  <Disclosure summary="Ledger details">
+                  <ShowMore show="Show ledger details" hide="Hide ledger details">
                     <p className="text-sm text-text-muted">
                       Provided by the company, not verified by Ledova. Profile edits do not change this register.
                     </p>
@@ -148,7 +148,7 @@ function MemberParticulars() {
                         {item.amountPaid ?? 'not recorded'}
                       </p>
                     ))}
-                  </Disclosure>
+                  </ShowMore>
                 </div>
               </div>
               {(pendingParticulars.length > 0 || previousParticulars.length > 0) && (
@@ -156,7 +156,12 @@ function MemberParticulars() {
                   <h3 className="text-sm font-medium">Update requests</h3>
                   {pendingParticulars.length > 0 && particularsRequests(pendingParticulars)}
                   {previousParticulars.length > 0 && (
-                    <Disclosure summary="Previous requests">{particularsRequests(previousParticulars)}</Disclosure>
+                    <ShowMore
+                      show={`Show previous requests (${previousParticulars.length})`}
+                      hide="Hide previous requests"
+                    >
+                      {particularsRequests(previousParticulars)}
+                    </ShowMore>
                   )}
                 </div>
               )}

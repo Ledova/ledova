@@ -811,7 +811,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(rights[0].documentReference).toBe('');
   expect(rights[0].documents).toEqual([]);
   expect(screen.queryByRole('button', { name: 'Download (constitution.pdf)' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Previous versions' }));
+  fireEvent.click(screen.getByRole('button', { name: /^Show previous versions/ }));
   expect(screen.getByText('Each share has one vote.')).toBeTruthy();
   const originalVersion = screen.getByText('Version 1').closest('li')!;
   fireEvent.click(within(originalVersion).getByRole('button', { name: 'Download (constitution.pdf)' }));
@@ -2452,7 +2452,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   rejected.asicIssuedTotal = '601';
   showReplacement('original-preparer');
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(screen.getByRole('button', { name: 'Company source copies' }).getAttribute('aria-expanded')).toBe('false');
+  expect(screen.getByRole('button', { name: 'Show company source copies' }).getAttribute('aria-expanded')).toBe(
+    'false',
+  );
   api.post.mockClear();
   fireEvent.click(screen.getByRole('button', { name: 'Save draft and review' }));
   expect(
@@ -2468,7 +2470,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByText(/retained ASIC copy and figures will be reused/)).toBeTruthy();
   showReplacement('another-preparer');
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Company source copies' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Show company source copies' }));
   expect(screen.getByText(/Earlier source documents remain with their original record/)).toBeTruthy();
   expect(screen.queryByText(/will be reused/)).toBeNull();
   expect(screen.getByRole('group', { name: 'Earlier ASIC comparison' }).textContent).toContain('600 issued shares');

@@ -582,16 +582,17 @@ for an issue or transfer (ledger effective date for other kinds), with the ledge
 differs; and its first two signed shareholder movements, with Show all for the rest. Rows don't
 expand, and Correct sits at the end of a row that may be corrected. An older issue or transfer with
 no company date says Date not recorded. Retained source imports, chain openings, corrections, reconciliation,
-particulars and wallet-link records remain available on demand, with permitted evidence downloads.
+particulars and wallet-link records stay listed with their details and permitted evidence downloads.
 Entries remain immutable. Current register readers can inspect the records; preparation, approval,
 application and acknowledgement controls still require their respective company appointments.
 The former web History address opens Corrections with the same company and class. Certificates are
 prepared in [Documents](member-records.md#preparing-a-certificate).
 
 The same view holds the existing append-only correction and maintenance workflows: source opening
-corrections, chain openings, reconciliation acknowledgements, particulars and wallet links. Their
-supporting records open on demand to their snapshot, documents and decision trail; a prepared record
-starts open. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
+corrections, chain openings, reconciliation acknowledgements, particulars and wallet links. Each is a
+titled record showing its snapshot, documents and decision trail; an opening's holdings or
+shareholders sit behind **Show the holdings** or **Show the shareholders**, open while it awaits a
+decision. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
 Confirmed), and evidence reads as
 provided by the company or, before the work became company-run, "Verified by Ledova staff". A
 section that read successfully with nothing to show is left out, but a class on chain without a

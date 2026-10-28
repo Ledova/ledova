@@ -228,7 +228,7 @@ labels and the same responsive grid. While an award editor is open, its footer o
 hide unrelated record actions instead of leaving a disabled row above the form.
 Non-paid issue preparation groups **Issue details** and **Company authority** in the same responsive
 grid. Show an award recipient and available vested shares once; its retained agreement belongs
-under **Award record details**, with read-only validation targets that open on error. Ordinary non-paid terms stay
+behind **Show award record details**, with read-only validation targets that open on error. Ordinary non-paid terms stay
 editable fields. Keep the required fields and guards, without repeated descriptions or routine
 upload hints, and show recovery guidance only while the original preparation is held.
 Issue records align the recipient and issue type, shares, company issue date and status in the
@@ -360,7 +360,7 @@ Company information and personal Profile details follow this pattern. Activation
 company and declaration on the main page before explicit confirmation. Supporting payslips use
 compact document records with extraction details on demand and warnings visible in the expanded record;
 uploading opens an inline form.
-Class rights follows this pattern: Edit replaces its read view and Previous versions with six
+Class rights follows this pattern: Edit replaces its read view and previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
 details beside their choice; combine conditions, exceptions and custom rights in Additional terms

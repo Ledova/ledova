@@ -13,7 +13,7 @@ import {
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { PageAction, PageLink } from '@components/Page';
-import { Disclosure, Outcome, Row, Rows, Section, Status, SwitchRow, LoadError, Loading } from '@components/Ledger';
+import { Outcome, Row, Rows, Section, Status, SwitchRow, LoadError, Loading } from '@components/Ledger';
 import { setTheme } from '@hooks/useTheme';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
@@ -168,7 +168,8 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
             )}
           </div>
         </div>
-        <Disclosure summary="Manage account">
+        <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
+          <h3 className="text-sm font-medium text-text-primary">Manage account</h3>
           {profile.userProfile && (
             <Rows>
               <Row label="Member since">{formatDate(profile.userProfile.dateJoined, 'Not available')}</Row>
@@ -201,7 +202,7 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
               }}
             />
           </div>
-        </Disclosure>
+        </div>
       </Section>
       {verificationOpen && profile.userProfile && (
         <IdentityVerificationModal

@@ -9,7 +9,7 @@ import {
 } from '@ledova/shared';
 import { Field, FileField, TextArea, TextInput } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
-import { Disclosure, LoadError, Loading, Outcome, Row, Rows, Section } from '@components/Ledger';
+import { ShowMore, LoadError, Loading, Outcome, Row, Rows, Section } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -259,7 +259,7 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
             </p>
           )}
           {!rights.editor && rights.count > 1 && (
-            <Disclosure summary="Previous versions">
+            <ShowMore show={`Show previous versions (${rights.count - 1})`} hide="Hide previous versions">
               <ul className="divide-y divide-border-subtle">
                 {rights.revisions
                   .filter((revision) => revision.uuid !== rights.current?.uuid)
@@ -278,7 +278,7 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
                 disabled={rights.query.isFetching}
                 onLoad={() => void rights.query.fetchNextPage()}
               />
-            </Disclosure>
+            </ShowMore>
           )}
         </>
       )}
