@@ -657,8 +657,8 @@ mapped holding against final chain evidence before claiming a mirror.
 Offerings, at `/company/offering` on web, lists every offering of the selected
 company the person owns, with its applications, followed by Investor directory and What happens
 next. Each offering shows its terms, status, any rejection, previous rejection or closing reason,
-and the actions its status allows. On the web, an approved offering also shows its UUID in full, with
-**Copy offering UUID**, to give investors for their large-investment eligibility requests. New
+and the actions its status allows. On the web, an approved offering also shows its **Offering ID** in full, with
+**Copy offering ID**, to give investors for their large-investment eligibility requests. New
 offering needs a deployed class; without one the page says to deploy a class first.
 
 The offering form checks the price, ordered bounds, dates and available settlement choices before

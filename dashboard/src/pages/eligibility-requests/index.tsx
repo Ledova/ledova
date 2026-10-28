@@ -43,12 +43,12 @@ export default function ParticipantEligibilityPage() {
   const quantity = read.draft.quantity;
   const request = useErrorSummary({
     source: !source && 'Choose your evidence source.',
-    offering: productValue && !isUuid(read.draft.offering) && 'Enter the approved offering UUID.',
+    offering: productValue && !isUuid(read.draft.offering) && 'Enter the approved offering ID.',
     quantity:
       productValue &&
       (!/^[1-9]\d*$/.test(quantity) || !Number.isSafeInteger(Number(quantity))) &&
       'Enter a positive whole-share quantity.',
-    company: !productValue && !isUuid(read.draft.company) && 'Enter the exact company UUID supplied by the company.',
+    company: !productValue && !isUuid(read.draft.company) && 'Enter the company ID supplied by the company.',
     requestedExpiresAt:
       !Number.isFinite(Date.parse(read.draft.requestedExpiresAt)) && 'Enter the requested expiry date and time.',
   });
@@ -73,8 +73,8 @@ export default function ParticipantEligibilityPage() {
               <ErrorSummary {...request.summary} />
               <LinkRow to={DESTINATIONS.investorEligibility.path} label={DESTINATIONS.investorEligibility.title} />
               <p className="text-sm text-text-muted">
-                Select your own submitted evidence or retained historical evidence. Enter the exact company UUID
-                supplied by the company, or an approved offering UUID for a product-value claim. The server confirms the
+                Select your own submitted evidence or retained historical evidence. Enter the company ID supplied by the
+                company, or an approved offering&apos;s offering ID for a product-value claim. The server confirms the
                 target and terms.
               </p>
               <SelectField
@@ -98,7 +98,7 @@ export default function ParticipantEligibilityPage() {
                 <>
                   <Field
                     {...request.field('offering')}
-                    label="Approved offering UUID"
+                    label="Offering ID"
                     hint={directory.offering(read.draft.offering)}
                   >
                     <TextInput
@@ -116,11 +116,7 @@ export default function ParticipantEligibilityPage() {
                   </Field>
                 </>
               ) : (
-                <Field
-                  {...request.field('company')}
-                  label="Exact company UUID"
-                  hint={directory.company(read.draft.company)}
-                >
+                <Field {...request.field('company')} label="Company ID" hint={directory.company(read.draft.company)}>
                   <TextInput
                     value={read.draft.company}
                     onChange={(event) => read.updateDraft({ company: event.target.value })}

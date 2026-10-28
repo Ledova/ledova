@@ -7,7 +7,6 @@ import {
   formatShareCount,
   type TokenHoldersResponse,
   formatDate,
-  shortReference,
 } from '@ledova/shared';
 import { LoadMore } from '@components/List';
 import { PAGE_SIZE } from '@hooks/useListParams';
@@ -113,14 +112,10 @@ export function FormerMembers({
                 />
               )}
               <Rows>
-                {former.member && <Row label="Member reference">{shortReference(former.member)}</Row>}
                 <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
                 <Row label="Ceased on">{formatDate(former.ceasedOn)}</Row>
                 <Row label="Identity source">{former.identitySourceDisplay}</Row>
-                {former.sourceEntry && <Row label="Cessation entry">{shortReference(former.sourceEntry)}</Row>}
-                {former.sourceEntrySequence !== null && (
-                  <Row label="Cessation entry sequence">{former.sourceEntrySequence}</Row>
-                )}
+                {former.sourceEntrySequence !== null && <Row label="Cessation entry">{former.sourceEntrySequence}</Row>}
                 {former.sourceEntryKind && (
                   <Row label="Cessation entry kind">
                     {REGISTER_CORRECTION_COPY.ENTRY_KINDS[former.sourceEntryKind as RegisterEntryKind]}
@@ -129,12 +124,9 @@ export function FormerMembers({
                 {former.sourceEffectiveOn && (
                   <Row label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Row>
                 )}
-                {former.corrects && <Row label="Corrects entry">{shortReference(former.corrects)}</Row>}
-                {former.correctedBy && <Row label="Corrected by entry">{shortReference(former.correctedBy)}</Row>}
+                {former.correctedBy && <Row label="Correction">Cessation corrected by a later entry</Row>}
                 {former.returnedOn && <Row label="Returned on">{formatDate(former.returnedOn)}</Row>}
-                {former.returnedEntry && <Row label="Return entry">{shortReference(former.returnedEntry)}</Row>}
                 {former.walletAddress && <Row label="Recorded wallet">{former.walletAddress}</Row>}
-                {former.ceasedAtBlock !== null && <Row label="Recorded cessation block">{former.ceasedAtBlock}</Row>}
               </Rows>
             </li>
           ))}

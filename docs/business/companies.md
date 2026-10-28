@@ -352,8 +352,8 @@ requirement is separate ([participants](participants.md#account-readiness)).
 
 The company section of web **Settings → Profile** shows the selected company's details
 as provided by the company: status, trading name, type, ACN, ABN, email (administrators only), phone
-and address. Administrators see **Edit company**. It also shows the company's UUID in full, with
-**Copy company UUID**, to give investors for their eligibility requests and claims
+and address. Administrators see **Edit company**. It also shows the **Company ID** in full, with
+**Copy company ID**, to give investors for their eligibility requests and claims
 ([requesting a decision](participants.md#requesting-a-decision)).
 
 On web, select the company in Dashboard. Settings opens Profile, combining personal, permitted

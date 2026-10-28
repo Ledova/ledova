@@ -1,11 +1,5 @@
 import type { ReactNode } from 'react';
-import {
-  formatDate,
-  shareCount,
-  shortReference,
-  type RegisterTransfer,
-  type RegisterTransferDecisionPreview,
-} from '@ledova/shared';
+import { formatDate, shareCount, type RegisterTransfer, type RegisterTransferDecisionPreview } from '@ledova/shared';
 import { Disclosure, Row, Rows, Section } from '@components/Ledger';
 import { Table } from '@components/List';
 
@@ -20,8 +14,8 @@ export function TransferReview({
   proposal: Pick<RegisterTransfer, 'authorityReference' | 'reason'>;
   showOwnership?: boolean;
 }) {
-  const from = preview.fromName || shortReference(preview.fromMember);
-  const to = preview.name || shortReference(preview.toMember);
+  const from = preview.fromName || 'Name not recorded';
+  const to = preview.name || 'Name not recorded';
   return (
     <>
       <Section title="Transfer summary">
@@ -104,7 +98,6 @@ export function TransferReview({
             {preview.effectiveOn && preview.effectiveOn !== preview.companyEventOn && (
               <Row label="Ledger date">{formatDate(preview.effectiveOn)}</Row>
             )}
-            <Row label="Register sequence">{preview.registerSequence}</Row>
             <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
           </Rows>
           {documents}

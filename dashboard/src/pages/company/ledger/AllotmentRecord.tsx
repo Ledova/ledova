@@ -10,7 +10,6 @@ import {
   shareCount,
   formatMoney,
   formatDate,
-  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -148,14 +147,6 @@ export function AllotmentRecord({
               <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
               <Row label={COPY.REASON}>{allotment.reason}</Row>
               <DecisionTrail proposal={allotment} labels={DECISION_COPY.DECISIONS} />
-              {!!allotment.registerEntry && <Row label="Register entry">{shortReference(allotment.registerEntry)}</Row>}
-              <Row label="Allotment record">{shortReference(allotment.uuid)}</Row>
-              <Row label="Member reference">{shortReference(allotment.member)}</Row>
-              <Row label="External agreement record">{shortReference(allotment.agreement.uuid)}</Row>
-              <Row label="Company contribution record">{shortReference(allotment.contribution.uuid)}</Row>
-              <Row label="Authority evidence SHA-256">{allotment.evidenceFingerprint}</Row>
-              <Row label="Agreement evidence SHA-256">{allotment.agreement.evidenceFingerprint}</Row>
-              <Row label="Receipt evidence SHA-256">{allotment.contribution.evidenceFingerprint}</Row>
             </Rows>
             <AllotmentRows allotment={allotment} />
             <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>

@@ -617,12 +617,12 @@ function useEligibilityRecords(
             !/^[1-9]\d*$/.test(value.request.quantity) ||
             !Number.isSafeInteger(Number(value.request.quantity))
           )
-            throw createUserFriendlyError('Enter an approved offering UUID and a positive whole-share quantity.');
+            throw createUserFriendlyError('Enter an approved offering ID and a positive whole-share quantity.');
           input.offering = value.request.offering;
           input.quantity = Number(value.request.quantity);
         } else {
           if (!isUuid(value.request.company))
-            throw createUserFriendlyError('Enter the exact company UUID supplied by the company.');
+            throw createUserFriendlyError('Enter the company ID supplied by the company.');
           input.company = value.request.company;
         }
         const response = await previewEligibilityRequest(api, input, config(guard));

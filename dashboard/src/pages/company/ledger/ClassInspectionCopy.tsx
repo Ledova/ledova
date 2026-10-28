@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type TokenHoldersResponse, formatDate } from '@ledova/shared';
-import { Disclosure, Outcome, Row, Rows } from '@components/Ledger';
+import { Outcome, Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -79,19 +79,12 @@ function InspectionForm({
       </p>
       <ErrorSummary {...checks.summary} />
       {target ? (
-        <>
-          <Rows>
-            <Row label="Share class">{register.token.name}</Row>
-            <Row label="Instruction">{target.request.instruction}</Row>
-            <Row label="Recipient">{target.request.recipient}</Row>
-            <Row label="Request date">{formatDate(target.request.requestedOn)}</Row>
-          </Rows>
-          <Disclosure summary="Record details">
-            <Rows>
-              <Row label="Register sequence">{target.preview.registerSequence}</Row>
-            </Rows>
-          </Disclosure>
-        </>
+        <Rows>
+          <Row label="Share class">{register.token.name}</Row>
+          <Row label="Instruction">{target.request.instruction}</Row>
+          <Row label="Recipient">{target.request.recipient}</Row>
+          <Row label="Request date">{formatDate(target.request.requestedOn)}</Row>
+        </Rows>
       ) : (
         <fieldset disabled={blocked} className="grid gap-4 sm:grid-cols-2">
           <Field {...checks.field('instruction')} label="Written instruction reference">

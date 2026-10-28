@@ -1,11 +1,5 @@
 import type { ReactNode } from 'react';
-import {
-  formatDate,
-  shareCount,
-  shortReference,
-  type RegisterGrant,
-  type RegisterGrantDecisionPreview,
-} from '@ledova/shared';
+import { formatDate, shareCount, type RegisterGrant, type RegisterGrantDecisionPreview } from '@ledova/shared';
 import { Disclosure, Row, Rows, Section } from '@components/Ledger';
 
 export function GrantReview({
@@ -86,11 +80,10 @@ export function GrantReview({
             <Row label="Agreement terms">{preview.terms}</Row>
             <Row label="Residential address">{preview.residentialAddress}</Row>
             <Row label="Member record">{preview.newMember ? 'New member' : 'Existing member'}</Row>
-            {preview.award && <Row label="Employee award">{shortReference(preview.award)}</Row>}
+            {preview.award && <Row label="Source">Employee award</Row>}
             {preview.effectiveOn && preview.effectiveOn !== preview.companyEventOn && (
               <Row label="Ledger date">{formatDate(preview.effectiveOn)}</Row>
             )}
-            <Row label="Register sequence">{preview.registerSequence}</Row>
             <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
           </Rows>
           {documents}

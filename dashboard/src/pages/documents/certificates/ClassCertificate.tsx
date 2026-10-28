@@ -1,6 +1,6 @@
 import { formatDate, formatDateTime, formatRegisterChanges } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
-import { Disclosure, Outcome, Row, Rows } from '@components/Ledger';
+import { Outcome, Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { useClassCertificate, type Source } from './useClassCertificate';
 
@@ -85,16 +85,11 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
           ))}
         </Row>
         <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
+        <Row label="Entry">{entry.sequence}</Row>
+        <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
+        <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
         {target && <Row label="PDF pages">{target.preview.pageCount}</Row>}
       </Rows>
-      <Disclosure summary="Record details">
-        <Rows>
-          <Row label="Entry">{entry.sequence}</Row>
-          <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
-          <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
-          {target && <Row label="Register sequence">{target.preview.registerSequence}</Row>}
-        </Rows>
-      </Disclosure>
       <p className="text-sm text-text-muted">Includes names and residential addresses. The company arranges signing.</p>
       {error && (
         <p role="alert" className="text-sm text-error-light">

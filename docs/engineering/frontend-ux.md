@@ -101,9 +101,8 @@ award shares are already included in the holding. The Dashboard contains the ove
 awards; requests, documents and record-management actions stay on their focused pages.
 Profile shows **Company-recorded details** as one card, after Personal information, for a member of
 the selected company. **Current details** and **Update requests** form equal desktop groups separated by a hairline,
-with aligned name and address rows; they stack on smaller screens without nested cards. Address previews
-stay on one line with an ellipsis when space runs out; **Ledger details** and **Record details** show
-the full original addresses without changing stored text. Each request's status and date use a labelled
+with aligned name and address rows; they stack on smaller screens without nested cards. Addresses show
+in full with their original line breaks, without changing stored text. Each request's status and date use a labelled
 row aligned with the name and address values. **Request update** sits in the shared
 right-aligned footer. That action opens one focused inline form with **Cancel** and
 **Send request** together; a successful submission closes the form and clears sharing consent.
@@ -240,13 +239,13 @@ the complete permitted history, not just loaded rows, and keep older or other-cl
 these entry filters.
 Company pack stays at company scope. Each uses the existing workspace frame, cards, responsive
 field grid and action footer, opening one focused main-page preparation at a time. Certificate
-preparation uses the existing labelled summary rows for share movements, company date and PDF page
-count after preview. No manual certificate reference is needed: the server records the exact-entry
-request when the file is generated. Keep technical metadata under **Record details** and one
+preparation uses the existing labelled summary rows for share movements, company date, entry number,
+ledger date, recording time and PDF page count after preview. No manual certificate reference is
+needed: the server records the exact-entry request when the file is generated. Keep one
 right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
 Inspection copy and Company pack open from their preparation actions; privacy and source guidance stays with the opened form
-or download. Inspection copy shows editable request fields before preview and captured summary rows afterwards,
-with its sequence under Record details. Correction, particulars, wallet-link and opening forms use the same
+or download. Inspection copy shows editable request fields before preview and captured summary rows afterwards.
+Correction, particulars, wallet-link and opening forms use the same
 responsive field grid; their records group document and decision actions in one wrapping footer. Keep current source and appointment validation and error retries, without routine
 refresh controls.
 
@@ -279,9 +278,8 @@ Each whole row opens its details and relevant actions together, including the fu
 Preparing a details update focuses its form heading and keeps the selected row and form together,
 with other rows mounted but hidden; Cancel restores the list and opener focus.
 Use only the form's top rule between the selected request and its form, suppressing the list divider.
-Details-update requests omit **Technical details**; their internal identifiers remain in the audit records.
-Access, invitation and certificate records put account, member and entry references, fingerprints
-and file sizes under **Technical details**. A certificate request does not supply a share quantity;
+Requests, access and invitation records show no internal references, fingerprints or file sizes; these
+remain in the audit records. A certificate request does not supply a share quantity;
 do not substitute the member's current holding. Keep unavailable reads and their retries distinct
 from confirmed empty collections.
 Invite a member sits in a right-aligned row beneath the Invitations card. Invitation preparation replaces
@@ -297,8 +295,8 @@ retries and original-action recovery; there is no routine refresh control.
 Selecting a certificate request replaces the collection with focused **Prepare certificate** and
 **Review certificate** views, keeping its controllers mounted. Group the member, exact class,
 request date and unsigned single-recipient PDF summary together. The preparation owns the required
-**Company instruction** field; the review keeps its captured instruction, entry and register
-sequence and source fingerprint under **Record details**. Keep the privacy and signing reminder
+**Company instruction** field; the review shows the captured instruction and entry number beneath
+the summary. Keep the privacy and signing reminder
 visible, with one right-aligned Cancel/Preview or Cancel/Create certificate row. The focused views
 span the workspace; the Member requests collection returns when the task closes.
 
@@ -535,8 +533,7 @@ under the change or on the record you land on, and stays until the next action r
 are no toasts. Its status region stays in place, empty and visually hidden, before there is anything
 to report, so a screen reader announces the sentence when it arrives; a preparation's line arrives
 with the record it lands on and is read because focus moves to that record. It names the record
-rather than its identifier; team invitations, appointments and authority requests show their
-identifier in their own details. It reports:
+rather than its identifier. It reports:
 
 - a changed password, saved personal details, and an offering submitted for review, withdrawn or
   deleted;
@@ -550,7 +547,7 @@ identifier in their own details. It reports:
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
 sign-up keep their boxed outcomes, and `CopyButton` (the payment instruction's values and the
-company's and an approved offering's UUIDs) confirms a copy with Copied beside the button.
+company's and an approved offering's IDs) confirms a copy with Copied beside the button.
 Ledger's other forms don't use `Outcome`. Mobile reports a changed password, some failures
 and a few warnings in native alerts.
 
@@ -731,7 +728,8 @@ field and options named in words:
 - a company ADD for a nominated wallet reads as when it was admitted and until when.
 
 These lists add a short record reference only to options that would otherwise read the same,
-as with people who share a name and address. Wallet options show the wallet's name or address.
+as with people who share a name and address; a delegating appointment adds the time it was made
+instead. Wallet options show the wallet's name or address.
 
 Register setup offers a class already started but not yet opened (its ledger has no recorded entry) as links in a sentence, and the new class's kind as
 radio buttons, so choosing never moves the page by itself. Sign-up keeps its own presentation: its
@@ -1073,15 +1071,22 @@ by a local helper or a browser `toLocale…` call:
   for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
   register entry kinds). Mobile shows no status codes: its request statuses come from the shared
   maps, and its certificate and pending-change tags use its own words.
-- **Identifiers.** Records show names. Where only an identifier tells records apart, the screen
-  shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight characters),
-  never the full UUID, including in choices and screen-reader context. Internal user numbers are
-  not shown. Fingerprints, transaction hashes and wallet addresses stay exact. The eligibility
-  request and the claim's issuer still take the exact UUID a company supplies, and
-  `useDirectoryNames` (`dashboard/src/hooks/`) names a directory-listed company or open offering
-  under the field, or says it is not listed. The one exception shows those UUIDs in full, with
-  `CopyButton`, for a company to give investors: its own on Company, and each approved offering's
-  on Offerings.
+- **Identifiers.** Records show names, dates and amounts. Issue, transfer, award, import and
+  correction records, former shareholders, certificates, inspection copies, member access and
+  requests, Team, representative authority and Profile show no internal references, register
+  sequences, block numbers or fingerprints, and have no **Record details** or **Technical details**
+  section; an award shows who recorded it and when as one muted line. Where only an identifier
+  tells records apart, such as two shareholders with one name or two options that read the same,
+  the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
+  characters), never the full UUID, including in choices and screen-reader context. Internal user
+  numbers are not shown. Chain views still show their references, block numbers and fingerprints:
+  the share class's **Technical details and chain workflows**, the reconciliation with the chain
+  under Corrections and an opening's chain-inclusion messages. So do the eligibility pages. Those
+  are later phases of #1378. Transaction hashes and wallet addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
+  **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a
+  directory-listed company or open offering under the field, or says it is not listed. The one
+  exception shows those IDs in full, with `CopyButton`, for a company to give investors: its
+  **Company ID** in Settings → Profile, and each approved offering's **Offering ID** on Offerings.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile's ESLint configuration has neither

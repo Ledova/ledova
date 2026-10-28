@@ -5,9 +5,8 @@ import {
   type EligibilityAction,
   formatDateTime,
   ELIGIBILITY_OUTCOME_LABELS,
-  shortReference,
 } from '@ledova/shared';
-import { Row, Rows, Section, Disclosure } from '@components/Ledger';
+import { Row, Rows, Section } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
@@ -83,22 +82,6 @@ function Confirmation({ action, busy, confirm, cancel, opener }: ConfirmationPro
           </Rows>
         )}
         {action.reason && <p className="whitespace-pre-wrap text-sm">Reason: {action.reason}</p>}
-        <Disclosure summary="Record details">
-          <Rows>
-            {action.record && (
-              <>
-                <Row label="Request">{shortReference(action.record.uuid)}</Row>
-                <Row label="Company">{shortReference(action.record.company)}</Row>
-                <Row label="Request digest">{action.record.digest}</Row>
-              </>
-            )}
-            {action.appointment && <Row label="Selected appointment">{shortReference(action.appointment)}</Row>}
-            <Row label="Request key">{shortReference(action.key)}</Row>
-            {(action.request || action.decision) && (
-              <Row label="Preview digest">{action.request?.previewDigest ?? action.decision?.previewDigest}</Row>
-            )}
-          </Rows>
-        </Disclosure>
         {unmet.length > 0 && (
           <ul aria-label="Unmet requirements" className="list-disc pl-5 text-sm text-text-muted">
             {refusalSentences(unmet, COMPANY_ELIGIBILITY_UNMET_COPY).map((sentence) => (
@@ -108,7 +91,7 @@ function Confirmation({ action, busy, confirm, cancel, opener }: ConfirmationPro
         )}
         {action.uncertain && (
           <p role="status">
-            The previous outcome is uncertain. Retry this identical action and key to recover the retained result.
+            The previous outcome is uncertain. Retry this identical action to recover the retained result.
           </p>
         )}
         {requesting ? (

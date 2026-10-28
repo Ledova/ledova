@@ -9,7 +9,6 @@ import {
   type RegisterTransferDecisionRequest,
   shareCount,
   formatDate,
-  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Status, Disclosure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
@@ -25,9 +24,9 @@ const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, approve: 'Appro
 function TransferRows({ transfer }: { transfer: RegisterTransfer }) {
   return (
     <Rows>
-      <Row label={COPY.FROM}>{transfer.fromName || shortReference(transfer.fromMember)}</Row>
+      <Row label={COPY.FROM}>{transfer.fromName || 'Name not recorded'}</Row>
       <Row label="Transferor residential address">{transfer.fromResidentialAddress}</Row>
-      <Row label={COPY.TO}>{transfer.name || shortReference(transfer.toMember)}</Row>
+      <Row label={COPY.TO}>{transfer.name || 'Name not recorded'}</Row>
       <Row label={COPY.ADDRESS}>{transfer.residentialAddress}</Row>
       <Row label="Recipient particulars">
         {transfer.newParticulars ? 'Retained from the signed instrument' : 'Existing retained particulars'}
@@ -109,17 +108,16 @@ export function TransferRecord({
       {visible && (
         <>
           <h3 className="sr-only">
-            Transfer from {transfer.fromName || shortReference(transfer.fromMember)} to{' '}
-            {transfer.name || shortReference(transfer.toMember)}
+            Transfer from {transfer.fromName || 'Name not recorded'} to {transfer.name || 'Name not recorded'}
           </h3>
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
             <div className="min-w-0 space-y-1">
               <dt className="text-text-muted">From</dt>
-              <dd className="break-words font-medium">{transfer.fromName || shortReference(transfer.fromMember)}</dd>
+              <dd className="break-words font-medium">{transfer.fromName || 'Name not recorded'}</dd>
             </div>
             <div className="min-w-0 space-y-1">
               <dt className="text-text-muted">To</dt>
-              <dd className="break-words font-medium">{transfer.name || shortReference(transfer.toMember)}</dd>
+              <dd className="break-words font-medium">{transfer.name || 'Name not recorded'}</dd>
             </div>
             <div className="min-w-0 space-y-1">
               <dt className="text-text-muted">Shares</dt>
@@ -152,7 +150,6 @@ export function TransferRecord({
               <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
               <Row label={COPY.REASON}>{transfer.reason}</Row>
               <DecisionTrail proposal={transfer} labels={DECISION_COPY.DECISIONS} />
-              {!!transfer.registerEntry && <Row label="Register entry">{shortReference(transfer.registerEntry)}</Row>}
             </Rows>
             <TransferRows transfer={transfer} />
             <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>

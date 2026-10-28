@@ -3,7 +3,6 @@ import {
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
   APPOINTMENT_STATUS_LABELS,
-  shortReference,
 } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
@@ -22,15 +21,14 @@ export function AppointmentRecord({
   onRevoke: () => void;
   teamRecord?: boolean;
 }) {
+  const title = teamRecord && 'name' in appointment ? appointment.name || appointment.email : companyName;
   return (
     <li className="py-3">
       <Disclosure
         summary={
           <span className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <span className="min-w-0">
-              <span className="block truncate font-medium">
-                {teamRecord && 'name' in appointment ? appointment.name || appointment.email : companyName}
-              </span>
+              <span className="block truncate font-medium">{title}</span>
               <span className="block truncate text-text-muted">
                 {teamRecord && 'email' in appointment ? appointment.email : scopeLabels(appointment.capabilities)}
               </span>
@@ -57,7 +55,6 @@ export function AppointmentRecord({
           <div className="text-sm">
             <div className="space-y-3 pt-3">
               <Rows>
-                <Row label="Appointment">{shortReference(appointment.uuid)}</Row>
                 <Row label="Source">
                   {appointment.source === 'initial'
                     ? 'Initial self-declaration'
@@ -78,7 +75,7 @@ export function AppointmentRecord({
           <FormActions>
             <PageAction
               label="Revoke appointment"
-              context={shortReference(appointment.uuid)}
+              context={`${title} · ${scopeLabels(appointment.capabilities)}`}
               disabled={disabled}
               onClick={onRevoke}
             />

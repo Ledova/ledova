@@ -87,7 +87,6 @@ export function AllotmentReview({
             <Row label="Member record">{preview.newMember ? 'New member' : 'Existing member'}</Row>
             <Row label="Agreement recorded">{formatDateTime(preview.agreement.recordedAt, 'Not recorded')}</Row>
             <Row label="Receipt attested">{formatDateTime(preview.contribution.recordedAt, 'Not recorded')}</Row>
-            <Row label="Register sequence">{preview.registerSequence}</Row>
             <Row label="Authorised supply">{shareCount(preview.authorisedSupply)}</Row>
           </Rows>
           {documents}

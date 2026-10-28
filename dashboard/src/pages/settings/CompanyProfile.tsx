@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { type Company, useCompanySelection } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
-import { Disclosure, Row, Rows, Section, Loading } from '@components/Ledger';
+import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { CopyButton } from '@components/CopyButton';
 import { TOKENS_QUERY_KEY } from '@hooks/useTokensList';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
@@ -93,21 +93,17 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                     <span className="break-words">{address}</span>
                   </Row>
                 )}
+                <Row label="Company ID">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <span className="min-w-0 break-all">{company.uuid}</span>
+                    <CopyButton key={company.uuid} value={company.uuid} label="Copy company ID" />
+                  </div>
+                  <p className="mt-1 text-xs text-text-muted">
+                    Give this to investors for their eligibility requests and claims.
+                  </p>
+                </Row>
               </Rows>
-              <Disclosure summary="Record details">
-                <p className="text-sm text-text-muted">Company information is provided by the company.</p>
-                <Rows>
-                  <Row label="Company UUID">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <span className="min-w-0 break-all">{company.uuid}</span>
-                      <CopyButton key={company.uuid} value={company.uuid} label="Copy company UUID" />
-                    </div>
-                    <p className="mt-1 text-xs text-text-muted">
-                      Give this to investors for their eligibility requests and claims.
-                    </p>
-                  </Row>
-                </Rows>
-              </Disclosure>
+              <p className="text-sm text-text-muted">Company information is provided by the company.</p>
               {data.canAdmin && (
                 <FormActions>
                   <PageAction

@@ -163,9 +163,8 @@ The web sidebar separates **Member access** from **Member requests** under Share
 shows **People** and **Invitations**; Member requests is one list identifying each request's type, date
 and status. Its Filters icon searches by person name or selects details updates or certificates
 across the complete permitted request list, including retained statuses. Filtering changes no request
-and leaves active preparation and recovery available. The rows keep names and relevant details together.
-Access, invitation and certificate
-records place technical references under **Technical details**.
+and leaves active preparation and recovery available. The rows keep names and relevant details together;
+internal references stay in the audit records.
 Task fields open only when needed;
 an empty queue does not ask for a company reason or certificate reference. Web reads update on entry
 and after a completed action, without idle polling or focus/reconnect refreshes; a failed read offers a retry.
@@ -238,7 +237,7 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
    recipient.
 2. On web, open **Documents** → **Inspection copies** for the selected company, choose the share class,
    then **Prepare inspection copy**. Enter the reference, recipient and request date.
-3. Choose **Preview inspection copy**, check the request and register sequence, then **Confirm and
+3. Choose **Preview inspection copy**, check the request, then **Confirm and
    download inspection copy**.
 
 The file is `register-<symbol>-inspection-copy.csv`.
@@ -276,8 +275,8 @@ register, or a correction has since reversed the entry (the refusal names the co
 
 1. On web, open **Documents** → **Certificates**, select the share class and choose the issue or
    transfer row, then **Prepare unsigned certificate**.
-2. In the focused main-page form, choose **Preview**. Check the share class, share movements and PDF
-   page count; **Record details** holds the entry and register sequence. Choose **Download PDF** to generate
+2. In the focused main-page form, choose **Preview**. Check the share class, share movements, entry number,
+   dates and PDF page count. Choose **Download PDF** to generate
    the unsigned file, or **Cancel** to close the form. The download action records the requester
    and an instruction linked to the exact ledger entry automatically; no reference needs typing.
    The form keeps the privacy and signing reminder visible; the company arranges execution and
@@ -292,8 +291,8 @@ fingerprint is recorded.
    then choose **Prepare certificate**. The focused view shows the member, share class
    and request date. Enter the required
    **Company instruction**, then choose **Preview**.
-2. Check **Review certificate** and its unsigned single-recipient PDF summary. **Record details**
-   holds the exact entry and register sequence, source fingerprint and captured instruction.
+2. Check **Review certificate**: its unsigned single-recipient PDF summary, the entry number and the
+   captured instruction.
    Choose **Create certificate**, or **Cancel** to return without fulfilling the request. The privacy
    and signing reminder stays visible; the member-request records return after the task closes.
 

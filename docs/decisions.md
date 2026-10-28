@@ -1656,6 +1656,16 @@ control and the existing new-person paths for setup, issues and awards. The comp
 distinguishes people without shares from current shareholders, and registration keeps company
 authority, an attributable source and the original request on retry. Mobile stays deferred.
 
+On 28 October 2026 the owner asked for a UX review: make the chevron sections more intuitive,
+remove or hide UUIDs and technical details, and reduce clutter. After an assessment proposing five
+phases (#1378), the owner chose: "Start phase 1 with your defaults: remove Record details/Technical
+details chevrons and internal IDs, fix the colliding labels." So the register's records outside
+the chain views, certificates, inspection copies, member access and requests, Team,
+representative authority and Profile drop their **Record details** and **Technical details**
+sections and internal references. The identifiers a company hands out read as **Company ID** and
+**Offering ID** wherever they are shown or typed. The chain views and the eligibility pages follow
+in later phases.
+
 ## Mobile app for shareholders
 
 On 26 October 2026 the owner made the mobile app a shareholder app: "make mobile shareholder-only.

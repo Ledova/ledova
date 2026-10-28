@@ -70,22 +70,18 @@ function OfferingRecord({
           <Row label="Opens">{formatDateTime(row.opensAt)}</Row>
           <Row label="Closes">{row.closesAt ? formatDateTime(row.closesAt) : 'No closing date'}</Row>
           <Row label="Exemption">{OFFERING_EXEMPTION_LABELS[row.exemption] ?? row.exemptionDisplay}</Row>
+          {row.status === 'approved' && (
+            <Row label="Offering ID">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <span className="min-w-0 break-all">{row.uuid}</span>
+                <CopyButton key={row.uuid} value={row.uuid} label="Copy offering ID" />
+              </div>
+              <p className="mt-1 text-xs text-text-muted">
+                Give this to investors for their large-investment eligibility requests.
+              </p>
+            </Row>
+          )}
         </Rows>
-        {row.status === 'approved' && (
-          <Disclosure summary="Record details">
-            <Rows>
-              <Row label="Offering UUID">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <span className="min-w-0 break-all">{row.uuid}</span>
-                  <CopyButton key={row.uuid} value={row.uuid} label="Copy offering UUID" />
-                </div>
-                <p className="mt-1 text-xs text-text-muted">
-                  Give this to investors for their large-investment eligibility requests.
-                </p>
-              </Row>
-            </Rows>
-          </Disclosure>
-        )}
       </Disclosure>
       {row.status === 'rejected' && row.rejectionReason && (
         <p className="whitespace-pre-wrap break-words text-sm text-text-muted">Rejected: {row.rejectionReason}</p>

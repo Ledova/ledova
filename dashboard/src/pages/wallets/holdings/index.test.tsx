@@ -429,7 +429,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   await ownShares('10');
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
-  expect(screen.getByTitle(MEMBER_RECORD.residentialAddress)).toBeTruthy();
+  expect(screen.getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
   fireEvent.click(screen.getByText('Request update'));
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), { target: { value: 'Retained draft' } });
   fireEvent.change(screen.getByRole('textbox', { name: 'Requested residential address' }), {

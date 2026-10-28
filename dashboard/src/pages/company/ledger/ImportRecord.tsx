@@ -8,7 +8,6 @@ import {
   formatDateTime,
   formatShareCount,
   registerImportTotals,
-  shortReference,
   type RegisterImport,
   type RegisterImportDecisionPreview,
 } from '@ledova/shared';
@@ -125,9 +124,6 @@ export function ImportRecord({
             <Row label="Prepared on">{formatDateTime(proposal.createdAt)}</Row>
             <Row label="Record date">{formatDate(proposal.asAt)}</Row>
             {proposal.sourceReference && <Row label="Source record">{proposal.sourceReference}</Row>}
-            {proposal.correctionOf && (
-              <Row label="Corrects copied opening">{shortReference(proposal.correctionOf)}</Row>
-            )}
             <Row label="Reason">{proposal.reason}</Row>
             <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.DECISIONS} />
           </Rows>
