@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Choices } from '@components/Choices';
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
+import { FunnelIcon } from '@phosphor-icons/react';
 import { Field, TextInput } from '@components/Field';
-import { Disclosure } from '@components/Ledger';
+import { ICON_MD } from '@components/iconSizes';
 import { FormActions, PageAction } from '@components/Page';
 import { SelectField } from '@components/SelectField';
 import type { CertificateClass } from './CertificateRecords';
@@ -29,21 +30,19 @@ export function CertificateFilters({
   const version = JSON.stringify([requested, applied.search, applied.status]);
   const [seen, setSeen] = useState(version);
   const [draft, setDraft] = useState({ ...applied, classUuid: requested });
-  const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
   const returning = useRef(false);
   if (seen !== version) {
     setSeen(version);
     setDraft({ ...applied, classUuid: requested });
-    setOpen(false);
   }
   useEffect(() => {
-    if (!open && returning.current) {
+    if (returning.current) {
       returning.current = false;
       toggle.current?.focus();
     }
-  }, [open, version]);
-  const update = (values: typeof draft) => {
+  }, [version]);
+  const update = (values: typeof draft, close: () => void) => {
     if (disabled || !CERTIFICATE_STATUSES.some(([value]) => value === values.status)) return;
     const query = new URLSearchParams(location.search);
     if (values.classUuid) query.set('class', values.classUuid);
@@ -55,8 +54,8 @@ export function CertificateFilters({
     else query.delete('certificate_status');
     query.delete('page');
     setDraft({ ...values, search });
-    returning.current = true;
-    setOpen(false);
+    returning.current = version !== JSON.stringify([values.classUuid, search, values.status]);
+    close();
     navigate({ search: query.toString(), hash: location.hash }, { state: location.state });
   };
   const choices = CERTIFICATE_STATUSES.filter(
@@ -66,29 +65,23 @@ export function CertificateFilters({
       value === applied.status ||
       (value === 'can_prepare' ? companyReader : ownRecord),
   );
-  const summary = [
-    applied.search ? `“${applied.search}”` : '',
-    applied.status === 'all' ? '' : (CERTIFICATE_STATUSES.find(([value]) => value === applied.status)?.[1] ?? ''),
-  ]
-    .filter(Boolean)
-    .join(' · ');
   return (
-    <div className="border-b border-border-subtle">
-      <Disclosure
+    <Popover key={version} className="shrink-0">
+      <PopoverButton
         ref={toggle}
-        region
-        open={open}
-        keepMounted
-        onToggle={() => setOpen((value) => !value)}
-        summary={
-          <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <span className="text-sm font-medium text-text-primary">Filters</span>
-            {summary && <span className="min-w-0 break-words text-sm text-text-muted">{summary}</span>}
-          </span>
-        }
+        aria-label="Filters"
+        title="Filters"
+        className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition-colors hover:bg-surface-tertiary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-mid ${applied.search || applied.status !== 'all' ? 'border-brand-mid text-brand-light' : 'border-border text-text-primary'}`}
       >
-        <div className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+        <FunnelIcon size={ICON_MD} aria-hidden="true" />
+      </PopoverButton>
+      <PopoverPanel
+        anchor="bottom end"
+        focus
+        className="z-50 flex max-h-[calc(100dvh-2rem)] w-80 max-w-[calc(100vw-2rem)] flex-col gap-4 overflow-y-auto rounded-lg border border-border bg-surface-raised p-4 shadow-lg [--anchor-gap:8px] [--anchor-padding:16px]"
+      >
+        {({ close }) => (
+          <>
             {classes.length > 1 && (
               <SelectField
                 label="Share class"
@@ -107,37 +100,40 @@ export function CertificateFilters({
                 onChange={(event) => setDraft({ ...draft, search: event.target.value })}
               />
             </Field>
-          </div>
-          <Choices
-            legend="Certificate status"
-            options={choices}
-            value={draft.status}
-            disabled={disabled}
-            onChange={(status) => setDraft({ ...draft, status })}
-          />
-          <FormActions>
-            <PageAction
-              label="Clear"
-              context="certificate filters"
+            <SelectField
+              label="Certificate status"
+              options={choices.map(([value, label]) => ({ value, label }))}
+              value={draft.status}
               disabled={disabled}
-              onClick={() => update({ classUuid: requested, search: '', status: 'all' })}
-            />
-            <PageAction
-              label="Apply"
-              context="certificate filters"
-              primary
-              disabled={
-                disabled ||
-                !classes.some((item) => item.uuid === draft.classUuid) ||
-                !CERTIFICATE_STATUSES.some(([value]) => value === draft.status)
-              }
-              onClick={() => {
-                if (classes.some((item) => item.uuid === draft.classUuid)) update(draft);
+              onChange={(status) => {
+                const choice = choices.find(([value]) => value === status);
+                if (choice) setDraft({ ...draft, status: choice[0] });
               }}
             />
-          </FormActions>
-        </div>
-      </Disclosure>
-    </div>
+            <FormActions>
+              <PageAction
+                label="Clear"
+                context="certificate filters"
+                disabled={disabled}
+                onClick={() => update({ classUuid: requested, search: '', status: 'all' }, close)}
+              />
+              <PageAction
+                label="Apply"
+                context="certificate filters"
+                primary
+                disabled={
+                  disabled ||
+                  !classes.some((item) => item.uuid === draft.classUuid) ||
+                  !CERTIFICATE_STATUSES.some(([value]) => value === draft.status)
+                }
+                onClick={() => {
+                  if (classes.some((item) => item.uuid === draft.classUuid)) update(draft, close);
+                }}
+              />
+            </FormActions>
+          </>
+        )}
+      </PopoverPanel>
+    </Popover>
   );
 }

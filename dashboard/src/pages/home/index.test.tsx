@@ -698,12 +698,12 @@ it('invites and associates a walletless member, recovers one exact request and r
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(2));
   expect(api.get).toHaveBeenCalledWith(URLS.MEMBER_CERTIFICATE_FILE(otherCertificate.uuid), expect.anything());
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
-  fireEvent.click(screen.getByRole('radio', { name: 'Fulfilled' }));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Certificate status' }), { target: { value: 'fulfilled' } });
   fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
   expect(within(screen.getByRole('list', { name: 'Certificate records' })).queryByRole('listitem')).toBeNull();
   expect(screen.getByRole('status').textContent).toBe('No certificate records match these filters.');
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
-  fireEvent.click(screen.getByRole('radio', { name: 'Requested' }));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Certificate status' }), { target: { value: 'requested' } });
   fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
   expect(within(screen.getByRole('list', { name: 'Certificate records' })).getAllByRole('listitem')).toHaveLength(1);
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));

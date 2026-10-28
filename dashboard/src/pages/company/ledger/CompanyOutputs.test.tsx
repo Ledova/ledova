@@ -271,10 +271,16 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
   fireEvent.change(screen.getByRole('searchbox', { name: 'Shareholder' }), { target: { value: 'Earlier' } });
-  fireEvent.click(screen.getByRole('radio', { name: 'Can prepare' }));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Certificate status' }), { target: { value: 'can_prepare' } });
+  fireEvent.keyDown(screen.getByRole('searchbox', { name: 'Shareholder' }), { key: 'Escape' });
+  expect(screen.queryByRole('searchbox', { name: 'Shareholder' })).toBeNull();
+  expect(within(records).queryByText('Earlier shareholder')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('Earlier');
   fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
   records = await screen.findByRole('list', { name: 'Certificate records' });
   await within(records).findByText('Earlier shareholder');
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Filters' }));
   expect(within(records).queryByText(MEMBER_RECORD.name)).toBeNull();
   expect(within(records).queryByText('Other shareholder')).toBeNull();
   expect(api.get).toHaveBeenCalledWith(
@@ -293,7 +299,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   records = await screen.findByRole('list', { name: 'Certificate records' });
   await within(records).findByText('Other shareholder');
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
-  fireEvent.click(screen.getByRole('radio', { name: 'Fulfilled' }));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Certificate status' }), { target: { value: 'fulfilled' } });
   fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
   records = await screen.findByRole('list', { name: 'Certificate records' });
   await within(records).findByText('Fulfilled', { exact: true });
