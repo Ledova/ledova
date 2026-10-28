@@ -1,8 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRightIcon, ArrowUpRightIcon, ChartPieIcon, NotebookIcon, UsersIcon } from '@phosphor-icons/react';
-import { SIGN_UP_URL } from '../appLinks';
-import { PRIMARY_BUTTON, SECTION_HEADING, TEXT_LINK } from '../styles';
+import { ChartPieIcon, NotebookIcon, UsersIcon } from '@phosphor-icons/react';
+import { SECTION_HEADING } from '../styles';
 
 const PRODUCT_VIEWS = [
   {
@@ -145,15 +143,7 @@ export function Home() {
         <p className="mx-auto max-w-[610px] text-pretty text-base leading-relaxed text-text-muted sm:text-lg">
           Organise share classes, shareholders and employee equity, and give people access to their records.
         </p>
-        <div className="mb-3 mt-7 flex flex-wrap items-center justify-center gap-6">
-          <a href={SIGN_UP_URL} className={`${PRIMARY_BUTTON} gap-2`}>
-            Try the preview <ArrowRightIcon size={18} aria-hidden="true" />
-          </a>
-          <Link to="/#how-it-works" className={`${TEXT_LINK} inline-flex items-center gap-2`}>
-            See how it works <ArrowUpRightIcon size={18} aria-hidden="true" />
-          </Link>
-        </div>
-        <p className="text-xs text-text-muted">Free during preview · Use fictional data</p>
+        <p className="mt-5 text-xs text-text-muted">Free during preview · Use fictional data</p>
         <ProductPreview />
       </section>
 
@@ -232,18 +222,6 @@ export function Home() {
               </details>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-5 pb-14 md:px-8">
-        <div className="flex flex-col items-start justify-between gap-7 rounded-xl bg-brand-tint p-7 md:flex-row md:items-center md:px-10 md:py-9">
-          <div>
-            <h2 className="font-display text-[32px] leading-tight text-text-primary">Get to know your ownership.</h2>
-            <p className="mt-2 text-sm text-text-muted">Explore Ledova with a fictional company.</p>
-          </div>
-          <a href={SIGN_UP_URL} className={`${PRIMARY_BUTTON} shrink-0 gap-2`}>
-            Try the preview <ArrowRightIcon size={18} aria-hidden="true" />
-          </a>
         </div>
       </section>
     </>

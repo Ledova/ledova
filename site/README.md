@@ -7,6 +7,8 @@ Product copy claims only what the
 [current capability boundaries](../docs/product.md#current-capability-boundaries)
 list as delivered; planned workflows are described as planned.
 
+The navbar owns the Register action at every screen width.
+
 ## Local development
 
 ```bash
