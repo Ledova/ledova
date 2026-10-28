@@ -116,7 +116,7 @@ function PaidIssueRecord({
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
             <DecisionTrail proposal={record} labels={COPY.DECISIONS} />
             <Row label="Execution">{registerPaidIssueExecutionState(record)}</Row>
-            <Row label="Subscription status when prepared">
+            <Row label="Current subscription status">
               {COMPANY_SUBSCRIPTION_STATUS_LABELS[record.subscriptionStatus as SubscriptionStatus]}
             </Row>
             <Row label="Actual allotment recorded">
