@@ -662,7 +662,7 @@ held-work guards still decide navigation. Company selection has no separate row 
 view; class exploration keeps its breadcrumb.
 
 A single company opens directly and hides the switcher. With several companies, an address that names
-no company, including sign-in, opens the company the person chose last in this browser (remembered per
+no company, including sign-in, opens the company the person used last in this browser (remembered per
 account by `dashboard/src/utils/lastCompany.ts`), or the first company in their list when that one is
 no longer available or none was chosen yet (owner, 28 October 2026). If an explicit address names an
 unavailable company, Dashboard offers **Open your company** when only one company remains, without

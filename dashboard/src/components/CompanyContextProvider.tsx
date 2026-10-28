@@ -36,7 +36,7 @@ function companyScopeAt(
   const token = params?.uuid;
   const query = new URLSearchParams(location.search);
   const stated = typeof location.state?.registerCompany === 'string' ? location.state.registerCompany : null;
-  const entered = params?.company ?? query.get('company') ?? stated;
+  const entered = params?.company ?? (query.get('company') || null) ?? stated;
   const ledgerCompany =
     location.pathname === DESTINATIONS.companyRegister.path || (token && ledger?.token === token)
       ? ledger?.company
@@ -59,8 +59,12 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     owner: typeof owner;
     location: string;
   } | null>(null);
-  const remembered = lastCompany(owner);
-  const { companyUuid, token, entered } = companyScopeAt(location, ledger.state, directory.companies, remembered);
+  const { companyUuid, token, entered } = companyScopeAt(
+    location,
+    ledger.state,
+    directory.companies,
+    lastCompany(owner),
+  );
   const company = directory.companies.find(({ uuid }) => uuid === companyUuid);
   const ledgerHeld = location.pathname === DESTINATIONS.companyRegister.path && !!ledger.state?.held;
   const memberHeld = !!member?.read.busy || !!member?.read.retry;
@@ -83,7 +87,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         currentQuery.delete('company');
         nextQuery.sort();
         currentQuery.sort();
-        const target = companyScopeAt(nextLocation, ledger.state, directory.companies, remembered).companyUuid;
+        const target = companyScopeAt(nextLocation, ledger.state, directory.companies, lastCompany(owner)).companyUuid;
         const changingCompany = target !== companyUuid;
         const hash = nextLocation.hash.slice(1);
         if (
@@ -130,7 +134,6 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         ledgerHeld,
         memberHeld,
         ledger.state,
-        remembered,
         isDirty,
       ],
     ),
@@ -177,9 +180,10 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     next.set('company', companyUuid);
     navigate({ search: next.toString(), hash: location.hash }, { replace: true, state: location.state });
   }, [directory, entered, location, navigate, token, companyUuid]);
+  const companyId = company?.uuid;
   useEffect(() => {
-    if (owner && company) rememberCompany(owner, company.uuid);
-  }, [owner, company]);
+    if (owner && companyId) rememberCompany(owner, companyId);
+  }, [owner, companyId]);
   useEffect(() => {
     const changed = (event: Event) => {
       const control = event.target;

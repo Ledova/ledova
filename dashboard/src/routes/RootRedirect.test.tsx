@@ -216,7 +216,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
       target: { value: 'Unfinished draft' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Change company on Dashboard' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Explicit company record' }));
     expect(await screen.findByRole('dialog', { name: 'Leave this page?' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByLabelText('Company address').textContent).toBe('/company/ledger?company=company-a');
