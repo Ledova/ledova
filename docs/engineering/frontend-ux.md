@@ -1111,8 +1111,9 @@ by a local helper or a browser `toLocale…` call:
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user
   numbers are not shown. The reconciliation with the chain under Corrections shows when it ran and,
-  for each discrepancy, the member (named, or `Member` and its `shortReference`), address, shares
-  and transaction, with no block, register sequence, effect or source. A chain opening says when
+  for each discrepancy, the completed issue or transfer it concerns (with its `shortReference` only
+  where two rows would read the same), the member (named, or `Member` and its `shortReference`),
+  address, shares and transaction, with no block or register sequence. A chain opening says when
   its holdings were read, with the holdings behind **Show the holdings** once it is decided (a
   copied opening's shareholders behind **Show the shareholders**), and its chain-inclusion messages
   name the kind of completion without its reference or block numbers.

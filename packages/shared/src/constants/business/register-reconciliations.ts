@@ -38,12 +38,14 @@ export const REGISTER_RECONCILIATION_COPY = {
     attribution: 'A completion the evidence cannot place against the opening of the register.',
   } as Record<string, string>,
   FIELDS: {
+    effect: 'Completion',
     member: 'Member',
     address: 'Address',
     chain: 'On chain',
     expected: 'Expected',
     detail: 'Detail',
   },
+  COMPLETIONS: { issue: 'Completed issue', transfer: 'Completed transfer' } as Record<string, string>,
   ACKNOWLEDGEABLE_NOTE: 'Acknowledge it once the company has investigated its cause and accepted it.',
   ATTRIBUTION_NOTE: 'It cannot be acknowledged. It needs attribution, which Ledova does not provide yet.',
   ACKNOWLEDGEMENT_NOTE:

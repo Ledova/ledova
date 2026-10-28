@@ -21,7 +21,7 @@ export const REGISTER_ISSUE_COPY = {
 } as const;
 
 export const REGISTER_ISSUE_UNMET_COPY: Record<string, string> = {
-  chain_register_required: 'Open this deployed class register from its genuine chain boundary first.',
+  chain_register_required: "Open this deployed class's ledger from the chain first.",
   imported_register: 'Imported registers cannot issue on chain. Use the supported walletless grant workflow.',
   member_link_required: 'Record and apply the exact nominated wallet/member link first.',
   member_identity_unavailable:

@@ -1,3 +1,6 @@
+const NO_HISTORY =
+  'The captured boundary has no canonical transfer history, so it cannot show which completed effects it ' +
+  'represents. Reject this opening and prepare a fresh one.';
 const ATTRIBUTION =
   'has no verified final chain inclusion. It requires operator attribution ' +
   'before a register boundary can represent or exclude it.';
@@ -7,6 +10,8 @@ const OUTSIDE =
   /^is not in the captured boundary's canonical history at block \d+, so this boundary does not represent it\. Prepare a fresh opening\.$/;
 
 export function registerInclusionMessage(value: string) {
+  if (value === NO_HISTORY)
+    return "The chain's history where these holdings were read isn't available, so it can't show which completed issues and transfers they include. Reject this opening and prepare a fresh one.";
   const message = value.match(/^The completed (issue|transfer) [0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12} (.+)$/i);
   if (!message) return value;
   const kind = message[1].toLowerCase();

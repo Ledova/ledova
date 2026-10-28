@@ -39,8 +39,8 @@ export const REGISTER_OPENING_COPY = {
     'You can read these openings. Preparing, approving and applying an opening needs an appointment with ' +
     'administration or that step.',
   BOUNDARY_NOTE:
-    'The holdings are read from the chain when the opening is prepared, and read again before it is approved and ' +
-    'before it is applied.',
+    'The holdings are read from the chain when the opening is prepared, and the chain is checked again before it ' +
+    'is approved and before it is applied, to confirm those holdings still stand.',
   HOLDINGS_NOTE:
     "The opening records these holdings as the ledger's first entry, dated the day they were read. " +
     'Nothing changes on chain.',

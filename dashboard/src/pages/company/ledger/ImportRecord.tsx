@@ -150,12 +150,16 @@ export function ImportRecord({
           <p className="text-sm text-text-primary">
             {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
           </p>
-          <MoreToggle open={showMembers} controls={membersId} onToggle={() => setShowMembers((shown) => !shown)}>
-            {showMembers ? 'Hide the shareholders' : `Show the shareholders (${totals.count})`}
-          </MoreToggle>
-          <div id={membersId} hidden={!showMembers}>
-            <MemberRecords members={proposal.members} />
-          </div>
+          {totals.count > 0 && (
+            <>
+              <MoreToggle open={showMembers} controls={membersId} onToggle={() => setShowMembers((shown) => !shown)}>
+                {showMembers ? 'Hide the shareholders' : `Show the shareholders (${totals.count})`}
+              </MoreToggle>
+              <div id={membersId} hidden={!showMembers}>
+                <MemberRecords members={proposal.members} />
+              </div>
+            </>
+          )}
         </>
       )}
       <FormActions>
