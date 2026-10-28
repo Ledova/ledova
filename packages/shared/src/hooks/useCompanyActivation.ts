@@ -52,7 +52,6 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [identityRequired, setIdentityRequired] = useState(false);
   const current = () => {
     if (!mounted.current || !read.companyUuid)
       throw createUserFriendlyError('This activation is closed. Reopen it before continuing.');
@@ -96,7 +95,6 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
     pending.current = true;
     setBusy(true);
     setError(null);
-    setIdentityRequired(false);
     confirmation.current = null;
     setPreview(null);
     try {
@@ -173,13 +171,12 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
         client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }),
       ]);
     } catch (failure) {
-      const response = (failure as { response?: { status?: number; data?: { code?: string } } })?.response;
+      const response = (failure as { response?: unknown })?.response;
       const status = failureStatus(failure);
       if (response && status && status < 500) retry.current = null;
       if (mounted.current) {
         try {
           current();
-          setIdentityRequired(response?.data?.code === 'issuer_identity_verification_required');
           setError(failureSentence(failure, 'Activation was not confirmed. Retry the same request after refreshing.'));
         } catch {}
       }
@@ -198,7 +195,6 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
     preview: read.canPersonalAdmin ? preview : null,
     busy,
     error,
-    identityRequired,
     latestAttempt,
     canActivate: !!activation?.appointment && !!company && awaitsActivation(company) && !busy,
     open,

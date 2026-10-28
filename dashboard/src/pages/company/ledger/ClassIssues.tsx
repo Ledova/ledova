@@ -125,6 +125,7 @@ export function ClassIssues({
   const grouped = !investor.empty && !nonPaid.empty;
   const status = (
     <>
+      {investor.setup}
       {investor.status}
       {nonPaid.status}
     </>
@@ -132,7 +133,6 @@ export function ClassIssues({
   const browsing = !preparing && !reviewing;
   return (
     <div role="region" aria-label="Share issue workflow" className="space-y-5">
-      {investor.setup}
       <div hidden={!browsing}>
         <Section title="Share issues">
           {browsing && status}
