@@ -65,6 +65,7 @@ export function CompanyPeople({
   company,
   registers,
   sourceReady,
+  visible,
   blocked,
   onHeldChange,
 }: {
@@ -73,6 +74,7 @@ export function CompanyPeople({
   company: string;
   registers: TokenHoldersResponse[];
   sourceReady: boolean;
+  visible: boolean;
   blocked: boolean;
   onHeldChange: (held: boolean) => void;
 }) {
@@ -91,6 +93,7 @@ export function CompanyPeople({
       <CompanyShareholders
         registers={registers}
         company={company}
+        visible={visible}
         blocked={blocked}
         people={person.peopleReady ? person.query.data : []}
       />

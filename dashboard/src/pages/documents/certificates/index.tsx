@@ -4,7 +4,7 @@ import { formatDate, useSubmissionOwner, type OrderSubmissionOwner } from '@ledo
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { LoadError, Loading, Section } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
-import { Page, PageAction } from '@components/Page';
+import { Page, PageAction, PageActions } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { useMemberWorkspace } from '@components/member-records/useMemberWorkspace';
 import { useCompanyContext } from '@hooks/useCompanyContext';
@@ -201,22 +201,17 @@ function CertificateWorkspace({
     navigate({ search: query.toString(), hash: location.hash }, { replace: true, state: location.state });
   }, [requested, selected, location, navigate]);
   return (
-    <Section
-      title="Certificate records"
-      header={
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Certificate records</h2>
-          <CertificateFilters
-            classes={classes}
-            selected={selected}
-            applied={filters}
-            disabled={disabled || held}
-            companyReader={companyReader}
-            ownRecord={ownRecord}
-          />
-        </div>
-      }
-    >
+    <Section title="Certificate records">
+      <PageActions>
+        <CertificateFilters
+          classes={classes}
+          selected={selected}
+          applied={filters}
+          disabled={disabled || held}
+          companyReader={companyReader}
+          ownRecord={ownRecord}
+        />
+      </PageActions>
       {read.error && (
         <p role="alert" className="text-sm text-error-light">
           {read.error}

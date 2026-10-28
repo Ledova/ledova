@@ -34,6 +34,7 @@ import CertificatesPage from '../documents/certificates';
 import { CERTIFICATES_PATH } from '@utils/paths';
 import MemberInvitationPage from '../member-invitation';
 import { CompanyMemberAccess } from '../company/ledger/CompanyMemberAccess';
+import { Page } from '@components/Page';
 
 function MemberPageLinks() {
   const context = useCompanyContext();
@@ -294,15 +295,18 @@ it('invites and associates a walletless member, recovers one exact request and r
     </QueryClientProvider>
   );
   const memberHeld = vi.fn();
-  const companyView = (view: 'access' | 'requests') => (
-    <CompanyMemberAccess
-      view={view}
-      owner={{ userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount.uuid }}
-      company={MEMBER_RECORD.company.uuid}
-      guard={() => {}}
-      registers={[memberRegister]}
-      onHeldChange={memberHeld}
-    />
+  const companyView = (view: 'access' | 'requests', visible = true) => (
+    <Page>
+      <CompanyMemberAccess
+        view={view}
+        visible={visible}
+        owner={{ userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount.uuid }}
+        company={MEMBER_RECORD.company.uuid}
+        guard={() => {}}
+        registers={[memberRegister]}
+        onHeldChange={memberHeld}
+      />
+    </Page>
   );
   const company = render(companyView('access'), { wrapper });
   expect(screen.queryByRole('button', { name: 'Refresh member access' })).toBeNull();
@@ -323,6 +327,12 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
   company.rerender(companyView('requests'));
   const requestList = screen.getByRole('list', { name: 'Member requests' });
+  expect(screen.getAllByRole('button', { name: 'Filters' })).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'Filters' }).closest('header')).toBeTruthy();
+  company.rerender(companyView('requests', false));
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  company.rerender(companyView('requests'));
+  expect(screen.getByRole('list', { name: 'Member requests' })).toBe(requestList);
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   fireEvent.change(screen.getByRole('combobox', { name: 'Request type' }), { target: { value: 'certificate' } });
   expect(within(requestList).queryByRole('button', { name: /^Private queued member name/ })).toBeNull();
@@ -885,15 +895,17 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
         <TestRouter initialEntries={['/company/ledger#member-access']}>
-          <CompanyMemberAccess
-            view="access"
-            owner={owner}
-            company={uuid}
-            registers={registers}
-            guard={guard}
-            sourceReady={sourceReady}
-            onHeldChange={onHeldChange}
-          />
+          <Page>
+            <CompanyMemberAccess
+              view="access"
+              owner={owner}
+              company={uuid}
+              registers={registers}
+              guard={guard}
+              sourceReady={sourceReady}
+              onHeldChange={onHeldChange}
+            />
+          </Page>
         </TestRouter>
       </ApiClientProvider>
     </QueryClientProvider>

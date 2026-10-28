@@ -10,7 +10,7 @@ import {
 } from '@ledova/shared';
 import { Disclosure, Row, Rows, Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
-import { PageAction, PageLink } from '@components/Page';
+import { PageAction, PageActions, PageLink } from '@components/Page';
 import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 
@@ -26,11 +26,13 @@ function needsIdentityReview({ holder }: Pick<Holding, 'holder'>) {
 export function CompanyShareholders({
   registers,
   company,
+  visible,
   blocked = false,
   people = [],
 }: {
   registers: TokenHoldersResponse[];
   company: string;
+  visible: boolean;
   blocked?: boolean;
   people?: Person[];
 }) {
@@ -74,7 +76,7 @@ export function CompanyShareholders({
   const end = page * PAGE_SIZE;
   const shownPeople = withoutShares.slice(Math.max(0, start - found.length), Math.max(0, end - found.length));
   const unresolved = shareholders.filter(({ holdings }) => holdings.some(needsIdentityReview)).length;
-  const filters = (shareholders.length > 0 || people.length > 0) && (
+  const filters = visible && (shareholders.length > 0 || people.length > 0) && (
     <FilterPopover active={!!classFilter || !!list.search}>
       {(close) => (
         <>
@@ -99,15 +101,8 @@ export function CompanyShareholders({
     </FilterPopover>
   );
   return (
-    <Section
-      title="Current shareholders"
-      header={
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Current shareholders</h2>
-          {filters}
-        </div>
-      }
-    >
+    <Section title="Current shareholders">
+      <PageActions>{filters}</PageActions>
       {registers.some(({ initialized }) => !initialized) && (
         <p role="status" className="text-sm text-text-muted">
           Unopened classes have no recorded holdings. This list includes only the opened registers.

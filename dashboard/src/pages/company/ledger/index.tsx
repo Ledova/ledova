@@ -18,7 +18,7 @@ import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Page, PageAction, PageActions, PageLink } from '@components/Page';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { certificatesLocation } from '@utils/paths';
@@ -44,17 +44,7 @@ import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 
 const ON_CHAIN = ['deployed', 'paused'];
-function RegisterPage({
-  actions,
-  sections,
-  task,
-  children,
-}: {
-  actions?: ReactNode;
-  sections?: ReactNode;
-  task?: LedgerTask;
-  children: ReactNode;
-}) {
+function RegisterPage({ sections, task, children }: { sections?: ReactNode; task?: LedgerTask; children: ReactNode }) {
   const { hash } = useLocation();
   const hashTask = hash.slice(1);
   const documents = documentView(hashTask);
@@ -63,7 +53,6 @@ function RegisterPage({
   return (
     <PageTitle.Provider value={title}>
       <Page
-        actions={actions}
         lede={
           shownTask === 'issue'
             ? 'Record a company-approved share issue.'
@@ -423,51 +412,15 @@ function OwnRegister({
     scope,
   ]);
 
+  const membersVisible =
+    (view === 'member-access' || view === 'member-requests') && (!memberHeld || view === heldShareholderView);
   return (
     <RegisterPage
       task={view === 'register' ? selectedTask : undefined}
-      actions={
-        scope &&
-        ((view === 'register' && selectedTask) || view === 'awards' || documents === 'ledger-exports') &&
-        !reviewingParticulars &&
-        sourceReady &&
-        scope.registers.length > 1 && (
-          <FilterPopover
-            resetKey={`${scope.company.uuid}/${documents ?? (view === 'awards' ? 'awards' : selectedTask)}`}
-          >
-            {(close) => (
-              <SelectField
-                label="Share class"
-                options={scope.registers.map(({ token }) => ({
-                  value: token.uuid,
-                  label: `${token.name} · ${token.symbol}`,
-                }))}
-                value={selectedToken}
-                disabled={held || (view === 'awards' && editingAwards.size > 0)}
-                onChange={(token) => {
-                  if (!held && (view !== 'awards' || editingAwards.size === 0) && sourceReady) {
-                    close();
-                    setTaskSelection({
-                      company: scope.company.uuid,
-                      token,
-                      task: documents ?? (view === 'awards' ? 'awards' : selectedTask!),
-                      locationKey: location.key,
-                    });
-                  }
-                }}
-              />
-            )}
-          </FilterPopover>
-        )
-      }
       sections={
         scope && (
           <>
-            <div
-              hidden={
-                (view !== 'member-access' && view !== 'member-requests') || (memberHeld && view !== heldShareholderView)
-              }
-            >
+            <div hidden={!membersVisible}>
               <CompanyMemberAccess
                 key={`members/${scope.company.uuid}`}
                 view={view === 'member-requests' ? 'requests' : 'access'}
@@ -476,6 +429,7 @@ function OwnRegister({
                 company={scope.company.uuid}
                 registers={scope.registers}
                 sourceReady={sourceReady}
+                visible={membersVisible}
                 inviteMember={inviteMember}
                 onHeldChange={memberHeldChange}
               />
@@ -519,6 +473,40 @@ function OwnRegister({
         )
       }
     >
+      {scope &&
+        ((view === 'register' && selectedTask) || view === 'awards' || documents === 'ledger-exports') &&
+        !reviewingParticulars &&
+        sourceReady &&
+        scope.registers.length > 1 && (
+          <PageActions>
+            <FilterPopover
+              resetKey={`${scope.company.uuid}/${documents ?? (view === 'awards' ? 'awards' : selectedTask)}`}
+            >
+              {(close) => (
+                <SelectField
+                  label="Share class"
+                  options={scope.registers.map(({ token }) => ({
+                    value: token.uuid,
+                    label: `${token.name} · ${token.symbol}`,
+                  }))}
+                  value={selectedToken}
+                  disabled={held || (view === 'awards' && editingAwards.size > 0)}
+                  onChange={(token) => {
+                    if (!held && (view !== 'awards' || editingAwards.size === 0) && sourceReady) {
+                      close();
+                      setTaskSelection({
+                        company: scope.company.uuid,
+                        token,
+                        task: documents ?? (view === 'awards' ? 'awards' : selectedTask!),
+                        locationKey: location.key,
+                      });
+                    }
+                  }}
+                />
+              )}
+            </FilterPopover>
+          </PageActions>
+        )}
       {preferenceRead.isError ? (
         <LoadError retry={() => preferenceRead.refetch()} busy={preferenceRead.isFetching}>
           Your account could not be loaded.
@@ -593,6 +581,7 @@ function OwnRegister({
             company={scope.company.uuid}
             blocked={held}
             sourceReady={sourceReady}
+            visible={view === 'shareholders'}
             onHeldChange={setPersonHeld}
           />
         </div>

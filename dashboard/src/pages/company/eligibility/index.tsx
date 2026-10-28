@@ -85,7 +85,30 @@ export default function CompanyEligibilityPage() {
   const canApprove =
     !!appointment && isCurrentEligibilityAppointment(appointment) && appointment.capabilities.includes('approve');
   return (
-    <Page loading={read.loading} lede={ELIGIBILITY_RECORDS_NOTICE}>
+    <Page
+      loading={read.loading}
+      lede={ELIGIBILITY_RECORDS_NOTICE}
+      actions={
+        !read.loading &&
+        read.owner &&
+        !read.action &&
+        read.companyUuid && (
+          <FilterPopover active={!!outcome}>
+            {(close) => (
+              <SelectField
+                label="Outcome"
+                options={QUEUE_OUTCOMES.map(([value, label]) => ({ value, label }))}
+                value={outcome ?? ''}
+                onChange={(value) => {
+                  close();
+                  list.setFilter('outcome', value);
+                }}
+              />
+            )}
+          </FilterPopover>
+        )
+      }
+    >
       {!read.owner ? (
         <p>Your signed-in account must be checked before opening these records.</p>
       ) : (
@@ -144,27 +167,7 @@ export default function CompanyEligibilityPage() {
               )}
             </Section>
             {read.companyUuid && (
-              <Section
-                title="Company request queue"
-                header={
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Company request queue</h2>
-                    <FilterPopover active={!!outcome}>
-                      {(close) => (
-                        <SelectField
-                          label="Outcome"
-                          options={QUEUE_OUTCOMES.map(([value, label]) => ({ value, label }))}
-                          value={outcome ?? ''}
-                          onChange={(value) => {
-                            close();
-                            list.setFilter('outcome', value);
-                          }}
-                        />
-                      )}
-                    </FilterPopover>
-                  </div>
-                }
-              >
+              <Section title="Company request queue">
                 {queue?.settled && queue.rows.length === 0 ? (
                   <p role="status" className="text-sm text-text-muted">
                     {outcome ? 'No requests match.' : 'No requests yet.'}

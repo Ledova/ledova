@@ -48,28 +48,24 @@ const TransactionsPage = () => {
   };
 
   return (
-    <Page>
-      <Section
-        title="Transfers"
-        header={
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">Transfers</h2>
-            <TransactionFilter
-              ref={filterToggle}
-              applied={appliedFilters}
-              filters={filters}
-              wallets={wallets}
-              walletsLoading={walletsLoading}
-              walletsFailed={walletsFailed}
-              walletsRefreshing={walletsRefreshing}
-              onRetryWallets={() => void retryWallets()}
-              onFilterChange={handleFilterChange}
-              onApply={handleApplyFilters}
-              onClear={handleClearFilters}
-            />
-          </div>
-        }
-      >
+    <Page
+      actions={
+        <TransactionFilter
+          ref={filterToggle}
+          applied={appliedFilters}
+          filters={filters}
+          wallets={wallets}
+          walletsLoading={walletsLoading}
+          walletsFailed={walletsFailed}
+          walletsRefreshing={walletsRefreshing}
+          onRetryWallets={() => void retryWallets()}
+          onFilterChange={handleFilterChange}
+          onApply={handleApplyFilters}
+          onClear={handleClearFilters}
+        />
+      }
+    >
+      <Section title="Transfers">
         {isLoading ? (
           <Loading>Loading activity…</Loading>
         ) : hasError ? (

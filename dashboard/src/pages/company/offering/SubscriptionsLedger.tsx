@@ -13,6 +13,7 @@ import {
   shortReference,
 } from '@ledova/shared';
 import { Section, Status, Loading } from '@components/Ledger';
+import { PageActions } from '@components/Page';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { useCompanyOfferingSubscriptions } from './useOffering';
@@ -55,47 +56,40 @@ export function SubscriptionsLedger({
   const data = read.isSuccess ? read.data : undefined;
   const empty = data?.count === 0 && !narrowed && !read.isPlaceholderData;
   return (
-    <Section
-      title={REGISTER_COPY.APPLICATIONS_TITLE}
-      header={
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="font-display text-xl tracking-[-0.01em] text-text-primary">
-            {REGISTER_COPY.APPLICATIONS_TITLE}
-          </h2>
-          <FilterPopover active={!!status || !!list.filters.offering} resetKey={companyUuid}>
-            {(close) => (
-              <>
-                <SelectField
-                  label="Offering"
-                  options={offerings.map((row) => ({
-                    value: row.uuid,
-                    label: `${row.tokenName} · ${row.statusDisplay} · ${formatDate(row.createdAt)}`,
-                    reference: shortReference(row.uuid),
-                  }))}
-                  value={offering.uuid}
-                  onChange={(value) => {
-                    close();
-                    list.setFilter('offering', value);
-                  }}
-                />
-                <SelectField
-                  label="Status"
-                  options={[
-                    { value: '', label: 'All statuses' },
-                    ...Object.entries(STATUSES).map(([value, label]) => ({ value, label })),
-                  ]}
-                  value={status ?? ''}
-                  onChange={(value) => {
-                    close();
-                    list.setFilter('status', value);
-                  }}
-                />
-              </>
-            )}
-          </FilterPopover>
-        </div>
-      }
-    >
+    <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
+      <PageActions>
+        <FilterPopover active={!!status || !!list.filters.offering} resetKey={companyUuid}>
+          {(close) => (
+            <>
+              <SelectField
+                label="Offering"
+                options={offerings.map((row) => ({
+                  value: row.uuid,
+                  label: `${row.tokenName} · ${row.statusDisplay} · ${formatDate(row.createdAt)}`,
+                  reference: shortReference(row.uuid),
+                }))}
+                value={offering.uuid}
+                onChange={(value) => {
+                  close();
+                  list.setFilter('offering', value);
+                }}
+              />
+              <SelectField
+                label="Status"
+                options={[
+                  { value: '', label: 'All statuses' },
+                  ...Object.entries(STATUSES).map(([value, label]) => ({ value, label })),
+                ]}
+                value={status ?? ''}
+                onChange={(value) => {
+                  close();
+                  list.setFilter('status', value);
+                }}
+              />
+            </>
+          )}
+        </FilterPopover>
+      </PageActions>
       <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
       <p className="text-sm text-text-muted">
         Offering: {offering.tokenName} · {offering.statusDisplay} · {formatDate(offering.createdAt)}

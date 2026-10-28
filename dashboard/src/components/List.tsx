@@ -51,7 +51,6 @@ export function ListSearch({
   noun,
   count,
   filtered = false,
-  children,
 }: {
   label: string;
   hint?: string;
@@ -59,48 +58,44 @@ export function ListSearch({
   noun: Noun;
   count: number | undefined;
   filtered?: boolean;
-  children?: ReactNode;
 }) {
   const id = useId();
   const field = useRef<HTMLInputElement>(null);
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-start gap-3">
-        <div className="min-w-0 flex-1 basis-64">
-          <label htmlFor={`${id}search`} className={LABEL}>
-            {label}
-          </label>
-          <div className="mt-1 flex gap-2">
-            <input
-              ref={field}
-              id={`${id}search`}
-              type="search"
-              value={list.typed}
-              maxLength={100}
-              autoComplete="off"
-              data-1p-ignore
-              aria-describedby={hint ? `${id}hint` : undefined}
-              className={`${FIELD_BASE} [&::-webkit-search-cancel-button]:hidden`}
-              onChange={(event) => list.type(event.target.value)}
+      <div className="min-w-0">
+        <label htmlFor={`${id}search`} className={LABEL}>
+          {label}
+        </label>
+        <div className="mt-1 flex gap-2">
+          <input
+            ref={field}
+            id={`${id}search`}
+            type="search"
+            value={list.typed}
+            maxLength={100}
+            autoComplete="off"
+            data-1p-ignore
+            aria-describedby={hint ? `${id}hint` : undefined}
+            className={`${FIELD_BASE} [&::-webkit-search-cancel-button]:hidden`}
+            onChange={(event) => list.type(event.target.value)}
+          />
+          {(list.typed || list.search) && (
+            <PageAction
+              label="Clear"
+              context={label}
+              onClick={() => {
+                list.clear();
+                field.current?.focus();
+              }}
             />
-            {(list.typed || list.search) && (
-              <PageAction
-                label="Clear"
-                context={label}
-                onClick={() => {
-                  list.clear();
-                  field.current?.focus();
-                }}
-              />
-            )}
-          </div>
-          {hint && (
-            <p id={`${id}hint`} className="mt-1 text-xs text-text-muted">
-              {hint}
-            </p>
           )}
         </div>
-        {children}
+        {hint && (
+          <p id={`${id}hint`} className="mt-1 text-xs text-text-muted">
+            {hint}
+          </p>
+        )}
       </div>
       <p role="status" className="text-sm text-text-muted">
         {count === undefined || !(list.search || filtered)
