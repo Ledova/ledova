@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { List as ListIcon, X as XIcon } from '@phosphor-icons/react';
 import { Logo } from './Logo';
+import { ThemeToggle } from './ThemeToggle';
 import { SIGN_IN_URL, SIGN_UP_URL } from '../appLinks';
 
 const NAV_LINKS = [
@@ -26,7 +27,7 @@ export function Navbar() {
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50 border-b border-border-subtle bg-surface-base/90 backdrop-blur-md">
-      <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-5 md:h-20 md:px-8">
+      <div className="mx-auto grid h-16 max-w-6xl grid-cols-[auto_1fr_auto] items-center px-5 md:h-20 md:px-8 lg:grid-cols-[1fr_auto_1fr]">
         <Link to="/" onClick={closeMenu} className="col-start-1 justify-self-start">
           <Logo />
         </Link>
@@ -53,10 +54,11 @@ export function Navbar() {
           </a>
           <a
             href={SIGN_UP_URL}
-            className="inline-flex whitespace-nowrap rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover md:px-5 md:text-[15px]"
+            className="inline-flex whitespace-nowrap rounded-lg bg-brand px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-hover md:px-5 md:text-[15px]"
           >
             Register
           </a>
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}

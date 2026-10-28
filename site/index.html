@@ -6,6 +6,14 @@
     <link rel="icon" type="image/png" href="/icons/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f6f3ec" />
+    <script>
+      try {
+        if (localStorage.getItem('ledova.site.theme') === 'dark') {
+          document.documentElement.dataset.theme = 'dark';
+          document.querySelector('meta[name="theme-color"]').content = '#151410';
+        }
+      } catch {}
+    </script>
     <title>Ledova — a clearer picture of company ownership</title>
     <meta
       name="description"
