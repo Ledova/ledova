@@ -12,6 +12,7 @@ import {
   type SubscriptionStatus,
 } from '@ledova/shared';
 import { Section, Status, Loading } from '@components/Ledger';
+import { PageActions } from '@components/Page';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { useCompanyOfferingSubscriptions } from '@pages/company/offering/shared/useOffering';
@@ -53,34 +54,27 @@ export function OfferingApplications({
   const empty = data?.count === 0 && !narrowed && !read.isPlaceholderData;
   const searchable = (data && !empty) || narrowed || read.isError;
   return (
-    <Section
-      title={REGISTER_COPY.APPLICATIONS_TITLE}
-      header={
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">
-            {REGISTER_COPY.APPLICATIONS_TITLE}
-          </h2>
-          {searchable && (
-            <FilterPopover active={!!status} resetKey={offering.uuid}>
-              {(close) => (
-                <SelectField
-                  label="Status"
-                  options={[
-                    { value: '', label: 'All statuses' },
-                    ...Object.entries(STATUSES).map(([value, label]) => ({ value, label })),
-                  ]}
-                  value={status ?? ''}
-                  onChange={(value) => {
-                    close();
-                    list.setFilter('status', value);
-                  }}
-                />
-              )}
-            </FilterPopover>
-          )}
-        </div>
-      }
-    >
+    <Section title={REGISTER_COPY.APPLICATIONS_TITLE}>
+      {searchable && (
+        <PageActions>
+          <FilterPopover active={!!status} resetKey={offering.uuid}>
+            {(close) => (
+              <SelectField
+                label="Status"
+                options={[
+                  { value: '', label: 'All statuses' },
+                  ...Object.entries(STATUSES).map(([value, label]) => ({ value, label })),
+                ]}
+                value={status ?? ''}
+                onChange={(value) => {
+                  close();
+                  list.setFilter('status', value);
+                }}
+              />
+            )}
+          </FilterPopover>
+        </PageActions>
+      )}
       <p className="text-sm text-text-muted">{REGISTER_COPY.APPLICATIONS_NOTE(operatorName)}</p>
       {searchable && (
         <ListSearch

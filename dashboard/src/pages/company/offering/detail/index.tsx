@@ -27,6 +27,11 @@ import { useCompanyOfferings } from '@pages/company/offering/shared/useCompanyOf
 import { OfferingApplications } from './OfferingApplications';
 import { OfferingDocumentsEditor } from './OfferingDocumentsEditor';
 
+interface Confirming {
+  action: 'withdraw' | 'remove';
+  tokenName: string;
+}
+
 export default function CompanyOfferingDetailPage() {
   const { uuid = '' } = useParams();
   const context = useCompanyContext();
@@ -61,22 +66,24 @@ function CompanyOffering({ companyRead, uuid }: { companyRead: ReturnType<typeof
   const context = useCompanyContext();
   const navigate = useNavigate();
   const listPath = context?.companyPath(DESTINATIONS.companyOffering.path) ?? DESTINATIONS.companyOffering.path;
-  const detail = useCompanyOffering(company ? uuid : undefined, company?.uuid ?? '', companyRead);
   const row = data.offerings.find((item) => item.uuid === uuid);
+  const [confirming, setConfirming] = useState<Confirming | null>(null);
+  const [leaving, setLeaving] = useState(false);
+  const detail = useCompanyOffering(uuid, company?.uuid ?? '', companyRead, !!company && !!row && !leaving);
   const offering = row && detail.data?.tokenUuid === row.tokenUuid ? detail.data : undefined;
   const busy = !ready || detail.isFetching;
-  const [confirming, setConfirming] = useState<'withdraw' | 'remove' | null>(null);
-  const [leaving, setLeaving] = useState(false);
-  const confirm = async (action: 'withdraw' | 'remove', tokenName: string) => {
+  const confirm = async ({ action, tokenName }: Confirming) => {
     if (action === 'remove') setLeaving(true);
     const done = await run(action, uuid);
-    setConfirming(null);
-    if (done && action === 'remove')
+    if (done && action === 'remove') {
       navigate(listPath, {
         replace: true,
         state: { offeringOutcome: `The ${tokenName} draft offering was deleted.` },
       });
-    else setLeaving(false);
+      return;
+    }
+    setLeaving(false);
+    setConfirming(null);
   };
 
   let record: ReactNode = null;
@@ -108,7 +115,7 @@ function CompanyOffering({ companyRead, uuid }: { companyRead: ReturnType<typeof
     ];
     record = (
       <>
-        <Section title="Status">
+        <Section title="Review">
           <Outcome>{notice}</Outcome>
           <Rows>
             <Row label="Status">
@@ -122,11 +129,6 @@ function CompanyOffering({ companyRead, uuid }: { companyRead: ReturnType<typeof
               </Row>
             )}
             {offering.reviewedAt && <Row label="Reviewed">{formatDateTime(offering.reviewedAt)}</Row>}
-            {offering.reviewNotes && (
-              <Row label="Review notes">
-                <span className="whitespace-pre-wrap">{offering.reviewNotes}</span>
-              </Row>
-            )}
             {offering.rejectionReason && (row.status === 'rejected' || row.status === 'withdrawn') && (
               <Row label={row.status === 'rejected' ? 'Rejection reason' : 'Previous rejection'}>
                 <span className="whitespace-pre-wrap">{offering.rejectionReason}</span>
@@ -149,10 +151,22 @@ function CompanyOffering({ companyRead, uuid }: { companyRead: ReturnType<typeof
           {(OFFERING_WITHDRAWABLE_STATUSES.includes(row.status) || row.canBeDeleted || row.canBeEdited) && (
             <FormActions>
               {OFFERING_WITHDRAWABLE_STATUSES.includes(row.status) && (
-                <PageAction label="Withdraw" disabled={busy} onClick={() => setConfirming('withdraw')} />
+                <PageAction
+                  label="Withdraw"
+                  disabled={busy}
+                  onClick={() => {
+                    if (ready) setConfirming({ action: 'withdraw', tokenName: row.tokenName });
+                  }}
+                />
               )}
               {row.canBeDeleted && (
-                <PageAction label="Delete" disabled={busy} onClick={() => setConfirming('remove')} />
+                <PageAction
+                  label="Delete"
+                  disabled={busy}
+                  onClick={() => {
+                    if (ready) setConfirming({ action: 'remove', tokenName: row.tokenName });
+                  }}
+                />
               )}
               {row.canBeEdited && (
                 <PageAction
@@ -224,9 +238,7 @@ function CompanyOffering({ companyRead, uuid }: { companyRead: ReturnType<typeof
                   const document = company.documents.find((item) => item.uuid === attached);
                   return (
                     <li key={attached} className="py-3">
-                      <p className="break-all text-text-primary">
-                        {document?.name ?? 'Document no longer in Company documents'}
-                      </p>
+                      <p className="break-all text-text-primary">{document?.name ?? 'Attached document'}</p>
                       {document && <p className="text-text-muted">{document.documentTypeDisplay}</p>}
                     </li>
                   );
@@ -300,20 +312,20 @@ function CompanyOffering({ companyRead, uuid }: { companyRead: ReturnType<typeof
           onClose={() => setDocumentsEditor(null)}
         />
       )}
-      {confirming && row && (
+      {confirming && (
         <Confirmation
           isOpen
-          title={confirming === 'withdraw' ? 'Withdraw this offering?' : 'Delete this draft offering?'}
-          confirmLabel={confirming === 'withdraw' ? 'Withdraw offering' : 'Delete offering'}
+          title={confirming.action === 'withdraw' ? 'Withdraw this offering?' : 'Delete this draft offering?'}
+          confirmLabel={confirming.action === 'withdraw' ? 'Withdraw offering' : 'Delete offering'}
           confirmDisabled={!ready}
-          busy={pending === confirming}
-          busyLabel={confirming === 'withdraw' ? 'Withdrawing…' : 'Deleting…'}
+          busy={pending === confirming.action || leaving}
+          busyLabel={confirming.action === 'withdraw' ? 'Withdrawing…' : 'Deleting…'}
           onClose={() => setConfirming(null)}
-          onConfirm={() => void confirm(confirming, row.tokenName)}
+          onConfirm={() => void confirm(confirming)}
         >
-          {confirming === 'withdraw'
-            ? `The ${row.tokenName} offering stays visible as a record and can no longer be edited, resubmitted or deleted.`
-            : `The ${row.tokenName} draft offering is deleted. This can't be undone.`}
+          {confirming.action === 'withdraw'
+            ? `The ${confirming.tokenName} offering stays visible as a record and can no longer be edited, resubmitted or deleted.`
+            : `The ${confirming.tokenName} draft offering is deleted. This can't be undone.`}
         </Confirmation>
       )}
     </PageTitle.Provider>

@@ -42,9 +42,10 @@ status or revocation, expiry and source, with **Revoke appointment** at the row'
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
 acceptance or deadline and the appointment's expiry. Documents → Company documents has its own view, with Category and File in the inline upload.
 The remaining offering, publication, directory, application, wallet, activity and eligibility collections
-use this workspace frame. Their creation and record actions use the same footer; short named/status summaries
-keep secondary facts and copyable technical references on demand. Application summaries open their existing detail
-page, and each offering opens its own page, whose sections end with the actions they allow.
+use this workspace frame, with their creation and record actions in the same footer. Each offering's row
+opens its own page, whose sections end with the actions they allow, and application summaries open their
+existing detail page. The other collections' short named/status summaries keep secondary facts and
+copyable technical references on demand.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
 ESS, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
@@ -790,8 +791,8 @@ server:
   controls for hidden retained views; a header contribution escapes its original hidden container.
   Keep the
   selected class visible in the task or class heading. Class changes close the panel and retain
-  the existing editor and unfinished-work locks. An offering's Applications keep their Status filter
-  in the section's own heading, shown with Search applications once the offering has any.
+  the existing editor and unfinished-work locks. An offering's page shows the Applications Status
+  filter in its heading, with Search applications, once the offering has applications.
   Shareholders puts Search people inside the panel above Share class, keeping
   its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
   scope without repeating it in a header summary or badge. Certificates and Activity keep labelled

@@ -666,10 +666,10 @@ class first. Creating a draft opens its page.
 
 An offering's page, at `/company/offering/:uuid`, has these sections:
 
-- **Status:** the status, when the offering was created, submitted and by whom, reviewed, and
-  closed or withdrawn, with any review notes, rejection, previous rejection or closing reason.
-  Withdraw, Delete and Submit for review (Submit again after a rejection) appear as the status
-  allows. Deleting a draft returns to Offerings, which says it was deleted.
+- **Review:** the status, when the offering was created, submitted and by whom, reviewed, and
+  closed or withdrawn, with any rejection, previous rejection or closing reason. Withdraw, Delete
+  and Submit for review (Submit again after a rejection) appear as the status allows. Deleting a
+  draft returns to Offerings, which says it was deleted.
 - **Terms:** the price, bounds, window, exemption, how investors may pay, summary and use of
   proceeds, with Edit while the offering can be edited. An approved offering also shows its
   **Offering ID** in full, with **Copy offering ID**, to give investors for their large-investment
@@ -686,8 +686,8 @@ and locked and sends only new choices; if the offering has since left approved o
 dialog says so and sends nothing.
 
 Applications lists the offering's applications 25 at a time, newest first. Once there are any, it
-searches by investor name, wallet address or payment reference, and the Filters icon in its heading
-opens a compact Status selector; selection applies immediately and closes it. Each application shows its
+searches by investor name, wallet address or payment reference, and the Filters icon in the page
+heading opens a compact Status selector; selection applies immediately and closes it. Each application shows its
 requested and allotted shares, including zero allotments, as a read-only record; the company's paid
 issues are on the Share class page ([company paid issues](#company-paid-issues)).
 

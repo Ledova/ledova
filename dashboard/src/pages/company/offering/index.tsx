@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { generatePath, useLocation, useNavigate } from 'react-router-dom';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { offeringTone } from '@pages/company/shared/statusTones';
@@ -38,6 +39,14 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
     return context?.companyPath(path) ?? path;
   };
   const outcome = typeof location.state?.offeringOutcome === 'string' ? location.state.offeringOutcome : '';
+  const listed = !companyRead.isLoading && !data.isLoading && !companyRead.error && !!company && !data.error;
+  const landed = useRef<HTMLDivElement>(null);
+  const focused = useRef('');
+  useEffect(() => {
+    if (!outcome || !listed || focused.current === location.key) return;
+    focused.current = location.key;
+    landed.current?.focus({ preventScroll: true });
+  }, [outcome, listed, location.key]);
   const deployed = data.tokens.some((token) => token.status === 'deployed');
   return (
     <>
@@ -53,7 +62,9 @@ function CompanyOfferings({ companyRead }: { companyRead: ReturnType<typeof useC
             {!data.error && (
               <>
                 <Section title={`Your offerings (${data.offerings.length})`}>
-                  <Outcome>{outcome}</Outcome>
+                  <div ref={landed} tabIndex={outcome ? -1 : undefined} className="focus:outline-none">
+                    <Outcome>{outcome}</Outcome>
+                  </div>
                   {data.offerings.length === 0 ? (
                     <p className="text-sm text-text-muted">No offerings yet. Create one and submit it for review.</p>
                   ) : (
