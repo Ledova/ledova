@@ -1,4 +1,4 @@
-import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
+import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useCallback } from 'react';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {

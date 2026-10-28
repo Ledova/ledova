@@ -346,7 +346,7 @@ and ask for changes separately ([member profile](participants.md#member-profile)
 [member requests](member-records.md#member-requests)).
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
-   Recipient details on their award, and choose Change particulars.
+   Recipient details on their award's page, and choose Change particulars.
 2. Upload one supporting document, such as a deed poll or the member's notice of a new address, and
    give the new name and residential address, the "as at" date the company's register records (today
    in UTC or earlier) and a reason.
@@ -626,7 +626,7 @@ appointments allow none sees the history with a read-only note.
 ### A shareholder's page
 
 Each shareholder has a page, reached from Details on Shareholders, and so does each award recipient,
-reached from Recipient details on their award. It shows:
+reached from Recipient details on their award's page. It shows:
 
 - Particulars: the name and residential address the company has recorded, with **Change
   particulars** for someone who can prepare the register;

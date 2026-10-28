@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
+import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import {
   REGISTER_GRANT_COPY as COPY,
   REGISTER_GRANT_DECISIONS,

@@ -192,17 +192,24 @@ a focused preparation form in place of the list. Closing the form or successful 
 to the records; keep their controllers mounted so pending requests and original-request recovery survive.
 Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
 keeps the selected class card and returns to its records after Cancel or a successful save. ESS uses the
-Share class selection in the page heading's Filters popover and one creation action; disable class selection while an award editor or
-recovery is open, keeping every class controller mounted. Its preparation,
+Share class selection in the page heading's Filters popover and one creation action; disable class selection while award preparation
+or its recovery is open, keeping every class controller mounted. Its preparation,
 vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
 Award preparation groups the recipient and promised shares, with new-person details beneath. Agreement
 and vesting use the existing responsive two-column grid, stacking on smaller screens, with short
 contextual labels and one vesting explanation. ESS has no background refresh; keep draft controls,
 selected-file display and focus stable through entry reads, explicit retries and post-save refreshes
-([read policy](frontend.md#automatic-data-freshness)). Its award list follows the existing aligned
-Disclosure rows: Recipient and agreement date, then Promised, Vested and Issued quantities. On small
-screens, the three quantities sit beneath the recipient with short labels. Charts, supporting records
-and actions open on demand; an open editor or uncertain action keeps its row open.
+([read policy](frontend.md#automatic-data-freshness)). Its award list uses `LinkRow`: Recipient and
+agreement date, then Promised, Vested and Issued quantities and the trailing arrow; on small screens the
+three quantities sit beneath the recipient as one line. Each row opens the award's own page, built like a
+shareholder's page: the recipient as its title, the class and agreement date as its lede, **Back to
+Employee share scheme** and **Recipient details** in the heading, then headed cards without chevrons:
+**Entitlement** (the chart and the award's actions), **Agreement and vesting schedule**, **Vesting
+history** (the latest three events, with **Show all**), **Entitlement changes** and **Non-paid issues
+from this award**, each shown only when it has records, and one muted recorded line. Record vesting, End
+unissued rights and Correct a vesting event open their form inside the Entitlement card, keeping the
+agreement visible and hiding the other cards. While an action's outcome is uncertain the page reports
+held work, so leaving it is blocked as on Ledger.
 Inline vesting uses one named field group with the event quantity, date and document, short contextual
 labels and the same responsive grid. While an award editor is open, its footer owns the actions;
 hide unrelated record actions instead of leaving a disabled row above the form.

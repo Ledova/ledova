@@ -1,4 +1,4 @@
-import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
+import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_DECISIONS, formatDateTime, formatDate } from '@ledova/shared';
 import { Row, Rows, Disclosure } from '@components/Ledger';

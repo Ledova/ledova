@@ -1,5 +1,5 @@
 import { useCallback, type ReactNode } from 'react';
-import { RecordShell, RecordDownloadFailure, RecordStage } from './RecordShell';
+import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
   REGISTER_TRANSFER_COPY as COPY,

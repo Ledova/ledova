@@ -90,7 +90,10 @@ function ledgerContext(
   const destination = destinationAt(location.pathname);
   const classPath =
     destination &&
-    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
+    (destination === 'companyClass' ||
+      destination === 'companyRegisterImport' ||
+      destination === 'companyRegisterAward' ||
+      LEDGER_TASK_PARENTS[destination])
       ? DESTINATIONS[destination].path
       : undefined;
   const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
@@ -156,7 +159,10 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const blocks = (task?: string) => blocked && !(task && state?.task === task && !routedTask);
   const classPath =
     destination &&
-    (destination === 'companyClass' || destination === 'companyRegisterImport' || LEDGER_TASK_PARENTS[destination])
+    (destination === 'companyClass' ||
+      destination === 'companyRegisterImport' ||
+      destination === 'companyRegisterAward' ||
+      LEDGER_TASK_PARENTS[destination])
       ? DESTINATIONS[destination].path
       : undefined;
   const classParams = classPath ? matchPath(classPath, location.pathname)?.params : undefined;
@@ -240,7 +246,12 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
   const [expanded, setExpanded] = useState(active);
   const id = useId();
   const children = Object.entries(SHAREHOLDER_VIEWS);
-  const routedView = location.pathname === path ? location.hash.slice(1) : '';
+  const routedView =
+    location.pathname === path
+      ? location.hash.slice(1)
+      : destinationAt(location.pathname) === 'companyRegisterAward'
+        ? 'awards'
+        : '';
   const selected = state?.blocked && state.shareholderView ? state.shareholderView : routedView;
   const selectedChild = children.some(([key]) => key === selected);
   const blocked = location.pathname === path && (!state || state.blocked);

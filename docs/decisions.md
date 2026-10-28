@@ -1664,7 +1664,10 @@ the chain views, certificates, inspection copies, member access and requests, Te
 representative authority and Profile drop their **Record details** and **Technical details**
 sections and internal references. The identifiers a company hands out read as **Company ID** and
 **Offering ID** wherever they are shown or typed. The chain views and the eligibility pages follow
-in later phases.
+in later phases. The owner then chose: "Start phase 2 with your defaults: lists with visible actions
+and an ESS award page." So Certificates, Corrections and Member requests rows show their action
+without expanding, and each employee award opens its own page with headed cards instead of nested
+chevrons.
 
 ## Mobile app for shareholders
 
