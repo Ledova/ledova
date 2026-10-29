@@ -1692,7 +1692,10 @@ with your defaults: the share class chain area." The default was one **On chain*
 class on chain and a single entry for putting a class on chain otherwise, with empty cards and the
 internal quantity guard removed and the chain workflows condensed rather than removed. So the Share
 class page drops **Technical details and chain workflows**, and the chain workflows move to the
-class's own **Chain actions** page.
+class's own **Chain actions** page. On 29 October 2026, with phase 4 merged, the owner asked:
+"Please continue until the end". So the remaining record chevrons on company pages give way to plain
+**Show …** toggles and titled records, and the eligibility pages and wallet approvals drop their
+keys, digests and internal references (phase 5).
 
 ## Mobile app for shareholders
 

@@ -72,13 +72,15 @@ function Confirmation({ action, busy, confirm, cancel, opener }: ConfirmationPro
           : 'Revoke this acceptance';
   return (
     <div ref={container}>
-      <Section title="Review exact action">
+      <Section title="Review and confirm">
         <ErrorSummary {...review.summary} />
         {action.request && <EligibilitySummary summary={action.request.sharedSummary} />}
         {action.outcome && (
           <Rows>
-            <Row label="Exact decision outcome">{ELIGIBILITY_OUTCOME_LABELS[action.outcome]}</Row>
-            <Row label="Exact decision expiry">{formatDateTime(action.expiresAt, 'No acceptance expiry')}</Row>
+            <Row label="Decision">{ELIGIBILITY_OUTCOME_LABELS[action.outcome]}</Row>
+            {action.outcome === 'accepted' && (
+              <Row label="Acceptance expiry">{formatDateTime(action.expiresAt, 'No acceptance expiry')}</Row>
+            )}
           </Rows>
         )}
         {action.reason && <p className="whitespace-pre-wrap text-sm">Reason: {action.reason}</p>}

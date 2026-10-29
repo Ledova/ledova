@@ -17,18 +17,18 @@ import {
 import { FormActions, PageAction } from '@components/Page';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
+import { useDirectoryNames } from '@hooks/useDirectoryNames';
 
-function Facts({ preview }: { preview: WalletNominationPreview }) {
+function Facts({ preview, company }: { preview: WalletNominationPreview; company: string }) {
   return (
     <Rows>
-      <Row label="Company">{shortReference(preview.company)}</Row>
-      <Row label="Eligibility request">{shortReference(preview.request)}</Row>
-      <Row label="Accepted GENERAL decision">{preview.decision ? shortReference(preview.decision) : 'Not ready'}</Row>
-      <Row label="Selected address">{preview.address}</Row>
-      <Row label="Chain">{preview.chain}</Row>
+      <Row label="Company">{company}</Row>
+      <Row label="Eligibility">{preview.decision ? 'Accepted' : 'Not ready'}</Row>
+      <Row label="Selected address">
+        <span className="break-all">{preview.address}</span>
+      </Row>
       <Row label="Possession proof completed">{formatDateTime(preview.proofCompletedAt)}</Row>
       <Row label="Eligibility expiry">{formatDateTime(preview.eligibilityExpiresAt)}</Row>
-      <Row label="Preview fingerprint">{preview.previewDigest}</Row>
     </Rows>
   );
 }
@@ -58,6 +58,9 @@ export function WalletNomination({
     pausedScope: verifying?.scope,
   });
   const { running, track } = useRunningAction();
+  const directory = useDirectoryNames();
+  const companyName = (uuid: string) =>
+    directory.companies.get(uuid.toLowerCase()) ?? `Company ${shortReference(uuid)}`;
   const reads = [data.request, data.nominations, data.wallets];
   const readFailed = reads.some((read) => read.isError);
   const [consent, setConsent] = useState<{ preview: WalletNominationPreview | null; accepted: boolean }>({
@@ -85,19 +88,18 @@ export function WalletNomination({
   });
   if (!data.owner) return null;
   return (
-    <Section title="Nominate one own Base wallet">
+    <Section title="Nominate your Base wallet">
       <p className="text-sm text-text-muted">
-        Select one own wallet for this company and review its current GENERAL eligibility and possession proof. Earlier
-        evidence sharing does not share your wallets.
+        Choose one of your Base wallets for this company, and check its eligibility and the proof that you control it.
+        Sharing evidence never shares your wallets.
       </p>
       <ErrorSummary {...checks.summary} />
       {data.original && (
         <div className="space-y-3">
-          <p role="status">This original nomination is unconfirmed. Recover its receipt with the same body and key.</p>
-          <Facts preview={data.original.preview} />
-          <Rows>
-            <Row label="Original nomination key">{shortReference(data.original.body.operationId)}</Row>
-          </Rows>
+          <p role="status">
+            This nomination&apos;s outcome is unconfirmed. Recover its receipt with the identical original request.
+          </p>
+          <Facts preview={data.original.preview} company={companyName(data.original.preview.company)} />
           <PageAction label="Recover original nomination" disabled={data.busy} onClick={() => void data.recover()} />
         </div>
       )}
@@ -117,12 +119,12 @@ export function WalletNomination({
         <>
           <SelectField
             {...checks.field('wallet')}
-            label="Your own Base wallet"
+            label="Your Base wallet"
             options={[
-              { value: '', label: 'Select one own wallet' },
+              { value: '', label: 'Choose a wallet' },
               ...wallets.map((row) => ({
                 value: row.uuid,
-                label: `${row.name || 'Own Base wallet'} · ${row.address}`,
+                label: `${row.name || 'Base wallet'} · ${row.address}`,
               })),
             ]}
             value={data.walletUuid}
@@ -137,7 +139,7 @@ export function WalletNomination({
           )}
           {preview && (
             <div className="space-y-3">
-              <Facts preview={preview} />
+              <Facts preview={preview} company={companyName(preview.company)} />
               {refusalSentences(preview.unmetRequirements, COMPANY_WALLET_UNMET_COPY).map((sentence) => (
                 <p key={sentence} className="text-sm text-text-muted">
                   {sentence}
@@ -200,21 +202,22 @@ export function WalletNomination({
       />
       <div className="space-y-3">
         <p className="text-sm text-text-muted">
-          Only the selected address and its minimal approval facts are shared with the actual company.
+          Only the selected address and the facts needed to approve it are shared with the company.
         </p>
         {data.receipt && !data.nominations.isSuccess && (
           <Rows>
-            <Row label="Retained nomination receipt">{shortReference(data.receipt.uuid)}</Row>
-            <Row label="Shared address">{data.receipt.address}</Row>
-            <Row label="Company">{shortReference(data.receipt.company)}</Row>
+            <Row label="Shared address">
+              <span className="break-all">{data.receipt.address}</span>
+            </Row>
+            <Row label="Company">{companyName(data.receipt.company)}</Row>
           </Rows>
         )}
         {(data.nominations.isSuccess ? data.nominations.data : []).map((record) => (
           <Rows key={record.uuid}>
-            <Row label="Retained nomination">{shortReference(record.uuid)}</Row>
-            <Row label="Company">{shortReference(record.company)}</Row>
-            <Row label="Shared address">{record.address}</Row>
-            <Row label="Chain">{record.chain}</Row>
+            <Row label="Company">{companyName(record.company)}</Row>
+            <Row label="Shared address">
+              <span className="break-all">{record.address}</span>
+            </Row>
             <Row label="Submitted">{formatDateTime(record.submittedAt)}</Row>
             {refusalSentences(record.unmetRequirements, COMPANY_WALLET_UNMET_COPY).map((sentence) => (
               <Row key={sentence} label="Current readiness">
