@@ -1105,7 +1105,8 @@ by a local helper or a browser `toLocale…` call:
   its holdings were read, with the holdings behind **Show the holdings** once it is decided (a
   copied opening's shareholders behind **Show the shareholders**), and its chain-inclusion messages
   name the kind of completion without its reference or block numbers.
-  The eligibility pages list requests by category, outcome and submission time and show their
+  The eligibility pages list requests by category, outcome and submission time, the company's list
+  leading with the investor's name when the request shared one, and show their
   history without request keys, digests or appointment references. Company wallet approvals and
   wallet nominations show the wallet, its eligibility and proof dates and the decisions, with
   **View transaction**, without nomination, request or decision references, fingerprints or

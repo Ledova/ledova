@@ -4644,6 +4644,7 @@ export interface ApiComponents {
       certifierName?: string;
       company: string;
       declarationText: string;
+      participantName?: string | null;
       requestedExpiresAt: string;
       source: string;
       submittedAt: string | null;

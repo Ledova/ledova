@@ -192,6 +192,7 @@ export default function CompanyEligibilityPage() {
                       <div aria-busy={queue.busy} className={queue.busy ? 'opacity-60' : undefined}>
                         <RecordsList
                           records={queue.rows}
+                          showInvestor
                           disabled={queue.busy}
                           select={(uuid) => {
                             read.selectRecord(uuid);

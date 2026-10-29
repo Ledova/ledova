@@ -231,6 +231,7 @@ def _request_preview(source, company, requested_expires_at):
         "company": str(company.pk),
         "submitted_at": _stamp(source.submitted_at) if source.submitted_at else None,
         "requested_expires_at": _stamp(requested_expires_at),
+        "participant_name": source.user_account.user_profile.full_name,
     }
     if source.category == InvestorCategory.ACCOUNTANT_CERTIFICATE:
         summary.update(
@@ -247,7 +248,7 @@ def _request_preview(source, company, requested_expires_at):
     except ValidationError:
         requirements.append("source_evidence_unavailable")
     facts = {
-        "version": "1",
+        "version": "2",
         "shared_summary": summary,
         "source_fingerprint": fingerprint,
         "evidence_hash": evidence_hash,
@@ -339,6 +340,7 @@ def submit_eligibility_request(
                 submitted_by=actor,
                 idempotency_key=idempotency_key,
                 category=current.category,
+                version=preview["version"],
                 shared_summary=preview["shared_summary"],
                 source_fingerprint=preview["source_fingerprint"],
                 evidence_hash=preview["evidence_hash"],
