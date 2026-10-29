@@ -8,7 +8,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useClassInspectionCopy } from './useClassInspectionCopy';
 import { InspectionCopyHistory } from './OutputHistory';
-import { inspectionCopiesKey } from './outputKeys';
+import { inspectionCopiesKey } from './useOutputHistory';
 
 export function ClassInspectionCopy({
   owner,

@@ -1,15 +1,7 @@
 import type { ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import {
-  formatDate,
-  formatDateTime,
-  getCompanyPacks,
-  getRegisterInspectionCopies,
-  type OrderSubmissionOwner,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
+import { formatDate, formatDateTime, type OrderSubmissionOwner } from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
-import { companyPacksKey, inspectionCopiesKey } from './outputKeys';
+import { useCompanyPacks, useInspectionCopies } from './useOutputHistory';
 
 function prepared(at: string, by: string) {
   return by ? `Prepared ${formatDateTime(at)} by ${by}` : `Prepared ${formatDateTime(at)}`;
@@ -53,15 +45,7 @@ export function InspectionCopyHistory({
   token: string;
   guard: () => void;
 }) {
-  const copies = useQuery({
-    queryKey: inspectionCopiesKey(owner, token),
-    queryFn: async ({ signal }) => {
-      guard();
-      const { data } = await getRegisterInspectionCopies(apiClient, token, { signal, ledovaSubmissionGuard: guard });
-      guard();
-      return data.copies;
-    },
-  });
+  const copies = useInspectionCopies(owner, token, guard);
   return (
     <History
       title="Prepared copies"
@@ -90,15 +74,7 @@ export function CompanyPackHistory({
   company: string;
   guard: () => void;
 }) {
-  const packs = useQuery({
-    queryKey: companyPacksKey(owner, company),
-    queryFn: async ({ signal }) => {
-      guard();
-      const { data } = await getCompanyPacks(apiClient, company, { signal, ledovaSubmissionGuard: guard });
-      guard();
-      return data.packs;
-    },
-  });
+  const packs = useCompanyPacks(owner, company, guard);
   return (
     <History
       title="Prepared packs"

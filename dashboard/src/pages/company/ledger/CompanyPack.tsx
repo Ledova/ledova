@@ -8,7 +8,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useCompanyPackAuthority, useCompanyPack } from './useCompanyPack';
 import { CompanyPackHistory } from './OutputHistory';
-import { companyPacksKey } from './outputKeys';
+import { companyPacksKey } from './useOutputHistory';
 
 export function CompanyPack({
   owner,
