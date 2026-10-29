@@ -76,31 +76,58 @@ Alex's Purpose member access was linked through invitation and acceptance for #1
 display name alone grants no access. Taylor has three associations and Casey has one. Company
 aggregate sharing is enabled for the local exercise. No genuine ABR check was fabricated.
 
-## Current handover — 28 October 2026
+## Current handover — 29 October 2026
 
-- [PR #1382](https://github.com/Ledova/ledova/pull/1382) is merged at
-  `e5bb1cb009d04677173c6d205e3c87d646db3341`. Dashboard has a top-right **Switch company**
-  popover reusing the searchable picker, hidden for single-company accounts. The selected company
-  stays in the sidebar footer. A single-company unavailable address has **Open your company**.
-- Company-change confirmation, held-work blocks and company/account isolation remain in place.
-  Switching from class details to a cached company keeps focus on the switch button; ordinary
-  class exploration retains its own focus behavior. There is no workspace selector.
-- [#1378](https://github.com/Ledova/ledova/issues/1378) holds this UI work and its completion
-  records. Earlier PRs #1379–#1381 delivered compact filters, consistent page-header placement,
-  flat lists and sidebar/layout cleanup. Follow the current
-  [frontend standards](engineering/frontend.md) and [UX standards](engineering/frontend-ux.md).
-- Exact-head independent review and all required CI passed for PR #1382:
-  [CI run](https://github.com/Ledova/ledova/actions/runs/40623931028). Local source/client preflight
-  passed dashboard **20** and browser smoke **9**, within the unchanged caps. Local backend
-  verification stops at Python **3.13.15** (this Mac has **3.13.3**); CI runs the pinned suite.
-- Chrome localhost displayed all three companies and checked mouse/Enter selection between Purpose
-  and Banksia, nested Escape and cached-class focus with Alex. Existing cases exercise three-company
-  switching, single-company hiding/recovery and
-  dirty-form cancel/confirm. Local screenshots remain under
-  `~/Developer/ledova-artifacts/web-filters-1378/`; they are not needed to run the app.
-- No production deployment or database change was made. Keep mobile work for later and preserve
-  Claude's unrelated worktrees. Remaining older issues include #624's deferred physical-device/
-  human release acceptance and #1160's PyMuPDF adoption decision; check GitHub before resuming.
+- The signed-in web UX walkthrough under [#1378](https://github.com/Ledova/ledova/issues/1378) is
+  finished. The owner steered it live in Chrome on localhost, and every change merged after an
+  independent review at its exact head with green required CI.
+  - **28 October:** class card filters (#1384) and oldest-first classes (#1385); last-used company
+    at sign-in (#1389); the register CSV download removed, with inspection copies under Documents (#1390); and
+    company documents in Documents, with recorded details on Profile (#1391).
+  - **UX review in five phases:**
+    - Phase 1 (#1392) removed record-details chevrons and internal IDs.
+    - Phase 2 (#1393, #1394) gave lists visible actions and the employee award its own page.
+    - Phase 3 (#1395–#1397) covered Member access and Team rows, and gave authority requests and
+      offerings their own pages.
+    - Phase 4 covered the share class chain area: Chain actions (#1400), condensed workflows
+      (#1405) and Corrections' chain views (#1407).
+    - After the owner's "Please continue until the end", the remaining company chevrons (#1411),
+      phase 5's plain eligibility pages and wallet approvals (#1413), and the investor pages'
+      content chevrons (#1415) followed.
+- The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
+  - Lists don't expand, and a record opens its own page or is a titled record.
+  - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
+  - No internal IDs are shown. A short reference appears only where records would otherwise read
+    the same or have no name, and **Company ID** and **Offering ID** appear in full, with Copy, for a
+    company to give investors.
+  - `Disclosure` remains only for Activity's entries, Wallet shares' rows and Wallets' sort.
+- **Process:**
+  - A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date
+    with `main` ([decision](decisions.md#required-ci-and-auto-merge-on-main), #1409).
+  - Auto-merge is turned on once the review passes. It stays on across pushes, so turn it off before
+    any push other than a merge of `main` whose own changes are shown unchanged, and on again after
+    the delta's review. Each merge is checked for tree and parent and recorded on its PR, and the
+    owner is not asked to merge.
+- **Checks:**
+  - Local preflight passes dashboard **20** and browser smoke **9**, within the unchanged caps.
+  - Local backend verification stops at Python **3.13.15** (this Mac has **3.13.3**), and CI runs
+    the pinned suite.
+  - Pages without local data were checked with sample API responses served in the browser only,
+    never written to the database.
+- **Branch preview stack:** a dashboard on **5175** serves `.claude/worktrees/claude-1378-order`
+  (`dashboard-order` in `.claude/launch.json`) against a second backend on **8040** (`backend-1378`).
+  That backend runs `.claude/worktrees/mobile-1201`'s backend as it was loaded on 28 October,
+  through a script in a session scratchpad, so a later session can't restart it as it stands and
+  shouldn't use it to check backend changes. Stop both when they are no longer needed. The
+  temporary `ledova-exports-pg` test database was removed.
+- **Still open:**
+  - Company eligibility, Published to your members and Market are routed but have no in-app link,
+    and Offerings and Activity are reachable only from the notification bell (Offerings also from an
+    offering page's Back link and the paid-issue flow): an earlier audit question for the owner.
+  - Mobile work stays for later.
+  - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
+    decision; check GitHub before resuming.
+- No production deployment or database change was made.
 
 ## Continue on this Mac
 

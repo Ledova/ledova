@@ -1,5 +1,5 @@
 import { formatDate, formatShareCount, type OwnMemberRecord } from '@ledova/shared';
-import { Disclosure, Section } from '@components/Ledger';
+import { Section, ShowMore } from '@components/Ledger';
 import { AwardStatus } from '@components/AwardStatus';
 
 function vestingLabel(award: OwnMemberRecord['awards'][number], uuid: string) {
@@ -22,7 +22,7 @@ export function MemberAwards({ record, token }: { record: OwnMemberRecord; token
               {formatDate(award.termsOn)}
             </h3>
             <AwardStatus {...award} compact />
-            <Disclosure summary="Award details">
+            <ShowMore show="Show award details" hide="Hide award details">
               <div className="space-y-2 text-sm text-text-muted">
                 <p>{award.terms}</p>
                 <p>{award.schedule}</p>
@@ -45,7 +45,7 @@ export function MemberAwards({ record, token }: { record: OwnMemberRecord; token
                   </p>
                 ))}
               </div>
-            </Disclosure>
+            </ShowMore>
           </div>
         ))}
       </div>

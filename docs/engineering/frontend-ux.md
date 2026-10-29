@@ -101,7 +101,7 @@ available after a selected-company read fails, while withholding that company's 
 combine different companies' shares into a single ownership percentage or imply a valuation.
 
 Awards remain in a separate card below the ownership panel. Member awards show the promise and
-nonzero lifecycle quantities, with the full breakdown and terms under **Award details**. Issued
+nonzero lifecycle quantities, with the full breakdown and terms under **Show award details**. Issued
 award shares are already included in the holding. The Dashboard contains the overview and read-only
 awards; requests, documents and record-management actions stay on their focused pages.
 Profile shows **Company-recorded details** as one card, after Personal information, for a member of
@@ -165,12 +165,11 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's
   facts. Representative authority requests and offerings are `LinkRow`s that open each record's own page.
-- `Disclosure`: expandable page content, a button with `aria-expanded` and a leading
-  caret that opens its detail in place under its row; a summary
-  given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
-  independently through `useOpenRows` from `@ledova/shared`) and Wallets' sort
-  hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
-  so unfinished input survives. The
+- `Disclosure`: a button with `aria-expanded` and a leading caret that opens its detail in place
+  under its row, used only by Activity's entries and Wallet shares' rows (opened independently
+  through `useOpenRows` from `@ledova/shared`) and Wallets' sort, which hold their detail only while
+  open. Other optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished
+  input survives. The
   sidebar's group caret is a separate navigation button. Wallets' sort (once a chain holds two
   wallets) remains a `Disclosure` at the top of the card naming what it applies. Substantial record
   reviews use the main page; brief confirmations and signing steps can use dialogs.
@@ -358,8 +357,8 @@ fields under the same heading, with Cancel and Save together at the bottom right
 field when editing opens and return focus to Edit when it ends, if that action is still available.
 Company information and personal Profile details follow this pattern. Activation reviews its current
 company and declaration on the main page before explicit confirmation. Supporting payslips use
-compact document records with extraction details on demand and warnings visible in the expanded record;
-uploading opens an inline form.
+document records that show their claim, or the form to attach one, directly, with **Show extraction
+details** and visible warnings; uploading opens an inline form.
 Class rights follows this pattern: Edit replaces its read view and previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured

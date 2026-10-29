@@ -19,7 +19,7 @@ import {
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
-import { Disclosure, LoadError, Loading, Row, Rows, Status } from '@components/Ledger';
+import { LoadError, Loading, Row, Rows, ShowMore, Status } from '@components/Ledger';
 
 const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',
@@ -68,7 +68,7 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
 
   return (
     <>
-      <Disclosure summary="Extraction details">
+      <ShowMore show="Show extraction details" hide="Hide extraction details">
         <Rows>
           {fields.map((field) => (
             <Row key={field.label} label={field.label}>
@@ -80,7 +80,7 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
           </Row>
           {durationMs != null && <Row label="Extraction time">{(durationMs / 1000).toFixed(1)}s</Row>}
         </Rows>
-      </Disclosure>
+      </ShowMore>
       {readableWarnings.length > 0 && <p className="text-sm text-warning-light">{readableWarnings.join(' · ')}</p>}
     </>
   );
@@ -141,19 +141,16 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const busy = attach.isPending || del.isPending;
 
   return (
-    <Disclosure
-      summary={
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="break-words text-sm font-medium text-text-primary">{doc.originalFilename}</p>
-            <p className="text-sm text-text-muted">
-              {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt, '—')}
-            </p>
-          </div>
-          <ExtractionState status={extraction?.status} />
+    <li className="flex flex-col gap-3 py-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words text-sm font-medium text-text-primary">{doc.originalFilename}</h3>
+          <p className="text-sm text-text-muted">
+            {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt, '—')}
+          </p>
         </div>
-      }
-    >
+        <ExtractionState status={extraction?.status} />
+      </div>
       {doc.classification ? (
         <Rows>
           <Row label="Classification claim">{attachedLabel}</Row>
@@ -162,7 +159,8 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           </Row>
         </Rows>
       ) : (
-        <div className="space-y-4">
+        <fieldset className="min-w-0 space-y-4">
+          <legend className="sr-only">Attach {doc.originalFilename} to a claim</legend>
           <ErrorSummary {...attachment.summary} />
           <ClaimSelector
             {...attachment.field('classification')}
@@ -185,6 +183,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
             <PageAction
               primary
               label="Attach to claim"
+              context={doc.originalFilename}
               busy={attach.isPending}
               busyLabel="Attaching…"
               disabled={del.isPending}
@@ -193,7 +192,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
               }}
             />
           </FormActions>
-        </div>
+        </fieldset>
       )}
       {(attach.error || del.error) && (
         <p role="alert" className="text-sm text-error-light">
@@ -224,7 +223,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           {extraction.error}
         </p>
       )}
-    </Disclosure>
+    </li>
   );
 }
 
@@ -349,11 +348,13 @@ export function DocumentsPanel() {
         </LoadError>
       )}
       {docs.isSuccess && list.length === 0 && <p className="text-sm text-text-muted">No documents yet.</p>}
-      <div className="divide-y divide-border-subtle">
-        {list.map((doc) => (
-          <DocumentCard key={doc.uuid} initialDoc={doc} claims={claims} />
-        ))}
-      </div>
+      {list.length > 0 && (
+        <ul className="divide-y divide-border-subtle">
+          {list.map((doc) => (
+            <DocumentCard key={doc.uuid} initialDoc={doc} claims={claims} />
+          ))}
+        </ul>
+      )}
       <UploadCard claims={claims} />
     </div>
   );

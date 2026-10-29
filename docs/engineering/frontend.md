@@ -761,7 +761,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Static, data-free placeholders reserve loading space, and confirmed figures appear directly.
   Getting started lists only incomplete company-administrator tasks and disappears once they are
   complete. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
-  quantities above their full breakdown and terms in Award details.
+  quantities above their full breakdown and terms in **Show award details**.
 - The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) combines company-authorised
   certificate preparation and association-bound member tracking in one class-selected list. Company
   reads mount only with confirmed register access; member-only access never reads the full company register.

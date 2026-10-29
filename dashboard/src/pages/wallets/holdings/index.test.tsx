@@ -399,7 +399,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   await screen.findByRole('img', {
     name: /1 unvested, 1 vested, awaiting issue, 1 issued from award, 1 unvested rights ended, 1 vested rights ended/,
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Award details' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Show award details' }));
   expect(screen.getByText(/Company selected reduction/)).toBeTruthy();
   expect(screen.getByText(/Correct recorded quantity/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
