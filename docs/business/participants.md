@@ -132,8 +132,9 @@ withdrawn.
 
 1. Open **Your company eligibility** from Verification.
 2. Select your evidence source and the company, and set the expiry you are asking for. The company
-   is one you hold shares in, or the one whose request link you opened. A company copies its link
-   with **Copy request link** on Company eligibility.
+   is one of your companies, or the one whose request link you opened. A company copies its link
+   with **Copy request link** on Company eligibility. If you open the link signed out, you return to
+   it after signing in.
 3. Choose **Preview company eligibility request**. The preview names the company and shows any
    unmet requirement.
 4. Confirm the sharing summary and the declaration separately, then submit. The request keeps that

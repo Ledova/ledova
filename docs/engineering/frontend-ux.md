@@ -1111,7 +1111,8 @@ by a local helper or a browser `toLocale…` call:
   its values, because the participant agrees to share exactly that. Transaction hashes and wallet
   addresses stay exact. No page shows a company's ID. An eligibility request takes its company from
   the person's own companies or from the company's request link (`?to=`), which **Copy request
-  link** on Company eligibility copies, and the preview names the company.
+  link** on Company eligibility copies, and the preview names the company. A link opened signed out
+  is kept for the session (`dashboard/src/utils/requestLink.ts`) and reopened after sign-in.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile's ESLint configuration has neither

@@ -26,7 +26,8 @@ import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components
 import { Field, TextInput } from '@components/Field';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 import { scopeLabels } from '@pages/company/shared/appointments';
-import { eligibilityRequestLink, pageTitle } from '@utils/destinations';
+import { pageTitle } from '@utils/destinations';
+import { eligibilityRequestLink } from '@utils/requestLink';
 import { CopyButton } from '@components/CopyButton';
 
 const OUTCOMES = [
@@ -181,7 +182,7 @@ export default function CompanyEligibilityPage() {
                         key={read.companyUuid}
                         value={eligibilityRequestLink(read.companyUuid)}
                         label="Copy request link"
-                        hidden
+                        valueLabel="Request link"
                       />
                     </div>
                     {queue?.settled && queue.rows.length === 0 ? (

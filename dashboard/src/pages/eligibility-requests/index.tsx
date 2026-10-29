@@ -1,7 +1,7 @@
 import { SelectField } from '@components/SelectField';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { useEntryReads } from '@hooks/useEntryReads';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   DESTINATIONS,
@@ -15,7 +15,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useCompanyNames } from '@hooks/useCompanyNames';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { REQUEST_LINK_COMPANY } from '@utils/destinations';
+import { clearRequestLink, linkedCompany as linkedFrom } from '@utils/requestLink';
 import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
@@ -41,10 +41,12 @@ export default function ParticipantEligibilityPage() {
   const { running, track } = useRunningAction();
   const source = read.sources.find((item) => item.uuid === read.draft.source);
   const companyName = useCompanyNames();
-  const known = [...(useCompanyContext()?.directory.companies ?? [])].sort((a, b) => a.name.localeCompare(b.name));
-  const linked = new URLSearchParams(useLocation().search).get(REQUEST_LINK_COMPANY) ?? '';
-  const linkedCompany = isUuid(linked) ? linked.toLowerCase() : '';
+  const known = useCompanyContext()?.directory.companies ?? [];
+  const linkedCompany = linkedFrom(useLocation().search);
   const company = read.draft.company || linkedCompany;
+  useEffect(() => {
+    if (linkedCompany) clearRequestLink();
+  }, [linkedCompany]);
   const request = useErrorSummary({
     source: !source && 'Choose your evidence source.',
     company: !isUuid(company) && 'Choose the company.',
@@ -72,8 +74,8 @@ export default function ParticipantEligibilityPage() {
               <ErrorSummary {...request.summary} />
               <LinkRow to={DESTINATIONS.investorEligibility.path} label={DESTINATIONS.investorEligibility.title} />
               <p className="text-sm text-text-muted">
-                Choose your evidence and a company you hold shares in, or open the request link a company sent you. You
-                see the company&apos;s name before anything is sent.
+                Choose your evidence and one of your companies, or open the request link a company sent you. You see the
+                company&apos;s name before anything is sent.
               </p>
               <SelectField
                 {...request.field('source')}
@@ -89,7 +91,7 @@ export default function ParticipantEligibilityPage() {
                 value={read.draft.source}
                 onChange={(source) => {
                   request.reset();
-                  read.updateDraft({ source, company: '' });
+                  read.updateDraft({ source });
                 }}
               />
               <SelectField
