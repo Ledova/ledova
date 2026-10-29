@@ -153,7 +153,10 @@ export default function ParticipantEligibilityPage() {
             )}
             {read.selectedRecord && (
               <>
-                <EligibilityHistory record={read.selectedRecord} />
+                <EligibilityHistory
+                  record={read.selectedRecord}
+                  companyName={companyName(read.selectedRecord.company)}
+                />
                 {['pending', 'accepted'].includes(read.selectedRecord.outcome) && (
                   <FormActions>
                     <PageAction

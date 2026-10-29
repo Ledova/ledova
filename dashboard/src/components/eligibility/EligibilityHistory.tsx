@@ -3,7 +3,13 @@ import type { CompanyEligibilityRequest } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { EligibilitySummary } from './EligibilitySummary';
 
-export function EligibilityHistory({ record }: { record: CompanyEligibilityRequest }) {
+export function EligibilityHistory({
+  record,
+  companyName,
+}: {
+  record: CompanyEligibilityRequest;
+  companyName?: string;
+}) {
   const decision = record.decision;
   const revocation = decision?.revocation;
   return (
@@ -29,7 +35,7 @@ export function EligibilityHistory({ record }: { record: CompanyEligibilityReque
           </>
         )}
       </Rows>
-      <EligibilitySummary summary={record.sharedSummary} />
+      <EligibilitySummary summary={record.sharedSummary} companyName={companyName} />
       {record.outcome === 'accepted' && (
         <p className="text-sm text-text-muted">
           Acceptance remains subject to current requirements, evidence availability, expiry and revocation.
