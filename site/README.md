@@ -35,14 +35,14 @@ the repository root and never edited
 
 ## Product screenshots
 
-`public/screenshots/ownership.jpg`, `ledger.jpg` and `certificates.jpg` are genuine localhost
-captures of fictional Purpose Demo on 29 October 2026. The homepage switches between static
-screenshots; it does not call the API or operate the depicted application.
+`public/screenshots/ownership.jpg`, `ledger.jpg` and `certificates.jpg`, with their `-dark.jpg`
+counterparts, are genuine localhost captures of fictional Purpose Demo on 30 October 2026.
+The homepage shows the capture matching the website theme, including a saved preference.
+These are static previews; they do not call the API or operate the depicted application.
 
 When updating them, capture the current local demo with fictional data, check every visible field
 before publication and crop only irrelevant margins. Never publish production records, credentials
-or private evidence. The original captures remain outside Git under
-`~/Developer/ledova-artifacts/homepage-mockup-20261029/`.
+or private evidence. Keep original captures outside Git under `~/Developer/ledova-artifacts/`.
 
 ## Commands
 
