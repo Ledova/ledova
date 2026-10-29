@@ -6,8 +6,8 @@ These are intentionally published fictional **localhost-only** credentials, auth
 owner on 28 October 2026 (Jordan Ellis's on 29 October 2026). They are not credentials for
 ledova.io. Real passwords, tokens, cookies and runtime environment files stay outside Git.
 
-Last credential verification: **29 October 2026** (Australia/Sydney). After the database was
-rebuilt for #1421, all five accounts signed in to the local API with these passwords.
+Last credential verification: **30 October 2026** (Australia/Sydney). All five accounts signed in
+to the local API with these passwords.
 
 ## Sign in
 
@@ -171,9 +171,11 @@ since 27 October, were made active. Every other record below went through the AP
   - Mobile work stays for later.
   - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
     decision; check GitHub before resuming.
-- The walkthrough database was rebuilt and given demo data at the owner's request. No production
-  deployment or production database change was made, and ledova.io still needs its own rebuild
-  before it can run #1421's fresh migrations.
+- The walkthrough database was rebuilt and given demo data at the owner's request.
+- [#1431](https://github.com/Ledova/ledova/issues/1431) rebuilt ledova.io on a fresh database on
+  30 October 2026, serving main `90274b07`. At the owner's choice it kept no earlier test data, so
+  it has no accounts until someone signs up. At the owner's request, every branch except `main`,
+  every extra worktree and ledova.io's old data and backups were then deleted.
 
 ## Continue on this Mac
 
@@ -182,7 +184,9 @@ moved here. Pull current main, read AGENTS.md, CONTRIBUTING.md and the accepted 
 new work. Reuse the running servers and database. Do not start another instance on an occupied port.
 
 The dashboard normally runs at **http://localhost:5173** and the API at **http://localhost:8000**.
-PostgreSQL must be running. If stopped, use separate terminals for the existing local launchers:
+When no account can sign in, the API is usually not running: **http://localhost:8000/health/**
+should answer `OK`. PostgreSQL must be running. If stopped, use separate terminals for the existing
+local launchers:
 
 ```sh
 cd /Users/ronildo/Developer/ledova
