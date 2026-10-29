@@ -11,6 +11,7 @@ import type {
   RegisterCertificatePreview,
   RegisterCertificateRequest,
   RegisterInspectionPreview,
+  RegisterInspectionCopies,
   RegisterInspectionRequest,
   TokenIssuance,
   CapitalIncreaseListItem,
@@ -54,6 +55,9 @@ export const getClassOwnershipHolders = (
 
 export const getRegisterInspectionPreview = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
   apiClient.get<RegisterInspectionPreview>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), config);
+
+export const getRegisterInspectionCopies = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.get<RegisterInspectionCopies>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPIES(uuid), config);
 
 export const createRegisterInspectionCopy = (
   apiClient: AxiosInstance,

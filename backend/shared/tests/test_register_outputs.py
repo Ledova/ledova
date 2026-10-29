@@ -28,6 +28,7 @@ from tokens.models import (
     RegisterGrant,
     RegisterTransfer,
 )
+from tokens.services.company_pack import produce_company_pack
 from tokens.services.former_holders import purge_register_exports
 
 
@@ -354,6 +355,19 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(packed.status_code, 200, getattr(packed, "content", b""))
         archive = b"".join(packed.streaming_content)
+        with use_operator():
+            type(self.owner).objects.filter(pk=self.owner.pk).update(is_staff=True)
+            produced, _ = produce_company_pack(
+                self.company, self.owner, instruction="SYNTHETIC-COMPELLED-REQUEST", recipient="Synthetic regulator"
+            )
+            produced.close()
+            type(self.owner).objects.filter(pk=self.owner.pk).update(is_staff=False)
+        history = self.client.get(f"/api/v1/companies/{self.company.pk}/packs/")
+        self.assertEqual(history.status_code, 200, history.content)
+        self.assertEqual(
+            [(row["instruction"], row["recipient"]) for row in history.json()["packs"]],
+            [("SYNTHETIC-CORE-COMPANY-PACK", "Synthetic administrator")],
+        )
         packed.close()
         with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
             manifest_bytes = bundle.read("manifest.json")
@@ -413,15 +427,15 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertTrue(bundle.read(agreement_path).startswith(b"%PDF"))
             self.assertNotIn(str(self.foreign_company.pk), str(sources))
         with use_operator():
-            audit = RegisterExport.objects.get(kind="company_pack")
+            audit = RegisterExport.objects.get(kind="company_pack", produced_through="company")
             self.assertEqual(audit.digest, hashlib.sha256(manifest_bytes).hexdigest())
             self.assertEqual(audit.requested_by_id, self.owner.pk)
             self.assertEqual(int(self.token.stored_register.issued_supply), 150)
             self.assertEqual(RegisterGrant.objects.get(pk=grant.json()["uuid"]).award_id, UUID(award["operation_id"]))
-            self.assertEqual(RegisterExport.objects.count(), 4)
+            self.assertEqual(RegisterExport.objects.count(), 5)
             self.assertEqual(
                 purge_register_exports(now=timezone.now() + timedelta(days=settings.FORMER_MEMBER_RETENTION_DAYS + 1)),
-                3,
+                4,
             )
             self.assertEqual(list(RegisterExport.objects.values_list("pk", flat=True)), [output.export_id])
             output.refresh_from_db()

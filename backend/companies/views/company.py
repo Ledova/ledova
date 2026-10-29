@@ -15,22 +15,28 @@ from companies.serializers import (
     CompanyRegistrationSerializer,
     CompanyUpdateSerializer,
 )
-from companies.serializers.pack import CompanyPackRequestSerializer
+from companies.serializers.pack import (
+    CompanyPackRequestSerializer,
+    CompanyPacksSerializer,
+)
 from companies.services.activation import activate_company
 from shared.db import set_principal
 from shared.views import AuthenticatedModelViewSet
 from tokens.exceptions import RegisterIntegrityError
 from tokens.services.company_pack_outputs import prepare_company_pack
+from tokens.services.output_history import company_pack_history
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
-    operator_actions = frozenset({"list", "retrieve", "activate", "pack"})
+    operator_actions = frozenset({"list", "retrieve", "activate", "pack", "packs"})
     operator_actions_because = (
         "Company metadata reads retain the exact current owner alongside current personal administration. "
         "Private documents and contact remain separately administration-scoped. Activation requires "
         "the exact current personal administrator appointment and actor-bound service checks. Company pack "
         "download captures one supported complete archive, refuses restricted categories and rechecks the "
-        "personal administrator and tenant before recording the immutable delivery audit."
+        "personal administrator and tenant before recording the immutable delivery audit. The list of earlier "
+        "packs requires the same current personal administrator and shows only packs recorded as produced through "
+        "the company's pages, never one produced in platform admin."
     )
     http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_class = CompanyFilter
@@ -128,10 +134,16 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         response["Cache-Control"] = "private, no-store"
         return response
 
+    @extend_schema(responses=CompanyPacksSerializer)
+    @action(detail=True, methods=["get"])
+    def packs(self, request, uuid=None):
+        packs = company_pack_history(actor=request.user, company_id=self.get_object().pk)
+        return Response(CompanyPacksSerializer({"packs": packs}).data)
+
     def narrow(self, queryset):
         if self.action in {"list", "retrieve"}:
             return queryset.readable_by(self.request.user)
-        if self.action in {"activate", "pack"}:
+        if self.action in {"activate", "pack", "packs"}:
             return queryset.for_activation(self.request.user, self.kwargs.get("uuid"))
         if self.action == "partial_update":
             return queryset.administrable_by(self.request.user)

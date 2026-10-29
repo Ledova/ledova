@@ -20,10 +20,12 @@ export function useClassInspectionCopy({
   register,
   guard,
   sourceReady,
+  onDownloaded,
 }: {
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady: boolean;
+  onDownloaded?: () => void;
 }) {
   const today = sydneyToday();
   const [draft, setDraft] = useState<Draft>({ instruction: '', recipient: '', requestedOn: today });
@@ -117,6 +119,7 @@ export function useClassInspectionCopy({
       saveFile(data, `register-${register.token.symbol ?? register.token.uuid}-inspection-copy.csv`);
       setTarget(null);
       setDownloaded(true);
+      onDownloaded?.();
     } catch {
       if (mounted.current) {
         setTarget(null);

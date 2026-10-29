@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type OrderSubmissionOwner } from '@ledova/shared';
 import { Outcome, Section, LoadError, Loading, ShowMore } from '@components/Ledger';
@@ -6,6 +7,8 @@ import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useCompanyPackAuthority, useCompanyPack } from './useCompanyPack';
+import { CompanyPackHistory } from './OutputHistory';
+import { companyPacksKey } from './useOutputHistory';
 
 export function CompanyPack({
   owner,
@@ -21,6 +24,7 @@ export function CompanyPack({
   onEditingChange?: (key: string, open: boolean) => void;
 }) {
   const { appointments, appointment, check } = useCompanyPackAuthority({ owner, guard, company });
+  const client = useQueryClient();
   return (
     <Section title="Company pack">
       {appointments.isError ? (
@@ -28,14 +32,18 @@ export function CompanyPack({
           Your appointments could not be loaded.
         </LoadError>
       ) : appointment ? (
-        <PackForm
-          key={JSON.stringify([company, appointment.uuid, sourceReady])}
-          company={company}
-          appointment={appointment.uuid}
-          guard={check}
-          sourceReady={sourceReady}
-          onEditingChange={onEditingChange}
-        />
+        <>
+          <PackForm
+            key={JSON.stringify([company, appointment.uuid, sourceReady])}
+            company={company}
+            appointment={appointment.uuid}
+            guard={check}
+            sourceReady={sourceReady}
+            onEditingChange={onEditingChange}
+            onPrepared={() => void client.invalidateQueries({ queryKey: companyPacksKey(owner, company) })}
+          />
+          <CompanyPackHistory owner={owner} company={company} guard={check} enabled={sourceReady} />
+        </>
       ) : appointments.isSuccess && !appointments.isFetching ? (
         <p className="text-sm text-text-muted">A current administrator appointment for this company is required.</p>
       ) : (
@@ -51,12 +59,14 @@ function PackForm({
   guard,
   sourceReady,
   onEditingChange,
+  onPrepared,
 }: {
   company: string;
   appointment: string;
   guard: () => void;
   sourceReady: boolean;
   onEditingChange?: (key: string, open: boolean) => void;
+  onPrepared: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const firstField = useRef<HTMLInputElement>(null);
@@ -68,7 +78,7 @@ function PackForm({
     return () => onEditingChange?.(editingKey, false);
   }, [editingKey, onEditingChange, open]);
   const { instruction, setInstruction, recipient, setRecipient, busy, error, downloaded, problems, download } =
-    useCompanyPack({ company, appointment, guard, sourceReady });
+    useCompanyPack({ company, appointment, guard, sourceReady, onDownloaded: onPrepared });
   const checks = useErrorSummary(problems);
   if (!open)
     return (

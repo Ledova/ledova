@@ -47,6 +47,21 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     if (url === '/api/v1/company-authority/appointments/')
       return { data: { results: [OUTPUT_APPOINTMENT], next: null } };
     if (url === certificate) return { data: OUTPUT_PREVIEW };
+    if (url === COMPANY_ENDPOINTS.PACKS(OUTPUT_APPOINTMENT.company))
+      return {
+        data: {
+          packs: [
+            {
+              digest: 'a'.repeat(64),
+              preparedAt: '2026-10-29T08:00:00Z',
+              preparedByName: 'Example Director',
+              instruction: 'SYNTHETIC-EARLIER-PACK',
+              recipient: 'Synthetic pack recipient',
+              classes: 2,
+            },
+          ],
+        },
+      };
     throw new Error(`Unexpected GET ${url}`);
   });
   api.post.mockReset().mockImplementation(async (url) => ({ data: url === certificate ? pdf : zip }));
@@ -74,6 +89,8 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     );
   }
   renderCompanyPage(client, <Outputs />, 'Register outputs');
+  expect(await screen.findByText('For Synthetic pack recipient')).toBeTruthy();
+  expect(screen.getByText('Instruction: SYNTHETIC-EARLIER-PACK')).toBeTruthy();
   const certificateContext = `unsigned certificate for entry ${OUTPUT_ENTRY.sequence}`;
   fireEvent.click(screen.getByRole('button', { name: /Prepare certificate/ }));
   fireEvent.click(screen.getByRole('button', { name: `Cancel (${certificateContext})` }));

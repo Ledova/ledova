@@ -13,6 +13,7 @@ from tokens.models import (
     MemberCertificateRequest,
     RegisterExport,
     RegisterExportKind,
+    RegisterExportRoute,
 )
 from tokens.services.member_access import _query, company_readable, request_readable
 from tokens.services.member_events import certificate_ready
@@ -126,6 +127,7 @@ def fulfil_member_certificate(*, actor, request_id, operation_id, appointment, s
                 register_sequence=entry.sequence,
                 member_rows=1,
                 former_rows=0,
+                produced_through=RegisterExportRoute.COMPANY,
                 digest=digest,
                 instruction=instruction,
             )

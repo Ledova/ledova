@@ -1,31 +1,41 @@
 import { useEffect, useRef, useState } from 'react';
 import { Field, TextInput } from '@components/Field';
-import { FIELD_LIMITS, type TokenHoldersResponse, formatDate } from '@ledova/shared';
+import { FIELD_LIMITS, type OrderSubmissionOwner, type TokenHoldersResponse, formatDate } from '@ledova/shared';
+import { useQueryClient } from '@tanstack/react-query';
 import { Outcome, Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useClassInspectionCopy } from './useClassInspectionCopy';
+import { InspectionCopyHistory } from './OutputHistory';
+import { inspectionCopiesKey } from './useOutputHistory';
 
 export function ClassInspectionCopy({
+  owner,
   register,
   guard,
   sourceReady,
   onEditingChange,
 }: {
+  owner: OrderSubmissionOwner;
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady: boolean;
   onEditingChange?: (key: string, open: boolean) => void;
 }) {
+  const client = useQueryClient();
   return (
-    <InspectionForm
-      key={JSON.stringify([register, sourceReady])}
-      register={register}
-      guard={guard}
-      sourceReady={sourceReady}
-      onEditingChange={onEditingChange}
-    />
+    <>
+      <InspectionForm
+        key={JSON.stringify([register, sourceReady])}
+        register={register}
+        guard={guard}
+        sourceReady={sourceReady}
+        onEditingChange={onEditingChange}
+        onPrepared={() => void client.invalidateQueries({ queryKey: inspectionCopiesKey(owner, register.token.uuid) })}
+      />
+      <InspectionCopyHistory owner={owner} token={register.token.uuid} guard={guard} enabled={sourceReady} />
+    </>
   );
 }
 
@@ -34,11 +44,13 @@ function InspectionForm({
   guard,
   sourceReady,
   onEditingChange,
+  onPrepared,
 }: {
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady: boolean;
   onEditingChange?: (key: string, open: boolean) => void;
+  onPrepared: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const firstField = useRef<HTMLInputElement>(null);
@@ -50,7 +62,7 @@ function InspectionForm({
     return () => onEditingChange?.(editingKey, false);
   }, [editingKey, onEditingChange, open]);
   const { today, draft, setDraft, target, setTarget, busy, error, downloaded, problems, blocked, preview, download } =
-    useClassInspectionCopy({ register, guard, sourceReady });
+    useClassInspectionCopy({ register, guard, sourceReady, onDownloaded: onPrepared });
   const checks = useErrorSummary(problems);
   useEffect(() => {
     if (open) (target ? heading.current : firstField.current)?.focus();

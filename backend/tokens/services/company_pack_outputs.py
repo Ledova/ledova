@@ -8,6 +8,7 @@ from companies.services.administration import company_operation, lock_company_ac
 from shared.db import atomic, current_alias
 from tokens.exceptions import RegisterIntegrityError
 from tokens.models import (
+    RegisterExportRoute,
     RegisterImport,
     RegisterMember,
     ShareRegister,
@@ -96,7 +97,7 @@ def prepare_company_pack(*, actor, company_id, appointment, instruction, recipie
                 )
                 if len(locked) != len(class_ids):
                     raise ValidationError("A captured share class no longer belongs to this company.")
-                _record(classes, actor, digest, instruction, recipient)
+                _record(classes, actor, digest, instruction, recipient, RegisterExportRoute.COMPANY)
                 register_appointment(company, actor, profile, operator, appointment, CompanyCapability.ADMIN)
         except BaseException:
             archive.close()

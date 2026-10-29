@@ -15,6 +15,7 @@ export type ClassOwnershipHolders = ApiResponse<'api_v1_tokens_ownership_holders
 export type ClassOwnershipQuery = ApiQuery<'api_v1_tokens_ownership_holders_list'>;
 
 export type RegisterInspectionPreview = ApiResponse<'api_v1_tokens_register_inspection_copy_retrieve'>;
+export type RegisterInspectionCopies = ApiResponse<'api_v1_tokens_register_inspection_copies_retrieve'>;
 export type RegisterInspectionRequest = ApiRequest<'api_v1_tokens_register_inspection_copy_create'>;
 
 export type FormerMember = ApiSchema<'FormerMember'>;

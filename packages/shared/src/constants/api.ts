@@ -69,6 +69,7 @@ export const OPERATOR_ENDPOINTS = {
 
 export const COMPANY_ENDPOINTS = {
   PACK: (uuid: string) => `/api/v1/companies/${uuid}/pack/` as const,
+  PACKS: (uuid: string) => `/api/v1/companies/${uuid}/packs/` as const,
   BASE: '/api/v1/companies/',
   DETAIL: (uuid: string) => `/api/v1/companies/${uuid}/` as const,
   DOCUMENTS: (uuid: string) => `/api/v1/companies/${uuid}/documents/` as const,
@@ -107,6 +108,7 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER: '/api/v1/tokens/register/',
   HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/holders/` as const,
   REGISTER_INSPECTION_COPY: (uuid: string) => `/api/v1/tokens/${uuid}/register/inspection-copy/` as const,
+  REGISTER_INSPECTION_COPIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/inspection-copies/` as const,
   REGISTER_ENTRIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/entries/` as const,
   REGISTER_OPENING_HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/opening-holders/` as const,
   REGISTER_EVIDENCE: '/api/v1/tokens/register-evidence/',

@@ -54,7 +54,13 @@ with the person, share class or company Settings.
 | Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**               | As for a core pack                                       |
 
 Ledova keeps a fingerprint, not the file, except for a member's certificate. Output records cannot
-be rewritten, are read only by platform staff and are kept for the register's seven-year floor
+be rewritten, and each records whether it was produced through the company's pages or platform
+admin. Platform staff read them all. **Inspection copies** lists a class's copies to its current
+register readers, and **Company pack** lists the company's packs to its current administrators.
+Both show only outputs produced through the company's pages, never one produced in admin, such as a
+pack produced on a document that compels disclosure, and records made before the route was stored
+carry none and are not listed. Each list shows the latest 50. Records are kept for
+the register's seven-year floor
 (2,557 days) before the daily purge ([retention](../engineering/security.md#retention-clocks)). A
 refused or failed output records nothing, and each output reads one consistent moment of the
 register ([decision](../decisions.md#the-stored-register)).
@@ -430,17 +436,17 @@ The README ends with the owner's statement of what the pack grants
 Of a member, only what the register holds leaves: name, residential address, holding, linked wallets
 and identity source.
 
-| Excluded                                                                                  | Why                                                                                                                                                                                                 |
-| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Members' email, phone, date of birth, citizenship and financial profile                   | What members gave Ledova, not the register's particulars ([position 10](../legal/positions.md#10-privacy))                                                                                          |
-| Identity checks, classification claims and evidence, payslips and their extractions       | The person's records with Ledova, which the company never reads and which run on their own retention clock                                                                                          |
-| A ballot's member and choice, and who opened which publication                            | The company sees resolution tallies and read counts only                                                                                                                                            |
-| Unmatched orders                                                                          | Investors' private orders                                                                                                                                                                           |
-| Records of who took register outputs                                                      | Nothing the company can open shows them ([position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register))                                                                     |
-| Signed transaction bytes                                                                  | They could still be broadcast                                                                                                                                                                       |
-| The company owner's email                                                                 | Contact details of a platform account, not company records                                                                                                                                          |
-| A company document's staff notes, rejection reason, verifier and verification fingerprint | Ledova's own review of the document, which the company's own view does not show                                                                                                                     |
-| Ledova's source code                                                                      | The software licence is noncommercial; the pack carries the contract interface files and the owner's statement ([position 5](../legal/positions.md#5-software-licensing-and-commercial-permission)) |
+| Excluded                                                                                  | Why                                                                                                                                                                                                                |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Members' email, phone, date of birth, citizenship and financial profile                   | What members gave Ledova, not the register's particulars ([position 10](../legal/positions.md#10-privacy))                                                                                                         |
+| Identity checks, classification claims and evidence, payslips and their extractions       | The person's records with Ledova, which the company never reads and which run on their own retention clock                                                                                                         |
+| A ballot's member and choice, and who opened which publication                            | The company sees resolution tallies and read counts only                                                                                                                                                           |
+| Unmatched orders                                                                          | Investors' private orders                                                                                                                                                                                          |
+| Records of who took register outputs                                                      | Ledova's audit; the company sees records of its own inspection copies and packs only, never of an output produced in admin ([position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)) |
+| Signed transaction bytes                                                                  | They could still be broadcast                                                                                                                                                                                      |
+| The company owner's email                                                                 | Contact details of a platform account, not company records                                                                                                                                                         |
+| A company document's staff notes, rejection reason, verifier and verification fingerprint | Ledova's own review of the document, which the company's own view does not show                                                                                                                                    |
+| Ledova's source code                                                                      | The software licence is noncommercial; the pack carries the contract interface files and the owner's statement ([position 5](../legal/positions.md#5-software-licensing-and-commercial-permission))                |
 
 No file is built from these areas except the register's own particulars, and the only stored files
 the pack opens are the company's documents, evidence copies, publication documents and remittance

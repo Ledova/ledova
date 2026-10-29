@@ -47,6 +47,7 @@ from tokens.serializers.register_certificate import (
     RegisterCertificateSelectionSerializer,
 )
 from tokens.serializers.register_inspection_copy import (
+    RegisterInspectionCopiesSerializer,
     RegisterInspectionPreviewSerializer,
     RegisterInspectionRequestSerializer,
 )
@@ -59,6 +60,7 @@ from tokens.services.class_rights import (
 )
 from tokens.services.former_holders import fold_is_stale, former_members_of
 from tokens.services.member_access import own_company_association
+from tokens.services.output_history import inspection_copy_history
 from tokens.services.ownership import class_ownership_holders, company_ownership
 from tokens.services.register import (
     api_holders,
@@ -97,6 +99,7 @@ class ShareTokenViewSet(
             "register",
             "register_entries",
             "register_inspection_copy",
+            "register_inspection_copies",
             "register_certificate",
             "register_opening_holders",
             "register_waiting",
@@ -126,6 +129,8 @@ class ShareTokenViewSet(
         "current appointment holding administration or prepare, and names linked members from the same sources. "
         "Inspection copies and unsigned certificates separately require a current personal register appointment "
         "inside the locked company operation; ownership and platform staff permission grant no output authority. "
+        "The list of earlier inspection copies requires the same appointment and shows only copies recorded as "
+        "produced through the company's pages. "
         "Private class-rights descriptions are read by exact-company register readers; their durable append-only "
         "producer requires current personal company administration and retains attributable revisions."
         "Ownership summaries and paged holder reads recheck the active actor and exact-company reader inside "
@@ -140,6 +145,7 @@ class ShareTokenViewSet(
             "register_waiting",
             "register_members",
             "register_inspection_copy",
+            "register_inspection_copies",
             "register_certificate",
             "class_rights",
             "class_rights_file",
@@ -425,6 +431,12 @@ class ShareTokenViewSet(
         response = HttpResponse(content, content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="register-{token.symbol}-inspection-copy.csv"'
         return response
+
+    @extend_schema(responses=RegisterInspectionCopiesSerializer)
+    @action(detail=True, methods=["get"], url_path="register/inspection-copies")
+    def register_inspection_copies(self, request, uuid=None):
+        copies = inspection_copy_history(actor=request.user, token=self.get_object())
+        return Response(RegisterInspectionCopiesSerializer({"copies": copies}).data)
 
     @extend_schema(
         methods=["GET"],

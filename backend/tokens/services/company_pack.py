@@ -34,6 +34,7 @@ from tokens.models import (
     RegisterEntry,
     RegisterExport,
     RegisterExportKind,
+    RegisterExportRoute,
     RegisterGrant,
     RegisterInstruction,
     RegisterPauseChange,
@@ -405,7 +406,7 @@ def _archive(files, stored, manifest):
     return archive, manifest
 
 
-def _record(classes, requested_by, digest, instruction, recipient):
+def _record(classes, requested_by, digest, instruction, recipient, produced_through):
     with atomic():
         RegisterExport.objects.bulk_create(
             RegisterExport(
@@ -418,6 +419,7 @@ def _record(classes, requested_by, digest, instruction, recipient):
                 digest=digest,
                 instruction=instruction,
                 recipient=recipient,
+                produced_through=produced_through,
             )
             for share_class in classes
         )
@@ -542,7 +544,7 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
 def produce_company_pack(company, requested_by, *, instruction, recipient):
     archive, filename, classes, digest = _build_company_pack(company, instruction=instruction, recipient=recipient)
     try:
-        _record(classes, requested_by, digest, instruction, recipient)
+        _record(classes, requested_by, digest, instruction, recipient, RegisterExportRoute.ADMIN)
     except BaseException:
         archive.close()
         raise

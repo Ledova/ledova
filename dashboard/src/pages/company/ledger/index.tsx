@@ -765,6 +765,7 @@ function OwnRegister({
                     {readable && (
                       <Section title="Inspection copy">
                         <ClassInspectionCopy
+                          owner={owner}
                           register={register}
                           guard={guard}
                           sourceReady={

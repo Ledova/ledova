@@ -74,11 +74,13 @@ export function useCompanyPack({
   appointment,
   guard,
   sourceReady,
+  onDownloaded,
 }: {
   company: string;
   appointment: string;
   guard: () => void;
   sourceReady: boolean;
+  onDownloaded?: () => void;
 }) {
   const [instruction, setInstruction] = useState('');
   const [recipient, setRecipient] = useState('');
@@ -133,6 +135,7 @@ export function useCompanyPack({
         throw new Error('The company pack response is not a ZIP archive.');
       saveFile(data, `company-pack-${company}.zip`);
       setDownloaded(true);
+      onDownloaded?.();
     } catch (cause) {
       const message = await failureMessage(cause);
       if (mounted.current) setError(message);
