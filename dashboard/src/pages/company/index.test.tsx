@@ -322,6 +322,7 @@ it('shows focused company details without share classes, and uploads documents t
   });
   await waitFor(() => expect(ownReads()).toBeGreaterThan(beforeSource));
   expect(queueReads()).toBe(beforeQueue);
+  expect(screen.queryByText(/You need a prepare or approve appointment/)).toBeNull();
   await act(async () => {
     authorityGate = null;
     releaseAuthority();
@@ -330,11 +331,11 @@ it('shows focused company details without share classes, and uploads documents t
   });
   await waitFor(() => expect(queueReads()).toBeGreaterThan(beforeQueue));
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  fireEvent.change(screen.getByLabelText('Your appointment'), { target: { value: appointment.uuid } });
   fireEvent.click(screen.getByRole('button', { name: /^View request/ }));
   fireEvent.change(await screen.findByLabelText('Acceptance expiry (local date and time)'), {
     target: { value: expiresAt },
   });
+  expect(screen.queryByLabelText('Your appointment')).toBeNull();
   const previewOpener = screen.getByRole('button', { name: 'Preview company decision' });
   previewOpener.focus();
   fireEvent.click(previewOpener);
@@ -401,7 +402,8 @@ it('shows focused company details without share classes, and uploads documents t
     entry: '/company/eligibility?company=unavailable-company',
     path: '/company/eligibility',
   });
-  await screen.findByText(/Current personal prepare or approve authority is required to read this company/);
+  await screen.findByText(/You need a prepare or approve appointment for this company/);
+  expect(screen.queryByText(/authority is required to read this company/)).toBeNull();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(queueReads()).toBe(beforeUnavailableCompany);
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();

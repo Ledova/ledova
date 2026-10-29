@@ -31,7 +31,8 @@ export function RootRedirect() {
       />
     );
   if (pendingMemberInvitation()) return <Navigate to={MEMBER_INVITATION_PATH} replace />;
-  if (pendingRequestLink()) return <Navigate to={pendingRequestLink()} replace />;
+  const requestLink = pendingRequestLink();
+  if (requestLink) return <Navigate to={requestLink} replace />;
   if (preferences.isError || (!preferences.isLoading && !preferences.isFetching && !preferences.userAccount))
     return (
       <PageTitle.Provider value="Dashboard">
