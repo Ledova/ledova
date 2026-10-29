@@ -314,7 +314,8 @@ see [verifying stored records](../operations/recovery.md#verifying-stored-record
 
 ## The Published page
 
-**Published to your members**, at `/company/publications` on web, is the company owner's
+**Published to your members**, at `/company/publications` on web (**Documents → Published** in the
+sidebar), is the company owner's
 read-only view of the selected owned company's publications, newest first, in one **Publications**
 card whose title carries the complete count; the web loads older ones on request. Each shows its
 title, kind, the company and class names as frozen,

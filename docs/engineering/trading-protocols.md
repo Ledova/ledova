@@ -5,7 +5,9 @@
 The identities, locks and recovery contracts behind secondary trading, for engineers changing the
 order book or settlement. Who may trade, what investors see, the one-match rule and the accepted
 experimental limits are in [trading](../business/trading.md); the operator response to pending work
-is in [recovery](../operations/recovery.md#wallet-transfers-and-trading).
+is in [recovery](../operations/recovery.md#wallet-transfers-and-trading). No first-party client
+uses this protocol since the web Market page and its client code were removed on 29 October 2026
+([#1416](https://github.com/Ledova/ledova/issues/1416)); "the client" below means any API client.
 
 Contents: [intent and settlement](#intent-and-settlement) · [creating](#creating-an-order) and
 [cancelling or modifying](#cancelling-or-modifying-an-order) an order ·
@@ -203,8 +205,8 @@ inside creation and the held-order sweep, each order deciding from committed ord
 rest, so two crossing orders created concurrently can both rest unmatched; the minute's sweep bounds
 that without a new lock by holding back the newer and matching it on its next run. A held order the
 sweep lists publishes `order_listed`, one it matches `order_matched`, and the newer order of a
-crossing pair it holds back `order_held`; the dashboard refreshes the book and the owner's orders on
-each. Every placement, settlement, lapse, revert and modification checks the
+crossing pair it holds back `order_held`; a client listening to the event stream refreshes the book
+and the owner's orders on each. Every placement, settlement, lapse, revert and modification checks the
 [book it would rest in](../business/trading.md#one-match-never-crossed).
 
 The graph must hold these competing pairs; their process-level tests were retired under the
@@ -244,7 +246,7 @@ the [admission matrix](#the-settlement-admission-matrix), and
 
 ## Swap settlement context
 
-The backend, shared package and dashboard carry the protocol together. Swap requests
+The backend enforces the protocol for any client. Swap requests
 require the exact swap, order, account and verified wallet identity (HTTP 400 when missing); signing
 and approval requests also require the recorded settlement digest, which the first authorised context
 lookup may omit and then returns. An unsupported protocol or missing recorded context returns HTTP 409
@@ -333,11 +335,10 @@ an outage cannot prevent reading a recorded outcome. An unlimited approval can s
 with identical effect terms for the same account and wallet; its journal's first swap is not its only
 valid consumer.
 
-The dashboard recovers saved hashes through that read, validating the returned context and hash
-before clearing a `confirmed`, `reverted` or `superseded` reminder and showing its outcome. Pending,
-missing, inaccessible or malformed evidence, or an older response without the field, stays
-unresolved, and a failed storage removal keeps the reminder. A sufficient allowance does not
-establish the transaction's outcome. Recovery never signs or sends a new approval; after a definite
+A client recovers a saved hash through that read, validating the returned context and hash before
+clearing a `confirmed`, `reverted` or `superseded` reminder. Pending, missing, inaccessible or
+malformed evidence, or an older response without the field, stays unresolved. A sufficient allowance
+does not establish the transaction's outcome. Recovery never signs or sends a new approval; after a definite
 failure a still-admitted settlement can use the fresh approval review.
 
 The five-minute `recover_swap_approval_submissions` sweep attempts at most 100 pending rows, least
@@ -477,8 +478,8 @@ V1 swap only when the matching service marked it eligible at creation, both orde
 match, and no execution claim, transaction record, hash or other active match exists. The sweep
 (`expire_unclaimed_swap`) locks both orders in identifier order, then the swap, as
 [the lock graph](#the-trading-lock-graph) requires, and commits each release separately. It keeps
-filled quantities and signed terms, marks the swap `expired`, and publishes `swap_expired` so the
-dashboard refreshes its orders and swaps; a retry cannot release a reservation twice. Signing still
+filled quantities and signed terms, marks the swap `expired`, and publishes `swap_expired` so a
+client can refresh its orders and swaps; a retry cannot release a reservation twice. Signing still
 stops at the recorded deadline; the next sweep returns the two orders oldest first under the
 [one-match rule](../business/trading.md#one-match-never-crossed), and the held-order sweep never
 pairs them again.

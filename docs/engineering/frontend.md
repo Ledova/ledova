@@ -322,11 +322,11 @@ and web-only destinations by their address. Ledger's label opens its overview; a
 expands Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`),
 marking the active child and opening the group on Ledger routes. The web replaces an incoming
 `#history` with `#corrections` without dropping company/class context; shared task names retain
-History. Shareholders' label opens its people list, with the same caret pattern for ESS, Member
-access and Member requests.
-Documents opens one Certificates page (`/documents/certificates`), with Company documents
-(`/documents/company`), Published to your members (`/company/publications`, for the company's own
-account), Inspection copies and Company pack where company access permits them. There is no separate Your certificates item. Legacy
+History. Shareholders' label opens its people list, with the same caret pattern for Employee scheme,
+Member access and Member requests.
+Documents opens one Certificates page (`/documents/certificates`), with Supporting (Company
+documents, `/documents/company`), Published (Published to your members, `/company/publications`, for
+the company's own account), Inspection copies and Company pack where company access permits them. There is no separate Your certificates item. Legacy
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
 preserving company, class and navigation state. A group without a meaningful overview opens its
 default child, without an extra Overview page or duplicate navigation.
@@ -788,7 +788,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
-  Member requests, Employee share scheme (ESS), Inspection copies and Company pack views by hash.
+  Member requests, Employee share scheme, Inspection copies and Company pack views by hash.
   Legacy certificate hashes redirect to the dedicated Certificates page.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
@@ -824,7 +824,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   frame. Its keyed forms retire previews when their context or source readiness changes; draft
   retention depends on each form's lifetime. Current appointment and exact-source validation still
   apply. Supporting attachments stay with their person, class or company Settings; member-request
-  fulfilment stays under Shareholders. ESS uses the
+  fulfilment stays under Shareholders. Employee share scheme uses the
   shared class-card spacing and shows only the selected class, with one preparation action below its records.
   Share class selection lives in the page heading's Filters popover and locks while award preparation or its recovery is open; all class controllers stay
   mounted. Preparation replaces that class's award list while preserving its controllers. Each award row

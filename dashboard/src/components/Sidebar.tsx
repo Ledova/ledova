@@ -325,7 +325,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
             aria-disabled={blocks(key) || undefined}
             className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocks(key) ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            {key === 'awards' ? 'ESS' : label}
+            {key === 'awards' ? 'Employee scheme' : label}
           </Link>
         ))}
       </div>
@@ -357,7 +357,7 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   const certificateTarget = certificatesLocation({ search: '', state: context });
   const certificatePath = `${certificateTarget.pathname}${certificateTarget.search}`;
   const certificatesBlocked = location.pathname === path && !!state?.held;
-  const links: { key: string; label: string; to: string; blocked: boolean }[] = DOCUMENT_VIEWS.filter(
+  const links: { key: string; label: string; title?: string; to: string; blocked: boolean }[] = DOCUMENT_VIEWS.filter(
     ({ key }) => key === 'certificates' || companyContext?.company?.canReadRegister,
   ).map(({ key, label }) => ({
     key,
@@ -368,14 +368,16 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   if (companyContext?.company?.isOwner && isCompany)
     links.splice(1, 0, {
       key: 'publications',
-      label: pageTitle('companyPublications'),
+      label: 'Published',
+      title: pageTitle('companyPublications'),
       to: DESTINATIONS.companyPublications.path,
       blocked: certificatesBlocked,
     });
   if (companyContext?.company?.canManage)
     links.splice(1, 0, {
       key: 'company-documents',
-      label: 'Company documents',
+      label: 'Supporting',
+      title: 'Company documents',
       to: COMPANY_DOCUMENTS_PATH,
       blocked: certificatesBlocked,
     });
@@ -417,11 +419,12 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
         </button>
       </div>
       <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-        {links.map(({ key, label, to, blocked }) => (
+        {links.map(({ key, label, title, to, blocked }) => (
           <Link
             key={key}
             to={companyContext?.companyPath(to) ?? to}
             state={context}
+            title={title}
             onClick={(event) => {
               if (blocked) event.preventDefault();
               else onNavigate?.();

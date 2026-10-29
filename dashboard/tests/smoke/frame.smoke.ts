@@ -127,8 +127,6 @@ async function serveASignedInAccount(page: Page, role: Role) {
         count: 1,
         results: [{ uuid: 'profile', isSignupCompleted: true, fullName: LONG_PERSON, email: 'ada@example.test' }],
       });
-    if (path === '/api/feature-flags/')
-      return answer({ ...EMPTY, count: 1, results: [{ name: 'trading_enabled', enabled: true }] });
     if (path === '/api/v1/companies/')
       return answer({ ...EMPTY, count: role === 'investor' ? 0 : 1, results: role === 'investor' ? [] : [company] });
     if (path === '/api/v1/companies/company/') return answer(company);
@@ -291,7 +289,7 @@ async function openTheSidebar(page: Page, role: Role) {
       .locator('../..');
     await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
     await expect(documents.getByRole('link', { name: 'Certificates', exact: true })).toBeVisible();
-    await expect(documents.getByRole('link', { name: 'Company documents', exact: true })).toHaveCount(0);
+    await expect(documents.getByRole('link', { name: 'Supporting', exact: true })).toHaveCount(0);
   } else {
     await expect(page.getByRole('region', { name: 'Company ownership summary' })).toContainText(
       'Issued sharesNot complete',
@@ -328,11 +326,11 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(page.getByRole('combobox', { name: 'Company', exact: true })).toHaveCount(0);
     aside = await visibleSidebar(page);
     await aside.getByRole('button', { name: 'Expand Shareholders navigation' }).click();
-    await expect(aside.getByRole('link', { name: 'ESS', exact: true })).toHaveAttribute(
+    await expect(aside.getByRole('link', { name: 'Employee scheme', exact: true })).toHaveAttribute(
       'href',
       '/company/ledger?company=company#awards',
     );
-    await aside.getByRole('link', { name: 'ESS', exact: true }).click();
+    await aside.getByRole('link', { name: 'Employee scheme', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Employee share scheme', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Company', exact: true })).toHaveCount(0);
     aside = await visibleSidebar(page);
@@ -358,7 +356,7 @@ async function openTheSidebar(page: Page, role: Role) {
     await aside.getByRole('link', { name: 'Company pack', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Company pack', exact: true })).toBeVisible();
     aside = await visibleSidebar(page);
-    await aside.getByRole('link', { name: 'Company documents', exact: true }).click();
+    await aside.getByRole('link', { name: 'Supporting', exact: true }).click();
     await expect(page).toHaveURL(/\/documents\/company\?company=company$/);
     await expect(page.getByRole('heading', { name: 'Supporting documents', exact: true })).toBeVisible();
     aside = await visibleSidebar(page);

@@ -123,8 +123,8 @@ The owner accepted these limits for the experimental version
 ([#646](https://github.com/Ledova/ledova/issues/646#issuecomment-5745382310)); they are not
 scheduled work:
 
-- Live updates can be missed until the page is refreshed; recovering the stored state does not
-  guarantee an update was delivered.
+- The event stream can miss updates, and recovering stored state does not guarantee an update was
+  delivered.
 - Two crossing orders placed at the same moment can both rest until the next minute's sweep.
 - Changing an order does not run matching: a change that would cross is held back and takes its
   match from the minute's sweep.

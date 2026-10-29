@@ -189,7 +189,8 @@ Rules:
 Decisions apply at the moment of each action, against the current decision, evidence, account
 standing and expiry.
 
-- Market: a holder without a current general decision cannot see a company's market even for
+- Market reads: through the trading API, a holder without a current general decision cannot see a
+  company's market even for
   shares they already own, a trade-off the owner recorded for review before live operation
   ([trading](trading.md)).
 - Applications, orders and signatures: each new subscription, order, order change and swap
@@ -384,7 +385,7 @@ pickers or a workspace or role selector. Company appointments and actual member 
 available records and actions; choosing a company grants neither.
 
 Settings opens Profile. Team and Activation appear where company access permits, and company
-documents are under **Documents** → **Company documents**. Profile shows a linked member's
+documents are under **Documents** → **Supporting**. Profile shows a linked member's
 Company-recorded details. Team remains reachable for accepting
 a company invitation. Before company access is granted, **Settings → Profile → Manage account**
 provides **Accept a company invitation**, opening the same guarded workflow. Member access stays

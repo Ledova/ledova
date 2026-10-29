@@ -129,8 +129,6 @@ async function serveASignedInInvestor(page: Page) {
         return json(USER_PREFERENCES);
       case 'GET /api/operator/':
         return json(OPERATOR);
-      case 'GET /api/feature-flags/':
-        return json(paginated([]));
       case 'GET /api/notifications/unread-count/':
         return json({ unreadCount: 0 });
       case 'GET /api/assets/exchange-rates/':
