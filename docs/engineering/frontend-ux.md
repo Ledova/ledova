@@ -1114,7 +1114,7 @@ by a local helper or a browser `toLocale…` call:
   `shortReference` when it is not among them). A request's shared summary shows its readable values,
   and the investor's view names the company when it is one of theirs. Its references to the chosen
   evidence source, the investor's account and the company are not shown: a request is sent only when
-  they match the source, account and company the investor chose. Transaction hashes and wallet
+  they match the chosen source and company and the signed-in account. Transaction hashes and wallet
   addresses stay exact. No page shows a company's ID. An eligibility request takes its company from
   the person's own companies or from the company's request link (`?to=`), which **Copy request
   link** on Company eligibility copies, and the preview names the company. A link opened signed out
