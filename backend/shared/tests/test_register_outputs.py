@@ -427,15 +427,15 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertTrue(bundle.read(agreement_path).startswith(b"%PDF"))
             self.assertNotIn(str(self.foreign_company.pk), str(sources))
         with use_operator():
-            audit = RegisterExport.objects.get(kind="company_pack")
+            audit = RegisterExport.objects.get(kind="company_pack", requested_by_id=self.owner.pk)
             self.assertEqual(audit.digest, hashlib.sha256(manifest_bytes).hexdigest())
             self.assertEqual(audit.requested_by_id, self.owner.pk)
             self.assertEqual(int(self.token.stored_register.issued_supply), 150)
             self.assertEqual(RegisterGrant.objects.get(pk=grant.json()["uuid"]).award_id, UUID(award["operation_id"]))
-            self.assertEqual(RegisterExport.objects.count(), 4)
+            self.assertEqual(RegisterExport.objects.count(), 5)
             self.assertEqual(
                 purge_register_exports(now=timezone.now() + timedelta(days=settings.FORMER_MEMBER_RETENTION_DAYS + 1)),
-                3,
+                4,
             )
             self.assertEqual(list(RegisterExport.objects.values_list("pk", flat=True)), [output.export_id])
             output.refresh_from_db()

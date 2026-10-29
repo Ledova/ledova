@@ -806,6 +806,13 @@ for reporting and portability, recorded in
 [producing a company pack](business/member-records.md#producing-the-broader-pack-in-admin)
 the procedure.
 
+On 29 October 2026, asked whether Inspection copies and Company pack should list past outputs to
+the company ([#1424](https://github.com/Ledova/ledova/issues/1424)), the owner chose "Company's own
+outputs". A company's current register readers see its inspection copies, and its current
+administrators its packs, only where people appointed at that company prepared them. A pack or
+copy a staff account produced, including one produced on a document that compels disclosure, is
+never listed to the company, and output records otherwise stay staff-only.
+
 ## Essential registry and development workflow priority
 
 **Owner decision, 9 October 2026**, supplied directly in the active Codex session
