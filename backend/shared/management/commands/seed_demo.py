@@ -21,10 +21,6 @@ from shared.seeds.demo import (
     DEMO_INVESTOR_EMAIL,
     DEMO_INVESTOR_NAME,
     DEMO_ISSUER_ADDRESS,
-    DEMO_OPERATOR_ACCOUNT_NUMBER,
-    DEMO_OPERATOR_BANK_ACCOUNT_NAME,
-    DEMO_OPERATOR_BSB,
-    DEMO_OPERATOR_REFERENCE_PREFIX,
     DEMO_OWNER_EMAIL,
     DEMO_OWNER_NAME,
     DEMO_PASSWORD_ENV_VAR,
@@ -64,7 +60,7 @@ class Command(BaseCommand):
         "The first run also adds six months of synthetic history: staff, investors, companies, wallets, "
         "notifications and compliance work. When the local chain (31337) is configured, the first run on it "
         "also deploys share classes, approves wallets, mints and allots shares, opens the registers and "
-        "seeds offerings, applications and requests, then mints AUDY deposits, settles trades, leaves an order "
+        "seeds issuance and capital requests, then mints AUDY deposits, settles trades, leaves an order "
         "book and publishes notices to members; without it, nothing is written to any chain."
     )
 
@@ -155,18 +151,8 @@ class Command(BaseCommand):
         return created
 
     def _seed_operator(self):
-        operator = Operator.get()
-        if operator.bank_account_name or operator.bank_bsb or operator.bank_account_number:
-            return operator
-
-        operator.bank_account_name = DEMO_OPERATOR_BANK_ACCOUNT_NAME
-        operator.bank_bsb = DEMO_OPERATOR_BSB
-        operator.bank_account_number = DEMO_OPERATOR_ACCOUNT_NUMBER
-        operator.payment_reference_prefix = DEMO_OPERATOR_REFERENCE_PREFIX
-        operator.full_clean()
-        operator.save()
-        self._track(True)
-        return operator
+        self._track(not Operator.objects.exists())
+        return Operator.get()
 
     def _seed_user(self, email, password, superuser=False):
         user = User.objects.filter(email=email).first()
@@ -225,15 +211,13 @@ class Command(BaseCommand):
                 "company_type": CompanyType.PROPRIETARY,
                 "status": CompanyStatus.ACTIVE,
                 "operator_wallet": issuer_wallet,
-                "is_open_to_investors": True,
             },
         )
         self._track(created)
         if not created:
             company.status = CompanyStatus.ACTIVE
             company.operator_wallet = issuer_wallet
-            company.is_open_to_investors = True
-            company.save(update_fields=["status", "operator_wallet", "is_open_to_investors"])
+            company.save(update_fields=["status", "operator_wallet"])
         return company
 
     def _seed_share_token(self, company):
@@ -335,8 +319,6 @@ class Command(BaseCommand):
             f"{counts['approvals']} whitelist approvals",
             f"  registers      {counts['registers']} opened from the chain and imported, {counts['members']} "
             f"members, {counts['mints']} mints",
-            f"  offerings      {sum(counts['offerings'].values())} ({listed(counts['offerings'])})",
-            f"  applications   {sum(counts['subscriptions'].values())} ({listed(counts['subscriptions'])})",
             f"  requests       issuance: {listed(counts['requests'])}; capital: {listed(counts['raises'])}",
         ]
         self.stdout.write("\n".join(lines))

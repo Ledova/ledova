@@ -196,9 +196,10 @@ while a "special direct link" without which the transaction would not occur
 probably is.
 
 **What the code does.** Today the register is a stored record, and
-the platform also hosts offerings, subscriptions, payment recording, investor
-classification and trading enabled by default for synthetic/testnet use — none of
-which a registry service would run.
+the platform also hosts investor classification and trading enabled by default
+for synthetic/testnet use — neither of which a registry service would run.
+Offerings, subscriptions and payment recording are
+[planned for a later release](../business/offerings.md).
 The [registry service](registry-service.md) page's feature table records what
 the earlier clerk-only service proposal would omit or defer; it is not a list
 of implemented controls. Fresh issues, grants, allotments and non-paid
@@ -249,16 +250,15 @@ s708 relieves the _company_ from disclosure and says nothing about a _platform_
 that arranges the issue, so the platform's question is the licence, not the
 exemption.
 
-**What the code does.** `InvestorClassification` carries four categories and
-deliberately not a fifth:
+**What the code does.** `InvestorClassification` carries two categories:
 
 | Category                 | Provision              |
 | ------------------------ | ---------------------- |
-| `product_value`          | s708(8)(a)             |
 | `accountant_certificate` | s708(8)(c)             |
 | `professional_investor`  | s708(11) / s761G(7)(d) |
-| `associated_person`      | s708(12)               |
 
+The large-investment (s708(8)(a)) and associated-person (s708(12)) categories are
+[planned with offerings](../business/offerings.md#investor-access-and-eligibility).
 The experienced-investor category, s708(10) / s761GA, is absent on purpose: it
 is the only one that turns on the operator holding an AFSL, and there is no
 evidence this deployment does. That absence is the clearest statement in the
@@ -661,7 +661,7 @@ value, and the interests held for three years. The Division 1A and concession
 details come from professional and ATO summaries, not the enacted text.
 
 **Implementation and earlier service assumption.** The
-[offerings flow](../business/offerings.md) hosts offers; the earlier
+[planned offerings flow](../business/offerings.md) would host offers; the earlier
 clerk-only service proposal assumed that it would not use that flow. Each
 grant, allotment and issue is approved by a company decision that retains the
 directors' authority document and names the approving director

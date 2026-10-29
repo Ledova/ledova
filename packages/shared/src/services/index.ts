@@ -124,7 +124,6 @@ export {
 export { getRegisterReconciliations, acknowledgeRegisterDiscrepancy } from './register-reconciliations';
 export {
   getInvestorClassifications,
-  getInvestorReadiness,
   submitInvestorClassification,
   deleteInvestorClassification,
 } from './investorClassifications';

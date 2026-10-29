@@ -254,7 +254,6 @@ class Migration(migrations.Migration):
                         choices=[
                             ("operator_api", "Operator API"),
                             ("whitelist_admin", "Whitelist administration"),
-                            ("subscription_admin", "Subscription administration"),
                             ("refresh", "Eligibility invalidation"),
                             ("company", "Company instruction"),
                         ],
@@ -630,9 +629,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="whitelistchange",
             constraint=models.CheckConstraint(
-                condition=models.Q(
-                    ("authority__in", ["operator_api", "whitelist_admin", "subscription_admin", "refresh", "company"])
-                ),
+                condition=models.Q(("authority__in", ["operator_api", "whitelist_admin", "refresh", "company"])),
                 name="whitelist_change_authority",
             ),
         ),

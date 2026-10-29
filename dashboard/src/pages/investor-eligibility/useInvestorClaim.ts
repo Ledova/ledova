@@ -3,7 +3,6 @@ import {
   addCalendarDays,
   addCalendarYears,
   isCalendarDate,
-  isUuid,
   submitInvestorClassification,
   type InvestorCategory,
   failureSentence,
@@ -16,19 +15,16 @@ import { CATEGORIES } from './constants';
 
 export function useInvestorClaim({
   category,
-  userAccount,
   onSuccess,
   submissionBlockedReason,
 }: {
   category: InvestorCategory | null;
-  userAccount: string | null;
   onSuccess: () => void;
   submissionBlockedReason: string | null;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [fileRefusal, setFileRefusal] = useState<string | null>(null);
   const [declaredBasis, setDeclaredBasis] = useState('');
-  const [company, setCompany] = useState('');
   const [certificateIssuedAt, setCertificateIssuedAt] = useState('');
   const [certifierName, setCertifierName] = useState('');
   const [certifierBody, setCertifierBody] = useState('');
@@ -39,7 +35,6 @@ export function useInvestorClaim({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const needsCompany = category === 'associated_person';
   const needsCertifier = category === 'accountant_certificate';
 
   const spec = CATEGORIES.find((item) => item.category === category);
@@ -53,7 +48,6 @@ export function useInvestorClaim({
   const reset = () => {
     chooseFile(null);
     setDeclaredBasis('');
-    setCompany('');
     setCertificateIssuedAt('');
     setCertifierName('');
     setCertifierBody('');
@@ -74,9 +68,8 @@ export function useInvestorClaim({
 
   const today = utcToday();
   const earliestCertificate = addCalendarYears(addCalendarDays(today, 1), -2);
-  const available = !submissionBlockedReason && !!category && !!userAccount;
+  const available = !submissionBlockedReason && !!category;
   const problems: Problems<
-    | 'company'
     | 'certificateIssuedAt'
     | 'certifierBody'
     | 'certifierName'
@@ -85,7 +78,6 @@ export function useInvestorClaim({
     | 'file'
     | 'declaration'
   > = {
-    company: needsCompany && !isUuid(company.trim()) && 'Enter the company ID provided by the issuer.',
     certificateIssuedAt:
       needsCertifier &&
       (!isCalendarDate(certificateIssuedAt) ||
@@ -101,7 +93,7 @@ export function useInvestorClaim({
   };
 
   const handleSubmit = async () => {
-    if (!available || hasProblems(problems) || !file || !category || !userAccount) return;
+    if (!available || hasProblems(problems) || !file || !category) return;
     setIsSubmitting(true);
     setError(null);
     try {
@@ -109,7 +101,6 @@ export function useInvestorClaim({
         category,
         declaredBasis: declaredBasis.trim(),
         file,
-        company: needsCompany ? company.trim() : undefined,
         certificateIssuedAt: needsCertifier ? certificateIssuedAt : undefined,
         certifierName: needsCertifier ? certifierName.trim() : undefined,
         certifierBody: needsCertifier ? (certifierBody as 'ca_anz' | 'cpa_australia' | 'ipa') : undefined,
@@ -130,8 +121,6 @@ export function useInvestorClaim({
     fileRefusal,
     declaredBasis,
     setDeclaredBasis,
-    company,
-    setCompany,
     certificateIssuedAt,
     setCertificateIssuedAt,
     certifierName,
@@ -147,7 +136,6 @@ export function useInvestorClaim({
     setIsDragging,
     error,
     fileInputRef,
-    needsCompany,
     needsCertifier,
     spec,
     reset,

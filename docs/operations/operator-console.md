@@ -21,20 +21,16 @@ installation redirects to the admin index. `GET /api/operator/` also creates the
 page does; other staff get the admin's refusal and nothing is created. Adding the row by hand also
 needs the add permission, and the row cannot be deleted.
 
-| Admin section | Fields                                                                                                                                                                                       |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Identity      | `name`, `legal_name`, `abn`, `contact_email`, `website`                                                                                                                                      |
-| Payments      | `bank_account_name`, `bank_bsb`, `bank_account_number`, `payment_reference_prefix`, `receiving_wallet_address`, `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
-| Eligibility   | `investor_kyc_required` (default on), `issuer_kyc_required` (default off)                                                                                                                    |
+| Admin section | Fields                                                                       |
+| ------------- | ---------------------------------------------------------------------------- |
+| Identity      | `name`, `legal_name`, `abn`, `contact_email`, `website`                      |
+| Settlement    | `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
+| Eligibility   | `investor_kyc_required` (default on), `issuer_kyc_required` (default off)    |
 
-The model normalises the ABN, the BSB and the EVM receiving address. The payment-reference prefix
-is 2 to 10 letters or digits, uppercased, leaving room for an eight-character code within the
-18-character reference limit.
-
-The bank-transfer and stablecoin payment instructions and staff-attested subscription receipts are
-retained controls; new integrated AUD payment work is deferred
-([9 October decision](../decisions.md#essential-registry-and-development-workflow-priority)).
-Externally arranged capital is recorded by the company as an
+The model normalises the ABN. Ledova holds no payment instructions or receiving wallet:
+integrated AUD payments are deferred
+([9 October decision](../decisions.md#essential-registry-and-development-workflow-priority)), and
+externally arranged capital is recorded by the company as an
 [external allotment](../business/issuing-shares.md#external-investor-allotments).
 
 Settlement assets must be stablecoins with an active contract deployment on
@@ -42,26 +38,20 @@ Settlement assets must be stablecoins with an active contract deployment on
 deployed asset in `supported_settlement_assets`: with none or several, order messages and
 executions are refused until the list holds one, and every created order records that asset.
 
-What the flags require is in [account readiness](../business/participants.md#account-readiness)
+What the flags require is in [account standing](../business/participants.md#account-standing)
 (`investor_kyc_required`) and the
 [representative identity requirement](../business/companies.md#representative-identity-requirement)
 (`issuer_kyc_required`). Turn on `issuer_kyc_required` only with a
 [KYC provider configured](configuration.md#identity-verification-providers).
 
-`GET /api/operator/` returns `paymentInstructions` as null except to staff and to holders of a
-current secondary-market eligibility decision from at least one company, and 401 to anonymous
-requests, so configure the payment fields and investor eligibility together.
-
 ## The operator console
 
-The configuration health strip checks the operator's identity fields, `SHARE_TOKEN_FACTORY_ADDRESS`,
-the payment-reference prefix and the settlement deployments before an offering opens. An empty
-settlement asset set is reported, leaving only bank-transfer payment.
+The configuration health strip checks the operator's identity fields, `SHARE_TOKEN_FACTORY_ADDRESS`
+and the settlement deployments. An empty settlement asset set is reported; a fresh install starts
+that way.
 
 The worklists count company applications waiting, investor classifications awaiting verification,
-offerings awaiting review and offerings at their cap and still open, subscriptions awaiting
-payment, paid and not allotted, or with an unresolved mint, pending whitelist approvals, whitelist
-entries needing [holder standing review](#holder-standing-review),
+pending whitelist approvals, whitelist entries needing [holder standing review](#holder-standing-review),
 share issuance and capital increase requests needing attention, share classes stuck deploying, and
 two register identity queues. Each opens the matching admin list and reads the database without
 contacting RPC providers.

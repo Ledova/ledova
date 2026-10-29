@@ -139,7 +139,6 @@ class Claim:
     verified_at: datetime | None = None
     verifier: str | None = None
     certificate: Certificate | None = None
-    company: str | None = None
     payslips: tuple = ()
     existing: bool = False
 
@@ -241,7 +240,6 @@ class CompanyPlan:
     registered_at: datetime
     declarant_name: str
     board_resolution_reference: str
-    open_to_investors: bool
     operator_wallet: str | None = None
     documents: tuple = ()
     steps: tuple = ()

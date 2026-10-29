@@ -11,13 +11,11 @@ import { CERTIFIER_BODIES } from './constants';
 import { LoadError } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { useCompanyNames } from '@hooks/useCompanyNames';
 
 interface ClaimModalProps {
   isOpen: boolean;
   onClose: () => void;
   category: InvestorCategory | null;
-  userAccount: string | null;
   onSuccess: () => void;
   submissionBlockedReason: string | null;
   onRetry?: () => void;
@@ -28,7 +26,6 @@ export function ClaimModal({
   isOpen,
   onClose,
   category,
-  userAccount,
   onSuccess,
   submissionBlockedReason,
   onRetry,
@@ -40,8 +37,6 @@ export function ClaimModal({
     fileRefusal,
     declaredBasis,
     setDeclaredBasis,
-    company,
-    setCompany,
     certificateIssuedAt,
     setCertificateIssuedAt,
     certifierName,
@@ -57,7 +52,6 @@ export function ClaimModal({
     setIsDragging,
     error,
     fileInputRef,
-    needsCompany,
     needsCertifier,
     spec,
     reset,
@@ -67,9 +61,8 @@ export function ClaimModal({
     available,
     problems,
     handleSubmit,
-  } = useInvestorClaim({ category, userAccount, onSuccess, submissionBlockedReason });
+  } = useInvestorClaim({ category, onSuccess, submissionBlockedReason });
   const checks = useErrorSummary(problems);
-  const companyName = useCompanyNames();
   const evidence = checks.field('file');
   const evidenceError = fileRefusal ?? evidence.error;
   const evidenceErrorId = useId();
@@ -114,25 +107,6 @@ export function ClaimModal({
         )}
 
         <p className="text-sm text-text-secondary">{spec?.evidence}</p>
-
-        {needsCompany && (
-          <Field
-            {...checks.field('company')}
-            label="Company ID"
-            hint={
-              companyName(company.trim()) ??
-              'Enter the company ID provided by the issuer. The server checks that it is active.'
-            }
-          >
-            <TextInput
-              value={company}
-              onChange={(e) => {
-                if (!isSubmitting) setCompany(e.target.value);
-              }}
-              disabled={isSubmitting}
-            />
-          </Field>
-        )}
 
         {needsCertifier && (
           <div className="grid gap-4 sm:grid-cols-2">

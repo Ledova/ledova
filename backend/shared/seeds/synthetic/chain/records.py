@@ -3,7 +3,6 @@ from uuid import UUID
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from offerings.tasks import allot_subscription_task
 from shared.constants import BLOCKCHAIN_BASE
 from shared.seeds.synthetic import keys
 from shared.seeds.synthetic.chain.population import postal_address
@@ -32,17 +31,11 @@ class Records:
             key: User.objects.get(email=f"{handle}@{EMAIL_DOMAIN}") for key, handle, _, _, left in STAFF if not left
         }
         self.classes = {}
-        self.offerings = {}
-        self.subscriptions = {}
         self.audy = None
         self.holders = {}
         for share_class in plan.classes:
             for position in share_class.positions:
                 self.holders[(share_class.company, position.address.lower())] = position.holder
-        for item in plan.rounds:
-            company = plan.share_class(item.share_class).company
-            for application in item.applications:
-                self.holders.setdefault((company, application.address.lower()), application.investor)
         for request in plan.requests:
             company = plan.share_class(request.share_class).company
             self.holders.setdefault((company, request.address.lower()), request.holder)
@@ -84,7 +77,6 @@ class Records:
                 deploy_share_token_task.name: deploy_share_token_task,
                 recover_swap_approval.name: recover_swap_approval,
                 execute_review_request_task.name: execute_review_request_task,
-                allot_subscription_task.name: allot_subscription_task,
                 recover_pause_change.name: recover_pause_change,
                 send_push_notification.name: self.notify,
             }

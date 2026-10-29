@@ -49,7 +49,7 @@ GAS = Decimal("0.05")
 NO_CHAIN_LAYER = "The chain layer is not on this database, so there are no deployed classes to trade."
 NOT_AUDY = (
     "The operator does not settle in AUDY on Base alone, so orders could not be placed. Set its receiving wallet "
-    "on Base and AUDY as its only settlement asset in the admin, then run make dev-seed again."
+    "chain to Base and AUDY as its only settlement asset in the admin, then run make dev-seed again."
 )
 NO_CLASS_CODE = (
     "{symbol} of {company} has no contract code on the node, so the database's share classes are not on this "

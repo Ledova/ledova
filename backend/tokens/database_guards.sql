@@ -301,7 +301,6 @@ AS $function$
 DECLARE
     request tokens_shareissuancerequest%ROWTYPE;
     token tokens_sharetoken%ROWTYPE;
-    subscription offerings_subscription%ROWTYPE;
     issuance tokens_shareissuance%ROWTYPE;
     operation blockchain_outgoingoperation%ROWTYPE;
     attempt blockchain_signedattempt%ROWTYPE;
@@ -328,30 +327,16 @@ BEGIN
         OR NEW.intent->>'value' IS DISTINCT FROM '0'
         OR NEW.intent->>'amount' IS DISTINCT FROM request.amount::text
         OR NEW.intent->>'recipient' IS DISTINCT FROM lower(request.recipient_address)
-        OR NEW.status NOT IN ('queued', 'executing', 'executed', 'failed', 'cancelled') THEN
+        OR NEW.status NOT IN ('queued', 'executing', 'executed', 'failed') THEN
         RAISE EXCEPTION 'Issuance admission requires immutable approved mint terms';
     END IF;
-    IF NEW.subscription_id IS NOT NULL THEN
-        SELECT * INTO subscription FROM offerings_subscription WHERE uuid = NEW.subscription_id;
-        IF NOT FOUND OR subscription.issuance_request_id IS DISTINCT FROM request.uuid
-            OR (NEW.authority <> 'offerings.change_subscription' AND NOT (NEW.authority = 'company' AND NEW.source_instruction_id IS NOT NULL)) THEN
-            RAISE EXCEPTION 'Allotment must retain its original subscription and authority';
-        END IF;
-    ELSIF NEW.authority <> 'tokens.change_shareissuancerequest' AND NOT (NEW.authority = 'company' AND NEW.source_instruction_id IS NOT NULL) THEN
+    IF NEW.authority <> 'tokens.change_shareissuancerequest' AND NOT (NEW.authority = 'company' AND NEW.source_instruction_id IS NOT NULL) THEN
         RAISE EXCEPTION 'Issuance requires its original operator authority';
     END IF;
     IF TG_OP = 'INSERT' THEN
         IF request.status <> 'approved' OR NEW.status <> 'queued' OR NEW.issuance_id IS NOT NULL
             OR NEW.operation_id IS NOT NULL OR NEW.transaction_id IS NOT NULL OR NEW.retry_of IS NOT NULL THEN
             RAISE EXCEPTION 'Issuance admission requires an approved request without an execution outcome';
-        END IF;
-        IF NEW.subscription_id IS NOT NULL AND (
-            subscription.status <> 'paid'
-            OR COALESCE(subscription.allotted_quantity, subscription.quantity) IS DISTINCT FROM request.amount
-            OR subscription.refunded_at IS NOT NULL
-            OR subscription.company_id IS DISTINCT FROM NEW.company_id
-        ) THEN
-            RAISE EXCEPTION 'Allotment admission requires its original paid allocation';
         END IF;
         SELECT * INTO token FROM tokens_sharetoken WHERE uuid = NEW.token_id;
         IF NOT FOUND OR token.company_id IS DISTINCT FROM NEW.company_id
@@ -360,10 +345,10 @@ BEGIN
             RAISE EXCEPTION 'Issuance admission must capture the current token identity';
         END IF;
     ELSE
-        IF ROW(NEW.uuid, NEW.created_at, NEW.request_id, NEW.token_id, NEW.company_id, NEW.subscription_id,
+        IF ROW(NEW.uuid, NEW.created_at, NEW.request_id, NEW.token_id, NEW.company_id,
                NEW.executed_by_id, NEW.authority, NEW.intent)
             IS DISTINCT FROM
-            ROW(OLD.uuid, OLD.created_at, OLD.request_id, OLD.token_id, OLD.company_id, OLD.subscription_id,
+            ROW(OLD.uuid, OLD.created_at, OLD.request_id, OLD.token_id, OLD.company_id,
                 OLD.executed_by_id, OLD.authority, OLD.intent) THEN
             RAISE EXCEPTION 'Issuance execution intent and authority are immutable';
         END IF;
@@ -378,11 +363,11 @@ BEGIN
             END IF;
         END IF;
         IF NEW.status IS DISTINCT FROM OLD.status AND NOT (
-            (OLD.status = 'queued' AND NEW.status IN ('executing', 'cancelled'))
+            (OLD.status = 'queued' AND NEW.status = 'executing')
             OR (OLD.status = 'executing' AND NEW.status IN ('executed', 'failed'))
-            OR (OLD.status = 'failed' AND NEW.status IN ('queued', 'cancelled'))
+            OR (OLD.status = 'failed' AND NEW.status = 'queued')
         ) THEN
-            RAISE EXCEPTION 'Issuance execution cannot reopen a cancelled or completed outcome';
+            RAISE EXCEPTION 'Issuance execution cannot reopen a completed outcome';
         END IF;
     END IF;
     IF NEW.issuance_id IS NOT NULL THEN
@@ -431,7 +416,7 @@ BEGIN
         ) THEN
             RAISE EXCEPTION 'Completed issuance requires its original confirmed transaction';
         END IF;
-        IF NEW.status IN ('failed', 'cancelled', 'queued') AND (
+        IF NEW.status IN ('failed', 'queued') AND (
             operation.status NOT IN ('failed', 'reverted')
             OR (operation.status = 'reverted' AND projected.status IS DISTINCT FROM 'reverted')
             OR (NEW.status = 'failed' AND NEW.retry_of IS NOT DISTINCT FROM operation.claim_id)
@@ -568,7 +553,7 @@ BEGIN
     END IF;
     IF NEW.status IS DISTINCT FROM (CASE execution.status
         WHEN 'queued' THEN 'approved' WHEN 'executing' THEN 'executing' WHEN 'executed' THEN 'executed'
-        WHEN 'failed' THEN 'failed' WHEN 'cancelled' THEN 'rejected' END) THEN
+        WHEN 'failed' THEN 'failed' END) THEN
         RAISE EXCEPTION 'Issuance request state must follow its original admitted execution';
     END IF;
     IF execution.status = 'executed' THEN
@@ -577,77 +562,6 @@ BEGIN
         END IF;
     ELSIF NEW.executed_at IS NOT NULL OR NEW.executed_issuance_id IS NOT NULL THEN
         RAISE EXCEPTION 'Unexecuted issuance cannot claim a completed projection';
-    END IF;
-    RETURN NEW;
-END;
-$function$;
-
-CREATE OR REPLACE FUNCTION public.protect_issuance_subscription()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-DECLARE
-    request tokens_shareissuancerequest%ROWTYPE;
-    execution tokens_shareissuanceexecution%ROWTYPE;
-BEGIN
-    IF TG_OP = 'INSERT' AND NEW.issuance_request_id IS NULL THEN
-        RETURN NEW;
-    END IF;
-    IF (TG_OP = 'INSERT' OR (TG_OP = 'UPDATE' AND OLD.issuance_request_id IS NULL))
-        AND NEW.issuance_request_id IS NOT NULL THEN
-        SELECT * INTO request FROM tokens_shareissuancerequest WHERE uuid = NEW.issuance_request_id FOR UPDATE;
-        IF NOT FOUND THEN
-            RAISE EXCEPTION 'Allotment requires its original accessible request';
-        END IF;
-        IF request.dispatch_id IS NOT NULL THEN
-            SELECT * INTO execution FROM tokens_shareissuanceexecution WHERE request_id = request.uuid;
-            IF FOUND AND execution.subscription_id IS DISTINCT FROM NEW.uuid THEN
-                RAISE EXCEPTION 'An admitted mint cannot acquire a different subscription';
-            END IF;
-            IF request.status <> 'approved' OR NEW.status <> 'paid'
-                OR request.amount IS DISTINCT FROM COALESCE(NEW.allotted_quantity, NEW.quantity)
-                OR request.token_id IS DISTINCT FROM (SELECT token_id FROM offerings_offering WHERE uuid = NEW.offering_id)
-                OR lower(request.recipient_address) IS DISTINCT FROM (SELECT lower(address) FROM wallets WHERE uuid = NEW.wallet_id)
-            THEN
-                RAISE EXCEPTION 'Allotment requires the original paid subscription terms';
-            END IF;
-        END IF;
-        RETURN NEW;
-    END IF;
-    SELECT * INTO request FROM tokens_shareissuancerequest WHERE uuid = OLD.issuance_request_id;
-    IF NOT FOUND OR request.dispatch_id IS NULL THEN
-        IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
-        RETURN NEW;
-    END IF;
-    IF TG_OP = 'DELETE' THEN
-        RAISE EXCEPTION 'Admitted allotment history cannot be deleted';
-    END IF;
-    IF ROW(NEW.uuid, NEW.created_at, NEW.offering_id, NEW.company_id, NEW.user_account_id, NEW.wallet_id,
-        NEW.quantity, NEW.allotted_quantity, NEW.price_per_share, NEW.amount_due, NEW.amount_received,
-        NEW.payment_received_on, NEW.payment_reference_seen, NEW.payment_tx_hash, NEW.issuance_request_id,
-        NEW.settlement_rail, NEW.settlement_asset_id, NEW.settlement_amount, NEW.reference)
-        IS DISTINCT FROM ROW(OLD.uuid, OLD.created_at, OLD.offering_id, OLD.company_id, OLD.user_account_id,
-        OLD.wallet_id, OLD.quantity, OLD.allotted_quantity, OLD.price_per_share, OLD.amount_due, OLD.amount_received,
-        OLD.payment_received_on, OLD.payment_reference_seen, OLD.payment_tx_hash, OLD.issuance_request_id,
-        OLD.settlement_rail, OLD.settlement_asset_id, OLD.settlement_amount, OLD.reference) THEN
-        RAISE EXCEPTION 'Admitted allotment retains its original subscription, payment and allocation';
-    END IF;
-    IF request.status IN ('approved', 'executing', 'failed') AND (NEW.status <> 'paid'
-        OR ROW(NEW.refund_amount, NEW.refunded_at) IS DISTINCT FROM ROW(OLD.refund_amount, OLD.refunded_at)) THEN
-        RAISE EXCEPTION 'An executing allotment must resolve before refund';
-    END IF;
-    IF request.status = 'rejected' AND NEW.status NOT IN ('refunded', 'rejected', 'withdrawn') THEN
-        RAISE EXCEPTION 'Cancelled allotment cannot restore an allocation';
-    END IF;
-    IF OLD.refunded_at IS NOT NULL AND (
-        NEW.refunded_at IS NULL OR NEW.refund_amount IS NULL OR NEW.refund_amount < OLD.refund_amount
-    ) THEN
-        RAISE EXCEPTION 'Recorded allotment refunds cannot be cleared or reduced';
-    END IF;
-    IF request.status <> 'executed' AND (
-        NEW.status = 'allotted' OR (NEW.refunded_at IS DISTINCT FROM OLD.refunded_at AND request.status <> 'rejected')
-    ) THEN
-        RAISE EXCEPTION 'Allotment and refund must follow the original issuance outcome';
     END IF;
     RETURN NEW;
 END;
@@ -2456,24 +2370,6 @@ BEGIN
 END;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.tokens_check_paid_issue_cancellation()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-BEGIN
-    IF NEW.status = 'rejected' AND EXISTS (SELECT 1 FROM tokens_shareissuanceexecution execution
-        WHERE execution.request_id = NEW.uuid AND execution.source_instruction_id IS NOT NULL AND execution.subscription_id IS NOT NULL)
-        AND NOT EXISTS (SELECT 1 FROM tokens_shareissuanceexecution execution JOIN offerings_subscription subscription ON subscription.uuid = execution.subscription_id
-            WHERE execution.request_id = NEW.uuid AND execution.status = 'cancelled' AND subscription.issuance_request_id = NEW.uuid
-                AND subscription.status = 'refunded' AND subscription.refunded_at IS NOT NULL
-                AND subscription.refund_amount > 0 AND execution.source_instruction_id IS NOT NULL) THEN
-        RAISE EXCEPTION 'Paid financial cancellation commits only with its genuine original recorded refund' USING ERRCODE = '23514';
-    END IF;
-    RETURN NULL;
-END;
-$function$;
-
 CREATE OR REPLACE FUNCTION public.tokens_check_register_correction_decision()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2919,48 +2815,8 @@ BEGIN
         IF OLD.preparing_appointment_id IS NOT NULL THEN RAISE EXCEPTION 'Retain company grant sources' USING ERRCODE = '23514'; END IF;
         RETURN OLD;
     END IF;
-    IF NEW.paid_subscription_id IS NOT NULL THEN
-        principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
-        IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL OR NEW.preparing_appointment_id IS NULL
-            OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text THEN
-            RAISE EXCEPTION 'Paid issues require the exact current personal company command' USING ERRCODE = '23514';
-        END IF;
-        IF TG_OP = 'INSERT' THEN
-            IF current_setting('app.company_operation', true) IS DISTINCT FROM 'register_paid_issue_prepare'
-                OR NEW.submitted_by_id IS DISTINCT FROM principal OR NEW.status <> 'submitted' OR NEW.request_id IS NOT NULL
-                OR NEW.reviewed_by_id IS NOT NULL OR NEW.reviewed_at IS NOT NULL OR NEW.approval_decision_id IS NOT NULL
-                OR NEW.source_document IS NOT NULL OR NEW.rejection_reason <> ''
-                OR NEW.snapshot->'private'->>'request' IS NULL OR NEW.snapshot->'private'->>'dispatch' IS NULL
-                OR EXISTS (SELECT 1 FROM tokens_shareissuancerequest request WHERE request.uuid = (NEW.snapshot->'private'->>'request')::uuid)
-                OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal, 'prepare', clock_timestamp())
-                OR NOT tokens_register_paid_issue_ready(NEW) THEN
-                RAISE EXCEPTION 'Paid preparation retains the genuine paid source without admission' USING ERRCODE = '23514';
-            END IF;
-        ELSE
-            IF OLD.paid_subscription_id IS NULL OR OLD.status <> 'submitted' OR NEW.status NOT IN ('applied','rejected')
-                OR NEW.reviewed_by_id IS DISTINCT FROM principal OR NEW.reviewed_at IS NULL
-                OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_paid_issue_' || (CASE NEW.status WHEN 'applied' THEN 'apply' ELSE 'reject' END)
-                OR (to_jsonb(NEW) - ARRAY['request_id','status','approval_decision_id','reviewed_by_id','reviewed_at','rejection_reason','updated_at'])
-                    IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['request_id','status','approval_decision_id','reviewed_by_id','reviewed_at','rejection_reason','updated_at'])
-                OR NOT EXISTS (SELECT 1 FROM tokens_registerinstructiondecision decision WHERE decision.instruction_id = NEW.uuid
-                    AND decision.decided_by_id = principal AND decision.decided_at = NEW.reviewed_at
-                    AND decision.kind = (CASE NEW.status WHEN 'applied' THEN 'apply' ELSE 'reject' END))
-                OR (NEW.status = 'applied' AND (NEW.request_id::text IS DISTINCT FROM NEW.snapshot->'private'->>'request'
-                    OR NEW.approval_decision_id IS DISTINCT FROM tokens_register_issue_approval(NEW.uuid, clock_timestamp())
-                    OR NOT tokens_register_paid_issue_ready(NEW) OR NOT EXISTS (SELECT 1 FROM tokens_shareissuancerequest request
-                        WHERE request.uuid = NEW.request_id AND request.dispatch_id::text = NEW.snapshot->'private'->>'dispatch'
-                            AND request.status = 'under_review' AND request.reviewed_by_id IS NULL AND request.reviewed_at IS NULL
-                            AND request.submitted_by_id = principal AND request.submitted_at = NEW.reviewed_at
-                            AND request.token_id = NEW.token_id AND request.company_id = NEW.company_id
-                            AND request.amount::text = NEW.intent->>'amount' AND lower(request.recipient_address) = NEW.intent->>'recipient')))
-                OR (NEW.status = 'rejected' AND (NEW.request_id IS NOT NULL OR NEW.rejection_reason !~ '[^[:space:]]' OR NEW.approval_decision_id IS NOT NULL)) THEN
-                RAISE EXCEPTION 'Paid issue retains its exact original company decision and late admission' USING ERRCODE = '23514';
-            END IF;
-        END IF;
-        RETURN NEW;
-    END IF;
     IF NEW.preparing_appointment_id IS NULL THEN
-        IF NEW.paid_subscription_id IS NOT NULL OR NEW.member_id IS NOT NULL OR NEW.nomination_id IS NOT NULL OR NEW.wallet_approval_id IS NOT NULL OR NEW.request_id IS NOT NULL
+        IF NEW.member_id IS NOT NULL OR NEW.nomination_id IS NOT NULL OR NEW.wallet_approval_id IS NOT NULL OR NEW.request_id IS NOT NULL
             OR NEW.snapshot IS NOT NULL OR NEW.intent IS NOT NULL OR NEW.approval_decision_id IS NOT NULL
             OR NEW.terms_on IS NOT NULL OR NEW.terms IS NOT NULL OR NEW.acceptance_required IS NOT NULL
             OR NEW.authority_evidence_id IS NOT NULL OR NEW.terms_evidence_id IS NOT NULL OR NEW.terms_fingerprint IS NOT NULL
@@ -3016,7 +2872,7 @@ BEGIN
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL OR proposal.preparing_appointment_id IS NULL OR proposal.status <> 'submitted'
         OR NEW.decided_by_id IS DISTINCT FROM principal OR current_setting('app.company_id', true) IS DISTINCT FROM proposal.company_id::text
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM (CASE WHEN proposal.paid_subscription_id IS NULL THEN 'register_issue_' ELSE 'register_paid_issue_' END) || NEW.kind
+        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_issue_' || NEW.kind
         OR NEW.kind NOT IN ('approve','apply','reject') OR (NEW.kind = 'reject') <> (NEW.reason ~ '[^[:space:]]')
         OR NEW.digest IS DISTINCT FROM tokens_register_issue_decision_digest(proposal.uuid, NEW.kind, principal, NEW.appointment_id, NEW.reason)
         OR NOT tokens_register_appointment_current(NEW.appointment_id, proposal.company_id, principal, CASE NEW.kind WHEN 'apply' THEN 'apply' ELSE 'approve' END, clock_timestamp())
@@ -3040,23 +2896,6 @@ BEGIN
     IF NEW.kind <> 'issue' THEN RETURN NEW; END IF;
     SELECT * INTO execution FROM tokens_shareissuanceexecution WHERE issuance_id = NEW.operation_id AND source_instruction_id IS NOT NULL;
     IF execution.uuid IS NULL THEN RETURN NEW; END IF;
-    IF execution.subscription_id IS NOT NULL THEN
-        IF execution.status <> 'executed' OR NOT EXISTS (SELECT 1 FROM tokens_registerinstruction source
-            JOIN offerings_subscription subscription ON subscription.uuid = source.paid_subscription_id
-            JOIN tokens_registermemberwallet linked ON linked.company_id = source.company_id
-            WHERE source.uuid = execution.source_instruction_id AND source.status = 'applied' AND source.request_id = execution.request_id
-                AND source.paid_subscription_id = execution.subscription_id AND subscription.issuance_request_id = execution.request_id
-                AND subscription.status = 'allotted' AND source.reviewed_by_id = NEW.recorded_by_id
-                AND lower(linked.address) = execution.intent->>'recipient'
-                AND NEW.changes = jsonb_build_array(jsonb_build_object('member', linked.member_id, 'shares', execution.intent->>'amount')))
-            OR NEW.corrects_id IS NOT NULL OR execution.finalized_receipt IS NULL
-            OR NEW.effective_on IS DISTINCT FROM (clock_timestamp() AT TIME ZONE 'UTC')::date
-            OR NOT EXISTS (SELECT 1 FROM tokens_shareregister register WHERE register.uuid = NEW.register_id
-                AND register.token_id = execution.token_id AND register.company_id = execution.company_id) THEN
-            RAISE EXCEPTION 'Paid ISSUE retains its original subscription, actual member link and finalised mint' USING ERRCODE = '23514';
-        END IF;
-        RETURN NEW;
-    END IF;
     SELECT * INTO proposal FROM tokens_registerinstruction WHERE uuid = execution.source_instruction_id;
     IF execution.status <> 'executed' OR proposal.status <> 'applied' OR execution.finalized_receipt IS NULL
         OR NEW.recorded_by_id IS DISTINCT FROM proposal.reviewed_by_id OR NEW.corrects_id IS NOT NULL
@@ -3086,9 +2925,9 @@ BEGIN
         PERFORM 1 FROM tokens_shareregister WHERE token_id = NEW.token_id FOR UPDATE;
         SELECT * INTO proposal FROM tokens_registerinstruction WHERE uuid = NEW.source_instruction_id;
         IF proposal.uuid IS NULL OR NEW.authority <> 'company' OR NOT tokens_register_issue_source_current(proposal.uuid)
-            OR proposal.paid_subscription_id IS DISTINCT FROM NEW.subscription_id OR proposal.request_id IS DISTINCT FROM NEW.request_id OR proposal.company_id IS DISTINCT FROM NEW.company_id
+            OR proposal.request_id IS DISTINCT FROM NEW.request_id OR proposal.company_id IS DISTINCT FROM NEW.company_id
             OR proposal.token_id IS DISTINCT FROM NEW.token_id OR proposal.intent IS DISTINCT FROM NEW.intent OR proposal.reviewed_by_id IS DISTINCT FROM NEW.executed_by_id
-            OR (TG_OP = 'INSERT' AND (current_setting('app.company_operation', true) IS DISTINCT FROM (CASE WHEN NEW.subscription_id IS NULL THEN 'register_issue_apply' ELSE 'register_paid_issue_apply' END)
+            OR (TG_OP = 'INSERT' AND (current_setting('app.company_operation', true) IS DISTINCT FROM 'register_issue_apply'
                 OR current_setting('app.company_id', true) IS DISTINCT FROM proposal.company_id::text
                 OR current_setting('app.user_id', true) IS DISTINCT FROM proposal.reviewed_by_id::text)) THEN
             RAISE EXCEPTION 'Fresh corporate issuance requires its exact current original company admission' USING ERRCODE = '23514';
@@ -3369,15 +3208,6 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_issuance_review()
 AS $function$
 BEGIN
     IF EXISTS (SELECT 1 FROM tokens_registerinstruction proposal WHERE proposal.request_id = NEW.uuid AND proposal.preparing_appointment_id IS NOT NULL) THEN
-        IF NEW.status = 'rejected' AND EXISTS (SELECT 1 FROM tokens_shareissuanceexecution execution
-            JOIN offerings_subscription subscription ON subscription.uuid = execution.subscription_id
-            WHERE execution.request_id = NEW.uuid AND execution.status = 'cancelled'
-                AND subscription.issuance_request_id = NEW.uuid AND execution.source_instruction_id IS NOT NULL
-                AND OLD.status IN ('approved','failed')
-                AND (to_jsonb(NEW) - ARRAY['status','rejection_reason','updated_at']) = (to_jsonb(OLD) - ARRAY['status','rejection_reason','updated_at'])
-                AND NEW.rejection_reason = 'Cancelled by refund of subscription ' || COALESCE(NULLIF(subscription.reference, ''), subscription.uuid::text) || '.') THEN
-            RETURN NEW;
-        END IF;
         IF TG_OP = 'UPDATE' AND ROW(NEW.uuid, NEW.created_at, NEW.dispatch_id, NEW.company_id, NEW.token_id, NEW.amount,
             NEW.recipient_address, NEW.recipient_name, NEW.issuance_type, NEW.reason, NEW.submitted_by_id, NEW.submitted_at,
             NEW.dilution_percentage, NEW.review_notes) IS DISTINCT FROM ROW(OLD.uuid, OLD.created_at, OLD.dispatch_id,
@@ -3391,7 +3221,7 @@ BEGIN
             SELECT 1 FROM tokens_registerinstruction proposal JOIN tokens_registerinstructiondecision decision ON decision.instruction_id = proposal.uuid
             WHERE proposal.request_id = NEW.uuid AND decision.decided_by_id = NEW.reviewed_by_id AND decision.decided_at = NEW.reviewed_at
                 AND decision.kind = (CASE NEW.status WHEN 'approved' THEN 'apply' WHEN 'rejected' THEN 'reject' ELSE '' END)
-                AND current_setting('app.company_operation', true) = (CASE WHEN proposal.paid_subscription_id IS NULL THEN 'register_issue_' ELSE 'register_paid_issue_' END) || decision.kind
+                AND current_setting('app.company_operation', true) = 'register_issue_' || decision.kind
                 AND current_setting('app.user_id', true) = decision.decided_by_id::text
                 AND (NEW.status <> 'rejected' OR NEW.rejection_reason = decision.reason)
                 AND tokens_register_appointment_current(decision.appointment_id, proposal.company_id, decision.decided_by_id,
@@ -3401,7 +3231,7 @@ BEGIN
         RETURN NEW;
     END IF;
     IF NEW.status = 'approved' AND (TG_OP = 'INSERT' OR OLD.status IN ('draft','submitted','under_review')) THEN
-        RAISE EXCEPTION 'Fresh paid and nonpaid approval requires its retained company decision' USING ERRCODE = '23514';
+        RAISE EXCEPTION 'Fresh approval requires its retained company decision' USING ERRCODE = '23514';
     END IF;
     IF current_user = __APP__ AND (
         (TG_OP = 'INSERT' AND (NEW.status NOT IN ('draft', 'submitted') OR NEW.reviewed_by_id IS NOT NULL
@@ -4226,15 +4056,10 @@ BEGIN
         RAISE EXCEPTION 'Retain register instructions and their authority evidence' USING ERRCODE = '23514';
     END IF;
     IF NEW.preparing_appointment_id IS NOT NULL THEN RETURN NEW; END IF;
-    IF NEW.kind = 'issue' AND (TG_OP = 'INSERT' OR (OLD.status = 'submitted' AND NEW.status = 'applied'))
-        AND EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.items) item WHERE item ? 'subscription' OR EXISTS (
-            SELECT 1 FROM offerings_subscription subscription WHERE subscription.issuance_request_id::text = item->>'request')) THEN
-        RAISE EXCEPTION 'Fresh paid ISSUE authority requires its genuine company decision' USING ERRCODE = '23514';
-    END IF;
     IF TG_OP = 'INSERT' AND NEW.kind = 'issue' AND EXISTS (
         SELECT 1 FROM jsonb_array_elements(NEW.items) item JOIN tokens_shareissuancerequest request
             ON request.uuid::text = item->>'request' WHERE request.status IN ('draft','submitted','under_review')) THEN
-        RAISE EXCEPTION 'New non-paid grants require their retained company decision' USING ERRCODE = '23514';
+        RAISE EXCEPTION 'New grants require their retained company decision' USING ERRCODE = '23514';
     END IF;
     IF TG_OP = 'INSERT' THEN
         IF jsonb_typeof(NEW.items) IS DISTINCT FROM 'array' THEN
@@ -4273,23 +4098,17 @@ BEGIN
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.items) item
                 WHERE NEW.kind = 'issue' AND (jsonb_typeof(item) IS DISTINCT FROM 'object'
                 OR (SELECT count(*) FROM jsonb_object_keys(item)) <> 3
-                OR (item ? 'request') = (item ? 'subscription')
-                OR jsonb_typeof(COALESCE(item->'request', item->'subscription')) IS DISTINCT FROM 'string'
-                OR COALESCE(item->>'request', item->>'subscription')
-                    !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                OR jsonb_typeof(item->'request') IS DISTINCT FROM 'string'
+                OR item->>'request' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
                 OR jsonb_typeof(item->'recipient') IS DISTINCT FROM 'string'
                 OR item->>'recipient' !~ '^0x[0-9a-fA-F]{40}$'
                 OR jsonb_typeof(item->'amount') IS DISTINCT FROM 'string'
                 OR item->>'amount' !~ '^[1-9][0-9]{0,77}$'
-                OR (item ? 'request' AND NOT EXISTS (SELECT 1 FROM tokens_shareissuancerequest r
+                OR NOT EXISTS (SELECT 1 FROM tokens_shareissuancerequest r
                     WHERE r.uuid = (item->>'request')::uuid AND r.token_id = NEW.token_id
-                    AND r.company_id = NEW.company_id))
-                OR (item ? 'subscription' AND NOT EXISTS (SELECT 1 FROM offerings_subscription s
-                    JOIN offerings_offering o ON o.uuid = s.offering_id
-                    WHERE s.uuid = (item->>'subscription')::uuid AND o.token_id = NEW.token_id
-                    AND s.company_id = NEW.company_id))))
+                    AND r.company_id = NEW.company_id)))
             OR item_count <> (SELECT count(DISTINCT
-                COALESCE(item->>'request', item->>'subscription', item->>'settlement'))
+                COALESCE(item->>'request', item->>'settlement'))
                 FROM jsonb_array_elements(NEW.items) item)
         THEN
             RAISE EXCEPTION 'Register instructions require exact current intent and verified company evidence'
@@ -6361,7 +6180,7 @@ CREATE OR REPLACE FUNCTION public.tokens_register_issue_ready(proposal tokens_re
  LANGUAGE sql
  SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
-    SELECT CASE WHEN proposal.paid_subscription_id IS NOT NULL THEN tokens_register_paid_issue_ready(proposal) ELSE COALESCE((SELECT proposal.kind = 'issue' AND proposal.preparing_appointment_id IS NOT NULL
+    SELECT COALESCE((SELECT proposal.kind = 'issue' AND proposal.preparing_appointment_id IS NOT NULL
         AND company.status = 'active' AND token.status = 'deployed' AND token.chain = 'base' AND token.decimals = 0
         AND proposal.snapshot->'company' = jsonb_build_object('uuid', company.uuid, 'name', company.name, 'acn', company.acn, 'status', company.status)
         AND proposal.snapshot->'token' = jsonb_build_object('uuid', token.uuid, 'name', token.name, 'symbol', token.symbol,
@@ -6411,7 +6230,6 @@ AS $function$
         AND request.token_id = token.uuid AND request.company_id = company.uuid AND request.amount BETWEEN 1 AND 2147483647
         AND lower(request.recipient_address) = approval.address AND request.recipient_name = proposal.snapshot->'member'->>'name'
         AND proposal.items = jsonb_build_array(jsonb_build_object('request', request.uuid, 'recipient', approval.address, 'amount', request.amount::text))
-        AND NOT EXISTS (SELECT 1 FROM offerings_subscription WHERE issuance_request_id = request.uuid)
         AND proposal.terms_on <= (clock_timestamp() AT TIME ZONE 'UTC')::date AND proposal.terms ~ '[^[:space:]]'
         AND proposal.approving_director ~ '[^[:space:]]' AND proposal.reason ~ '[^[:space:]]' AND proposal.authority_reference ~ '[^[:space:]]'
         AND lower(btrim(regexp_replace(proposal.approving_director, '[[:space:]]+', ' ', 'g')))
@@ -6450,7 +6268,7 @@ AS $function$
       JOIN tokens_registerevidence authority ON authority.uuid = proposal.authority_evidence_id
       JOIN tokens_registerevidence terms ON terms.uuid = proposal.terms_evidence_id
       LEFT JOIN tokens_registerevidence acceptance ON acceptance.uuid = proposal.acceptance_evidence_id
-      WHERE token.uuid = proposal.token_id AND company.uuid = proposal.company_id), false) END;
+      WHERE token.uuid = proposal.token_id AND company.uuid = proposal.company_id), false);
 $function$;
 
 CREATE OR REPLACE FUNCTION public.tokens_register_issue_reserved(token_uuid uuid, excluded_request uuid)
@@ -6556,115 +6374,6 @@ AS $function$
             'head', register.head_hash) FROM tokens_shareregister register
             JOIN tokens_registeropening proposal ON proposal.token_id = register.token_id
             WHERE proposal.uuid = opening_uuid) END)::text, 'UTF8')), 'hex');
-$function$;
-
-CREATE OR REPLACE FUNCTION public.tokens_register_paid_issue_approval(proposal_uuid uuid, at_time timestamp with time zone)
- RETURNS uuid
- LANGUAGE sql
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-    SELECT tokens_register_issue_approval(proposal_uuid, at_time);
-$function$;
-
-CREATE OR REPLACE FUNCTION public.tokens_register_paid_issue_approved(proposal_uuid uuid, at_time timestamp with time zone)
- RETURNS boolean
- LANGUAGE sql
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-    SELECT tokens_register_issue_approved(proposal_uuid, at_time);
-$function$;
-
-CREATE OR REPLACE FUNCTION public.tokens_register_paid_issue_decision_digest(proposal_uuid uuid, decision_kind text, actor bigint, appointment_uuid uuid, decision_reason text)
- RETURNS text
- LANGUAGE sql
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-    SELECT tokens_register_issue_decision_digest(proposal_uuid, decision_kind, actor, appointment_uuid, decision_reason);
-$function$;
-
-CREATE OR REPLACE FUNCTION public.tokens_register_paid_issue_ready(proposal tokens_registerinstruction)
- RETURNS boolean
- LANGUAGE sql
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-    SELECT COALESCE((SELECT proposal.kind = 'issue' AND proposal.preparing_appointment_id IS NOT NULL
-        AND company.status = 'active' AND token.status = 'deployed' AND token.chain = 'base' AND token.decimals = 0
-        AND subscription.status = 'paid' AND subscription.refunded_at IS NULL AND wallet.chain = 'base'
-        AND wallet.user_account_id = subscription.user_account_id
-        AND subscription.amount_received >= COALESCE(subscription.allotted_quantity, subscription.quantity) * subscription.price_per_share
-        AND COALESCE(subscription.allotted_quantity, subscription.quantity) BETWEEN 1 AND 2147483647
-        AND (subscription.issuance_request_id IS NULL OR subscription.issuance_request_id = proposal.request_id)
-        AND subscription.company_id = company.uuid AND offering.company_id = company.uuid AND token.company_id = company.uuid
-        AND proposal.snapshot->'company' = jsonb_build_object('uuid', company.uuid, 'name', company.name, 'acn', company.acn, 'status', company.status)
-        AND proposal.snapshot->'token' = jsonb_build_object('uuid', token.uuid, 'name', token.name, 'symbol', token.symbol,
-            'chain', token.chain, 'contract_address', lower(token.contract_address), 'authorised_shares', token.total_supply::text)
-        AND proposal.snapshot->'source'->>'subscription' = subscription.uuid::text
-        AND proposal.snapshot->'source'->>'offering' = offering.uuid::text
-        AND proposal.snapshot->'source'->>'company' = company.uuid::text AND proposal.snapshot->'source'->>'token' = token.uuid::text
-        AND proposal.snapshot->'private'->>'wallet' = wallet.uuid::text AND proposal.snapshot->'private'->>'account' = subscription.user_account_id::text
-        AND proposal.snapshot->'source'->>'recipient_address' = lower(wallet.address)
-        AND proposal.snapshot->'source'->>'recipient_name' = (CASE WHEN (SELECT count(*) FROM wallets same
-            WHERE same.chain = token.chain AND lower(same.address) = lower(wallet.address)) = 1 THEN
-            COALESCE(regexp_replace(profile.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), '') ELSE '' END)
-        AND proposal.snapshot->'source'->>'shares' = COALESCE(subscription.allotted_quantity, subscription.quantity)::text
-        AND proposal.snapshot->'source'->>'requested_shares' = subscription.quantity::text
-        AND proposal.snapshot->'source'->>'currency' = subscription.currency
-        AND (proposal.snapshot->'source'->>'price_per_share')::numeric = subscription.price_per_share
-        AND (proposal.snapshot->'source'->>'amount_due')::numeric = subscription.amount_due
-        AND (proposal.snapshot->'source'->>'amount_received')::numeric IS NOT DISTINCT FROM subscription.amount_received
-        AND (proposal.snapshot->'source'->>'money_held')::numeric = COALESCE(subscription.amount_received, 0)
-        AND (proposal.snapshot->'source'->>'payment_received_on')::date IS NOT DISTINCT FROM subscription.payment_received_on
-        AND proposal.snapshot->'source'->>'payment_reference_seen' = COALESCE(subscription.payment_reference_seen, '')
-        AND proposal.snapshot->'source'->>'payment_tx_hash' IS NOT DISTINCT FROM subscription.payment_tx_hash
-        AND (proposal.snapshot->'source'->>'payment_confirmed_at')::timestamptz IS NOT DISTINCT FROM subscription.payment_confirmed_at
-        AND (proposal.snapshot->'source'->>'refund_amount')::numeric IS NOT DISTINCT FROM subscription.refund_amount
-        AND proposal.snapshot->'source'->>'refunded_at' IS NULL
-        AND proposal.items = jsonb_build_array(jsonb_build_object('subscription', subscription.uuid,
-            'recipient', lower(wallet.address), 'amount', COALESCE(subscription.allotted_quantity, subscription.quantity)::text))
-        AND proposal.intent->>'recipient' = lower(wallet.address)
-        AND proposal.intent->>'amount' = COALESCE(subscription.allotted_quantity, subscription.quantity)::text
-        AND proposal.intent->>'to' = lower(token.contract_address) AND proposal.intent->>'token_chain' = token.chain
-        AND proposal.intent->>'value' = '0' AND proposal.intent->>'sender' ~ '^0x[0-9a-f]{40}$'
-        AND (proposal.intent->>'chain_id')::bigint IN (31337, 84532)
-        AND proposal.intent->>'data' = '0x40c10f19' || lpad(substring(lower(wallet.address) FROM 3), 64, '0')
-            || lpad(to_hex(COALESCE(subscription.allotted_quantity, subscription.quantity)::bigint), 64, '0')
-        AND proposal.intent_digest = encode(sha256(convert_to(proposal.intent::text, 'UTF8')), 'hex')
-        AND proposal.snapshot->'transaction' = proposal.intent - ARRAY['token_chain', 'recipient', 'amount']
-        AND proposal.approving_director ~ '[^[:space:]]' AND proposal.reason ~ '[^[:space:]]'
-        AND proposal.authority_reference ~ '[^[:space:]]' AND length(proposal.reason) <= 1000
-        AND lower(btrim(regexp_replace(proposal.approving_director, '[[:space:]]+', ' ', 'g')))
-            <> lower(btrim(regexp_replace(proposal.snapshot->'source'->>'recipient_name', '[[:space:]]+', ' ', 'g')))
-        AND proposal.member_id IS NULL AND proposal.nomination_id IS NULL AND proposal.wallet_approval_id IS NULL
-        AND proposal.terms_on IS NULL AND proposal.terms IS NULL AND proposal.acceptance_required IS NULL
-        AND proposal.terms_evidence_id IS NULL AND proposal.acceptance_evidence_id IS NULL
-        AND authority.company_id = company.uuid AND authority.kind = 'authority' AND authority.uploaded_by_id = proposal.submitted_by_id
-        AND authority.sha256 = proposal.evidence_fingerprint AND proposal.evidence_snapshot->>'sha256' = authority.sha256
-        AND proposal.evidence_snapshot->>'evidence' = authority.uuid::text
-        AND proposal.file ~ ('^companies/' || company.uuid::text || '/register-instructions/' || proposal.uuid::text || '/[0-9a-f-]{36}[.]bin$')
-        AND NOT EXISTS (SELECT 1 FROM tokens_registerimport imported JOIN tokens_registerentry entry ON entry.operation_id = imported.uuid
-            WHERE imported.token_id = token.uuid AND imported.status = 'applied' AND entry.kind = 'opening')
-        AND COALESCE(subscription.allotted_quantity, subscription.quantity) <= offering.cap_shares - COALESCE((
-            SELECT sum(COALESCE(other.allotted_quantity, other.quantity)) FROM offerings_subscription other
-            WHERE other.offering_id = offering.uuid AND other.uuid <> subscription.uuid AND other.status IN ('paid','allotted')
-                AND other.issuance_request_id IS NOT NULL), 0)
-        AND COALESCE(subscription.allotted_quantity, subscription.quantity) <= token.total_supply::numeric
-            - GREATEST(COALESCE((proposal.snapshot->'chain_supply'->>1)::numeric, 0),
-                COALESCE((SELECT issued_supply FROM tokens_shareregister WHERE token_id = token.uuid AND sequence > 0), 0))
-            - COALESCE((SELECT sum(request.amount) FROM tokens_shareissuancerequest request
-                WHERE request.token_id = token.uuid AND request.uuid IS DISTINCT FROM proposal.request_id AND (
-                    request.status IN ('approved','executing') OR (request.status = 'failed' AND EXISTS (
-                        SELECT 1 FROM tokens_shareissuance issuance WHERE issuance.idempotency_key = 'issuance-request:' || request.uuid::text
-                            AND issuance.tx_hash IS NOT NULL AND issuance.status <> 'completed')) OR EXISTS (
-                        SELECT 1 FROM tokens_shareissuanceexecution execution WHERE execution.request_id = request.uuid
-                            AND execution.status = 'executed' AND request.executed_at >= (proposal.snapshot->>'observed_at')::timestamptz
-                            AND NOT EXISTS (SELECT 1 FROM tokens_registerentry entry JOIN tokens_shareregister register ON register.uuid = entry.register_id
-                                WHERE entry.operation_id = execution.issuance_id AND entry.kind = 'issue' AND register.token_id = token.uuid)))), 0)
-        FROM offerings_subscription subscription JOIN offerings_offering offering ON offering.uuid = subscription.offering_id
-        JOIN tokens_sharetoken token ON token.uuid = offering.token_id JOIN companies_company company ON company.uuid = token.company_id
-        JOIN wallets wallet ON wallet.uuid = subscription.wallet_id LEFT JOIN customer_accounts_account account ON account.uuid = wallet.user_account_id
-        LEFT JOIN users_userprofile profile ON profile.uuid = account.user_profile_id
-        JOIN tokens_registerevidence authority ON authority.uuid = proposal.authority_evidence_id
-        WHERE subscription.uuid = proposal.paid_subscription_id AND token.uuid = proposal.token_id AND company.uuid = proposal.company_id), false);
 $function$;
 
 CREATE OR REPLACE FUNCTION public.tokens_register_particulars_approved(change_uuid uuid, at_time timestamp with time zone)
@@ -7293,7 +7002,7 @@ BEGIN
         RAISE EXCEPTION 'Bind the actual trading decision' USING ERRCODE = '23514';
     END IF;
     IF NOT public.users_company_eligibility_decision_current((command->>'decision_uuid')::uuid,
-        (command->>'owner_account_uuid')::uuid, (command->>'company_uuid')::uuid, 'secondary', NULL, NULL, checked_at)
+        (command->>'owner_account_uuid')::uuid, (command->>'company_uuid')::uuid, checked_at)
     THEN RAISE EXCEPTION 'The trading decision is no longer current' USING ERRCODE = '23514',
         CONSTRAINT = 'tokens_trading_eligibility_current'; END IF;
 END;
@@ -7322,8 +7031,6 @@ CREATE CONSTRAINT TRIGGER tokens_company_pause_signature_effect AFTER INSERT ON 
 CREATE CONSTRAINT TRIGGER tokens_deployment_signature_current AFTER INSERT ON blockchain_signedattempt DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_deployment_signature();
 
 CREATE TRIGGER tokens_deployment_signature_source BEFORE INSERT ON blockchain_signedattempt FOR EACH ROW EXECUTE FUNCTION tokens_check_deployment_signature();
-
-CREATE TRIGGER protect_issuance_subscription BEFORE INSERT OR DELETE OR UPDATE ON offerings_subscription FOR EACH ROW EXECUTE FUNCTION protect_issuance_subscription();
 
 CREATE TRIGGER signing_challenges_bind_action BEFORE INSERT OR UPDATE ON signing_challenges FOR EACH ROW EXECUTE FUNCTION signing_challenges_bind_action();
 
@@ -7510,8 +7217,6 @@ CREATE TRIGGER protect_issuance_request BEFORE INSERT OR DELETE OR UPDATE ON tok
 CREATE CONSTRAINT TRIGGER tokens_company_issue_request_source AFTER INSERT OR UPDATE ON tokens_shareissuancerequest DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_company_issue_request();
 
 CREATE TRIGGER tokens_issuance_review_decision BEFORE INSERT OR UPDATE ON tokens_shareissuancerequest FOR EACH ROW EXECUTE FUNCTION tokens_guard_issuance_review();
-
-CREATE CONSTRAINT TRIGGER tokens_paid_issue_cancellation AFTER UPDATE ON tokens_shareissuancerequest DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_paid_issue_cancellation();
 
 CREATE TRIGGER tokens_shareissuancerequest_company_id_is_derived BEFORE INSERT OR UPDATE ON tokens_shareissuancerequest FOR EACH ROW EXECUTE FUNCTION tokens_shareissuancerequest_company_id_is_derived();
 

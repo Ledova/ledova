@@ -166,11 +166,10 @@ identity stamp among its wallets, then `RegisterMemberParticulars`; a member at 
 address takes its recorded particulars and stays `treasury` ([the
 rule](../business/register.md#members-holder-types-and-identity)). `member_identities` adds the
 account a member resolves to only when a live identity names one account, for the publication roll.
-[Amount paid](../business/register.md#amount-paid-and-date-entered) comes from `_allotments` (a
-completed issuance's subscription `money_backing_shares`, only when the subscription's allotment
-quantity equals the issuance), the applied import's allotments and `_external_amounts_paid` (an
-applied AUD allotment whose ISSUE entry and company-recorded receipt match its consideration); date
-entered from the position, the earliest allotment and `imported_membership_dates`.
+[Amount paid](../business/register.md#amount-paid-and-date-entered) comes from the applied import's
+allotments and `_external_amounts_paid` (an applied AUD allotment whose ISSUE entry and
+company-recorded receipt match its consideration); any other issue records none. Date entered comes
+from the position, the earliest allotment and `imported_membership_dates`.
 
 The company Dashboard's ownership summary counts distinct members from each opened class's holders
 read ([register-ownership.ts](../../packages/shared/src/utils/register-ownership.ts)).
@@ -248,9 +247,8 @@ application role writes them. The purge is in [retention clocks](security.md#ret
 ### Deletion protection
 
 The register spine `Company -> ShareToken -> {ShareIssuance, ShareIssuanceRequest,
-CapitalIncreaseRequest, Offering, TransferOrder}`, `SwapOrder.share_token` and a subscription's
-links to its offering, account and wallet use `PROTECT`, which admin removal of test data still
-respects. The API deletes neither a company nor a share class (405): delist a company or pause a
+CapitalIncreaseRequest, TransferOrder}` and `SwapOrder.share_token` use `PROTECT`, which admin
+removal of test data still respects. The API deletes neither a company nor a share class (405): delist a company or pause a
 class instead. Deleting a wallet cascades its whitelist entry and that entry's company approvals and
 leaves the approval on chain; durable [whitelist commands](chain.md#whitelist-changes) keep their
 own identity. Allotment identity stamps keep the identity resolved at issue, which treasury
@@ -350,7 +348,7 @@ requirement codes:
   consideration in AUD).
 
 Recording an award also refuses `imported_non_tokenised_register_required`. The chain families
-(`register-issues/`, `register-paid-issues/`, `register-deployments/`,
+(`register-issues/`, `register-deployments/`,
 `register-capital-increases/`, `register-pause-changes/`) are in [signing
 families](chain.md#signing-families).
 
@@ -877,7 +875,7 @@ locks every captured class row, records the export and rechecks the appointment 
 holds anything outside the [core
 scope](../business/member-records.md#producing-a-core-pack): each class must be a
 draft with an applied import and no chain fields, deployment, operations, issuance requests,
-subscriptions awaiting allotment, settlements, capital increases or pauses.
+settlements, capital increases or pauses.
 
 The builder reads every record, the company row included, in the register outputs' one
 repeatable-read snapshot on the operator connection, and reads no chain. Once the snapshot closes it
@@ -923,7 +921,7 @@ table column, link or tag. Values Ledova produces are left as they are, and the 
   `acceptance`, a transfer's `instrument`).
 - `classes/<class id>/`: `class.json`, `register.csv` (from the export's own code, with no export
   record, absent while the register has no opening), `entries.json` (with each entry's `preimage`),
-  `authority.json` (register instructions include chain grants and paid issues), `chain.json`,
+  `authority.json` (register instructions include chain grants), `chain.json`,
   `settlements.json`, `issues.json`, `former_members.json`, `reconciliations.json`, `waiting.json`
   (`waiting_list(token)`, or `null` where the API's is) and `due.json` (the class's rows of
   `outputs_due(company=company)`).
@@ -952,7 +950,7 @@ numbers that decision records and [preimages](#hash-preimages) carry.
 `company_mandates.json`, built by
 [company_pack_mandates.py](../../backend/tokens/services/company_pack_mandates.py), carries
 `openings`, `imports`, `corrections`, `wallet_links`, `particulars_changes`, `grants`, `transfers`,
-`instructions` (register instructions, chain grants and paid issues), `deployments`,
+`instructions` (register instructions and chain grants), `deployments`,
 `capital_increases`, `pause_changes`, `wallet_instructions` and `allotments`; the company-recorded
 facts `awards`, `vestings`, `award_ends`, `vesting_reversals`, `agreements` and `contributions`; the `wallet_nominations`; and the
 `appointments` any of them used. A decision record carries its company and class, preparer and
@@ -1287,7 +1285,7 @@ The document is `AccountExportData` in the schema: `exportedAt`, `user`, `profil
 `financialProfile`, `account`, `wallets`, `transactions` (every transaction of the account's
 wallets) and `portfolios`; a section with no row is `null`, or an empty list. Not in it:
 classification claims and their evidence, uploaded documents, per-asset holdings, orders,
-subscriptions, notifications, the transaction-alerts switch and register particulars.
+notifications, the transaction-alerts switch and register particulars.
 
 ### Transaction evidence fields
 

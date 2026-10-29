@@ -24,13 +24,6 @@ class CompanyEligibilityUUIDField(serializers.UUIDField):
         return super().to_internal_value(data)
 
 
-class CompanyEligibilityQuantityField(serializers.IntegerField):
-    def to_internal_value(self, data):
-        if type(data) is not int:
-            self.fail("invalid")
-        return super().to_internal_value(data)
-
-
 class CompanyEligibilityReasonField(serializers.CharField):
     def to_internal_value(self, data):
         if not isinstance(data, str):
@@ -50,22 +43,8 @@ class CompanyEligibilityInputSerializer(serializers.Serializer):
 
 class CompanyEligibilityRequestPreviewSerializer(CompanyEligibilityInputSerializer):
     source = CompanyEligibilityUUIDField()
-    company = CompanyEligibilityUUIDField(required=False, allow_null=True, default=None)
-    offering = CompanyEligibilityUUIDField(required=False, allow_null=True, default=None)
-    quantity = CompanyEligibilityQuantityField(
-        min_value=1, max_value=2147483647, required=False, allow_null=True, default=None
-    )
+    company = CompanyEligibilityUUIDField()
     requested_expires_at = serializers.DateTimeField()
-
-    def validate(self, data):
-        company = data["company"]
-        offering = data["offering"]
-        quantity = data["quantity"]
-        if company is not None and offering is None and quantity is None:
-            return data
-        if company is None and offering is not None and quantity is not None:
-            return data
-        raise serializers.ValidationError("Select one company or an exact offering and whole-share quantity.")
 
 
 class CompanyEligibilityRequestCreateSerializer(CompanyEligibilityRequestPreviewSerializer):
@@ -143,15 +122,6 @@ class CompanyEligibilitySharedSummarySerializer(serializers.Serializer):
     certifier_name = serializers.CharField(required=False, allow_blank=True)
     certifier_body = serializers.ChoiceField(choices=CertifierBody.choices, required=False, allow_blank=True)
     certifier_membership_number = serializers.CharField(required=False, allow_blank=True)
-    associated_company = serializers.UUIDField(required=False, allow_null=True)
-    offering = serializers.UUIDField(required=False)
-    token = serializers.UUIDField(required=False)
-    quantity = serializers.IntegerField(required=False)
-    price_per_share = serializers.DecimalField(max_digits=18, decimal_places=2, required=False)
-    price_currency = serializers.CharField(required=False)
-    amount_aud = serializers.DecimalField(max_digits=None, decimal_places=2, required=False)
-    offering_terms = serializers.JSONField(required=False)
-    offering_terms_digest = serializers.CharField(required=False)
 
     def to_representation(self, instance):
         return {key: value for key, value in super().to_representation(instance).items() if key in instance}

@@ -20,18 +20,6 @@ class Migration(migrations.Migration):
                 ("abn", models.CharField(blank=True, max_length=14)),
                 ("contact_email", models.EmailField(blank=True, max_length=254)),
                 ("website", models.URLField(blank=True)),
-                ("bank_account_name", models.CharField(blank=True, max_length=255)),
-                ("bank_bsb", models.CharField(blank=True, max_length=7)),
-                ("bank_account_number", models.CharField(blank=True, max_length=20)),
-                (
-                    "payment_reference_prefix",
-                    models.CharField(
-                        blank=True,
-                        help_text="Letters and digits; subscription references start with it.",
-                        max_length=16,
-                    ),
-                ),
-                ("receiving_wallet_address", models.CharField(blank=True, max_length=42)),
                 (
                     "receiving_wallet_chain",
                     models.CharField(

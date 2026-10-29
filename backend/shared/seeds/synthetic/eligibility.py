@@ -1,7 +1,6 @@
 from datetime import timedelta
 from uuid import NAMESPACE_URL, uuid5
 
-from django.db.models import Q
 from django.utils import timezone
 
 from companies.models import (
@@ -65,9 +64,8 @@ def company_approver(company, actor):
     )
 
 
-def accept_source(source, company, approver, appointment, *, offering=None, quantity=None):
+def accept_source(source, company, approver, appointment):
     holder = source.user_account.user_profile.user
-    context = {"offering": offering.pk, "quantity": quantity} if offering is not None else {"company": company.pk}
     expires_at = min(
         limit
         for limit in (
@@ -81,14 +79,14 @@ def accept_source(source, company, approver, appointment, *, offering=None, quan
         )
         if limit is not None
     )
-    terms = {"actor": holder, "source": source.pk, "requested_expires_at": expires_at, **context}
+    terms = {"actor": holder, "source": source.pk, "company": company.pk, "requested_expires_at": expires_at}
     preview = preview_eligibility_request(**terms)
     if not preview["can_submit"]:
         return None
     request, _ = submit_eligibility_request(
         **terms,
         preview_digest=preview["preview_digest"],
-        idempotency_key=seed_key("request", source.pk, company.pk, offering.pk if offering else "general", quantity),
+        idempotency_key=seed_key("request", source.pk, company.pk),
         sharing_accepted=True,
         declaration_accepted=True,
     )
@@ -137,15 +135,13 @@ def seed_company_eligibility():
                 continue
             holder = account.user_profile.user
             with use_operator(), _requester_principal(holder.pk):
-                if company_eligibility(account, company, purpose="primary").is_eligible:
+                if company_eligibility(account, company).is_eligible:
                     continue
                 sources = list(
                     InvestorClassification.objects.filter(
                         user_account=account,
                         status__in=[InvestorClassificationStatus.SUBMITTED, InvestorClassificationStatus.VERIFIED],
                     )
-                    .exclude(category=InvestorCategory.PRODUCT_VALUE)
-                    .filter(Q(company=None) | Q(company=company))
                     .select_related("user_account__user_profile__user")
                     .order_by("submitted_at", "uuid")
                 )

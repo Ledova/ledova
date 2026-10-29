@@ -108,7 +108,7 @@ def prepare_admission(
     settlement_digest=None,
 ):
     account, wallet = lock_participant(actor, account.pk, wallet.pk)
-    outcome = company_eligibility(account, token.company, purpose="secondary")
+    outcome = company_eligibility(account, token.company)
     if not outcome.is_eligible:
         return TradingAdmission(None, None, outcome.reasons)
     decision = outcome.decision
@@ -151,7 +151,7 @@ def prepare_admission(
     with connections[current_alias()].cursor() as cursor:
         cursor.execute("SELECT set_config(%s, %s, true)", [SETTING, json.dumps(command)])
         cursor.execute("SELECT public.tokens_lock_trading_admission(%s::jsonb)", [json.dumps(command)])
-    outcome = company_eligibility(account, token.company, purpose="secondary", decision_id=decision.pk)
+    outcome = company_eligibility(account, token.company, decision_id=decision.pk)
     return TradingAdmission(decision if outcome.is_eligible else None, command, outcome.reasons)
 
 

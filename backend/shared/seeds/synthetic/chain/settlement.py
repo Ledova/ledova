@@ -28,26 +28,23 @@ def settlement_refusal():
     operator = Operator.get()
     supported = sorted(operator.supported_settlement_assets.values_list("symbol", flat=True))
     issued = operator.issued_stablecoin.symbol if operator.issued_stablecoin_id else AUDY
-    chain = operator.receiving_wallet_chain if operator.receiving_wallet_address else BLOCKCHAIN_BASE
+    chain = operator.receiving_wallet_chain
     detail = []
     if supported not in ([], [AUDY]):
         detail.append(f"settlement assets {', '.join(supported)}")
     if issued != AUDY:
         detail.append(f"issued stablecoin {issued}")
     if chain != BLOCKCHAIN_BASE:
-        detail.append(f"receiving wallet on {chain}")
+        detail.append(f"receiving wallet chain {chain}")
     return OTHER_SETTLEMENT.format(detail="; ".join(detail)) if detail else None
 
 
-def configure_settlement(plan, records):
+def configure_settlement(records):
     with atomic():
         ensure_supported_assets()
         audy = Asset.objects.get(symbol=AUDY)
         AssetChainDeployment.objects.filter(asset=audy, chain=BLOCKCHAIN_BASE).update(is_active=True)
         operator = Operator.get()
-        if not operator.receiving_wallet_address:
-            operator.receiving_wallet_address = plan.receiving_wallet
-            operator.receiving_wallet_chain = BLOCKCHAIN_BASE
         if operator.issued_stablecoin_id is None:
             operator.issued_stablecoin = audy
         operator.full_clean()

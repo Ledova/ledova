@@ -35,11 +35,9 @@ SCOPING_CALLS = frozenset(
         "owned_by",
         "issued_by",
         "for_holder",
-        "subscribed_by",
         "none",
         "get_object",
         "get_queryset",
-        "eligible_investor_companies",
         "investor_eligibility",
     }
 )
@@ -222,7 +220,7 @@ def chain_is_scoped(node: ast.AST, parents: dict) -> bool:
             current = parent
         else:
             # A scoping call can also arrive as an argument, as in
-            # `.filter(company__in=eligible_investor_companies(user))`. It is part of
+            # `.filter(wallet__in=Wallet.objects.owned_by(user))`. It is part of
             # this expression, so it scopes it - unlike a mention elsewhere in the
             # function, which is what the per-function check used to accept.
             return bool(names_in(current) & SCOPING_CALLS)

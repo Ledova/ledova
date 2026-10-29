@@ -172,7 +172,7 @@ export function CompanyDocuments({
           }}
         >
           <p className="text-sm text-text-primary">
-            Remove {removing.name} from {company.name}? Documents retained by an offering cannot be removed.
+            Remove {removing.name} from {company.name}?
           </p>
           {remove.isError && (
             <p role="alert" className="text-sm text-error-light">

@@ -36,7 +36,6 @@ class Trader:
     name: str
     ready_at: datetime
     companies: frozenset
-    associated: frozenset
     wallets: tuple
 
     def wallet(self, address):

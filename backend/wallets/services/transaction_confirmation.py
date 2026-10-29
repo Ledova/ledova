@@ -14,7 +14,6 @@ from assets.services.identity import (
 )
 from assets.services.valuation import transaction_values
 from compliance.services.transaction_monitoring import TransactionMonitoringService
-from operators.models import Operator
 from shared.constants import normalize_chain
 from shared.db import atomic, use_operator
 from shared.tasks.queue import defer
@@ -67,21 +66,10 @@ def resolve_transfer_asset(wallet: Wallet, token_contract: Optional[str] = None)
     return asset
 
 
-def _pays_the_operator(chain: str, recipient: str) -> bool:
-    operator = Operator.get()
-    return (
-        bool(operator.receiving_wallet_address)
-        and normalize_chain(chain) == operator.receiving_wallet_chain
-        and operator.receiving_wallet_address.lower() == recipient.lower()
-    )
-
-
 def require_stablecoin_approvals(asset: Asset, chain: str, sender: str, recipient: str) -> None:
     if asset.asset_type != AssetType.STABLECOIN.value:
         return
     recipient = Web3.to_checksum_address(recipient)
-    if _pays_the_operator(chain, recipient):
-        return
     with use_operator():
         if not whitelist.approved_for_any_company(sender):
             raise StablecoinApprovalRequiredException(SENDER_NOT_APPROVED.format(symbol=asset.symbol))

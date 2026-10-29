@@ -1,5 +1,6 @@
 import uuid
 
+import django.db.models.deletion
 from django.db import migrations, models
 
 
@@ -7,7 +8,10 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = []
+    dependencies = [
+        ("users", "0001_initial"),
+        ("wallets", "0001_initial"),
+    ]
 
     operations = [
         migrations.CreateModel(
@@ -27,6 +31,13 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(max_length=255)),
                 ("is_active", models.BooleanField(default=True)),
+                (
+                    "user_account",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="portfolios", to="users.useraccount"
+                    ),
+                ),
+                ("wallets", models.ManyToManyField(blank=True, related_name="portfolios", to="wallets.wallet")),
             ],
             options={
                 "verbose_name": "Portfolio",

@@ -46,8 +46,4 @@ export const REGISTER_COPY = {
   UNIDENTIFIED_NOTE:
     'No linked wallet resolves to a named person through its retained whitelist entry. Ask the participant to ' +
     'add their full name in Profile, or to verify and nominate the linked wallet for company approval.',
-  APPLICATIONS_TITLE: 'Applications',
-  APPLICATIONS_EMPTY: 'No applications yet.',
-  APPLICATIONS_NOTE: (operator: string) =>
-    `Read-only. Payment recording is done by ${operator}. Company paid issue authority is managed on the share class; this ledger shows the recorded financial outcome.`,
 } as const;

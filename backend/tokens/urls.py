@@ -28,7 +28,6 @@ from tokens.views.register_opening import (
     RegisterOpeningViewSet,
     RegisterWalletLinkViewSet,
 )
-from tokens.views.register_paid_issue import RegisterPaidIssueViewSet
 from tokens.views.register_particulars import RegisterParticularsChangeViewSet
 from tokens.views.register_pause_change import RegisterPauseChangeViewSet
 from tokens.views.register_person import RegisterPersonViewSet
@@ -44,7 +43,6 @@ router.register(r"member-records", MemberRecordViewSet, basename="member-records
 router.register(r"member-particulars-requests", MemberParticularsRequestViewSet, basename="member-particulars-requests")
 router.register(r"member-certificate-requests", MemberCertificateRequestViewSet, basename="member-certificate-requests")
 router.register(r"register-people", RegisterPersonViewSet, basename="register-people")
-router.register(r"register-paid-issues", RegisterPaidIssueViewSet, basename="register-paid-issues")
 router.register(r"register-pause-changes", RegisterPauseChangeViewSet, basename="register-pause-changes")
 router.register(r"register-capital-increases", RegisterCapitalIncreaseViewSet, basename="register-capital-increases")
 router.register(r"register-deployments", RegisterDeploymentViewSet, basename="register-deployments")

@@ -49,7 +49,7 @@ def execute_review_request_task(
         if model is not ShareIssuanceRequest:
             return {"success": False, "error": "Unsupported review request"}
         execution = ShareIssuanceExecution.objects.filter(
-            pk=execution_id, request_id=request_uuid, executed_by_id=executed_by, subscription_id__isnull=True
+            pk=execution_id, request_id=request_uuid, executed_by_id=executed_by
         ).first()
         if execution is None:
             return {"success": False, "error": "Issuance has no matching admitted identity"}

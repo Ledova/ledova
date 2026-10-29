@@ -345,7 +345,7 @@ configured identity provider, from **Verify your identity** at signup review or 
 **Settings → Profile** on web with **Review identity check**. With the requirement on and no
 provider, every company decision is refused
 ([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
-requirement is separate ([participants](participants.md#account-readiness)).
+requirement is separate ([participants](participants.md#account-standing)).
 
 ## The Company page
 

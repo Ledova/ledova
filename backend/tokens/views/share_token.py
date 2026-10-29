@@ -191,7 +191,6 @@ class ShareTokenViewSet(
             ShareIssuance.objects.filter(token__in=ShareToken.objects.issued_by(request.user))
             .with_token()
             .with_initiated_by()
-            .with_subscription()
             .filter_by_token(token)
         )
         if request.query_params.get("status"):

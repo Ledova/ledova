@@ -105,7 +105,6 @@ export function companyRecord(overrides: Partial<Company> = {}): Company {
     isApproved: false,
     isPendingReview: false,
     canIssueTokens: false,
-    isOpenToInvestors: false,
     shareOwnershipWithMembers: false,
     ownershipSharingChangedBy: null,
     ownershipSharingChangedAt: null,

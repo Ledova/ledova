@@ -8,7 +8,6 @@ from users.models.company_eligibility import (
 from users.models.device_token import DeviceToken
 from users.models.financial_profile import FinancialProfile
 from users.models.investor_classification import (
-    PRODUCT_VALUE_THRESHOLD_AUD,
     CertifierBody,
     InvestorCategory,
     InvestorClassification,
@@ -32,7 +31,6 @@ __all__ = [
     "InvestorCategory",
     "InvestorClassification",
     "InvestorClassificationStatus",
-    "PRODUCT_VALUE_THRESHOLD_AUD",
     "UserAccount",
     "UserPreferences",
     "UserProfile",

@@ -1,5 +1,4 @@
 from contextlib import nullcontext
-from decimal import Decimal
 from uuid import uuid4
 
 from django.utils import timezone
@@ -9,7 +8,6 @@ from companies.services.document_review import private_document_bytes
 from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.records import member_id
-from shared.seeds.synthetic.chain.story import ALLOTTED
 from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.paper import authority
 from tokens.models import (
@@ -135,16 +133,10 @@ def reference_prefix(token):
     return "".join(word[0] for word in (token.company.trading_name or token.company.name).split()).upper()
 
 
-def _particulars(share_class, records, allotted_on):
+def _particulars(share_class):
     planned = {}
     for position in share_class.positions:
         planned.setdefault(position.holder, []).append((position.shares, position.entered_on, position.amount_paid))
-    for item in records.plan.rounds_of(share_class.key):
-        for application in item.applications:
-            if application.status != ALLOTTED or not application.allotted:
-                continue
-            paid = (Decimal(application.allotted) * item.price).quantize(Decimal("0.01"))
-            planned.setdefault(application.investor, []).append((application.allotted, allotted_on, paid))
     return {
         holder: (
             sum(shares for shares, _, _ in rows),
@@ -167,7 +159,7 @@ def import_particulars(share_class, records):
     token = ShareToken.objects.select_related("company").get(pk=records.classes[share_class.key].pk)
     company_key = share_class.company
     today = timezone.localdate()
-    planned = _particulars(share_class, records, today)
+    planned = _particulars(share_class)
     holders = {str(member_id(company_key, holder)): holder for holder in planned}
     rows = []
     for position in RegisterPosition.objects.filter(register__token=token, shares__gt=0).order_by("member_id"):

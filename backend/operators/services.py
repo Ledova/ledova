@@ -5,8 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from companies.models import Company
-from offerings.models import Offering, Subscription
-from operators.models import MAX_PAYMENT_REFERENCE_PREFIX, Operator
+from operators.models import Operator
 from operators.settlement import deployment_on_chain
 from tokens.models import (
     CapitalIncreaseRequest,
@@ -19,7 +18,6 @@ from users.models import InvestorClassification
 from whitelist.models import WhitelistApproval, WhitelistEntry
 from whitelist.services.identity import unnameable_addresses
 
-SEVERITY_INFO = "info"
 SEVERITY_WARNING = "warning"
 SEVERITY_DANGER = "danger"
 
@@ -29,16 +27,7 @@ OPERATOR_INCOMPLETE = "Fill in {fields} on the operator row."
 OPERATOR_COMPLETE = "Identity and contact details are recorded."
 SETTING_MISSING = "{name} is not set, so the contract cannot be reached."
 SETTING_PRESENT = "{name} is set."
-PREFIX_MISSING = "No payment reference prefix is set, so no subscription reference can be issued."
-PREFIX_TOO_LONG = (
-    "The prefix {prefix} is {length} characters; a reference is the prefix plus an eight-character code and "
-    "an AU lodgement reference holds eighteen, so keep the prefix to {maximum}."
-)
-PREFIX_OK = "{prefix} leaves room for the eight-character code."
-NO_SETTLEMENT_ASSETS = (
-    "No settlement asset is supported, so an offering can only be paid by bank transfer. A fresh install starts "
-    "this way; add one on the operator row."
-)
+NO_SETTLEMENT_ASSETS = "No settlement asset is supported. A fresh install starts this way; add one on the operator row."
 SETTLEMENT_NOT_DEPLOYED = "{symbols} has no active deployment on {chain}."
 SETTLEMENT_OK = "{count} settlement asset(s) deployed on {chain}."
 
@@ -89,36 +78,6 @@ def worklist() -> list[WorklistRow]:
             InvestorClassification.objects.submitted().count(),
             _changelist("users", "investorclassification", "?status__exact=submitted"),
             SEVERITY_WARNING,
-        ),
-        WorklistRow(
-            "Offerings awaiting review",
-            Offering.objects.awaiting_review().count(),
-            _changelist("offerings", "offering", "?status__in=submitted,under_review"),
-            SEVERITY_WARNING,
-        ),
-        WorklistRow(
-            "Offerings at their cap and still open",
-            Offering.objects.cap_reached().count(),
-            _changelist("offerings", "offering", "?status__exact=approved"),
-            SEVERITY_DANGER,
-        ),
-        WorklistRow(
-            "Subscriptions awaiting payment",
-            Subscription.objects.awaiting_payment().count(),
-            _changelist("offerings", "subscription", "?status__exact=awaiting_payment"),
-            SEVERITY_INFO,
-        ),
-        WorklistRow(
-            "Subscriptions paid and not allotted",
-            Subscription.objects.awaiting_allotment().count(),
-            _changelist("offerings", "subscription", "?status__exact=paid"),
-            SEVERITY_WARNING,
-        ),
-        WorklistRow(
-            "Subscriptions whose mint is broadcast and unresolved",
-            Subscription.objects.mint_unresolved().count(),
-            _changelist("offerings", "subscription", "?status__exact=paid"),
-            SEVERITY_DANGER,
         ),
         WorklistRow(
             "Whitelist approvals pending",
@@ -178,19 +137,6 @@ def _setting_check(name: str) -> HealthCheck:
     return HealthCheck(name, False, SETTING_MISSING.format(name=name))
 
 
-def _prefix_check(operator: Operator) -> HealthCheck:
-    prefix = operator.payment_reference_prefix or ""
-    if not prefix:
-        return HealthCheck("Payment reference prefix", False, PREFIX_MISSING)
-    if len(prefix) > MAX_PAYMENT_REFERENCE_PREFIX:
-        return HealthCheck(
-            "Payment reference prefix",
-            False,
-            PREFIX_TOO_LONG.format(prefix=prefix, length=len(prefix), maximum=MAX_PAYMENT_REFERENCE_PREFIX),
-        )
-    return HealthCheck("Payment reference prefix", True, PREFIX_OK.format(prefix=prefix))
-
-
 def _settlement_check(operator: Operator) -> HealthCheck:
     assets = list(operator.supported_settlement_assets.all())
     if not assets:
@@ -209,7 +155,6 @@ def configuration_health() -> list[HealthCheck]:
     return [
         _identity_check(operator),
         _setting_check("SHARE_TOKEN_FACTORY_ADDRESS"),
-        _prefix_check(operator),
         _settlement_check(operator),
     ]
 

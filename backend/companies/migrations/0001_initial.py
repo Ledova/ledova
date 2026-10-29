@@ -89,15 +89,17 @@ class Migration(migrations.Migration):
                 (
                     "file",
                     models.FileField(
+                        blank=True,
+                        default="",
                         max_length=255,
                         storage=shared.storage.private_storage,
                         upload_to=companies.models.authority_request.authority_evidence_path,
                     ),
                 ),
-                ("original_filename", models.CharField(editable=False, max_length=255)),
-                ("file_size", models.PositiveIntegerField(editable=False)),
-                ("mime_type", models.CharField(editable=False, max_length=100)),
-                ("file_sha256", models.CharField(editable=False, max_length=64)),
+                ("original_filename", models.CharField(blank=True, default="", editable=False, max_length=255)),
+                ("file_size", models.PositiveIntegerField(default=0, editable=False)),
+                ("mime_type", models.CharField(blank=True, default="", editable=False, max_length=100)),
+                ("file_sha256", models.CharField(blank=True, default="", editable=False, max_length=64)),
                 ("request_digest", models.CharField(editable=False, max_length=64)),
             ],
             options={
@@ -276,6 +278,25 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
+            name="CompanySignupTermsAcceptance",
+            fields=[
+                (
+                    "uuid",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        help_text="Unique identifier (primary key)",
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("declaration_version", models.CharField(editable=False, max_length=10)),
+                ("declaration_text", models.TextField(editable=False)),
+            ],
+        ),
+        migrations.CreateModel(
             name="CompanyTeamInvitation",
             fields=[
                 (
@@ -402,12 +423,8 @@ class Migration(migrations.Migration):
                 ("description", models.TextField(blank=True)),
                 ("industry", models.CharField(blank=True, max_length=100)),
                 ("founded_year", models.PositiveIntegerField(blank=True, null=True)),
-                (
-                    "is_open_to_investors",
-                    models.BooleanField(
-                        default=False, help_text="Show this company's share classes in the investor directory."
-                    ),
-                ),
+                ("share_ownership_with_members", models.BooleanField(default=False)),
+                ("ownership_sharing_changed_at", models.DateTimeField(editable=False, null=True)),
                 (
                     "approved_by",
                     models.ForeignKey(

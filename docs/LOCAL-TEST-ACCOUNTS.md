@@ -101,7 +101,9 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
   labels, and Supporting sits under Eligibility.
 - [#1421](https://github.com/Ledova/ledova/issues/1421) takes offerings out of the first release. The
   web client went first (Offerings, Directory, Applications, paid issues and the large-investment
-  claim); the backend removal follows. [Planned offerings](business/offerings.md) keeps their design.
+  claim), then the backend, with associated-person claims and account readiness. Verification now
+  offers two claim categories and links Your company eligibility from Your claims.
+  [Planned offerings](business/offerings.md) keeps their design.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.

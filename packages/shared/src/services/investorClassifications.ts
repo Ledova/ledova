@@ -1,11 +1,6 @@
 import { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { INVESTOR_CLASSIFICATION_ENDPOINTS } from '../constants';
-import type {
-  InvestorClassification,
-  InvestorClassificationSubmission,
-  InvestorReadiness,
-  PaginatedResponse,
-} from '../types';
+import type { InvestorClassification, InvestorClassificationSubmission, PaginatedResponse } from '../types';
 
 export const getInvestorClassifications = (apiClient: AxiosInstance, page?: number, config?: AxiosRequestConfig) =>
   page === undefined
@@ -17,9 +12,6 @@ export const getInvestorClassifications = (apiClient: AxiosInstance, page?: numb
         params: { page },
       });
 
-export const getInvestorReadiness = (apiClient: AxiosInstance) =>
-  apiClient.get<InvestorReadiness>(INVESTOR_CLASSIFICATION_ENDPOINTS.ELIGIBILITY);
-
 export const submitInvestorClassification = (
   apiClient: AxiosInstance,
   data: InvestorClassificationSubmission,
@@ -30,7 +22,6 @@ export const submitInvestorClassification = (
   formData.append('category', data.category);
   formData.append('declaration_accepted', 'true');
   if (data.declaredBasis !== undefined) formData.append('declared_basis', data.declaredBasis);
-  if (data.company) formData.append('company', data.company);
   if (data.certificateIssuedAt) formData.append('certificate_issued_at', data.certificateIssuedAt);
   if (data.certifierName) formData.append('certifier_name', data.certifierName);
   if (data.certifierBody) formData.append('certifier_body', data.certifierBody);

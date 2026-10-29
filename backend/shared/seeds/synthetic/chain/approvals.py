@@ -8,13 +8,6 @@ from operators.models import Operator
 from shared.db import use_operator
 from shared.seeds.synthetic import keys
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
-from shared.seeds.synthetic.chain.story import (
-    ACCEPTED,
-    DRAFT,
-    REJECTED,
-    SUBMITTED,
-    WITHDRAWN,
-)
 from shared.seeds.synthetic.market.keyring import KeyRing
 from users.services.company_eligibility_consumption import company_eligibility
 from wallets.services.verification import (
@@ -33,7 +26,6 @@ from whitelist.services.wallet_nominations import (
     preview_wallet_nomination,
 )
 
-UNAPPROVED_STATUSES = (DRAFT, SUBMITTED, WITHDRAWN, ACCEPTED)
 NOT_CONFIRMED = "The approval of {address} for {company} ended {status}."
 TREASURY_UNSUPPORTED = (
     "The issuance plan includes an employee share trust address with no held signing key. "
@@ -46,14 +38,6 @@ def approved_addresses(plan, company):
     for share_class in plan.classes_of(company):
         for position in share_class.positions:
             addresses.setdefault(position.address.lower(), position)
-    for item in plan.rounds:
-        if plan.share_class(item.share_class).company != company:
-            continue
-        for application in item.applications:
-            lapsed_early = application.status == REJECTED and application.instructed_at is None
-            if application.status in UNAPPROVED_STATUSES or lapsed_early:
-                continue
-            addresses.setdefault(application.address.lower(), application)
     for request in plan.requests:
         if plan.share_class(request.share_class).company == company:
             addresses.setdefault(request.address.lower(), request)
@@ -64,7 +48,7 @@ def approve_participant_wallet(company, wallet, keyring):
     key = keyring.key(wallet.address)
     participant = wallet.user_account.user_profile.user
     with use_operator(), _requester_principal(participant.pk):
-        eligibility = company_eligibility(wallet.user_account, company, purpose="secondary")
+        eligibility = company_eligibility(wallet.user_account, company)
     if not eligibility.is_eligible or eligibility.decision.expires_at is None:
         raise ChainStepFailed("A current finite GENERAL company eligibility decision is required for wallet approval.")
     with use_operator(), _requester_principal(company.owner_id):

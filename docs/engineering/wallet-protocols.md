@@ -66,10 +66,8 @@ never reads an amount above 2^53 as an approximate JavaScript number; a native a
 A stablecoin has no company registry to ask, so `require_stablecoin_approvals`
 (`backend/wallets/services/transaction_confirmation.py`) checks that the sending wallet and the
 recipient each hold a live stored company approval for at least one company, when the transfer is
-prepared and again when the signed transfer is submitted, before it is recorded or broadcast. A
-transfer to the operator's receiving wallet on its configured chain is exempt on both sides, because
-the stablecoin payment instruction names it and nothing approves it; an unset receiving wallet, or
-one on another chain, exempts nothing. The refusal is 403 `stablecoin_approval_required` and says
+prepared and again when the signed transfer is submitted, before it is recorded or broadcast. The
+refusal is 403 `stablecoin_approval_required` and says
 which side lacks an approval. The recipient's wallet belongs to another account, so the lookup runs
 on the operator connection and answers only yes or no. A recorded submission is not checked again:
 a repeated request and the recovery sweep re-send the bytes the check admitted. Approvals are

@@ -1,12 +1,8 @@
 from django.conf import settings
 from django.db import models
 
-from shared.constants import CURRENCY_AUD
 from shared.models import BaseModel
-from users.models.investor_classification import (
-    PRODUCT_VALUE_THRESHOLD_AUD,
-    InvestorCategory,
-)
+from users.models.investor_classification import InvestorCategory
 
 
 class CompanyEligibilityDecisionOutcome(models.TextChoices):
@@ -32,18 +28,6 @@ class CompanyEligibilityRequest(BaseModel):
     submitted_at = models.DateTimeField(editable=False)
     sharing_accepted = models.BooleanField(editable=False)
     declaration_accepted = models.BooleanField(editable=False)
-    offering = models.ForeignKey(
-        "offerings.Offering", on_delete=models.PROTECT, related_name="eligibility_requests", null=True, editable=False
-    )
-    token = models.ForeignKey(
-        "tokens.ShareToken", on_delete=models.PROTECT, related_name="eligibility_requests", null=True, editable=False
-    )
-    quantity = models.PositiveIntegerField(null=True, editable=False)
-    price_per_share = models.DecimalField(max_digits=18, decimal_places=2, null=True, editable=False)
-    price_currency = models.CharField(max_length=16, null=True, editable=False)
-    amount_aud = models.DecimalField(max_digits=18, decimal_places=2, null=True, editable=False)
-    offering_terms = models.JSONField(null=True, editable=False)
-    offering_terms_digest = models.CharField(max_length=64, null=True, editable=False)
 
     class Meta:
         ordering = ["-submitted_at", "-uuid"]
@@ -62,37 +46,6 @@ class CompanyEligibilityRequest(BaseModel):
             models.CheckConstraint(
                 condition=models.Q(requested_expires_at__gt=models.F("submitted_at")),
                 name="users_eligibility_request_future_expiry",
-            ),
-            models.CheckConstraint(
-                condition=(
-                    models.Q(
-                        category=InvestorCategory.PRODUCT_VALUE,
-                        offering__isnull=False,
-                        token__isnull=False,
-                        quantity__isnull=False,
-                        quantity__gt=0,
-                        price_per_share__isnull=False,
-                        price_per_share__gt=0,
-                        price_currency__isnull=False,
-                        price_currency=CURRENCY_AUD,
-                        amount_aud__isnull=False,
-                        amount_aud__gte=PRODUCT_VALUE_THRESHOLD_AUD,
-                        offering_terms__isnull=False,
-                        offering_terms_digest__isnull=False,
-                    )
-                    | ~models.Q(category=InvestorCategory.PRODUCT_VALUE)
-                    & models.Q(
-                        offering__isnull=True,
-                        token__isnull=True,
-                        quantity__isnull=True,
-                        price_per_share__isnull=True,
-                        price_currency__isnull=True,
-                        amount_aud__isnull=True,
-                        offering_terms__isnull=True,
-                        offering_terms_digest__isnull=True,
-                    )
-                ),
-                name="users_eligibility_request_exact_product_scope",
             ),
         ]
 

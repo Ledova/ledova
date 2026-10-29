@@ -36,11 +36,3 @@ class InvestorClassificationQuerySet(QuerySet):
 
     def evidence_purgeable(self, moment):
         return self.past_evidence_horizon(moment).exclude(evidence_file="").exclude(evidence_file__isnull=True)
-
-    def for_company(self, company):
-        from users.models.investor_classification import InvestorCategory
-
-        unscoped = Q(company__isnull=True) & ~Q(category=InvestorCategory.ASSOCIATED_PERSON)
-        if company is None:
-            return self.filter(unscoped)
-        return self.filter(unscoped | Q(company=company))

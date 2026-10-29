@@ -2,7 +2,6 @@ from collections import Counter
 from dataclasses import dataclass, field
 
 from blockchain.models import SignedAttempt
-from offerings.models import Offering, Subscription
 from shared.seeds.synthetic.chain import population
 from shared.seeds.synthetic.chain.approvals import TREASURY_UNSUPPORTED, approve_company
 from shared.seeds.synthetic.chain.classes import (
@@ -14,7 +13,6 @@ from shared.seeds.synthetic.chain.classes import (
 from shared.seeds.synthetic.chain.deferred import captured
 from shared.seeds.synthetic.chain.guard import GET_THE_CHAIN, chain_refusal
 from shared.seeds.synthetic.chain.issues import apply_request, mint_positions
-from shared.seeds.synthetic.chain.offerings import allot_round, apply_round
 from shared.seeds.synthetic.chain.records import Records
 from shared.seeds.synthetic.chain.registers import (
     import_particulars,
@@ -43,7 +41,6 @@ PARTIAL = "partial"
 SKIPPED = "skipped"
 FIRST_CLASS = f"{DEMO}/PRF"
 SEALING_CLASS = f"{SALTBUSH}/ORD"
-CLOSED = "closed"
 EXECUTED = "executed"
 
 
@@ -95,7 +92,7 @@ def _grant_operations(records):
 
 def _apply(plan, records):
     _grant_operations(records)
-    configure_settlement(plan, records)
+    configure_settlement(records)
     for share_class in plan.classes:
         if share_class.key != SEALING_CLASS:
             create_class(share_class, records)
@@ -108,10 +105,6 @@ def _apply(plan, records):
         approve_company(plan, company, records)
         for share_class in classes:
             mint_positions(share_class, records)
-            for item in plan.rounds_of(share_class.key):
-                if item.status == CLOSED:
-                    apply_round(item, records)
-                    allot_round(item, records)
             open_register(share_class, records)
             import_particulars(share_class, records)
     for request in plan.requests:
@@ -123,9 +116,6 @@ def _apply(plan, records):
     for share_class in deployed:
         if share_class.target == "paused":
             pause(share_class, records)
-    for item in sorted(plan.rounds, key=lambda item: item.created_at):
-        if item.status != CLOSED:
-            apply_round(item, records)
     for request in sorted(plan.requests, key=lambda request: request.submitted_at):
         if request.status != EXECUTED:
             apply_request(request, records)
@@ -152,10 +142,6 @@ def summary(plan, signed):
         "mints": ShareIssuance.objects.filter(token__in=tokens, status="completed").count(),
         "members": RegisterPosition.objects.filter(register__token__in=tokens, shares__gt=0).count(),
         "registers": tokens.exclude(register_openings=None).distinct().count(),
-        "offerings": dict(Counter(Offering.objects.filter(token__in=tokens).values_list("status", flat=True))),
-        "subscriptions": dict(
-            Counter(Subscription.objects.filter(offering__token__in=tokens).values_list("status", flat=True))
-        ),
         "requests": dict(
             Counter(ShareIssuanceRequest.objects.filter(token__in=tokens).values_list("status", flat=True))
         ),

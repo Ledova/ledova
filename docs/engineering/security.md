@@ -43,8 +43,8 @@ files, retains and purges them, and validates uploads. For engineers; the settin
 One database serves one deployment, and PostgreSQL row-level security (RLS) enforces tenant
 isolation. Customer requests and principal-bearing jobs select authority at their boundary; product
 selectors keep narrower company, account and eligibility rules where database read scopes are
-wider. RLS visibility does not decide investor eligibility: directory and market selectors apply
-the [eligibility consumers](backend.md#eligibility-decisions). The roles below are PostgreSQL
+wider. RLS visibility does not decide investor eligibility: market selectors apply the
+[eligibility consumers](backend.md#eligibility-decisions). The roles below are PostgreSQL
 connection roles, not job titles.
 
 ### Roles and principal
@@ -104,16 +104,13 @@ receiving blanket grants. The `AWAITING_R0` and `AWAITING_RLS` sets are empty.
   `WITH CHECK`, INSERT and DELETE use the write scope.
 - Positive ownership predicates fail closed for unknown owners. A visible child's non-nullable
   parents must also be readable, or `select_related` can remove rows that `count()` counted.
-  Investor applications are the deliberate exception: they keep hidden parents' identifiers and
-  read stored copies ([subscription data flow](backend.md#subscription-data-flow)).
 - The profile and account helpers define principal membership. The bounded company administration
   and public-discovery helpers return UUIDs through fixed-search-path `SECURITY DEFINER`
   functions, which prevents circular company and token policy evaluation. Public discovery keeps
-  the active and open, deployed and non-empty-address terms and requires a principal; it supplies
-  no private document, profile or basic administration access.
-- A company may read subscriber accounts, wallets and profiles for its own offerings; personal API
-  surfaces still select the caller's own records. A company's nullable operator-wallet link does
-  not expose its owner's profile to an ordinary viewer of that company.
+  the deployed and non-empty-address term and requires a principal; it supplies no private
+  document, profile or basic administration access.
+- Accounts, wallets and profiles are readable only by their owner. A company's nullable
+  operator-wallet link does not expose its owner's profile to an ordinary viewer of that company.
 - A member reads a company's row only through an account resolved once and stored, never through a
   live join. `Wallet` is unique per (account, chain, address), so two accounts can hold one
   address and an address join would cross tenants.
@@ -158,8 +155,8 @@ payloads, queue and lock defaults, and existing delays are retained. The
 and separate queue connector construction outside the helper.
 
 The [task catalogue](../../backend/shared/tasks/catalogue.py) records authority and bounded operator
-handoffs. Deployments, issuance execution, capital increases, pause changes and subscription
-allotment are operator jobs that a company's applied decision produces; `executed_by` records the
+handoffs. Deployments, issuance execution, capital increases and pause changes are operator jobs
+that a company's applied decision produces; `executed_by` records the
 actor for audit, not a tenant principal. New work needs explicit company authority and a bounded
 handoff, not just a changed enqueueing UI or an omitted principal.
 
@@ -172,11 +169,9 @@ approval; its operator-only broadcast journal commits independently before sendi
 consumed approval under a lock, so an outer transaction cannot undo it
 ([share-class deployment](chain.md#share-class-deployment)).
 
-Three bounded operator reads serve what ownership alone would refuse: resolving a supplied active
-company UUID for an associated-person claim, public market prices for already admitted tokens, and
-the documents of a directory-admitted class's approved or closed offerings
-([offering data flow](backend.md#offering-data-flow)). Each resolves what the caller may see under
-the app role first and bounds one operator query to it, exposing no private orders or wallets.
+A bounded operator read serves public market prices for already admitted tokens, which ownership
+alone would refuse. It resolves what the caller may see under the app role first and bounds one
+operator query to it, exposing no private orders or wallets.
 
 Order creation is another bounded handoff
 ([create protocol](trading-protocols.md#creating-an-order)).
@@ -223,8 +218,7 @@ top-level navigation with its session cookie; mobile fetches with its bearer cli
 
 Admin downloads are attachments; customer serving is inline only for the allowed PDF, PNG and JPEG
 MIME types, and an attachment otherwise. `stream_stored_file`, which every customer
-file route uses (the directory's
-[offering documents](backend.md#offering-data-flow) among them), marks each response `Cache-Control: private, no-store`, so neither a shared cache
+file route uses, marks each response `Cache-Control: private, no-store`, so neither a shared cache
 nor the browser keeps a copy; admin downloads, the company pack among them, carry the same
 directives through the admin's `never_cache`.
 
@@ -263,14 +257,14 @@ retained, with a reason.
 
 ### Retention clocks
 
-| Record                                                            | Clock                                                                                                                                                                                         | Purge                                                                                                                        |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Classification evidence                                           | `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` from `reviewed_at` for a rejected, revoked or withdrawn claim and from `expires_at` for a verified one; `0` keeps it indefinitely and purges nothing | `purge_classification_evidence` deletes the bytes, preserving status and content-free metadata                               |
-| Attached payslip                                                  | The claim's clock                                                                                                                                                                             | `purge_document_evidence` removes the file, extraction output, filenames and notes, keeping claim links and read audit       |
-| Unattached payslip                                                | `UNATTACHED_DOCUMENT_RETENTION_DAYS` from upload; `0` keeps it indefinitely                                                                                                                   | `purge_document_evidence`                                                                                                    |
+| Record                                                                 | Clock                                                                                                                                                                                         | Purge                                                                                                                        |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Classification evidence                                                | `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` from `reviewed_at` for a rejected, revoked or withdrawn claim and from `expires_at` for a verified one; `0` keeps it indefinitely and purges nothing | `purge_classification_evidence` deletes the bytes, preserving status and content-free metadata                               |
+| Attached payslip                                                       | The claim's clock                                                                                                                                                                             | `purge_document_evidence` removes the file, extraction output, filenames and notes, keeping claim links and read audit       |
+| Unattached payslip                                                     | `UNATTACHED_DOCUMENT_RETENTION_DAYS` from upload; `0` keeps it indefinitely                                                                                                                   | `purge_document_evidence`                                                                                                    |
 | Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days                                                                                                                                           | `purge_former_members_past_the_clock`, below                                                                                 |
-| Publications to members                                           | The same setting and floor, from the publication                                                                                                                                              | `purge_publications_past_the_clock` removes the publication, its roll, event chain and read records, and with them its files |
-| Register decisions, uploads and copies; authority-request uploads | No automatic expiry                                                                                                                                                                           | None, below                                                                                                                  |
+| Publications to members                                                | The same setting and floor, from the publication                                                                                                                                              | `purge_publications_past_the_clock` removes the publication, its roll, event chain and read records, and with them its files |
+| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                                                                                                                                                           | None, below                                                                                                                  |
 
 The classification-evidence and payslip purges remove due private files and derived extraction
 payloads only after fresh database checks under the source and document locks; a caller-supplied

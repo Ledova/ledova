@@ -411,8 +411,7 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
   which appointment, and any supporting file Ledova retained
   ([which records carry files](../engineering/records.md#company-decision-records)); deployments
   and wallet nominations and instructions have none.
-- Issues, and subscriptions with a payment recorded by staff (not proved) still to be allotted or
-  refunded, an obligation the company inherits.
+- Issues.
 - Each class's company-supplied rights descriptions and linked evidence, with every revision,
   actor, appointment and recording time. Earlier plain-text document references are retained as
   text, separate from the supporting files.
@@ -459,8 +458,7 @@ recipient, then choose **Prepare and download company pack**. The appointment is
 before the pack is recorded.
 
 This route produces only a complete core pack: every share class is an opened imported register
-never put on chain, and the company has no chain issues, subscriptions awaiting allotment,
-settlements, deployments, capital increases, pause changes, wallet approvals, nominations,
+never put on chain, and the company has no chain issues, settlements, deployments, capital increases, pause changes, wallet approvals, nominations,
 instructions or links, retained register instructions or publications. Such a pack carries its
 decisions, awards and their vesting, endings and reversals, external agreements, contributions and allotments with their
 original supporting files. Anything else refuses the whole download rather than silently leaving

@@ -602,13 +602,14 @@ function useEligibilityRecords(
           source.userAccount !== owner!.ownerAccountUuid
         )
           throw createUserFriendlyError('Select your own submitted evidence or retained historical evidence source.');
-        const input: CompanyEligibilityRequestPreview = {
-          source: source.uuid,
-          requestedExpiresAt: expiry(value.request.requestedExpiresAt),
-        };
+        const requestedExpiresAt = expiry(value.request.requestedExpiresAt);
         if (!isUuid(value.request.company))
           throw createUserFriendlyError('Enter the company ID supplied by the company.');
-        input.company = value.request.company;
+        const input: CompanyEligibilityRequestPreview = {
+          source: source.uuid,
+          company: value.request.company,
+          requestedExpiresAt,
+        };
         const response = await previewEligibilityRequest(api, input, config(guard));
         guard();
         request = response.data;

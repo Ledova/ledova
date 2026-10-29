@@ -1,20 +1,16 @@
 import { useState } from 'react';
-import { DESTINATIONS, formatDate, refusalSentences, failureSentence } from '@ledova/shared';
+import { DESTINATIONS, formatDate, failureSentence } from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, Status, type Tone, LoadError, Loading } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { useInvestorWithdrawal } from './useInvestorWithdrawal';
-import { CATEGORIES, REASON_TEXT } from './constants';
+import { CATEGORIES } from './constants';
 import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from './useInvestorEligibility';
 import { DocumentsPanel } from './DocumentsPanel';
 
 const CLASSIFICATION_TONES = new Map<string, Tone>([['submitted', 'moving']]);
-const READINESS_TONES = new Map<boolean, Tone>([
-  [true, 'done'],
-  [false, 'waiting'],
-]);
 
 function claimState(classification: InvestorClassification): { label: string; tone: Tone } {
   const tone = CLASSIFICATION_TONES.get(classification.status) ?? 'closed';
@@ -28,13 +24,12 @@ function claimState(classification: InvestorClassification): { label: string; to
 }
 
 export default function InvestorEligibilityPage() {
-  const { eligibility, classifications, isLoading, hasError, isRefreshing, retry, refresh } = useInvestorEligibility();
+  const { classifications, isLoading, hasError, isRefreshing, retry, refresh } = useInvestorEligibility();
   const [claimCategory, setClaimCategory] = useState<InvestorCategory | null>(null);
 
   const withdraw = useInvestorWithdrawal(refresh);
   const [withdrawing, setWithdrawing] = useState<InvestorClassification | null>(null);
 
-  const isReady = eligibility?.isReady ?? false;
   const submittedCategories = new Set(
     classifications.filter((claim) => claim.status === 'submitted').map((claim) => claim.category),
   );
@@ -55,27 +50,8 @@ export default function InvestorEligibilityPage() {
           </LoadError>
         ) : (
           <>
-            <Section title="Account readiness">
-              <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
-              <p className="py-2 text-sm text-text-primary">
-                <Status tone={READINESS_TONES.get(!!isReady)!}>
-                  {isReady ? 'Account ready' : 'Account checks needed'}
-                </Status>
-              </p>
-              {!isReady && (
-                <ul className="space-y-1 text-sm text-text-muted">
-                  {refusalSentences(eligibility?.reasons ?? [], REASON_TEXT).map((sentence) => (
-                    <li key={sentence}>{sentence}</li>
-                  ))}
-                </ul>
-              )}
-              <p className="text-sm text-text-muted">
-                Account readiness grants no access by itself. Each company decides eligibility for its own share
-                classes.
-              </p>
-            </Section>
-
             <Section title="Your claims">
+              <LinkRow to={DESTINATIONS.eligibilityRequests.path} label={DESTINATIONS.eligibilityRequests.title} />
               {withdraw.isError && (
                 <p role="alert" className="py-2 text-sm text-error-light">
                   {failureSentence(withdraw.error, 'Your claim could not be withdrawn. Try again.')}
@@ -135,7 +111,7 @@ export default function InvestorEligibilityPage() {
                     <PageAction
                       label={submittedCategories.has(item.category) ? 'Add evidence' : 'Submit evidence'}
                       onClick={() => setClaimCategory(item.category)}
-                      disabled={!eligibility?.account || withdraw.isPending || isRefreshing}
+                      disabled={withdraw.isPending || isRefreshing}
                     />
                   </div>
                 ))}
@@ -169,7 +145,6 @@ export default function InvestorEligibilityPage() {
         isOpen={claimCategory !== null}
         onClose={() => setClaimCategory(null)}
         category={claimCategory}
-        userAccount={eligibility?.account ?? null}
         submissionBlockedReason={submissionBlockedReason}
         onRetry={hasError ? () => void retry() : undefined}
         isRetrying={isRefreshing}

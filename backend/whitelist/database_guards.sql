@@ -655,9 +655,8 @@ BEGIN
         SELECT 1 FROM users_companyeligibilitydecision decision
         JOIN users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id
         WHERE proposal.company_id = NEW.company_id AND proposal.user_account_id = (command->>'account')::uuid
-            AND proposal.category IN ('accountant_certificate', 'professional_investor')
             AND users_company_eligibility_decision_facts_current(
-                decision.uuid, proposal.user_account_id, NEW.company_id, 'secondary', NULL, NULL, clock_timestamp()))
+                decision.uuid, proposal.user_account_id, NEW.company_id, clock_timestamp()))
     THEN RAISE EXCEPTION 'Another live general company decision prevents removal' USING ERRCODE = '23514'; END IF;
     IF NEW.eligibility_invalidation_id IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM jsonb_array_elements(retained_cause->'targets') target
@@ -851,7 +850,7 @@ AS $function$
         AND nomination.digest = encode(sha256(convert_to(nomination.snapshot::text, 'UTF8')), 'hex')
         AND wallets_possession_proof_current(proof.uuid)
         AND users_company_eligibility_decision_facts_current(decision.uuid, request.user_account_id, nomination.company_id,
-            'secondary', NULL, NULL, clock_timestamp())
+            clock_timestamp())
         FROM users_companyeligibilityrequest request JOIN users_companyeligibilitydecision decision ON decision.uuid = nomination.decision_id
         JOIN wallets_walletpossessionproof proof ON proof.uuid = nomination.proof_id WHERE request.uuid = nomination.request_id), false);
 $function$;

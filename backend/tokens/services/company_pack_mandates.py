@@ -169,13 +169,6 @@ def _member(record, member_id):
     return member_id
 
 
-def _subscription(record):
-    subscription = record.paid_subscription
-    if subscription is not None:
-        _related(record, subscription.offering)
-    return _related(record, subscription)
-
-
 def _execution(record, execution):
     if execution is None:
         return None
@@ -389,7 +382,6 @@ def section(company):
                 "member": _related(record, record.member),
                 "nomination": _related(record, record.nomination),
                 "wallet_approval": _related(record, record.wallet_approval),
-                "paid_subscription": _subscription(record),
             },
             result={
                 "request": _related(record, record.request),

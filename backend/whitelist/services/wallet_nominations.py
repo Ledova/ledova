@@ -61,7 +61,7 @@ def _source(actor, request_id, wallet_id):
         unmet.append("wallet_proof_required")
     decision = CompanyEligibilityDecision.objects.filter(request=request, outcome="accepted").first()
     eligible = company_eligibility(
-        request.user_account, request.company, purpose="secondary", decision_id=decision.pk if decision else UUID(int=0)
+        request.user_account, request.company, decision_id=decision.pk if decision else UUID(int=0)
     )
     if not eligible.is_eligible:
         unmet.append("eligibility_source_lapsed")

@@ -3,16 +3,70 @@ from decimal import Decimal
 from django.conf import settings
 
 from blockchain.database_guards import install as install_outgoing
+from companies import (
+    authority_guards,
+    database_admission_guards,
+    database_workflow_guards,
+    signup_terms_guards,
+)
 from companies.database_guards import install as install_companies
-from offerings.database_guards import install as install_offerings
 from shared.db import atomic
 from shared.db.policy_sql import grant_reachable_tables
 from shared.db.policy_sql import install as install_policies
 from shareholders.database_guards import install as install_publications
+from tokens import (
+    database_allotment_completion,
+    database_award_agreement_guards,
+    database_award_entitlement_guards,
+    database_award_person_guards,
+    database_class_documents,
+    database_class_rights,
+    database_event_date_guards,
+    database_member_documents,
+    database_member_name_guards,
+    database_mirror_guards,
+    database_output_guards,
+    database_people,
+    database_transfer_completion,
+    database_transfer_guards,
+)
 from tokens.database_guards import install as install_tokens
 from users.database_guards import install as install_participants
 from wallets.database_guards import install as install_wallets
 from whitelist.database_guards import install as install_whitelist
+
+UNBOUNDED_NUMERIC_COLUMNS = (
+    ("tokens_registeraward", "shares"),
+    ("tokens_registerawardvesting", "shares"),
+    ("tokens_registerawardend", "unvested_shares"),
+    ("tokens_registerawardend", "vested_shares"),
+    ("tokens_registerawardvestingreversal", "reversed_shares"),
+    ("tokens_registerallotment", "shares"),
+    ("tokens_registerallotment", "consideration"),
+    ("tokens_registercontribution", "amount"),
+)
+
+FAMILY_GUARDS = (
+    database_output_guards.install,
+    authority_guards.install,
+    signup_terms_guards.install,
+    database_transfer_guards.install,
+    database_mirror_guards.install,
+    database_event_date_guards.install,
+    database_award_agreement_guards.install,
+    database_award_entitlement_guards.install,
+    database_admission_guards.install,
+    database_workflow_guards.install,
+    database_member_name_guards.install,
+    database_class_rights.install,
+    database_award_person_guards.install,
+    database_member_documents.install,
+    database_mirror_guards.install_member_validation,
+    database_class_documents.install,
+    database_allotment_completion.install,
+    database_people.install,
+    database_transfer_completion.install,
+)
 
 CREATE_ROLES = """
 DO $$
@@ -114,6 +168,8 @@ def install(apps, schema_editor):
         with atomic(using=schema_editor.connection.alias):
             with schema_editor.connection.cursor() as cursor:
                 cursor.execute("SELECT set_config('check_function_bodies', 'off', true)")
+                for table, column in UNBOUNDED_NUMERIC_COLUMNS:
+                    cursor.execute(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE numeric")
             install_policies(schema_editor)
             grant_reachable_tables(schema_editor)
             for installer in (
@@ -123,8 +179,8 @@ def install(apps, schema_editor):
                 install_wallets,
                 install_tokens,
                 install_whitelist,
-                install_offerings,
                 install_publications,
+                *FAMILY_GUARDS,
             ):
                 installer(apps, schema_editor)
             with schema_editor.connection.cursor() as cursor:

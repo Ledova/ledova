@@ -19,7 +19,6 @@ const summaryLabels = {
   certifierName: 'Certifier',
   certifierBody: 'Certifier body',
   certifierMembershipNumber: 'Certifier membership',
-  associatedCompany: 'Associated company',
 } satisfies Partial<Record<keyof CompanyEligibilitySharedSummary, string>>;
 
 function shown(key: string, value: unknown, summary: CompanyEligibilitySharedSummary) {
@@ -27,7 +26,7 @@ function shown(key: string, value: unknown, summary: CompanyEligibilitySharedSum
   if (key === 'submittedAt' || key === 'requestedExpiresAt') return formatDateTime(text);
   if (key === 'certificateIssuedAt') return formatDate(text);
   if (key === 'category') return INVESTOR_CATEGORY_LABELS[summary.category];
-  if (['source', 'userAccount', 'company', 'associatedCompany'].includes(key)) return shortReference(text);
+  if (['source', 'userAccount', 'company'].includes(key)) return shortReference(text);
   if (key === 'certifierBody' && summary.certifierBody) return CERTIFIER_BODY_LABELS[summary.certifierBody];
   return text;
 }

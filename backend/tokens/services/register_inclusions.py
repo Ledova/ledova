@@ -9,7 +9,6 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 
 from blockchain.models import TransactionStatus
 from integrations.blockchain.receipts import nonnegative_integer, normalized_hash
-from offerings.models import Subscription
 from shared.db import APP_ALIAS, atomic, current_alias
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -250,9 +249,7 @@ def _members(company_id, addresses):
 
 
 def issue_covered(request):
-    subscription = Subscription.objects.filter(issuance_request=request).values_list("pk", flat=True).first()
-    listed = [{"request": str(request.pk)}, *([{"subscription": str(subscription)}] if subscription else [])]
-    return RegisterInstruction.objects.covering(*listed).exists()
+    return RegisterInstruction.objects.covering({"request": str(request.pk)}).exists()
 
 
 def transfer_covered(swap):
@@ -292,7 +289,7 @@ def _effect(inclusion, company_id, classification):
             .select_related("source_instruction")
             .first()
         )
-        if execution is not None and execution.subscription_id is None:
+        if execution is not None:
             source = execution.source_instruction
             if (
                 source.request_id != request.pk

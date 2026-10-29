@@ -4,7 +4,6 @@ import uuid as uuid_lib
 from django.conf import settings
 from django.db import models
 
-from companies.querysets.document import CompanyDocumentQuerySet
 from shared.models import BaseModel
 from shared.storage import private_storage
 
@@ -39,20 +38,7 @@ class DocumentType(models.TextChoices):
     OTHER = "other", "Other"
 
 
-OFFER_DOCUMENT_TYPES = [
-    DocumentType.PROSPECTUS,
-    DocumentType.RISK_DISCLOSURE,
-    DocumentType.BUSINESS_PLAN,
-    DocumentType.FINANCIAL_STATEMENTS,
-    DocumentType.AUDITOR_REPORT,
-    DocumentType.CONSTITUTION,
-    DocumentType.SHAREHOLDER_AGREEMENT,
-]
-
-
 class CompanyDocument(BaseModel):
-
-    objects = CompanyDocumentQuerySet.as_manager()
 
     company = models.ForeignKey(
         "companies.Company",

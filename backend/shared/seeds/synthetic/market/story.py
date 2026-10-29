@@ -126,7 +126,7 @@ TESTER_SLOTS = (
     TesterSlot(f"{WATTLEFIELD}/ORD", "ask", 1, 2, 4_000, days=6),
     TesterSlot(f"{WATTLEFIELD}/ORD", "cancel", 0, 2, 5_000, days=12, cancelled=7),
     TesterSlot(f"{CORALGUM}/ORD", "open_bid", 0, 4, 1_500, days=4),
-    TesterSlot(f"{DEMO}/PRF", "take", 1, 4, 1_000),
+    TesterSlot(f"{DEMO}/PRF", "take", 1, 1, 1_000),
 )
 ODD_LOT = (f"{WATTLEFIELD}/ORD", 0, 0)
 NEW_APPROVAL = (f"{CORALGUM}/ORD", 0, 0)
@@ -229,7 +229,6 @@ class MarketStory:
                 or holder.investor == TESTER
                 or trader is None
                 or company not in trader.companies
-                or company in trader.associated
             ):
                 continue
             found.append(holder)
@@ -240,7 +239,7 @@ class MarketStory:
         held = {holder.investor for holder in listing.holders}
         approved, fresh = [], []
         for trader in self.traders.values():
-            if trader.key == TESTER or company not in trader.companies or company in trader.associated:
+            if trader.key == TESTER or company not in trader.companies:
                 continue
             wallets = [wallet for wallet in trader.wallets if company in wallet.approved]
             (approved if wallets else fresh).append((trader.key in held, trader))

@@ -1,7 +1,6 @@
 import os
 import uuid as uuid_lib
 from datetime import datetime, time, timedelta
-from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
@@ -12,7 +11,6 @@ from shared.storage import private_storage
 from users.exceptions import InvalidClassificationTransitionException
 from users.querysets.investor_classification import InvestorClassificationQuerySet
 
-PRODUCT_VALUE_THRESHOLD_AUD = Decimal("500000.00")
 CERTIFICATE_VALIDITY_YEARS = 2
 
 RETENTION_CLOCK = {
@@ -41,10 +39,8 @@ def plus_years(value, years=CERTIFICATE_VALIDITY_YEARS):
 
 
 class InvestorCategory(models.TextChoices):
-    PRODUCT_VALUE = "product_value", "Product value of at least AUD 500,000 (s708(8)(a))"
     ACCOUNTANT_CERTIFICATE = "accountant_certificate", "Qualified accountant's certificate (s708(8)(c))"
     PROFESSIONAL_INVESTOR = "professional_investor", "Professional investor (s708(11) / s761G(7)(d))"
-    ASSOCIATED_PERSON = "associated_person", "Person associated with the issuer (s708(12))"
 
 
 class InvestorClassificationStatus(models.TextChoices):
@@ -62,11 +58,6 @@ class CertifierBody(models.TextChoices):
 
 
 DECLARATION_TEXT = {
-    InvestorCategory.PRODUCT_VALUE: (
-        "I declare that the amount payable on acceptance of this offer is at least AUD 500,000, so the offer is "
-        "made to me under section 708(8)(a) of the Corporations Act 2001 (Cth) and no disclosure document is "
-        "required."
-    ),
     InvestorCategory.ACCOUNTANT_CERTIFICATE: (
         "I declare that a qualified accountant has certified, within the last two years, that I have net assets of "
         "at least AUD 2.5 million or gross income of at least AUD 250,000 for each of the last two financial "
@@ -76,16 +67,7 @@ DECLARATION_TEXT = {
         "I declare that I am a professional investor within the meaning of section 708(11) and section 761G(7)(d) "
         "of the Corporations Act 2001 (Cth)."
     ),
-    InvestorCategory.ASSOCIATED_PERSON: (
-        "I declare that I am a person associated with the named issuer within the meaning of section 708(12) of "
-        "the Corporations Act 2001 (Cth)."
-    ),
 }
-
-
-ASSOCIATED_PERSON_SCOPE_ERROR = (
-    "An associated person claim must name the issuer it is scoped to, and no other category may name one."
-)
 
 
 class InvestorClassification(BaseModel):
@@ -96,14 +78,6 @@ class InvestorClassification(BaseModel):
         "users.UserAccount",
         on_delete=models.PROTECT,
         related_name="investor_classifications",
-    )
-    company = models.ForeignKey(
-        "companies.Company",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="investor_classifications",
-        help_text="Source issuer for an associated person. Company eligibility requires a separate retained decision.",
     )
     category = models.CharField(max_length=30, choices=InvestorCategory.choices)
     status = models.CharField(
@@ -160,17 +134,6 @@ class InvestorClassification(BaseModel):
         indexes = [
             models.Index(fields=["user_account", "status"]),
             models.Index(fields=["status"]),
-        ]
-        constraints = [
-            models.CheckConstraint(
-                condition=models.Q(
-                    category=InvestorCategory.ASSOCIATED_PERSON,
-                    company__isnull=False,
-                )
-                | ~models.Q(category=InvestorCategory.ASSOCIATED_PERSON) & models.Q(company__isnull=True),
-                name="investor_classification_associated_person_names_the_issuer",
-                violation_error_message=ASSOCIATED_PERSON_SCOPE_ERROR,
-            ),
         ]
 
     def __str__(self):
