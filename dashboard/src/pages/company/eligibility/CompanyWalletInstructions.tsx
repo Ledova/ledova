@@ -42,9 +42,13 @@ function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot']
       <Row label="Wallet">
         <span className="break-all">{snapshot.target.address}</span>
       </Row>
-      <Row label="Approval expiry">{formatDateTime(snapshot.target.expiresAt)}</Row>
-      <Row label="Possession proof completed">{formatDateTime(snapshot.source.proofCompletedAt)}</Row>
-      <Row label="Eligibility expiry">{formatDateTime(snapshot.source.eligibilityExpiresAt)}</Row>
+      {snapshot.target.expiresAt && <Row label="Approval expiry">{formatDateTime(snapshot.target.expiresAt)}</Row>}
+      {snapshot.source.proofCompletedAt && (
+        <Row label="Possession proof completed">{formatDateTime(snapshot.source.proofCompletedAt)}</Row>
+      )}
+      {snapshot.source.eligibilityExpiresAt && (
+        <Row label="Eligibility expiry">{formatDateTime(snapshot.source.eligibilityExpiresAt)}</Row>
+      )}
     </>
   );
 }
@@ -97,7 +101,11 @@ function Record({
       )}
       <RegisterDecisions<CompanyWalletInstruction, CompanyWalletDecisionPreview>
         family={COMPANY_WALLET_DECISIONS}
-        copy={COPY}
+        copy={
+          record.action === 'remove'
+            ? { ...COPY, CONFIRMATIONS: { ...COPY.CONFIRMATIONS, approve: COPY.REMOVE_CONFIRMATION } }
+            : COPY
+        }
         noun=""
         proposal={record}
         steps={data.steps}
@@ -111,8 +119,8 @@ function Record({
       >
         {(preview) => (
           <Rows>
+            <Row label="Action">{COMPANY_WALLET_ACTION_LABELS[record.action]}</Row>
             <Snapshot snapshot={preview.snapshot} />
-            <Row label="Selected approval">{preview.approvalDecision ? 'Selected' : 'Not selected'}</Row>
           </Rows>
         )}
       </RegisterDecisions>
@@ -289,8 +297,8 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
       ) : (
         <>
           <p className="text-sm text-text-muted">
-            Company administrators and people with a ledger step can approve wallets here. Sharing eligibility evidence
-            reveals no wallets.
+            Company administrators and people with a ledger step can prepare or decide wallet approvals here. Sharing
+            eligibility evidence reveals no wallets.
           </p>
           {data.appointments.isError && (
             <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>

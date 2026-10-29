@@ -96,7 +96,9 @@ export function WalletNomination({
       <ErrorSummary {...checks.summary} />
       {data.original && (
         <div className="space-y-3">
-          <p role="status">This original nomination is unconfirmed. Recover its receipt with the same body and key.</p>
+          <p role="status">
+            This nomination&apos;s outcome is unconfirmed. Recover its receipt with the identical original request.
+          </p>
           <Facts preview={data.original.preview} company={companyName(data.original.preview.company)} />
           <PageAction label="Recover original nomination" disabled={data.busy} onClick={() => void data.recover()} />
         </div>

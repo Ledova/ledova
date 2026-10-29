@@ -43,6 +43,7 @@ export const COMPANY_WALLET_COPY = {
     reject: 'Reject this wallet instruction with the reason given.',
   } as Record<RegisterDecisionKind, string>,
   REJECTION_REASON: 'Reason for rejection',
+  REMOVE_CONFIRMATION: 'Approve removing the exact wallet approval shown.',
 };
 
 export function companyWalletExecutionState(record: CompanyWalletInstruction) {

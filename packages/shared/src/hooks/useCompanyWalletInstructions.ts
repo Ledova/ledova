@@ -173,7 +173,7 @@ export function useCompanyWalletInstructions(options: {
         return response;
       });
       if (rows.some((row) => row.company !== companyUuid || !['confirmed', 'unchanged'].includes(row.status)))
-        throw createUserFriendlyError('The removal targets did not identify retained successful company ADD journals.');
+        throw createUserFriendlyError('The wallets offered for removal could not be confirmed as approved on chain.');
       return rows;
     },
   });
@@ -381,9 +381,7 @@ export function useCompanyWalletInstructions(options: {
             state.isInvalidated ||
             !state.data?.some((row) => row.uuid === operation.body.targetChange && row.company === companyUuid)
           )
-            throw createUserFriendlyError(
-              'Refresh and select the exact retained company ADD journal before preparing removal.',
-            );
+            throw createUserFriendlyError('Refresh and choose the approved wallet again before preparing its removal.');
         }
       };
       const check = recover ? guard : fresh;

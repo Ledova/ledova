@@ -15,6 +15,12 @@ export function RecordsList({
   disabled?: boolean;
   companyName?: (uuid: string) => string | undefined;
 }) {
+  const sameAs = (record: CompanyEligibilityRequest) =>
+    `${record.company}|${record.category}|${record.outcome}|${formatDateTime(record.submittedAt)}`;
+  const counts = new Map<string, number>();
+  for (const record of records) counts.set(sameAs(record), (counts.get(sameAs(record)) ?? 0) + 1);
+  const submitted = (record: CompanyEligibilityRequest) =>
+    `${formatDateTime(record.submittedAt)}${(counts.get(sameAs(record)) ?? 0) > 1 ? ` · ${shortReference(record.uuid)}` : ''}`;
   return records.length === 0 ? (
     <p className="text-sm text-text-muted">No requests yet.</p>
   ) : (
@@ -25,12 +31,12 @@ export function RecordsList({
             <p>
               {INVESTOR_CATEGORY_LABELS[record.category]} · {ELIGIBILITY_OUTCOME_LABELS[record.outcome]}
             </p>
-            <p className="text-text-muted">Submitted {formatDateTime(record.submittedAt)}</p>
+            <p className="text-text-muted">Submitted {submitted(record)}</p>
             {companyName && <p>{companyName(record.company) ?? `Company ${shortReference(record.company)}`}</p>}
           </div>
           <PageAction
             label="View request"
-            context={`submitted ${formatDateTime(record.submittedAt)}`}
+            context={`submitted ${submitted(record)}`}
             pressed={selected === record.uuid}
             disabled={disabled}
             onClick={() => select(record.uuid)}
