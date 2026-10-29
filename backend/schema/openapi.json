@@ -3229,6 +3229,10 @@
           "declarationText": {
             "type": "string"
           },
+          "participantName": {
+            "nullable": true,
+            "type": "string"
+          },
           "requestedExpiresAt": {
             "format": "date-time",
             "type": "string"
