@@ -19,7 +19,7 @@ import {
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
-import { Disclosure, LoadError, Loading, Row, Rows, Status } from '@components/Ledger';
+import { LoadError, Loading, Row, Rows, ShowMore, Status } from '@components/Ledger';
 
 const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',
@@ -68,7 +68,7 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
 
   return (
     <>
-      <Disclosure summary="Extraction details">
+      <ShowMore show="Show extraction details" hide="Hide extraction details">
         <Rows>
           {fields.map((field) => (
             <Row key={field.label} label={field.label}>
@@ -80,7 +80,7 @@ function PayslipResult({ data, durationMs }: { data: object; durationMs: number 
           </Row>
           {durationMs != null && <Row label="Extraction time">{(durationMs / 1000).toFixed(1)}s</Row>}
         </Rows>
-      </Disclosure>
+      </ShowMore>
       {readableWarnings.length > 0 && <p className="text-sm text-warning-light">{readableWarnings.join(' · ')}</p>}
     </>
   );
@@ -141,19 +141,16 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const busy = attach.isPending || del.isPending;
 
   return (
-    <Disclosure
-      summary={
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="break-words text-sm font-medium text-text-primary">{doc.originalFilename}</p>
-            <p className="text-sm text-text-muted">
-              {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt, '—')}
-            </p>
-          </div>
-          <ExtractionState status={extraction?.status} />
+    <div className="flex flex-col gap-3 py-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words text-sm font-medium text-text-primary">{doc.originalFilename}</h3>
+          <p className="text-sm text-text-muted">
+            {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt, '—')}
+          </p>
         </div>
-      }
-    >
+        <ExtractionState status={extraction?.status} />
+      </div>
       {doc.classification ? (
         <Rows>
           <Row label="Classification claim">{attachedLabel}</Row>
@@ -224,7 +221,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           {extraction.error}
         </p>
       )}
-    </Disclosure>
+    </div>
   );
 }
 

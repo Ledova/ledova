@@ -128,7 +128,7 @@ parts, the schedule and terms, and the award's history. The web and mobile both 
 separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
-breakdown and terms under **Award details**. This read-only overview is the whole web Dashboard.
+breakdown and terms under **Show award details**. This read-only overview is the whole web Dashboard.
 **Settings** → **Profile** shows a **Company-recorded details** card for a member of the selected
 company. It groups **Current details** and **Update requests**, separate from the personal information. Pending requests show the requested
 particulars, status and date together;
