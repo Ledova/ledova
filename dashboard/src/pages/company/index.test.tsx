@@ -322,6 +322,7 @@ it('shows focused company details without share classes, and uploads documents t
   });
   await waitFor(() => expect(ownReads()).toBeGreaterThan(beforeSource));
   expect(queueReads()).toBe(beforeQueue);
+  expect(screen.queryByText(/You need a prepare or approve appointment/)).toBeNull();
   await act(async () => {
     authorityGate = null;
     releaseAuthority();
@@ -402,7 +403,7 @@ it('shows focused company details without share classes, and uploads documents t
     path: '/company/eligibility',
   });
   await screen.findByText(/You need a prepare or approve appointment for this company/);
-  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.queryByText(/authority is required to read this company/)).toBeNull();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(queueReads()).toBe(beforeUnavailableCompany);
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();

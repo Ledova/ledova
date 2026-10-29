@@ -280,6 +280,12 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
   const [held, setHeld] = useState<{ scope: string; editing: boolean; records: Set<string> } | null>(null);
   const [preparing, setPreparing] = useState<string | null>(null);
   const opener = useRef<HTMLButtonElement>(null);
+  const returning = useRef(false);
+  useEffect(() => {
+    if (preparing !== null || !returning.current) return;
+    returning.current = false;
+    opener.current?.focus();
+  }, [preparing]);
   const data = useCompanyWalletInstructions({
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
@@ -336,7 +342,7 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
               {data.companies.find((company) => company.uuid === data.companyUuid)?.name ?? 'Original company'}
             </p>
           ) : null}
-          {data.error && (
+          {data.error && data.canRead && (
             <p role="alert" className="text-sm text-error-light">
               {data.error}
             </p>
@@ -393,8 +399,8 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
                 data={data}
                 onEditingChange={setEditing}
                 onClose={() => {
+                  returning.current = true;
                   setPreparing(null);
-                  requestAnimationFrame(() => opener.current?.focus());
                 }}
               />
             ) : (

@@ -88,8 +88,8 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
 
 At the owner's request, more records were added so that pages are not empty. Two steps were made
 directly in the local database through the backend's own services, because no identity provider runs
-locally: Jordan Ellis's account was created, and Taylor, Casey and Quinn were marked
-identity-verified and active. Every other record below went through the API as the real users.
+locally: Jordan Ellis's account was created, and Taylor, Casey and Quinn, already identity-verified
+since 27 October, were made active. Every other record below went through the API as the real users.
 
 - **Purpose Demo:**
   - Eligibility requests: Quinn's and Taylor's accepted, one of Casey's refused and one pending.
