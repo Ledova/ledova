@@ -9,6 +9,12 @@ list as delivered; planned workflows are described as planned.
 
 The navbar owns the Register action at every screen width.
 
+Secondary pages use `PageHeader`, the `max-w-3xl` reading width and the same outer spacing as
+About. Links within content use `INLINE_LINK`; legal sections keep their smaller reading headings.
+Page titles follow each heading and restore the homepage title on return.
+Review navigation, page width and readability in Paper and Dark on desktop and narrow screens.
+Visual cleanup preserves the Terms and Privacy wording and consent version.
+
 ## Local development
 
 ```bash

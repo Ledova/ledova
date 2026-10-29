@@ -13,7 +13,8 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
+  const currentPath = pathname + hash;
   const closeMenu = () => setMobileOpen(false);
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function Navbar() {
             <Link
               key={link.to}
               to={link.to}
-              aria-current={link.to === pathname ? 'page' : undefined}
+              aria-current={link.to === currentPath ? 'location' : undefined}
               className="text-text-muted transition-colors hover:text-text-primary"
             >
               {link.label}
@@ -80,7 +81,7 @@ export function Navbar() {
                 key={link.to}
                 to={link.to}
                 onClick={closeMenu}
-                aria-current={link.to === pathname ? 'page' : undefined}
+                aria-current={link.to === currentPath ? 'location' : undefined}
                 className="border-b border-border-faint py-3.5 text-base text-text-primary"
               >
                 {link.label}

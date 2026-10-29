@@ -1,17 +1,18 @@
 import { Link } from 'react-router-dom';
+import { PageHeader } from '../components/PageHeader';
 import { PRIMARY_BUTTON } from '../styles';
 
 export function NotFound() {
   return (
-    <section className="mx-auto flex max-w-3xl flex-col items-start gap-5 px-5 pb-24 pt-14 md:px-8 lg:pt-24">
-      <p className="font-display text-6xl text-brand-light">404</p>
-      <h1 className="font-display text-[40px] leading-[1.05] tracking-[-0.02em] text-text-primary sm:text-5xl">
-        Page not found
-      </h1>
-      <p className="text-[17px] text-text-muted">The page you&apos;re looking for doesn&apos;t exist.</p>
-      <Link to="/" className={`${PRIMARY_BUTTON} mt-3`}>
-        Back to home
-      </Link>
-    </section>
+    <>
+      <PageHeader title="Page not found" lead="The page you're looking for doesn't exist." />
+      <section className="border-t border-border-subtle">
+        <div className="mx-auto max-w-3xl px-5 py-16 md:px-8 lg:py-20">
+          <Link to="/" className={PRIMARY_BUTTON}>
+            Back to home
+          </Link>
+        </div>
+      </section>
+    </>
   );
 }
