@@ -141,7 +141,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const busy = attach.isPending || del.isPending;
 
   return (
-    <div className="flex flex-col gap-3 py-4">
+    <li className="flex flex-col gap-3 py-4">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="break-words text-sm font-medium text-text-primary">{doc.originalFilename}</h3>
@@ -159,7 +159,8 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           </Row>
         </Rows>
       ) : (
-        <div className="space-y-4">
+        <fieldset className="min-w-0 space-y-4">
+          <legend className="sr-only">Attach {doc.originalFilename} to a claim</legend>
           <ErrorSummary {...attachment.summary} />
           <ClaimSelector
             {...attachment.field('classification')}
@@ -182,6 +183,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
             <PageAction
               primary
               label="Attach to claim"
+              context={doc.originalFilename}
               busy={attach.isPending}
               busyLabel="Attaching…"
               disabled={del.isPending}
@@ -190,7 +192,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
               }}
             />
           </FormActions>
-        </div>
+        </fieldset>
       )}
       {(attach.error || del.error) && (
         <p role="alert" className="text-sm text-error-light">
@@ -221,7 +223,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           {extraction.error}
         </p>
       )}
-    </div>
+    </li>
   );
 }
 
@@ -346,11 +348,13 @@ export function DocumentsPanel() {
         </LoadError>
       )}
       {docs.isSuccess && list.length === 0 && <p className="text-sm text-text-muted">No documents yet.</p>}
-      <div className="divide-y divide-border-subtle">
-        {list.map((doc) => (
-          <DocumentCard key={doc.uuid} initialDoc={doc} claims={claims} />
-        ))}
-      </div>
+      {list.length > 0 && (
+        <ul className="divide-y divide-border-subtle">
+          {list.map((doc) => (
+            <DocumentCard key={doc.uuid} initialDoc={doc} claims={claims} />
+          ))}
+        </ul>
+      )}
       <UploadCard claims={claims} />
     </div>
   );
