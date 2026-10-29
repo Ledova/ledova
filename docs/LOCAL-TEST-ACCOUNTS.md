@@ -81,8 +81,8 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
 - The signed-in web UX walkthrough under [#1378](https://github.com/Ledova/ledova/issues/1378) is
   finished. The owner steered it live in Chrome on localhost, and every change merged after an
   independent review at its exact head with green required CI.
-  - **28 October:** class card filters and oldest-first classes; last-used company at sign-in
-    (#1389); the register CSV download removed, with inspection copies under Documents (#1390); and
+  - **28 October:** class card filters (#1384) and oldest-first classes (#1385); last-used company
+    at sign-in (#1389); the register CSV download removed, with inspection copies under Documents (#1390); and
     company documents in Documents, with recorded details on Profile (#1391).
   - **UX review in five phases:**
     - Phase 1 (#1392) removed record-details chevrons and internal IDs.
@@ -97,26 +97,33 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
-  - No internal IDs are shown, apart from **Company ID** and **Offering ID** with Copy.
+  - No internal IDs are shown. A short reference appears only where records would otherwise read
+    the same or have no name, and **Company ID** and **Offering ID** appear in full, with Copy, for a
+    company to give investors.
   - `Disclosure` remains only for Activity's entries, Wallet shares' rows and Wallets' sort.
 - **Process:**
   - A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date
     with `main` ([decision](decisions.md#required-ci-and-auto-merge-on-main), #1409).
-  - Auto-merge is turned on once the review passes. Each merge is checked for tree and parent and
-    recorded on its PR, and the owner is not asked to merge.
+  - Auto-merge is turned on once the review passes. It stays on across pushes, so turn it off before
+    any push other than a merge of `main` whose own changes are shown unchanged, and on again after
+    the delta's review. Each merge is checked for tree and parent and recorded on its PR, and the
+    owner is not asked to merge.
 - **Checks:**
   - Local preflight passes dashboard **20** and browser smoke **9**, within the unchanged caps.
   - Local backend verification stops at Python **3.13.15** (this Mac has **3.13.3**), and CI runs
     the pinned suite.
   - Pages without local data were checked with sample API responses served in the browser only,
     never written to the database.
-- **Branch preview stack:** the branch previews used a second backend on **8040** and a dashboard on
-  **5175**, served from `.claude/worktrees/claude-1378-order` through the `backend-1378` and
-  `dashboard-order` entries in `.claude/launch.json`. Stop them when they are no longer needed. The
+- **Branch preview stack:** a dashboard on **5175** serves `.claude/worktrees/claude-1378-order`
+  (`dashboard-order` in `.claude/launch.json`) against a second backend on **8040** (`backend-1378`).
+  That backend runs `.claude/worktrees/mobile-1201`'s backend as it was loaded on 28 October,
+  through a script in a session scratchpad, so a later session can't restart it as it stands and
+  shouldn't use it to check backend changes. Stop both when they are no longer needed. The
   temporary `ledova-exports-pg` test database was removed.
 - **Still open:**
   - Company eligibility, Published to your members and Market are routed but have no in-app link,
-    an earlier audit question for the owner.
+    and Offerings and Activity are reachable only from the notification bell (Offerings also from an
+    offering page's Back link and the paid-issue flow): an earlier audit question for the owner.
   - Mobile work stays for later.
   - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
     decision; check GitHub before resuming.
