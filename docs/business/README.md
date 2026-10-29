@@ -238,11 +238,12 @@ the company information they may read. The sidebar keeps focused tasks for the s
 
 - Ledger opens the class overview, with Issue shares, Transfer shares and Corrections beneath it.
   Shareholders opens the people list, with Employee scheme, Member access and Member requests.
-  Documents opens one Certificates page for company and member records, with Supporting (company
-  documents), Published (what the company published to its members), Inspection copies and Company
-  pack where company access permits them. Matching company and own records appear once.
+  Documents opens one Certificates page for company and member records, with Published (what the
+  company published to its members), Inspection copies and Company pack where company access permits
+  them. Matching company and own records appear once.
 - Offerings follows for the company's own account, and Company eligibility for its administrators and
-  the people appointed to prepare or approve.
+  the people appointed to prepare or approve. Its sidebar label is Eligibility, and administrators
+  find Supporting (the company's documents) beneath it.
 - Activity, the person's own wallet transfers, and Settings come last whatever company is selected.
   Settings keeps personal Profile and Account, with company information, Team and Activation according
   to current access. Profile also shows the details a company holds about a linked member.

@@ -97,7 +97,8 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
 - [#1416](https://github.com/Ledova/ledova/issues/1416) then gave Company eligibility, Offerings and
   Activity sidebar links, listed Published to your members under Documents and removed the web Market
   page with the client code only it used. The trading API is unchanged. At the owner's request sidebar
-  items stay on one line: Employee scheme, Supporting and Published replace longer labels.
+  items stay on one line: Employee scheme, Eligibility, Supporting and Published replace longer
+  labels, and Supporting sits under Eligibility.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.

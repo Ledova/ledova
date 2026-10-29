@@ -55,7 +55,7 @@ The initial appointment gives you Manage company information and team personally
 capabilities as delegatable so that you can build the team afterwards. It records you, the company,
 the declaration version and text and the admission time.
 
-After signup, add optional supporting files at **Documents → Supporting** and invite users at
+After signup, add optional supporting files at **Eligibility → Supporting** and invite users at
 **Settings → Team**.
 Later documents do not alter the retained signup request. The company remains Draft until
 activation passes the registry check: registration does not incorporate a company with ASIC,
@@ -218,7 +218,7 @@ rechecks the captured details.
 ## Company information and documents
 
 A current company administrator reads and edits the company's basic information at
-**Settings → Profile**, and manages supporting files at **Documents → Supporting** on web
+**Settings → Profile**, and manages supporting files at **Eligibility → Supporting** on web
 ([Settings](participants.md#profile-and-settings)). On web,
 [choose the company on Dashboard](README.md#the-app-at-a-glance).
 
@@ -361,9 +361,9 @@ and address. Administrators see **Edit company**. It also shows the **Company ID
 
 On web, select the company in Dashboard. Settings opens Profile, combining personal, permitted
 company and account sections with separate editors and permissions. Team and Activation have their
-own Settings items, and **Documents** → **Supporting** holds the company's supporting
+own Settings items, and **Eligibility** → **Supporting** holds the company's supporting
 documents, where current access permits, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
-**Offerings** and **Company eligibility** have their own sidebar items, and **Documents** →
+**Offerings** and **Eligibility** (Company eligibility) have their own sidebar items, and **Documents** →
 **Published** opens Published to your members
 ([the Published page](publications.md#the-published-page)), each where current access permits.
 
