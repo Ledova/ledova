@@ -26,7 +26,8 @@ import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components
 import { Field, TextInput } from '@components/Field';
 import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 import { scopeLabels } from '@pages/company/shared/appointments';
-import { pageTitle } from '@utils/destinations';
+import { eligibilityRequestLink, pageTitle } from '@utils/destinations';
+import { CopyButton } from '@components/CopyButton';
 
 const OUTCOMES = [
   ['accepted', 'Accept'],
@@ -169,6 +170,17 @@ export default function CompanyEligibilityPage() {
             </Section>
             {read.companyUuid && (
               <Section title="Requests">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <p className="min-w-0 flex-1 text-sm text-text-muted">
+                    Send investors your request link. The requests they send appear here.
+                  </p>
+                  <CopyButton
+                    key={read.companyUuid}
+                    value={eligibilityRequestLink(read.companyUuid)}
+                    label="Copy request link"
+                    hidden
+                  />
+                </div>
                 {queue?.settled && queue.rows.length === 0 ? (
                   <p role="status" className="text-sm text-text-muted">
                     {outcome ? 'No requests match.' : 'No requests yet.'}

@@ -572,8 +572,9 @@ rather than its identifier. It reports:
   the record you land on in Ledger.
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
-sign-up keep their boxed outcomes, and `CopyButton` (the company's ID) confirms a copy with
-Copied beside the button.
+sign-up keep their boxed outcomes, and `CopyButton` (a contract address or a company's request
+link) confirms a copy with Copied beside the button. When it hides the value, a failed copy shows
+it to copy by hand.
 Ledger's other forms don't use `Outcome`. Mobile reports a changed password, some failures
 and a few warnings in native alerts.
 
@@ -1108,10 +1109,9 @@ by a local helper or a browser `toLocale…` call:
   transaction internals, and name a company from the person's own companies (`Company` and its
   `shortReference` when it is not among them). The exact summary an eligibility request shares keeps
   its values, because the participant agrees to share exactly that. Transaction hashes and wallet
-  addresses stay exact. The eligibility request and the claim take the exact **Company ID** a
-  company supplies, and `useCompanyNames` (`dashboard/src/hooks/`) names one of the person's own
-  companies under the field. The one exception shows that ID in full, with `CopyButton`, for a
-  company to give investors: its **Company ID** in Settings → Profile.
+  addresses stay exact. No page shows a company's ID. An eligibility request takes its company from
+  the person's own companies or from the company's request link (`?to=`), which **Copy request
+  link** on Company eligibility copies, and the preview names the company.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile's ESLint configuration has neither

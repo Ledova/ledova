@@ -112,6 +112,13 @@ export function pageTitle(key: DestinationKey, view?: string): string {
   return WEB_TITLES[key] ?? DESTINATIONS[key].title;
 }
 
+export const REQUEST_LINK_COMPANY = 'to';
+
+export function eligibilityRequestLink(company: string) {
+  const query = new URLSearchParams({ [REQUEST_LINK_COMPANY]: company });
+  return `${window.location.origin}${DESTINATIONS.eligibilityRequests.path}?${query}`;
+}
+
 export function backLink(key: DestinationKey) {
   const parent = WEB_PARENTS[key];
   if (!parent || parent.back === false) return undefined;
