@@ -40,7 +40,7 @@ Team invitations and acceptance replace their collection with one focused inline
 mounted editors and drafts. Team's appointment rows show the company or person, actions, any delegation,
 status or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
-acceptance or deadline and the appointment's expiry. Company documents (Documents → Supporting) has its own view, with Category and File in the inline upload.
+acceptance or deadline and the appointment's expiry. Company documents (Eligibility → Supporting) has its own view, with Category and File in the inline upload.
 The remaining offering, publication, directory, application, wallet, activity and eligibility collections
 use this workspace frame, with their creation and record actions in the same footer. Each offering's row
 opens its own page, whose sections end with the actions they allow, and application summaries open their
@@ -426,7 +426,7 @@ an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **Employee scheme**, **Member access** and **Member requests**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Supporting**, **Published**, **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
+**Published**, **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Team** and **Activation**, without an extra overview
 page. Profile always holds personal information and Account. Company documents, Team, Activation and
@@ -438,8 +438,10 @@ belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation. Company-recorded particulars are a Profile card for a member of the selected company.
 **Offerings** follows Documents for the company's own account and **Company eligibility** for an
-administrator or a prepare or approve appointee. **Activity**, the person's own wallet transfers, sits
-above Settings whatever company is selected.
+administrator or a prepare or approve appointee, labelled **Eligibility**; for an administrator it uses
+the same pattern, its label opening its own page and its caret showing **Supporting** (Company
+documents).
+**Activity**, the person's own wallet transfers, sits above Settings whatever company is selected.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
 [separately](mobile.md#navigation). The sidebar has no More group or Help & Support link. Removing
@@ -461,8 +463,8 @@ page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. Dashboard is one
 company-centred explorer for all relationships, without a separate Your shares navigation mode.
 Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme shows as Employee
-scheme, Company documents as Supporting and Published to your members as Published, each with the
-full name as the link's `title`. `DESTINATION_PARENTS`
+scheme, Company eligibility as Eligibility, Company documents as Supporting and Published to your
+members as Published, each with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
 link in the title row for a contextual task: Back to Team on Representative authority, Back to

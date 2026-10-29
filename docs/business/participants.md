@@ -384,7 +384,7 @@ pickers or a workspace or role selector. Company appointments and actual member 
 available records and actions; choosing a company grants neither.
 
 Settings opens Profile. Team and Activation appear where company access permits, and company
-documents are under **Documents** → **Supporting**. Profile shows a linked member's
+documents are under **Eligibility** → **Supporting**. Profile shows a linked member's
 Company-recorded details. Team remains reachable for accepting
 a company invitation. Before company access is granted, **Settings → Profile → Manage account**
 provides **Accept a company invitation**, opening the same guarded workflow. Member access stays

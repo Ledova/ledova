@@ -324,15 +324,16 @@ marking the active child and opening the group on Ledger routes. The web replace
 `#history` with `#corrections` without dropping company/class context; shared task names retain
 History. Shareholders' label opens its people list, with the same caret pattern for Employee scheme,
 Member access and Member requests.
-Documents opens one Certificates page (`/documents/certificates`), with Supporting (Company
-documents, `/documents/company`), Published (Published to your members, `/company/publications`, for
-the company's own account), Inspection copies and Company pack where company access permits them. There is no separate Your certificates item. Legacy
+Documents opens one Certificates page (`/documents/certificates`), with Published (Published to
+your members, `/company/publications`, for the company's own account), Inspection copies and Company
+pack where company access permits them. There is no separate Your certificates item. Legacy
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
 preserving company, class and navigation state. A group without a meaningful overview opens its
 default child, without an extra Overview page or duplicate navigation.
 Offerings (`/company/offering`) follows Documents for the company's own account (`isOwner` with the
 company role), and Company eligibility (`/company/eligibility`) for an administrator or a prepare or
-approve appointee (`canReviewEligibility`). Activity (`/transactions`), the person's own wallet
+approve appointee (`canReviewEligibility`). Its sidebar label is Eligibility. A company administrator (`canManage`) also
+gets its caret, with Supporting (Company documents, `/documents/company`) beneath it. Activity (`/transactions`), the person's own wallet
 transfers, sits above Settings in every company context.
 Settings uses the same one-level pattern: Profile, Team and Activation where permitted. Its default
 is Profile (`/settings#profile`), combining personal details, permitted company information, a

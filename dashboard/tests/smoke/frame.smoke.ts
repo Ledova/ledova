@@ -289,7 +289,7 @@ async function openTheSidebar(page: Page, role: Role) {
       .locator('../..');
     await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
     await expect(documents.getByRole('link', { name: 'Certificates', exact: true })).toBeVisible();
-    await expect(documents.getByRole('link', { name: 'Supporting', exact: true })).toHaveCount(0);
+    await expect((await visibleSidebar(page)).getByRole('link', { name: 'Eligibility', exact: true })).toHaveCount(0);
   } else {
     await expect(page.getByRole('region', { name: 'Company ownership summary' })).toContainText(
       'Issued sharesNot complete',
@@ -356,6 +356,7 @@ async function openTheSidebar(page: Page, role: Role) {
     await aside.getByRole('link', { name: 'Company pack', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Company pack', exact: true })).toBeVisible();
     aside = await visibleSidebar(page);
+    await aside.getByRole('button', { name: 'Expand Eligibility navigation' }).click();
     await aside.getByRole('link', { name: 'Supporting', exact: true }).click();
     await expect(page).toHaveURL(/\/documents\/company\?company=company$/);
     await expect(page.getByRole('heading', { name: 'Supporting documents', exact: true })).toBeVisible();

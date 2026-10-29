@@ -1378,8 +1378,10 @@ menu items". ESS becomes Employee scheme, the owner's first choice, Company docu
 Supporting, as the owner suggested, and Published to your members becomes Published. Each link keeps
 its page's full name as its title. The owner also wondered whether Company documents belongs under
 Company eligibility and asked for a view. Claude recommended keeping it under Documents, since it
-holds the company's own records and offer documents rather than eligibility decisions, so it stays
-there until the owner decides.
+holds the company's own records and offer documents rather than eligibility decisions, and the owner
+chose: "Move Supporting under Company eligibility." Supporting is now Company eligibility's child for
+a company administrator. The group's caret leaves too little room for the full name on one line, so
+the sidebar labels it Eligibility, with Company eligibility as its title.
 
 ### Dashboard, Settings and Register for a new company
 

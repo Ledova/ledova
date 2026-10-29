@@ -44,6 +44,7 @@ interface NavItem {
   destination: DestinationKey;
   icon: Icon;
   view?: string;
+  label?: string;
 }
 
 interface NavGroup {
@@ -60,7 +61,7 @@ const COMPANY: NavItem[] = [
 
 const OFFERINGS: NavItem = { destination: 'companyOffering', icon: MegaphoneIcon };
 
-const ELIGIBILITY: NavItem = { destination: 'companyEligibility', icon: ShieldCheckIcon };
+const ELIGIBILITY: NavItem = { destination: 'companyEligibility', icon: ShieldCheckIcon, label: 'Eligibility' };
 
 const PERSONAL: NavItem[] = [
   { destination: 'home', icon: HouseIcon },
@@ -137,11 +138,12 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
           if (context.openDashboard()) onNavigate?.();
         } else onNavigate?.();
       }}
+      title={item.label ? title : undefined}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-      <span>{title}</span>
+      <span>{item.label ?? title}</span>
     </Link>
   );
 }
@@ -346,13 +348,11 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   const selected =
     location.pathname === CERTIFICATES_PATH
       ? 'certificates'
-      : location.pathname === COMPANY_DOCUMENTS_PATH
-        ? 'company-documents'
-        : location.pathname === DESTINATIONS.companyPublications.path
-          ? 'publications'
-          : location.pathname === path
-            ? documentView(location.hash.slice(1))
-            : undefined;
+      : location.pathname === DESTINATIONS.companyPublications.path
+        ? 'publications'
+        : location.pathname === path
+          ? documentView(location.hash.slice(1))
+          : undefined;
   const context = ledgerContext(location, state, companyContext?.companyUuid);
   const certificateTarget = certificatesLocation({ search: '', state: context });
   const certificatePath = `${certificateTarget.pathname}${certificateTarget.search}`;
@@ -371,14 +371,6 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
       label: 'Published',
       title: pageTitle('companyPublications'),
       to: DESTINATIONS.companyPublications.path,
-      blocked: certificatesBlocked,
-    });
-  if (companyContext?.company?.canManage)
-    links.splice(1, 0, {
-      key: 'company-documents',
-      label: 'Supporting',
-      title: 'Company documents',
-      to: COMPANY_DOCUMENTS_PATH,
       blocked: certificatesBlocked,
     });
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
@@ -439,6 +431,61 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
             {label}
           </Link>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function EligibilityGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
+  const context = useCompanyContext();
+  const location = useLocation();
+  const place = `${location.pathname}${location.hash}`;
+  const [shownPlace, setShownPlace] = useState(place);
+  const [expanded, setExpanded] = useState(active);
+  const id = useId();
+  const path = DESTINATIONS.companyEligibility.path;
+  const supporting = location.pathname === COMPANY_DOCUMENTS_PATH;
+  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+
+  if (shownPlace !== place) {
+    setShownPlace(place);
+    if (active) setExpanded(true);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <Link
+          to={context?.companyPath(path) ?? path}
+          onClick={onNavigate}
+          title={pageTitle('companyEligibility')}
+          aria-current={active && !supporting ? 'page' : undefined}
+          className={`${ITEM_CLASS} min-w-0 flex-1 ${active && !supporting ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
+        >
+          <ShieldCheckIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
+          <span>{ELIGIBILITY.label}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${ELIGIBILITY.label} navigation`}
+          aria-expanded={expanded}
+          aria-controls={id}
+          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
+        >
+          <Caret size={16} />
+        </button>
+      </div>
+      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
+        <Link
+          to={context?.companyPath(COMPANY_DOCUMENTS_PATH) ?? COMPANY_DOCUMENTS_PATH}
+          onClick={onNavigate}
+          title="Company documents"
+          aria-current={supporting ? 'page' : undefined}
+          className={`${ITEM_CLASS} ${supporting ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
+        >
+          Supporting
+        </Link>
       </div>
     </div>
   );
@@ -559,10 +606,12 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     )
     .find(Boolean);
   const activePath =
-    [CERTIFICATES_PATH, COMPANY_DOCUMENTS_PATH, DESTINATIONS.companyPublications.path].includes(location.pathname) ||
+    location.pathname === COMPANY_DOCUMENTS_PATH ||
     (location.pathname === DESTINATIONS.company.path && location.hash === '#documents')
-      ? CERTIFICATES_PATH
-      : activeItem && itemPath(activeItem);
+      ? itemPath(ELIGIBILITY)
+      : [CERTIFICATES_PATH, DESTINATIONS.companyPublications.path].includes(location.pathname)
+        ? CERTIFICATES_PATH
+        : activeItem && itemPath(activeItem);
 
   return (
     <aside className="flex h-full w-52 flex-col border-r border-border-subtle bg-surface-base">
@@ -587,6 +636,12 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                 ) : (item.destination === 'companyRegister' && item.view === 'certificates') ||
                   (item.destination === 'home' && item.view === 'documents') ? (
                   <DocumentsGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
+                ) : item.destination === 'companyEligibility' && context?.company?.canManage ? (
+                  <EligibilityGroup
+                    key={itemPath(item)}
+                    active={itemPath(item) === activePath}
+                    onNavigate={onNavigate}
+                  />
                 ) : item.destination === 'settings' ? (
                   <SettingsGroup
                     key={itemPath(item)}
