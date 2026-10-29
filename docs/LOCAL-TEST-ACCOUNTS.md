@@ -143,8 +143,8 @@ since 27 October, were made active. Every other record below went through the AP
   - Corrections names changes by kind and date.
   - At the owner's choice, a request shares the investor's name with their consent (#1428), and
     Inspection copies and Company pack list what the company's own people prepared (#1429).
-  - Eligibility request details no longer show internal IDs. The investor's name and the company's
-    name identify a request.
+  - Eligibility request details no longer show internal IDs. They show the investor's name when the
+    request shared one, and the investor sees the company's name when it is one of theirs.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.

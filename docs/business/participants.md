@@ -138,8 +138,10 @@ withdrawn.
 3. Choose **Preview company eligibility request**. The preview names the company and shows any
    unmet requirement.
 4. Confirm the sharing summary and the declaration separately, then submit. The summary includes
-   your name as it stands on your profile, so the company sees who is asking. The request keeps that
-   summary, fingerprints of the evidence and its metadata, the requested expiry and you as holder.
+   your name as it stands on your profile, so the company sees who is asking. It also refers to your
+   account, the evidence source and the company you chose. The page does not show those references,
+   and it sends a request only when they match your choices. The request keeps that summary,
+   fingerprints of the evidence and its metadata, the requested expiry and you as holder.
 
 Once a source has been shared with a company in a request, no further supporting documents can be
 attached to it. You can withdraw a pending or accepted request; a refusal stays visible.
