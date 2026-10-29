@@ -109,10 +109,10 @@ since 27 October, were made active. Every other record below went through the AP
   they stay unlisted.
 - Published and Activity stay empty without the local chain.
 - On 30 October 2026 the files of these records were lost: the walkthrough API had run from a
-  worktree, whose `backend/private-media` was deleted with it. The database was rebuilt from
-  `ledova_walkthrough_20261021_before_1421` and the same records were added again through the API,
-  so every record has its file. The walkthrough now runs from the main checkout; uploads live in its
-  `backend/private-media`.
+  worktree, and the uploads stored under its backend folder were deleted with it. The database was
+  rebuilt from `ledova_walkthrough_20261021_before_1421` and the same records were added again
+  through the API, so every record has its file. The walkthrough now runs from the main checkout,
+  which holds its uploads.
 
 ## Current handover — 29 October 2026
 
