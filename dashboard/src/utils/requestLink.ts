@@ -34,6 +34,10 @@ export function pendingRequestLink() {
   }
 }
 
+export function dropRequestLink(pathname: string) {
+  if (pathname === DESTINATIONS.eligibilityRequests.path) clearRequestLink();
+}
+
 export function clearRequestLink() {
   try {
     sessionStorage.removeItem(STORAGE_KEY);

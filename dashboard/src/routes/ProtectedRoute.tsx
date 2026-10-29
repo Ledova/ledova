@@ -9,7 +9,7 @@ import { Page } from '@components/Page';
 import { FullScreenSpinner } from '@components/FullScreenSpinner';
 import { AccountUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT, SIGNIN_PATH } from '@utils/paths';
-import { keepRequestLink } from '@utils/requestLink';
+import { dropRequestLink, keepRequestLink } from '@utils/requestLink';
 
 function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
   return (
@@ -52,7 +52,10 @@ export function ProtectedRoute({ audience, children }: { audience: Audience; chi
 
   if (needsRole && !isKnown) return <RoleUnavailable onRetry={() => void retry()} />;
 
-  if (!canOpen(role, audience)) return <Navigate to={landingFor(role)} replace />;
+  if (!canOpen(role, audience)) {
+    dropRequestLink(location.pathname);
+    return <Navigate to={landingFor(role)} replace />;
+  }
 
   if (!inFrame) return <FullScreenSpinner label="Checking your session" />;
 
