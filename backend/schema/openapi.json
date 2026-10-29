@@ -3407,6 +3407,38 @@
         ],
         "type": "object"
       },
+      "CompanyPackRecord": {
+        "properties": {
+          "classes": {
+            "type": "integer"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "preparedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "preparedByName": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "classes",
+          "digest",
+          "instruction",
+          "preparedAt",
+          "preparedByName",
+          "recipient"
+        ],
+        "type": "object"
+      },
       "CompanyPackRequestRequest": {
         "properties": {
           "appointment": {
@@ -3428,6 +3460,20 @@
           "appointment",
           "instruction",
           "recipient"
+        ],
+        "type": "object"
+      },
+      "CompanyPacks": {
+        "properties": {
+          "packs": {
+            "items": {
+              "$ref": "#/components/schemas/CompanyPackRecord"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "packs"
         ],
         "type": "object"
       },
@@ -15636,6 +15682,66 @@
         ],
         "type": "object"
       },
+      "RegisterInspectionCopies": {
+        "properties": {
+          "copies": {
+            "items": {
+              "$ref": "#/components/schemas/RegisterInspectionCopyRecord"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "copies"
+        ],
+        "type": "object"
+      },
+      "RegisterInspectionCopyRecord": {
+        "properties": {
+          "formerRows": {
+            "type": "integer"
+          },
+          "instruction": {
+            "type": "string"
+          },
+          "late": {
+            "type": "boolean"
+          },
+          "memberRows": {
+            "type": "integer"
+          },
+          "preparedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "preparedByName": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "requestedOn": {
+            "format": "date",
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "formerRows",
+          "instruction",
+          "late",
+          "memberRows",
+          "preparedAt",
+          "preparedByName",
+          "recipient",
+          "requestedOn",
+          "uuid"
+        ],
+        "type": "object"
+      },
       "RegisterInspectionPreview": {
         "properties": {
           "appointment": {
@@ -27151,6 +27257,46 @@
         ]
       }
     },
+    "/api/v1/companies/{uuid}/packs/": {
+      "get": {
+        "operationId": "api_v1_companies_packs_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyPacks"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/company-authority/appointments/": {
       "get": {
         "operationId": "api_v1_company_authority_appointments_list",
@@ -37067,6 +37213,46 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedShareRegisterEntryList"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/register/inspection-copies/": {
+      "get": {
+        "operationId": "api_v1_tokens_register_inspection_copies_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterInspectionCopies"
                 }
               }
             },

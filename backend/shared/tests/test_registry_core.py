@@ -864,3 +864,12 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         record = RegisterExport.objects.get(token=self.token, kind="inspection_copy", requested_by_id=self.owner.pk)
         self.assertEqual(record.digest, hashlib.sha256(response.content).hexdigest())
         self.assertEqual(record.member_rows, 1)
+        listed = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/inspection-copies/")
+        self.assertEqual(listed.status_code, 200, listed.content)
+        self.assertEqual(
+            [(row["recipient"], row["instruction"]) for row in listed.json()["copies"]],
+            [("Synthetic Requester", "SYNTHETIC-CORE-INSPECTION")],
+        )
+        self.client.force_authenticate(self.foreign)
+        refused = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/inspection-copies/")
+        self.assertEqual(refused.status_code, 404, refused.content)

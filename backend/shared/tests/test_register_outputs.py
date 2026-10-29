@@ -20,7 +20,7 @@ from companies.services.team import (
     revoke_company_appointment,
 )
 from shared.db import atomic, use_operator
-from shared.tests.core_fixtures import CoreFixtures, retained_evidence
+from shared.tests.core_fixtures import CoreFixtures, person, retained_evidence
 from tokens.models import (
     MemberCertificateFulfilment,
     RegisterEvidenceKind,
@@ -28,6 +28,7 @@ from tokens.models import (
     RegisterGrant,
     RegisterTransfer,
 )
+from tokens.services.company_pack import produce_company_pack
 from tokens.services.former_holders import purge_register_exports
 
 
@@ -354,6 +355,19 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(packed.status_code, 200, getattr(packed, "content", b""))
         archive = b"".join(packed.streaming_content)
+        staff, _ = person("core-staff")
+        with use_operator():
+            type(staff).objects.filter(pk=staff.pk).update(is_staff=True)
+            produced, _ = produce_company_pack(
+                self.company, staff, instruction="SYNTHETIC-COMPELLED-REQUEST", recipient="Synthetic regulator"
+            )
+            produced.close()
+        history = self.client.get(f"/api/v1/companies/{self.company.pk}/packs/")
+        self.assertEqual(history.status_code, 200, history.content)
+        self.assertEqual(
+            [(row["instruction"], row["recipient"]) for row in history.json()["packs"]],
+            [("SYNTHETIC-CORE-COMPANY-PACK", "Synthetic administrator")],
+        )
         packed.close()
         with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
             manifest_bytes = bundle.read("manifest.json")

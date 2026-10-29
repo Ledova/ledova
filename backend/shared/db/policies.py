@@ -603,6 +603,10 @@ OPERATOR_ONLY = {
     "CompanyPackAdmin.produce through produce_company_pack. The readers are on the same connection: "
     "tokens/services/register.py outputs_due, which finds the certificates and notice figures still owed for the "
     "register outputs admin and for _build_company_pack on both company pack paths; RegisterExportAdmin for staff; "
+    "tokens/services/output_history.py inspection_copy_history and company_pack_history for "
+    "ShareTokenViewSet.register_inspection_copies and CompanyViewSet.packs, which list to a company's current "
+    "register readers or administrators only the inspection copies and packs prepared by people appointed at "
+    "that company, never one a staff account produced; "
     "and the trigger function tokens_guard_member_certificate_fulfilment, which checks the export a member "
     "certificate is bound to. Only tokens/services/former_holders.py purge_register_exports deletes them, on the "
     "retention clock, and it keeps every export bound to a member certificate fulfilment.",

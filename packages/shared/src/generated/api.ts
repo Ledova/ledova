@@ -815,6 +815,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/companies/{uuid}/packs/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_companies_packs_retrieve'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/company-authority/appointments/': {
     parameters: {
       query?: never;
@@ -1319,6 +1335,22 @@ export interface ApiPaths {
       cookie?: never;
     };
     get: ApiOperations['api_v1_tokens_register_entries_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/tokens/{uuid}/register/inspection-copies/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: ApiOperations['api_v1_tokens_register_inspection_copies_retrieve'];
     put?: never;
     post?: never;
     delete?: never;
@@ -4677,10 +4709,21 @@ export interface ApiComponents {
       issuedSupply: string | null;
       totalHolders: number | null;
     };
+    CompanyPackRecord: {
+      classes: number;
+      digest: string;
+      instruction: string;
+      preparedAt: string;
+      preparedByName: string;
+      recipient: string;
+    };
     CompanyPackRequestRequest: {
       appointment: string;
       instruction: string;
       recipient: string;
+    };
+    CompanyPacks: {
+      packs: ApiComponents['schemas']['CompanyPackRecord'][];
     };
     CompanyRegistered: {
       company: ApiComponents['schemas']['CompanyDetail'];
@@ -7072,6 +7115,20 @@ export interface ApiComponents {
       name: string | null;
       stored: string | null;
       wallets: string[];
+    };
+    RegisterInspectionCopies: {
+      copies: ApiComponents['schemas']['RegisterInspectionCopyRecord'][];
+    };
+    RegisterInspectionCopyRecord: {
+      formerRows: number;
+      instruction: string;
+      late: boolean;
+      memberRows: number;
+      preparedAt: string;
+      preparedByName: string;
+      recipient: string;
+      requestedOn: string;
+      uuid: string;
     };
     RegisterInspectionPreview: {
       appointment: string;
@@ -10138,6 +10195,27 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_companies_packs_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['CompanyPacks'];
+        };
+      };
+    };
+  };
   api_v1_company_authority_appointments_list: {
     parameters: {
       query?: {
@@ -11139,6 +11217,27 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedShareRegisterEntryList'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_register_inspection_copies_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['RegisterInspectionCopies'];
         };
       };
     };

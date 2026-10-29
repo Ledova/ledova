@@ -32,3 +32,4 @@ export type DocumentUpload = ApiRequest<'api_v1_companies_documents_create'> &
   Required<Pick<ApiRequest<'api_v1_companies_documents_create'>, 'file'>>;
 
 export type CompanyPackRequest = ApiRequest<'api_v1_companies_pack_create'>;
+export type CompanyPacks = ApiResponse<'api_v1_companies_packs_retrieve'>;

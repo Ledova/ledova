@@ -9,6 +9,7 @@ import type {
   CompanyRegistrationResponse,
   CompanyDocument,
   CompanyPackRequest,
+  CompanyPacks,
   DocumentUpload,
   CompanyActivate,
   CompanyActivated,
@@ -84,3 +85,6 @@ export const createCompanyPack = (
   data: CompanyPackRequest,
   config: AxiosRequestConfig = {},
 ) => apiClient.post<Blob>(COMPANY_ENDPOINTS.PACK(companyUuid), data, { ...config, responseType: 'blob' });
+
+export const getCompanyPacks = (apiClient: AxiosInstance, companyUuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.get<CompanyPacks>(COMPANY_ENDPOINTS.PACKS(companyUuid), config);

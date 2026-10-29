@@ -46,6 +46,7 @@ export {
   deleteCompanyDocument,
   activateCompany,
   createCompanyPack,
+  getCompanyPacks,
 } from './companies';
 export {
   getCompanyAuthorityRequests,
@@ -69,6 +70,7 @@ export {
   getCompanyOwnership,
   getClassOwnershipHolders,
   getRegisterInspectionPreview,
+  getRegisterInspectionCopies,
   createRegisterInspectionCopy,
   getRegisterCertificatePreview,
   createRegisterCertificate,
