@@ -2,7 +2,6 @@ import { useMemo, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { AxiosRequestConfig } from 'axios';
 import type { UserPreferences } from '../types';
-import type { OrderSubmissionOwner } from '../utils/order-submission-storage';
 import { AUTH_QUERY_KEY } from './useAuth';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 
@@ -10,6 +9,11 @@ declare module 'axios' {
   interface AxiosRequestConfig {
     ledovaSubmissionGuard?: () => void;
   }
+}
+
+export interface OrderSubmissionOwner {
+  userUuid: string;
+  ownerAccountUuid: string;
 }
 
 export interface OrderSubmissionSession {

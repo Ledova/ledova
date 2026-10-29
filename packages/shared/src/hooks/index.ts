@@ -8,7 +8,7 @@ export { useFinancialProfile, FINANCIAL_PROFILES_QUERY_KEY } from './useFinancia
 export { useNotifications } from './useNotifications';
 export { usePublicationSummary, PUBLICATIONS_QUERY_KEY } from './usePublicationSummary';
 export { useSubmissionOwner } from './useSubmissionOwner';
-export type { OrderSubmissionSession } from './useSubmissionOwner';
+export type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 export { hasProblems, useErrorSummary, useFocusClaim } from './useErrorSummary';
 export type { FieldCheck, Problems } from './useErrorSummary';
 export {

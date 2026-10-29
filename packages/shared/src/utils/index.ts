@@ -78,7 +78,6 @@ export {
   paymentRecordState,
   type PaymentRecordState,
 } from './distributions';
-export type { OrderSubmissionOwner } from './order-submission-storage';
 export { createLocalSigner } from './local-signer';
 export { readIdentityVerification } from './identity-verification';
 export { summarizeShareHoldings, type ShareHoldingRow } from './share-holdings';
