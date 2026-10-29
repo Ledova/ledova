@@ -13,9 +13,9 @@ to the local API with these passwords.
 
 Open **http://localhost:5173/signin**. Sign out before using another account. Reuse the existing
 local PostgreSQL database `ledova_walkthrough_20261021`; do not reset it or recreate accounts for
-a fresh chat. A deliberate reset can invalidate these credentials and fixtures. On 29 October 2026
-it was rebuilt from #1421's fresh migrations with every record kept; the earlier copy is
-`ledova_walkthrough_20261021_before_1421`.
+a fresh chat. A deliberate reset can invalidate these credentials and fixtures. It was rebuilt from
+#1421's fresh migrations with every earlier record kept, and the demo data below was added again on
+30 October 2026 (see the note there); the earlier copy is `ledova_walkthrough_20261021_before_1421`.
 
 | Person              | Test role                             | Email                              | Password                                      | What to test                                                                     |
 | ------------------- | ------------------------------------- | ---------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -92,8 +92,8 @@ locally: Jordan Ellis's account was created, and Taylor, Casey and Quinn, alread
 since 27 October, were made active. Every other record below went through the API as the real users.
 
 - **Purpose Demo:**
-  - Eligibility requests: Quinn's and Taylor's accepted, one of Casey's refused and two pending.
-    The newest, which Casey sent with a later certificate after the refusal, carries Casey's name.
+  - Eligibility requests, each sharing the investor's name: Quinn's and Taylor's accepted, one of
+    Casey's refused and two pending, the newer sent with a later certificate after the refusal.
   - Member requests: Taylor's address change and certificate requests from Quinn and Casey.
   - A constitution, a shareholders agreement and financial statements under Supporting.
   - An inspection copy and a company pack.
@@ -105,9 +105,14 @@ since 27 October, were made active. Every other record below went through the AP
   - An inspection copy and a company pack.
 - **Harbour:** an allotment, a transfer and an employee award with its first tranche issued.
 - Taylor's request to Banksia was withdrawn.
-- The first inspection copies and packs predate #1429's record of where an output was produced, so
-  they stay unlisted. A second copy and pack for each company, prepared after #1429, fill the lists.
+- Inspection copies and packs prepared before #1429 have no record of where they were produced, so
+  they stay unlisted.
 - Published and Activity stay empty without the local chain.
+- On 30 October 2026 the files of these records were lost: the walkthrough API had run from a
+  worktree, whose `backend/private-media` was deleted with it. The database was rebuilt from
+  `ledova_walkthrough_20261021_before_1421` and the same records were added again through the API,
+  so every record has its file. The walkthrough now runs from the main checkout; uploads live in its
+  `backend/private-media`.
 
 ## Current handover — 29 October 2026
 
