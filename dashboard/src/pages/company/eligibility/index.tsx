@@ -121,7 +121,8 @@ export default function CompanyEligibilityPage() {
         !read.loading &&
         read.owner &&
         !read.action &&
-        read.companyUuid && (
+        read.companyUuid &&
+        !authorityMissing && (
           <FilterPopover active={!!outcome}>
             {(close) => (
               <SelectField
