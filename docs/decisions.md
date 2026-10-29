@@ -1750,7 +1750,12 @@ class page drops **Technical details and chain workflows**, and the chain workfl
 class's own **Chain actions** page. On 29 October 2026, with phase 4 merged, the owner asked:
 "Please continue until the end". So the remaining record chevrons on company pages give way to plain
 **Show …** toggles and titled records, and the eligibility pages and wallet approvals drop their
-keys, digests and internal references (phase 5).
+keys, digests and internal references (phase 5). The owner then noted that UUIDs make no sense to
+show people and, with the local walkthrough filled with demo data, chose to tidy the remaining
+cluttered pages ([#1424](https://github.com/Ledova/ledova/issues/1424)). So a company no longer
+hands out a **Company ID**: it copies a request link from **Company eligibility**, and the investor's
+request takes the company from that link or from their own companies, with the preview naming
+it.
 
 ## Mobile app for shareholders
 

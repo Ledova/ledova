@@ -108,8 +108,7 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
   - No internal IDs are shown. A short reference appears only where records would otherwise read
-    the same or have no name, and **Company ID** appears in full, with Copy, for a company to give
-    investors.
+    the same or have no name. A company gives investors a request link instead of an ID.
   - `Disclosure` remains only for Activity's entries, Wallet shares' rows and Wallets' sort.
 - **Process:**
   - A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date

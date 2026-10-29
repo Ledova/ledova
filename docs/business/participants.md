@@ -131,11 +131,12 @@ withdrawn.
 ### Requesting a decision
 
 1. Open **Your company eligibility** from Verification.
-2. Select your evidence source, enter the exact company identifier the company gave you and set the
-   expiry you are asking for. On the web, a company finds its identifier on its
-   [Company page](companies.md#the-company-page).
-3. Choose **Preview company eligibility request**. The preview shows the company, with any unmet
-   requirement.
+2. Select your evidence source and the company, and set the expiry you are asking for. The company
+   is one of your companies, or the one whose request link you opened. A company copies its link
+   with **Copy request link** on Company eligibility. If you open the link signed out, you return to
+   it after signing in.
+3. Choose **Preview company eligibility request**. The preview names the company and shows any
+   unmet requirement.
 4. Confirm the sharing summary and the declaration separately, then submit. The request keeps that
    summary, fingerprints of the evidence and its metadata, the requested expiry and you as holder.
 

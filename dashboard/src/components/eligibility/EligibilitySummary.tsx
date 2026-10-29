@@ -21,8 +21,9 @@ const summaryLabels = {
   certifierMembershipNumber: 'Certifier membership',
 } satisfies Partial<Record<keyof CompanyEligibilitySharedSummary, string>>;
 
-function shown(key: string, value: unknown, summary: CompanyEligibilitySharedSummary) {
+function shown(key: string, value: unknown, summary: CompanyEligibilitySharedSummary, companyName?: string) {
   const text = String(value);
+  if (key === 'company' && companyName) return companyName;
   if (key === 'submittedAt' || key === 'requestedExpiresAt') return formatDateTime(text);
   if (key === 'certificateIssuedAt') return formatDate(text);
   if (key === 'category') return INVESTOR_CATEGORY_LABELS[summary.category];
@@ -31,7 +32,13 @@ function shown(key: string, value: unknown, summary: CompanyEligibilitySharedSum
   return text;
 }
 
-export function EligibilitySummary({ summary }: { summary: CompanyEligibilitySharedSummary }) {
+export function EligibilitySummary({
+  summary,
+  companyName,
+}: {
+  summary: CompanyEligibilitySharedSummary;
+  companyName?: string;
+}) {
   return (
     <>
       <p className="whitespace-pre-wrap break-words text-sm text-text-primary">{summary.declarationText}</p>
@@ -40,7 +47,7 @@ export function EligibilitySummary({ summary }: { summary: CompanyEligibilitySha
           const value = summary[key as keyof CompanyEligibilitySharedSummary];
           return value === undefined || value === null ? null : (
             <Row key={key} label={label}>
-              <span className="break-all">{shown(key, value, summary)}</span>
+              <span className="break-all">{shown(key, value, summary, companyName)}</span>
             </Row>
           );
         })}

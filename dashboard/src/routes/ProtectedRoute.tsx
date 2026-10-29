@@ -1,5 +1,5 @@
 import { useContext, type ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { canOpen, landingFor, useAuth, type Audience } from '@ledova/shared';
 
 import { useRole } from '@hooks/useRole';
@@ -9,6 +9,7 @@ import { Page } from '@components/Page';
 import { FullScreenSpinner } from '@components/FullScreenSpinner';
 import { AccountUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT, SIGNIN_PATH } from '@utils/paths';
+import { keepRequestLink } from '@utils/requestLink';
 
 function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
   return (
@@ -34,12 +35,16 @@ export function ProtectedRoute({ audience, children }: { audience: Audience; chi
   const needsRole = isAuthenticated && audience !== 'everyone';
   const waitingForAccount = isAuthenticated && (isProfileLoading || (needsRole && !isKnown && !isUnavailable));
   const inFrame = useContext(InSignedInFrame);
+  const location = useLocation();
 
   if (isLoading || (!isAuthenticated && isFetching) || waitingForAccount) {
     return inFrame ? <Page loading /> : <FullScreenSpinner label="Checking your session" />;
   }
 
-  if (!isAuthenticated) return <Navigate to={SIGNIN_PATH} replace />;
+  if (!isAuthenticated) {
+    keepRequestLink(location.pathname, location.search);
+    return <Navigate to={SIGNIN_PATH} replace />;
+  }
 
   if (!userProfile) return <AccountUnavailable onRetry={refreshProfile} />;
 

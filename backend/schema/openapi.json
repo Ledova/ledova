@@ -3038,6 +3038,9 @@
           "canSubmit": {
             "type": "boolean"
           },
+          "companyName": {
+            "type": "string"
+          },
           "evidenceHash": {
             "nullable": true,
             "type": "string"
@@ -3064,6 +3067,7 @@
         },
         "required": [
           "canSubmit",
+          "companyName",
           "evidenceHash",
           "previewDigest",
           "sharedSummary",

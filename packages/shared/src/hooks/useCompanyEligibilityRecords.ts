@@ -603,8 +603,7 @@ function useEligibilityRecords(
         )
           throw createUserFriendlyError('Select your own submitted evidence or retained historical evidence source.');
         const requestedExpiresAt = expiry(value.request.requestedExpiresAt);
-        if (!isUuid(value.request.company))
-          throw createUserFriendlyError('Enter the company ID supplied by the company.');
+        if (!isUuid(value.request.company)) throw createUserFriendlyError('Choose the company.');
         const input: CompanyEligibilityRequestPreview = {
           source: source.uuid,
           company: value.request.company,

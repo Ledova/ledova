@@ -74,7 +74,9 @@ function Confirmation({ action, busy, confirm, cancel, opener }: ConfirmationPro
     <div ref={container}>
       <Section title="Review and confirm">
         <ErrorSummary {...review.summary} />
-        {action.request && <EligibilitySummary summary={action.request.sharedSummary} />}
+        {action.request && (
+          <EligibilitySummary summary={action.request.sharedSummary} companyName={action.request.companyName} />
+        )}
         {action.outcome && (
           <Rows>
             <Row label="Decision">{ELIGIBILITY_OUTCOME_LABELS[action.outcome]}</Row>

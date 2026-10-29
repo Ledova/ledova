@@ -4604,6 +4604,7 @@ export interface ApiComponents {
     };
     CompanyEligibilityRequestPreviewResult: {
       canSubmit: boolean;
+      companyName: string;
       evidenceHash: string | null;
       previewDigest: string;
       sharedSummary: ApiComponents['schemas']['CompanyEligibilitySharedSummary'];
