@@ -128,12 +128,6 @@ the large-investment and associated-person categories are
 Each submission is its own source, and a person may hold several. A submitted source can be
 withdrawn.
 
-### What a decision opens
-
-A decision accepts an accountant-certificate or professional-investor source for the deciding
-company. It is the decision that a wallet nomination, a non-paid chain grant, a company wallet
-approval and the company's market reads through the trading API require.
-
 ### Requesting a decision
 
 1. Open **Your company eligibility** from Verification.
@@ -176,8 +170,10 @@ Rules:
 
 ### What a decision opens
 
-Decisions apply at the moment of each action, against the current decision, evidence, account
-standing and expiry.
+A decision accepts an accountant-certificate or professional-investor source for the deciding
+company. It is the decision that a wallet nomination, a non-paid chain grant, a company wallet
+approval and the company's market reads through the trading API require. Decisions apply at the
+moment of each action, against the current decision, evidence, account standing and expiry.
 
 - Market reads: through the trading API, a holder without a current general decision cannot see a
   company's market even for shares they already own, a trade-off the owner recorded for review

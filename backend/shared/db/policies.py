@@ -569,9 +569,9 @@ OPERATOR_ONLY = {
     "row's status forward and records its operation, observation and completion once. The worker, the register "
     "pause routes, the share token admin and the company pack read them on the operator connection.",
     "tokens_shareissuanceexecution": "Immutable company-admitted share issuance intent from the exact applied "
-    "register issue or paid issue, queued cancellation, staff retry of an existing row and protected outgoing "
-    "associations. Customer paths retain public request state; the register issue routes and the company pack read "
-    "the record on the operator connection.",
+    "register issue, staff retry of an existing row and protected outgoing associations. Customer paths retain "
+    "public request state; the register issue routes and the company pack read the record on the operator "
+    "connection.",
     "tokens_capitalincreaseexecution": "Immutable company-admitted capital increase intent from the exact applied "
     "register capital increase, staff retry of an existing row and original transaction attribution. The register "
     "capital routes and the company pack read it on the operator connection; the CapitalIncreaseViewSet request "

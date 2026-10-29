@@ -352,7 +352,7 @@ BEGIN
         END IF;
         allowed := ARRAY['name', 'trading_name', 'company_type', 'acn', 'abn', 'declarant_name',
             'board_resolution_reference', 'phone', 'address_line_1', 'address_line_2', 'city', 'state', 'postcode',
-            'country', 'description', 'industry', 'founded_year', 'operator_wallet_id', 'is_open_to_investors',
+            'country', 'description', 'industry', 'founded_year', 'operator_wallet_id',
             'share_ownership_with_members', 'ownership_sharing_changed_by_id', 'ownership_sharing_changed_at',
             'updated_at', 'lifecycle_revision', 'registry_status', 'registry_reason'];
         IF NEW.share_ownership_with_members IS DISTINCT FROM OLD.share_ownership_with_members THEN

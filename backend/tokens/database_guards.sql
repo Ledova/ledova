@@ -3231,7 +3231,7 @@ BEGIN
         RETURN NEW;
     END IF;
     IF NEW.status = 'approved' AND (TG_OP = 'INSERT' OR OLD.status IN ('draft','submitted','under_review')) THEN
-        RAISE EXCEPTION 'Fresh paid and nonpaid approval requires its retained company decision' USING ERRCODE = '23514';
+        RAISE EXCEPTION 'Fresh approval requires its retained company decision' USING ERRCODE = '23514';
     END IF;
     IF current_user = __APP__ AND (
         (TG_OP = 'INSERT' AND (NEW.status NOT IN ('draft', 'submitted') OR NEW.reviewed_by_id IS NOT NULL
