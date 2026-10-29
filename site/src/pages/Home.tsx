@@ -117,14 +117,17 @@ function ProductPreview() {
           hidden={selected !== index}
           className="aspect-[1468/875] overflow-hidden rounded-xl border border-border-subtle bg-surface-raised shadow-[0_20px_50px_-18px_rgba(23,25,30,0.12)]"
         >
-          <img
-            src={`/screenshots/${view.image}.jpg`}
-            alt={view.alt}
-            width={1969}
-            height={1199}
-            loading={index === 0 ? 'eager' : 'lazy'}
-            className="block h-auto w-[134.1281%] max-w-none"
-          />
+          {['paper', 'dark'].map((theme) => (
+            <img
+              key={theme}
+              src={`/screenshots/${view.image}${theme === 'dark' ? '-dark' : ''}.jpg`}
+              alt={view.alt}
+              width={1969}
+              height={1251}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              className={`h-auto w-[134.1281%] max-w-none ${theme === 'dark' ? 'hidden [[data-theme=dark]_&]:block' : 'block [[data-theme=dark]_&]:hidden'}`}
+            />
+          ))}
         </div>
       ))}
       <figcaption className="mt-3 text-center text-xs text-text-muted">{PRODUCT_VIEWS[selected].caption}</figcaption>
