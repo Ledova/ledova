@@ -1122,8 +1122,14 @@ by a local helper or a browser `toLocale…` call:
   its holdings were read, with the holdings behind **Show the holdings** once it is decided (a
   copied opening's shareholders behind **Show the shareholders**), and its chain-inclusion messages
   name the kind of completion without its reference or block numbers.
-  The eligibility pages still show their references and fingerprints; they are a later phase of
-  #1378. Transaction hashes and wallet addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
+  The eligibility pages list requests by category, outcome and submission time and show their
+  history without request keys, digests or appointment references. Company wallet approvals and
+  wallet nominations show the wallet, its eligibility and proof dates and the decisions, with
+  **View transaction**, without nomination, request or decision references, fingerprints or
+  transaction internals, and name a company from the directory (`Company` and its
+  `shortReference` when it is not listed). The exact summary an eligibility request shares keeps
+  its values, because the participant agrees to share exactly that. Transaction hashes and wallet
+  addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
   **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a
   directory-listed company or open offering under the field, or says it is not listed. The one
   exception shows those IDs in full, with `CopyButton`, for a company to give investors: its
