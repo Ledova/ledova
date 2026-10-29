@@ -14,8 +14,9 @@ to the local API with these passwords.
 Open **http://localhost:5173/signin**. Sign out before using another account. Reuse the existing
 local PostgreSQL database `ledova_walkthrough_20261021`; do not reset it or recreate accounts for
 a fresh chat. A deliberate reset can invalidate these credentials and fixtures. It was rebuilt from
-#1421's fresh migrations with every earlier record kept, and the demo data below was added again on
-30 October 2026 (see the note there); the earlier copy is `ledova_walkthrough_20261021_before_1421`.
+#1421's fresh migrations, keeping every earlier record except the offerings #1421 removed, and the
+demo data below was added again on 30 October 2026 (see the note there); the earlier copy is
+`ledova_walkthrough_20261021_before_1421`.
 
 | Person              | Test role                             | Email                              | Password                                      | What to test                                                                     |
 | ------------------- | ------------------------------------- | ---------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -84,7 +85,7 @@ Alex's Purpose member access was linked through invitation and acceptance for #1
 display name alone grants no access. Taylor has three associations and Casey has one. Company
 aggregate sharing is enabled for the local exercise. No genuine ABR check was fabricated.
 
-### Demo data, 29 October 2026
+### Demo data, 29 and 30 October 2026
 
 At the owner's request, more records were added so that pages are not empty. Two steps were made
 directly in the local database through the backend's own services, because no identity provider runs
@@ -93,7 +94,7 @@ since 27 October, were made active. Every other record below went through the AP
 
 - **Purpose Demo:**
   - Eligibility requests, each sharing the investor's name: Quinn's and Taylor's accepted, one of
-    Casey's refused and two pending, the newer sent with a later certificate after the refusal.
+    Casey's refused and two pending, the newer one sent with a later certificate after the refusal.
   - Member requests: Taylor's address change and certificate requests from Quinn and Casey.
   - A constitution, a shareholders agreement and financial statements under Supporting.
   - An inspection copy and a company pack.
@@ -110,9 +111,9 @@ since 27 October, were made active. Every other record below went through the AP
 - Published and Activity stay empty without the local chain.
 - On 30 October 2026 the files of these records were lost: the walkthrough API had run from a
   worktree, and the uploads stored under its backend folder were deleted with it. The database was
-  rebuilt from `ledova_walkthrough_20261021_before_1421` and the same records were added again
-  through the API, so every record has its file. The walkthrough now runs from the main checkout,
-  which holds its uploads.
+  rebuilt from `ledova_walkthrough_20261021_before_1421`. The two direct steps were repeated with the
+  same passwords, and every other record was added again through the API, so every record has its
+  file. The walkthrough now runs from the main checkout, which holds its uploads.
 
 ## Current handover — 29 October 2026
 
@@ -179,8 +180,9 @@ since 27 October, were made active. Every other record below went through the AP
 - The walkthrough database was rebuilt and given demo data at the owner's request.
 - [#1431](https://github.com/Ledova/ledova/issues/1431) rebuilt ledova.io on a fresh database on
   30 October 2026, serving main `90274b07`. At the owner's choice it kept no earlier test data, so
-  it has no accounts until someone signs up. At the owner's request, every branch except `main`,
-  every extra worktree and ledova.io's old data and backups were then deleted.
+  it has no accounts until someone signs up and no staff account until one is created. At the
+  owner's request, every branch except `main`, every extra worktree and ledova.io's old data and
+  backups were then deleted ([record](operations/evidence/ledova-io-rebuild-2026-10-30.md)).
 
 ## Continue on this Mac
 
@@ -189,9 +191,9 @@ moved here. Pull current main, read AGENTS.md, CONTRIBUTING.md and the accepted 
 new work. Reuse the running servers and database. Do not start another instance on an occupied port.
 
 The dashboard normally runs at **http://localhost:5173** and the API at **http://localhost:8000**.
-When no account can sign in, the API is usually not running: **http://localhost:8000/health/**
-should answer `OK`. PostgreSQL must be running. If stopped, use separate terminals for the existing
-local launchers:
+When no account can sign in, check that the API answers: **http://localhost:8000/health/** should
+return `OK`. PostgreSQL must be running. If the API or dashboard has stopped, start them in separate
+terminals:
 
 ```sh
 cd /Users/ronildo/Developer/ledova

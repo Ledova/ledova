@@ -112,6 +112,7 @@ descriptions of current behaviour.
 
 | Record                                                                                     | What it records                                                                                |
 | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| [ledova.io rebuild, 30 October 2026](evidence/ledova-io-rebuild-2026-10-30.md)             | The fresh-database rebuild that kept no earlier records, and its rolled-back first switch      |
 | [ledova.io rebuild, 11 October 2026](evidence/ledova-io-rebuild-2026-10-11.md)             | The completed fresh-database rebuild and release of the private test deployment                |
 | [Essential journey, 11 October 2026](evidence/essential-register-2026-10-11.md)            | The fresh-schema company and member observation and its substitutions                          |
 | [Demonstration journey, September 2026](evidence/demonstration-journey-2026-09.md)         | The original synthetic chain journey                                                           |
