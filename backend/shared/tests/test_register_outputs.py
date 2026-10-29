@@ -20,7 +20,7 @@ from companies.services.team import (
     revoke_company_appointment,
 )
 from shared.db import atomic, use_operator
-from shared.tests.core_fixtures import CoreFixtures, person, retained_evidence
+from shared.tests.core_fixtures import CoreFixtures, retained_evidence
 from tokens.models import (
     MemberCertificateFulfilment,
     RegisterEvidenceKind,
@@ -355,13 +355,13 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(packed.status_code, 200, getattr(packed, "content", b""))
         archive = b"".join(packed.streaming_content)
-        staff, _ = person("core-staff")
         with use_operator():
-            type(staff).objects.filter(pk=staff.pk).update(is_staff=True)
+            type(self.owner).objects.filter(pk=self.owner.pk).update(is_staff=True)
             produced, _ = produce_company_pack(
-                self.company, staff, instruction="SYNTHETIC-COMPELLED-REQUEST", recipient="Synthetic regulator"
+                self.company, self.owner, instruction="SYNTHETIC-COMPELLED-REQUEST", recipient="Synthetic regulator"
             )
             produced.close()
+            type(self.owner).objects.filter(pk=self.owner.pk).update(is_staff=False)
         history = self.client.get(f"/api/v1/companies/{self.company.pk}/packs/")
         self.assertEqual(history.status_code, 200, history.content)
         self.assertEqual(
@@ -427,7 +427,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertTrue(bundle.read(agreement_path).startswith(b"%PDF"))
             self.assertNotIn(str(self.foreign_company.pk), str(sources))
         with use_operator():
-            audit = RegisterExport.objects.get(kind="company_pack", requested_by_id=self.owner.pk)
+            audit = RegisterExport.objects.get(kind="company_pack", produced_through="company")
             self.assertEqual(audit.digest, hashlib.sha256(manifest_bytes).hexdigest())
             self.assertEqual(audit.requested_by_id, self.owner.pk)
             self.assertEqual(int(self.token.stored_register.issued_supply), 150)

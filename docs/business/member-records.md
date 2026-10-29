@@ -54,10 +54,12 @@ with the person, share class or company Settings.
 | Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**               | As for a core pack                                       |
 
 Ledova keeps a fingerprint, not the file, except for a member's certificate. Output records cannot
-be rewritten. Platform staff read them all. **Inspection copies** lists a class's copies to its
-current register readers, and **Company pack** lists the company's packs to its current
-administrators. Both show only outputs prepared by people appointed at that company, never one a staff
-account produced, such as a pack produced on a document that compels disclosure. Records are kept for
+be rewritten, and each records whether it was produced through the company's pages or platform
+admin. Platform staff read them all. **Inspection copies** lists a class's copies to its current
+register readers, and **Company pack** lists the company's packs to its current administrators.
+Both show only outputs produced through the company's pages, never one produced in admin, such as a
+pack produced on a document that compels disclosure. Records made before 29 October 2026 carry no
+route and are not listed. Records are kept for
 the register's seven-year floor
 (2,557 days) before the daily purge ([retention](../engineering/security.md#retention-clocks)). A
 refused or failed output records nothing, and each output reads one consistent moment of the

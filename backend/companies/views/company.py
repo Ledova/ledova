@@ -35,8 +35,8 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         "the exact current personal administrator appointment and actor-bound service checks. Company pack "
         "download captures one supported complete archive, refuses restricted categories and rechecks the "
         "personal administrator and tenant before recording the immutable delivery audit. The list of earlier "
-        "packs requires the same current personal administrator and shows only packs prepared by people appointed "
-        "at the company, never one platform staff produced."
+        "packs requires the same current personal administrator and shows only packs recorded as produced through "
+        "the company's pages, never one produced in platform admin."
     )
     http_method_names = ["get", "post", "patch", "head", "options"]
     filterset_class = CompanyFilter

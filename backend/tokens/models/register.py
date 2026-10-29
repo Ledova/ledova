@@ -115,6 +115,11 @@ class RegisterExportKind(models.TextChoices):
     COMPANY_PACK = "company_pack", "Company pack"
 
 
+class RegisterExportRoute(models.TextChoices):
+    COMPANY = "company", "Company pages"
+    ADMIN = "admin", "Platform admin"
+
+
 class RegisterExport(BaseModel):
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.DO_NOTHING, related_name="register_exports")
     requested_by_id = models.PositiveBigIntegerField(editable=False)
@@ -128,10 +133,17 @@ class RegisterExport(BaseModel):
     recipient = models.CharField(max_length=255, blank=True, editable=False)
     late = models.BooleanField(null=True, editable=False)
     period_from = models.DateField(null=True, editable=False)
+    produced_through = models.CharField(
+        max_length=8, choices=RegisterExportRoute.choices, blank=True, default="", editable=False
+    )
 
     class Meta:
         ordering = ["-created_at", "-uuid"]
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(produced_through__in=["", *RegisterExportRoute.values]),
+                name="register_export_produced_through",
+            ),
             models.CheckConstraint(
                 condition=~models.Q(kind=RegisterExportKind.INSPECTION_COPY)
                 | (

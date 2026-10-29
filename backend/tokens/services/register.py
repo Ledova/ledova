@@ -50,6 +50,7 @@ from tokens.models import (
     RegisterEntryKind,
     RegisterExport,
     RegisterExportKind,
+    RegisterExportRoute,
     RegisterImport,
     RegisterMember,
     RegisterMemberCessation,
@@ -729,7 +730,9 @@ def inspection_copy_preview(token):
     return {"token": token.pk, "register_sequence": register["sequence"], "source_digest": digest}
 
 
-def prepare_inspection_copy(token, requested_by, *, instruction, requested_on, recipient, source_digest=None) -> bytes:
+def prepare_inspection_copy(
+    token, requested_by, *, instruction, requested_on, recipient, produced_through, source_digest=None
+) -> bytes:
     produced_on = timezone.localdate(timezone=STATUTORY_CALENDAR)
     if requested_on > produced_on:
         raise ValidationError("The request date cannot be in the future.")
@@ -760,6 +763,7 @@ def prepare_inspection_copy(token, requested_by, *, instruction, requested_on, r
         instruction=instruction,
         requested_on=requested_on,
         recipient=recipient,
+        produced_through=produced_through,
         late=late,
     )
     return content
@@ -893,6 +897,7 @@ def prepare_certificate(token, requested_by, *, sequence, instruction="", source
         register_sequence=entry.sequence,
         member_rows=page_count,
         former_rows=0,
+        produced_through=RegisterExportRoute.COMPANY,
         digest=hashlib.sha256(content).hexdigest(),
         instruction=instruction
         or f"Unsigned certificate requested for ledger entry {entry.pk} (sequence {entry.sequence}).",
@@ -989,6 +994,7 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
         register_sequence=register["sequence"],
         member_rows=len(changed),
         former_rows=0,
+        produced_through=RegisterExportRoute.ADMIN,
         digest=hashlib.sha256(content).hexdigest(),
         instruction=instruction,
         period_from=period_from,

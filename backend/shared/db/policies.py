@@ -594,7 +594,8 @@ OPERATOR_ONLY = {
     "file names, extraction values or file contents, and outlive document content purges.",
     "tokens_registerexport": "Immutable records of who prepared an inspection copy, a certificate, notice figures or a "
     "company pack from a share class's register; register CSV exports made before that download was removed remain "
-    "as retained records. Every writer is on the operator connection: tokens/services/register.py "
+    "as retained records. Each records in produced_through whether the company's pages or platform admin produced "
+    "it. Every writer is on the operator connection: tokens/services/register.py "
     "prepare_inspection_copy and prepare_certificate for ShareTokenViewSet's register_inspection_copy and "
     "register_certificate actions; prepare_notice_figures for the register outputs admin; "
     "tokens/services/member_certificates.py fulfil_member_certificate for MemberCertificateRequestViewSet.fulfil; "
@@ -605,8 +606,8 @@ OPERATOR_ONLY = {
     "register outputs admin and for _build_company_pack on both company pack paths; RegisterExportAdmin for staff; "
     "tokens/services/output_history.py inspection_copy_history and company_pack_history for "
     "ShareTokenViewSet.register_inspection_copies and CompanyViewSet.packs, which list to a company's current "
-    "register readers or administrators only the inspection copies and packs prepared by people appointed at "
-    "that company, never one a staff account produced; "
+    "register readers or administrators only the inspection copies and packs whose produced_through records the "
+    "company's own pages, never one produced in platform admin; "
     "and the trigger function tokens_guard_member_certificate_fulfilment, which checks the export a member "
     "certificate is bound to. Only tokens/services/former_holders.py purge_register_exports deletes them, on the "
     "retention clock, and it keeps every export bound to a member certificate fulfilment.",
