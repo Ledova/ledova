@@ -1,4 +1,4 @@
-import { WALLETS_QUERY_KEY } from './useSubscriptions';
+import { WALLETS_QUERY_KEY } from './useBuyWallets';
 import { useQuery } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';

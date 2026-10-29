@@ -57,21 +57,17 @@ target state.
 
 Today the [users](../product.md#1-who-uses-ledova) act as follows.
 
-| Who                                     | What they do today                                                                                                                                                                                                                                                                                                                                                                          |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up and activate the company, appoint the team, record share classes through the API, run the register, record awards and allotments, decide participant eligibility and wallet approvals, invite members and prepare outputs.                                         |
-| The registering account (company owner) | The account that registered the company. Ownership grants no appointment and supplies no register decision. It keeps some earlier owner-only workflows: creating and submitting offerings, submitting the directors' register instructions for settled market transfers and retained issues, opening Representative authority and Published to your members. It can also read the register. |
-| Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards, ask the company to change particulars and obtain their own certificates ([member records](member-records.md)). Being a member grants no company authority.                                       |
-| Investors                               | People with an investing account. They verify their identity, share evidence with a company to obtain its eligibility decision, nominate wallets, apply for offerings and, on the experimental deployment, trade ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                |
-| Platform staff                          | Run hosting, security, integrations, background jobs and support, and recover technical failures. Separately authorised staff handle crypto, screening and payment operations. Staff permissions never count as a company appointment.                                                                                                                                                      |
-| Automation                              | Validates and applies exact company-approved instructions, signs chain transactions with the platform's operator key, reconciles records and reports failures. It records the human decision behind each effect and never supplies company authority.                                                                                                                                       |
+| Who                                     | What they do today                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up and activate the company, appoint the team, record share classes through the API, run the register, record awards and allotments, decide participant eligibility and wallet approvals, invite members and prepare outputs.      |
+| The registering account (company owner) | The account that registered the company. Ownership grants no appointment and supplies no register decision. It keeps some earlier owner-only workflows: submitting the directors' register instructions for settled market transfers and retained issues, opening Representative authority and Published to your members. It can also read the register. |
+| Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards, ask the company to change particulars and obtain their own certificates ([member records](member-records.md)). Being a member grants no company authority.    |
+| Investors                               | People with an investing account. They verify their identity, share evidence with a company to obtain its eligibility decision and nominate wallets ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                                          |
+| Platform staff                          | Run hosting, security, integrations, background jobs and support, and recover technical failures. Separately authorised staff handle crypto, screening and payment operations. Staff permissions never count as a company appointment.                                                                                                                   |
+| Automation                              | Validates and applies exact company-approved instructions, signs chain transactions with the platform's operator key, reconciles records and reports failures. It records the human decision behind each effect and never supplies company authority.                                                                                                    |
 
 Platform staff still perform these tasks, each described where linked:
 
-- review, approve, reject and close offerings, accept applications and issue their payment
-  instructions, record primary payments and refunds, and scale offerings back
-  ([offerings](issuing-shares.md#offerings);
-  [applications and payments](issuing-shares.md#applications-payments-and-paid-issues));
 - publish documents, resolutions, dividends and payment records, and enter represented ballots, on
   the company's written instruction ([publications](publications.md));
 - work the due list, and prepare notice figures and broader restricted company packs on written
@@ -173,7 +169,7 @@ retained issues, which platform staff review and apply ([settled transfers](regi
 
 ### Named directors
 
-Issues (grants, paid issues and allotments), company-recorded transfers, openings, corrections and
+Issues (grants and allotments), company-recorded transfers, openings, corrections and
 wallet links rest on documentary authority: the company names the approving director and uploads
 the director resolution, or a court order where one applies. A company appointment supplies the
 capability to record the decision; it does not make the appointee that director. The director need
@@ -241,9 +237,9 @@ the company information they may read. The sidebar keeps focused tasks for the s
   Documents opens one Certificates page for company and member records, with Published (what the
   company published to its members), Inspection copies and Company pack where company access permits
   them. Matching company and own records appear once.
-- Offerings follows for the company's own account, and Company eligibility for its administrators and
-  the people appointed to prepare or approve. Its sidebar label is Eligibility, and administrators
-  find Supporting (the company's documents) beneath it.
+- Company eligibility follows for its administrators and the people appointed to prepare or approve.
+  Its sidebar label is Eligibility, and administrators find Supporting (the company's documents)
+  beneath it.
 - Activity, the person's own wallet transfers, and Settings come last whatever company is selected.
   Settings keeps personal Profile and Account, with company information, Team and Activation according
   to current access. Profile also shows the details a company holds about a linked member.
@@ -302,13 +298,15 @@ Follow a company and its participants through Ledova:
    from the chain, corrections, particulars, wallet links, reconciliation, transfers and former
    members.
 4. [Issuing shares](issuing-shares.md): share classes, employee awards and vesting,
-   grants, externally arranged allotments, offerings and subscriptions.
+   grants and externally arranged allotments.
 5. [Member access and register outputs](member-records.md): member invitations,
    own records and requests, inspection copies, certificates, notice figures and the company pack.
 6. [Shareholder publications](publications.md): documents, resolutions and
    ballots, and distributions with their payment records.
 7. [Wallets, transfers and trading](trading.md): wallet sends, the experimental
    market and how trading sits beside company decisions.
+
+Planned for a later release: [offerings and applications](offerings.md).
 
 Next: [company setup](companies.md) ·
 [engineering overview](../engineering/README.md) ·

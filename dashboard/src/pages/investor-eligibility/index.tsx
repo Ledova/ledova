@@ -5,7 +5,7 @@ import { LinkRow, Row, Rows, Section, Status, type Tone, LoadError, Loading } fr
 import { Page, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { useInvestorWithdrawal } from './useInvestorWithdrawal';
-import { CATEGORIES, REASON_TEXT, WHOLESALE_ONLY_NOTICE } from './constants';
+import { CATEGORIES, REASON_TEXT } from './constants';
 import { ClaimModal } from './ClaimModal';
 import { useInvestorEligibility } from './useInvestorEligibility';
 import { DocumentsPanel } from './DocumentsPanel';
@@ -62,9 +62,7 @@ export default function InvestorEligibilityPage() {
                   {isReady ? 'Account ready' : 'Account checks needed'}
                 </Status>
               </p>
-              {isReady ? (
-                <LinkRow to={DESTINATIONS.directory.path} label={DESTINATIONS.directory.title} />
-              ) : (
+              {!isReady && (
                 <ul className="space-y-1 text-sm text-text-muted">
                   {refusalSentences(eligibility?.reasons ?? [], REASON_TEXT).map((sentence) => (
                     <li key={sentence}>{sentence}</li>
@@ -72,10 +70,9 @@ export default function InvestorEligibilityPage() {
                 </ul>
               )}
               <p className="text-sm text-text-muted">
-                Account readiness does not grant investment access. Each company decides eligibility for its own
-                offerings and share classes.
+                Account readiness grants no access by itself. Each company decides eligibility for its own share
+                classes.
               </p>
-              <p className="text-sm text-text-muted">{WHOLESALE_ONLY_NOTICE}</p>
             </Section>
 
             <Section title="Your claims">
@@ -144,8 +141,8 @@ export default function InvestorEligibilityPage() {
                 ))}
               </div>
               <p className="text-sm text-text-muted">
-                After adding evidence, request eligibility for the exact company or offering and consent to sharing it.
-                The company records its own decision; new investment actions recheck that decision and its scope.
+                After adding evidence, request eligibility from the exact company and consent to sharing it. The company
+                records its own decision; new actions recheck that decision and its scope.
               </p>
             </Section>
           </>

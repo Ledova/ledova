@@ -19,11 +19,6 @@ import type {
   ShareIssuanceRequestQueryParams,
 } from '../types';
 
-export const getCompanyTokens = (
-  apiClient: AxiosInstance,
-  params?: { page?: number; page_size?: number; status?: string; company_uuid?: string },
-) => apiClient.get<PaginatedResponse<CompanyShareTokenListItem>>(COMPANY_TOKEN_ENDPOINTS.BASE, { params });
-
 export const getCompanyToken = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
   apiClient.get<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid), config);
 

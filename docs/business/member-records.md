@@ -540,16 +540,14 @@ cannot be read is listed under the asset's name. Company-recorded shares, wallet
 
 Below the shares:
 
-- **Needs you** lists draft applications and payment instructions, and counts resolutions awaiting
-  the person's vote with the first close.
-- **In progress** lists applications under way and counts dividends awaiting a payment record from
-  the company, which is not proof of a bank transfer.
+- **Needs you** counts resolutions awaiting the person's vote with the first close.
+- **In progress** counts dividends awaiting a payment record from the company, which is not proof of
+  a bank transfer.
 - **Recently published to you** lists the three latest notices, each with its company, kind, date
   and, for a resolution, until when voting is open.
 
-Only an investing account sees applications. Actions only open the application or
-[Notices](publications.md#the-notices-page), which defines what counts as waiting; nothing submits,
-pays or votes here.
+Actions only open [Notices](publications.md#the-notices-page), which defines what counts as waiting;
+nothing pays or votes here.
 
 Next: [the register of members](register.md),
 [shareholder publications](publications.md),

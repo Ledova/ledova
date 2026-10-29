@@ -6,7 +6,6 @@ import type {
   MemberParticularsRequest,
   OwnCompanyAppointment,
 } from '../../types';
-import type { SubscriptionStatus } from './subscriptions';
 
 export const ELIGIBILITY_OUTCOME_LABELS: Record<CompanyEligibilityRequest['outcome'], string> = {
   pending: 'Pending',
@@ -62,18 +61,6 @@ export const DEPLOYMENT_SWAP_APPROVAL_LABELS: Record<string, string> = {
   observed_approved: 'Existing approval observed',
   not_configured: 'Swap unavailable at deployment',
   failed: 'Approval failed',
-};
-
-export const COMPANY_SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
-  draft: 'Draft',
-  submitted: 'Submitted',
-  accepted: 'Accepted',
-  awaiting_payment: 'Awaiting payment',
-  paid: 'Paid',
-  allotted: 'Allotted',
-  rejected: 'Rejected',
-  withdrawn: 'Withdrawn',
-  refunded: 'Refunded',
 };
 
 export const IDENTITY_SOURCE_LABELS: Record<string, string> = {

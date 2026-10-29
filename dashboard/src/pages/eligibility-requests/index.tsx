@@ -3,7 +3,6 @@ import { useRunningAction } from '@hooks/useRunningAction';
 import { useEntryReads } from '@hooks/useEntryReads';
 import { useCallback, useState } from 'react';
 import {
-  FIELD_LIMITS,
   DESTINATIONS,
   ELIGIBILITY_RECORDS_NOTICE,
   formatDate,
@@ -13,7 +12,7 @@ import {
 } from '@ledova/shared';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { useDirectoryNames } from '@hooks/useDirectoryNames';
+import { useCompanyNames } from '@hooks/useCompanyNames';
 import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
@@ -38,17 +37,10 @@ export default function ParticipantEligibilityPage() {
   useEntryReads({ scope: read.owner ? read.scopeKey : null, paused: read.readingPaused, refresh: read.refresh });
   const { running, track } = useRunningAction();
   const source = read.sources.find((item) => item.uuid === read.draft.source);
-  const directory = useDirectoryNames();
-  const productValue = source?.category === 'product_value';
-  const quantity = read.draft.quantity;
+  const companyName = useCompanyNames();
   const request = useErrorSummary({
     source: !source && 'Choose your evidence source.',
-    offering: productValue && !isUuid(read.draft.offering) && 'Enter the approved offering ID.',
-    quantity:
-      productValue &&
-      (!/^[1-9]\d*$/.test(quantity) || !Number.isSafeInteger(Number(quantity))) &&
-      'Enter a positive whole-share quantity.',
-    company: !productValue && !isUuid(read.draft.company) && 'Enter the company ID supplied by the company.',
+    company: !isUuid(read.draft.company) && 'Enter the company ID supplied by the company.',
     requestedExpiresAt:
       !Number.isFinite(Date.parse(read.draft.requestedExpiresAt)) && 'Enter the requested expiry date and time.',
   });
@@ -73,9 +65,8 @@ export default function ParticipantEligibilityPage() {
               <ErrorSummary {...request.summary} />
               <LinkRow to={DESTINATIONS.investorEligibility.path} label={DESTINATIONS.investorEligibility.title} />
               <p className="text-sm text-text-muted">
-                Select your own submitted evidence or retained historical evidence. Enter the company ID supplied by the
-                company, or an approved offering&apos;s offering ID for a product-value claim. The server confirms the
-                target and terms.
+                Select your own submitted evidence or retained historical evidence, and enter the company ID supplied by
+                the company. The server confirms the company.
               </p>
               <SelectField
                 {...request.field('source')}
@@ -91,38 +82,15 @@ export default function ParticipantEligibilityPage() {
                 value={read.draft.source}
                 onChange={(source) => {
                   request.reset();
-                  read.updateDraft({ source, company: '', offering: '', quantity: '' });
+                  read.updateDraft({ source, company: '' });
                 }}
               />
-              {productValue ? (
-                <>
-                  <Field
-                    {...request.field('offering')}
-                    label="Offering ID"
-                    hint={directory.offering(read.draft.offering)}
-                  >
-                    <TextInput
-                      value={read.draft.offering}
-                      onChange={(event) => read.updateDraft({ offering: event.target.value })}
-                    />
-                  </Field>
-                  <Field {...request.field('quantity')} label="Whole-share quantity">
-                    <TextInput
-                      inputMode="numeric"
-                      maxLength={FIELD_LIMITS.WHOLE_SHARES}
-                      value={read.draft.quantity}
-                      onChange={(event) => read.updateDraft({ quantity: event.target.value })}
-                    />
-                  </Field>
-                </>
-              ) : (
-                <Field {...request.field('company')} label="Company ID" hint={directory.company(read.draft.company)}>
-                  <TextInput
-                    value={read.draft.company}
-                    onChange={(event) => read.updateDraft({ company: event.target.value })}
-                  />
-                </Field>
-              )}
+              <Field {...request.field('company')} label="Company ID" hint={companyName(read.draft.company)}>
+                <TextInput
+                  value={read.draft.company}
+                  onChange={(event) => read.updateDraft({ company: event.target.value })}
+                />
+              </Field>
               <Field {...request.field('requestedExpiresAt')} label="Requested expiry (local date and time)">
                 <TextInput
                   type="datetime-local"
@@ -162,7 +130,7 @@ export default function ParticipantEligibilityPage() {
                   records={read.records}
                   select={read.selectRecord}
                   selected={read.selectedRecord?.uuid}
-                  companyName={(uuid) => directory.companies.get(uuid)}
+                  companyName={companyName}
                 />
               </Section>
             )}

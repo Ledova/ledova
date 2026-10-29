@@ -239,8 +239,6 @@ Rules:
   the registry lookup says a number belongs to a real company.
 - Changing the registered name, ACN, ABN, company type or officeholder declaration sets the registry
   check back to pending, so the next activation runs a fresh lookup.
-- A document attached to an approved or closed offering cannot be removed, because investors may
-  already have read it ([offer documents](issuing-shares.md#offer-documents)).
 
 ### Staff verification of a company document
 
@@ -268,14 +266,12 @@ needs a current verification of one of the company's documents and records its f
 ## Activation and the registry check
 
 A current personal administrator activates the company on the web. Activation is what
-allows participants to request the company's eligibility decisions and, once it is
-[open to investors](issuing-shares.md#listing-the-company-in-the-directory), to apply for its
-offerings. It establishes no offering, share issue, payment, participant eligibility or wallet
-approval. Signup does not look the company up in the ABR; activation does. Before activation, the
+allows participants to request the company's eligibility decisions. It establishes no share issue,
+payment, participant eligibility or wallet approval. Signup does not look the company up in the ABR; activation does. Before activation, the
 company's administrators can keep its own non-tokenised register records, such as the mirrored
-register, awards, allotments, transfers and member access, but eligibility decisions, offerings,
-chain deployments and issues, paid issues, capital increases and company wallet instructions wait
-for an Active company.
+register, awards, allotments, transfers and member access, but eligibility decisions,
+chain deployments and issues, capital increases and company wallet instructions wait for an Active
+company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
 2. Open **Settings → Activation** on web, shown only to personal administrators, or use the same
@@ -363,9 +359,9 @@ On web, select the company in Dashboard. Settings opens Profile, combining perso
 company and account sections with separate editors and permissions. Team and Activation have their
 own Settings items, and **Eligibility** → **Supporting** holds the company's supporting
 documents, where current access permits, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
-**Offerings** and **Eligibility** (Company eligibility) have their own sidebar items, and **Documents** →
-**Published** opens Published to your members
-([the Published page](publications.md#the-published-page)), each where current access permits.
+**Eligibility** (Company eligibility) has its own sidebar item, and **Documents** → **Published**
+opens Published to your members ([the Published page](publications.md#the-published-page)), each
+where current access permits.
 
 Share classes are listed and added only in [Ledger](register.md#bringing-in-existing-records).
 

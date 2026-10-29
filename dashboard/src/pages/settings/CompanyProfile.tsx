@@ -6,7 +6,6 @@ import { type Company, useCompanySelection } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { CopyButton } from '@components/CopyButton';
-import { TOKENS_QUERY_KEY } from '@hooks/useTokensList';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
 import { EditCompanyForm } from './CompanyForms';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
@@ -30,7 +29,6 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: data.companyKey, exact: true }),
       queryClient.invalidateQueries({ queryKey: data.companiesKey, exact: true }),
-      queryClient.invalidateQueries({ queryKey: TOKENS_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: ['member-records'] }),
     ]);

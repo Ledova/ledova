@@ -38,24 +38,16 @@ export {
 export { useResolutionStatus } from './useResolutionStatus';
 export { useShareHoldings } from './useShareHoldings';
 export { walletHoldingsKey, useWalletHoldings } from './useWalletHoldings';
-export { buyWalletsKey, useBuyWallets } from './useBuyWallets';
+export { WALLETS_QUERY_KEY, buyWalletsKey, useBuyWallets } from './useBuyWallets';
 export {
   INVESTOR_CLASSIFICATIONS_QUERY_KEY,
+  INVESTOR_ELIGIBILITY_QUERY_KEY,
   investorClassificationsKey,
   useInvestorClassifications,
 } from './useInvestorClassifications';
-export { OFFERINGS_QUERY_KEY, companyOfferingsKey, useCompanyOfferings } from './useCompanyOfferings';
 export { useOpenRows } from './useOpenRows';
 export { WALLET_SORTS, sortWallets, useWalletSort } from './useWalletSort';
 export type { WalletSortOption } from './useWalletSort';
-export {
-  useDirectoryDocuments,
-  useDirectoryToken,
-  useDirectoryTokens,
-  DIRECTORY_QUERY_KEY,
-  INVESTOR_ELIGIBILITY_QUERY_KEY,
-  OPERATOR_QUERY_KEY,
-} from './useDirectory';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { SIGNUP_RESTART_FIELDS, useSignupRestart } from './useSignupRestart';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
@@ -70,14 +62,6 @@ export {
   SIGNUP_COMPANY_QUERY_KEY,
   SIGNUP_COMPANY_DETAIL_QUERY_KEY,
 } from './useSignupReview';
-export {
-  useSubscribableWallets,
-  useSubscriptions,
-  useSubscriptionDetail,
-  subscriptionDetailKey,
-  SUBSCRIPTIONS_QUERY_KEY,
-  WALLETS_QUERY_KEY,
-} from './useSubscriptions';
 export { useTransactions, ALL_TRANSACTIONS_QUERY_KEY } from './useTransactions';
 export type { TransactionFilters } from './useTransactions';
 export { useLaterPages } from './useLaterPages';
@@ -98,14 +82,11 @@ export {
   REGISTER_ISSUE_DECISIONS,
   REGISTER_CAPITAL_INCREASE_DECISIONS,
   REGISTER_PAUSE_CHANGE_DECISIONS,
-  REGISTER_PAID_ISSUE_DECISIONS,
   REGISTER_ALLOTMENT_DECISIONS,
 } from './useRegisterDecision';
 
 export { useCompanyCapitalIncreases } from './useCompanyCapitalIncreases';
 export { useCompanyPauseChanges } from './useCompanyPauseChanges';
-
-export { useCompanyPaidIssues } from './useCompanyPaidIssues';
 
 export { ownMemberRecordsKey, useMemberRecords } from './useMemberRecords';
 
@@ -120,5 +101,5 @@ export {
 } from './useCompanyEligibilityRecords';
 
 export { useUserProfile } from './useUserProfile';
-export { useOperator } from './useOperator';
+export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
 export { usePublications, PERSONAL_NOTICES_QUERY_KEY } from './usePublications';

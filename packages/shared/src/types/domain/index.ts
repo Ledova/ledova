@@ -33,13 +33,10 @@ export * from './register-opening';
 export * from './register-particulars';
 export * from './register-reconciliation';
 export * from './operator';
-export * from './offering';
-export * from './subscription';
 export * from './publication';
 export * from './register-issue';
 export * from './register-capital-increase';
 export * from './register-pause-change';
-export * from './register-paid-issue';
 
 export * from './register-allotment';
 

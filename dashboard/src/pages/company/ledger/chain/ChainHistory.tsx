@@ -102,9 +102,6 @@ export function ChainHistory({ uuid, data }: { uuid: string; data: ReturnType<ty
             <p className="text-text-muted">
               {issuance.statusDisplay} · {formatDate(issuance.createdAt)}
             </p>
-            {issuance.subscriptionReference && (
-              <p className="text-text-muted">Application {issuance.subscriptionReference}</p>
-            )}
           </li>
         ))}
       </History>

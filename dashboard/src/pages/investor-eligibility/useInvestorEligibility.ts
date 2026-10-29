@@ -5,7 +5,6 @@ import {
   INVESTOR_CLASSIFICATIONS_QUERY_KEY,
   getInvestorReadiness,
   INVESTOR_ELIGIBILITY_QUERY_KEY,
-  DIRECTORY_QUERY_KEY,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 
@@ -24,7 +23,6 @@ export function useInvestorEligibility() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: INVESTOR_ELIGIBILITY_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: INVESTOR_CLASSIFICATIONS_QUERY_KEY }),
-      queryClient.invalidateQueries({ queryKey: DIRECTORY_QUERY_KEY }),
     ]);
 
   return {

@@ -17,7 +17,7 @@ import {
 import { FormActions, PageAction } from '@components/Page';
 import { Row, Rows, Section, LoadError } from '@components/Ledger';
 import { WalletVerificationModal } from '@components/wallet/WalletVerificationModal';
-import { useDirectoryNames } from '@hooks/useDirectoryNames';
+import { useCompanyNames } from '@hooks/useCompanyNames';
 
 function Facts({ preview, company }: { preview: WalletNominationPreview; company: string }) {
   return (
@@ -58,9 +58,8 @@ export function WalletNomination({
     pausedScope: verifying?.scope,
   });
   const { running, track } = useRunningAction();
-  const directory = useDirectoryNames();
-  const companyName = (uuid: string) =>
-    directory.companies.get(uuid.toLowerCase()) ?? `Company ${shortReference(uuid)}`;
+  const named = useCompanyNames();
+  const companyName = (uuid: string) => named(uuid) ?? `Company ${shortReference(uuid)}`;
   const reads = [data.request, data.nominations, data.wallets];
   const readFailed = reads.some((read) => read.isError);
   const [consent, setConsent] = useState<{ preview: WalletNominationPreview | null; accepted: boolean }>({

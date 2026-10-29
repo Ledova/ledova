@@ -99,12 +99,15 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
   page with the client code only it used. The trading API is unchanged. At the owner's request sidebar
   items stay on one line: Employee scheme, Eligibility, Supporting and Published replace longer
   labels, and Supporting sits under Eligibility.
+- [#1421](https://github.com/Ledova/ledova/issues/1421) takes offerings out of the first release. The
+  web client went first (Offerings, Directory, Applications, paid issues and the large-investment
+  claim); the backend removal follows. [Planned offerings](business/offerings.md) keeps their design.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
   - No internal IDs are shown. A short reference appears only where records would otherwise read
-    the same or have no name, and **Company ID** and **Offering ID** appear in full, with Copy, for a
-    company to give investors.
+    the same or have no name, and **Company ID** appears in full, with Copy, for a company to give
+    investors.
   - `Disclosure` remains only for Activity's entries, Wallet shares' rows and Wallets' sort.
 - **Process:**
   - A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date

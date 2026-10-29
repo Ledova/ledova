@@ -3,7 +3,8 @@ import { getWallets } from '../services/wallets';
 import type { BuyableAssetConfig } from '../constants/business/wallets';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
-import { WALLETS_QUERY_KEY } from './useSubscriptions';
+
+export const WALLETS_QUERY_KEY = ['wallets'] as const;
 
 export function buyWalletsKey(userAccountUuid: string | undefined, chain: BuyableAssetConfig['chain'] | undefined) {
   return [

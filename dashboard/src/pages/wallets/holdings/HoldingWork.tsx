@@ -7,35 +7,11 @@ import {
   formatDateTime,
   useResolutionStatus,
   type Publication,
-  shareCount,
 } from '@ledova/shared';
 import { Section, Status, LoadError, Loading } from '@components/Ledger';
 import { useHoldingWork } from './useHoldingWork';
-import type { ApplicationWork } from './applicationWork';
 
 const LINK = 'text-sm font-medium text-brand-light underline underline-offset-4';
-
-function Applications({ rows }: { rows: ApplicationWork[] }) {
-  return (
-    <ul className="divide-y divide-border-subtle">
-      {rows.map(({ application, description }) => (
-        <li key={application.uuid} className="grid items-start gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="min-w-0 flex-1 basis-48 break-words">
-            <p className="text-sm text-text-muted">{application.companyName}</p>
-            <p className="text-base text-text-primary">{application.tokenName}</p>
-            <p className="text-sm tabular-nums text-text-muted">{shareCount(application.quantity)}</p>
-          </div>
-          <Link
-            to={`${DESTINATIONS.subscriptions.path}/${application.uuid}`}
-            className={`${LINK} max-w-full break-words`}
-          >
-            {description}
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 function RecentNotice({ publication }: { publication: Publication }) {
   const open = useResolutionStatus(publication) === 'open';
@@ -60,42 +36,21 @@ function RecentNotice({ publication }: { publication: Publication }) {
 }
 
 export function HoldingWork() {
-  const { role, applications, notices, recent } = useHoldingWork();
-  const applicationsReady = role.isKnown && (!role.isInvestor || applications.isSuccess);
-  const showApplications = role.isKnown && role.isInvestor && applications.isSuccess;
-  const needsYou = showApplications ? applications.data.needsYou : [];
-  const inProgress = showApplications ? applications.data.inProgress : [];
+  const { notices, recent } = useHoldingWork();
   const summary = notices.isError ? undefined : notices.summary;
-  const complete = applicationsReady && summary !== undefined;
+  const complete = summary !== undefined;
   const votes = summary?.openResolutions ?? 0;
   const dividends = summary?.dividendsWithoutRecord ?? 0;
-  const showReadState =
-    !role.isKnown || (role.isInvestor && !applications.isSuccess) || notices.isPending || notices.isError;
 
   return (
     <>
-      {showReadState && (
-        <div className="flex flex-col gap-3">
-          {role.isUnavailable ? (
-            <LoadError retry={() => role.retry()} busy={role.isLoading}>
-              Your account type and applications could not be loaded.
-            </LoadError>
-          ) : !role.isKnown || (role.isInvestor && applications.isPending) ? (
-            <Loading>Loading your applications…</Loading>
-          ) : role.isInvestor && applications.isError ? (
-            <LoadError retry={() => applications.refetch()} busy={applications.isFetching}>
-              Your applications could not be loaded.
-            </LoadError>
-          ) : null}
-          {notices.isPending ? (
-            <Loading>Loading your notices…</Loading>
-          ) : notices.isError ? (
-            <LoadError retry={() => notices.retry()} busy={notices.isFetching}>
-              Your notices could not be loaded.
-            </LoadError>
-          ) : null}
-        </div>
-      )}
+      {notices.isPending ? (
+        <Loading>Loading your notices…</Loading>
+      ) : notices.isError ? (
+        <LoadError retry={() => notices.retry()} busy={notices.isFetching}>
+          Your notices could not be loaded.
+        </LoadError>
+      ) : null}
 
       <Section title="Needs you">
         {votes > 0 && (
@@ -115,16 +70,10 @@ export function HoldingWork() {
             </Link>
           </div>
         )}
-        <Applications rows={needsYou} />
-        {complete && votes === 0 && needsYou.length === 0 && (
-          <p className="py-3 text-sm text-text-muted">
-            {role.isInvestor ? 'No applications or votes need your attention.' : 'No votes need your attention.'}
-          </p>
-        )}
+        {complete && votes === 0 && <p className="py-3 text-sm text-text-muted">No votes need your attention.</p>}
       </Section>
 
       <Section title="In progress">
-        <Applications rows={inProgress} />
         {dividends > 0 && (
           <div className="grid items-start gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <p className="text-sm text-text-primary">
@@ -137,12 +86,8 @@ export function HoldingWork() {
             </Link>
           </div>
         )}
-        {complete && dividends === 0 && inProgress.length === 0 && (
-          <p className="py-3 text-sm text-text-muted">
-            {role.isInvestor
-              ? 'No applications or dividend records are in progress.'
-              : 'No dividend records are in progress.'}
-          </p>
+        {complete && dividends === 0 && (
+          <p className="py-3 text-sm text-text-muted">No dividend records are in progress.</p>
         )}
       </Section>
 

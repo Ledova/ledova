@@ -481,7 +481,7 @@ fence cannot establish absent historical authority or drain an external same-key
 ### Share issuances
 
 Company steps: [non-paid chain grants](../business/issuing-shares.md#non-paid-chain-grants) and
-[company paid issues](../business/issuing-shares.md#company-paid-issues); who reads proposals and
+[company paid issues](../business/offerings.md#company-paid-issues); who reads proposals and
 files: [rules every issue follows](../business/issuing-shares.md#rules-every-issue-follows); paid
 headroom and refunds: [subscription data flow](backend.md#subscription-data-flow).
 

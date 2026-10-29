@@ -13,7 +13,7 @@ and [mobile](mobile.md); what each page does is in the business section.
 - [Copy](#copy)
 - [Choosing a person](#choosing-a-person)
 - [Choosing a company](#choosing-a-company)
-- [Choosing a wallet or a paid subscription](#choosing-a-wallet-or-a-paid-subscription)
+- [Choosing a wallet](#choosing-a-wallet)
 - [Choosing from a short fixed list](#choosing-from-a-short-fixed-list)
 - [Choosing from a bounded list](#choosing-from-a-bounded-list)
 - [How the choice rules are enforced](#how-the-choice-rules-are-enforced)
@@ -41,16 +41,14 @@ mounted editors and drafts. Team's appointment rows show the company or person, 
 status or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
 acceptance or deadline and the appointment's expiry. Company documents (Eligibility → Supporting) has its own view, with Category and File in the inline upload.
-The remaining offering, publication, directory, application, wallet, activity and eligibility collections
-use this workspace frame, with their creation and record actions in the same footer. Each offering's row
-opens its own page, whose sections end with the actions they allow, and application summaries open their
-existing detail page. The other collections' short named/status summaries keep secondary facts and
-copyable technical references on demand.
+The remaining publication, wallet, activity and eligibility collections use this workspace frame, with
+their creation and record actions in the same footer. Their short named/status summaries keep
+secondary facts and copyable technical references on demand.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
 Employee share scheme, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
 cards, columns, class choices and default class (owner, 28 October 2026). Dashboard ranks its class
-list by issued shares, and Offerings keeps its own order. Ownership dashboards put their overview and charts before
+list by issued shares. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The selected company uses one
 ownership ring beside a linked class list, with full class names before their secondary codes.
 Names wrap without displacing the figures. Select a segment or class row to open an aligned class
@@ -145,7 +143,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such
   as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid
-  transfer", are named for the step or the task; a record's row, such as a share class in Directory,
+  transfer", are named for the step or the task; a record's row, such as a share class in Ledger,
   for the record; and a row that opens a section of a page, such as "Documents", for that
   section. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
   or opens an external resource.
@@ -164,7 +162,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   Member requests and Team rows don't expand: each shows its facts and status, with its permitted action right-aligned
   at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's
-  facts. Representative authority requests and offerings are `LinkRow`s that open each record's own page.
+  facts. Representative authority requests are `LinkRow`s that open each request's own page.
 - `Disclosure`: a button with `aria-expanded` and a leading caret that opens its detail in place
   under its row, used only by Activity's entries and Wallet shares' rows (opened independently
   through `useOpenRows` from `@ledova/shared`) and Wallets' sort, which hold their detail only while
@@ -186,9 +184,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   an alert in the card. A choice saved with a form stays a checkbox.
 - `Status` (web) is words after a small mark, read as words only; `Timeline` (web) dates each event;
   `Choice` (mobile) is an outlined choice marked selected. Each status family has its own
-  tone map; shared subscription and resolution-result tones live in
-  `dashboard/src/components/statusTones.ts`. Personal applications retain their moving fallback,
-  company applications their waiting fallback, and an open offering retains its override.
+  tone map; shared resolution-result tones live in `dashboard/src/components/statusTones.ts`.
 
 On workflow collections, show the saved records first, with class context once where needed.
 The sidebar footer identifies the current company. Keep each recipient, status and key facts together,
@@ -437,8 +433,8 @@ keep export and deletion under Manage account, with their existing confirmations
 belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation. Company-recorded particulars are a Profile card for a member of the selected company.
-**Offerings** follows Documents for the company's own account and **Company eligibility** for an
-administrator or a prepare or approve appointee, labelled **Eligibility**; for an administrator it uses
+**Company eligibility** follows Documents for an administrator or a prepare or approve appointee,
+labelled **Eligibility**; for an administrator it uses
 the same pattern, its label opening its own page and its caret showing **Supporting** (Company
 documents).
 **Activity**, the person's own wallet transfers, sits above Settings whatever company is selected.
@@ -468,8 +464,7 @@ members as Published, each with the full name as the link's `title`. `DESTINATIO
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
 link in the title row for a contextual task: Back to Team on Representative authority, Back to
-Representative authority on an authority request's page, Back to Offerings on an offering's page,
-Back to Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, Back
+Representative authority on an authority request's page, Back to Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, Back
 to Share class on a class's Chain actions page, and Back to Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
 by name. Register setup has none, on purpose
@@ -518,7 +513,6 @@ request, on pages and in dialogs, including:
 
 - downloads ("Downloading…", on the one document being fetched);
 - previews and preparations;
-- offering submissions and added offering documents;
 - deployment;
 - the wallet import and verification steps, and identity verification;
 - establishing an appointment;
@@ -545,16 +539,15 @@ same order as `FormActions`. Mobile's `Action` has no busy, pressed or destructi
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
-offering" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog:
+claim" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog:
 its text is the dialog's description, its action needs whatever enabled the action that opened it,
-and it stays open and busy until the request ends. It confirms withdrawing an offering, an
-application, a claim, a certificate request or a representative authority request; deleting a draft
-offering or a profile document; revoking member access; and removing a saved order reminder.
+and it stays open and busy until the request ends. It confirms withdrawing a claim, a certificate
+request or a representative authority request; deleting a profile document; and revoking member
+access.
 Deleting a wallet, a company document or the account, and revoking a company appointment, use the
 same destructive dialog with their own text. Company eligibility's request withdrawal and acceptance
 revocation are confirmed in their own review step instead, which shows the exact record and needs a
-confirming tick before its destructive action; Trading's order cancellation is confirmed by its
-signing steps. Reversible actions, such as signing out, turning a switch off or removing a row from
+confirming tick before its destructive action. Reversible actions, such as signing out, turning a switch off or removing a row from
 an unsaved form, aren't confirmed. Dismissing a notification archives it at once. Register
 decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are
 confirmed by their own review, dialog or form. The dashboard uses no browser `confirm` or `alert`
@@ -568,23 +561,19 @@ account, and also before signing out and, in a native alert, before turning off 
 under the change or on the record you land on, and stays until the next action replaces it; there
 are no toasts. Its status region stays in place, empty and visually hidden, before there is anything
 to report, so a screen reader announces the sentence when it arrives; a preparation's line arrives
-with the record it lands on and is read because focus moves to that record, and a deleted draft
-offering's line on Offerings is read because focus moves to it. It names the record
+with the record it lands on and is read because focus moves to that record. It names the record
 rather than its identifier. It reports:
 
-- a changed password, saved personal details, and an offering submitted for review, withdrawn or
-  deleted;
+- a changed password and saved personal details;
 - the downloaded unsigned certificate, inspection copy and company pack;
 - a recorded team invitation, an accepted invitation and a representative authority request;
 - member access's recorded invitation, certificate fulfilment and particulars instruction;
-- a placed or recovered order with its share class, above Trading's orders, until another order
-  action or a class change starts;
 - a prepared correction, register opening, non-paid transfer, wallet link or particulars change, on
   the record you land on in Ledger.
 
 Other signing flows and identity verification show their result in their own dialog, sign-in and
-sign-up keep their boxed outcomes, and `CopyButton` (the payment instruction's values and the
-company's and an approved offering's IDs) confirms a copy with Copied beside the button.
+sign-up keep their boxed outcomes, and `CopyButton` (the company's ID) confirms a copy with
+Copied beside the button.
 Ledger's other forms don't use `Outcome`. Mobile reports a changed password, some failures
 and a few warnings in native alerts.
 
@@ -599,8 +588,7 @@ mobile's own copy, such as sign-up and its native alerts, use title case or thre
 strings it shows follow this.
 
 Copy and tone maps meant for both clients live in `packages/shared`. The web also reads the identity
-verification outcomes (`IDENTITY_OUTCOME_COPY`), their tones (`VERIFICATION_TONES`) and an
-application's history (`applicationHistory`) there.
+verification outcomes (`IDENTITY_OUTCOME_COPY`) and their tones (`VERIFICATION_TONES`) there.
 
 ## Choosing a person
 
@@ -713,16 +701,14 @@ Account-wide Profile, own appointments and invitation acceptance do not depend o
 Share-class, person, wallet and other record choices stay with their tasks. These rules and the
 company-change safeguards are checked in review and the existing dashboard journeys.
 
-## Choosing a wallet or a paid subscription
+## Choosing a wallet
 
 Lists that grow with a company's shareholders use the same searchable list, named by what a person
 recognises rather than an internal identifier:
 
 - a share-class issue's nominated wallet, and a wallet nomination in Company eligibility's wallet
   approvals: the wallet address, with its proof date or whether its source is ready;
-- a retained approval in the same section: the wallet address, with when the approval ends;
-- a paid issue's recorded subscription: the investor's name, or "Name not recorded", with the shares
-  and receiving address.
+- a retained approval in the same section: the wallet address, with when the approval ends.
 
 These lists are checked in review; no dashboard case drives them.
 
@@ -738,7 +724,6 @@ answers. It asks for:
 - a new share class's type;
 - the kind of issue on Ledger's Issue shares task, which opens that kind's form in place;
 - the requested state of a pause change;
-- the exemption an offering relies on;
 - a company eligibility decision's outcome and a wallet instruction's action;
 - the network for a new or imported wallet;
 - the professional body behind an accountant's certificate;
@@ -790,8 +775,8 @@ server:
 - **Search box:** `ListSearch` (`dashboard/src/components/List.tsx`) is a labelled search field
   with a hint naming what it searches and Clear while it holds text.
   It searches 300 ms after typing stops. The server matches every typed word, ignoring case. While
-  a search or filter applies, a polite status line counts the matches, such as "3 applications match
-  your search" or "No applications match".
+  a search or filter applies, a polite status line counts the matches, such as "3 shareholders match
+  your search" or "No shareholders match".
 - **Compact filters:** secondary filters use `FilterPopover`: an icon button named **Filters** with
   a tooltip, opening an anchored panel. Place its icon in the page heading's top-right actions on
   every filtered page, without a separate row or another control in a card heading. The one
@@ -804,15 +789,14 @@ server:
   controls for hidden retained views; a header contribution escapes its original hidden container.
   Keep the
   selected class visible in the task or class heading. Class changes close the panel and retain
-  the existing editor and unfinished-work locks. An offering's page shows the Applications Status
-  filter in its heading, with Search applications, once the offering has applications.
+  the existing editor and unfinished-work locks.
   Shareholders puts Search people inside the panel above Share class, keeping
   its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
   scope without repeating it in a header summary or badge. Certificates and Activity keep labelled
   draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;
   Apply and Clear close the panel and return focus to its button. Activity retains its date
   validation, whole-local-day bounds and separate wallet-read retry. Shareholders' class filter,
-  Member requests' type, offering applications' Status and company eligibility's Outcome apply
+  Member requests' type and company eligibility's Outcome apply
   immediately, closing the panel on selection. Member requests' person search stays inside its panel
   and uses the existing 300 ms timing, without an Apply action. Escape and an outside click dismiss
   it, and all controls remain keyboard
@@ -835,17 +819,15 @@ server:
   keep their column grid, with dates and status in muted text.
   Keep their list semantics and editor lifetimes;
   focused editors remain unboxed. `Pager` under a paged table gives the rows shown, such as
-  "1–25 of 1,240 applications", and Previous, the page number and Next when there is more than one
+  "1–25 of 1,240 requests", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it
   is loading.
-- **Feeds:** `LoadMore` ends a feed with "Load more notices" (or applications, activity,
+- **Feeds:** `LoadMore` ends a feed with "Load more notices" (or activity,
   notifications and so on), which names its work while it runs. When a later page fails, the shown
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
-An offering's applications, on that offering's page, are searched and paged by the server: search
-by investor name, wallet address or payment reference, and filter by status. Company eligibility's
-request queue pages the same way, with no search box: its one
+Company eligibility's request queue is paged by the server, with no search box: its one
 filter is the outcome, selected in the compact filter panel, which the server derives from each
 request's decision, withdrawal, revocation and expiry. While another page or outcome loads, its rows stay dimmed and
 their View buttons wait. Shareholders searches and pages the register the page has already read in
@@ -854,7 +836,7 @@ popover, with the same search timing and pager. Search matches every word, ignor
 (`searchRows` in `packages/shared/src/utils/search.ts`); selecting a class applies it immediately and
 closes the panel.
 
-The feeds are Activity, an investor's Applications, Notices, the notification bell, Published to
+The feeds are Activity, Notices, the notification bell, Published to
 your members, a class's register entries, a share class's issuance requests, authorised share
 requests and issuances (`useRecordFeed`), and each class's former shareholders, shown 25 at a time
 from the register already read. A list bounded by one person, such as their own documents,
@@ -905,21 +887,21 @@ Both eligibility pages, member access and Home's member records read through sha
 keep a reason of their own. While a read fails they show the block, with any such reason under it,
 such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
-An empty list says it has none yet in one muted sentence, such as "No applications yet." or "No
+An empty list says it has none yet in one muted sentence, such as "No requests yet." or "No
 notices yet.", sometimes followed by where to add or find them, and an empty section keeps at
 most one action ([signed-in page conventions](#signed-in-page-conventions)). An
 empty class import instead invites bringing in the company's existing records. A list narrowed by
-a search or filter says what matched instead, such as "No applications match your search." or "No
+a search or filter says what matched instead, such as "No shareholders match your search." or "No
 requests match."
 
 A class's awards, grants, allotments, openings, imports, non-paid transfers, deployments and
-reconciliation, notices, offer documents and an offering's applications take their empty sentence
+reconciliation and notices take their empty sentence
 from shared copy in `packages/shared/src/constants/business/`. On the web, a section with no
 corrections, register entries or particulars changes is hidden instead, and so is one with no wallet
 links unless wallets are waiting for a link you can prepare. Other empty sentences are each client's
 own.
 A sentence that reports a state rather than an empty list keeps its own words, such as "No votes
-need your attention." or "No orders listed." for a market's live order book. A class's awards,
+need your attention." A class's awards,
 grants, allotments, non-paid transfers and deployments, and an award's vesting and entitlement
 changes, can't be made on every class or award, so theirs says none has been recorded or prepared
 for it, such as "No employee award has been recorded for this share class."
@@ -952,9 +934,8 @@ Some messages keep their own form:
 - **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
   (`packages/shared/src/constants/business/field-limits.ts`): one constant per kind of backend field,
   equal to its serializer or model limit, such as `NAME` (255), `REASON` (1000), `REGISTER_SHARES`
-  (78 digits) and `AMOUNT` (21 characters). A field the backend leaves unbounded, such as an
-  offering's summary or a profile's residential address, has none. Numbers are text inputs with
-  `inputMode`, including Trading's order fields.
+  (78 digits) and `AMOUNT` (21 characters). A field the backend leaves unbounded, such as a
+  profile's residential address, has none. Numbers are text inputs with `inputMode`.
 - **Files.** A web upload is `FileField`, a `Field` around a file input. It applies `UPLOAD_RULE`
   (`field-limits.ts`), the server's rule: a PDF, PNG or JPEG whose type matches its extension, up to
   10 MB. Its empty control reads **Choose file**, showing the filename after selection while keeping
@@ -1003,8 +984,8 @@ Some messages keep their own form:
   expiry, and a representative authority request's expiry, are the end of the chosen UTC day; the
   deadline is bounded to the next 30 days. A certificate date is bounded to the two years an
   accountant's certificate stays current.
-- **Other bases.** An inspection copy's request date is a Sydney date (`sydneyToday`). Offerings and
-  company eligibility expiries are a local date and time (`datetime-local`), labelled so.
+- **Other bases.** An inspection copy's request date is a Sydney date (`sydneyToday`). Company
+  eligibility expiries are a local date and time (`datetime-local`), labelled so.
 - **Helpers.** `isCalendarDate` checks a typed date, and `addCalendarDays` and `addCalendarYears`
   move a valid one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or
   split into a date in the dashboard's source.
@@ -1014,8 +995,7 @@ Some messages keep their own form:
 This section covers how a form reports a problem: when it is submitted, and when its request fails.
 
 - **Checking on submit.** Web forms check their fields when submitted. Filters that only narrow a
-  list, such as Activity's dates, keep their own rules, and Trading's order change, deferred with
-  trading, shows the one sentence its shared hook reports.
+  list, such as Activity's dates, keep their own rules.
   - **Summary and fields.** A problem shows twice. `ErrorSummary` (`dashboard/src/components/`)
     lists each problem at the top of the form as `role="alert"` and takes focus, each item linking
     to its field. The field shows the same sentence as its error and turns `aria-invalid`; on
@@ -1051,8 +1031,7 @@ This section covers how a form reports a problem: when it is submitted, and when
     as empty, so an optional one would be dropped silently. `useIncompleteDates`
     (`dashboard/src/hooks/useIncompleteDates.ts`) notes the browser's `badInput` on each keystroke,
     input and blur, and the form treats it as a problem: the team invitation's deadline and
-    appointment expiry, a representative authority request's expiry, and an offering's closing
-    time.
+    appointment expiry and a representative authority request's expiry.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
   (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code
@@ -1084,26 +1063,21 @@ by a local helper or a browser `toLocale…` call:
 - **Share counts** use `formatShareCount`, a count with its noun uses `shareCount` ("1 share",
   "1,315 shares", or with a qualifier, "1 issued share") and a signed change uses `shareChange`
   ("+1,000"). Gathered in `packages/shared/src/utils/formatting.ts` with `sharePercentage`.
-  Application quantities that arrive as numbers use `marketQuantity`, which reads "Unavailable" for
-  a quantity too large to show exactly.
 - **Percentages of a class** use `sharePercentage`, rounded half-up to two places, "<0.01%" for a
   holding too small to show and "Not recorded" without issued shares.
 - **Amounts** use `formatMoney`, which names its currency: "AUD 1,234.50".
 - **On screen** the dashboard's records format their dates, share counts and amounts: register
-  records, eligibility history and shared summaries, team invitations and confirmations. An
-  offering's opening and closing show their time, and wallet token balances use the share and crypto
-  formatters. Signing screens, technical transaction rows (hashes, data and
-  transaction values) and the exact offering terms an eligibility request shares keep their exact
-  values. A register's amounts paid and unpaid show as recorded, without `formatMoney`, because the
+  records, eligibility history and shared summaries, team invitations and confirmations. Wallet
+  token balances use the share and crypto formatters. Signing screens and technical transaction rows
+  (hashes, data and transaction values) keep their exact values. A register's amounts paid and unpaid show as recorded, without `formatMoney`, because the
   register cannot name a single currency for them
   ([amount paid](../business/register.md#amount-paid-and-date-entered)).
   Mobile's signed-in screens format their dates the same way.
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
-  server's `statusDisplay` where a record carries one (orders, swaps, companies, offerings), else a
+  server's `statusDisplay` where a record carries one (companies), else a
   shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
   member invitations and requests, appointments, company wallet actions and chain failures, a
-  deployment's swap approval, an application's status on company records, order states
-  and changed order fields, swap approval outcomes and identity sources; `investor-eligibility.ts`
+  deployment's swap approval and identity sources; `investor-eligibility.ts`
   for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
   register entry kinds). Mobile shows no status codes: its request statuses come from the shared
   maps, and its certificate and pending-change tags use its own words.
@@ -1131,14 +1105,13 @@ by a local helper or a browser `toLocale…` call:
   history without request keys, digests or appointment references. Company wallet approvals and
   wallet nominations show the wallet, its eligibility and proof dates and the decisions, with
   **View transaction**, without nomination, request or decision references, fingerprints or
-  transaction internals, and name a company from the directory (`Company` and its
-  `shortReference` when it is not listed). The exact summary an eligibility request shares keeps
+  transaction internals, and name a company from the person's own companies (`Company` and its
+  `shortReference` when it is not among them). The exact summary an eligibility request shares keeps
   its values, because the participant agrees to share exactly that. Transaction hashes and wallet
-  addresses stay exact. The eligibility request and the claim take the exact **Company ID** or
-  **Offering ID** a company supplies, and `useDirectoryNames` (`dashboard/src/hooks/`) names a
-  directory-listed company or open offering under the field, or says it is not listed. The one
-  exception shows those IDs in full, with `CopyButton`, for a company to give investors: its
-  **Company ID** in Settings → Profile, and each approved offering's **Offering ID** on its own page.
+  addresses stay exact. The eligibility request and the claim take the exact **Company ID** a
+  company supplies, and `useCompanyNames` (`dashboard/src/hooks/`) names one of the person's own
+  companies under the field. The one exception shows that ID in full, with `CopyButton`, for a
+  company to give investors: its **Company ID** in Settings → Profile.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile's ESLint configuration has neither

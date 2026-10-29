@@ -101,10 +101,10 @@ existing code is being brought in line under [#1065](https://github.com/Ledova/l
 | Page files (beside the entry)          | The page's sections and dialogs, its hooks and its pure helpers, told apart by file name                                                     | `components/` or `hooks/` subfolders; a file a second page imports                            | `dashboard/src/pages/publications/Resolution.tsx`, `dashboard/src/pages/transactions/presentation.ts` |
 | Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                   | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/shared/RegisterDecisions.tsx`                                            |
 | UI kit and frame (`components/`)       | The kit, the frame and public layout with their contexts, and group folders or single components for UI that several areas or the frame show | Imports of `pages/` or `routes/`; in kit files, queries or domain rules                       | `dashboard/src/components/Ledger.tsx`, `dashboard/src/components/qr/`                                 |
-| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `packages/shared/src/hooks/useSubscriptions.ts`                                                       |
+| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `packages/shared/src/hooks/useTransactions.ts`                                                        |
 | Services (`services/`)                 | `apiClient` (CSRF retry, the submission guard, friendly network errors) and the browser device stores                                        | API call functions; React                                                                     | `dashboard/src/services/apiClient.ts`                                                                 |
 | Utils (`utils/`)                       | Client-only helpers and web-only paths used by more than one area or the frame                                                               | React; API calls; logic mobile also needs on the same libraries                               | `dashboard/src/utils/siteUrl.ts`                                                                      |
-| Types                                  | A type beside its only user; API-derived and cross-client types in `packages/shared/src/types`                                               | Hand-written API shapes; a dashboard `types/` folder; client prop types in the shared package | `packages/shared/src/types/domain/subscription.ts`                                                    |
+| Types                                  | A type beside its only user; API-derived and cross-client types in `packages/shared/src/types`                                               | Hand-written API shapes; a dashboard `types/` folder; client prop types in the shared package | `packages/shared/src/types/domain/publication.ts`                                                     |
 | Shared package (`packages/shared/src`) | What both clients need (query hooks, pure utils, constants, contract types) and every API call function, even one only one client calls      | JSX beyond `ApiClientProvider`; DOM or native APIs (stores take an injected storage)          | `packages/shared/src/services/publications.ts`                                                        |
 
 ### Dependency direction and placement
@@ -158,7 +158,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
 - **Data access.** Components render and call actions. Each query and mutation, with its key,
   owner guard and invalidation, lives in a `use<Thing>.ts` hook, and only `main.tsx`, hooks and
   `services/` import `apiClient`. A hook that shapes its result names the fields `isLoading`,
-  `hasError`, `isRefreshing` and `retry` (`packages/shared/src/hooks/useSubscriptions.ts`).
+  `hasError`, `isRefreshing` and `retry` (`packages/shared/src/hooks/useTransactions.ts`).
 - **Account boundary.** Work bound to the signed-in account takes its owner from
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
@@ -196,7 +196,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
 - **Naming and exports.** A page folder takes the last fixed segment of its address and sits in the
   folder of the nearest page whose fixed address begins its own: `/company/ledger/:uuid/transfer`
   is `pages/company/ledger/transfer/`. An address that only adds a parameter to that page is `detail/`
-  (`/directory/:uuid` is `pages/directory/detail/`), and a `detail/` folder never holds sub-pages;
+  (`/company/ledger/:uuid` is `pages/company/ledger/detail/`), and a `detail/` folder never holds sub-pages;
   an address that renders another's page (`/member-records`, `/company/ledger/setup`) has no
   folder, and the not-found page is `pages/not-found/`. Page folders and `components/` groups are
   kebab-case (`eligibility-requests/`, `qr/`). A file is named after its main export, or after what
@@ -330,8 +330,7 @@ pack where company access permits them. There is no separate Your certificates i
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
 preserving company, class and navigation state. A group without a meaningful overview opens its
 default child, without an extra Overview page or duplicate navigation.
-Offerings (`/company/offering`) follows Documents for the company's own account (`isOwner` with the
-company role), and Company eligibility (`/company/eligibility`) for an administrator or a prepare or
+Company eligibility (`/company/eligibility`) follows Documents for an administrator or a prepare or
 approve appointee (`canReviewEligibility`). Its sidebar label is Eligibility. A company administrator (`canManage`) also
 gets its caret, with Supporting (Company documents, `/documents/company`) beneath it. Activity (`/transactions`), the person's own wallet
 transfers, sits above Settings in every company context.
@@ -481,12 +480,11 @@ Every list follows these rules:
 
 - Web list filters use the UI-only `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`); pages retain their data and field state. Certificates
-  and Activity keep Apply/Clear drafts, while Shareholders' class, offering applications' status and
-  company eligibility's outcome retain immediate selection. Member requests uses debounced person
+  and Activity keep Apply/Clear drafts, while Shareholders' class and company eligibility's outcome
+  retain immediate selection. Member requests uses debounced person
   search and immediate request-type selection inside its panel. Shareholders keeps Search people inside
-  its panel above the class selector, with its existing debounce, Clear and match counts. An
-  offering's page shows Search applications and the Status filter once the offering has
-  applications. Wallets' sort remains separate.
+  its panel above the class selector, with its existing debounce, Clear and match counts. Wallets'
+  sort remains separate.
   Every filter icon sits in the page heading's top-right actions, without a separate row or
   card-specific placement, apart from Dashboard's class details card
   ([UX](frontend-ux.md#lists-search-filters-and-paging)). Page-level owners pass `Page.actions`;
@@ -515,14 +513,11 @@ end. Lists loaded on request check each link with `assertNextPageAdvances`.
 Share counts, prices and amounts stay exact decimal strings; a legacy count outside JavaScript's
 safe range is marked unavailable, not rounded. Share arithmetic uses whole integers (`wholeShares`,
 `requestShares`), and a quantity or resulting cap above `MAX_REQUEST_SHARES` (2,147,483,647) is
-refused. AUD prices and totals are computed in integer cents (`priceCents`), and market quantities
-are exact integer strings within the signed 64-bit storage bound.
+refused.
 
 Market values are shown in AUD: `useCurrency` converts the API's US-dollar values at the current
-rate, shows a dash while it is unknown and offers no other currency. Offering prices and application
-amounts carry their offering's currency
-([offerings](../business/issuing-shares.md#creating-and-submitting-an-offering)), and every amount
-names its currency (`formatMoney`).
+rate, shows a dash while it is unknown and offers no other currency. Every amount names its currency
+(`formatMoney`).
 
 The company ownership ring uses Apache ECharts, with only its pie chart and SVG renderer
 loaded when the desktop overview is visible. Use one ring and a linked class list, with the existing
@@ -597,7 +592,7 @@ The server side, including how identical and changed retries are answered, is th
 - a service for each list, preview, decision, preparation and document download;
 - a check of each prepared proposal against every field of its request (`isPreparedRegisterOpening`,
   `isPreparedRegisterParticularsChange`, `isPreparedRegisterLink` and siblings for imports,
-  corrections, grants, transfers, issues, paid issues, capital increases, pause changes, deployments
+  corrections, grants, transfers, issues, capital increases, pause changes, deployments
   and allotments), narrowing an opening's or link's mapping at runtime and comparing a link's
   address and member pairs in any order and letter case;
 - the decision families for `useRegisterDecision` (`REGISTER_*_DECISIONS` and
@@ -727,12 +722,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`, `/company/listing`                                             | everyone  |
 | [Company documents](../business/companies.md#company-information-and-documents)                              | `/documents/company`; legacy `/company#documents` redirects with company context                                                                                             | everyone  |
 | [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                                       | everyone  |
-| [Offerings](../business/issuing-shares.md#the-offerings-page)                                                | `/company/offering` and an offering's page, `/company/offering/:uuid`                                                                                                        | company   |
 | [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                                                      | company   |
 | [Notices](../business/publications.md#the-notices-page)                                                      | `/publications`                                                                                                                                                              | everyone  |
 | [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                        | `/wallets/holdings`                                                                                                                                                          | everyone  |
 | [Verification, Your company eligibility](../business/participants.md#the-verification-page)                  | `/investor-eligibility`, `/eligibility-requests`                                                                                                                             | investing |
-| [Directory, Applications](../business/participants.md#the-directory-page)                                    | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`                                                                                                   | investing |
 | [Wallets](../business/trading.md#the-wallets-page)                                                           | `/wallets`                                                                                                                                                                   | everyone  |
 | [Activity](../business/trading.md#the-activity-page)                                                         | `/transactions`                                                                                                                                                              | everyone  |
 | [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default); aliases `/user-profile`, `/company`, `/settings#account`, `/settings#company-recorded-details`                                                | everyone  |
@@ -881,14 +874,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   first, a page at a time with Load more; the card title carries the server's complete count. A
   document opens only while every loaded page is current.
 - Wallet shares: reads every page of the person's wallets, names each asset from the API's current
-  class and company names, adds whole share counts without floating-point conversion, and reads the
-  applicant-filtered application list only for a known investing role.
+  class and company names and adds whole share counts without floating-point conversion.
 - Verification: the claim history has its own cache, and every claim page loads before a submission
   is offered, so a pending claim on a later page still prevents a second one.
-- Directory and Applications: a draft application reads every verified Base wallet page and computes
-  its fixed-price total in integer cents with `BigInt`
-  (`packages/shared/src/utils/applicationAmount.ts`); Applications shows the recorded values without
-  recomputing them, and a copy failure keeps the value available.
 - Wallets: reads every wallet page into a ledger of its own. Native balances are formatted by
   `formatCryptoBalance` (`packages/shared/src/utils/formatting.ts`) and ordered by decimal-string
   comparison (`sortWallets` in `packages/shared/src/hooks/useWalletSort.ts`). On the web every Sync

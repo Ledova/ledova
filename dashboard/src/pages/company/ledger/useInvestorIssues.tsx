@@ -160,7 +160,7 @@ export function useInvestorIssues({
             ? 'Set up this share register before issuing shares.'
             : register.token.status === 'deploying'
               ? 'This class is being put on chain. Follow its deployment under Chain actions.'
-              : 'Chain grants and paid issues for this class are under Chain actions.'}
+              : 'Chain grants for this class are under Chain actions.'}
         </p>
       )}
       {appointment && privateReady && (

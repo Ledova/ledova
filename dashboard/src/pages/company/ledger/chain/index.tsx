@@ -8,7 +8,6 @@ import { classPath } from '@pages/company/ledger/shared/registerPlace';
 import { ChainHistory } from './ChainHistory';
 import { CompanyCapitalFlow } from './CompanyCapitalFlow';
 import { CompanyIssueFlow } from './CompanyIssueFlow';
-import { CompanyPaidIssueFlow } from './CompanyPaidIssueFlow';
 import { CompanyPauseFlow } from './CompanyPauseFlow';
 import { DeploymentFlow } from './DeploymentFlow';
 
@@ -46,7 +45,6 @@ function ClassChain({ uuid }: { uuid: string }) {
           {onChain && (
             <>
               <CompanyIssueFlow key={`issues/${owner}`} uuid={uuid} data={data} />
-              <CompanyPaidIssueFlow key={`paid-issue/${uuid}/${owner}`} uuid={uuid} data={data} />
               <CompanyCapitalFlow key={`capital/${owner}`} uuid={uuid} data={data} />
               <CompanyPauseFlow key={`pause/${uuid}/${owner}`} uuid={uuid} data={data} />
             </>

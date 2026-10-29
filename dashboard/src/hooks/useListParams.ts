@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router-dom';
-import type { Query, QueryKey } from '@tanstack/react-query';
 import { failureStatus } from '@ledova/shared';
 
 const SEARCH_DELAY_MS = 300;
@@ -73,11 +72,6 @@ export function useListParams<F extends string = never>(filterNames: readonly F[
     page,
     setPage: (next, replace = false) => update({ page: next > 1 ? String(next) : '' }, replace),
   };
-}
-
-export function keepWithin<T>(key: QueryKey) {
-  return (previous: T | undefined, query: Query<T, Error, T, QueryKey> | undefined) =>
-    query && key.every((part, index) => query.queryKey[index] === part) ? previous : undefined;
 }
 
 export function useFirstPageWhenGone(list: ListParams<string>, error: unknown) {

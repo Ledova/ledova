@@ -62,7 +62,6 @@ export {
   revokeCompanyAppointment,
 } from './company-authority';
 export {
-  getCompanyTokens,
   getCompanyToken,
   createCompanyToken,
   getRegisterClasses,
@@ -130,25 +129,6 @@ export {
   deleteInvestorClassification,
 } from './investorClassifications';
 export { getOperator } from './operator';
-export { getDirectoryTokens, getDirectoryToken, getDirectoryDocuments } from './directory';
-export {
-  getOfferings,
-  getOffering,
-  createOffering,
-  updateOffering,
-  deleteOffering,
-  submitOffering,
-  withdrawOffering,
-  getOfferingSubscriptions,
-  addOfferingDocuments,
-} from './offerings';
-export {
-  getSubscriptions,
-  getSubscription,
-  createSubscription,
-  submitSubscription,
-  withdrawSubscription,
-} from './subscriptions';
 export { getExchangeRate } from './exchangeRates';
 export {
   getPublications,
@@ -164,7 +144,6 @@ export * from './company-wallets';
 export * from './register-issues';
 export * from './register-capital-increases';
 export * from './register-pause-changes';
-export * from './register-paid-issues';
 
 export * from './register-allotments';
 

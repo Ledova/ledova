@@ -7,12 +7,6 @@ export const CATEGORIES: {
   evidence: string;
 }[] = [
   {
-    category: 'product_value',
-    label: 'Large investment',
-    section: 's708(8)(a)',
-    evidence: 'Proof that at least AUD 500,000 is payable on acceptance, such as a bank statement.',
-  },
-  {
     category: 'accountant_certificate',
     label: "Qualified accountant's certificate",
     section: 's708(8)(c)',
@@ -71,16 +65,9 @@ export const COMPANY_ELIGIBILITY_UNMET_COPY: Record<string, string> = {
   associated_company_mismatch: 'The associated-person claim names a different company.',
   certificate_not_current: 'The accountant’s certificate is not current or is missing the certifier’s details.',
   requested_expiry_not_future: 'Choose an expiry in the future.',
-  product_context_invalid:
-    'The offering and quantity must be an approved offering of this company priced in AUD, worth at least A$500,000.',
   personal_approve_required: 'Your appointment must include approving eligibility decisions.',
   request_already_resolved: 'This request has already been withdrawn or decided.',
   decision_expiry_invalid: 'Choose an expiry in the future, no later than the request and its claim allow.',
   acceptance_reason_not_empty: 'An acceptance takes no reason.',
   request_evidence_changed: 'The claim’s evidence changed after this request was submitted.',
-  product_context_changed: 'The offering changed after this request was submitted.',
 };
-
-export const WHOLESALE_ONLY_NOTICE =
-  'Offerings on this platform are made to wholesale and sophisticated investors only. They are not made under ' +
-  'a disclosure document, and retail investors cannot subscribe.';

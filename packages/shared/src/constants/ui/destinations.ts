@@ -16,10 +16,6 @@ export const DESTINATIONS = {
   walletHoldings: { path: '/wallets/holdings', title: 'Wallet shares', audience: 'everyone' },
   wallets: { path: '/wallets', title: 'Wallets', audience: 'everyone' },
   transactions: { path: '/transactions', title: 'Activity', audience: 'everyone' },
-  directory: { path: '/directory', title: 'Directory', audience: 'investing' },
-  directoryDetail: { path: '/directory/:uuid', title: 'Directory', audience: 'investing' },
-  subscriptions: { path: '/subscriptions', title: 'Applications', audience: 'investing' },
-  subscriptionDetail: { path: '/subscriptions/:uuid', title: 'Application', audience: 'investing' },
   investorEligibility: { path: '/investor-eligibility', title: 'Verification', audience: 'investing' },
   eligibilityRequests: { path: '/eligibility-requests', title: 'Your company eligibility', audience: 'investing' },
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
@@ -72,8 +68,6 @@ export const DESTINATIONS = {
   companyEligibility: { path: '/company/eligibility', title: 'Company eligibility', audience: 'everyone' },
   companyListing: { path: '/company/listing', title: 'Activation', audience: 'everyone' },
   companyPublications: { path: '/company/publications', title: 'Published to your members', audience: 'company' },
-  companyOffering: { path: '/company/offering', title: 'Offerings', audience: 'company' },
-  companyOfferingDetail: { path: '/company/offering/:uuid', title: 'Offering', audience: 'company' },
   userProfile: { path: '/user-profile', title: 'Profile', audience: 'everyone' },
   settings: { path: '/settings', title: 'Settings', audience: 'everyone' },
 } as const satisfies Record<string, Destination>;
@@ -91,8 +85,6 @@ export interface DestinationParent {
 export const DESTINATION_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   memberRecords: { destination: 'home', back: false },
   walletHoldings: { destination: 'wallets' },
-  directoryDetail: { destination: 'directory' },
-  subscriptionDetail: { destination: 'subscriptions' },
   eligibilityRequests: { destination: 'investorEligibility' },
   companyClass: { destination: 'companyRegister' },
   companyRegisterSetup: { destination: 'companyRegister', back: false },

@@ -19,13 +19,3 @@ export const COMPANY_DOCUMENT_TYPES: { type: DocumentType; label: string }[] = [
   { type: 'bank_statement', label: 'Bank Statement' },
   { type: 'other', label: 'Other documents' },
 ];
-
-export const OFFER_DOCUMENT_TYPES: readonly DocumentType[] = [
-  'prospectus',
-  'risk_disclosure',
-  'business_plan',
-  'financials',
-  'auditor_report',
-  'constitution',
-  'shareholder',
-];

@@ -4,8 +4,6 @@ export * from './holdings';
 export * from './wallets';
 export * from './trading';
 export * from './transactions';
-export * from './directory';
-export * from './subscriptions';
 export * from './publications';
 export * from './register';
 export * from './register-grants';
@@ -26,7 +24,6 @@ export * from './company-activation';
 export * from './register-issues';
 export * from './register-capital-increases';
 export * from './register-pause-changes';
-export * from './register-paid-issues';
 
 export * from './register-allotments';
 

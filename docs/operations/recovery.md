@@ -80,7 +80,7 @@ approved transaction executed or was never sent
 request has executed, repairing historical gaps; new admitted issuance projects both atomically.
 `expire_unpaid_subscriptions` touches only overdue, awaiting-payment rows with no recorded payment.
 A part-paid subscription needs staff review. Read the
-[subscription rules](../business/issuing-shares.md#applications-payments-and-paid-issues) before
+[subscription rules](../business/offerings.md#applying-for-shares) before
 refunding or retrying an allotment.
 
 ## Whitelist changes

@@ -4,10 +4,6 @@ import MemberRecordsPage from '@pages/home';
 import HomePage from '@pages/wallets/holdings';
 import WalletsPage from '@pages/wallets';
 import TransactionsPage from '@pages/transactions';
-import DirectoryPage from '@pages/directory';
-import DirectoryTokenPage from '@pages/directory/detail';
-import SubscriptionsPage from '@pages/subscriptions';
-import SubscriptionDetailPage from '@pages/subscriptions/detail';
 import InvestorEligibilityPage from '@pages/investor-eligibility';
 import ParticipantEligibilityPage from '@pages/eligibility-requests';
 import CompanyEligibilityPage from '@pages/company/eligibility';
@@ -29,8 +25,6 @@ import CompanyRegisterAwardPage from '@pages/company/ledger/award';
 import CompanyRegisterTransferPage from '@pages/company/ledger/transfer';
 import ListingPage from '@pages/company/listing';
 import IssuerPublicationsPage from '@pages/company/publications';
-import OfferingPage from '@pages/company/offering';
-import CompanyOfferingDetailPage from '@pages/company/offering/detail';
 import UserProfilePage from '@pages/user-profile';
 import SettingsPage from '@pages/settings';
 
@@ -40,10 +34,6 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   memberRecords: <MemberRecordsPage />,
   wallets: <WalletsPage />,
   transactions: <TransactionsPage />,
-  directory: <DirectoryPage />,
-  directoryDetail: <DirectoryTokenPage />,
-  subscriptions: <SubscriptionsPage />,
-  subscriptionDetail: <SubscriptionDetailPage />,
   investorEligibility: <InvestorEligibilityPage />,
   eligibilityRequests: <ParticipantEligibilityPage />,
   companyEligibility: <CompanyEligibilityPage />,
@@ -66,8 +56,6 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   companyTeam: <CompanyTeamPage />,
   companyListing: <ListingPage />,
   companyPublications: <IssuerPublicationsPage />,
-  companyOffering: <OfferingPage />,
-  companyOfferingDetail: <CompanyOfferingDetailPage />,
   userProfile: <UserProfilePage />,
   settings: <SettingsPage />,
 };
