@@ -279,13 +279,12 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
   const requestedCompany = new URLSearchParams(useLocation().search).get('company');
   const [held, setHeld] = useState<{ scope: string; editing: boolean; records: Set<string> } | null>(null);
   const [preparing, setPreparing] = useState<string | null>(null);
-  const opener = useRef<HTMLButtonElement>(null);
   const returning = useRef(false);
-  useEffect(() => {
-    if (preparing !== null || !returning.current) return;
+  const focusOpener = useCallback((node: HTMLButtonElement | null) => {
+    if (!node || !returning.current) return;
     returning.current = false;
-    opener.current?.focus();
-  }, [preparing]);
+    node.focus();
+  }, []);
   const data = useCompanyWalletInstructions({
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
@@ -407,7 +406,7 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
               data.canRead && (
                 <FormActions>
                   <PageAction
-                    ref={opener}
+                    ref={focusOpener}
                     label="Approve or remove a wallet"
                     disabled={data.busy || !!data.original || !data.steps.prepare}
                     onClick={() => setPreparing(data.scopeKey)}
