@@ -10,7 +10,6 @@ from companies.models.authority_request import (
 )
 from companies.models.company import Company, CompanyStatus, CompanyType
 from companies.models.document import (
-    OFFER_DOCUMENT_TYPES,
     CompanyDocument,
     DocumentType,
 )
@@ -39,7 +38,6 @@ __all__ = [
     "CompanyDocument",
     "CompanyPack",
     "DocumentType",
-    "OFFER_DOCUMENT_TYPES",
     "REGISTER_READERS",
     "CompanyRegistryCheck",
     "RegistryCheckPurpose",

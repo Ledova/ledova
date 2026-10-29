@@ -25,10 +25,8 @@ def entry_eligibility(wallet, company):
             "SELECT EXISTS (SELECT 1 FROM users_companyeligibilitydecision decision "
             "JOIN users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id "
             "WHERE proposal.user_account_id = %s AND proposal.company_id = %s "
-            "AND proposal.category IN ('accountant_certificate', 'professional_investor') "
             "AND users_company_eligibility_decision_facts_current("
-            "decision.uuid, proposal.user_account_id, proposal.company_id, "
-            "'secondary', NULL, NULL, clock_timestamp()))",
+            "decision.uuid, proposal.user_account_id, proposal.company_id, clock_timestamp()))",
             [wallet.user_account_id, company.pk],
         )
         return cursor.fetchone()[0] is True

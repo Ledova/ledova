@@ -35,7 +35,7 @@ class InvestorClassificationAdmin(admin.ModelAdmin):
         "certifier_name",
         "certifier_membership_number",
     ]
-    list_select_related = ["user_account", "company"]
+    list_select_related = ["user_account"]
     ordering = ["-created_at"]
     readonly_fields = [
         "uuid",
@@ -57,7 +57,7 @@ class InvestorClassificationAdmin(admin.ModelAdmin):
     ]
 
     fieldsets = [
-        ("Claim", {"fields": ["uuid", "user_account", "company", "category", "declared_basis"]}),
+        ("Claim", {"fields": ["uuid", "user_account", "category", "declared_basis"]}),
         ("Historical source status", {"fields": ["status", "liveness", "expires_at"]}),
         (
             "Declaration",

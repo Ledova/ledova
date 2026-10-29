@@ -242,7 +242,7 @@ rather than issuing them a second time.
 - Duplicate/concurrent requests produce one effect; changed retries conflict;
   failed decisions roll back atomically. Raw SQL cannot forge approval or mutate
   immutable ledger history/projections.
-- Missing authority, director conflict, unpaid subscription requiring payment, insufficient headroom,
+- Missing authority, director conflict, insufficient headroom,
   conflicting identity, chain reorganisation or changed finality policy produce
   actionable pending/refused outcomes, never invented completion.
 - Shareholders/employees read their own records/notices independently of unrelated
@@ -258,7 +258,7 @@ rather than issuing them a second time.
   Integrated AUD payment and secondary settlement expansion are deferred.
 - A supported employee award records its agreement and vesting terms distinctly
   from actual shares issued. Company-confirmed vesting and issue events do not
-  invent a receipt, paid subscription or unsupported legal/tax calculation.
+  invent a receipt or an unsupported legal/tax calculation.
 - Supported non-tokenised register issues and direct transfers operate on
   genuine company-authorised ledger events without a fabricated chain transaction
   or compulsory wallet; any later tokenisation preserves rather than doubles supply.

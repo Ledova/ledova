@@ -1,18 +1,8 @@
-from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from assets.models import Asset
 from assets.serializers.asset import AssetChainDeploymentSerializer
 from operators.models import Operator
-from users.services.eligibility import secondary_company_ids
-
-PAYMENT_FIELDS = (
-    "bank_account_name",
-    "bank_bsb",
-    "bank_account_number",
-    "payment_reference_prefix",
-    "receiving_wallet_address",
-)
 
 
 class SettlementAssetSerializer(serializers.ModelSerializer):
@@ -24,20 +14,10 @@ class SettlementAssetSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class OperatorPaymentInstructionsSerializer(serializers.Serializer):
-    bank_account_name = serializers.CharField(required=False)
-    bank_bsb = serializers.CharField(required=False)
-    bank_account_number = serializers.CharField(required=False)
-    payment_reference_prefix = serializers.CharField(required=False)
-    receiving_wallet_address = serializers.CharField(required=False)
-    receiving_wallet_chain = serializers.CharField(required=False)
-
-
 class OperatorSerializer(serializers.ModelSerializer):
 
     supported_settlement_assets = SettlementAssetSerializer(many=True, read_only=True)
     issued_stablecoin = SettlementAssetSerializer(read_only=True, allow_null=True)
-    payment_instructions = serializers.SerializerMethodField()
 
     class Meta:
         model = Operator
@@ -51,22 +31,5 @@ class OperatorSerializer(serializers.ModelSerializer):
             "issued_stablecoin",
             "investor_kyc_required",
             "issuer_kyc_required",
-            "payment_instructions",
         ]
         read_only_fields = fields
-
-    @extend_schema_field(OperatorPaymentInstructionsSerializer(allow_null=True))
-    def get_payment_instructions(self, operator):
-        if not self._may_see_payment_instructions():
-            return None
-        instructions = {field: getattr(operator, field) for field in PAYMENT_FIELDS if getattr(operator, field)}
-        if operator.receiving_wallet_address:
-            instructions["receiving_wallet_chain"] = operator.receiving_wallet_chain
-        return instructions
-
-    def _may_see_payment_instructions(self) -> bool:
-        request = self.context.get("request")
-        user = getattr(request, "user", None)
-        if user is None or not user.is_authenticated:
-            return False
-        return bool(user.is_staff) or bool(secondary_company_ids(user))

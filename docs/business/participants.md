@@ -15,7 +15,7 @@ register records is in [member records](member-records.md).
 - [The Verification page](#the-verification-page)
 - [Profile and Settings](#profile-and-settings)
 
-Three facts stay separate throughout: whether an account is ready to invest, whether a particular
+Three facts stay separate throughout: whether an account is in good standing, whether a particular
 company has accepted a participant as eligible, and whether that company has approved a wallet to
 hold its shares. None of them implies another, and reusable evidence never approves investing in
 every company ([eligibility decision](../decisions.md#eligibility-and-ownership-records)).
@@ -36,8 +36,8 @@ type choice. On mobile, a company account that has not finished signup sees **Th
 shareholders** and can only sign out.
 
 Signup does not include identity verification. Complete it afterwards from Profile on the web with
-**Review identity check**; while the investor identity requirement is on, investing waits for it
-([account readiness](#account-readiness)). An unfinished account can sign in again and resume.
+**Review identity check**; while the investor identity requirement is on, company eligibility waits
+for it ([account standing](#account-standing)). An unfinished account can sign in again and resume.
 
 ### Going back and changing your email
 
@@ -52,18 +52,18 @@ have already saved stays with your account, because companies are never deleted,
 identity check is kept too. Once you have chosen **Complete company setup**, or signup is complete,
 the email can no longer be changed this way.
 
-### Account readiness
+### Account standing
 
-An account is Pending Verification, Active, Rejected, Suspended or Terminated. To invest, a person
-needs an investing account with an active login and a verified email, in good standing:
+An account is Pending Verification, Active, Rejected, Suspended or Terminated. A company eligibility
+request, and the decision accepting it, need an investing account with an active login and a
+verified email, in good standing:
 
 - With the investor identity requirement on (the default), the account must be Active and the
   person's identity verified.
-- With it off, a Pending Verification account is also ready and identity is not required.
-- Rejected, Suspended and Terminated accounts are never ready.
+- With it off, a Pending Verification account also qualifies and identity is not required.
+- Rejected, Suspended and Terminated accounts never qualify.
 
-The Verification page states the reasons an account is not ready. Readiness opens nothing by
-itself; offerings, which relied on it, are [planned](offerings.md). Company representatives have a separate
+A request's preview names any requirement not met. Company representatives have a separate
 [identity requirement](companies.md#representative-identity-requirement).
 
 ### Identity check results
@@ -115,27 +115,24 @@ permission and marks no source as verified.
 
 ### Evidence sources
 
-A participant adds evidence for one of three wholesale and sophisticated investor categories on the
+A participant adds evidence for one of two wholesale and sophisticated investor categories on the
 Verification page ([legal positions](../legal/positions.md#4b-issuance-payments-and-transfers-need-a-licence-a-registration-or-relief));
-a large-investment category tied to one offering is [planned with offerings](offerings.md#investor-access-and-eligibility):
+the large-investment and associated-person categories are
+[planned with offerings](offerings.md#investor-access-and-eligibility):
 
-| Category                           | Basis      | Evidence                                                                               |
-| ---------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
-| Qualified accountant's certificate | s708(8)(c) | A certificate issued in the last two years by a CA ANZ, CPA Australia or IPA member    |
-| Professional investor              | s708(11)   | An AFS licence, a regulator registration, or proof of AUD 10 million under management  |
-| Associated with the issuer         | s708(12)   | Proof of the person's role with the named company, such as an ASIC extract naming them |
+| Category                           | Basis      | Evidence                                                                              |
+| ---------------------------------- | ---------- | ------------------------------------------------------------------------------------- |
+| Qualified accountant's certificate | s708(8)(c) | A certificate issued in the last two years by a CA ANZ, CPA Australia or IPA member   |
+| Professional investor              | s708(11)   | An AFS licence, a regulator registration, or proof of AUD 10 million under management |
 
-Each submission is its own source, and a person may hold several. An associated-person source names
-its company by the identifier the company supplies, and only an active company is accepted; this
-lookup reveals nothing about the company. A submitted source can be withdrawn.
+Each submission is its own source, and a person may hold several. A submitted source can be
+withdrawn.
 
-### Kinds of decision
+### What a decision opens
 
-- A general decision accepts an accountant-certificate or professional-investor source for the
-  deciding company. It is the decision that a wallet nomination, a non-paid chain grant, a company
-  wallet approval and the company's market reads through the trading API require.
-- An associated-person decision is primary eligibility for the exact company the claim names.
-  Primary eligibility served offerings, which are [planned](offerings.md), so it opens nothing today.
+A decision accepts an accountant-certificate or professional-investor source for the deciding
+company. It is the decision that a wallet nomination, a non-paid chain grant, a company wallet
+approval and the company's market reads through the trading API require.
 
 ### Requesting a decision
 
@@ -306,15 +303,12 @@ risk assessment, transaction and any company decision stay as they are.
 
 ## The Verification page
 
-Verification (investing accounts) has three sections:
+Verification (investing accounts) has two sections, followed by Supporting payslips:
 
-- Account readiness: **Account ready** or **Account checks needed** with the reasons, and a link to
-  Your company eligibility.
-- Your claims: each source's status and dates, with **Withdraw claim** while it is submitted. A
-  submitted source shows Available to share; one verified under the retired staff review shows
-  Historical verification.
-- How you qualify: the three categories, **Submit evidence** or **Add evidence**, and **Request
-  company eligibility**.
+- Your claims: a link to Your company eligibility, then each source's status and dates, with
+  **Withdraw claim** while it is submitted. A submitted source shows Available to share; one
+  verified under the retired staff review shows Historical verification.
+- How you qualify: the two categories, with **Submit evidence** or **Add evidence**.
 
 Your company eligibility holds your requests with their outcome history, **Prepare request
 withdrawal** and the wallet nomination. Company eligibility, for company

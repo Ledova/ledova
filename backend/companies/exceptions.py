@@ -36,16 +36,6 @@ class InvalidStatusTransitionException(APIException):
         super().__init__(detail=detail)
 
 
-class OfferedDocumentException(APIException):
-
-    status_code = status.HTTP_409_CONFLICT
-    default_detail = (
-        "This document is attached to an approved or closed offering, so it stays available to its investors and "
-        "cannot be deleted."
-    )
-    default_code = "offered_document"
-
-
 class AuthorityRequestConflictException(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = "This request key already records different identity, evidence or terms. Submit a new request."

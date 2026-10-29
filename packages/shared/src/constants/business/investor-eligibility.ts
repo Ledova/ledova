@@ -1,4 +1,4 @@
-import type { CertifierBody, InvestorCategory, InvestorReadinessReason } from '../../types';
+import type { CertifierBody, InvestorCategory } from '../../types';
 
 export const CATEGORIES: {
   category: InvestorCategory;
@@ -17,12 +17,6 @@ export const CATEGORIES: {
     label: 'Professional investor',
     section: 's708(11)',
     evidence: 'Your AFS licence, your regulator registration, or proof of AUD 10 million under management.',
-  },
-  {
-    category: 'associated_person',
-    label: 'Associated with the issuer',
-    section: 's708(12)',
-    evidence: 'Proof of your role with the named issuer, such as an ASIC extract naming you.',
   },
 ];
 
@@ -44,14 +38,6 @@ export function certifierBodies(caAnzLabel: string): { value: CertifierBody; lab
   ];
 }
 
-export const REASON_TEXT: Record<InvestorReadinessReason, string> = {
-  no_investor_account: 'This login has no investor account.',
-  account_not_in_good_standing: 'Your account is not in good standing.',
-  identity_not_verified: 'Verify your identity from Profile.',
-  actor_not_ready: 'Your login must be active and your email verified.',
-  principal_required: 'Sign in again to check your own account.',
-};
-
 export const COMPANY_ELIGIBILITY_UNMET_COPY: Record<string, string> = {
   participant_account_inactive: 'The investor’s account must be active, with its email verified.',
   participant_investor_account_required: 'The account must be an investor account.',
@@ -62,7 +48,6 @@ export const COMPANY_ELIGIBILITY_UNMET_COPY: Record<string, string> = {
   source_declaration_invalid: 'The classification claim’s declaration is missing or out of date.',
   source_not_submitted: 'The classification claim has not been submitted.',
   source_evidence_unavailable: 'The classification claim’s evidence is no longer available.',
-  associated_company_mismatch: 'The associated-person claim names a different company.',
   certificate_not_current: 'The accountant’s certificate is not current or is missing the certifier’s details.',
   requested_expiry_not_future: 'Choose an expiry in the future.',
   personal_approve_required: 'Your appointment must include approving eligibility decisions.',

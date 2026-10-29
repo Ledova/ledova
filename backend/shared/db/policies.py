@@ -13,11 +13,9 @@ PRINCIPAL_ACCOUNTS = "app_principal_account_ids"
 PRINCIPAL_PROFILES = "app_principal_profile_ids"
 VISIBLE_COMPANIES = "app_visible_company_ids"
 MANAGEABLE_COMPANIES = "app_manageable_company_ids"
-PUBLIC_COMPANIES = "app_public_company_ids"
 ADMINISTRABLE_COMPANIES = "app_company_administration_ids"
 DISCOVERABLE_COMPANIES = "app_company_discovery_ids"
 ELIGIBILITY_COMPANIES = "app_company_eligibility_ids"
-OPEN_TO_INVESTORS = "status = 'active' AND is_open_to_investors"
 
 
 def on_the_market(prefix: str = "") -> str:
@@ -25,9 +23,6 @@ def on_the_market(prefix: str = "") -> str:
 
 
 ON_THE_MARKET = on_the_market()
-ISSUES_THE_OFFERING = (
-    "offering_id IN (SELECT uuid FROM offerings_offering " f"WHERE company_id IN (SELECT {VISIBLE_COMPANIES}()))"
-)
 
 HAS_A_TOKEN_ON_THE_MARKET = (
     "EXISTS (SELECT 1 FROM tokens_sharetoken listed "
@@ -43,11 +38,7 @@ HELPERS = {
     """,
     VISIBLE_COMPANIES: f"SELECT uuid FROM companies_company WHERE owner_id = {PRINCIPAL}",
     MANAGEABLE_COMPANIES: f"SELECT uuid FROM companies_company WHERE owner_id = {PRINCIPAL}",
-    PUBLIC_COMPANIES: f"SELECT uuid FROM companies_company WHERE {OPEN_TO_INVESTORS}",
-    DISCOVERABLE_COMPANIES: (
-        f"SELECT uuid FROM companies_company WHERE {ADMITTED} "
-        f"AND (({OPEN_TO_INVESTORS}) OR {HAS_A_TOKEN_ON_THE_MARKET})"
-    ),
+    DISCOVERABLE_COMPANIES: f"SELECT uuid FROM companies_company WHERE {ADMITTED} AND {HAS_A_TOKEN_ON_THE_MARKET}",
     ADMINISTRABLE_COMPANIES: f"""
         SELECT issuer.uuid FROM companies_company issuer
         JOIN authentication_customuser actor ON actor.id = {PRINCIPAL}
@@ -100,25 +91,6 @@ OWNS_THE_ACCOUNT = f"user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())"
 LEAF_TABLES = ("companies_company",)
 
 
-def subscribed_to_my_offering(column, table):
-    return (
-        "EXISTS (SELECT 1 FROM offerings_subscription bid "
-        "JOIN offerings_offering listed ON listed.uuid = bid.offering_id "
-        f"WHERE listed.company_id IN (SELECT {VISIBLE_COMPANIES}()) AND bid.{column} = {table}.uuid)"
-    )
-
-
-A_SUBSCRIBING_ACCOUNT = subscribed_to_my_offering("user_account_id", "customer_accounts_account")
-A_SUBSCRIBING_WALLET = subscribed_to_my_offering("wallet_id", "wallets")
-A_SUBSCRIBING_HOLDER = (
-    "EXISTS (SELECT 1 FROM customer_accounts_account holding "
-    "JOIN offerings_subscription bid ON bid.user_account_id = holding.uuid "
-    "JOIN offerings_offering listed ON listed.uuid = bid.offering_id "
-    f"WHERE listed.company_id IN (SELECT {VISIBLE_COMPANIES}()) "
-    "AND holding.user_profile_id = users_userprofile.uuid)"
-)
-
-
 def _owned_through_the_profile(table):
     return f"{table}.user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())"
 
@@ -129,10 +101,6 @@ def _owned(column):
 
 def _company(column, helper):
     return f"{column} IN (SELECT {helper}())"
-
-
-def _company_or_public(column):
-    return f"{_company(column, VISIBLE_COMPANIES)} OR {_company(column, PUBLIC_COMPANIES)}"
 
 
 OWNERSHIP_BOUND = (
@@ -214,7 +182,7 @@ POLICIES = {
         f"uuid IN (SELECT {ADMINISTRABLE_COMPANIES}()) OR uuid IN (SELECT {DISCOVERABLE_COMPANIES}())",
         "false",
     ),
-    "users_userprofile": (f"user_id = {PRINCIPAL} OR {A_SUBSCRIBING_HOLDER}", f"user_id = {PRINCIPAL}"),
+    "users_userprofile": (f"user_id = {PRINCIPAL}", f"user_id = {PRINCIPAL}"),
     "documents": (f"uploaded_by_id = {PRINCIPAL}", f"uploaded_by_id = {PRINCIPAL}"),
     "users_device_token": (f"user_id = {PRINCIPAL}", f"user_id = {PRINCIPAL}"),
     "notifications": (f"user_id = {PRINCIPAL}", f"user_id = {PRINCIPAL}"),
@@ -226,8 +194,8 @@ POLICIES = {
         _owned_through_the_profile("users_userpreferences"),
         _owned_through_the_profile("users_userpreferences"),
     ),
-    "customer_accounts_account": (f"{OWNS_THE_ACCOUNT} OR {A_SUBSCRIBING_ACCOUNT}", OWNS_THE_ACCOUNT),
-    "wallets": (f"{_owned('user_account_id')} OR {A_SUBSCRIBING_WALLET}", _owned("user_account_id")),
+    "customer_accounts_account": (OWNS_THE_ACCOUNT, OWNS_THE_ACCOUNT),
+    "wallets": (_owned("user_account_id"), _owned("user_account_id")),
     "transactions": (_owned("user_account_id"), _owned("user_account_id")),
     "wallets_walletsubmission": (_owned("user_account_id"), _owned("user_account_id")),
     "wallets_bitcoinsubmission": (_owned("user_account_id"), _owned("user_account_id")),
@@ -236,10 +204,6 @@ POLICIES = {
     "wallets_walletchainobservation": (_owned("user_account_id"), "false"),
     "portfolios": (_owned("user_account_id"), _owned("user_account_id")),
     "users_investorclassification": (_owned("user_account_id"), _owned("user_account_id")),
-    "offerings_subscription": (
-        f"{_owned('user_account_id')} OR {ISSUES_THE_OFFERING}",
-        _owned("user_account_id"),
-    ),
     "tokens_transferorder": (
         f"{_owned('owner_account_id')} AND {OWNERSHIP_BOUND}",
         f"{_owned('owner_account_id')} AND {OWNERSHIP_BOUND}",
@@ -269,10 +233,6 @@ POLICIES = {
         f"request_id IN (SELECT uuid FROM companies_companyauthorityrequest WHERE requester_id = {PRINCIPAL})",
         "false",
     ),
-    "offerings_offering": (
-        _company_or_public("company_id"),
-        _company("company_id", MANAGEABLE_COMPANIES),
-    ),
     "tokens_sharetoken": (
         f'{_company("company_id", VISIBLE_COMPANIES)} OR ({ON_THE_MARKET})',
         _company("company_id", MANAGEABLE_COMPANIES),
@@ -282,8 +242,7 @@ POLICIES = {
         "false",
     ),
     "tokens_shareissuancerequest": (
-        f"{_company('company_id', VISIBLE_COMPANIES)} OR uuid IN "
-        f"(SELECT issuance_request_id FROM offerings_subscription WHERE {_owned('user_account_id')})",
+        _company("company_id", VISIBLE_COMPANIES),
         _company("company_id", MANAGEABLE_COMPANIES),
     ),
     "tokens_formerholder": (f"owner_id = {PRINCIPAL}", "false"),
@@ -360,7 +319,7 @@ READS_WIDER_THAN_OWNERSHIP = {
     "Exact company eligibility preparation": (
         "users/services/company_eligibility.py company_eligibility_requests and _request_context; "
         "shared/db/policies.py app_company_eligibility_ids",
-        "The exact known active issuer or approved offering resolves without a company directory. The operator "
+        "The exact known active issuer resolves without a company directory. The operator "
         "validates only the actual participant's source and exact command. Current personal prepare or approve "
         "appointments admit deliberately shared records through a UUID-only definer and immutable parent joins; "
         "no source, identity, financial file or private document policy is expanded.",
@@ -368,7 +327,7 @@ READS_WIDER_THAN_OWNERSHIP = {
     "Public company discovery": (
         "shared/db/policies.py companies_company read policy through app_company_discovery_ids",
         "The fixed-search-path definer returns only company UUIDs for a non-null principal and the existing "
-        "active/open or deployed/nonempty-address public terms. It stops company-token policy recursion "
+        "deployed/nonempty-address market term. It stops company-token policy recursion "
         "without admitting private company documents, profiles or basic administration.",
     ),
     "Current personal company administration": (
@@ -377,13 +336,6 @@ READS_WIDER_THAN_OWNERSHIP = {
         "unrooted owner drafts. It sees retained initial and legacy roots regardless of their RLS visibility. Basic "
         "responses expose only the existing contact name and email, without admitting raw profiles or accounts.",
     ),
-    "Company.active for an associated-person claim": (
-        "users/services/classification_issuer.py active_issuer_for_claim",
-        "The operator validates only the supplied UUID against active issuers and returns only that key. "
-        "The owner confirmed on 2026-09-13 that an applicant may name an active issuer before it is listed; "
-        "create_classification then writes the claim on the operator connection under the applicant's principal, "
-        "for their own account and profile, and company details remain hidden.",
-    ),
     "Market prices for already admitted tokens": (
         "tokens/services/market_data_service.py market_summaries; "
         "tokens/services/trading_order_service.py get_order_book",
@@ -391,15 +343,6 @@ READS_WIDER_THAN_OWNERSHIP = {
         "order-book levels for tokens already admitted under issuer ownership or investor eligibility. "
         "Lists resolve their page under the app role before one operator query bounded to those UUIDs. "
         "No order, wallet or counterparty identity is returned, and their RLS policies remain unchanged.",
-    ),
-    "Documents attached to a published offering": (
-        "offerings/services/documents.py published_documents and published_document, "
-        "for DirectoryTokenViewSet.documents and document_file in offerings/views/directory.py",
-        "companies_companydocument and offerings_offering_documents: the stored files attached to an approved or "
-        "closed offering of a share class the caller's directory admits. The token resolves through the directory "
-        "selector and the offerings through their own policy, under the app role, before one operator query "
-        "bounded to those offering UUIDs and the class's own company. No unattached document, no other company's "
-        "document and no external link is returned; basic company documents require current personal administration",
     ),
     "Stablecoin approvals for a wallet send": (
         "wallets/services/transaction_confirmation.py require_stablecoin_approvals, at prepare in "
@@ -410,37 +353,16 @@ READS_WIDER_THAN_OWNERSHIP = {
         "that yes or no reaches the sender, as which side is refused; no entry, company, wallet or account of the "
         "recipient is returned, and the wallets policy is unchanged",
     ),
-    "ShareIssuanceRequest on subscription reads and withdrawal": (
-        "offerings/querysets/subscription.py for_applicant and offerings/services/subscription.py _linked_request",
-        "tokens_shareissuancerequest: the request linked to a subscription of this principal's member account. "
-        "Reading that request preserves the withdrawal refusal once issuance is claimed; writes remain issuer-only",
-    ),
-    "Subscription.for_issuer": (
-        "offerings/views/offering.py OfferingViewSet.subscriptions",
-        "no policy term: subscriptions is one of OfferingViewSet's operator_actions, and the view filters to the "
-        "offerings issued_by this principal, the scope of offerings_subscription's issuer term",
-    ),
-    "Offering.open_now": (
-        "offerings/serializers/subscription.py SubscriptionCreateSerializer.get_fields",
-        "offerings_offering: the public company term. create_draft and submit in offerings/services/subscription.py "
-        "then re-read the offering on the operator connection behind the subscription admission lock",
-    ),
-    "ShareToken.in_directory": (
-        "offerings/services/directory.py directory_tokens, for DirectoryTokenViewSet in offerings/views/directory.py",
-        "tokens_sharetoken: the market predicate, and companies_company: open to investors",
-    ),
     "ShareToken.deployed_with_contract": (
         "tokens/services/market_data_service.py list_market_tokens, for TradingTokenViewSet in "
         "tokens/views/trading_token.py and streamable_token_uuid in tokens/services/trading_events.py; "
         "tokens/services/share_token_service.py get_wallet_token_balances",
-        "tokens_sharetoken: the market predicate, wider than the directory because a token is tradeable "
-        "without its issuer opting into the browse surface",
+        "tokens_sharetoken: the market predicate",
     ),
 }
 
 PUBLIC_TERM = {
-    "tokens_sharetoken": "The secondary market is deployed_with_contract(), wider than the directory: a "
-    "token is tradeable without its issuer opting into the browse surface, and no automated test covers that "
+    "tokens_sharetoken": "The secondary market is deployed_with_contract(), and no automated test covers that "
     "market read. The owner term admits only the classes of the principal's own companies, so alone it hides "
     "every deployed token from an investor - the second term has to be on the token's own columns. It is the "
     "exact dual of HAS_A_TOKEN_ON_THE_MARKET on companies_company: a company is visible because a token of its "
@@ -448,36 +370,9 @@ PUBLIC_TERM = {
     "between the two tables fails, which is why it holds by construction rather than by luck. The market term "
     "reads only this table's own columns and the owner term goes through the app_visible_company_ids definer, so "
     "the policy forms no cycle with the company term that reads it.",
-    "offerings_subscription": "Applicants keep their applications when the offering or company is hidden. "
-    "The applicant route reads stored names and currency without joining those parents; submit re-reads "
-    "the offering on the operator connection behind the subscription admission lock, and withdraw retains its "
-    "money and mint guards. tokens/services/register_instructions.py submit_instruction, directly and through "
-    "_check_items, asks on the app role whether a subscription stands behind each issuance request a company "
-    "owner's issue instruction names - the scope is the offering's ownership rather than the subscriber's "
-    "account, so a member-only policy would hide every other investor's subscription from those checks. "
-    "OfferingViewSet.subscriptions runs Subscription.objects.for_issuer(offering) on the operator connection. "
-    "The read term adds the offerings the principal's companies own; WITH CHECK stays member-only, because "
-    "an issuer does not write a subscription on someone's behalf. No cycle: offerings_offering's policy "
-    "does not read subscriptions.",
-    "customer_accounts_account": "An issuer must know who subscribed to their own offering. On the app role, "
-    "tokens/services/holder_identity.py identity_at_allotment, which submit_instruction reaches through "
-    "_check_items, follows a recipient's wallet to its account and profile; when that wallet subscribed to the "
-    "owner's offering the wallet term admits it, so without this term the account lookup would raise. The term "
-    "is the subscription, not the market - a stranger browsing companies reaches no account at all. R14 used to "
-    "let an account through for holding a company's operator wallet, and one account per person turned that "
-    "into the holder's name, phone and address, so it is gone. The term reads offerings_subscription, which "
-    "reads offerings_offering, which reads companies_company, which reads nothing back.",
-    "wallets": "The same subscription, one column along: identity_at_allotment finds the recipient's wallet by "
-    "address, and this term admits it when that wallet subscribed to the owner's offering. A wallet is on the "
-    "account that subscribed, so the wallet term and the account term open together and R13's closure holds by "
-    "construction.",
-    "users_userprofile": "The register is a name and an address, so identity_at_allotment reads the profile "
-    "behind a subscribing account for the recipient's name and residential address. The account is visible to "
-    "that issuer already and user_profile_id is not nullable, so without this term that read would raise. The "
-    "term is the same subscription predicate, one link further.",
-    "companies_company": "Public discovery preserves active companies open to investors and companies with a "
-    "deployed token carrying a nonempty contract address. Directory and secondary-market joins require these "
-    "parents independently of private basic administration. The fixed-search-path discovery definer returns "
+    "companies_company": "Public discovery preserves companies with a deployed token carrying a nonempty "
+    "contract address. Secondary-market joins require these parents independently of private basic "
+    "administration. The fixed-search-path discovery definer returns "
     "only company UUIDs under an admitted principal; its token check avoids the Company-to-token-to-invoker "
     "owner-helper policy cycle. Current personal administration and genuine unrooted draft setup use their "
     "separate UUID helper, while customer basic selectors remain narrower than public discovery.",
@@ -493,7 +388,7 @@ PUBLIC_TERM = {
     "companies_company through the visible-companies helper, and never reads publications back. Both tables are "
     "read-only to the app role; only the operator writes them.",
     "shareholders_publicationrecipient": "A roll row is readable by the member it names and by the company that "
-    "published it, the same two-sided shape offerings_subscription carries. The company term is the row's own "
+    "published it. The company term is the row's own "
     "company_id rather than a join through the publication, because the publication's read term reads this table "
     "and a term reading it back would be an infinite recursion in the policy. company_id is copied from the "
     "publication at insert and the guard trigger refuses a row whose company differs from its publication's; "
@@ -514,10 +409,6 @@ PUBLIC_TERM = {
     "read shareholders_publicationrecipient, whose own policy reads only its own columns and companies_company "
     "through the visible-companies helper, the company terms read that helper alone, and nothing reads this table "
     "back.",
-    "offerings_offering": "open_now() deliberately admits investors - the subscription serializer resolves the "
-    "offering in the caller's scope, before create_draft and submit re-read it on the operator connection behind "
-    "the subscription admission lock. An owner-only policy would refuse an eligible investor whose company is "
-    "open; retaining an existing application never widens this scope.",
 }
 
 AWAITING_R0: dict[str, MissingOwnerColumns] = {}
@@ -555,7 +446,7 @@ OPERATOR_ONLY = {
     "register readers read them through the class-rights action and permitted company-pack exports; the bounded "
     "producer requires a current personal ADMIN appointment and retains actor, time, exact revision history and "
     "linked class-document snapshots. Private downloads require an exact readable class and retained revision link. "
-    "They are not included in market, directory or member projections.",
+    "They are not included in market or member projections.",
     "auth_group": "Django's own permission grouping.",
     "auth_permission": "Django's own permission rows, one per model and action.",
     "django_admin_log": "The admin's audit trail, written and read on the operator connection only.",
@@ -565,14 +456,6 @@ OPERATOR_ONLY = {
     "auth_group_permissions": "Django's own permission plumbing, joining a group to a permission.",
     "authentication_customuser_groups": "Django's own permission plumbing, joining a user to a group.",
     "authentication_customuser_user_permissions": "Django's own permission plumbing, per-user grants.",
-    "offerings_offering_documents": "A link row reached through its offering, which is scoped, and from the "
-    "document side by companies/services/documents.py delete_document. Nothing scopes this table today, so a "
-    "policy here would be a new rule rather than a translation of one. Every reader and writer runs on the "
-    "operator connection, including OfferingViewSet's actions, delete_document, the offering and company document "
-    "admins, the eligibility SQL, and the directory's document read, which joins it only after resolving the "
-    "published offerings under the app role and bounds the join to them.",
-    "offerings_offering_settlement_assets": "A link row from a scoped offering to the global asset catalogue, "
-    "reached from the offering and only on the operator connection.",
     "companies_companysignuptermsacceptance": "Immutable current signup Terms receipts bound to one company, "
     "appointment and appointee. The bounded acceptance command writes them on the operator connection, and own "
     "appointment serialization reads only that appointee's exact receipt on that connection. The app role has "

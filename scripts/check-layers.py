@@ -35,11 +35,9 @@ SCOPING_CALLS = frozenset(
         "owned_by",
         "issued_by",
         "for_holder",
-        "subscribed_by",
         "none",
         "get_object",
         "get_queryset",
-        "eligible_investor_companies",
         "investor_eligibility",
     }
 )

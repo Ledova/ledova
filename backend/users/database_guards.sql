@@ -118,7 +118,6 @@ DECLARE
     source_id uuid;
     account_id uuid;
     profile_id uuid;
-    company_id uuid;
     principal bigint;
     account customer_accounts_account;
     profile users_userprofile;
@@ -137,15 +136,6 @@ BEGIN
         RAISE EXCEPTION 'The classification command does not authorize this operation' USING ERRCODE = '23514';
     END IF;
     IF operation IN ('create', 'withdraw') THEN
-        IF operation = 'create' THEN
-            company_id := NULLIF(current_setting('app.classification_evidence_company', true), '')::uuid;
-            IF company_id IS NOT NULL THEN
-                PERFORM 1 FROM companies_company WHERE uuid = company_id AND status = 'active' FOR NO KEY UPDATE;
-                IF NOT FOUND THEN
-                    RAISE EXCEPTION 'Active issuer not found' USING ERRCODE = '23514';
-                END IF;
-            END IF;
-        END IF;
         account_id := NULLIF(current_setting('app.classification_evidence_account', true), '')::uuid;
         profile_id := NULLIF(current_setting('app.classification_evidence_profile', true), '')::uuid;
         IF principal IS NULL OR account_id IS NULL OR profile_id IS NULL OR NOT EXISTS (
@@ -218,7 +208,6 @@ BEGIN
         IF NULLIF(current_setting('app.classification_evidence_operation', true), '') IS DISTINCT FROM 'create'
             OR NEW.uuid IS DISTINCT FROM NULLIF(current_setting('app.classification_evidence_source', true), '')::uuid
             OR NEW.user_account_id IS DISTINCT FROM NULLIF(current_setting('app.classification_evidence_account', true), '')::uuid
-            OR NEW.company_id IS DISTINCT FROM NULLIF(current_setting('app.classification_evidence_company', true), '')::uuid
             OR principal IS NULL OR NOT EXISTS (
             SELECT 1 FROM customer_accounts_account holder
             JOIN users_userprofile profile ON profile.uuid = holder.user_profile_id
@@ -230,12 +219,10 @@ BEGIN
             OR NULLIF(NEW.evidence_file, '') IS NULL OR NEW.evidence_file_size IS NULL OR NEW.evidence_file_size = 0
             OR NEW.evidence_mime_type = ''
             OR NEW.declaration_text IS DISTINCT FROM (CASE NEW.category
-                WHEN 'product_value' THEN 'I declare that the amount payable on acceptance of this offer is at least AUD 500,000, so the offer is made to me under section 708(8)(a) of the Corporations Act 2001 (Cth) and no disclosure document is required.'
                 WHEN 'accountant_certificate' THEN 'I declare that a qualified accountant has certified, within the last two years, that I have net assets of at least AUD 2.5 million or gross income of at least AUD 250,000 for each of the last two financial years, so the offer is made to me under section 708(8)(c) of the Corporations Act 2001 (Cth).'
                 WHEN 'professional_investor' THEN 'I declare that I am a professional investor within the meaning of section 708(11) and section 761G(7)(d) of the Corporations Act 2001 (Cth).'
-                WHEN 'associated_person' THEN 'I declare that I am a person associated with the named issuer within the meaning of section 708(12) of the Corporations Act 2001 (Cth).'
             END)
-            OR NEW.category NOT IN ('product_value', 'accountant_certificate', 'professional_investor', 'associated_person')
+            OR NEW.category NOT IN ('accountant_certificate', 'professional_investor')
             OR NEW.evidence_file NOT LIKE 'users/' || NEW.user_account_id::text
                 || '/investor-classifications/' || NEW.category || '/%'
         THEN
@@ -465,28 +452,6 @@ AS $function$
     SELECT @TIME_ZONE@;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.users_company_eligibility_offering_terms(offering_id uuid)
- RETURNS jsonb
- LANGUAGE sql
- STABLE
- SET search_path TO 'pg_catalog', 'public'
-AS $function$
-    SELECT jsonb_build_object(
-        'offering', listed.uuid::text, 'token', listed.token_id::text, 'company', listed.company_id::text,
-        'exemption', listed.exemption, 'price_per_share', listed.price_per_share::text,
-        'price_currency', listed.price_currency, 'minimum_shares', listed.minimum_shares,
-        'target_shares', listed.target_shares, 'cap_shares', listed.cap_shares,
-        'maximum_shares', listed.maximum_shares, 'opens_at', users_company_eligibility_stamp(listed.opens_at),
-        'closes_at', users_company_eligibility_stamp(listed.closes_at),
-        'summary', listed.summary, 'use_of_proceeds', listed.use_of_proceeds,
-        'accepts_bank_transfer', listed.accepts_bank_transfer,
-        'settlement_assets', COALESCE((SELECT jsonb_agg(asset_id::text ORDER BY asset_id)
-            FROM offerings_offering_settlement_assets settlement WHERE settlement.offering_id = listed.uuid), '[]'::jsonb),
-        'documents', COALESCE((SELECT jsonb_agg(document.companydocument_id::text ORDER BY document.companydocument_id)
-            FROM offerings_offering_documents document WHERE document.offering_id = listed.uuid), '[]'::jsonb))
-    FROM offerings_offering listed WHERE listed.uuid = $1;
-$function$;
-
 CREATE OR REPLACE FUNCTION public.users_company_eligibility_metadata_digest(source_id uuid)
  RETURNS text
  LANGUAGE sql
@@ -495,7 +460,7 @@ CREATE OR REPLACE FUNCTION public.users_company_eligibility_metadata_digest(sour
 AS $function$
     SELECT users_company_eligibility_hash(jsonb_build_object(
         'source', jsonb_build_object('uuid', source.uuid, 'user_account', source.user_account_id,
-            'company', source.company_id, 'category', source.category,
+            'category', source.category,
             'declaration_accepted', source.declaration_accepted, 'declaration_text', source.declaration_text,
             'declared_basis', source.declared_basis, 'submitted_at', source.submitted_at,
             'evidence_file', source.evidence_file, 'evidence_file_size', source.evidence_file_size,
@@ -528,8 +493,6 @@ DECLARE
     principal bigint;
     bound_source_id uuid;
     bound_company_id uuid;
-    bound_offering_id uuid;
-    bound_token_id uuid;
     bound_request_id uuid;
     source_account uuid;
     account_ids uuid[];
@@ -553,8 +516,6 @@ BEGIN
         IF proposal.uuid IS NULL THEN RETURN; END IF;
         bound_source_id := proposal.source_id;
         bound_company_id := proposal.company_id;
-        bound_offering_id := proposal.offering_id;
-        bound_token_id := proposal.token_id;
         recorded_actor := proposal.submitted_by_id;
         IF command->>'company' IS NOT NULL AND (command->>'company')::uuid IS DISTINCT FROM bound_company_id THEN
             RAISE EXCEPTION 'Retain the exact request company' USING ERRCODE = '23514';
@@ -562,17 +523,8 @@ BEGIN
     ELSE
         bound_source_id := (command->>'source')::uuid;
         bound_company_id := (command->>'company')::uuid;
-        bound_offering_id := (command->>'offering')::uuid;
-        SELECT listed.token_id INTO bound_token_id FROM offerings_offering listed WHERE listed.uuid = bound_offering_id;
     END IF;
     PERFORM 1 FROM companies_company WHERE uuid = bound_company_id FOR NO KEY UPDATE;
-    IF bound_token_id IS NOT NULL THEN
-        PERFORM 1 FROM tokens_sharetoken WHERE uuid = bound_token_id FOR NO KEY UPDATE;
-        PERFORM 1 FROM offerings_offering WHERE uuid = bound_offering_id FOR NO KEY UPDATE;
-        IF bound_request_id IS NULL AND NOT EXISTS (SELECT 1 FROM offerings_offering listed WHERE listed.uuid = bound_offering_id
-            AND listed.company_id = bound_company_id AND listed.token_id = bound_token_id)
-        THEN RAISE EXCEPTION 'The captured offering context changed; preview again' USING ERRCODE = '23514'; END IF;
-    END IF;
     SELECT user_account_id INTO source_account FROM users_investorclassification WHERE uuid = bound_source_id;
     SELECT array_agg(uuid ORDER BY uuid) INTO account_ids FROM customer_accounts_account
         WHERE uuid = source_account OR user_profile_id IN (SELECT uuid FROM users_userprofile WHERE user_id = principal);
@@ -617,9 +569,8 @@ AS $function$
         AND (account.account_status = 'active' OR (NOT configuration.investor_kyc_required AND account.account_status = 'pending'))
         AND (NOT configuration.investor_kyc_required OR profile.is_id_verified) AND issuer.status = 'active'
         AND source.status IN ('submitted', 'verified') AND source.submitted_at IS NOT NULL
-        AND source.declaration_accepted AND source.category IN (
-            'product_value', 'accountant_certificate', 'professional_investor', 'associated_person')
-        AND source.declaration_text = CASE source.category WHEN 'product_value' THEN 'I declare that the amount payable on acceptance of this offer is at least AUD 500,000, so the offer is made to me under section 708(8)(a) of the Corporations Act 2001 (Cth) and no disclosure document is required.' WHEN 'accountant_certificate' THEN 'I declare that a qualified accountant has certified, within the last two years, that I have net assets of at least AUD 2.5 million or gross income of at least AUD 250,000 for each of the last two financial years, so the offer is made to me under section 708(8)(c) of the Corporations Act 2001 (Cth).' WHEN 'professional_investor' THEN 'I declare that I am a professional investor within the meaning of section 708(11) and section 761G(7)(d) of the Corporations Act 2001 (Cth).' WHEN 'associated_person' THEN 'I declare that I am a person associated with the named issuer within the meaning of section 708(12) of the Corporations Act 2001 (Cth).' END
+        AND source.declaration_accepted AND source.category IN ('accountant_certificate', 'professional_investor')
+        AND source.declaration_text = CASE source.category WHEN 'accountant_certificate' THEN 'I declare that a qualified accountant has certified, within the last two years, that I have net assets of at least AUD 2.5 million or gross income of at least AUD 250,000 for each of the last two financial years, so the offer is made to me under section 708(8)(c) of the Corporations Act 2001 (Cth).' WHEN 'professional_investor' THEN 'I declare that I am a professional investor within the meaning of section 708(11) and section 761G(7)(d) of the Corporations Act 2001 (Cth).' END
         AND (source.expires_at IS NULL OR source.expires_at > at_time)
         AND COALESCE(source.evidence_file, '') <> ''
         AND (source.status <> 'verified' OR source.expires_at IS NULL
@@ -627,7 +578,6 @@ AS $function$
             OR source.expires_at + make_interval(secs => 86400.0 * users_classification_evidence_retention_days()) > at_time)
         AND NOT EXISTS (SELECT 1 FROM documents evidence WHERE evidence.classification_id = source.uuid
             AND (evidence.purged_at IS NOT NULL OR evidence.file = ''))
-        AND (source.category <> 'associated_person' OR source.company_id = issuer_id)
         AND (source.category <> 'accountant_certificate' OR (
             source.certificate_issued_at IS NOT NULL
             AND source.certificate_issued_at <= (at_time AT TIME ZONE 'UTC')::date
@@ -642,7 +592,7 @@ AS $function$
         JOIN companies_company issuer ON issuer.uuid = issuer_id WHERE source.uuid = source_id), false);
 $function$;
 
-CREATE OR REPLACE FUNCTION public.users_company_eligibility_summary(source_id uuid, issuer_id uuid, product_id uuid, quantity integer, requested_expires_at timestamp with time zone)
+CREATE OR REPLACE FUNCTION public.users_company_eligibility_summary(source_id uuid, issuer_id uuid, requested_expires_at timestamp with time zone)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE
@@ -650,9 +600,7 @@ CREATE OR REPLACE FUNCTION public.users_company_eligibility_summary(source_id uu
 AS $function$
 DECLARE
     source users_investorclassification;
-    product offerings_offering;
     summary jsonb;
-    terms jsonb;
 BEGIN
     SELECT * INTO source FROM users_investorclassification WHERE uuid = source_id;
     summary := jsonb_build_object('category', source.category, 'declaration_text', source.declaration_text,
@@ -663,15 +611,6 @@ BEGIN
         summary := summary || jsonb_build_object('certificate_issued_at', source.certificate_issued_at::text,
             'certifier_name', source.certifier_name, 'certifier_body', source.certifier_body,
             'certifier_membership_number', source.certifier_membership_number);
-    ELSIF source.category = 'associated_person' THEN
-        summary := summary || jsonb_build_object('associated_company', source.company_id::text);
-    ELSIF source.category = 'product_value' THEN
-        SELECT * INTO product FROM offerings_offering WHERE uuid = product_id;
-        terms := users_company_eligibility_offering_terms(product_id);
-        summary := summary || jsonb_build_object('offering', product.uuid::text, 'token', product.token_id::text,
-            'quantity', quantity, 'price_per_share', product.price_per_share::text,
-            'price_currency', product.price_currency, 'amount_aud', (product.price_per_share * quantity)::text,
-            'offering_terms', terms, 'offering_terms_digest', users_company_eligibility_hash(terms));
     END IF;
     RETURN summary;
 END;
@@ -690,7 +629,6 @@ DECLARE
     source users_investorclassification;
     decision users_companyeligibilitydecision;
     appointment companies_companyappointment;
-    product offerings_offering;
     summary jsonb;
     facts jsonb;
     at_time timestamptz;
@@ -711,15 +649,12 @@ BEGIN
     NEW.updated_at := at_time;
     IF TG_TABLE_NAME = 'users_companyeligibilityrequest' THEN
         SELECT * INTO source FROM users_investorclassification WHERE uuid = NEW.source_id;
-        summary := users_company_eligibility_summary(NEW.source_id, NEW.company_id, NEW.offering_id,
-            NEW.quantity, NEW.requested_expires_at);
+        summary := users_company_eligibility_summary(NEW.source_id, NEW.company_id, NEW.requested_expires_at);
         facts := jsonb_build_object('version', '1', 'shared_summary', summary,
             'source_fingerprint', NEW.source_fingerprint, 'evidence_hash', NEW.evidence_hash);
         IF operation <> 'submit' OR NEW.submitted_by_id IS DISTINCT FROM principal
             OR (command->>'source')::uuid IS DISTINCT FROM NEW.source_id
             OR (command->>'company')::uuid IS DISTINCT FROM NEW.company_id
-            OR (command->>'offering')::uuid IS DISTINCT FROM NEW.offering_id
-            OR (command->>'quantity')::integer IS DISTINCT FROM NEW.quantity
             OR (command->>'requested_expires_at')::timestamptz IS DISTINCT FROM NEW.requested_expires_at
             OR (command->>'idempotency_key')::uuid IS DISTINCT FROM NEW.idempotency_key
             OR command->>'preview_digest' IS DISTINCT FROM NEW.digest
@@ -736,20 +671,6 @@ BEGIN
             OR NEW.digest IS DISTINCT FROM users_company_eligibility_hash(facts)
             OR NEW.requested_expires_at <= at_time
         THEN RAISE EXCEPTION 'Retain the exact current participant summary and evidence' USING ERRCODE = '23514'; END IF;
-        IF NEW.category = 'product_value' THEN
-            SELECT * INTO product FROM offerings_offering WHERE uuid = NEW.offering_id;
-            IF product.uuid IS NULL OR product.status <> 'approved' OR product.company_id IS DISTINCT FROM NEW.company_id
-                OR product.token_id IS DISTINCT FROM NEW.token_id
-                OR NOT EXISTS (SELECT 1 FROM tokens_sharetoken WHERE uuid = NEW.token_id AND company_id = NEW.company_id)
-                OR NEW.quantity IS NULL OR NEW.quantity <= 0 OR product.price_currency <> 'AUD'
-                OR product.price_per_share <= 0 OR product.price_per_share * NEW.quantity < 500000
-                OR NEW.price_per_share IS DISTINCT FROM product.price_per_share
-                OR NEW.price_currency IS DISTINCT FROM product.price_currency
-                OR NEW.amount_aud IS DISTINCT FROM product.price_per_share * NEW.quantity
-                OR NEW.offering_terms IS DISTINCT FROM users_company_eligibility_offering_terms(product.uuid)
-                OR NEW.offering_terms_digest IS DISTINCT FROM users_company_eligibility_hash(NEW.offering_terms)
-            THEN RAISE EXCEPTION 'Bind exact approved product terms and server amount' USING ERRCODE = '23514'; END IF;
-        END IF;
         NEW.submitted_at := at_time;
         RETURN NEW;
     END IF;
@@ -815,14 +736,7 @@ BEGIN
                     AND NEW.expires_at > users_company_eligibility_certificate_expiry(source.certificate_issued_at))
                 OR proposal.source_fingerprint IS DISTINCT FROM encode(sha256(convert_to(
                     users_company_eligibility_metadata_digest(source.uuid) || ':' || proposal.evidence_hash, 'UTF8')), 'hex')
-                OR (proposal.offering_id IS NOT NULL AND (
-                    NOT EXISTS (SELECT 1 FROM offerings_offering listed
-                        JOIN tokens_sharetoken token ON token.uuid = listed.token_id
-                        WHERE listed.uuid = proposal.offering_id AND listed.status = 'approved'
-                            AND listed.company_id = proposal.company_id AND token.company_id = proposal.company_id)
-                    OR proposal.offering_terms_digest IS DISTINCT FROM users_company_eligibility_hash(
-                        users_company_eligibility_offering_terms(proposal.offering_id))))
-            THEN RAISE EXCEPTION 'Acceptance needs current identity, evidence and exact scoped terms' USING ERRCODE = '23514'; END IF;
+            THEN RAISE EXCEPTION 'Acceptance needs current identity and evidence' USING ERRCODE = '23514'; END IF;
         ELSIF NEW.outcome <> 'refused' OR NEW.expires_at IS NOT NULL OR NOT users_company_eligibility_nonblank(NEW.reason) THEN
             RAISE EXCEPTION 'Refusal is a reasoned retained outcome, without permission' USING ERRCODE = '23514';
         END IF;
@@ -871,19 +785,13 @@ BEGIN
 END;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.users_company_eligibility_decision_facts_current(decision_id uuid, account_id uuid, issuer_id uuid, purpose text, product_id uuid, whole_quantity integer, at_time timestamp with time zone)
+CREATE OR REPLACE FUNCTION public.users_company_eligibility_decision_facts_current(decision_id uuid, account_id uuid, issuer_id uuid, at_time timestamp with time zone)
  RETURNS boolean
  LANGUAGE sql
  SET search_path TO 'pg_catalog', 'public'
 AS $function$
     SELECT COALESCE((SELECT
-        purpose IN ('primary', 'secondary') AND issuer_id IS NOT NULL
-        AND (purpose <> 'secondary' OR (product_id IS NULL AND whole_quantity IS NULL))
-        AND (product_id IS NULL OR (purpose = 'primary' AND whole_quantity > 0
-            AND EXISTS (SELECT 1 FROM public.offerings_offering product
-                JOIN public.tokens_sharetoken token ON token.uuid = product.token_id
-                WHERE product.uuid = product_id AND product.status = 'approved'
-                    AND product.company_id = issuer_id AND token.company_id = issuer_id)))
+        issuer_id IS NOT NULL
         AND decision.outcome = 'accepted' AND decision.expires_at > boundary.checked_at
         AND decision.expires_at <= proposal.requested_expires_at
         AND decision.request_digest = proposal.digest
@@ -903,7 +811,7 @@ AS $function$
         AND proposal.source_fingerprint = encode(sha256(convert_to(
             users_company_eligibility_hash(jsonb_build_object(
         'source', jsonb_build_object('uuid', source.uuid, 'user_account', source.user_account_id,
-            'company', source.company_id, 'category', source.category,
+            'category', source.category,
             'declaration_accepted', source.declaration_accepted, 'declaration_text', source.declaration_text,
             'declared_basis', source.declared_basis, 'submitted_at', source.submitted_at,
             'evidence_file', source.evidence_file, 'evidence_file_size', source.evidence_file_size,
@@ -921,29 +829,7 @@ AS $function$
             'version', proposal.version, 'shared_summary', proposal.shared_summary,
             'source_fingerprint', proposal.source_fingerprint, 'evidence_hash', proposal.evidence_hash))
         AND proposal.shared_summary = public.users_company_eligibility_summary(
-            source.uuid, issuer_id, proposal.offering_id, proposal.quantity, proposal.requested_expires_at)
-        AND CASE WHEN proposal.category = 'product_value' THEN
-            purpose = 'primary' AND product_id IS NOT NULL AND whole_quantity > 0
-            AND proposal.offering_id = product_id AND proposal.quantity = whole_quantity
-            AND proposal.token_id IS NOT NULL AND proposal.price_per_share > 0
-            AND proposal.price_currency = 'AUD' AND proposal.amount_aud >= 500000.00
-            AND EXISTS (SELECT 1 FROM public.offerings_offering product
-                JOIN public.tokens_sharetoken token ON token.uuid = product.token_id
-                WHERE product.uuid = product_id AND product.status = 'approved'
-                    AND product.company_id = issuer_id AND token.company_id = issuer_id
-                    AND product.token_id = proposal.token_id
-                    AND product.price_per_share = proposal.price_per_share
-                    AND product.price_currency = proposal.price_currency
-                    AND product.price_per_share * whole_quantity = proposal.amount_aud)
-            AND proposal.offering_terms = public.users_company_eligibility_offering_terms(product_id)
-            AND proposal.offering_terms_digest = public.users_company_eligibility_hash(proposal.offering_terms)
-        ELSE
-            (proposal.category IN ('accountant_certificate', 'professional_investor')
-                OR (purpose = 'primary' AND proposal.category = 'associated_person'))
-            AND proposal.offering_id IS NULL AND proposal.token_id IS NULL AND proposal.quantity IS NULL
-            AND proposal.price_per_share IS NULL AND proposal.price_currency IS NULL AND proposal.amount_aud IS NULL
-            AND proposal.offering_terms IS NULL AND proposal.offering_terms_digest IS NULL
-        END
+            source.uuid, issuer_id, proposal.requested_expires_at)
         FROM public.users_companyeligibilitydecision decision
         JOIN public.users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id
         JOIN public.users_investorclassification source ON source.uuid = proposal.source_id
@@ -954,14 +840,13 @@ AS $function$
         WHERE decision.uuid = decision_id), false);
 $function$;
 
-CREATE OR REPLACE FUNCTION public.users_company_eligibility_decision_current(decision_id uuid, account_id uuid, issuer_id uuid, purpose text, product_id uuid, whole_quantity integer, at_time timestamp with time zone)
+CREATE OR REPLACE FUNCTION public.users_company_eligibility_decision_current(decision_id uuid, account_id uuid, issuer_id uuid, at_time timestamp with time zone)
  RETURNS boolean
  LANGUAGE sql
  SET search_path TO 'pg_catalog', 'public'
 AS $function$
     SELECT COALESCE((SELECT public.users_company_eligibility_metadata_digest(proposal.source_id) IS NOT NULL
-        AND public.users_company_eligibility_decision_facts_current(
-            decision_id, account_id, issuer_id, purpose, product_id, whole_quantity, at_time)
+        AND public.users_company_eligibility_decision_facts_current(decision_id, account_id, issuer_id, at_time)
         FROM public.users_companyeligibilitydecision decision
         JOIN public.users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id
         WHERE decision.uuid = decision_id), false);

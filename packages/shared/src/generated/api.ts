@@ -207,22 +207,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/investor-classifications/eligibility/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_investor_classifications_eligibility_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/notifications/': {
     parameters: {
       query?: never;
@@ -1087,70 +1071,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/directory/tokens/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_directory_tokens_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/directory/tokens/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_directory_tokens_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/directory/tokens/{uuid}/documents/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_directory_tokens_documents_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/directory/tokens/{uuid}/documents/{document_uuid}/file/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_directory_tokens_documents_file_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/documents/': {
     parameters: {
       query?: never;
@@ -1193,102 +1113,6 @@ export interface ApiPaths {
     get?: never;
     put?: never;
     post: ApiOperations['api_v1_documents_attach_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/offerings/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_offerings_list'];
-    put?: never;
-    post: ApiOperations['api_v1_offerings_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/offerings/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_offerings_retrieve'];
-    put?: never;
-    post?: never;
-    delete: ApiOperations['api_v1_offerings_destroy'];
-    options?: never;
-    head?: never;
-    patch: ApiOperations['api_v1_offerings_partial_update'];
-    trace?: never;
-  };
-  '/api/v1/offerings/{uuid}/documents/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_offerings_documents_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/offerings/{uuid}/submit/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_offerings_submit_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/offerings/{uuid}/subscriptions/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_offerings_subscriptions_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/offerings/{uuid}/withdraw/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_offerings_withdraw_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1353,70 +1177,6 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_publications_summary_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/subscriptions/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_subscriptions_list'];
-    put?: never;
-    post: ApiOperations['api_v1_subscriptions_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/subscriptions/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_subscriptions_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/subscriptions/{uuid}/submit/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_subscriptions_submit_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/subscriptions/{uuid}/withdraw/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_subscriptions_withdraw_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -3135,102 +2895,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/tokens/register-paid-issues/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_register_paid_issues_list'];
-    put?: never;
-    post: ApiOperations['api_v1_tokens_register_paid_issues_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/register-paid-issues/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_register_paid_issues_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/register-paid-issues/{uuid}/decide/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_tokens_register_paid_issues_decide_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/register-paid-issues/{uuid}/decision-preview/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_tokens_register_paid_issues_decision_preview_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/register-paid-issues/{uuid}/file/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_register_paid_issues_file_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/register-paid-issues/ready-subscriptions/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_register_paid_issues_ready_subscriptions_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/tokens/register-particulars-changes/': {
     parameters: {
       query?: never;
@@ -4524,7 +4188,7 @@ export interface ApiComponents {
       | 'executed'
       | 'failed'
       | 'superseded';
-    CategoryEnum: 'product_value' | 'accountant_certificate' | 'professional_investor' | 'associated_person';
+    CategoryEnum: 'accountant_certificate' | 'professional_investor';
     CertifierBodyEnum: 'ca_anz' | 'cpa_australia' | 'ipa';
     ChangePasswordRequest: {
       currentPassword: string;
@@ -4809,7 +4473,6 @@ export interface ApiComponents {
       infoRequestReason: string;
       isActive: boolean;
       isApproved: boolean;
-      isOpenToInvestors?: boolean;
       isOwner: boolean;
       isPendingReview: boolean;
       name: string;
@@ -4925,21 +4588,17 @@ export interface ApiComponents {
       withdrawal: ApiComponents['schemas']['CompanyEligibilityRequestWithdrawal'] | null;
     };
     CompanyEligibilityRequestCreateRequest: {
-      company?: string | null;
+      company: string;
       declarationAccepted: boolean;
       idempotencyKey: string;
-      offering?: string | null;
       previewDigest: string;
-      quantity?: number | null;
       requestedExpiresAt: string;
       sharingAccepted: boolean;
       source: string;
     };
     CompanyEligibilityRequestOutcomeEnum: 'pending' | 'accepted' | 'refused' | 'withdrawn' | 'revoked' | 'expired';
     CompanyEligibilityRequestPreviewRequest: {
-      company?: string | null;
-      offering?: string | null;
-      quantity?: number | null;
+      company: string;
       requestedExpiresAt: string;
       source: string;
     };
@@ -4977,8 +4636,6 @@ export interface ApiComponents {
       reason: string;
     };
     CompanyEligibilitySharedSummary: {
-      amountAud?: string;
-      associatedCompany?: string | null;
       category: ApiComponents['schemas']['CategoryEnum'];
       certificateIssuedAt?: string | null;
       certifierBody?: ApiComponents['schemas']['CertifierBodyEnum'] | ApiComponents['schemas']['BlankEnum'];
@@ -4986,16 +4643,9 @@ export interface ApiComponents {
       certifierName?: string;
       company: string;
       declarationText: string;
-      offering?: string;
-      offeringTerms?: unknown;
-      offeringTermsDigest?: string;
-      priceCurrency?: string;
-      pricePerShare?: string;
-      quantity?: number;
       requestedExpiresAt: string;
       source: string;
       submittedAt: string | null;
-      token?: string;
       userAccount: string;
     };
     CompanyList: {
@@ -5276,56 +4926,6 @@ export interface ApiComponents {
       detail: string;
     };
     DeviceTypeEnum: 'ios' | 'android';
-    DirectoryCompany: {
-      city: string;
-      displayName: string;
-      industry: string;
-      state: string;
-    };
-    DirectoryDocument: {
-      createdAt: string;
-      documentType: ApiComponents['schemas']['CompanyDocumentDocumentTypeEnum'];
-      documentTypeDisplay: string;
-      fileSize: number;
-      fileUrl: string;
-      mimeType: string;
-      name: string;
-      uuid: string;
-      validFrom: string | null;
-      validUntil: string | null;
-    };
-    DirectoryOpenOfferingResponse: {
-      closesAt: string | null;
-      opensAt: string;
-      priceCurrency: string;
-      pricePerShare: string;
-      uuid: string;
-    };
-    DirectoryTokenList: {
-      bestAsk: string | null;
-      bestBid: string | null;
-      chain: string | null;
-      company: ApiComponents['schemas']['DirectoryCompany'];
-      companyName: string;
-      companyUuid: string;
-      contractAddress: string | null;
-      createdAt: string;
-      decimals: number;
-      deployedAt: string | null;
-      isDivisible: boolean;
-      issuedShares: number;
-      isTransferable: boolean;
-      lastPrice: string | null;
-      name: string;
-      openOffering: ApiComponents['schemas']['DirectoryOpenOfferingResponse'] | null;
-      status: ApiComponents['schemas']['ShareTokenStatusEnum'];
-      statusDisplay: string;
-      symbol: string;
-      tokenType: ApiComponents['schemas']['TokenTypeEnum'];
-      tokenTypeDisplay: string;
-      totalSupply: string;
-      uuid: string;
-    };
     Document: {
       attachedAt: string | null;
       classification: string | null;
@@ -5374,12 +4974,6 @@ export interface ApiComponents {
       rate: string;
       targetCurrency: string;
     };
-    ExemptionEnum:
-      | 's708_8_minimum_amount'
-      | 's708_8_net_assets'
-      | 's708_8_gross_income'
-      | 's708_11_professional'
-      | 's761g_wholesale_client';
     ExportedAccount: {
       accountNumber: string;
       accountType: string;
@@ -5578,7 +5172,6 @@ export interface ApiComponents {
       certifierBody?: ApiComponents['schemas']['CertifierBodyEnum'] | ApiComponents['schemas']['BlankEnum'];
       certifierMembershipNumber?: string;
       certifierName?: string;
-      company?: string | null;
       createdAt: string;
       declarationAccepted?: boolean;
       declarationText: string;
@@ -5603,36 +5196,12 @@ export interface ApiComponents {
       certifierBody?: ApiComponents['schemas']['CertifierBodyEnum'] | ApiComponents['schemas']['BlankEnum'];
       certifierMembershipNumber?: string;
       certifierName?: string;
-      company?: string | null;
       declarationAccepted?: boolean;
       declaredBasis?: string;
       evidenceFile: Blob;
     };
     InvestorClassificationStatusEnum: 'submitted' | 'verified' | 'rejected' | 'revoked' | 'withdrawn';
-    InvestorEligibility: {
-      account: string | null;
-      isReady: boolean;
-      reasons: string[];
-    };
     IssuanceTypeEnum: 'initial' | 'additional' | 'bonus' | 'dividend' | 'transfer';
-    IssuerSubscription: {
-      allotmentState: string;
-      allottedQuantity: number | null;
-      amountDue: string;
-      amountReceived: string | null;
-      createdAt: string;
-      investorName: string;
-      paymentConfirmedAt: string | null;
-      paymentDueAt: string | null;
-      pricePerShare: string;
-      quantity: number;
-      reference: string;
-      settlementRailDisplay: string;
-      status: ApiComponents['schemas']['SubscriptionStatusEnum'];
-      statusDisplay: string;
-      uuid: string;
-      walletAddress: string;
-    };
     KycProviderEnum: 'sumsub' | 'kycaid';
     MarkAllReadResponse: {
       marked: number;
@@ -5913,89 +5482,6 @@ export interface ApiComponents {
     };
     NotificationTypeEnum: 'transaction' | 'general' | 'system';
     NullEnum: null;
-    OfferingDetail: {
-      acceptsBankTransfer: boolean;
-      canBeDeleted: boolean;
-      canBeEdited: boolean;
-      capShares: number;
-      closedAt: string | null;
-      closeReason: string;
-      closesAt: string | null;
-      createdAt: string;
-      documents: string[];
-      exemption: ApiComponents['schemas']['ExemptionEnum'];
-      exemptionDisplay: string;
-      isOpen: boolean;
-      maximumShares: number | null;
-      minimumShares: number;
-      opensAt: string;
-      priceCurrency: ApiComponents['schemas']['PriceCurrencyEnum'];
-      pricePerShare: string;
-      rejectionReason: string;
-      reviewedAt: string | null;
-      reviewedByEmail: string | null;
-      reviewNotes: string;
-      settlementAssets: string[];
-      status: ApiComponents['schemas']['OfferingStatusEnum'];
-      statusDisplay: string;
-      submittedAt: string | null;
-      submittedByEmail: string | null;
-      summary: string;
-      targetShares: number;
-      tokenName: string;
-      tokenSymbol: string;
-      tokenUuid: string;
-      updatedAt: string;
-      useOfProceeds: string;
-      uuid: string;
-    };
-    OfferingDocumentsRequest: {
-      documents: string[];
-    };
-    OfferingList: {
-      canBeDeleted: boolean;
-      canBeEdited: boolean;
-      capShares: number;
-      closeReason: string;
-      closesAt: string | null;
-      createdAt: string;
-      exemption: ApiComponents['schemas']['ExemptionEnum'];
-      exemptionDisplay: string;
-      isOpen: boolean;
-      maximumShares: number | null;
-      minimumShares: number;
-      opensAt: string;
-      priceCurrency: ApiComponents['schemas']['PriceCurrencyEnum'];
-      pricePerShare: string;
-      rejectionReason: string;
-      status: ApiComponents['schemas']['OfferingStatusEnum'];
-      statusDisplay: string;
-      targetShares: number;
-      tokenName: string;
-      tokenSymbol: string;
-      tokenUuid: string;
-      uuid: string;
-    };
-    OfferingStatusEnum: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'closed' | 'withdrawn';
-    OfferingWithdrawRequest: {
-      reason?: string;
-    };
-    OfferingWriteRequest: {
-      acceptsBankTransfer?: boolean;
-      capShares: number;
-      closesAt?: string | null;
-      documents?: string[];
-      exemption: ApiComponents['schemas']['ExemptionEnum'];
-      maximumShares?: number | null;
-      minimumShares: number;
-      opensAt: string;
-      pricePerShare: string;
-      settlementAssets?: string[];
-      summary?: string;
-      targetShares: number;
-      token: string;
-      useOfProceeds?: string;
-    };
     Operator: {
       abn: string;
       contactEmail: string;
@@ -6004,17 +5490,8 @@ export interface ApiComponents {
       issuerKycRequired: boolean;
       legalName: string;
       name: string;
-      paymentInstructions: ApiComponents['schemas']['OperatorPaymentInstructions'] | null;
       supportedSettlementAssets: ApiComponents['schemas']['SettlementAsset'][];
       website: string;
-    };
-    OperatorPaymentInstructions: {
-      bankAccountName?: string;
-      bankAccountNumber?: string;
-      bankBsb?: string;
-      paymentReferencePrefix?: string;
-      receivingWalletAddress?: string;
-      receivingWalletChain?: string;
     };
     OrderActionAppliedResult:
       ApiComponents['schemas']['OrderActionCancelResult'] | ApiComponents['schemas']['OrderActionModifyResult'];
@@ -6272,12 +5749,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['CompanyWalletTarget'][];
     };
-    PaginatedDirectoryTokenListList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['DirectoryTokenList'][];
-    };
     PaginatedDocumentList: {
       count: number;
       next?: string | null;
@@ -6301,12 +5772,6 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['InvestorClassification'][];
-    };
-    PaginatedIssuerSubscriptionList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['IssuerSubscription'][];
     };
     PaginatedMemberAssociationList: {
       count: number;
@@ -6343,12 +5808,6 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['Notification'][];
-    };
-    PaginatedOfferingListList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['OfferingList'][];
     };
     PaginatedOwnCompanyAppointmentList: {
       count: number;
@@ -6452,12 +5911,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterOpening'][];
     };
-    PaginatedRegisterPaidIssueList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['RegisterPaidIssue'][];
-    };
     PaginatedRegisterParticularsChangeList: {
       count: number;
       next?: string | null;
@@ -6512,12 +5965,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['ShareTokenList'][];
     };
-    PaginatedSubscriptionListList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['SubscriptionList'][];
-    };
     PaginatedSwapOrderListList: {
       count: number;
       next?: string | null;
@@ -6570,7 +6017,6 @@ export interface ApiComponents {
       companyType?: ApiComponents['schemas']['CompanyTypeEnum'];
       description?: string;
       industry?: string;
-      isOpenToInvestors?: boolean;
       name?: string;
       operatorWallet?: string | null;
       phone?: string;
@@ -6595,22 +6041,6 @@ export interface ApiComponents {
     PatchedNotificationRequest: {
       isArchived?: boolean;
       isRead?: boolean;
-    };
-    PatchedOfferingWriteRequest: {
-      acceptsBankTransfer?: boolean;
-      capShares?: number;
-      closesAt?: string | null;
-      documents?: string[];
-      exemption?: ApiComponents['schemas']['ExemptionEnum'];
-      maximumShares?: number | null;
-      minimumShares?: number;
-      opensAt?: string;
-      pricePerShare?: string;
-      settlementAssets?: string[];
-      summary?: string;
-      targetShares?: number;
-      token?: string;
-      useOfProceeds?: string;
     };
     PatchedPortfolioRequest: {
       isActive?: boolean;
@@ -6648,25 +6078,6 @@ export interface ApiComponents {
         (ApiComponents['schemas']['WalletSigningPreferenceEnum'] | ApiComponents['schemas']['NullEnum']) | null;
       walletType?:
         (ApiComponents['schemas']['WalletSigningPreferenceEnum'] | ApiComponents['schemas']['NullEnum']) | null;
-    };
-    PaymentInstruction: {
-      amountDue: string;
-      assetSymbol?: string;
-      bankAccountName?: string;
-      bankAccountNumber?: string;
-      bankBsb?: string;
-      chain?: string;
-      contractAddress?: string;
-      currency: string;
-      decimals?: number;
-      issuedAt: string | null;
-      payee: string;
-      paymentDueAt: string | null;
-      rail: ApiComponents['schemas']['SettlementRailEnum'];
-      railDisplay: string;
-      receivingWalletAddress?: string;
-      reference: string;
-      settlementAmount?: string;
     };
     PendingTransfer: {
       holdingQuantity: string;
@@ -6739,7 +6150,6 @@ export interface ApiComponents {
       toAddress: string;
       tokenContract?: string;
     };
-    PriceCurrencyEnum: 'AUD' | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'JPY' | 'NZD' | 'SGD';
     PrimaryTypeEnum: 'SwapOrder';
     ProtocolVersionEnum: 1;
     Publication: {
@@ -8016,124 +7426,6 @@ export interface ApiComponents {
       block: ApiComponents['schemas']['RegisterOpeningBlock'];
       holdings: ApiComponents['schemas']['RegisterOpeningHolder'][];
     };
-    RegisterPaidIssue: {
-      allottedAt: string | null;
-      approvalDecision: string | null;
-      approvingDirector: string;
-      authorityEvidence: string | null;
-      authorityReference: string;
-      company: string;
-      createdAt: string;
-      decisions: ApiComponents['schemas']['RegisterPaidIssueDecision'][];
-      evidenceFingerprint: string;
-      evidenceSnapshot: unknown;
-      execution: ApiComponents['schemas']['RegisterIssueExecution'] | null;
-      executionUnmetRequirements: string[];
-      intentDigest: string | null;
-      operationId: string;
-      preparedByName: string | null;
-      preparingAppointment: string | null;
-      providedBy: string;
-      reason: string;
-      rejectionReason: string;
-      request: string | null;
-      reviewedAt: string | null;
-      reviewedBy: number | null;
-      shares: string;
-      snapshot: ApiComponents['schemas']['RegisterPaidIssueSnapshot'];
-      stage: string;
-      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
-      submittedBy: number;
-      subscription: string;
-      subscriptionStatus: string;
-      token: string;
-      uuid: string;
-    };
-    RegisterPaidIssueCreateRequest: {
-      appointment: string;
-      approvingDirector: string;
-      authorityEvidence: string;
-      authorityReference: string;
-      operationId: string;
-      reason: string;
-      subscription: string;
-    };
-    RegisterPaidIssueDecideRequest: {
-      appointment: string;
-      confirmation: boolean;
-      idempotencyKey: string;
-      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
-      previewDigest: string;
-      reason?: string;
-    };
-    RegisterPaidIssueDecision: {
-      appointment: string;
-      decidedAt: string;
-      decidedBy: number;
-      decidedByName: string;
-      digest: string;
-      idempotencyKey: string;
-      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
-      reason: string;
-      uuid: string;
-    };
-    RegisterPaidIssueDecisionPreview: {
-      approvalDecision: string | null;
-      approvingDirector: string;
-      authorisedSupply: string;
-      authorityReference: string;
-      availableShares: string;
-      canDecide: boolean;
-      intentDigest: string;
-      issuedSupply: string;
-      offeringHeadroom: string;
-      previewDigest: string;
-      reason: string;
-      reservedShares: string;
-      shares: string;
-      snapshot: ApiComponents['schemas']['RegisterPaidIssueSnapshot'];
-      unmetRequirements: string[];
-    };
-    RegisterPaidIssueDecisionRequestRequest: {
-      appointment: string;
-      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
-      reason?: string;
-    };
-    RegisterPaidIssueRegisterSnapshot: {
-      headHash: string | null;
-      issuedSupply: string | null;
-      present: boolean;
-      sequence: number | null;
-      uuid: string | null;
-    };
-    RegisterPaidIssueSnapshot: {
-      company: ApiComponents['schemas']['RegisterIssueCompanySnapshot'];
-      register: ApiComponents['schemas']['RegisterPaidIssueRegisterSnapshot'];
-      source: ApiComponents['schemas']['RegisterPaidIssueSource'];
-      token: ApiComponents['schemas']['RegisterIssueTokenSnapshot'];
-      transaction: ApiComponents['schemas']['RegisterDeploymentTransactionSnapshot'];
-    };
-    RegisterPaidIssueSource: {
-      amountDue: string;
-      amountReceived: string | null;
-      company: string;
-      currency: string;
-      moneyHeld: string;
-      offering: string;
-      paymentConfirmedAt: string | null;
-      paymentReceivedOn: string | null;
-      paymentReferenceSeen: string;
-      paymentTxHash: string | null;
-      pricePerShare: string;
-      recipientAddress: string;
-      recipientName: string;
-      refundAmount: string | null;
-      refundedAt: string | null;
-      requestedShares: string;
-      shares: string;
-      subscription: string;
-      token: string;
-    };
     RegisterParticularsChange: {
       asAt: string;
       company: string;
@@ -8681,7 +7973,6 @@ export interface ApiComponents {
       symbol: string;
       uuid: string;
     };
-    SettlementRailEnum: 'bank_transfer' | 'stablecoin';
     SettlementShareToken: {
       address: string;
       chain: string;
@@ -8776,7 +8067,6 @@ export interface ApiComponents {
       recipientName: string;
       status: ApiComponents['schemas']['ShareIssuanceListStatusEnum'];
       statusDisplay: string;
-      subscriptionReference: string | null;
       token: string;
       tokenSymbol: string;
       txHash: string | null;
@@ -8997,83 +8287,6 @@ export interface ApiComponents {
       updatedAt: string;
       uuid: string;
       walletAddress: string;
-    };
-    SubscriptionCreateRequest: {
-      offering: string;
-      quantity: number;
-      wallet: string;
-    };
-    SubscriptionDetail: {
-      acceptedAt: string | null;
-      allottedAt: string | null;
-      allottedQuantity: number | null;
-      amountDue: string;
-      amountOutstanding: string;
-      amountReceived: string | null;
-      closedAt: string | null;
-      companyName: string;
-      createdAt: string;
-      currency: string;
-      offeringUuid: string;
-      paymentDueAt: string | null;
-      paymentInstruction: ApiComponents['schemas']['PaymentInstruction'] | null;
-      paymentInstructionIssuedAt: string | null;
-      paymentNotes: string;
-      paymentReceivedOn: string | null;
-      paymentReferenceSeen: string;
-      paymentTxHash: string;
-      pricePerShare: string;
-      quantity: number;
-      reference: string;
-      refundAmount: string | null;
-      refundedAt: string | null;
-      refundReference: string;
-      settlementAmount: number | null;
-      settlementAssetSymbol: string | null;
-      settlementRail: ApiComponents['schemas']['SettlementRailEnum'];
-      settlementRailDisplay: string;
-      status: ApiComponents['schemas']['SubscriptionStatusEnum'];
-      statusDisplay: string;
-      submittedAt: string | null;
-      tokenName: string;
-      tokenSymbol: string;
-      updatedAt: string;
-      uuid: string;
-      walletAddress: string;
-    };
-    SubscriptionList: {
-      allottedQuantity: number | null;
-      amountDue: string;
-      amountReceived: string | null;
-      companyName: string;
-      createdAt: string;
-      currency: string;
-      offeringUuid: string;
-      paymentDueAt: string | null;
-      pricePerShare: string;
-      quantity: number;
-      reference: string;
-      settlementRail: ApiComponents['schemas']['SettlementRailEnum'];
-      settlementRailDisplay: string;
-      status: ApiComponents['schemas']['SubscriptionStatusEnum'];
-      statusDisplay: string;
-      tokenName: string;
-      tokenSymbol: string;
-      uuid: string;
-      walletAddress: string;
-    };
-    SubscriptionStatusEnum:
-      | 'draft'
-      | 'submitted'
-      | 'accepted'
-      | 'awaiting_payment'
-      | 'paid'
-      | 'allotted'
-      | 'rejected'
-      | 'withdrawn'
-      | 'refunded';
-    SubscriptionWithdrawRequest: {
-      reason?: string;
     };
     SupportedWalletChainEnum: 'base' | 'bitcoin' | 'ethereum';
     SwapMessage: {
@@ -9799,25 +9012,6 @@ export interface ApiOperations {
           [name: string]: unknown;
         };
         content?: never;
-      };
-    };
-  };
-  api_investor_classifications_eligibility_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['InvestorEligibility'];
-        };
       };
     };
   };
@@ -11413,93 +10607,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_directory_tokens_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        page?: number;
-        page_size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedDirectoryTokenListList'];
-        };
-      };
-    };
-  };
-  api_v1_directory_tokens_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['DirectoryTokenList'];
-        };
-      };
-    };
-  };
-  api_v1_directory_tokens_documents_list: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['DirectoryDocument'][];
-        };
-      };
-    };
-  };
-  api_v1_directory_tokens_documents_file_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        document_uuid: string;
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': Blob;
-        };
-      };
-    };
-  };
   api_v1_documents_list: {
     parameters: {
       query?: {
@@ -11615,231 +10722,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_offerings_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        page?: number;
-        page_size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedOfferingListList'];
-        };
-      };
-    };
-  };
-  api_v1_offerings_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['OfferingWriteRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['OfferingWriteRequest'];
-        'multipart/form-data': ApiComponents['schemas']['OfferingWriteRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['OfferingDetail'];
-        };
-      };
-    };
-  };
-  api_v1_offerings_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['OfferingDetail'];
-        };
-      };
-    };
-  };
-  api_v1_offerings_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  api_v1_offerings_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['PatchedOfferingWriteRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedOfferingWriteRequest'];
-        'multipart/form-data': ApiComponents['schemas']['PatchedOfferingWriteRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['OfferingDetail'];
-        };
-      };
-    };
-  };
-  api_v1_offerings_documents_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['OfferingDocumentsRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['OfferingDocumentsRequest'];
-        'multipart/form-data': ApiComponents['schemas']['OfferingDocumentsRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['OfferingDetail'];
-        };
-      };
-    };
-  };
-  api_v1_offerings_submit_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['OfferingDetail'];
-        };
-      };
-    };
-  };
-  api_v1_offerings_subscriptions_list: {
-    parameters: {
-      query?: {
-        page?: number;
-        page_size?: number;
-        search?: string;
-        status?:
-          | 'accepted'
-          | 'allotted'
-          | 'awaiting_payment'
-          | 'draft'
-          | 'paid'
-          | 'refunded'
-          | 'rejected'
-          | 'submitted'
-          | 'withdrawn';
-      };
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedIssuerSubscriptionList'];
-        };
-      };
-    };
-  };
-  api_v1_offerings_withdraw_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['OfferingWithdrawRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['OfferingWithdrawRequest'];
-        'multipart/form-data': ApiComponents['schemas']['OfferingWithdrawRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['OfferingDetail'];
-        };
-      };
-    };
-  };
   api_v1_publications_list: {
     parameters: {
       query?: {
@@ -11929,123 +10811,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PublicationSummary'];
-        };
-      };
-    };
-  };
-  api_v1_subscriptions_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        page?: number;
-        page_size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedSubscriptionListList'];
-        };
-      };
-    };
-  };
-  api_v1_subscriptions_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['SubscriptionCreateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['SubscriptionCreateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['SubscriptionCreateRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['SubscriptionDetail'];
-        };
-      };
-    };
-  };
-  api_v1_subscriptions_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['SubscriptionDetail'];
-        };
-      };
-    };
-  };
-  api_v1_subscriptions_submit_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['SubscriptionDetail'];
-        };
-      };
-    };
-  };
-  api_v1_subscriptions_withdraw_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['SubscriptionWithdrawRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['SubscriptionWithdrawRequest'];
-        'multipart/form-data': ApiComponents['schemas']['SubscriptionWithdrawRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['SubscriptionDetail'];
         };
       };
     };
@@ -15295,175 +14060,6 @@ export interface ApiOperations {
         };
         content: {
           '*/*': Blob;
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_paid_issues_list: {
-    parameters: {
-      query?: {
-        company?: string;
-        ordering?: string;
-        page?: number;
-        page_size?: number;
-        status?: 'applied' | 'rejected' | 'submitted';
-        token?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedRegisterPaidIssueList'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_paid_issues_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['RegisterPaidIssueCreateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterPaidIssueCreateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['RegisterPaidIssueCreateRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterPaidIssue'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_paid_issues_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterPaidIssue'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_paid_issues_decide_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['RegisterPaidIssueDecideRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterPaidIssueDecideRequest'];
-        'multipart/form-data': ApiComponents['schemas']['RegisterPaidIssueDecideRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterPaidIssue'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_paid_issues_decision_preview_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['RegisterPaidIssueDecisionRequestRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterPaidIssueDecisionRequestRequest'];
-        'multipart/form-data': ApiComponents['schemas']['RegisterPaidIssueDecisionRequestRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterPaidIssueDecisionPreview'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_paid_issues_file_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': Blob;
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_paid_issues_ready_subscriptions_list: {
-    parameters: {
-      query: {
-        company: string;
-        token: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterPaidIssueSource'][];
         };
       };
     };

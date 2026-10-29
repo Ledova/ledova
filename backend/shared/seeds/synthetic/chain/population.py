@@ -9,7 +9,6 @@ from shared.seeds.synthetic.chain.plan import Candidate, Firm, HoldingWallet
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 from shared.seeds.synthetic.story import COMPANY_SPECS, DEMO_COMPANY
 from users.models import UserAccount
-from users.models.investor_classification import InvestorCategory
 from users.models.user_account import AccountRole
 from users.services.company_eligibility_consumption import company_eligibility
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -69,20 +68,15 @@ def _investor(account, wallets, active):
         admitted = {
             key: outcome
             for key, company in active.items()
-            if (outcome := company_eligibility(account, company, purpose="primary")).is_eligible
+            if (outcome := company_eligibility(account, company)).is_eligible
         }
-    associated = frozenset(
-        key for key, outcome in admitted.items() if outcome.request.category == InvestorCategory.ASSOCIATED_PERSON
-    )
     sources = [outcome.request.source for outcome in admitted.values()]
     source_history = [source.reviewed_at or source.submitted_at for source in sources]
     verified = account.user_profile.verified_at
     ready = max([verified, min(source_history)]) if source_history and verified else None
     return {
         "companies": frozenset(admitted),
-        "associated": associated,
         "ready_at": ready,
-        "large_only": False,
     }
 
 

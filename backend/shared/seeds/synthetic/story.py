@@ -100,8 +100,6 @@ RESUBMIT_LABELS = (("UNSATISFACTORY_PHOTOS",), ("DOCUMENT_PAGE_MISSING", "INCOMP
 COVERAGE_STORIES = (
     "accountant",
     "professional",
-    "product_value",
-    "associated",
     "awaiting",
     "expired_renewing",
     "rejected",
@@ -113,10 +111,8 @@ COVERAGE_STORIES = (
     "withdrawn_then_professional",
 )
 FILL_STORIES = {
-    "accountant": 16,
-    "professional": 5,
-    "product_value": 2,
-    "associated": 2,
+    "accountant": 18,
+    "professional": 7,
     "awaiting": 2,
     "unclassified": 4,
     "rejected_then_verified": 1,
@@ -153,8 +149,6 @@ PROFESSIONAL_BASES = (
     "Controls gross assets of at least AUD 10 million through a family investment company",
     "Holds an Australian financial services licence",
 )
-PRODUCT_VALUE_BASIS = "Will commit at least AUD 500,000 to each offering I apply for"
-ASSOCIATED_BASES = ("Non-executive director of {company}", "Chief financial officer of {company}")
 VERIFIED_NOTES = (
     "Certificate checked against the professional body's member register.",
     "Certifier's practising certificate confirmed; figures consistent with the payslips provided.",
@@ -314,7 +308,6 @@ class Story:
         self.rng.shuffle(self.mobiles)
         self.tester_mobile = self.mobiles.pop()
         self.acns = {DEMO_ACN}
-        self.activations = {}
         self.pending = 0
         self.alerts = AlertBook(self)
 
@@ -765,7 +758,7 @@ class Story:
             payslips=self._payslips(full_name, self.before(submitted, 5, 90)) if income else (),
         )
 
-    def _simple(self, category, submitted, status="verified", basis="", company=None):
+    def _simple(self, category, submitted, status="verified", basis=""):
         reviewed = self.after(submitted, 120, 4000) if status != "submitted" else None
         return Claim(
             category=category,
@@ -776,7 +769,6 @@ class Story:
             reviewer=self.reviewer() if status == "verified" else None,
             expires_at=plus_years(reviewed) if status == "verified" else None,
             review_notes=self.rng.choice(VERIFIED_NOTES) if status == "verified" else "",
-            company=company,
         )
 
     def _professional(self, submitted, status="verified"):
@@ -788,10 +780,6 @@ class Story:
             return (self._accountant(full_name, first),)
         if story == "professional":
             return (self._professional(first),)
-        if story == "product_value":
-            return (self._simple("product_value", first, basis=PRODUCT_VALUE_BASIS),)
-        if story == "associated":
-            return self._associated(full_name, first)
         if story == "awaiting":
             submitted = max(first, self.recently(1, 6))
             if self.rng.random() < 0.75:
@@ -822,19 +810,11 @@ class Story:
             )
             return (revoked,)
         if story in ("withdrawn", "withdrawn_then_professional"):
-            withdrawn = self._simple("product_value", first, "withdrawn", PRODUCT_VALUE_BASIS)
+            withdrawn = self._professional(first, "withdrawn")
             if story == "withdrawn":
                 return (withdrawn,)
             return withdrawn, self._professional(self.after(withdrawn.reviewed_at, 1440, 30000))
         return ()
-
-    def _associated(self, full_name, submitted):
-        open_to = [key for key, activated in self.activations.items() if activated <= submitted]
-        if not open_to:
-            return (self._accountant(full_name, submitted),)
-        company = self.rng.choice(open_to)
-        basis = self.rng.choice(ASSOCIATED_BASES).format(company=COMPANY_NAMES[company])
-        return (self._simple("associated_person", submitted, basis=basis, company=company),)
 
     def _devices(self, key, start, notes):
         if start is None or self.rng.random() > 0.55:
@@ -950,8 +930,6 @@ class Story:
 
     def _company(self, spec, owner_key, owner_name, registered, operator_wallet, acn):
         steps = self._company_steps(spec, self.after(registered, 1440, 7200))
-        if spec.target == "active":
-            self.activations[spec.key] = steps[-1].at
         suburb, _, postcode = self.rng.choice(
             [entry for entry in identities.SUBURBS if entry[1] == spec.state] or identities.SUBURBS
         )
@@ -978,7 +956,6 @@ class Story:
             registered_at=registered,
             declarant_name=owner_name,
             board_resolution_reference=f"Board resolution {registered:%Y}-{self.rng.randint(2, 9):02d}",
-            open_to_investors=spec.target == "active",
             operator_wallet=operator_wallet,
             documents=self._company_documents(spec, registered, steps),
             steps=tuple(steps),
@@ -1068,9 +1045,7 @@ class Story:
 
     def _investor_tester_claims(self, decided):
         rejected = self._accountant(DEMO_INVESTOR_NAME, self.after(decided, 600, 900), status="rejected")
-        withdrawn = self._simple(
-            "product_value", self.after(rejected.reviewed_at, 4000, 6000), "withdrawn", PRODUCT_VALUE_BASIS
-        )
+        withdrawn = self._professional(self.after(rejected.reviewed_at, 4000, 6000), "withdrawn")
         expiry = self.now - timedelta(days=38)
         expired = self._accountant(
             DEMO_INVESTOR_NAME,

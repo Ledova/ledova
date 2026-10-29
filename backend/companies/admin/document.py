@@ -12,8 +12,6 @@ from companies.services.document_review import prepare_document_review, verify_d
 from shared.utils.admin_actions import admin_action_path
 from shared.utils.admin_files import admin_file_path
 
-OFFERED_DOCUMENT = "{document} is attached to an approved or closed offering, so it stays available to its investors."
-
 
 class DocumentReviewForm(forms.Form):
     confirmation = forms.CharField(widget=forms.HiddenInput)
@@ -82,11 +80,6 @@ class CompanyDocumentAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
-
-    def get_deleted_objects(self, objs, request):
-        deleted, counts, permissions, protected = super().get_deleted_objects(objs, request)
-        offered = CompanyDocument.objects.filter(pk__in=[document.pk for document in objs]).offered()
-        return deleted, counts, permissions, [*protected, *(OFFERED_DOCUMENT.format(document=it) for it in offered)]
 
     def get_urls(self):
         custom_urls = [

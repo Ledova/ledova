@@ -121,7 +121,7 @@ guessing.
 An email address is never used as a member's name. A wallet owner who has not given a full name in
 Profile has no live identity, so without other recorded identity the member shows as Unidentified;
 a share issue to them waits until they add their name, as it does for a missing residential
-address, and a paid issue records no name or address. A publication roll made meanwhile keeps
+address. A publication roll made meanwhile keeps
 them without an account, like any member the register cannot name
 ([frozen roll](publications.md#the-frozen-roll)). Entries recorded earlier keep what they
 recorded.
@@ -435,7 +435,7 @@ Cessation entry, and its corrections are ordinary company corrections.
 
 Once a class on chain has an applied opening, each issue completing on chain and each settled market
 transfer becomes an entry in chain order: an issue in the name of the appointee who applied the
-grant or paid issue, or of the original staff reviewer under a
+grant, or of the original staff reviewer under a
 [retained issue instruction](#retained-issue-instructions); a settled transfer in the name of the
 transferor once an applied [instruction](#settled-transfer-instructions) lists it. An effect the
 opening already holds records nothing, nor does a settlement between two wallets of one member.
@@ -500,9 +500,9 @@ settlement keeps waiting as uninstructed, holding back later effects in the clas
 These cover only such issues on a class on chain that still [wait](#why-a-completed-effect-waits)
 for register cover, each listed by its request, recipient wallet and whole shares. Each item must
 match its request's current recipient and shares, be an earlier approval still awaiting cover and
-not be covered by another applied instruction; new grants and paid issues are refused. Listing an
-approval adds the cover its entry waits for without approving it again. Earlier paid instructions
-stay as history and admit nothing new, and staff can still reject retained review requests.
+not be covered by another applied instruction; new grants are refused. Listing an approval adds
+the cover its entry waits for without approving it again, and staff can still reject retained
+review requests.
 
 ## Reconciliation with the chain
 

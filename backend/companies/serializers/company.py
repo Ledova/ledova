@@ -200,7 +200,6 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
             "is_approved",
             "is_pending_review",
             "can_issue_tokens",
-            "is_open_to_investors",
             "share_ownership_with_members",
             "ownership_sharing_changed_by",
             "ownership_sharing_changed_at",
@@ -293,7 +292,6 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
             "description",
             "industry",
             "operator_wallet",
-            "is_open_to_investors",
             "share_ownership_with_members",
         ]
 

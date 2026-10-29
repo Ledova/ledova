@@ -57,7 +57,7 @@ The share class needs an applied register opening and must be on chain, deployed
 class whose register an import opened before it was ever deployed is not on chain and cannot be
 published to; publishing to it is deferred under #870.
 
-A pause stops transfers, not membership: a paused class leaves the market and the directory, but
+A pause stops transfers, not membership: a paused class leaves the market, but
 the company still publishes to its members, puts resolutions to them and declares dividends on
 their shares, and they read, vote and see payment records exactly as other members do.
 

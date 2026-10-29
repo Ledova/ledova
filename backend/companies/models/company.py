@@ -161,10 +161,6 @@ class Company(BaseModel):
     industry = models.CharField(max_length=100, blank=True)
     founded_year = models.PositiveIntegerField(null=True, blank=True)
 
-    is_open_to_investors = models.BooleanField(
-        default=False,
-        help_text="Show this company's share classes in the investor directory.",
-    )
     share_ownership_with_members = models.BooleanField(default=False)
     ownership_sharing_changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, related_name="+", editable=False

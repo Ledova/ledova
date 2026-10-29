@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     "companies",
     "tokens",
     "shareholders",
-    "offerings",
     "whitelist",
     "feature_flags",
     "documents",

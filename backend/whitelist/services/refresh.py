@@ -110,8 +110,7 @@ def _refresh_target(target, *, cause=None, decision_id=None, invalidation_id=Non
                 "JOIN users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id "
                 "WHERE proposal.user_account_id = %s AND proposal.company_id = %s "
                 "AND users_company_eligibility_decision_facts_current("
-                "decision.uuid, proposal.user_account_id, proposal.company_id, "
-                "'secondary', NULL, NULL, clock_timestamp()))",
+                "decision.uuid, proposal.user_account_id, proposal.company_id, clock_timestamp()))",
                 [target.get("account"), target["company"]],
             )
             if cursor.fetchone()[0] is True:

@@ -152,8 +152,7 @@ def _transition(plan, step, records, seeded):
             company.operator_wallet = Wallet.objects.filter_by_address(plan.operator_wallet, chain="base").get(
                 user_account__user_profile__user=company.owner
             )
-            company.is_open_to_investors = plan.open_to_investors
-            company.save(update_fields=["operator_wallet", "is_open_to_investors", "updated_at"])
+            company.save(update_fields=["operator_wallet", "updated_at"])
         _registry_check(company, RegistryCheckPurpose.ACTIVATION, plan, step.at, staff)
         company = Company.objects.get(pk=company.pk)
         with atomic(), frozen(step.at + timedelta(seconds=5)):

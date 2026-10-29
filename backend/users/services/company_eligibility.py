@@ -2,7 +2,6 @@ import hashlib
 import json
 from contextlib import contextmanager
 from datetime import timezone as datetime_timezone
-from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -18,9 +17,7 @@ from companies.models import (
     CompanyStatus,
 )
 from companies.services.authority_requests import _requester_principal
-from offerings.models import Offering, OfferingStatus
 from operators.models import Operator
-from shared.constants import CURRENCY_AUD
 from shared.db import atomic, current_alias, use_operator
 from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_PENDING
 from users.exceptions import CompanyEligibilityConflict
@@ -34,7 +31,6 @@ from users.models import (
 )
 from users.models.investor_classification import (
     DECLARATION_TEXT,
-    PRODUCT_VALUE_THRESHOLD_AUD,
     CertifierBody,
     InvestorCategory,
     InvestorClassificationStatus,
@@ -171,12 +167,6 @@ def _source_fingerprint(source, evidence_hash):
     return _text_digest(f"{metadata}:{evidence_hash}")
 
 
-def _offering_terms(offering):
-    with connections[current_alias()].cursor() as cursor:
-        cursor.execute("SELECT users_company_eligibility_offering_terms(%s)::text", [offering.pk])
-        return json.loads(cursor.fetchone()[0])
-
-
 def _requirements(source, company, operator, *, at):
     problems = []
     account = source.user_account
@@ -205,8 +195,6 @@ def _requirements(source, company, operator, *, at):
         problems.append("source_not_submitted")
     if source.evidence_horizon is not None and source.evidence_horizon <= at:
         problems.append("source_evidence_unavailable")
-    if source.category == InvestorCategory.ASSOCIATED_PERSON and source.company_id != company.pk:
-        problems.append("associated_company_mismatch")
     if source.category == InvestorCategory.ACCOUNTANT_CERTIFICATE:
         issued = source.certificate_issued_at
         if (
@@ -230,7 +218,7 @@ def _source_expiry(source, requested):
     return min(limits)
 
 
-def _request_preview(source, company, offering, quantity, requested_expires_at):
+def _request_preview(source, company, requested_expires_at):
     at = timezone.now()
     requirements = _requirements(source, company, _configuration(), at=at)
     if requested_expires_at <= at:
@@ -251,38 +239,6 @@ def _request_preview(source, company, offering, quantity, requested_expires_at):
             certifier_body=source.certifier_body,
             certifier_membership_number=source.certifier_membership_number,
         )
-    if source.category == InvestorCategory.ASSOCIATED_PERSON:
-        summary["associated_company"] = str(source.company_id) if source.company_id else None
-    product = {}
-    if source.category == InvestorCategory.PRODUCT_VALUE:
-        if offering is None or isinstance(quantity, bool) or not isinstance(quantity, int) or quantity <= 0:
-            raise ValidationError("An exact offering and positive whole-share quantity are required.")
-        amount = offering.price_per_share * quantity
-        terms = _offering_terms(offering)
-        product = {
-            "offering": str(offering.pk),
-            "token": str(offering.token_id),
-            "quantity": quantity,
-            "price_per_share": str(offering.price_per_share),
-            "price_currency": offering.price_currency,
-            "amount_aud": str(amount),
-            "offering_terms": terms,
-            "offering_terms_digest": _digest(terms),
-        }
-        summary.update(product)
-        if (
-            offering.status != OfferingStatus.APPROVED
-            or offering.company_id != company.pk
-            or offering.token.company_id != company.pk
-            or offering.price_currency != CURRENCY_AUD
-            or offering.price_per_share <= 0
-            or amount < PRODUCT_VALUE_THRESHOLD_AUD
-            or amount > Decimal("9999999999999999.99")
-            or quantity > 2147483647
-        ):
-            requirements.append("product_context_invalid")
-    elif offering is not None or quantity is not None:
-        raise ValidationError("This category does not accept a product context.")
     evidence_hash = None
     fingerprint = None
     try:
@@ -301,50 +257,34 @@ def _request_preview(source, company, offering, quantity, requested_expires_at):
         "preview_digest": _digest(facts),
         "unmet_requirements": sorted(set(requirements)),
         "can_submit": not requirements,
-    }, product
+    }
 
 
-def _request_context(actor, source_id, company_id, offering_id):
+def _request_context(actor, source_id, company_id):
     source = get_object_or_404(
         InvestorClassification.objects.filter(user_account__user_profile__user_id=actor.pk), pk=source_id
     )
-    offering = (
-        get_object_or_404(Offering.objects.filter(status=OfferingStatus.APPROVED), pk=offering_id)
-        if offering_id is not None
-        else None
-    )
-    if source.category == InvestorCategory.PRODUCT_VALUE:
-        if offering is None or company_id is not None:
-            raise ValidationError("Select the exact offering for this product claim.")
-        company_id = offering.company_id
-    elif company_id is None or offering is not None:
-        raise ValidationError("Select the exact company for this claim.")
-    return source, get_object_or_404(Company.objects.active(), pk=company_id), offering
+    return source, get_object_or_404(Company.objects.active(), pk=company_id)
 
 
-def preview_eligibility_request(*, actor, source, requested_expires_at, company=None, offering=None, quantity=None):
+def preview_eligibility_request(*, actor, source, company, requested_expires_at):
     _require_actor(actor)
     with use_operator(), _requester_principal(actor.pk), atomic():
-        current, issuer, product = _request_context(actor, source, company, offering)
-        with eligibility_command(actor, "preview", source=current.pk, company=issuer.pk, offering=offering):
+        current, issuer = _request_context(actor, source, company)
+        with eligibility_command(actor, "preview", source=current.pk, company=issuer.pk):
             _lock_context()
             current.refresh_from_db()
             issuer.refresh_from_db()
-            if product:
-                product.refresh_from_db()
-            if issuer.status != CompanyStatus.ACTIVE or (product and product.status != OfferingStatus.APPROVED):
+            if issuer.status != CompanyStatus.ACTIVE:
                 raise NotFound("Eligibility context not found.")
-            return _request_preview(current, issuer, product, quantity, requested_expires_at)[0]
+            return _request_preview(current, issuer, requested_expires_at)
 
 
-def _retained_request(actor, key, source, company, offering, quantity, requested_expires_at, preview_digest):
+def _retained_request(actor, key, source, company, requested_expires_at, preview_digest):
     prior = own_eligibility_requests(actor).filter(submitted_by=actor, idempotency_key=key).first()
     if prior and (
         prior.source_id != source
-        or (offering is None and prior.company_id != company)
-        or (offering is not None and company is not None)
-        or prior.offering_id != offering
-        or prior.quantity != quantity
+        or prior.company_id != company
         or prior.requested_expires_at != requested_expires_at
         or prior.digest != preview_digest
     ):
@@ -356,48 +296,38 @@ def submit_eligibility_request(
     *,
     actor,
     source,
+    company,
     requested_expires_at,
     preview_digest,
     idempotency_key,
     sharing_accepted,
     declaration_accepted,
-    company=None,
-    offering=None,
-    quantity=None,
 ):
     _require_actor(actor)
     if sharing_accepted is not True or declaration_accepted is not True:
         raise ValidationError("Confirm the exact declaration and sharing summary.")
     with use_operator(), _requester_principal(actor.pk), atomic(durable=True):
-        prior = _retained_request(
-            actor, idempotency_key, source, company, offering, quantity, requested_expires_at, preview_digest
-        )
+        prior = _retained_request(actor, idempotency_key, source, company, requested_expires_at, preview_digest)
         if prior:
             return prior, False
-        current, issuer, product = _request_context(actor, source, company, offering)
+        current, issuer = _request_context(actor, source, company)
         command = {
             "source": current.pk,
             "company": issuer.pk,
-            "offering": offering,
-            "quantity": quantity,
             "requested_expires_at": _stamp(requested_expires_at),
             "preview_digest": preview_digest,
             "idempotency_key": idempotency_key,
         }
         with eligibility_command(actor, "submit", **command):
             _lock_context()
-            prior = _retained_request(
-                actor, idempotency_key, source, company, offering, quantity, requested_expires_at, preview_digest
-            )
+            prior = _retained_request(actor, idempotency_key, source, company, requested_expires_at, preview_digest)
             if prior:
                 return prior, False
             current.refresh_from_db()
             issuer.refresh_from_db()
-            if product:
-                product.refresh_from_db()
-            if issuer.status != CompanyStatus.ACTIVE or (product and product.status != OfferingStatus.APPROVED):
+            if issuer.status != CompanyStatus.ACTIVE:
                 raise NotFound("Eligibility context not found.")
-            preview, product_fields = _request_preview(current, issuer, product, quantity, requested_expires_at)
+            preview = _request_preview(current, issuer, requested_expires_at)
             if preview["preview_digest"] != preview_digest:
                 raise CompanyEligibilityConflict()
             if preview["unmet_requirements"]:
@@ -417,9 +347,6 @@ def submit_eligibility_request(
                 submitted_at=timezone.now(),
                 sharing_accepted=True,
                 declaration_accepted=True,
-                **{
-                    f"{key}_id" if key in ("offering", "token") else key: value for key, value in product_fields.items()
-                },
             )
             proposal.refresh_from_db()
             return proposal, True
@@ -452,15 +379,6 @@ def _decision_preview(proposal, actor, appointment, outcome, expires_at, reason)
                 requirements.append("request_evidence_changed")
         except ValidationError:
             requirements.append("source_evidence_unavailable")
-        if proposal.offering_id:
-            product = proposal.offering
-            if (
-                product.status != OfferingStatus.APPROVED
-                or product.company_id != proposal.company_id
-                or product.token.company_id != proposal.company_id
-                or _digest(_offering_terms(product)) != proposal.offering_terms_digest
-            ):
-                requirements.append("product_context_changed")
     elif outcome != CompanyEligibilityDecisionOutcome.REFUSED or expires_at is not None or not reason.strip():
         raise ValidationError("Refusal requires a reason and no expiry.")
     facts = {

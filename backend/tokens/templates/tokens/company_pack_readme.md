@@ -33,7 +33,7 @@ The pack carries the company, its share classes, each class's register of member
 | `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions: each one's authority, terms, evidence and decision, and for an opening the chain boundary it was prepared against |
 | `classes/<class id>/chain.json` | The class's deployment record, and every transaction Ledova prepared or signed for the class, with its operator key or its settlement relayer's: its purpose, the unsigned transaction, its status and receipt, and each signed attempt's hash, nonce, signer and chain id |
 | `classes/<class id>/settlements.json` | Each settlement of the class that Ledova executed: the order both parties signed with its signing domain, the order hash, both signatures, the transaction and its finalized receipt, and the register entry that recorded it |
-| `classes/<class id>/issues.json` | Under `issues`, each issuance request with the issuance it produced, the execution that sent it and the subscription it allotted; under `awaiting_allotment`, each subscription with a payment recorded and no shares allotted. Each subscription carries its payment as recorded |
+| `classes/<class id>/issues.json` | Under `issues`, each issuance request with the issuance it produced and the execution that sent it |
 | `classes/<class id>/former_members.json` | The former members in `register.csv`, each with the date until which it must be kept |
 | `classes/<class id>/reconciliations.json` | Each comparison of the register with the chain, with its discrepancies and their company acknowledgements: each one's reason, who acknowledged it and when, with `provided_by` set to `company` |
 | `classes/<class id>/waiting.json` | Completed issues and settled transfers not yet entered in the register |
@@ -79,7 +79,7 @@ Each entry in `entries.json` carries `preimage`, the exact text Ledova's databas
 
 ### Reading the authority records
 
-Each record in `authority.json` and `wallet_links.json` carries its `authority`: `director_resolution`, `court_order`, or `company_records` for a copied-register import. Resolution records name the `approving_director`; records retain the `authority_reference`, `reason` and terms the company gave. Their `status` is `submitted` while a decision is pending, or `applied` or `rejected`, with the decider's name, time and any rejection reason. A Ledova reviewer decided register instructions, except chain grants and paid issues, which the company decided and whose decisions `company_mandates.json` lists; the company decided its openings, imports, corrections and wallet links, which list each approval, application or rejection under `decisions`, except an opening, correction or wallet link a Ledova reviewer decided before they were company-run. Where supplied, `evidence` identifies the retained copy by SHA-256, size and `path`. `provided_by` records company-provided (`company`) or earlier staff-verified (`staff_verified`) evidence; an import's `asic` describes its optional extract the same way.
+Each record in `authority.json` and `wallet_links.json` carries its `authority`: `director_resolution`, `court_order`, or `company_records` for a copied-register import. Resolution records name the `approving_director`; records retain the `authority_reference`, `reason` and terms the company gave. Their `status` is `submitted` while a decision is pending, or `applied` or `rejected`, with the decider's name, time and any rejection reason. A Ledova reviewer decided register instructions, except chain grants, which the company decided and whose decisions `company_mandates.json` lists; the company decided its openings, imports, corrections and wallet links, which list each approval, application or rejection under `decisions`, except an opening, correction or wallet link a Ledova reviewer decided before they were company-run. Where supplied, `evidence` identifies the retained copy by SHA-256, size and `path`. `provided_by` records company-provided (`company`) or earlier staff-verified (`staff_verified`) evidence; an import's `asic` describes its optional extract the same way.
 
 A `company_records` import retains the copied rows, `source_reference` and `source_confirmed`. Its `correction_of` identifies an earlier copied snapshot when one was corrected. Source and ASIC copies are optional; their document and path fields are null when no copy was supplied.
 
@@ -99,11 +99,7 @@ Each entry under a record's `sources` names a file the company provided: the upl
 
 ### Reading `issues.json`
 
-Under `issues`, each issuance request carries its recipient, shares, status and reviewer, the `issuance` it produced once executed, and the `subscription` it allotted where it came from an offering.
-
-Under `awaiting_allotment` is each subscription to the class with a payment recorded against it and no issuance request yet: `paid` in full and awaiting allotment, or `awaiting_payment` with part of the money received. Each carries the subscriber's name and the wallet the shares would go to, the shares asked for and the `allotment` still to be made, the price, the amount due, the dates and the payment. The company must allot or refund each one.
-
-A subscription's `payment` has the `basis` `recorded`: Ledova staff entered the amount, the date received and the reference they saw on the statement, or the transfer hash for a stablecoin payment. It is not proof that the money moved.
+Under `issues`, each issuance request carries its recipient, shares, status and reviewer, and the `issuance` it produced once executed.
 
 An issuance carries its `transaction` hash. An issue's `execution` is how Ledova sent it: its status, the unsigned terms (`intent`), the `operation` in `chain.json` that sent it, its transaction, and the `finalized_receipt` once the approved finality policy was satisfied. A capital increase's `execution` in `class.json` carries the same, with any `attribution_evidence` Ledova held when the contract's state did not identify it, and a pause carries its unsigned terms and its `operation`, or, where the contract was already in the state it asked for, the block at which that was `observed`.
 
@@ -185,7 +181,6 @@ The company sees the result of each resolution and how many members opened each 
 | The two signatures on a settlement | The key for each address signed that order under that domain | Who the person is. Identity is the register's resolution, recorded with its source |
 | An opening's boundary | One provider reported those holdings and that supply at that block, with the named finality policy satisfied | Independent consensus |
 | A pause or settlement approval observed already in place | The contract was read in that state at that block | Which transaction put it there. The record is an observation, never transaction attribution |
-| Payment received on a subscription | Who entered what amount, and when | That money moved |
 | A publication event's hash and its link to the event before it | The event is unchanged since the database wrote it, and its place in the order | That the event is right or authorised. A ballot's own hash cannot be recomputed from this pack, because its content is withheld |
 | A resolution's close | The tally the database counted from the ballots when voting closed | How any member voted. The ballots are withheld, so the tally cannot be recounted from this pack |
 | A payment record on a dividend | Who at Ledova entered the company's statement that it paid, when, and the SHA-256 of the remittance evidence the company supplied | That money moved, or that the remittance is genuine |
@@ -275,10 +270,7 @@ The contracts were compiled with Solidity 0.8.24, EVM version `paris`, the optim
 {% for share_class in classes %}{% for row in share_class.due %}| {{ share_class.token.symbol|md }} | {{ row.sequence }} | {{ row.kind }} | {{ row.output }} | {{ row.due_on|date:"Y-m-d" }} | {% if row.overdue %}yes{% else %}no{% endif %} |
 {% endfor %}{% endfor %}{% else %}None was outstanding in Ledova's records.
 {% endif %}
-- Money received for shares not yet allotted is the company's to allot against or refund, whoever keeps the register. Each class's `issues.json` lists those subscriptions under `awaiting_allotment`:
 
-{% for share_class in classes %}  - {{ share_class.token.symbol|md }}: {% with count=share_class.awaiting_allotment|length %}{% if count %}{{ count }} subscription{{ count|pluralize }} awaiting allotment or refund{% else %}none{% endif %}{% endwith %}.
-{% endfor %}
 ## 7. What this pack grants
 
 The company, and a provider it names in writing, may use the records and the contract interface files in this pack to operate and move the company's own register and contracts.

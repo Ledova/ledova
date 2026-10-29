@@ -7,7 +7,6 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from web3 import Web3
 
 from companies.models import Company, CompanyDocument
-from offerings.models import Subscription
 from shared.db import atomic, use_operator
 from tokens.constants import REGISTER_INSTRUCTION_REVIEW_MAX_AGE
 from tokens.models import (
@@ -42,13 +41,13 @@ from tokens.services.register_openings import (
 from whitelist.services.identity import profile_name
 
 SALT = "tokens.register-instruction"
-SOURCES = ("request", "subscription", "settlement")
+SOURCES = ("request", "settlement")
 ITEMS = {
     RegisterInstructionKind.ISSUE: (
-        ("request", "subscription"),
+        ("request",),
         ("recipient",),
-        "List each issuance request or subscription with its recipient wallet and whole number of shares.",
-        "The instruction lists an issuance request or subscription more than once.",
+        "List each issuance request with its recipient wallet and whole number of shares.",
+        "The instruction lists an issuance request more than once.",
     ),
     RegisterInstructionKind.TRANSFER: (
         ("settlement",),
@@ -180,26 +179,12 @@ def _check_items(kind, items, token, director, *, lock=False):
     rows = []
     for item in items:
         source, reference = _source(item)
-        if source == "request":
-            request = requests.filter(pk=reference, token=token).first()
-            if request is None or Subscription.objects.filter(issuance_request_id=reference).exists():
-                raise ValidationError(
-                    f"Issuance request {reference} is not a direct issue of this share class. List an allotment by "
-                    "its subscription."
-                )
-            if request.status in AWAITING:
-                raise ValidationError(
-                    "New non-paid grants require the company's retained appointment and grant decision."
-                )
-            names = [request.recipient_name]
-        else:
-            subscription = Subscription.objects.filter(pk=reference, offering__token=token).first()
-            if subscription is None:
-                raise ValidationError(f"Subscription {reference} is not in an offering of this share class.")
-            request = requests.filter(pk=subscription.issuance_request_id).first()
-            if request is None:
-                raise ValidationError("New paid issues require the company’s retained appointment and issue decision.")
-            names = []
+        request = requests.filter(pk=reference, token=token).first()
+        if request is None:
+            raise ValidationError(f"Issuance request {reference} is not a direct issue of this share class.")
+        if request.status in AWAITING:
+            raise ValidationError("New non-paid grants require the company's retained appointment and grant decision.")
+        names = [request.recipient_name]
         state = _state(request, source, reference)
         recipient, amount = request.recipient_address, request.amount
         if (Web3.to_checksum_address(recipient), str(amount)) != (item["recipient"], item["amount"]):
@@ -241,14 +226,6 @@ def submit_instruction(
     values = _authority_values("director_resolution", approving_director, authority_reference, reason)
     del values["authority"]
     normalized = _items(kind, items)
-    if kind == RegisterInstructionKind.ISSUE and any(
-        "subscription" in item
-        or ("request" in item and Subscription.objects.filter(issuance_request_id=item["request"]).exists())
-        for item in normalized
-    ):
-        raise PermissionDenied(
-            "New paid ISSUE instructions require the company’s retained appointment and issue decision."
-        )
     with atomic():
         token = ShareToken.objects.filter(pk=token_id, company__owner=actor).first()
         if token is None:
@@ -304,18 +281,6 @@ def decide_instruction(*, proposal_id, reviewer, confirmation, decision, rejecti
         raise ValidationError("This grant is decided by its current company appointee through the register API.")
     if initial.status != "submitted":
         return _completed_decision(initial, reviewer, decision, rejection_reason)
-    if (
-        initial.kind == RegisterInstructionKind.ISSUE
-        and decision == "apply"
-        and any(
-            "subscription" in item
-            or ("request" in item and Subscription.objects.filter(issuance_request_id=item["request"]).exists())
-            for item in initial.items
-        )
-    ):
-        raise PermissionDenied(
-            "New paid ISSUE decisions require the company’s retained appointment and issue decision."
-        )
     with atomic():
         company = Company.objects.select_for_update(no_key=True).get(pk=initial.company_id)
         token = ShareToken.objects.select_for_update().get(pk=initial.token_id)

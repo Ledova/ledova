@@ -167,8 +167,7 @@ def has_live_general_decision(account_id, company_id, *, decision_id=None):
             evidence_hash = None
         with connections[current_alias()].cursor() as cursor:
             cursor.execute(
-                "SELECT users_company_eligibility_decision_facts_current("
-                "%s, %s, %s, 'secondary', NULL, NULL, clock_timestamp())",
+                "SELECT users_company_eligibility_decision_facts_current(%s, %s, %s, clock_timestamp())",
                 [decision.pk, account_id, company_id],
             )
             metadata_live = cursor.fetchone()[0] is True

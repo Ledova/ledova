@@ -1,5 +1,4 @@
 import uuid
-from decimal import Decimal
 
 import django.db.models.deletion
 from django.conf import settings
@@ -15,9 +14,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("companies", "0001_initial"),
-        ("offerings", "0001_initial"),
         ("shared", "0001_initial"),
-        ("tokens", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -94,10 +91,8 @@ class Migration(migrations.Migration):
                     "category",
                     models.CharField(
                         choices=[
-                            ("product_value", "Product value of at least AUD 500,000 (s708(8)(a))"),
                             ("accountant_certificate", "Qualified accountant's certificate (s708(8)(c))"),
                             ("professional_investor", "Professional investor (s708(11) / s761G(7)(d))"),
-                            ("associated_person", "Person associated with the issuer (s708(12))"),
                         ],
                         editable=False,
                         max_length=30,
@@ -111,12 +106,6 @@ class Migration(migrations.Migration):
                 ("submitted_at", models.DateTimeField(editable=False)),
                 ("sharing_accepted", models.BooleanField(editable=False)),
                 ("declaration_accepted", models.BooleanField(editable=False)),
-                ("quantity", models.PositiveIntegerField(editable=False, null=True)),
-                ("price_per_share", models.DecimalField(decimal_places=2, editable=False, max_digits=18, null=True)),
-                ("price_currency", models.CharField(editable=False, max_length=16, null=True)),
-                ("amount_aud", models.DecimalField(decimal_places=2, editable=False, max_digits=18, null=True)),
-                ("offering_terms", models.JSONField(editable=False, null=True)),
-                ("offering_terms_digest", models.CharField(editable=False, max_length=64, null=True)),
                 (
                     "company",
                     models.ForeignKey(
@@ -126,29 +115,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "offering",
-                    models.ForeignKey(
-                        editable=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.PROTECT,
-                        related_name="eligibility_requests",
-                        to="offerings.offering",
-                    ),
-                ),
-                (
                     "submitted_by",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.PROTECT, related_name="+", to=settings.AUTH_USER_MODEL
-                    ),
-                ),
-                (
-                    "token",
-                    models.ForeignKey(
-                        editable=False,
-                        null=True,
-                        on_delete=django.db.models.deletion.PROTECT,
-                        related_name="eligibility_requests",
-                        to="tokens.sharetoken",
                     ),
                 ),
             ],
@@ -359,10 +328,8 @@ class Migration(migrations.Migration):
                     "category",
                     models.CharField(
                         choices=[
-                            ("product_value", "Product value of at least AUD 500,000 (s708(8)(a))"),
                             ("accountant_certificate", "Qualified accountant's certificate (s708(8)(c))"),
                             ("professional_investor", "Professional investor (s708(11) / s761G(7)(d))"),
-                            ("associated_person", "Person associated with the issuer (s708(12))"),
                         ],
                         max_length=30,
                     ),
@@ -416,17 +383,6 @@ class Migration(migrations.Migration):
                 ("review_notes", models.TextField(blank=True)),
                 ("rejection_reason", models.TextField(blank=True)),
                 ("expires_at", models.DateTimeField(blank=True, null=True)),
-                (
-                    "company",
-                    models.ForeignKey(
-                        blank=True,
-                        help_text="Source issuer for an associated person. Company eligibility requires a separate retained decision.",
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="investor_classifications",
-                        to="companies.company",
-                    ),
-                ),
                 (
                     "reviewed_by",
                     models.ForeignKey(
@@ -824,18 +780,6 @@ class Migration(migrations.Migration):
             model_name="investorclassification",
             index=models.Index(fields=["status"], name="users_inves_status_b9facf_idx"),
         ),
-        migrations.AddConstraint(
-            model_name="investorclassification",
-            constraint=models.CheckConstraint(
-                condition=models.Q(
-                    models.Q(("category", "associated_person"), ("company__isnull", False)),
-                    models.Q(models.Q(("category", "associated_person"), _negated=True), ("company__isnull", True)),
-                    _connector="OR",
-                ),
-                name="investor_classification_associated_person_names_the_issuer",
-                violation_error_message="An associated person claim must name the issuer it is scoped to, and no other category may name one.",
-            ),
-        ),
         migrations.AddIndex(
             model_name="companyeligibilityrequest",
             index=models.Index(fields=["company", "submitted_at"], name="users_compa_company_b2e28c_idx"),
@@ -862,41 +806,6 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(
                 condition=models.Q(("requested_expires_at__gt", models.F("submitted_at"))),
                 name="users_eligibility_request_future_expiry",
-            ),
-        ),
-        migrations.AddConstraint(
-            model_name="companyeligibilityrequest",
-            constraint=models.CheckConstraint(
-                condition=models.Q(
-                    models.Q(
-                        ("amount_aud__gte", Decimal("500000.00")),
-                        ("amount_aud__isnull", False),
-                        ("category", "product_value"),
-                        ("offering__isnull", False),
-                        ("offering_terms__isnull", False),
-                        ("offering_terms_digest__isnull", False),
-                        ("price_currency", "AUD"),
-                        ("price_currency__isnull", False),
-                        ("price_per_share__gt", 0),
-                        ("price_per_share__isnull", False),
-                        ("quantity__gt", 0),
-                        ("quantity__isnull", False),
-                        ("token__isnull", False),
-                    ),
-                    models.Q(
-                        models.Q(("category", "product_value"), _negated=True),
-                        ("amount_aud__isnull", True),
-                        ("offering__isnull", True),
-                        ("offering_terms__isnull", True),
-                        ("offering_terms_digest__isnull", True),
-                        ("price_currency__isnull", True),
-                        ("price_per_share__isnull", True),
-                        ("quantity__isnull", True),
-                        ("token__isnull", True),
-                    ),
-                    _connector="OR",
-                ),
-                name="users_eligibility_request_exact_product_scope",
             ),
         ),
     ]

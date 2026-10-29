@@ -60,7 +60,6 @@ def _require_core_contents(company, classes, approvals, published, mandate_sourc
             or records["chain"]["deployment"] is not None
             or records["chain"]["operations"]
             or records["issues"]["issues"]
-            or records["issues"]["awaiting_allotment"]
             or records["settlements"]
             or details["cap_increases"]
             or details["pauses"]

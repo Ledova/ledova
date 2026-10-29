@@ -276,7 +276,6 @@ def _share_class(company, token, outputs) -> dict:
         "member_rows": 0 if stored is None else len(stored["rows"]),
         "former_rows": 0 if stored is None else len(stored["former_members"]),
         "waiting": waiting["effects"],
-        "awaiting_allotment": issues["awaiting_allotment"],
         "former": former,
         "due": due,
         "deployment": deployment,

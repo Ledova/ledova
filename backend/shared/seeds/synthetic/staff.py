@@ -43,10 +43,6 @@ PERMISSIONS = {
         "companies.view_company",
         "companies.change_company",
         "companies.view_companydocument",
-        "offerings.view_offering",
-        "offerings.change_offering",
-        "offerings.view_subscription",
-        "offerings.change_subscription",
         "tokens.view_sharetoken",
         "tokens.change_sharetoken",
         "tokens.view_shareissuancerequest",
@@ -78,7 +74,7 @@ PERMISSIONS = {
         "shareholders.change_publication",
         "shareholders.view_publicationevent",
     ),
-    "former": ("companies.view_company", "offerings.view_offering"),
+    "former": ("companies.view_company",),
 }
 GROUPS = {"compliance": (DOCUMENT_OPERATIONS,), "documents": (DOCUMENT_OPERATIONS,)}
 

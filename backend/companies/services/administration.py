@@ -15,7 +15,7 @@ from companies.models import (
 )
 from companies.services.authority_requests import _requester_principal
 from operators.models import Operator
-from shared.db import atomic, current_alias, use_operator
+from shared.db import current_alias, use_operator
 from users.models import UserProfile
 
 
@@ -64,25 +64,6 @@ def lock_company_actor(actor, company_id):
         .values_list("uuid", flat=True)
     )
     return company, current_actor, profile, operator
-
-
-@contextmanager
-def company_owner_operation(actor, company_id):
-    if actor is None or not actor.is_authenticated:
-        raise NotFound("Company not found or permission denied")
-    with use_operator(), _requester_principal(actor.pk), atomic():
-        company, current_actor, _profile, _operator = lock_company_actor(actor, company_id)
-        if not current_actor.is_active or company.owner_id != current_actor.pk:
-            raise NotFound("Company not found or permission denied")
-        yield company
-
-
-def require_company_documents(company, actor, documents):
-    if documents and (
-        not Company.objects.administrable_by(actor).filter(pk=company.pk).exists()
-        or any(document.company_id != company.pk for document in documents)
-    ):
-        raise NotFound("Company authority document not found.")
 
 
 def require_company_administration(company, actor, profile, operator):

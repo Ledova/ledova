@@ -30,10 +30,6 @@ SYSTEM_WIDE = {
     "capital execution using its original request, execution and audit actor. New work requires company "
     "authority; retained staff history keeps its original provenance. The operator role supplies bounded "
     "technical execution across issuer and recipient records without granting a new company mandate.",
-    "offerings.tasks.subscription.allot_subscription_task": "Recovers one admitted paid issuance using the exact "
-    "subscription, execution and original audit actor. Company application commits new authority and its job "
-    "together; retained staff instructions recover their original history. The operator role supplies bounded "
-    "technical execution across issuer and investor records without approving an issue or payment.",
     "assets.sync_all_assets": "Refreshes the global asset catalogue, which belongs to no tenant.",
     "assets.sync_exchange_rates": "Fetches published rates, identical for every tenant.",
     "blockchain.tasks.check_pending_transactions": "Polls recorded hashes of this deployment's pending and "
@@ -46,13 +42,6 @@ SYSTEM_WIDE = {
     "commit together on the producer's connection; the task explicitly uses the operator role and records "
     "completion with its alert writes so a retried delivery cannot duplicate them.",
     "compliance.tasks.check_periodic_reviews": "Finds which reviews are due across every account.",
-    "offerings.tasks.subscription.reconcile_subscriptions": "Moves each paid subscription whose linked issuance "
-    "request has executed to allotted, in bounded batches, repairing historical gaps between an issuance and its "
-    "subscription; a new admitted issuance updates both together. It reads no chain and no bank line, and it "
-    "sweeps every offering's subscriptions whoever subscribed, so it belongs to no tenant.",
-    "offerings.tasks.subscription.expire_unpaid_subscriptions": "Rejects every offering's subscriptions still "
-    "awaiting payment past their due date with no payment recorded, on a clock and across all of them; one with "
-    "money recorded is left for an operator.",
     "shared.tasks.orphaned_files.sweep_private_uploads": "Compares every private file under the swept prefixes "
     "with every row that references a file, so it has to see both in full.",
     "tokens.tasks.deployment.check_pending_token_deployments": "Polls every deployment this operator started.",

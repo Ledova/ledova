@@ -9,14 +9,12 @@ class IssuanceExecutionStatus(models.TextChoices):
     EXECUTING = "executing", "Executing"
     EXECUTED = "executed", "Executed"
     FAILED = "failed", "Failed before signing or reverted"
-    CANCELLED = "cancelled", "Cancelled before execution"
 
 
 class ShareIssuanceExecution(BaseModel):
     request_id = models.UUIDField(unique=True, editable=False)
     token_id = models.UUIDField(editable=False)
     company_id = models.UUIDField(editable=False)
-    subscription_id = models.UUIDField(null=True, unique=True, editable=False)
     issuance_id = models.UUIDField(null=True, unique=True, editable=False)
     executed_by_id = models.PositiveBigIntegerField(editable=False)
     authority = models.CharField(max_length=64, editable=False)

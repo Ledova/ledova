@@ -383,7 +383,7 @@ A chain grant mints outright non-paid shares on a deployed class whose register 
 chain; a class opened by an import cannot use it. It needs, separately:
 
 - the participant's own nomination of the receiving wallet, with proof that they control it;
-- a current general [eligibility decision](participants.md#kinds-of-decision) from this company;
+- a current general [eligibility decision](participants.md#what-a-decision-opens) from this company;
 - a time-limited [company approval](participants.md#wallet-nominations-and-company-wallet-approvals)
   of that wallet, applied on chain;
 - a [wallet link](register.md#linking-wallets-to-members) from that wallet to the member, made

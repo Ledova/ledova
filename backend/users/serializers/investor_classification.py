@@ -1,8 +1,6 @@
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from companies.models import Company
 from shared.uploads import validate_upload
 from users.models.investor_classification import (
     DECLARATION_TEXT,
@@ -11,24 +9,13 @@ from users.models.investor_classification import (
     plus_years,
 )
 from users.services.accounts import account_of
-from users.services.classification_issuer import active_issuer_for_claim
 
 CERTIFIER_FIELDS = ("certificate_issued_at", "certifier_name", "certifier_body", "certifier_membership_number")
-
-
-class ActiveIssuerField(serializers.PrimaryKeyRelatedField):
-    def to_internal_value(self, data):
-        request = self.context.get("request")
-        company = active_issuer_for_claim(getattr(request, "user", None), data)
-        if company is None:
-            self.fail("does_not_exist", pk_value=data)
-        return company
 
 
 class InvestorClassificationSerializer(serializers.ModelSerializer):
 
     user_account = serializers.PrimaryKeyRelatedField(read_only=True)
-    company = ActiveIssuerField(queryset=Company.objects.none(), required=False, allow_null=True)
 
     category_display = serializers.CharField(source="get_category_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
@@ -42,7 +29,6 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
         fields = [
             "uuid",
             "user_account",
-            "company",
             "category",
             "category_display",
             "status",
@@ -85,14 +71,6 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("The declaration must be accepted.")
         return value
 
-    def _validate_company(self, attrs):
-        category = attrs.get("category")
-        company = attrs.get("company")
-        if category == InvestorCategory.ASSOCIATED_PERSON and company is None:
-            raise serializers.ValidationError({"company": "An associated person claim must name the issuer."})
-        if category != InvestorCategory.ASSOCIATED_PERSON and company is not None:
-            raise serializers.ValidationError({"company": "Only an associated person claim is scoped to a company."})
-
     def _validate_certificate(self, attrs):
         if attrs.get("category") != InvestorCategory.ACCOUNTANT_CERTIFICATE:
             return
@@ -107,7 +85,6 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
             )
 
     def validate(self, attrs):
-        self._validate_company(attrs)
         self._validate_certificate(attrs)
 
         account = attrs["user_account"] = account_of(getattr(self.context.get("request"), "user", None))
@@ -119,13 +96,3 @@ class InvestorClassificationSerializer(serializers.ModelSerializer):
         attrs["declaration_text"] = DECLARATION_TEXT[InvestorCategory(attrs["category"])]
         attrs["submitted_at"] = timezone.now()
         return attrs
-
-
-class InvestorEligibilitySerializer(serializers.Serializer):
-    is_ready = serializers.BooleanField()
-    reasons = serializers.ListField(child=serializers.CharField())
-    account = serializers.SerializerMethodField()
-
-    @extend_schema_field(serializers.UUIDField(allow_null=True))
-    def get_account(self, obj):
-        return str(obj.account.uuid) if obj.account else None

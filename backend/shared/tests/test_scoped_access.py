@@ -1,4 +1,3 @@
-from importlib import import_module
 from uuid import uuid4
 
 from django.conf import settings
@@ -103,27 +102,7 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(MonitoringRule.objects.using(OPERATOR_ALIAS).get(pk=rule.pk).name, rule.name)
 
         assert_monitoring_rules_private()
-        migration = import_module("shared.migrations.0011_remove_unused_monitoring_rule_grant")
         migration_connection = connections[MIGRATE_ALIAS]
-        with migration_connection.cursor() as cursor:
-            cursor.execute("SELECT quote_ident(%s)", [settings.RLS_ROLES["app"]])
-            quoted_app = cursor.fetchone()[0]
-        try:
-            with migration_connection.cursor() as cursor:
-                cursor.execute(
-                    f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.compliance_monitoringrule TO {quoted_app}"
-                )
-            with connections[APP_ALIAS].cursor() as cursor:
-                cursor.execute(privilege_query, [privileges])
-                self.assertEqual(cursor.fetchall(), [(True,)] * 4)
-            for _ in range(2):
-                with migration_connection.schema_editor() as schema_editor:
-                    migration.revoke_monitoring_rule_app_access(None, schema_editor)
-                assert_monitoring_rules_private()
-        finally:
-            with migration_connection.cursor() as cursor:
-                cursor.execute(f"REVOKE ALL PRIVILEGES ON TABLE public.compliance_monitoringrule FROM {quoted_app}")
-
         unused_tables = (
             "auth_group",
             "auth_group_permissions",
@@ -132,8 +111,6 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             "authentication_customuser_user_permissions",
             "django_admin_log",
             "django_content_type",
-            "offerings_offering_documents",
-            "offerings_offering_settlement_assets",
             "procrastinate_periodic_defers",
             "procrastinate_workers",
         )
@@ -145,10 +122,10 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         def assert_unused_tables_private():
             with connections[APP_ALIAS].cursor() as cursor:
                 cursor.execute(unused_privilege_query, [list(unused_tables), privileges])
-                self.assertEqual(cursor.fetchall(), [(False,)] * 44)
+                self.assertEqual(cursor.fetchall(), [(False,)] * 36)
             with connections[OPERATOR_ALIAS].cursor() as cursor:
                 cursor.execute(unused_privilege_query, [list(unused_tables), privileges])
-                self.assertEqual(cursor.fetchall(), [(True,)] * 44)
+                self.assertEqual(cursor.fetchall(), [(True,)] * 36)
             for table in unused_tables:
                 with self.subTest(table=table):
                     query = f"SELECT 1 FROM public.{migration_connection.ops.quote_name(table)} LIMIT 1"
@@ -160,21 +137,6 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
                         cursor.execute(query)
 
         assert_unused_tables_private()
-        unused_migration = import_module("shared.migrations.0012_remove_unused_app_grants")
-        tables_sql = ", ".join(f"public.{migration_connection.ops.quote_name(table)}" for table in unused_tables)
-        try:
-            with migration_connection.cursor() as cursor:
-                cursor.execute(f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE {tables_sql} TO {quoted_app}")
-            with connections[APP_ALIAS].cursor() as cursor:
-                cursor.execute(unused_privilege_query, [list(unused_tables), privileges])
-                self.assertEqual(cursor.fetchall(), [(True,)] * 44)
-            for _ in range(2):
-                with migration_connection.schema_editor() as schema_editor:
-                    unused_migration.revoke_unused_app_access(None, schema_editor)
-                assert_unused_tables_private()
-        finally:
-            with migration_connection.cursor() as cursor:
-                cursor.execute(f"REVOKE ALL PRIVILEGES ON TABLE {tables_sql} FROM {quoted_app}")
         response = self.client.get("/api/auth/verify/")
         self.assertEqual(response.status_code, 200, response.content)
         self.assertTrue(response.json()["valid"])

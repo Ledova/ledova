@@ -2,14 +2,12 @@ from contextlib import contextmanager
 
 from django.shortcuts import get_object_or_404
 
-from companies.exceptions import OfferedDocumentException
 from companies.models import CompanyDocument
 from companies.services.administration import (
     company_operation,
     lock_company_actor,
     require_company_administration,
 )
-from offerings.models import Offering
 from shared.db import atomic
 
 
@@ -44,13 +42,5 @@ def delete_document(document, *, actor):
         current = get_object_or_404(
             CompanyDocument.objects.select_for_update(no_key=True), pk=document.pk, company=company
         )
-        list(
-            Offering.objects.select_for_update(of=("self",))
-            .filter(documents=current)
-            .order_by("uuid")
-            .values_list("uuid", flat=True)
-        )
         require_company_administration(company, current_actor, profile, operator)
-        if CompanyDocument.objects.filter(pk=current.pk).offered().exists():
-            raise OfferedDocumentException()
         current.delete()

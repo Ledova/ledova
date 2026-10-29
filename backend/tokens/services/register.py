@@ -92,7 +92,7 @@ SOURCE_LABELS = {
 MEMBER_AMBIGUOUS_NAME = "The member's wallets resolve to different people"
 MEMBER_AMBIGUOUS = (HolderType.AMBIGUOUS.value, MEMBER_AMBIGUOUS_NAME, "", IDENTITY_UNRESOLVABLE, None)
 
-EMPTY_ALLOTMENT = {"shares": 0, "entered_on": None, "paid": ZERO, "backed": 0, "unbacked": 0}
+EMPTY_ALLOTMENT = {"shares": 0, "entered_on": None}
 
 
 IDENTITY_BY_HOLDER_TYPE = {
@@ -197,37 +197,14 @@ API_FIELDS = (
 
 def _allotments(token) -> dict:
     grouped = {}
-    issuances = ShareIssuance.objects.filter_by_token(token).completed().with_subscription().order_by("created_at")
+    issuances = ShareIssuance.objects.filter_by_token(token).completed().order_by("created_at")
     for issuance in issuances:
-        row = grouped.setdefault(
-            issuance.recipient_address, {"shares": 0, "entered_on": None, "paid": ZERO, "backed": 0, "unbacked": 0}
-        )
-        shares = _amount(issuance)
-        row["shares"] += shares
+        row = grouped.setdefault(issuance.recipient_address, dict(EMPTY_ALLOTMENT))
+        row["shares"] += _amount(issuance)
         moment = issuance.completed_at or issuance.created_at
         if row["entered_on"] is None or (moment is not None and moment < row["entered_on"]):
             row["entered_on"] = moment
-        backing = _backing(issuance, shares)
-        if backing is None:
-            row["unbacked"] += 1
-        else:
-            row["paid"] += backing
-            row["backed"] += shares
     return grouped
-
-
-def _backing(issuance, shares):
-    subscription = _subscription(issuance)
-    if subscription is None or subscription.allotment_quantity != shares:
-        return None
-    backing = subscription.money_backing_shares
-    return backing if backing > ZERO else None
-
-
-def _amount_paid(allotment, balance, touched):
-    if touched or allotment["unbacked"] or allotment["backed"] != int(balance):
-        return None
-    return allotment["paid"]
 
 
 def _amount(issuance) -> int:
@@ -237,18 +214,10 @@ def _amount(issuance) -> int:
         return 0
 
 
-def _subscription(issuance):
-    request = getattr(issuance, "shareissuancerequest", None)
-    if request is None:
-        return None
-    return getattr(request, "subscription", None)
-
-
 def _merged(allotments):
     merged = dict(EMPTY_ALLOTMENT)
     for allotment in allotments:
-        for key in ("shares", "paid", "backed", "unbacked"):
-            merged[key] += allotment[key]
+        merged["shares"] += allotment["shares"]
         if merged["entered_on"] is None or allotment["entered_on"] < merged["entered_on"]:
             merged["entered_on"] = allotment["entered_on"]
     return merged
@@ -360,18 +329,15 @@ def _history(register):
     entries = RegisterEntry.objects.filter(register=register).order_by("sequence")
     (_, opened_on, opening), *later = entries.values_list("kind", "effective_on", "changes")
     running = {change["member"]: int(change["shares"]) for change in opening}
-    transferred = set()
     for kind, _, changes in later:
         for change in changes:
-            if kind == RegisterEntryKind.TRANSFER:
-                transferred.add(change["member"])
             if kind == RegisterEntryKind.MIRROR_CORRECTION:
                 running.setdefault(change["member"], 0)
             if change["member"] in running:
                 running[change["member"]] += int(change["shares"])
                 if not running[change["member"]]:
                     del running[change["member"]]
-    return opened_on, set(running), transferred
+    return opened_on, set(running)
 
 
 def _cessations(token, member_of):
@@ -476,7 +442,7 @@ def _stored_register(token):
     register = ShareRegister.objects.filter(token=token).first()
     if register is None or register.sequence == 0:
         return None
-    opened_on, held, transferred = _history(register)
+    opened_on, held = _history(register)
     positions = list(
         RegisterPosition.objects.filter(register=register, shares__gt=0)
         .select_related("last_entry")
@@ -505,7 +471,7 @@ def _stored_register(token):
         entered_on = _entered_on(position, member in held and not interrupted, allotted_on)
         former.extend(row for row in ceased[position.member_id] if row.ceased_on < entered_on)
         shares = int(position.shares)
-        amount_paid = _amount_paid(allotment, shares, member in transferred or interrupted)
+        amount_paid = None
         continuing = imported.get(member) if member in imported_dates else None
         if continuing is not None:
             entered_on = imported_dates[member]
@@ -938,15 +904,12 @@ def _paid_or_not_recorded(amount) -> str:
     return NOT_RECORDED if amount is None else f"{amount:.2f}"
 
 
-def _period_entry_rows(entry, people, issuances) -> list[list]:
+def _period_entry_rows(entry, people) -> list[list]:
     corrects = "" if entry.corrects_id is None else entry.corrects.sequence
     rows = []
     for change in entry.changes:
         member, shares = UUID(change["member"]), int(change["shares"])
-        paid = ""
-        if entry.kind == RegisterEntryKind.ISSUE:
-            issuance = issuances.get(entry.operation_id)
-            paid = _paid_or_not_recorded(None if issuance is None else _backing(issuance, shares))
+        paid = NOT_RECORDED if entry.kind == RegisterEntryKind.ISSUE else ""
         rows.append(
             [
                 entry.sequence,
@@ -993,12 +956,6 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
         people = {
             member: _member_identity(wallets[member], identities, stamps, particulars.get(member)) for member in changed
         }
-        issuances = (
-            ShareIssuance.objects.filter_by_token(token)
-            .completed()
-            .with_subscription()
-            .in_bulk([entry.operation_id for entry in entries if entry.kind == RegisterEntryKind.ISSUE])
-        )
         current = {UUID(row["member"]): row for row in register["rows"]}
         paid = [row["amount_paid"] for row in register["rows"]]
         rows = [
@@ -1011,7 +968,7 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
             [],
             [PERIOD_ENTRIES_HEADING],
             PERIOD_ENTRY_HEADERS,
-            *(row for entry in entries for row in _period_entry_rows(entry, people, issuances)),
+            *(row for entry in entries for row in _period_entry_rows(entry, people)),
             [],
             [CLASS_HEADING],
             [ISSUED_SUPPLY_ROW, register["issued_supply"]],

@@ -80,7 +80,7 @@ def traders(found):
     approved = approvals(found)
     result = []
     for candidate in chain_population.candidates(found):
-        if candidate.role != "investor" or candidate.ready_at is None or candidate.large_only:
+        if candidate.role != "investor" or candidate.ready_at is None:
             continue
         with use_operator():
             account = UserAccount.objects.select_related("user_profile__user").get(
@@ -88,9 +88,7 @@ def traders(found):
             )
             with _requester_principal(account.user_profile.user_id):
                 secondary = frozenset(
-                    key
-                    for key, company in found.items()
-                    if company_eligibility(account, company, purpose="secondary").is_eligible
+                    key for key, company in found.items() if company_eligibility(account, company).is_eligible
                 )
         if not secondary:
             continue
@@ -100,7 +98,6 @@ def traders(found):
                 name=candidate.name,
                 ready_at=candidate.ready_at,
                 companies=secondary,
-                associated=candidate.associated,
                 wallets=tuple(
                     TraderWallet(
                         address=wallet.address,

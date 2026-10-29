@@ -11,7 +11,6 @@ the admin action and what never to do; every sweep follows the
 - [Before recovering anything](#before-recovering-anything)
 - [Deployment and issuance](#deployment-and-issuance)
 - [Capital increases](#capital-increases)
-- [Subscriptions](#subscriptions)
 - [Whitelist changes](#whitelist-changes)
 - [Pause and unpause](#pause-and-unpause)
 - [Wallet transfers and trading](#wallet-transfers-and-trading)
@@ -51,13 +50,11 @@ attempt merely to replace the placeholder.
   succeeded can have returned an unresolved result, so read the deployment journal and the class's
   actual outcome before calling it complete. Retry approval on the same page reopens a failed
   [automatic swap approval](../engineering/chain.md#automatic-swap-approval).
-- Share issuance (`check_executing_issuance_requests`, bounded batches). A company chain grant or
-  paid issue admits the private issuance execution; completion waits for the finality policy, and
-  the register may still leave the effect
-  [waiting](../business/register.md#why-a-completed-effect-waits). A known unsigned failure or a
-  policy-final original revert allows Retry Execute on the request, bound to that exact failed
-  claim, or a refund that cancels the allotment; after the worker's executing claim, uncertainty
-  keeps the refund hold ([share issuances](../engineering/chain.md#share-issuances)).
+- Share issuance (`check_executing_issuance_requests`, bounded batches). A company chain grant
+  admits the private issuance execution; completion waits for the finality policy, and the register
+  may still leave the effect [waiting](../business/register.md#why-a-completed-effect-waits). A
+  known unsigned failure or a policy-final original revert allows Retry Execute on the request,
+  bound to that exact failed claim ([share issuances](../engineering/chain.md#share-issuances)).
 - Import-opened registers admit no issuance execution, failed retry or unsigned signing; their
   retained requests and journals remain.
 - Settlement-asset and yield-token mints (`recover_mint_requests`). Use Recover on a request whose
@@ -73,15 +70,6 @@ authorise another. Do not clear public status or notes to bypass a hold for attr
 read a matching current cap, a failure label, a deleted request or a missing hash as proof that the
 approved transaction executed or was never sent
 ([capital increases](../engineering/chain.md#capital-increases)).
-
-## Subscriptions
-
-`reconcile_subscriptions` moves a paid subscription to allotted only when its linked issuance
-request has executed, repairing historical gaps; new admitted issuance projects both atomically.
-`expire_unpaid_subscriptions` touches only overdue, awaiting-payment rows with no recorded payment.
-A part-paid subscription needs staff review. Read the
-[subscription rules](../business/offerings.md#applying-for-shares) before
-refunding or retrying an allotment.
 
 ## Whitelist changes
 

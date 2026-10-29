@@ -116,10 +116,9 @@ intervening attempt (`ReviewableRequest.mark_executed` in `backend/tokens/models
 Company-facing serializers and the generated `ShareIssuanceRequest` client type omit reviewer notes;
 the company receives execution notes and rejection or supersession reasons.
 
-`GET /api/v1/tokens/issuance-requests/` (filters `token`, `company`, `status`) keeps the
-company-owner check even where the database lets a subscriber read the linked request for withdrawal
-checks; `GET /api/v1/tokens/capital-increases/` lists retained private capital requests under the
-same owner scope.
+`GET /api/v1/tokens/issuance-requests/` (filters `token`, `company`, `status`) applies the
+company-owner check; `GET /api/v1/tokens/capital-increases/` lists retained private capital requests
+under the same owner scope.
 
 ## Outgoing signing foundation
 
@@ -315,8 +314,8 @@ company-decided families share this mechanism, and their sections give only what
   admitted, not executed. An exact replay returns the retained receipt; changed terms conflict.
 - Proposal, consumed approval, journal, outgoing operation, claim and transaction identities stay
   separate. Private journals are operator-only, public reads keep their shape, and class metadata
-  access exposes no private legacy owner history, participant wallet, eligibility directory or
-  company issue, capital or pause decision. Fresh owner or staff admission is retired; a journal's
+  access exposes no private legacy owner history, participant wallet or company issue, capital or
+  pause decision. Fresh owner or staff admission is retired; a journal's
   nullable immutable source link keeps historical rows and their actors without inventing an
   approval.
 - Only the original operation's canonical successful receipt with the family's event, where it has
@@ -480,52 +479,40 @@ fence cannot establish absent historical authority or drain an external same-key
 
 ### Share issuances
 
-Company steps: [non-paid chain grants](../business/issuing-shares.md#non-paid-chain-grants) and
-[company paid issues](../business/offerings.md#company-paid-issues); who reads proposals and
-files: [rules every issue follows](../business/issuing-shares.md#rules-every-issue-follows); paid
-headroom and refunds: [subscription data flow](backend.md#subscription-data-flow).
+Company steps: [non-paid chain grants](../business/issuing-shares.md#non-paid-chain-grants); who
+reads proposals and files: [rules every issue follows](../business/issuing-shares.md#rules-every-issue-follows).
 
 A chain grant's preparation binds the CHAIN opening, the same-company member LINK, the participant's
 current nomination and the finite company ADD it names, with authority, terms and any required
 acceptance evidence, freezing one `ShareIssuanceRequest` in `UNDER_REVIEW` without reserving shares
-or creating a subscription or receipt. A paid issue's preparation instead captures an existing PAID
-subscription's facts (paid in full, not refunded, not yet admitted, its wallet and account unchanged,
-the class deployed on Base) and binds no opening, member link, nomination or wallet approval; its
-`ShareIssuanceRequest` is created only when the decision is applied. `ready-subscriptions` is an
-unpaginated selector limited to a current `admin` or `prepare` appointee in the exact company and
-class.
+or creating a receipt.
 
 Application approves the request and admits its execution: `tokens.services.issuance_execution`
-binds the applied `RegisterInstruction` ISSUE, the consumed approval, the request (and any
-subscription), a private `ShareIssuanceExecution` and the job, reserving the allocation once.
-Positive whole-share, cap, reservation and offering headroom checks remain; issued supply, holdings,
-the cap and reservations are separate quantities.
+binds the applied `RegisterInstruction` ISSUE, the consumed approval, the request, a private
+`ShareIssuanceExecution` and the job, reserving the allocation once. Positive whole-share, cap and
+reservation checks remain; issued supply, holdings, the cap and reservations are separate
+quantities.
 
-A refund that wins before the worker's claim rejects the request and keeps a cancelled command in the
-same transaction, and delayed jobs return that cancellation without an operation or public issuance.
 The worker commits executing state and its public `ShareIssuance` (keyed `issuance-request:<uuid>`)
-before opening the operation; from then on, uncertainty blocks refunds. A definite unsigned failure
-or policy-final revert permits refund cancellation or **Retry Execute** on that exact claim.
-Execution checks registry membership, the cap and pause state. For a chain grant the fresh-signature
-recheck covers the member, nomination, finite wallet approval and evidence; for a paid issue it
-covers the consumed authority, evidence, subscription and exact transaction.
+before opening the operation. A definite unsigned failure or policy-final revert permits
+**Retry Execute** on that exact claim. Execution checks registry membership, the cap and pause
+state, and the fresh-signature recheck covers the member, nomination, finite wallet approval and
+evidence.
 
-PostgreSQL guards freeze approved terms, dispatch identity, subscription linkage and payment and
-share quantities; recorded refunds cannot be reduced or undone, and token identity stays fixed while
-new work can execute. Retained NULL-source paid commands keep their outgoing, token, subscription,
-request and private-command suffix.
+PostgreSQL guards freeze approved terms, dispatch identity and share quantities, and token identity
+stays fixed while new work can execute.
 
 Recovery keeps the first receipt, then holds the issuance executing until the
 `WALLET_CHAIN_FINALITY_POLICIES` rule for its network is met, read with the canonical-block evidence
 collector swap settlement uses; missing or invalid policy, unavailable evidence, a changing head or
-an orphaned receipt keeps the command and its refund hold pending. Before completion it rereads the
+an orphaned receipt keeps the command pending. Before completion it rereads the
 transaction and verifies the finalised inclusion, sender, contract and, for success, one matching
 zero-address `Transfer` for the approved recipient and amount. A same-outcome reinclusion may
 complete at its new block, which the public transaction and issuance record while the journal keeps
 the first; a changed outcome is held for operator attribution.
 
-The locked projection rechecks claim, attempt and policy; private completion, public issuance,
-request and subscription allotment commit atomically, terminal replay preserves them, and a holding
+The locked projection rechecks claim, attempt and policy; private completion, public issuance and
+request commit atomically, terminal replay preserves them, and a holding
 refresh uses the admitted contract address. After the completion commits, `record_completed_effects`
 records each entry in its own transaction, and register recording may wait for the opening, wallet
 link, attribution or applied instruction
@@ -535,12 +522,6 @@ outcome transaction, through the existing wallet-to-member LINK, never inferring
 or addresses. An executed but
 unentered allocation stays reserved until its entry exists, and entry dates stay distinct from
 allotment dates.
-
-An admitted paid subscription keeps its unique execution and immutable request binding. Losing the
-consumed appointment before any signature keeps that history and the paid money, renewing no
-authority, binding no second request and refunding nothing automatically; an actual cancellation
-still needs its refund or cancellation facts. Receipt and refund producers stay separate, and new
-payment mechanics are deferred under [#869](https://github.com/Ledova/ledova/issues/869).
 
 ### Pause and unpause
 
@@ -659,7 +640,7 @@ filters need an explicit `chain`, or for transactions a visible `wallet` UUID th
 unfiltered queries can span networks, and chain filters accept the supported names and aliases.
 
 Share-token and whitelist operations use the application's Base registry network;
-`receiving_wallet_chain` selects the payment network without retargeting that registry. Registry
+`receiving_wallet_chain` selects the settlement network without retargeting that registry. Registry
 address identity, issuance holdings and admin wallet selection therefore use Base wallets, and
 several accounts with one Base address stay ambiguous. A company needs its selected operator wallet,
 or a verified owner wallet, on the requested network; Ethereum wallets do not stand in for Base.

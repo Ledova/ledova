@@ -36,7 +36,6 @@ EDITABLE_FIELDS = REVIEWED_FIELDS | {
     "industry",
     "founded_year",
     "operator_wallet",
-    "is_open_to_investors",
     "share_ownership_with_members",
 }
 

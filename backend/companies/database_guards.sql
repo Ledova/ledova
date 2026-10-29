@@ -535,15 +535,6 @@ BEGIN
     IF operation <> 'document_delete' THEN
         RAISE EXCEPTION 'Use the bounded document deletion command' USING ERRCODE = '23514';
     END IF;
-    PERFORM 1 FROM offerings_offering WHERE uuid IN
-        (SELECT offering_id FROM offerings_offering_documents WHERE companydocument_id = OLD.uuid)
-        ORDER BY uuid FOR SHARE;
-    IF NOT companies_locked_administration(issuer_id) THEN
-        RAISE EXCEPTION 'Current administration must remain effective after offering locks' USING ERRCODE = '23514';
-    END IF;
-    IF EXISTS (SELECT 1 FROM offerings_offering_documents attached JOIN offerings_offering offered
-        ON offered.uuid = attached.offering_id WHERE attached.companydocument_id = OLD.uuid AND offered.status IN ('approved', 'closed'))
-    THEN RAISE EXCEPTION 'Retain documents attached to published offerings' USING ERRCODE = '23514'; END IF;
     RETURN OLD;
 END;
 $function$;
@@ -559,7 +550,6 @@ DECLARE
 BEGIN
     IF current_user = @MIGRATE_ROLE@ THEN RETURN NULL; END IF;
     operation := COALESCE(current_setting('app.company_operation', true), '');
-    IF TG_TABLE_NAME = 'offerings_offering_documents' AND operation <> 'document_delete' THEN RETURN NULL; END IF;
     issuer_id := NULLIF(current_setting('app.company_id', true), '')::uuid;
     IF current_user <> @OPERATOR_ROLE@ OR NULLIF(current_setting('app.user_id', true), '')::bigint IS NULL
         OR issuer_id IS NULL OR (TG_OP = 'DELETE' AND operation <> 'document_delete')
@@ -569,36 +559,7 @@ BEGIN
     IF operation <> 'document_review' AND NOT admitted THEN
         RAISE EXCEPTION 'Current personal company administration is required before document rows' USING ERRCODE = '23514';
     END IF;
-    IF operation = 'document_delete' THEN
-        PERFORM 1 FROM offerings_offering WHERE company_id = issuer_id ORDER BY uuid FOR SHARE;
-        IF NOT companies_locked_administration(issuer_id) THEN
-            RAISE EXCEPTION 'Current administration is required after document command offering locks' USING ERRCODE = '23514';
-        END IF;
-    END IF;
     RETURN NULL;
-END;
-$function$;
-
-CREATE OR REPLACE FUNCTION public.companies_guard_document_removal()
- RETURNS trigger
- LANGUAGE plpgsql
-AS $function$
-DECLARE
-    issuer_id uuid;
-    published boolean;
-BEGIN
-    IF current_user = @MIGRATE_ROLE@ THEN RETURN OLD; END IF;
-    IF COALESCE(current_setting('app.company_operation', true), '') <> 'document_delete' THEN RETURN OLD; END IF;
-    SELECT company_id INTO issuer_id FROM companies_companydocument WHERE uuid = OLD.companydocument_id;
-    IF current_user <> @OPERATOR_ROLE@
-        OR NULLIF(current_setting('app.company_id', true), '')::uuid IS DISTINCT FROM issuer_id
-        OR NOT companies_locked_administration(issuer_id)
-    THEN RAISE EXCEPTION 'Document removal requires its exact current company administrator' USING ERRCODE = '23514'; END IF;
-    SELECT status IN ('approved', 'closed') INTO published FROM offerings_offering WHERE uuid = OLD.offering_id FOR SHARE;
-    IF published OR NOT companies_locked_administration(issuer_id) THEN
-        RAISE EXCEPTION 'Retain published documents and current administration after offering locks' USING ERRCODE = '23514';
-    END IF;
-    RETURN OLD;
 END;
 $function$;
 
@@ -811,10 +772,6 @@ CREATE TRIGGER companies_administration BEFORE INSERT OR DELETE OR UPDATE ON com
 CREATE TRIGGER companies_document_administration BEFORE INSERT OR DELETE OR UPDATE ON companies_companydocument FOR EACH ROW EXECUTE FUNCTION companies_guard_document_administration();
 
 CREATE TRIGGER companies_document_command_locks BEFORE DELETE OR UPDATE ON companies_companydocument FOR EACH STATEMENT EXECUTE FUNCTION companies_lock_document_command();
-
-CREATE TRIGGER companies_document_removal_locks BEFORE DELETE ON offerings_offering_documents FOR EACH STATEMENT EXECUTE FUNCTION companies_lock_document_command();
-
-CREATE TRIGGER companies_document_removal_authority BEFORE DELETE ON offerings_offering_documents FOR EACH ROW EXECUTE FUNCTION companies_guard_document_removal();
 
 CREATE TRIGGER companies_registry_company_lock BEFORE INSERT OR DELETE OR UPDATE ON companies_companyregistrycheck FOR EACH STATEMENT EXECUTE FUNCTION companies_lock_registry_company();
 

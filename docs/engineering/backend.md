@@ -3,7 +3,7 @@
 [Engineering](README.md) · [Documentation](../README.md)
 
 Where backend code belongs, the rules it follows, and how the Django API implements company
-workflows, offerings, identity providers and notifications, for engineers changing `backend/`.
+workflows, identity providers and notifications, for engineers changing `backend/`.
 Request and response shapes are in the [OpenAPI schema](../../backend/schema/openapi.json); this
 page keeps what the schema cannot express and links each business rule.
 
@@ -15,7 +15,6 @@ page keeps what the schema cannot express and links each business rule.
 - [Migrations](#migrations)
 - [Company workflow API](#company-workflow-api)
 - [Company identifiers](#company-identifiers)
-- [Offerings and subscriptions](#offerings-and-subscriptions)
 - [Identity providers](#identity-providers)
 - [Notifications](#notifications)
 
@@ -32,7 +31,6 @@ modules re-exported by `settings/__init__.py`.
 | `companies`      | `Company`, its activation, `CompanyDocument`, representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                                      |
 | `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, member access and register outputs, and the trading models |
 | `shareholders`   | `Publication`, the `PublicationRecipient` roll frozen at a record date with each entitlement, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close and of a distribution's payment records                                                                     |
-| `offerings`      | `Offering`, `Subscription`, their review and payment lifecycles, allotment, and the eligibility-gated investor directory at `/api/v1/directory/`                                                                                                                                                            |
 | `whitelist`      | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands, wallet nominations and company wallet instructions, and the sync from each company's registry                                                                                                                     |
 | `wallets`        | `Wallet`, `Holding`, `Transaction`, balance sync and transfer confirmation                                                                                                                                                                                                                                  |
 | `assets`         | `Asset`, `AssetChainDeployment`, `AssetSnapshot`, `ExchangeRate`, price sync, asset identity                                                                                                                                                                                                                |
@@ -53,18 +51,18 @@ only the layers they need: `operators/` is flat modules, `integrations/` only `a
 is one subpackage per provider), and `blockchain/`, `compliance/`, `feature_flags/` and `shared/`
 are partial. Add a layer only when a second caller needs the same logic.
 
-`offerings/` is the reference app. Where a rule and a file disagree, the rule wins and the file is
+`users/` is the reference app. Where a rule and a file disagree, the rule wins and the file is
 the backlog. [The layer gate](gates.md#the-layer-gate) enforces the table.
 
-| Layer          | Owns                                                                                                                                                                                                                       | Never contains                                                                                        | Reference                                |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| `models/`      | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O                                           | `offerings/models/offering.py`           |
-| `querysets/`   | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()`                                                                  | Saves, side effects, calls into services                                                              | `offerings/querysets/offering.py`        |
-| `services/`    | Orchestration across models, external I/O (chain, KYC, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun      | HTTP objects, serializers, `Response`                                                                 | `offerings/services/subscription.py`     |
-| `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors                                                                                                              | Business rules, locking, queries beyond FK scoping                                                    | `offerings/serializers/subscription.py`  |
-| `views/`       | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response`                                                                                                          | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `offerings/views/subscription.py`        |
-| `tasks/`       | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict                                                                                                                                       | Orchestration, state machines                                                                         | `users/tasks/retention.py`               |
-| `admin/`       | Registration, list/search/filter, operator actions that call the same model transition or service the API calls                                                                                                            | A second implementation of a workflow, HTML badge builders                                            | `users/admin/investor_classification.py` |
+| Layer          | Owns                                                                                                                                                                                                                       | Never contains                                                                                        | Reference                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `models/`      | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O                                           | `users/models/investor_classification.py`    |
+| `querysets/`   | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()`                                                                  | Saves, side effects, calls into services                                                              | `users/querysets/investor_classification.py` |
+| `services/`    | Orchestration across models, external I/O (chain, KYC, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun      | HTTP objects, serializers, `Response`                                                                 | `users/services/investor_classification.py`  |
+| `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors                                                                                                              | Business rules, locking, queries beyond FK scoping                                                    | `users/serializers/user_profile.py`          |
+| `views/`       | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response`                                                                                                          | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `users/views/investor_classification.py`     |
+| `tasks/`       | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict                                                                                                                                       | Orchestration, state machines                                                                         | `users/tasks/retention.py`                   |
+| `admin/`       | Registration, list/search/filter, operator actions that call the same model transition or service the API calls                                                                                                            | A second implementation of a workflow, HTML badge builders                                            | `users/admin/investor_classification.py`     |
 
 One exception to plain-function services: the chain clients under `integrations/` stay classes
 because they hold a connection. A class whose methods are all `staticmethod` is a module spelled
@@ -106,8 +104,8 @@ awkwardly: do not add one.
   ([the test shadowing gate](gates.md#the-test-shadowing-gate)).
 - Keep `TextChoices` beside their model and numeric thresholds in app constants.
 - Paged lists return 25 rows at a time, and `page_size` asks for up to 100
-  (`shared/api/pagination.py`). A search built with `every_word` (`shared/api/search.py`), so far an
-  offering's applications, matches every word, ignoring case; the older `search` filters on
+  (`shared/api/pagination.py`). A search built with `every_word` (`shared/api/search.py`), so far the
+  ownership list's, matches every word, ignoring case; the older `search` filters on
   companies, share classes, transfer orders, capital increases and assets match the whole text.
 - JSON is camel-case on the wire: `djangorestframework_camel_case` renders responses in camelCase
   and parses requests in either spelling. This document uses the serializers' snake_case names.
@@ -200,27 +198,29 @@ secondary-market decision from at least one company (`secondary_company_ids`).
 The history starts from fresh initial migrations generated from current models
 ([decision](../decisions.md#minimum-tests-and-fresh-migrations)). They install the schema, the
 PostgreSQL roles and grants, RLS policies, functions and triggers, and the history, share-total and
-issuance safeguards; `shared/0002_database_guards` installs the catalogue, and
-`shared/0003_member_certificate_guards` and `shared/0004_register_mirror_guards` add their
-families' guards. No old-chain rewind, equivalence, adoption or per-migration upgrade test is
-required ([backend verification](testing.md#backend-verification)). A database on an older
-initial graph needs a [fresh rebuild](../operations/README.md#rebuild-a-database); there is no
-adoption path.
+issuance safeguards. `shared/0002_database_guards` runs `shared/database_setup.py`, which installs
+the catalogue and each app's guards, then the later guard families in the order they were added,
+and keeps the share columns of awards, allotments and contributions as unbounded `numeric`. The
+baseline was regenerated when offerings were removed
+([#1421](https://github.com/Ledova/ledova/issues/1421)), and a schema comparison with the previous
+history found only the removed tables, columns, functions and policy terms. No old-chain rewind,
+equivalence, adoption or per-migration upgrade test is required
+([backend verification](testing.md#backend-verification)). A database on an older initial graph,
+including one migrated before #1421, needs a [fresh rebuild](../operations/README.md#rebuild-a-database);
+there is no adoption path.
 
-`shared/0007_register_award_identity_guards` extends the mirror guards: first copied holdings keep
-the exact company, name and address of a selected award-only recipient through commit. Earlier
-same-company ledger entries establish existing membership independently of the current snapshot,
-so registered members keep their normal particulars and correction flows.
+The mirror guards keep the exact company, name and address of a selected award-only recipient in
+first copied holdings through commit. Earlier same-company ledger entries establish existing
+membership independently of the current snapshot, so registered members keep their normal
+particulars and correction flows.
 
-`shared/0014_award_person_records` gives award recipients person records.
+Award recipients have person records:
 
 - An award for a new recipient creates their member and award-sourced particulars, and the member
   and particulars guards accept only that award as the source.
-- The copied first holdings are now compared with the person's current particulars.
+- The copied first holdings are compared with the person's current particulars.
 - The member identity behind member access holds while the person has an award.
 - Grant and allotment digests omit an empty award source, so digests for other members are unchanged.
-- The migration gives each existing award recipient without a member a person record from their
-  earliest award.
 
 The members response lists award-only people, award recipients who have never been on the company's
 register, as members with `on_register` false, and only to readers of the company's awards (current register
@@ -279,7 +279,7 @@ never infers success from a lost response.
 | Register evidence and setup         | `/api/v1/tokens/register-evidence/`, `register-member-documents/`, `register-openings/`, `register-links/`, `register-imports/`, `register-corrections/`, `register-particulars-changes/`, `register-reconciliations/` | [Register](../business/register.md)                                                                                                                                                                                                                                                                                                              |
 | Grants, awards and allotments       | `/api/v1/tokens/register-grants/`, `register-awards/`, `register-award-vestings/`, `register-allotments/`                                                                                                              | [Grants](../business/issuing-shares.md#grants-to-walletless-members), [awards](../business/issuing-shares.md#employee-awards-and-vesting), [allotments](../business/issuing-shares.md#external-investor-allotments)                                                                                                                              |
 | Transfers and retained instructions | `/api/v1/tokens/register-transfers/`, `register-instructions/`                                                                                                                                                         | [Transfers](../business/register.md#non-paid-transfers-between-members)                                                                                                                                                                                                                                                                          |
-| Share-class chain decisions         | `/api/v1/tokens/register-deployments/`, `register-issues/`, `register-paid-issues/`, `register-capital-increases/`, `register-pause-changes/`                                                                          | [Deployments](../business/issuing-shares.md#deploying-an-empty-class), [issues](../business/issuing-shares.md#non-paid-chain-grants), [paid issues](../business/offerings.md#company-paid-issues), [capital](../business/issuing-shares.md#raising-the-authorised-shares), [pauses](../business/issuing-shares.md#pausing-and-unpausing-a-class) |
+| Share-class chain decisions         | `/api/v1/tokens/register-deployments/`, `register-issues/`, `register-capital-increases/`, `register-pause-changes/`                                                                                                   | [Deployments](../business/issuing-shares.md#deploying-an-empty-class), [issues](../business/issuing-shares.md#non-paid-chain-grants), [paid issues](../business/offerings.md#company-paid-issues), [capital](../business/issuing-shares.md#raising-the-authorised-shares), [pauses](../business/issuing-shares.md#pausing-and-unpausing-a-class) |
 | Member access                       | `/api/v1/tokens/member-invitations/`, `member-associations/`, `member-records/`, `member-particulars-requests/`, `member-certificate-requests/`                                                                        | [Member access](../business/member-records.md#member-access)                                                                                                                                                                                                                                                                                     |
 | Register outputs                    | `/api/v1/tokens/{uuid}/register/` (`certificate/`, `inspection-copy/`), `/api/v1/companies/{uuid}/pack/`                                                                                                               | [Outputs](../business/member-records.md#outputs-at-a-glance)                                                                                                                                                                                                                                                                                     |
 
@@ -394,22 +394,16 @@ Legacy-owner appointments return null declaration fields. Capabilities are six i
 
 ### Eligibility decisions
 
-The eligibility routes reject unrecognised input fields; creation answers 201 and an exact replay 200. `users/services/company_eligibility.py` records requests and decisions, and
-`users/services/company_eligibility_consumption.py` consumes them:
-`company_eligibility(account, company, purpose=...)` and
-`subscription_eligibility(account, offering, quantity)` evaluate the current decision, standing
-and evidence at the time of the action, and `require_subscription_eligibility` and
-`require_subscription_acceptance_eligibility` apply them to a subscription's own account and
-offering, which must also be approved, within its opening period, on a deployed token and of an
-active company open to investors. New subscriptions, orders, order changes and swap signatures
-retain the decision they used and recheck evidence, standing and expiry after lock waits.
+The eligibility routes reject unrecognised input fields; creation answers 201 and an exact replay 200.
+`users/services/company_eligibility.py` records requests and decisions, and
+`users/services/company_eligibility_consumption.py` consumes them: `company_eligibility(account,
+company)` evaluates the current decision, standing and evidence at the time of the action. Orders,
+order changes and swap signatures retain the decision they used and recheck evidence, standing and
+expiry after lock waits.
 
-In [the eligibility service](../../backend/users/services/eligibility.py), `investor_readiness(user)`
-checks account standing and the identity requirement; `directory_admission(user)` admits a
-participant to the companies and exact products their decisions cover, including an offered class's
-documents; `secondary_company_ids(user)` bounds the market the same way. Inaccessible list and
-detail querysets give empty lists or 404, never a 403 that confirms a hidden row, and the
-account-readiness response supplies no company permission
+`secondary_company_ids(user)` in [the eligibility service](../../backend/users/services/eligibility.py)
+bounds the market to the companies whose decisions are current. Inaccessible list and detail
+querysets give empty lists or 404, never a 403 that confirms a hidden row
 ([rules](../business/participants.md#company-eligibility-decisions);
 [evidence purges](security.md#retention-clocks)).
 
@@ -425,121 +419,6 @@ check digits in front; only the migration role bypasses it. `Company.clean()` ap
 needing both fields, `abn_carries_acn`
 ([rules](../business/companies.md#company-information-and-documents)). The ABN check is a modulus of
 89 and catches every single-digit error; the ACN check is a weighted modulus of 10 and does not.
-
-## Offerings and subscriptions
-
-The business rules are in [offerings](../business/offerings.md) and
-[subscriptions](../business/offerings.md#applying-for-shares). Offering
-writes (create, edit, delete, submit, withdraw, attach documents) run inside
-`company_owner_operation`, which requires the active company owner; naming documents also passes
-`require_company_documents`, which needs current administration of that company.
-
-### Offering data flow
-
-- [Listing](../business/offerings.md#listing-the-company-in-the-directory) is the
-  `Company.is_open_to_investors` flag, one of the `EDITABLE_FIELDS` that `update_company`
-  (`companies/services/editing.py`) applies from the API and admin alike; it is not a
-  `CompanyStatus`, so suspension and reinstatement leave it set.
-- Every writable `Offering` FK is scoped in `get_fields()`. `submit/` calls `submit_offering`,
-  which first takes
-  `select_for_update` on the `ShareToken` row so the liveness read and the status write are
-  serialised per class: two simultaneous submissions give one submission and one 400, not the
-  `IntegrityError` the partial unique index would turn into a 503. Its refusals
-  ([rules](../business/offerings.md#creating-and-submitting-an-offering)) use
-  `can_issue_tokens`, `unissued_headroom` (`total_supply` less completed supply less the caps of
-  other live offerings; the refusal names `CapitalIncreaseRequest`, because `setAuthorizedShares`
-  cannot go below `totalSupply`), `operators.settlement.require_deployment` per settlement asset,
-  and for `s708_8_minimum_amount` the AUD value of `minimum_shares`.
-- `UniqueConstraint(token)` `WHERE status IN (submitted, under_review, approved)` backstops one live
-  offering per class; two tranches at once would need a migration relaxing it.
-- `transition_offering` is the single chokepoint for every status change and sends one push to the
-  owner; `approve` re-runs the headroom check. Review, approval, rejection and closing exist only
-  in admin, where `OfferingAdmin.get_readonly_fields` freezes the economics past `DRAFT`
-  (`LOCKED_PAST_DRAFT`) instead of repeating the submit checks.
-- There is no `OPEN` status and no scheduler: `OfferingQuerySet.open_now()` is approved with
-  `opens_at <= now` and `closes_at` null or future, and `ShareTokenQuerySet.with_open_offering()`
-  annotates the directory from it.
-- `OfferingQuerySet.published()` (approved or closed) decides which attached documents
-  `GET /api/v1/directory/tokens/{uuid}/documents/` lists and `.../documents/{document}/file/`
-  streams (inline for a PDF or image). The class resolves through the directory's own selector, so
-  an ineligible investor, a class out of the directory, a document not published through that class
-  and an unknown UUID all answer the same 404. The offering serializer refuses another company's
-  document. The company document policy admits only the company's administration, so these routes
-  use one bounded operator query ([requests and jobs](security.md#requests-and-jobs)).
-- `POST /api/v1/offerings/{uuid}/documents/` attaches `OFFER_DOCUMENT_TYPES` documents to a draft,
-  rejected, approved or closed offering and answers 400 naming any other status
-  ([offer documents](../business/offerings.md#offer-documents)). Deleting a document an
-  approved or closed offering carries answers 409 `offered_document`; admin's picker and delete
-  pages apply the same rule, and `offerings/database_guards.sql` refuses to delete or re-point such
-  an attachment or move its document to another company.
-
-### Subscription data flow
-
-- `POST /api/v1/subscriptions/` creates a whole-share draft. `get_fields()` scopes the offering to
-  `Offering.objects.open_now()` under the caller's policies, which admit the offerings of the
-  caller's own companies and of every active company open to investors. It scopes the wallet to
-  `owned_by(user).verified_evm()` on Base, and `validate()` takes the caller's investing account.
-  `create_draft` copies the price, currency, company display name (trading name, else legal name),
-  class name and symbol onto the row; the personal list and detail read these copies without
-  joining the parents, so reads, bank instructions and guarded withdrawal survive a hidden parent.
-  An unchanged link can keep its stored owner when its parent is hidden; inserts, changed hidden
-  links and owner tampering are refused.
-- `create_draft` and `submit` re-read the offering, class and company on the operator connection
-  under the caller's principal and run `_require_frozen_economics` and
-  `require_subscription_eligibility`, then take `offerings_lock_subscription_admission`, re-read and
-  run both again before writing. `_require_frozen_economics` answers 400 through
-  `SubscriptionRefusedException` when the offering, its class or its company is no longer open
-  (`_require_open`), the quantity is outside its bounds or the frozen terms changed. Admin `accept`
-  runs `_require_frozen_economics` and `require_subscription_acceptance_eligibility` before and
-  after taking the same lock.
-- Acceptance issues the payment instruction. `generate_reference` appends an eight-character
-  Crockford base32 code to `Operator.payment_reference_prefix` and refuses a normalised prefix over
-  the `shared.payment_references` limit even when a write bypassed model validation, so the code is
-  never truncated ([prefix limits](../operations/operator-console.md#operator-configuration));
-  `issue_instruction` retries on `IntegrityError` against the partial unique index.
-  `normalize_reference` runs on generation and admin lookup. `build_instruction` returns the
-  operator's bank fields, or the receiving wallet with the settlement asset's contract and decimals
-  from `require_deployment`, which refuses an asset with no active deployment on
-  `Operator.receiving_wallet_chain`.
-- Payment confirmation is columns on the subscription, not a second model
-  ([rules](../business/offerings.md#payments-refunds-and-scale-back)); a short payment accepted
-  as final sets `allotted_quantity` to `floor(received / price)`. A stablecoin hash is lower-cased
-  and must be `0x` plus 64 hexadecimal characters; the partial unique index is on
-  `Lower("payment_tx_hash")`, and `confirm_payment` catches its `IntegrityError` so a concurrent
-  duplicate gets the same refusal, not a 500. Acceptance, confirmation, refund, rejection, technical
-  retry and scale-back each write a `LogEntry`, so a restated `amount_received` keeps the earlier
-  figure in the history.
-- `has_money_in` (received less refunds actually returned) blocks reject and withdraw;
-  `amount_refundable` caps a refund at the money not backing allotted shares (after allotment, more
-  is refused as a claimed mint), and `refund_amount` accumulates once `refunded_at` is set. A
-  refund before allotment cancels queued issuance work, keeping a cancelled private admission and
-  rejecting its approved request atomically; once the worker commits its claim, a refund waits for
-  the original operation ([share issuances](chain.md#share-issuances)). Historical rows with
-  unresolved hashes keep their holds.
-- Paid issuance consumes an applied
-  [paid-issue decision](../business/offerings.md#company-paid-issues), which admits one private
-  `ShareIssuanceExecution` with its approved request, subscription link and exact task identity.
-  Each application must fit `min(offering headroom, authorized - issued - unminted)` under the
-  original source locks, with chain observations taken before locking. Unminted counts every
-  request that can still mint (`approved`, `executing`, and historical failed issuances with
-  unresolved hashes), because `totalSupply()` counts only what is on chain; otherwise two
-  sequential applications could each fit alone and strand the second as a `paid` row whose task
-  refuses forever. A new command with a confirmed revert keeps its hash as evidence without holding
-  headroom. `scale_back` sets `allotted_quantity` and leaves `amount_due` and `amount_received`, so
-  the difference becomes `refund_amount`; its clamp floors at zero, so a negative headroom scales a
-  row to nothing rather than to a quantity the database check constraint rejects.
-- Recovery commits the request, issuance and allotted status together after original receipt
-  verification ([subscription recovery](../operations/recovery.md#subscriptions)); the daily
-  `expire_unpaid_subscriptions` touches only rows with no payment recorded.
-- The investor API makes no financial write. The company reads its offering's subscriptions at
-  `GET /api/v1/offerings/{uuid}/subscriptions/`, which runs on the operator connection and filters
-  to `Offering.objects.issued_by(user)` and `for_issuer(offering)`, and
-  `ShareIssuanceListSerializer` carries `subscription_reference` back to the payment.
-- `Subscription.offering`, `.user_account` and `.wallet` are `PROTECT`; the handler turns the
-  `ProtectedError` into a 409 that counts the holding rows.
-- Each transition stamps its own `*_at` field (`closed_at` for rejection or withdrawal), and
-  `payment_received_on` is the date staff recorded; older rows leave earlier steps null
-  ([when each step happened](../business/offerings.md#when-each-step-happened)).
 
 ## Identity providers
 
@@ -697,7 +576,6 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | Kind (`data.type`) | Sent by                                                                                            | The bell opens |
 | ------------------ | -------------------------------------------------------------------------------------------------- | -------------- |
 | `company`          | Retained history only: the sender is retired, and no activation or company status change sends one | Activation     |
-| `offering`         | `offerings/services/offering.py`, on each notified offering transition                             | Offerings      |
 | `publication`      | `shareholders/services/publications.py`, when a publication is announced to its roll               | Notices        |
 | `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Activity       |
 | `identity`         | `users/services/identity.py`, when the identity check's result changes                             | Profile        |

@@ -4,9 +4,9 @@
 
 Offerings are planned for a later release and are not part of the first one (owner, 29 October 2026,
 [#1421](https://github.com/Ledova/ledova/issues/1421);
-[decision](../decisions.md#offerings-deferred-from-the-first-release)). The web app no longer offers
-them, and their code is being removed under the same issue. This page keeps how they are expected to
-work and the decisions behind them. The last complete implementation, web and backend, is at
+[decision](../decisions.md#offerings-deferred-from-the-first-release)). Their web and backend code
+was removed under the same issue. This page keeps how they are expected to work and the decisions
+behind them. The last complete implementation, web and backend, is at
 [`c2b41da4`](https://github.com/Ledova/ledova/tree/c2b41da4d5c48928e30fd30802fec6326e8f6cfa); recover
 from Git history rather than starting again. Capital arranged outside Ledova is recorded today as an
 [external allotment](issuing-shares.md#external-investor-allotments).
@@ -26,6 +26,7 @@ Contents:
 - [Company paid issues](#company-paid-issues)
 - [When each step happened](#when-each-step-happened)
 - [The web pages](#the-web-pages)
+- [Implementation notes](#implementation-notes)
 - [Decisions and open questions](#decisions-and-open-questions)
 
 ## How it fits
@@ -117,10 +118,16 @@ Investors reach offerings through the directory, which a company's own
 [eligibility decision](participants.md#company-eligibility-decisions) opens, for that company only.
 In the last implementation:
 
-- an account first had to be ready to invest ([account readiness](participants.md#account-readiness));
+- an account first had to be ready to invest: an investing account with an active login, a verified
+  email and [good standing](participants.md#account-standing). The Verification page showed
+  **Account ready** or **Account checks needed** with the reasons, and readiness opened nothing by
+  itself;
 - a general decision (accountant's certificate or professional investor) and an associated-person
-  decision, which binds the exact company the claim names, both opened that company's directory
-  entries, the "primary" purpose of a decision;
+  decision both opened that company's directory entries, the "primary" purpose of a decision. An
+  **associated-person** source (s708(12): proof of the person's role with the named company, such
+  as an ASIC extract naming them) named its company by the identifier the company supplied, only an
+  active company was accepted, and the lookup revealed nothing about the company; its decision bound
+  that exact company;
 - a **large-investment** source (s708(8)(a): at least AUD 500,000 payable on acceptance for an
   approved offering, such as a bank statement) supported a product-value decision. The participant
   entered the approved offering's identifier, which the company copied from the offering's page, and
@@ -224,6 +231,45 @@ rather than guessing.
   instruction, even after Directory access ends; a recorded partial payment shows the amount
   outstanding.
 
+## Implementation notes
+
+How the last implementation worked, for whoever restores it; the code is at the commit above.
+
+- **Listing** was `Company.is_open_to_investors`, an editable company field rather than a status, so
+  suspension and reinstatement left it set.
+- **Submission** locked the `ShareToken` row so two submissions for one class gave one submission
+  and one refusal. Headroom was the authorised shares less completed supply less the caps of other
+  live offerings, and a partial unique constraint kept one live offering per class. One transition
+  function made every status change, sent one notification and re-ran the headroom check on
+  approval; admin froze the economics past draft. There was no open status or scheduler: "open" was
+  derived from approval and the window.
+- **Documents** published through approved or closed offerings were read through the directory's
+  own selector, so an ineligible investor, a hidden class and an unknown document all answered the
+  same 404. A database guard refused deleting or re-pointing a document such an offering carried.
+- **Applications** copied the price, currency and company and class names onto the row, so the
+  applicant's reads, payment instruction and guarded withdrawal survived a hidden parent. Draft,
+  submission and acceptance re-read the offering and rechecked eligibility before and after an
+  admission lock.
+- **Payment instructions** appended an eight-character Crockford base32 code to the operator's
+  2-to-10-character reference prefix within an 18-character limit, retried on the unique index, and
+  gave the operator's bank fields or receiving wallet. Payment facts were columns on the
+  application, a stablecoin hash was unique ignoring case, and every financial action wrote an admin
+  history entry.
+- **Refunds and scale-back:** money held blocked rejection and withdrawal; a refund was capped at
+  the money not backing allotted shares and cancelled queued issuance work before it started.
+  Scale-back set the allotted quantity, leaving the difference as a refund owed.
+- **Paid issues** consumed an applied company decision that admitted one private issuance execution
+  linked to the application. Each had to fit both the offering's remaining headroom and the
+  authorised shares less those issued and still to be minted. A daily job lapsed unpaid
+  applications with no payment recorded, and a five-minute job moved a paid application to Allotted
+  once its issue completed.
+- **Eligibility** used one decision function with a purpose (primary or secondary) and an optional
+  offering and quantity; a product-value request stored the offering, class, quantity, price, AUD
+  amount and a digest of the offering's terms, rechecked at every use.
+- **Row-level security** let an issuer read the accounts, wallets and profiles of people who applied
+  to its own offerings, so the register could name an allotted holder, and let an applicant read
+  the issuance request behind their application.
+
 ## Decisions and open questions
 
 - The first offerings target wholesale and sophisticated investors under the s708 exemptions; the
@@ -245,6 +291,5 @@ rather than guessing.
   return, decide who reviews them, how money is collected, verified, reconciled and refunded, and
   what the [regulatory pathway](../regulatory-pathway.md) requires.
 
-Next: [ways to issue shares today](issuing-shares.md#ways-to-issue-shares),
-[participants and eligibility](participants.md) and
-[offering and subscription mechanics](../engineering/backend.md#offerings-and-subscriptions).
+Next: [ways to issue shares today](issuing-shares.md#ways-to-issue-shares) and
+[participants and eligibility](participants.md).

@@ -80,9 +80,6 @@ class ShareIssuanceQuerySet(QuerySet):
     def with_initiated_by(self):
         return self.select_related("initiated_by")
 
-    def with_subscription(self):
-        return self.select_related("shareissuancerequest__subscription")
-
     def latest_identity_stamps(self):
         stamps = {}
         for issuance in self.completed().order_by("-created_at"):

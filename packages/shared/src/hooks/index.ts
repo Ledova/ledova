@@ -41,7 +41,6 @@ export { walletHoldingsKey, useWalletHoldings } from './useWalletHoldings';
 export { WALLETS_QUERY_KEY, buyWalletsKey, useBuyWallets } from './useBuyWallets';
 export {
   INVESTOR_CLASSIFICATIONS_QUERY_KEY,
-  INVESTOR_ELIGIBILITY_QUERY_KEY,
   investorClassificationsKey,
   useInvestorClassifications,
 } from './useInvestorClassifications';

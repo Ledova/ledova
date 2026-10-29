@@ -34,9 +34,9 @@ its phase issues:
 
 - Issuance on chain with whitelisted recipients, authorised caps and recovery of
   interrupted requests ([contracts and issuance](engineering/chain.md)).
-- The investor directory, offerings, applications, recorded payments, private
-  uploads and the operator console. Offerings, the directory and applications
-  are now [planned for a later release](business/offerings.md)
+- Private uploads and the operator console. The investor directory, offerings,
+  applications and recorded payments are now
+  [planned for a later release](business/offerings.md)
   ([#1421](https://github.com/Ledova/ledova/issues/1421)).
 - The authoritative stored register ([#647](https://github.com/Ledova/ledova/issues/647)):
   append-only events, holdings served with the chain unreachable, retained

@@ -77,8 +77,8 @@ The password comes from `--password`, `LEDOVA_DEMO_PASSWORD`, or a generated val
 prints. Every run applies it to every seeded account: the testers, the synthetic staff and the
 synthetic people.
 
-Every run refreshes the tester accounts, and sets demo bank details and the `DEMO` reference
-prefix on the operator record when it has no bank details. The investor and founder are
+Every run refreshes the tester accounts and makes sure the operator record exists. The investor and
+founder are
 `investor@ledova.io` and `founder@ledova.io`; the superuser is `admin@demo.ledova.test`. The command
 adopts any existing account at those addresses and resets its password, active flag and email
 verification. For the investor and founder it also overwrites the profile, role and status and adds

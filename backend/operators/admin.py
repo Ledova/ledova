@@ -48,22 +48,13 @@ class OperatorAdmin(admin.ModelAdmin):
     fieldsets = [
         ("Identity", {"fields": ["name", "legal_name", "abn", "contact_email", "website"]}),
         (
-            "Payments",
+            "Settlement",
             {
                 "fields": [
-                    "bank_account_name",
-                    "bank_bsb",
-                    "bank_account_number",
-                    "payment_reference_prefix",
-                    "receiving_wallet_address",
                     "receiving_wallet_chain",
                     "issued_stablecoin",
                     "supported_settlement_assets",
                 ],
-                "description": (
-                    "Where investors pay: the operator's AUD bank account and/or a wallet receiving a supported "
-                    "stablecoin. Only authenticated users can read these through the API, and only once set."
-                ),
             },
         ),
         ("Eligibility", {"fields": ["investor_kyc_required", "issuer_kyc_required"]}),

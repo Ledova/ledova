@@ -1,5 +1,7 @@
 import uuid
 
+import django.db.models.deletion
+from django.conf import settings
 from django.db import migrations, models
 
 import documents.models.document
@@ -10,9 +12,42 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = []
+    dependencies = [
+        ("users", "0001_initial"),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
 
     operations = [
+        migrations.CreateModel(
+            name="DocumentRead",
+            fields=[
+                (
+                    "uuid",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        help_text="Unique identifier (primary key)",
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("actor_id", models.PositiveBigIntegerField()),
+                ("document_uuid", models.UUIDField(db_index=True)),
+                ("classification_uuid", models.UUIDField(blank=True, null=True)),
+                (
+                    "kind",
+                    models.CharField(
+                        choices=[("document", "Document"), ("file", "File"), ("extraction", "Extraction")],
+                        max_length=16,
+                    ),
+                ),
+            ],
+            options={
+                "ordering": ["-created_at"],
+            },
+        ),
         migrations.CreateModel(
             name="Document",
             fields=[
@@ -54,6 +89,24 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("note", models.CharField(blank=True, max_length=255)),
+                (
+                    "classification",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="supporting_documents",
+                        to="users.investorclassification",
+                    ),
+                ),
+                (
+                    "uploaded_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="documents",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
                 "verbose_name": "Document",
@@ -99,6 +152,12 @@ class Migration(migrations.Migration):
                 ("duration_ms", models.IntegerField(blank=True, null=True)),
                 ("started_at", models.DateTimeField(blank=True, null=True)),
                 ("finished_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "document",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="extractions", to="documents.document"
+                    ),
+                ),
             ],
             options={
                 "verbose_name": "Document Extraction",
@@ -107,34 +166,12 @@ class Migration(migrations.Migration):
                 "ordering": ["-created_at"],
             },
         ),
-        migrations.CreateModel(
-            name="DocumentRead",
-            fields=[
-                (
-                    "uuid",
-                    models.UUIDField(
-                        default=uuid.uuid4,
-                        editable=False,
-                        help_text="Unique identifier (primary key)",
-                        primary_key=True,
-                        serialize=False,
-                    ),
-                ),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("updated_at", models.DateTimeField(auto_now=True)),
-                ("actor_id", models.PositiveBigIntegerField()),
-                ("document_uuid", models.UUIDField(db_index=True)),
-                ("classification_uuid", models.UUIDField(blank=True, null=True)),
-                (
-                    "kind",
-                    models.CharField(
-                        choices=[("document", "Document"), ("file", "File"), ("extraction", "Extraction")],
-                        max_length=16,
-                    ),
-                ),
-            ],
-            options={
-                "ordering": ["-created_at"],
-            },
+        migrations.AddIndex(
+            model_name="document",
+            index=models.Index(fields=["uploaded_by", "document_type"], name="documents_uploade_f4c69d_idx"),
+        ),
+        migrations.AddIndex(
+            model_name="documentextraction",
+            index=models.Index(fields=["document", "status"], name="document_ex_documen_effc26_idx"),
         ),
     ]

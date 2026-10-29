@@ -36,6 +36,17 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="company",
+            name="ownership_sharing_changed_by",
+            field=models.ForeignKey(
+                editable=False,
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="+",
+                to=settings.AUTH_USER_MODEL,
+            ),
+        ),
+        migrations.AddField(
+            model_name="company",
             name="rejected_by",
             field=models.ForeignKey(
                 blank=True,
@@ -259,6 +270,34 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AddField(
+            model_name="companysignuptermsacceptance",
+            name="accepted_by",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, related_name="+", to=settings.AUTH_USER_MODEL
+            ),
+        ),
+        migrations.AddField(
+            model_name="companysignuptermsacceptance",
+            name="accepted_profile",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, related_name="+", to="users.userprofile"
+            ),
+        ),
+        migrations.AddField(
+            model_name="companysignuptermsacceptance",
+            name="appointment",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, related_name="+", to="companies.companyappointment"
+            ),
+        ),
+        migrations.AddField(
+            model_name="companysignuptermsacceptance",
+            name="company",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT, related_name="+", to="companies.company"
+            ),
+        ),
+        migrations.AddField(
             model_name="companyteaminvitation",
             name="company",
             field=models.ForeignKey(
@@ -339,6 +378,12 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AddConstraint(
+            model_name="companysignuptermsacceptance",
+            constraint=models.UniqueConstraint(
+                fields=("appointment", "declaration_version"), name="company_signup_terms_appointment_version"
+            ),
+        ),
+        migrations.AddConstraint(
             model_name="companyteaminvitation",
             constraint=models.UniqueConstraint(
                 fields=("inviter", "idempotency_key"), name="companies_team_invitation_key"
@@ -361,7 +406,6 @@ class Migration(migrations.Migration):
                         ("declaration_version__isnull", False),
                         ("invitation__isnull", True),
                         ("legacy_owner__isnull", True),
-                        ("registry_check__isnull", False),
                         ("request__isnull", False),
                     ),
                     models.Q(

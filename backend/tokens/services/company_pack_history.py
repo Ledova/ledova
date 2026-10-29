@@ -1,9 +1,7 @@
 from collections import defaultdict
 
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 
-from offerings.models import Subscription, SubscriptionStatus
 from tokens.constants import FORMER_MEMBER_RETENTION_MONTHS
 from tokens.models import (
     CapitalIncreaseExecution,
@@ -27,7 +25,6 @@ from tokens.services.register import former_identity_label, months_after
 from tokens.services.register_inclusions import waiting_list
 from whitelist.models import WhitelistApproval, WhitelistChange
 
-RECORDED = "recorded"
 REVIEWED = "reviewed_by__userprofile"
 
 
@@ -205,48 +202,6 @@ def particulars_changes(records) -> list:
     ]
 
 
-def _payment(subscription):
-    return {
-        "basis": RECORDED,
-        "amount_received": subscription.amount_received,
-        "received_on": subscription.payment_received_on,
-        "reference_seen": subscription.payment_reference_seen,
-        "transaction": subscription.payment_tx_hash or None,
-        "recorded_at": subscription.payment_confirmed_at,
-        "refund_amount": subscription.refund_amount,
-        "refunded_at": subscription.refunded_at,
-        "refund_reference": subscription.refund_reference,
-    }
-
-
-def _subscription(subscription):
-    if subscription is None:
-        return None
-    return {
-        "uuid": subscription.pk,
-        "offering": subscription.offering_id,
-        "status": subscription.status,
-        "subscribed_at": subscription.created_at,
-        "shares_requested": str(subscription.quantity),
-        "allotment": str(subscription.allotment_quantity),
-        "currency": subscription.offering.price_currency,
-        "price_per_share": subscription.price_per_share,
-        "amount_due": subscription.amount_due,
-        "payment_due_at": subscription.payment_due_at,
-        "reference": subscription.reference,
-        "rail": subscription.settlement_rail,
-        "payment": _payment(subscription),
-    }
-
-
-def _awaiting(subscription):
-    return {
-        **_subscription(subscription),
-        "subscriber": (subscription.user_account.user_profile.full_name or "").strip(),
-        "wallet": subscription.wallet.address,
-    }
-
-
 def _issuance(issuance):
     if issuance is None:
         return None
@@ -286,29 +241,11 @@ def issues(company, token) -> dict:
     requests = list(
         _ordered(ShareIssuanceRequest.objects.filter(company=company, token=token)).select_related("executed_issuance")
     )
-    subscriptions = {
-        subscription.issuance_request_id: subscription
-        for subscription in Subscription.objects.filter(company=company, issuance_request__in=requests).select_related(
-            "offering"
-        )
-    }
-    awaiting = (
-        Subscription.objects.filter(company=company, offering__token=token, issuance_request__isnull=True)
-        .filter(
-            Q(status=SubscriptionStatus.PAID)
-            | Q(status=SubscriptionStatus.AWAITING_PAYMENT, amount_received__isnull=False)
-        )
-        .select_related("offering", "wallet", "user_account__user_profile")
-        .order_by("created_at", "uuid")
-    )
     executions = _executions(ShareIssuanceExecution, company, token)
-    return {
-        "issues": [_issue(request, subscriptions.get(request.pk), executions.get(request.pk)) for request in requests],
-        "awaiting_allotment": [_awaiting(subscription) for subscription in awaiting],
-    }
+    return {"issues": [_issue(request, executions.get(request.pk)) for request in requests]}
 
 
-def _issue(request, subscription, execution):
+def _issue(request, execution):
     return {
         "request": request.pk,
         "type": request.issuance_type,
@@ -324,7 +261,6 @@ def _issue(request, subscription, execution):
         "executed_at": request.executed_at,
         "issuance": _issuance(request.executed_issuance),
         "execution": _issue_execution(execution),
-        "subscription": _subscription(subscription),
     }
 
 

@@ -9,7 +9,6 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
-from companies.models import Company, CompanyStatus
 from companies.services.authority_requests import _requester_principal
 from shared.db import atomic, current_alias, use_operator
 from users.models import UserAccount, UserProfile
@@ -26,16 +25,13 @@ EVIDENCE_SETTINGS = (
     "app.classification_evidence_document",
     "app.classification_evidence_account",
     "app.classification_evidence_profile",
-    "app.classification_evidence_company",
 )
 
 
 @contextmanager
-def evidence_operation(
-    operation, *, source_id=None, document_id=None, account_id=None, profile_id=None, company_id=None
-):
+def evidence_operation(operation, *, source_id=None, document_id=None, account_id=None, profile_id=None):
     command_connection = connections[current_alias()]
-    values = (operation, source_id, document_id, account_id, profile_id, company_id)
+    values = (operation, source_id, document_id, account_id, profile_id)
     with command_connection.cursor() as cursor:
         cursor.execute("SELECT " + ", ".join("current_setting(%s, true)" for _ in EVIDENCE_SETTINGS), EVIDENCE_SETTINGS)
         previous = cursor.fetchone()
@@ -71,12 +67,6 @@ def create_classification(*, actor, validated_data):
     original_name = classification.evidence_file.name
     try:
         with use_operator(), _requester_principal(actor.pk), atomic():
-            if classification.company_id:
-                get_object_or_404(
-                    Company.objects.select_for_update(no_key=True),
-                    pk=classification.company_id,
-                    status=CompanyStatus.ACTIVE,
-                )
             account = get_object_or_404(
                 UserAccount.objects.select_for_update(no_key=True), pk=classification.user_account_id
             )
@@ -90,7 +80,6 @@ def create_classification(*, actor, validated_data):
                 source_id=classification.pk,
                 account_id=account.pk,
                 profile_id=profile.pk,
-                company_id=classification.company_id,
             ), atomic():
                 classification.save(force_insert=True)
                 classification.refresh_from_db()

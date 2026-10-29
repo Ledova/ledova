@@ -50,7 +50,6 @@ export const IDENTITY_VERIFICATION_ENDPOINTS = {
 export const INVESTOR_CLASSIFICATION_ENDPOINTS = {
   BASE: '/api/investor-classifications/',
   DETAIL: (uuid: string) => `/api/investor-classifications/${uuid}/` as const,
-  ELIGIBILITY: '/api/investor-classifications/eligibility/',
 } as const;
 export const DEVICE_TOKEN_ENDPOINTS = {
   REGISTER: '/api/device-tokens/register/',

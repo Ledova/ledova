@@ -51,8 +51,6 @@ EXTRACTION_FAILURE = "LlmExtractValidationError: Extracted output failed schema 
 EVIDENCE_TITLES = {
     "accountant_certificate": "Qualified accountant's certificate",
     "professional_investor": "Statement supporting professional investor status",
-    "product_value": "Statement of intended subscription amount",
-    "associated_person": "Statement of association with the issuer",
 }
 
 
@@ -334,7 +332,6 @@ def _claim(claim, person, user, account, seeded):
     with frozen(claim.submitted_at):
         classification = InvestorClassification(
             user_account=account,
-            company=seeded.companies.get(claim.company),
             category=claim.category,
             status=InvestorClassificationStatus.SUBMITTED,
             declaration_accepted=True,

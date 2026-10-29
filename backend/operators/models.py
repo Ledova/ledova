@@ -3,11 +3,9 @@ import re
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from web3 import Web3
 
 from assets.models import AssetType
 from shared.constants import BLOCKCHAIN_BASE, BLOCKCHAIN_ETHEREUM
-from shared.payment_references import MAX_PAYMENT_REFERENCE_PREFIX
 
 SINGLETON_PK = 1
 STABLECOIN_ONLY = {"asset_type": AssetType.STABLECOIN.value}
@@ -33,13 +31,6 @@ class Operator(models.Model):
     contact_email = models.EmailField(blank=True)
     website = models.URLField(blank=True)
 
-    bank_account_name = models.CharField(max_length=255, blank=True)
-    bank_bsb = models.CharField(max_length=7, blank=True)
-    bank_account_number = models.CharField(max_length=20, blank=True)
-    payment_reference_prefix = models.CharField(
-        max_length=16, blank=True, help_text="Letters and digits; subscription references start with it."
-    )
-    receiving_wallet_address = models.CharField(max_length=42, blank=True)
     receiving_wallet_chain = models.CharField(
         max_length=20, choices=ReceivingChain.choices, default=ReceivingChain.BASE
     )
@@ -87,20 +78,6 @@ class Operator(models.Model):
         self.abn = _digits(self.abn)
         if self.abn and not re.fullmatch(r"\d{11}", self.abn):
             errors["abn"] = "ABN must be exactly 11 digits."
-        self.bank_bsb = _digits(self.bank_bsb)
-        if self.bank_bsb and not re.fullmatch(r"\d{6}", self.bank_bsb):
-            errors["bank_bsb"] = "BSB must be exactly 6 digits."
-        self.payment_reference_prefix = (self.payment_reference_prefix or "").strip().upper()
-        if self.payment_reference_prefix and not re.fullmatch(
-            rf"[A-Z0-9]{{2,{MAX_PAYMENT_REFERENCE_PREFIX}}}", self.payment_reference_prefix
-        ):
-            errors["payment_reference_prefix"] = f"Use 2 to {MAX_PAYMENT_REFERENCE_PREFIX} letters or digits."
-        self.receiving_wallet_address = (self.receiving_wallet_address or "").strip()
-        if self.receiving_wallet_address:
-            if Web3.is_address(self.receiving_wallet_address):
-                self.receiving_wallet_address = Web3.to_checksum_address(self.receiving_wallet_address)
-            else:
-                errors["receiving_wallet_address"] = "Enter a valid EVM address."
         if self.issued_stablecoin_id and self.issued_stablecoin.asset_type != AssetType.STABLECOIN.value:
             errors["issued_stablecoin"] = NOT_A_STABLECOIN.format(symbol=self.issued_stablecoin.symbol)
         if errors:
