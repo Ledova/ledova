@@ -2256,7 +2256,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     hash: '#corrections',
     search: '?audit=1',
   });
-  const transferEntry = (await screen.findByText('Ledger date', { exact: false })).closest('li')!;
+  const transferEntry = (
+    await within(await screen.findByRole('list', { name: 'Ledger changes' })).findByText('Ledger date', {
+      exact: false,
+    })
+  ).closest('li')!;
   expect(within(transferEntry).getByText('Transfer')).toBeTruthy();
   expect(within(transferEntry).getByText('Example Shareholder: -100')).toBeTruthy();
   expect(within(transferEntry).getByText('Taylor Demo: +100')).toBeTruthy();
@@ -2265,7 +2269,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     `Ledger date ${formatDate('2026-10-21')}`,
   );
   expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
-  expect(screen.queryByRole('link', { name: /^Correct \(entry/ })).toBeNull();
+  expect(screen.queryByRole('link', { name: /^Correct \(/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Acknowledge/ })).toBeNull();
   expect(
@@ -2309,13 +2313,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     refreshingHistory = client.refetchQueries({ predicate: (query) => query.queryKey.includes('entries') });
   });
   await waitFor(() => expect(releaseHistory).toBeTypeOf('function'));
-  expect(screen.queryByText('Ledger date', { exact: false })).toBeNull();
+  expect(
+    within(screen.getByRole('list', { name: 'Ledger changes' })).queryByText('Ledger date', { exact: false }),
+  ).toBeNull();
   await act(async () => {
     pauseHistory = false;
     releaseHistory();
     await refreshingHistory;
   });
-  expect(await screen.findByText('Ledger date', { exact: false })).toBeTruthy();
+  expect(
+    await within(screen.getByRole('list', { name: 'Ledger changes' })).findByText('Ledger date', { exact: false }),
+  ).toBeTruthy();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
   expect(await screen.findByRole('heading', { name: 'Certificates destination' })).toBeTruthy();
@@ -2335,7 +2343,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
-  const correctionEntry = (await screen.findByText('Ledger date', { exact: false })).closest('li')!;
+  const correctionEntry = (
+    await within(await screen.findByRole('list', { name: 'Ledger changes' })).findByText('Ledger date', {
+      exact: false,
+    })
+  ).closest('li')!;
   expect(
     within(correctionEntry).getByRole('link', {
       name: `Correct (transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,

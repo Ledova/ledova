@@ -577,7 +577,7 @@ selector and without the overview cards: Issue shares
 
 Corrections starts with a full-width Changes card, newest entries first, with compact rows aligned under
 Change, Date and Share movements. On smaller screens, the kind and date sit above the movements.
-Each entry shows its kind, entry number and any correction or reversal reference; its company date
+Each entry shows its kind and any correction or reversal, named by kind and date; its company date
 for an issue or transfer (ledger effective date for other kinds), with the ledger date beneath when it
 differs; and its first two signed shareholder movements, with Show all for the rest. Rows don't
 expand, and Correct sits at the end of a row that may be corrected. An older issue or transfer with

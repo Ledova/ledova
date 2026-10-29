@@ -11,7 +11,7 @@ import { LoadError, Loading, MoreToggle, Status } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
-import { entryDate, entryName } from '@pages/company/shared/proposals';
+import { entryDate, entryLabel, entryName } from '@pages/company/shared/proposals';
 import { useRegisterEntries } from '@pages/company/ledger/shared/useRegisterEntries';
 
 const COPY = REGISTER_CORRECTION_COPY;
@@ -150,7 +150,7 @@ function Movements({ entry }: { entry: RegisterEntry }) {
       {changes.length > 2 && (
         <MoreToggle open={all} controls={id} onToggle={() => setAll((value) => !value)}>
           {all ? 'Show fewer share changes' : `Show all ${changes.length} share changes`}
-          <span className="sr-only"> (entry {entry.sequence})</span>
+          <span className="sr-only"> ({entryLabel(entry)})</span>
         </MoreToggle>
       )}
     </>

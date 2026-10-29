@@ -111,9 +111,9 @@ export function ImportRecord({
     <RecordShell hidden={!visible}>
       {visible && (
         <>
-          <h4 className="text-sm font-medium text-text-primary">
+          <h3 className="text-sm font-medium text-text-primary">
             {proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'}
-          </h4>
+          </h3>
           <Rows>
             <RecordStage stage={proposal.stage}>
               {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
@@ -125,7 +125,7 @@ export function ImportRecord({
             <Row label="Record date">{formatDate(proposal.asAt)}</Row>
             {proposal.sourceReference && <Row label="Source record">{proposal.sourceReference}</Row>}
             <Row label="Reason">{proposal.reason}</Row>
-            <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.DECISIONS} />
+            <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.TRAIL} />
           </Rows>
           <p className="text-sm text-text-muted">
             {proposal.providedBy === 'company'

@@ -51,7 +51,8 @@ export function entryDate(entry: EntryDates) {
 }
 
 export function entryName(entry: EntryDates) {
-  return `${REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind].toLowerCase()} of ${formatDate(entryDate(entry))}`;
+  const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind] ?? 'Register change';
+  return `${kind.toLowerCase()} of ${formatDate(entryDate(entry))}`;
 }
 
 export function entryLabel(entry: EntryDates & Pick<RegisterEntry, 'changes'>) {
@@ -60,7 +61,10 @@ export function entryLabel(entry: EntryDates & Pick<RegisterEntry, 'changes'>) {
   return who ? `${entryName(entry)}, ${who}` : entryName(entry);
 }
 
-export function describeEntry(entry: Pick<RegisterEntry, 'kind' | 'effectiveOn'>) {
-  const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind];
-  return `${kind} · Effective ${formatDate(entry.effectiveOn)}`;
+export function describeEntry(entry: EntryDates) {
+  const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind] ?? 'Register change';
+  const date = entryDate(entry);
+  return date === entry.effectiveOn
+    ? `${kind} · ${formatDate(date)}`
+    : `${kind} · ${formatDate(date)} · Ledger date ${formatDate(entry.effectiveOn)}`;
 }
