@@ -67,7 +67,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
             <Section title="Activation status">
               <p className="text-sm text-text-muted">
                 Company information is provided by the company. Activation records your declaration and the configured
-                identity and ABR checks. It does not approve an offering, issue shares or approve a wallet.
+                identity and ABR checks. It does not issue shares or approve a wallet.
               </p>
               <Rows>
                 <Row label="Status">

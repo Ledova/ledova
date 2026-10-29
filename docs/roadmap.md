@@ -16,7 +16,7 @@ The company-managed register foundation is delivered under
 [#860](https://github.com/Ledova/ledova/issues/860): one registry product,
 company authority and activation, company eligibility decisions, the
 company-run register with imports, corrections, openings and wallet links,
-non-paid grants and transfers, six company-authorised chain actions, employee
+non-paid grants and transfers, company-authorised chain actions, employee
 awards with recorded vesting, fully paid external allotments, members' own
 Profile particulars, member-specific invitations and own records,
 company-reviewed particulars requests, unsigned certificates and core packs. The

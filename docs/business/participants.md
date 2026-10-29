@@ -132,8 +132,8 @@ lookup reveals nothing about the company. A submitted source can be withdrawn.
 ### Kinds of decision
 
 - A general decision accepts an accountant-certificate or professional-investor source for the
-  deciding company. It is the decision that a wallet nomination, a non-paid chain grant and a
-  company wallet approval require.
+  deciding company. It is the decision that a wallet nomination, a non-paid chain grant, a company
+  wallet approval and the company's market reads through the trading API require.
 - An associated-person decision is primary eligibility for the exact company the claim names.
   Primary eligibility served offerings, which are [planned](offerings.md), so it opens nothing today.
 

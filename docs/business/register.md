@@ -690,7 +690,7 @@ other than the internal quantity guard, and says when the class is recorded as n
 deployed or paused class adds an **On chain** card: its state, deployment date and exact contract
 address with **Copy contract address**, links to the contract and its deployment transaction on the
 block explorer, and **Chain actions**, which opens the class's own page of company-authorised chain
-grant, paid issue, capital and pause workflows, its deployment and any earlier issuance and capital
+grant, capital and pause workflows, its deployment and any earlier issuance and capital
 requests. A draft class without shares offers **Put this class on chain** in its summary instead,
 which opens the same page at its deployment, and keeps that row, marked Deploying, while the
 deployment waits for confirmation. A draft class with shares offers neither, because deployment

@@ -43,7 +43,7 @@ export function OnChain({ token }: { token: CompanyShareToken }) {
         to={classPath('companyClassChain', token.uuid, token.companyUuid)}
         label={pageTitle('companyClassChain')}
       >
-        <span className="block text-xs text-text-muted">Chain grants, paid issues, capital increases and pausing</span>
+        <span className="block text-xs text-text-muted">Chain grants, capital increases and pausing</span>
       </LinkRow>
     </Section>
   );
