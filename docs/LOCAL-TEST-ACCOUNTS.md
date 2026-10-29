@@ -6,15 +6,16 @@ These are intentionally published fictional **localhost-only** credentials, auth
 owner on 28 October 2026. They are not credentials for ledova.io. Real passwords, tokens, cookies
 and runtime environment files stay outside Git.
 
-Last credential verification: **27 October 2026** (Australia/Sydney). All four saved passwords
-matched the local database hashes, with active sign-ins and verified email. This was a read-only
-check; the handover update does not claim another password verification.
+Last credential verification: **29 October 2026** (Australia/Sydney). After the database was
+rebuilt for #1421, all four accounts signed in to the local API with these passwords.
 
 ## Sign in
 
 Open **http://localhost:5173/signin**. Sign out before using another account. Reuse the existing
 local PostgreSQL database `ledova_walkthrough_20261021`; do not reset it or recreate accounts for
-a fresh chat. A deliberate reset can invalidate these credentials and fixtures.
+a fresh chat. A deliberate reset can invalidate these credentials and fixtures. On 29 October 2026
+it was rebuilt from #1421's fresh migrations with every record kept; the earlier copy is
+`ledova_walkthrough_20261021_before_1421`.
 
 | Person              | Test role                             | Email                              | Password                                      | What to test                                                                     |
 | ------------------- | ------------------------------------- | ---------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -39,11 +40,16 @@ flowchart LR
 ```
 
 - **Alex Demo:** company administrator for three companies, and a member of Purpose Demo.
-  This is the mixed-role example: one account, with independent company and personal access.
+  This is the mixed-role example: one account, with independent company and personal access. At
+  Purpose Demo his appointment also prepares and approves, so he decides eligibility requests there;
+  at Banksia and Harbour he is an administrator only.
 - **Taylor Demo:** shareholder/member in three companies; no company administration.
 - **Casey Demo:** employee shareholder/member in Purpose Demo only, with an award and issued shares.
 - **Quinn Investor Demo:** investor/member in Purpose Demo, for personal holdings and certificates;
   no company administration.
+- Taylor, Casey and Quinn are active, identity-verified investors with eligibility claims.
+- **Jordan Ellis** (`jordan.ellis@purpose-demo.test`): a second Purpose Demo officer, added on
+  29 October 2026 to re-appoint Alex with prepare and approve. The password is kept outside Git.
 
 Other people in the ledger are records, not automatic sign-ins. Access to company-wide ownership
 also depends on company sharing and current permissions.
@@ -58,6 +64,7 @@ flowchart LR
     Taylor -->|Member| Banksia
     Casey["Casey: employee shareholder"] -->|Member and employee award| Purpose
     Quinn["Quinn: investor"] -->|Member| Purpose
+    Jordan["Jordan: officer"] -->|Administrator| Purpose
 ```
 
 ### Fixture snapshot
@@ -75,6 +82,26 @@ Recorded 27 October 2026; use the running application for current balances and c
 Alex's Purpose member access was linked through invitation and acceptance for #1360; matching a
 display name alone grants no access. Taylor has three associations and Casey has one. Company
 aggregate sharing is enabled for the local exercise. No genuine ABR check was fabricated.
+
+### Demo data, 29 October 2026
+
+At the owner's request, more records were added through the API as the real users, so that pages
+are not empty. Nothing was written to the database directly.
+
+- **Purpose Demo:**
+  - Eligibility requests: Quinn's and Taylor's accepted, one of Casey's refused and one pending.
+  - Member requests: Taylor's address change and certificate requests from Quinn and Casey.
+  - A constitution, a shareholders agreement and financial statements under Supporting.
+  - An inspection copy and a company pack.
+- **Banksia:**
+  - An allotment to a fund and a transfer to a family trust.
+  - Two employee awards, one with its first tranche vested and issued.
+  - A preference allotment entered as 2,500 shares, reversed by correction and recorded again as
+    2,000.
+  - An inspection copy and a company pack.
+- **Harbour:** an allotment, a transfer and an employee award with its first tranche issued.
+- Taylor's request to Banksia was withdrawn.
+- Published and Activity stay empty without the local chain.
 
 ## Current handover — 29 October 2026
 
@@ -104,6 +131,12 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
   claim), then the backend, with associated-person claims and account readiness. Verification now
   offers two claim categories and links Your company eligibility from Your claims.
   [Planned offerings](business/offerings.md) keeps their design.
+- [#1424](https://github.com/Ledova/ledova/issues/1424) tidies the pages the owner found cluttered:
+  - A company gives investors a request link instead of its Company ID.
+  - Company eligibility lists requests first and picks the reviewer's appointment.
+  - Corrections names changes by kind and date.
+  - Naming investors on requests, and showing past inspection copies and packs to the company,
+    wait for the owner's decision on the issue.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
@@ -121,19 +154,18 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
   - Local preflight passes dashboard **20** and browser smoke **9**, within the unchanged caps.
   - Local backend verification stops at Python **3.13.15** (this Mac has **3.13.3**), and CI runs
     the pinned suite.
-  - Pages without local data were checked with sample API responses served in the browser only,
-    never written to the database.
-- **Branch preview stack:** a dashboard on **5175** serves `.claude/worktrees/claude-1378-order`
-  (`dashboard-order` in `.claude/launch.json`) against a second backend on **8040** (`backend-1378`).
-  That backend runs `.claude/worktrees/mobile-1201`'s backend as it was loaded on 28 October,
-  through a script in a session scratchpad, so a later session can't restart it as it stands and
-  shouldn't use it to check backend changes. Stop both when they are no longer needed. The
-  temporary `ledova-exports-pg` test database was removed.
+  - Pages are checked against the demo data above. Before it was added, pages without local data
+    were checked with sample API responses served in the browser only.
+- **Branch previews:** run the branch's backend on **8040** and its dashboard on **5175** against the
+  walkthrough database, with CORS and CSRF set to 5175, through configs in `.claude/launch.json`.
+  The backend must run the branch's own code. Stop both when they are no longer needed.
 - **Still open:**
   - Mobile work stays for later.
   - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
     decision; check GitHub before resuming.
-- No production deployment or database change was made.
+- The walkthrough database was rebuilt and given demo data at the owner's request. No production
+  deployment or production database change was made, and ledova.io still needs its own rebuild
+  before it can run #1421's fresh migrations.
 
 ## Continue on this Mac
 
