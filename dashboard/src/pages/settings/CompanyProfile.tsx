@@ -5,7 +5,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { type Company, useCompanySelection } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
-import { CopyButton } from '@components/CopyButton';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
 import { EditCompanyForm } from './CompanyForms';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
@@ -32,16 +31,14 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
       queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: ['member-records'] }),
     ]);
-  const address = company
+  const street = company
     ? [
         company.addressLine1,
         company.addressLine2,
         [company.city, company.state, company.postcode].filter(Boolean).join(' '),
-        company.country,
-      ]
-        .filter(Boolean)
-        .join(', ')
-    : '';
+      ].filter(Boolean)
+    : [];
+  const address = street.length ? [...street, company?.country].filter(Boolean).join(', ') : '';
   return (
     <Section title="Company details">
       {data.isLoading ? (
@@ -78,7 +75,9 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                 )}
                 <Row label="Type">{company.companyTypeDisplay}</Row>
                 <Row label="ACN">{company.acn}</Row>
-                <Row label="Member ownership overview">{company.shareOwnershipWithMembers ? 'Shared' : 'Private'}</Row>
+                <Row label="Ownership overview">
+                  {company.shareOwnershipWithMembers ? 'Shared with members' : 'Not shared'}
+                </Row>
                 {company.abn && <Row label="ABN">{company.abn}</Row>}
                 {data.canAdmin && company.email && (
                   <Row label="Email">
@@ -91,15 +90,6 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                     <span className="break-words">{address}</span>
                   </Row>
                 )}
-                <Row label="Company ID">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <span className="min-w-0 break-all">{company.uuid}</span>
-                    <CopyButton key={company.uuid} value={company.uuid} label="Copy company ID" />
-                  </div>
-                  <p className="mt-1 text-xs text-text-muted">
-                    Give this to investors for their eligibility requests and claims.
-                  </p>
-                </Row>
               </Rows>
               <p className="text-sm text-text-muted">Company information is provided by the company.</p>
               {data.canAdmin && (

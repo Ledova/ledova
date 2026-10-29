@@ -97,7 +97,7 @@ it('shows focused company details without share classes, and uploads documents t
     { shareOwnershipWithMembers: true },
     expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
   );
-  expect(screen.getByText('Shared')).toBeTruthy();
+  expect(screen.getByText('Shared with members')).toBeTruthy();
 
   const file = new File(['Synthetic company supporting copy'], 'company-constitution.pdf', { type: 'application/pdf' });
   const companyDocument: CompanyDocument = {

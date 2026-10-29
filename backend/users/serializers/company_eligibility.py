@@ -129,6 +129,7 @@ class CompanyEligibilitySharedSummarySerializer(serializers.Serializer):
 
 class CompanyEligibilityRequestPreviewResultSerializer(serializers.Serializer):
     version = serializers.CharField()
+    company_name = serializers.CharField()
     shared_summary = CompanyEligibilitySharedSummarySerializer()
     source_fingerprint = serializers.CharField(allow_null=True)
     evidence_hash = serializers.CharField(allow_null=True)

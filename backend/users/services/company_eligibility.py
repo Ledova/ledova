@@ -277,7 +277,7 @@ def preview_eligibility_request(*, actor, source, company, requested_expires_at)
             issuer.refresh_from_db()
             if issuer.status != CompanyStatus.ACTIVE:
                 raise NotFound("Eligibility context not found.")
-            return _request_preview(current, issuer, requested_expires_at)
+            return {**_request_preview(current, issuer, requested_expires_at), "company_name": issuer.name}
 
 
 def _retained_request(actor, key, source, company, requested_expires_at, preview_digest):
