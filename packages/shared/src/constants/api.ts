@@ -103,12 +103,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   MEMBER_CERTIFICATE_REQUESTS: '/api/v1/tokens/member-certificate-requests/',
   MEMBER_CERTIFICATE_REQUEST_WITHDRAW: (uuid: string) =>
     `/api/v1/tokens/member-certificate-requests/${uuid}/withdraw/` as const,
-  REGISTER_PAID_ISSUES: '/api/v1/tokens/register-paid-issues/',
-  REGISTER_PAID_ISSUE_SUBSCRIPTIONS: '/api/v1/tokens/register-paid-issues/ready-subscriptions/',
-  REGISTER_PAID_ISSUE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/`,
-  REGISTER_PAID_ISSUE_FILE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/file/`,
-  REGISTER_PAID_ISSUE_PREVIEW: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/decision-preview/`,
-  REGISTER_PAID_ISSUE_DECIDE: (uuid: string) => `/api/v1/tokens/register-paid-issues/${uuid}/decide/`,
   BASE: '/api/v1/tokens/',
   DETAIL: (uuid: string) => `/api/v1/tokens/${uuid}/` as const,
   REGISTER: '/api/v1/tokens/register/',

@@ -6,7 +6,6 @@ import {
   BookOpenIcon,
   FilesIcon,
   UsersThreeIcon,
-  MegaphoneIcon,
   ShieldCheckIcon,
   LinkIcon,
   CaretDownIcon,
@@ -58,8 +57,6 @@ const COMPANY: NavItem[] = [
   { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
   { destination: 'companyRegister', view: 'certificates', icon: FilesIcon },
 ];
-
-const OFFERINGS: NavItem = { destination: 'companyOffering', icon: MegaphoneIcon };
 
 const ELIGIBILITY: NavItem = { destination: 'companyEligibility', icon: ShieldCheckIcon, label: 'Eligibility' };
 
@@ -566,7 +563,6 @@ interface SidebarProps {
 export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps = {}) {
   const location = useLocation();
   const context = useCompanyContext();
-  const { isCompany } = useRole();
   const settings = useSettingsNavigation();
   const companyTasks = !!(context?.company?.canReadRegister || context?.company?.canManage);
   const companyItems = [
@@ -576,7 +572,6 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
           ...COMPANY.filter((item) => item.destination === 'home'),
           ...(context?.company?.memberUuids.length ? [PERSONAL[1]!] : []),
         ]),
-    ...(context?.company?.isOwner && isCompany ? [OFFERINGS] : []),
     ...(context?.company?.canReviewEligibility ? [ELIGIBILITY] : []),
   ];
   const { userProfile } = useUserProfile();

@@ -22,7 +22,6 @@ export {
   shortReference,
   sharePercentage,
 } from './formatting';
-export { attachableDocuments, describeOfferDocument } from './offer-documents';
 export {
   isNumericOnly,
   validatePassword,
@@ -125,14 +124,12 @@ export { isPreparedRegisterTransfer } from './register-transfers';
 export { ownershipSummary } from './register-ownership';
 export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
 export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
-export { marketQuantity, priceCents } from './market-data';
 export { activityAmount, activityDirection, feeUnit } from './activity';
 export { shownSymbol } from './asset-symbol';
 export { parseTheme } from './theme';
 export * from './register-issues';
 export * from './register-capital-increases';
 export * from './register-pause-changes';
-export * from './register-paid-issues';
 
 export {
   allotmentAud,
@@ -142,9 +139,7 @@ export {
 } from './register-allotments';
 
 export { invitationMembers } from './invitationMembers';
-export { applicationAmount } from './applicationAmount';
 export { isRegisterMemberDocument, isRegisterMemberDocumentReceipt } from './register-member-documents';
-export { applicationHistory } from './applicationHistory';
 export {
   NEW_PERSON,
   NEW_PERSON_PROBLEMS,

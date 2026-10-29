@@ -1,4 +1,4 @@
-import { WALLETS_QUERY_KEY } from './useSubscriptions';
+import { WALLETS_QUERY_KEY } from './useBuyWallets';
 import { eligibilityRecordKey } from './useCompanyEligibilityRecords';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';

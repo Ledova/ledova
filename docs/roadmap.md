@@ -35,8 +35,9 @@ its phase issues:
 - Issuance on chain with whitelisted recipients, authorised caps and recovery of
   interrupted requests ([contracts and issuance](engineering/chain.md)).
 - The investor directory, offerings, applications, recorded payments, private
-  uploads and the operator console; offering review and payment confirmation
-  remain platform-staff actions.
+  uploads and the operator console. Offerings, the directory and applications
+  are now [planned for a later release](business/offerings.md)
+  ([#1421](https://github.com/Ledova/ledova/issues/1421)).
 - The authoritative stored register ([#647](https://github.com/Ledova/ledova/issues/647)):
   append-only events, holdings served with the chain unreachable, retained
   former members and staff-prepared outputs ([the register](business/register.md)).
@@ -72,6 +73,8 @@ simulator observation does not establish them.
   automation, reconciliation and refunds.
 - Tokenising an imported register, and splits and consolidations. A later
   mirror must preserve existing supply rather than issue those shares again.
+- [Offerings and applications](business/offerings.md): not part of the first
+  release; the design and decisions stay documented.
 
 Deferred work is not cancelled or implicitly delivered; the existing payment,
 chain, authority, privacy and retention safeguards stay effective, and the

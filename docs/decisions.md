@@ -31,6 +31,7 @@ stay here as history and are marked where they appear.
 | [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                                                                         |
 | [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October                                                  |
 | [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                        |
+| [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                         | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md)                    |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                               |
 | [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165                                                                |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                         |
@@ -429,7 +430,7 @@ may already have read. The company's picker keeps to the offer document types:
 prospectus or information memorandum, risk disclosure, business plan, financial
 statements, auditor report, constitution and shareholder agreement (owner
 decision, the same day).
-[Offerings](business/issuing-shares.md#offerings) owns the routes.
+[Offerings](business/offerings.md) owns the routes.
 
 The register leaves amount paid blank when it cannot be established exactly;
 zero would assert an amount that is not known. Classification evidence has a
@@ -901,6 +902,19 @@ preparation and submission integrations as **not planned**, not delivered. This 
 of those three tickets; their proposals remain historical. Existing useful operations, guards,
 retained records and evidence, and company responsibilities remain unchanged. A future expansion
 needs a new explicit owner decision and scoped plan. This authorises no live operation or data deletion.
+
+### Offerings deferred from the first release
+
+**Owner decision, 29 October 2026** ([#1421](https://github.com/Ledova/ledova/issues/1421)): offerings
+"will not be part of the first release", so their code goes and their documentation stays:
+"documentation can describe and explore future functionality, but the codebase should contain only
+what we actually need and use today." The owner asked for no feature flags, placeholders or
+additional abstractions for the deferred feature, and approved the boundary: "remove offerings,
+Directory, Applications, paid issues and the product-value category in two PRs (web first, then
+backend), keep sign-up unchanged, and consolidate the docs into a planned offerings page."
+[Planned offerings](business/offerings.md) keeps how they are expected to work and the decisions
+behind them, and points to the last implementation in Git history. Company eligibility and its wallet
+approvals, external allotments and the investor sign-up acknowledgement stay.
 
 ### Member invitations and account association
 

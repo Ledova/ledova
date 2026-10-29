@@ -10,7 +10,6 @@ import { LoadError, Loading } from './Ledger';
 
 const NOTICE_PAGES: Record<string, DestinationKey> = {
   company: 'companyListing',
-  offering: 'companyOffering',
   [PUBLICATION_NOTICE]: 'publications',
   transaction: 'transactions',
   identity: 'userProfile',

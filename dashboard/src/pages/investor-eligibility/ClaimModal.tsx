@@ -7,11 +7,11 @@ import { useId } from 'react';
 import { FIELD_LIMITS, UPLOAD_RULE, formatFileSize } from '@ledova/shared';
 import type { InvestorCategory } from '@ledova/shared';
 import { useInvestorClaim } from './useInvestorClaim';
-import { CERTIFIER_BODIES, WHOLESALE_ONLY_NOTICE } from './constants';
+import { CERTIFIER_BODIES } from './constants';
 import { LoadError } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { useDirectoryNames } from '@hooks/useDirectoryNames';
+import { useCompanyNames } from '@hooks/useCompanyNames';
 
 interface ClaimModalProps {
   isOpen: boolean;
@@ -69,7 +69,7 @@ export function ClaimModal({
     handleSubmit,
   } = useInvestorClaim({ category, userAccount, onSuccess, submissionBlockedReason });
   const checks = useErrorSummary(problems);
-  const directory = useDirectoryNames(isOpen && needsCompany);
+  const companyName = useCompanyNames();
   const evidence = checks.field('file');
   const evidenceError = fileRefusal ?? evidence.error;
   const evidenceErrorId = useId();
@@ -120,7 +120,7 @@ export function ClaimModal({
             {...checks.field('company')}
             label="Company ID"
             hint={
-              directory.company(company.trim()) ??
+              companyName(company.trim()) ??
               'Enter the company ID provided by the issuer. The server checks that it is active.'
             }
           >
@@ -250,8 +250,7 @@ export function ClaimModal({
               className="mt-1"
             />
             <span className="text-sm text-text-secondary">
-              I declare that this category applies to me and that the evidence attached is genuine.{' '}
-              {WHOLESALE_ONLY_NOTICE}
+              I declare that this category applies to me and that the evidence attached is genuine.
             </span>
           </label>
           {declaration.error && (

@@ -49,12 +49,10 @@ const RESULT_UNCERTAIN =
   'The result is uncertain. Retry this exact confirmation and key, or refresh its retained history.';
 
 export const ELIGIBILITY_RECORDS_NOTICE =
-  'Each company decides eligibility for its own offerings and share classes. New actions recheck the current decision, evidence and exact scope.';
+  'Each company decides eligibility for its own share classes. New actions recheck the current decision, evidence and exact scope.';
 export type EligibilityRequestDraft = {
   source: string;
   company: string;
-  offering: string;
-  quantity: string;
   requestedExpiresAt: string;
 };
 export type EligibilityDecisionDraft = { outcome: 'accepted' | 'refused'; expiresAt: string; reason: string };
@@ -94,8 +92,6 @@ function retriesFor(client: QueryClient) {
 const requestDraft: EligibilityRequestDraft = {
   source: '',
   company: '',
-  offering: '',
-  quantity: '',
   requestedExpiresAt: '',
 };
 const decisionDraft: EligibilityDecisionDraft = { outcome: 'accepted', expiresAt: '', reason: '' };
@@ -610,20 +606,9 @@ function useEligibilityRecords(
           source: source.uuid,
           requestedExpiresAt: expiry(value.request.requestedExpiresAt),
         };
-        if (source.category === 'product_value') {
-          if (
-            !isUuid(value.request.offering) ||
-            !/^[1-9]\d*$/.test(value.request.quantity) ||
-            !Number.isSafeInteger(Number(value.request.quantity))
-          )
-            throw createUserFriendlyError('Enter an approved offering ID and a positive whole-share quantity.');
-          input.offering = value.request.offering;
-          input.quantity = Number(value.request.quantity);
-        } else {
-          if (!isUuid(value.request.company))
-            throw createUserFriendlyError('Enter the company ID supplied by the company.');
-          input.company = value.request.company;
-        }
+        if (!isUuid(value.request.company))
+          throw createUserFriendlyError('Enter the company ID supplied by the company.');
+        input.company = value.request.company;
         const response = await previewEligibilityRequest(api, input, config(guard));
         guard();
         request = response.data;
@@ -631,9 +616,7 @@ function useEligibilityRecords(
           !request?.previewDigest ||
           request.sharedSummary?.source !== input.source ||
           request.sharedSummary.userAccount !== owner!.ownerAccountUuid ||
-          (input.company && request.sharedSummary.company !== input.company) ||
-          (input.offering &&
-            (request.sharedSummary.offering !== input.offering || request.sharedSummary.quantity !== input.quantity))
+          request.sharedSummary.company !== input.company
         )
           throw createUserFriendlyError('The preview target could not be confirmed.');
         payload = {

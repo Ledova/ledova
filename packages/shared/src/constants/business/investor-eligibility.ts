@@ -7,12 +7,6 @@ export const CATEGORIES: {
   evidence: string;
 }[] = [
   {
-    category: 'product_value',
-    label: 'Large investment',
-    section: 's708(8)(a)',
-    evidence: 'Proof that at least AUD 500,000 is payable on acceptance, such as a bank statement.',
-  },
-  {
     category: 'accountant_certificate',
     label: "Qualified accountant's certificate",
     section: 's708(8)(c)',
@@ -80,7 +74,3 @@ export const COMPANY_ELIGIBILITY_UNMET_COPY: Record<string, string> = {
   request_evidence_changed: 'The claim’s evidence changed after this request was submitted.',
   product_context_changed: 'The offering changed after this request was submitted.',
 };
-
-export const WHOLESALE_ONLY_NOTICE =
-  'Offerings on this platform are made to wholesale and sophisticated investors only. They are not made under ' +
-  'a disclosure document, and retail investors cannot subscribe.';

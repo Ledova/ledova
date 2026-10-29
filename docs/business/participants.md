@@ -13,7 +13,6 @@ register records is in [member records](member-records.md).
 - [Wallet nominations and company wallet approvals](#wallet-nominations-and-company-wallet-approvals)
 - [Transaction monitoring](#transaction-monitoring)
 - [The Verification page](#the-verification-page)
-- [The Directory page](#the-directory-page)
 - [Profile and Settings](#profile-and-settings)
 
 Three facts stay separate throughout: whether an account is ready to invest, whether a particular
@@ -63,8 +62,8 @@ needs an investing account with an active login and a verified email, in good st
 - With it off, a Pending Verification account is also ready and identity is not required.
 - Rejected, Suspended and Terminated accounts are never ready.
 
-The Verification page states the reasons an account is not ready. Readiness alone opens no
-company's offerings or market. Company representatives have a separate
+The Verification page states the reasons an account is not ready. Readiness opens nothing by
+itself; offerings, which relied on it, are [planned](offerings.md). Company representatives have a separate
 [identity requirement](companies.md#representative-identity-requirement).
 
 ### Identity check results
@@ -116,16 +115,15 @@ permission and marks no source as verified.
 
 ### Evidence sources
 
-The offers on this platform are made only to wholesale and sophisticated investors, not under a
-disclosure document. A participant adds evidence for one of four categories on the Verification
-page ([legal positions](../legal/positions.md#4b-issuance-payments-and-transfers-need-a-licence-a-registration-or-relief)):
+A participant adds evidence for one of three wholesale and sophisticated investor categories on the
+Verification page ([legal positions](../legal/positions.md#4b-issuance-payments-and-transfers-need-a-licence-a-registration-or-relief));
+a large-investment category tied to one offering is [planned with offerings](offerings.md#investor-access-and-eligibility):
 
-| Category                           | Basis      | Evidence                                                                                      |
-| ---------------------------------- | ---------- | --------------------------------------------------------------------------------------------- |
-| Large investment                   | s708(8)(a) | At least AUD 500,000 payable on acceptance for an approved offering, such as a bank statement |
-| Qualified accountant's certificate | s708(8)(c) | A certificate issued in the last two years by a CA ANZ, CPA Australia or IPA member           |
-| Professional investor              | s708(11)   | An AFS licence, a regulator registration, or proof of AUD 10 million under management         |
-| Associated with the issuer         | s708(12)   | Proof of the person's role with the named company, such as an ASIC extract naming them        |
+| Category                           | Basis      | Evidence                                                                               |
+| ---------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| Qualified accountant's certificate | s708(8)(c) | A certificate issued in the last two years by a CA ANZ, CPA Australia or IPA member    |
+| Professional investor              | s708(11)   | An AFS licence, a regulator registration, or proof of AUD 10 million under management  |
+| Associated with the issuer         | s708(12)   | Proof of the person's role with the named company, such as an ASIC extract naming them |
 
 Each submission is its own source, and a person may hold several. An associated-person source names
 its company by the identifier the company supplies, and only an active company is accepted; this
@@ -134,23 +132,18 @@ lookup reveals nothing about the company. A submitted source can be withdrawn.
 ### Kinds of decision
 
 - A general decision accepts an accountant-certificate or professional-investor source for the
-  deciding company. It opens that company's directory entries and its market, and it is the
-  decision that a wallet nomination, a non-paid chain grant and a company wallet approval require.
-- An associated-person decision is primary eligibility for the exact company the claim names. It
-  opens that company's directory entries but never its market.
-- A product-value decision binds the exact approved offering, whole-share quantity, AUD amount and
-  terms; the amount must reach AUD 500,000. It opens only that offering.
+  deciding company. It is the decision that a wallet nomination, a non-paid chain grant and a
+  company wallet approval require.
+- An associated-person decision is primary eligibility for the exact company the claim names.
+  Primary eligibility served offerings, which are [planned](offerings.md), so it opens nothing today.
 
 ### Requesting a decision
 
-1. Open **Your company eligibility** from Verification or Directory.
-2. Select your evidence source. Enter the exact company identifier the company gave you or, for a
-   large-investment claim, the approved offering's identifier and a whole-share quantity. Set the
+1. Open **Your company eligibility** from Verification.
+2. Select your evidence source, enter the exact company identifier the company gave you and set the
    expiry you are asking for. On the web, a company finds its identifier on its
-   [Company page](companies.md#the-company-page), and each approved offering's on that offering's
-   page, opened from [Offerings](issuing-shares.md#the-offerings-page).
-3. Choose **Preview company eligibility request**. The preview shows the company and, for a
-   product-value claim, the share class, price, currency, amount and terms, with any unmet
+   [Company page](companies.md#the-company-page).
+3. Choose **Preview company eligibility request**. The preview shows the company, with any unmet
    requirement.
 4. Confirm the sharing summary and the declaration separately, then submit. The request keeps that
    summary, fingerprints of the evidence and its metadata, the requested expiry and you as holder.
@@ -192,11 +185,8 @@ standing and expiry.
 - Market reads: through the trading API, a holder without a current general decision cannot see a
   company's market even for shares they already own, a trade-off the owner recorded for review
   before live operation ([trading](trading.md)).
-- Applications, orders and signatures: each new subscription, order, order change and swap
-  signature needs the matching current decision for that company and keeps a record of it
-  ([issuing shares](issuing-shares.md)).
-- Payment instructions: the platform operator's bank and stablecoin payment details are shown only
-  to platform staff and to people holding a current general decision from at least one company.
+- Orders and signatures: through the trading API, each new order, order change and swap signature
+  needs the matching current decision for that company and keeps a record of it.
 
 ### When eligibility ends
 
@@ -211,7 +201,7 @@ account standing, identity or wallet is lost. Then:
 - until the removal lands on chain, a direct contract call could still move shares; pausing the
   share class is the available lever
   ([whitelist changes](../engineering/chain.md#whitelist-changes));
-- none of the holder's retained subscriptions, orders or swaps is hidden.
+- none of the holder's retained orders or swaps is hidden.
 
 ## Wallet nominations and company wallet approvals
 
@@ -318,12 +308,12 @@ risk assessment, transaction and any company decision stay as they are.
 
 Verification (investing accounts) has three sections:
 
-- Account readiness: **Account ready** or **Account checks needed** with the reasons, and links to
-  Your company eligibility and, when ready, the Directory.
+- Account readiness: **Account ready** or **Account checks needed** with the reasons, and a link to
+  Your company eligibility.
 - Your claims: each source's status and dates, with **Withdraw claim** while it is submitted. A
   submitted source shows Available to share; one verified under the retired staff review shows
   Historical verification.
-- How you qualify: the four categories, **Submit evidence** or **Add evidence**, and **Request
+- How you qualify: the three categories, **Submit evidence** or **Add evidence**, and **Request
   company eligibility**.
 
 Your company eligibility holds your requests with their outcome history, **Prepare request
@@ -331,26 +321,6 @@ withdrawal** and the wallet nomination. Company eligibility, for company
 approvers and preparers, holds Your authority, the Requests list, the decision and revocation
 forms and Company wallet approvals
 ([deciding](#deciding-withdrawing-and-revoking)).
-
-## The Directory page
-
-Directory (investing accounts) groups the share classes a participant may see under their company,
-with its industry and location; there is no registry search. Until the account is ready it shows
-**Check your investor account** with links to Verification and Your company eligibility, and with no
-covered classes it explains how to request eligibility.
-
-A share class shows its symbol, authorised and issued shares, and its current offering: **Open for
-applications** with the price per share and dates, or **No offering open** until an offering has
-been approved and its opening time has arrived. The documents attached to the class's approved
-offerings follow. While an offering is open, a participant can prepare a draft application for
-that offering only; it sends no payment and its total is worked out in whole cents
-([applying for shares](issuing-shares.md#applying-for-shares)).
-
-Applications shows each application's recorded company, class, currency and payment instruction
-(the exact reference, bank details or settlement amount) even if Directory access has since ended.
-A recorded partial payment shows the amount outstanding and asks the investor to confirm any
-further payment with the operator
-([payments](issuing-shares.md#applications-payments-and-paid-issues)).
 
 ## Profile and Settings
 

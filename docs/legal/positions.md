@@ -661,7 +661,7 @@ value, and the interests held for three years. The Division 1A and concession
 details come from professional and ATO summaries, not the enacted text.
 
 **Implementation and earlier service assumption.** The
-[offerings flow](../business/issuing-shares.md#offerings) hosts offers; the earlier
+[offerings flow](../business/offerings.md) hosts offers; the earlier
 clerk-only service proposal assumed that it would not use that flow. Each
 grant, allotment and issue is approved by a company decision that retains the
 directors' authority document and names the approving director

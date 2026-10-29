@@ -4,8 +4,8 @@
 
 How a company sets up its share classes and issues new shares in Ledova, and what is not built. It
 is for company representatives, product owners, support staff and engineers learning the domain.
-Terms follow the [product glossary](../product.md#terms-that-must-stay-distinct): an offering
-invites eligible investors to apply for new shares, and an investor's application is a subscription.
+Terms follow the [product glossary](../product.md#terms-that-must-stay-distinct). Offerings and
+applications are [planned for a later release](offerings.md).
 
 Contents:
 
@@ -15,13 +15,10 @@ Contents:
 - [Employee awards and vesting](#employee-awards-and-vesting)
 - [External investor allotments](#external-investor-allotments)
 - [Non-paid chain grants](#non-paid-chain-grants)
-- [Offerings](#offerings)
-- [Applications, payments and paid issues](#applications-payments-and-paid-issues)
 - [Retained issue instructions](#retained-issue-instructions)
 - [What these flows do not cover](#what-these-flows-do-not-cover)
 - [Splits and consolidations](#splits-and-consolidations)
 - [Planned: tokenising an imported register](#planned-tokenising-an-imported-register)
-- [The Offerings page](#the-offerings-page)
 
 ## Share classes
 
@@ -81,7 +78,7 @@ time; leave it blank when unknown.
 document, with no category to choose. Each document is linked to the class and the rights
 revision that retained it, without assigning it to a shareholder. These files stay separate from
 [shareholder documents](register.md#shareholder-documents) and the company-wide
-[company-document and offering access](companies.md#company-information-and-documents).
+[company documents](companies.md#company-information-and-documents).
 
 A current company register reader can read the latest record, earlier versions and their linked
 files. A current personal company administrator can edit; ownership or platform staff status alone
@@ -163,7 +160,6 @@ members, and publications still reach them.
 | [Employee award, then grant](#employee-awards-and-vesting) | Opened by an import, no contract         | A member with no linked wallet                 | None; vesting is recorded first                    |
 | [External allotment](#external-investor-allotments)        | Opened by an import, no contract         | A new or existing member with no linked wallet | Fully paid in AUD, receipt recorded by the company |
 | [Non-paid chain grant](#non-paid-chain-grants)             | Deployed, register opened from the chain | A member's nominated, company-approved wallet  | None                                               |
-| [Paid issue](#company-paid-issues)                         | Deployed                                 | The subscriber's wallet                        | A subscription recorded as Paid                    |
 
 A grant on a class with no contract is a register entry only; a chain grant mints shares, and the
 register records the issue once the mint is final.
@@ -179,18 +175,18 @@ Preparation replaces the record list with the chosen form. Switching between the
 was entered in each form until it is closed or an issue is prepared, when the records return.
 A sibling group is hidden only after a current successful read proves it empty; loading and failed
 reads remain visible. For a deployed class the task links to the class's Chain actions page, where
-chain grants and paid issues stay.
+chain grants stay.
 
 ### What each record changes
 
-| Record                                                               | Effect on issued shares and holdings                                                                                                |
-| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Copying existing records (the opening)                               | Sets the opening balance; it is never an issue                                                                                      |
-| Employee award and vesting                                           | None: an award is a promised entitlement and vesting a company record                                                               |
-| Investor agreement and receipt                                       | None on their own; completing the approved allotment makes the issue                                                                |
-| Any issue: grant, award-linked grant, allotment, chain or paid issue | Increases the issued shares and the recipient's holding once                                                                        |
-| Transfer                                                             | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
-| Correction                                                           | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections))   |
+| Record                                                         | Effect on issued shares and holdings                                                                                                |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Copying existing records (the opening)                         | Sets the opening balance; it is never an issue                                                                                      |
+| Employee award and vesting                                     | None: an award is a promised entitlement and vesting a company record                                                               |
+| Investor agreement and receipt                                 | None on their own; completing the approved allotment makes the issue                                                                |
+| Any issue: grant, award-linked grant, allotment or chain grant | Increases the issued shares and the recipient's holding once                                                                        |
+| Transfer                                                       | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
+| Correction                                                     | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections))   |
 
 Investor and employee issues use the same register: one member, one set of holdings and one history
 serve both.
@@ -199,7 +195,7 @@ serve both.
 
 Each path is a [company decision](README.md#how-a-company-decision-works); in addition:
 
-- Every grant, allotment and paid issue names an approving director
+- Every grant and allotment names an approving director
   ([named directors](README.md#named-directors)).
 - Non-tokenised grants and external allotments require an explicit company issue date, kept
   separately from agreement, terms, vesting and receipt dates. It enters the exact review and
@@ -404,176 +400,6 @@ source changes before signing, the work is held
 ([share issuances](../engineering/chain.md#share-issuances)). A chain grant creates no application,
 receipt or amount paid.
 
-## Offerings
-
-An offering invites eligible investors to apply for new shares in one deployed class. Today the
-company owner creates, edits, submits, withdraws and deletes offerings and reads their applications;
-attaching documents also needs current company administration. Platform staff review, approve,
-reject and close offerings in admin, and payment instructions use the operator's settings, because
-offering decisions and integrated payments are deferred
-([9 October decision](../decisions.md#essential-registry-and-development-workflow-priority)). Staff
-powers to take a company down stay separate from this routine review.
-
-### Listing the company in the directory
-
-Under Investor directory on the Offerings page, someone with current company administration turns on
-Show this company to eligible investors; it is off by default, and only an active company can be
-listed. The directory shows the share classes of active companies that are switched on, so a
-compliance warning, suspension or delisting by [staff](companies.md#staff-registry-controls) hides a
-company without changing the switch, and resolving the warning or reinstating lists it again. The
-admin form changes the switch only for someone with company administration. Turning it off hides the
-company's classes but does not withdraw an offering under review.
-
-### Creating and submitting an offering
-
-An offering names one deployed class and sets:
-
-- the price per share, in AUD (an offering created before AUD pricing keeps the currency it was
-  given, and its applications' amounts use that currency;
-  [decision](../decisions.md#the-signed-in-app));
-- minimum, target and cap in whole shares (minimum at most target, target at most cap) and an
-  optional maximum per investor, no more than the cap;
-- an opening time and an optional closing time after it;
-- the exemption relied on: the AUD 500,000 minimum amount (s708(8)(a)), net assets or gross income
-  certified by a qualified accountant (s708(8)(c)), a professional investor (s708(11)) or a
-  wholesale client (s761G);
-- the payment rails: bank transfer, approved stablecoins, or both;
-- a summary, the use of proceeds and the offer documents to attach.
-
-Submission is refused unless the class is deployed and the company active; the class has no other
-live offering (submitted, under review or approved); the cap fits within the authorised shares less
-the shares issued and the caps of other live offerings (raise the authorised shares first); each
-stablecoin is available on the operator's receiving network; at least one rail is set; and, for the
-s708(8)(a) exemption, the minimum shares at the price are worth at least AUD 500,000. The refusal
-names any offering in flight; two tranches at once are not supported. Only a draft or rejected
-offering can be edited or submitted (Submit for review, or Submit again after a rejection), and only
-a draft can be deleted. Each status change notifies the company owner.
-
-### Review, approval and closing
-
-Platform staff start the review, approve, reject with a reason, or close an approved offering.
-Approval checks the cap against the authorised shares again, because an issue may have completed
-since submission. Staff cannot change the class, exemption, price, bounds, rails or window of an
-offering past draft; only the company changes them, by editing after a rejection. The documents are
-not fixed.
-
-An offering is open while it is approved and the time is within its window. Nothing opens or closes
-it automatically: reaching the cap does not close it, and closing is a deliberate staff act.
-Investors see only open offerings in the directory; approval publishes the terms of an offering
-invisible to them while submitted or under review.
-
-### Offer documents
-
-The company uploads offer documents under **Eligibility → Supporting** on web
-([company information and documents](companies.md#company-information-and-documents)), and the
-offering form lists only the offer types: prospectus or information memorandum, risk disclosure,
-business plan, financial statements, auditor report, constitution and shareholder agreement.
-Personal records such as the share register or a director's identification are never one click from
-investors.
-
-Approval publishes the attached documents to anyone the directory admits to the class, whether the
-offering is upcoming, open, past its closing time or closed; drafts and submitted, under-review,
-rejected and withdrawn offerings publish nothing. Each document is listed once, newest first, and
-only a file of the class's own company is published, never an external link. Investors' reads are
-not recorded.
-
-While an offering is approved or closed, documents can be added with Add documents but never removed
-([decision](../decisions.md#eligibility-and-ownership-records)), because investors may already have
-read them; deleting a company document that such an offering carries is refused. On a draft or
-rejected offering the attachments can be changed, and saving drops one no longer among the company's
-documents.
-
-### Withdrawing an offering
-
-The company can withdraw a draft, submitted, under-review or rejected offering. Withdrawal keeps the
-reviewer, review time, notes and any rejection reason, which the page shows as the previous
-rejection; the offering stays visible as a record and can no longer be edited, resubmitted or
-deleted.
-
-## Applications, payments and paid issues
-
-Platform staff accept applications, confirm payments and record refunds in admin on the company's
-instruction; the payment rail, receipt verification, reconciliation and refund design are deferred
-([#869](https://github.com/Ledova/ledova/issues/869)). Capital arranged outside Ledova is an
-[external allotment](#external-investor-allotments), not an application.
-
-### Applying for shares
-
-An investor whose current [eligibility decision](participants.md#company-eligibility-decisions) from
-the company admits them chooses Apply for shares on an open offering, with a whole number of shares
-and one of their verified wallets on Base to receive them, at least the minimum and at most the
-maximum per investor and the cap. The draft holds the offering's price, currency, company and class
-names, which later changes to the offering do not alter; the investor then chooses Submit for review
-on Applications.
-
-Eligibility is checked when the draft is made, on submission and when staff accept it, because a
-decision can lapse in between. Submission is refused, and the draft kept, when the offering is no
-longer visible to the investor. The investor's reads, payment instruction and withdrawal stay
-available after a class is paused or the company leaves the directory, is warned or is suspended.
-The investor can withdraw an application while no money is held against it.
-
-### Acceptance and the payment instruction
-
-Staff choose Accept and issue instruction, which issues the payment instruction in the same step: a
-reference made of the operator's prefix and an eight-character code, the amount, and either the
-operator's bank details or its receiving wallet with the stablecoin, network and token contract. The
-investor's application page shows it under Payment instruction. Payment is due by default seven days
-later, never after the offering closes, and a daily job lapses an application past its due date with
-no payment recorded.
-
-### Payments, refunds and scale-back
-
-Staff record a payment with Confirm payment. Received equal to the amount due makes the application
-Paid; more than due makes it Paid with a refund owed; less than due leaves it awaiting payment
-unless staff accept the amount as final, which reduces the shares to what was paid for, in whole
-shares, and records the rest as a refund owed. A stablecoin payment needs the transfer's transaction
-hash, and one transfer can fund only one application; Ledova does not check that transfer on chain,
-so staff are trusted here. A bank statement line already recorded against another application gives
-a warning, not a refusal. Every action is kept in the admin history, and restating a payment
-downwards warns.
-
-An application with money held cannot be rejected or withdrawn until that money is refunded. Record
-refund takes an amount above zero and no more than can be returned: before allotment, everything
-received; afterwards, only the excess no allotted share paid for. A refund is refused while the
-issue is being executed, until it resolves. An application closes only when every cent is back.
-
-When paid applications waiting for their issue ask for more than the offering's remaining cap, staff
-scale the offering back: each is cut in proportion, rounding down to whole shares, and the money the
-cut strands becomes a refund owed.
-
-### Company paid issues
-
-The company issues the shares for a Paid application itself. On the class's Chain actions page,
-under Paid issues, the preparer chooses Prepare paid issue and a Paid application, whose proposal captures
-the application, recipient, shares, price and payment facts (a partial receipt, a scaled-back
-quantity and a refund owed stay distinct from the requested shares and a refund paid), and adds the
-authority document, approving director, authority reference and reason; no new eligibility decision,
-wallet nomination, member choice, grant terms or acceptance is needed. Then Approve and Apply.
-
-Preparation and approval admit nothing; applying admits the original mint. The issue must fit both
-the offering's remaining cap and the authorised shares less those issued and still to be minted; the
-cap is a disclosure limit, and scale-back decides paid quantities. Queued work stays refundable
-until it starts, and refunding it cancels that issue for good. The mint, its finality, the
-application's Allotted status, the wallet holding and the register entry are separate outcomes; the
-register records the Issue once a [wallet link](register.md#linking-wallets-to-members) names the
-subscriber's wallet. Each issue links back to the application that paid for it. Rejecting the
-proposal neither refunds nor rejects the application. A class opened by an import cannot use this
-path, and earlier paid records keep their original actors.
-
-Approvers and register readers can read proposals without seeing the wider financial records, and
-company administration grants no access to them. Staff approval of paid issues is retired; Retry
-allotment in admin remains only to recover the company's original issue after a technical failure
-([subscription recovery](../operations/recovery.md#subscriptions)). Nothing here collects AUD or
-shows that AUD pricing or a stablecoin is a direct AUD payment
-([on-ramp and AUD decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)).
-
-### When each step happened
-
-Each application records when it was submitted, accepted, given its payment instruction, allotted,
-refunded and closed by rejection or withdrawal, and the date the money arrived as staff recorded it.
-The application page lists these under History in step order; older applications leave out steps
-that were never stamped rather than guessing.
-
 ## Retained issue instructions
 
 Direct issues on a class on chain approved before issues became company-run that still wait for
@@ -663,41 +489,5 @@ holdings under current company authority, give every mapped wallet a company-app
 represent the existing shares without a second Issue entry or more issued shares, and reconcile each
 mapped holding against final chain evidence before claiming a mirror.
 
-## The Offerings page
-
-Offerings, at `/company/offering` on web, lists every offering of the selected
-company the person owns, followed by Investor directory and What happens next. Each row names the
-offering's class, price per share, opening and any closing time, and its status, and opens the
-offering's own page. New offering needs a deployed class; without one the page says to deploy a
-class first. Creating a draft opens its page.
-
-An offering's page, at `/company/offering/:uuid`, has these sections:
-
-- **Review:** the status, when the offering was created, submitted and by whom, reviewed, and
-  closed or withdrawn, with any rejection, previous rejection or closing reason. Withdraw, Delete
-  and Submit for review (Submit again after a rejection) appear as the status allows. Deleting a
-  draft returns to Offerings, which says it was deleted.
-- **Terms:** the price, bounds, window, exemption, how investors may pay, summary and use of
-  proceeds, with Edit while the offering can be edited. An approved offering also shows its
-  **Offering ID** in full, with **Copy offering ID**, to give investors for their large-investment
-  eligibility requests.
-- **Documents for investors:** the attached offer documents, with Add documents on an approved or
-  closed offering.
-- **Applications:** on an approved or closed offering.
-
-The offering form checks the price, ordered bounds, dates and available settlement choices before
-sending, requires a settlement asset that is no longer available to be removed explicitly, and
-keeps an edited offering's attachments until one is switched off. Quantities above 2,147,483,647
-are refused. On an approved or closed offering, Add documents shows the attached documents ticked
-and locked and sends only new choices; if the offering has since left approved or closed, the
-dialog says so and sends nothing.
-
-Applications lists the offering's applications 25 at a time, newest first. Once there are any, it
-searches by investor name, wallet address or payment reference, and the Filters icon in the page
-heading opens a compact Status selector; selection applies immediately and closes it. Each application shows its
-requested and allotted shares, including zero allotments, as a read-only record; the company's paid
-issues are on the class's Chain actions page ([company paid issues](#company-paid-issues)).
-
 Next: [register of members](register.md), [member records and register outputs](member-records.md),
-[participants and eligibility](participants.md) and
-[offering and subscription mechanics](../engineering/backend.md#offerings-and-subscriptions).
+[participants and eligibility](participants.md) and [planned offerings](offerings.md).

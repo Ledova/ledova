@@ -1,4 +1,4 @@
-import { WALLETS_QUERY_KEY } from './useSubscriptions';
+import { WALLETS_QUERY_KEY } from './useBuyWallets';
 import { useState } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 

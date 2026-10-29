@@ -1,5 +1,4 @@
 import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
-import { TOKENS_QUERY_KEY } from '@hooks/useTokensList';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -94,7 +93,6 @@ export function useShareClass(uuid: string) {
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: shareClassKey(uuid) }),
-      queryClient.invalidateQueries({ queryKey: TOKENS_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
     ]);
   return {
