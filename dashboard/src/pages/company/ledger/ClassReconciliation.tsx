@@ -25,7 +25,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 import { reconciliationKey, useLatestReconciliation } from './useLatestReconciliation';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { registerInclusionMessage } from './shared/inclusionMessage';
-import { TransactionRow } from './shared/TransactionRow';
+import { TransactionRow } from '@pages/company/shared/TransactionRow';
 
 type Holders = TokenHoldersResponse['holders'];
 type Field = keyof typeof REGISTER_RECONCILIATION_COPY.FIELDS;

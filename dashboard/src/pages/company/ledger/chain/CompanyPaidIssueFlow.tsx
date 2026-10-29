@@ -34,7 +34,7 @@ import { RecordShell, RecordStage } from '@pages/company/ledger/shared/RecordShe
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { usePaidIssuePreparation, usePaidIssueRecord, type Commands } from './useCompanyPaidIssueFlow';
 import { PreparationSlot } from './PreparationSlot';
-import { TransactionRow } from '@pages/company/ledger/shared/TransactionRow';
+import { TransactionRow } from '@pages/company/shared/TransactionRow';
 import type { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 
 const STAGES: Record<string, string> = COPY.STAGES;

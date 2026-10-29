@@ -1,4 +1,4 @@
-import { ELIGIBILITY_OUTCOME_LABELS, INVESTOR_CATEGORY_LABELS, shortReference } from '@ledova/shared';
+import { ELIGIBILITY_OUTCOME_LABELS, INVESTOR_CATEGORY_LABELS, formatDateTime, shortReference } from '@ledova/shared';
 import type { CompanyEligibilityRequest } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 
@@ -22,14 +22,15 @@ export function RecordsList({
       {records.map((record) => (
         <li key={record.uuid} className="flex flex-wrap items-center justify-between gap-3 py-3">
           <div className="min-w-0 text-sm">
-            <p>Request {shortReference(record.uuid)}</p>
             <p>
               {INVESTOR_CATEGORY_LABELS[record.category]} · {ELIGIBILITY_OUTCOME_LABELS[record.outcome]}
             </p>
+            <p className="text-text-muted">Submitted {formatDateTime(record.submittedAt)}</p>
             {companyName && <p>{companyName(record.company) ?? `Company ${shortReference(record.company)}`}</p>}
           </div>
           <PageAction
-            label={`View request ${shortReference(record.uuid)}`}
+            label="View request"
+            context={`submitted ${formatDateTime(record.submittedAt)}`}
             pressed={selected === record.uuid}
             disabled={disabled}
             onClick={() => select(record.uuid)}

@@ -125,14 +125,14 @@ export default function CompanyEligibilityPage() {
             </p>
           )}
           <div hidden={!!read.action} className="flex flex-col gap-5">
-            <Section title="Your personal company authority">
+            <Section title="Your authority">
               <LinkRow
                 to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
                 label={pageTitle('companyTeam')}
               />
               <p className="text-sm text-text-muted">
-                Current personal prepare or approve authority permits reading this company&apos;s queue and preparing a
-                decision. Recording a decision or revocation requires your own approve appointment.
+                A prepare or approve appointment lets you read this company&apos;s requests and prepare a decision.
+                Recording a decision or revoking an acceptance needs your own approve appointment.
               </p>
               {!read.companyUuid && <CompanyContextNotice />}
               {read.companyUuid && context?.companyUuid !== read.companyUuid && (
@@ -141,11 +141,11 @@ export default function CompanyEligibilityPage() {
                 </p>
               )}
               {!read.readFailed && read.companies.length === 0 && (
-                <p>No current personal prepare or approve appointments are available.</p>
+                <p>You have no current prepare or approve appointment.</p>
               )}
               {read.companyUuid && (
                 <SelectField
-                  label="Your exact decision appointment"
+                  label="Your appointment"
                   options={[
                     { value: '', label: 'Select your appointment' },
                     ...read.appointments
@@ -168,7 +168,7 @@ export default function CompanyEligibilityPage() {
               )}
             </Section>
             {read.companyUuid && (
-              <Section title="Company request queue">
+              <Section title="Requests">
                 {queue?.settled && queue.rows.length === 0 ? (
                   <p role="status" className="text-sm text-text-muted">
                     {outcome ? 'No requests match.' : 'No requests yet.'}
@@ -199,7 +199,7 @@ export default function CompanyEligibilityPage() {
               <>
                 <EligibilityHistory record={read.selectedRecord} />
                 {read.selectedRecord.outcome === 'pending' && (
-                  <Section title="Prepare the exact company decision">
+                  <Section title="Decide this request">
                     <ErrorSummary {...decisionChecks.summary} />
                     <Choices
                       legend="Decision outcome"

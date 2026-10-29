@@ -300,7 +300,7 @@ it('shows focused company details without share classes, and uploads documents t
     path: '/company/eligibility',
   });
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  await screen.findByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` });
+  await screen.findByRole('button', { name: /^View request/ });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('button', { name: /Refresh/ })).toBeNull();
   const queueReads = () => api.get.mock.calls.filter(([url]) => url === queueUrl).length;
@@ -330,15 +330,15 @@ it('shows focused company details without share classes, and uploads documents t
   });
   await waitFor(() => expect(queueReads()).toBeGreaterThan(beforeQueue));
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  fireEvent.change(screen.getByLabelText('Your exact decision appointment'), { target: { value: appointment.uuid } });
-  fireEvent.click(screen.getByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` }));
+  fireEvent.change(screen.getByLabelText('Your appointment'), { target: { value: appointment.uuid } });
+  fireEvent.click(screen.getByRole('button', { name: /^View request/ }));
   fireEvent.change(await screen.findByLabelText('Acceptance expiry (local date and time)'), {
     target: { value: expiresAt },
   });
   const previewOpener = screen.getByRole('button', { name: 'Preview company decision' });
   previewOpener.focus();
   fireEvent.click(previewOpener);
-  const reviewHeading = await screen.findByRole('heading', { name: 'Review exact action' });
+  const reviewHeading = await screen.findByRole('heading', { name: 'Review and confirm' });
   await waitFor(() => expect(document.activeElement).toBe(reviewHeading));
   expect(screen.queryByRole('heading', { name: 'Company request queue' })).toBeNull();
   const duringReview = ownReads();
@@ -347,7 +347,7 @@ it('shows focused company details without share classes, and uploads documents t
     await new Promise((resolve) => setTimeout(resolve, 300));
   });
   expect(ownReads()).toBe(duringReview);
-  expect(screen.getByRole('heading', { name: 'Review exact action' })).toBe(reviewHeading);
+  expect(screen.getByRole('heading', { name: 'Review and confirm' })).toBe(reviewHeading);
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   await waitFor(() => expect(document.activeElement).toBe(previewOpener));
   expect((screen.getByLabelText('Acceptance expiry (local date and time)') as HTMLInputElement).value).toBe(expiresAt);
@@ -376,7 +376,7 @@ it('shows focused company details without share classes, and uploads documents t
   await act(async () => {
     client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences() });
   });
-  await screen.findByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` });
+  await screen.findByRole('button', { name: /^View request/ });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   const beforeAuthorityFailure = queueReads();
   failed = appointmentsUrl;
@@ -386,11 +386,11 @@ it('shows focused company details without share classes, and uploads documents t
   });
   expect(ownReads()).toBe(beforeIdleAuthorityRead);
   expect(queueReads()).toBe(beforeAuthorityFailure);
-  expect(screen.getByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /^View request/ })).toBeTruthy();
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true }));
   await screen.findByText("The company's eligibility records could not be loaded.");
   expect(queueReads()).toBe(beforeAuthorityFailure);
-  expect(screen.queryByRole('button', { name: `View request ${requestUuid.slice(0, 8)}` })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^View request/ })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Preview company decision' })).toBeNull();
 
   cleanup();

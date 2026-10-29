@@ -1,4 +1,4 @@
-import { formatDateTime, ELIGIBILITY_OUTCOME_LABELS, shortReference } from '@ledova/shared';
+import { formatDateTime, ELIGIBILITY_OUTCOME_LABELS } from '@ledova/shared';
 import type { CompanyEligibilityRequest } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { EligibilitySummary } from './EligibilitySummary';
@@ -7,36 +7,25 @@ export function EligibilityHistory({ record }: { record: CompanyEligibilityReque
   const decision = record.decision;
   const revocation = decision?.revocation;
   return (
-    <Section title="Retained request and outcome">
+    <Section title="Request and outcome">
       <Rows>
-        <Row label="Request">{shortReference(record.uuid)}</Row>
         <Row label="Outcome">{ELIGIBILITY_OUTCOME_LABELS[record.outcome]}</Row>
         <Row label="Submitted">{formatDateTime(record.submittedAt)}</Row>
-        <Row label="Request digest">{record.digest}</Row>
-        <Row label="Request key">{shortReference(record.idempotencyKey)}</Row>
         {decision && (
           <>
             <Row label="Decision">{ELIGIBILITY_OUTCOME_LABELS[decision.outcome]}</Row>
-            <Row label="Decision appointment">{shortReference(decision.appointment)}</Row>
-            <Row label="Decision time">{formatDateTime(decision.decidedAt)}</Row>
-            <Row label="Decision expiry">{formatDateTime(decision.expiresAt, 'No acceptance expiry')}</Row>
-            <Row label="Decision key">{shortReference(decision.idempotencyKey)}</Row>
-            <Row label="Decision digest">{decision.digest}</Row>
+            <Row label="Decided on">{formatDateTime(decision.decidedAt)}</Row>
+            {decision.outcome === 'accepted' && (
+              <Row label="Acceptance expiry">{formatDateTime(decision.expiresAt, 'No acceptance expiry')}</Row>
+            )}
             {decision.reason && <Row label="Refusal reason">{decision.reason}</Row>}
           </>
         )}
-        {record.withdrawal && (
-          <>
-            <Row label="Withdrawn">{formatDateTime(record.withdrawal.withdrawnAt)}</Row>
-            <Row label="Withdrawal key">{shortReference(record.withdrawal.idempotencyKey)}</Row>
-          </>
-        )}
+        {record.withdrawal && <Row label="Withdrawn on">{formatDateTime(record.withdrawal.withdrawnAt)}</Row>}
         {revocation && (
           <>
-            <Row label="Revoked">{formatDateTime(revocation.revokedAt)}</Row>
-            <Row label="Revocation appointment">{shortReference(revocation.appointment)}</Row>
+            <Row label="Revoked on">{formatDateTime(revocation.revokedAt)}</Row>
             <Row label="Revocation reason">{revocation.reason}</Row>
-            <Row label="Revocation key">{shortReference(revocation.idempotencyKey)}</Row>
           </>
         )}
       </Rows>

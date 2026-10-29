@@ -19,13 +19,14 @@ import {
   type CompanyWalletDecisionPreview,
   refusalSentences,
   COMPANY_WALLET_ACTION_LABELS,
-  shortReference,
   CHAIN_FAILURE_LABELS,
 } from '@ledova/shared';
-import { Row, Rows, Section, LoadError } from '@components/Ledger';
+import { Row, Rows, Section, Status, LoadError } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { SearchSelect } from '@components/SearchSelect';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
+import { STAGE_TONES } from '@pages/company/shared/proposals';
+import { TransactionRow } from '@pages/company/shared/TransactionRow';
 
 type Read = ReturnType<typeof useCompanyWalletInstructions>;
 
@@ -37,34 +38,14 @@ const ACTIONS = [
 ] as const;
 function Snapshot({ snapshot }: { snapshot: CompanyWalletInstruction['snapshot'] }) {
   return (
-    <Rows>
-      <Row label="Company">{snapshot.company.name}</Row>
-      <Row label="Company ACN">{snapshot.company.acn}</Row>
-      <Row label="Address">{snapshot.target.address}</Row>
-      <Row label="Chain">
-        {snapshot.target.chain} · {snapshot.target.chainId}
+    <>
+      <Row label="Wallet">
+        <span className="break-all">{snapshot.target.address}</span>
       </Row>
-      <Row label="Registry">{snapshot.target.registryAddress}</Row>
       <Row label="Approval expiry">{formatDateTime(snapshot.target.expiresAt)}</Row>
-      <Row label="Shared nomination">
-        {snapshot.source.nomination ? shortReference(snapshot.source.nomination) : 'Removal of a retained target'}
-      </Row>
-      <Row label="Original ADD target">
-        {snapshot.source.targetChange ? shortReference(snapshot.source.targetChange) : 'Not applicable'}
-      </Row>
-      <Row label="Eligibility request">
-        {snapshot.source.request ? shortReference(snapshot.source.request) : 'Not applicable'}
-      </Row>
-      <Row label="Accepted GENERAL decision">
-        {snapshot.source.decision ? shortReference(snapshot.source.decision) : 'Not applicable'}
-      </Row>
       <Row label="Possession proof completed">{formatDateTime(snapshot.source.proofCompletedAt)}</Row>
       <Row label="Eligibility expiry">{formatDateTime(snapshot.source.eligibilityExpiresAt)}</Row>
-      <Row label="Technical sender">{snapshot.transaction.sender}</Row>
-      <Row label="Transaction destination">{snapshot.transaction.to}</Row>
-      <Row label="Transaction value">{snapshot.transaction.value}</Row>
-      <Row label="Transaction data">{snapshot.transaction.data}</Row>
-    </Rows>
+    </>
   );
 }
 function Record({
@@ -76,37 +57,29 @@ function Record({
   data: Read;
   onHeldChange: (uuid: string, held: boolean) => void;
 }) {
+  const context = `${COMPANY_WALLET_ACTION_LABELS[record.action].toLowerCase()} prepared ${formatDateTime(record.createdAt)}`;
   return (
-    <div className="space-y-3">
+    <li hidden={!data.canRead} className="flex flex-col gap-3 py-4">
       {data.canRead && (
         <>
-          <p>
-            {COMPANY_WALLET_ACTION_LABELS[record.action]} · {COPY.STAGES[record.stage] ?? record.stage}
-          </p>
-          <Snapshot snapshot={record.snapshot} />
+          <h3 className="font-medium">{COMPANY_WALLET_ACTION_LABELS[record.action]}</h3>
           <Rows>
-            <Row label="Instruction">{shortReference(record.uuid)}</Row>
+            <Row label="Stage">
+              <Status tone={STAGE_TONES[record.stage] ?? 'waiting'}>{COPY.STAGES[record.stage] ?? record.stage}</Status>
+            </Row>
+            <Snapshot snapshot={record.snapshot} />
             <Row label="Prepared by">{record.preparedByName || 'Name not recorded'}</Row>
             <Row label="Prepared on">{formatDateTime(record.createdAt)}</Row>
-            <Row label="Intent fingerprint">{record.intentDigest}</Row>
             {record.decisions.map((decision) => (
               <Row key={decision.uuid} label={COPY.DECISIONS[decision.kind]}>
                 {decision.decidedByName} · {formatDateTime(decision.decidedAt)}
                 {decision.reason ? ` · ${decision.reason}` : ''}
               </Row>
             ))}
-            {!!record.approvalDecision && (
-              <Row label="Consumed approval">{shortReference(record.approvalDecision)}</Row>
-            )}
-            {!!record.changeId && <Row label="Original wallet change">{shortReference(record.changeId)}</Row>}
             <Row label="Execution">{companyWalletExecutionState(record)}</Row>
-            {!!record.execution?.operationId && (
-              <Row label="Execution operation">{shortReference(record.execution.operationId)}</Row>
+            {!!record.execution?.txHash && (
+              <TransactionRow chain={record.snapshot.target.chain} hash={record.execution.txHash} />
             )}
-            {!!record.execution?.claimId && (
-              <Row label="Original claim">{shortReference(record.execution.claimId)}</Row>
-            )}
-            {!!record.execution?.txHash && <Row label="Transaction">{record.execution.txHash}</Row>}
             {!!record.execution?.failureCode && (
               <Row label="Failure">{CHAIN_FAILURE_LABELS[record.execution.failureCode]}</Row>
             )}
@@ -117,7 +90,8 @@ function Record({
             </p>
           ))}
           <p className="text-sm text-text-muted">
-            Human approval and technical execution are recorded separately. Admission is not confirmed chain approval.
+            Approval and the change on chain are recorded separately. An admitted change is confirmed only once it is
+            executed on chain.
           </p>
         </>
       )}
@@ -133,20 +107,16 @@ function Record({
         onRefused={data.refresh}
         visible={data.canRead}
         onHeldChange={onHeldChange}
+        context={context}
       >
         {(preview) => (
-          <>
+          <Rows>
             <Snapshot snapshot={preview.snapshot} />
-            <Rows>
-              <Row label="Intent fingerprint">{preview.intentDigest}</Row>
-              <Row label="Selected approval">
-                {preview.approvalDecision ? shortReference(preview.approvalDecision) : 'Not selected'}
-              </Row>
-            </Rows>
-          </>
+            <Row label="Selected approval">{preview.approvalDecision ? 'Selected' : 'Not selected'}</Row>
+          </Rows>
         )}
       </RegisterDecisions>
-    </div>
+    </li>
   );
 }
 function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (editing: boolean) => void }) {
@@ -172,7 +142,7 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
     data.targets.isFetching;
   const moment = Date.parse(expires);
   const checks = useErrorSummary({
-    source: !source && (action === 'add' ? 'Choose the shared wallet nomination.' : 'Choose the retained ADD target.'),
+    source: !source && (action === 'add' ? 'Choose the shared wallet.' : 'Choose the approved wallet.'),
     expires: action === 'add' && !Number.isFinite(moment) && 'Enter the approval expiry date and time.',
   });
   if (!data.canRead) return null;
@@ -180,8 +150,8 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
     <div className="space-y-3">
       <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
-        ADD uses an explicitly shared nomination and finite expiry. REMOVE uses the exact retained successful ADD
-        journal, including after wallet or eligibility loss.
+        Approving covers a wallet the participant has shared with the company, until the expiry you set. Removing
+        withdraws an earlier approval, even after the wallet or the eligibility has been lost.
       </p>
       <Choices
         legend="Instruction action"
@@ -196,7 +166,7 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
       />
       <SearchSelect
         {...checks.field('source')}
-        label={action === 'add' ? 'Explicitly shared wallet nomination' : 'Retained successful ADD target'}
+        label={action === 'add' ? 'Shared wallet' : 'Approved wallet'}
         choices={
           action === 'add'
             ? nominations.map((row) => ({
@@ -236,7 +206,7 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
         </Rows>
       )}
       {action === 'add' && (
-        <Field {...checks.field('expires')} label="Finite approval expiry (local date and time)">
+        <Field {...checks.field('expires')} label="Approval expiry (local date and time)">
           <TextInput
             type="datetime-local"
             disabled={blocked}
@@ -315,12 +285,12 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
   return (
     <Section title="Company wallet approvals">
       {!data.owner ? (
-        <p>Your current account must be checked before opening company wallet instructions.</p>
+        <p>Your account must be checked before opening wallet approvals.</p>
       ) : (
         <>
           <p className="text-sm text-text-muted">
-            Current personal company administration or a register step grants this section. Earlier eligibility evidence
-            sharing exposes no wallet directory.
+            Company administrators and people with a ledger step can approve wallets here. Sharing eligibility evidence
+            reveals no wallets.
           </p>
           {data.appointments.isError && (
             <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
@@ -341,20 +311,15 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
           )}
           {data.companyUuid && !data.canRead && !data.appointments.isError && (
             <p role="status">
-              Current personal register access is required to read these private wallet records. Original requests are
-              retained.
+              You need a current ledger appointment for this company to read these wallet records. Earlier requests are
+              kept.
             </p>
           )}
           {data.original && (
             <div className="space-y-2">
               <p role="status">The preparation outcome is unconfirmed. Recover the identical original request.</p>
               <Rows>
-                <Row label="Original instruction key">{shortReference(data.original.body.operationId)}</Row>
-                <Row label="Company">{shortReference(data.original.body.company)}</Row>
                 <Row label="Action">{COMPANY_WALLET_ACTION_LABELS[data.original.body.action]}</Row>
-                <Row label="Nomination or retained ADD">
-                  {shortReference(data.original.body.nomination ?? data.original.body.targetChange ?? '')}
-                </Row>
               </Rows>
               <PageAction
                 label="Recover original wallet preparation"
@@ -370,9 +335,18 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
               receipts remain available for recovery.
             </LoadError>
           )}
-          {data.retainedRecords.map((record) => (
-            <Record key={`${data.scopeKey}/${record.uuid}`} record={record} data={data} onHeldChange={onHeldChange} />
-          ))}
+          {data.retainedRecords.length > 0 && (
+            <ul hidden={!data.canRead} className="divide-y divide-border-subtle">
+              {data.retainedRecords.map((record) => (
+                <Record
+                  key={`${data.scopeKey}/${record.uuid}`}
+                  record={record}
+                  data={data}
+                  onHeldChange={onHeldChange}
+                />
+              ))}
+            </ul>
+          )}
         </>
       )}
     </Section>

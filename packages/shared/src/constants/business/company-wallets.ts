@@ -16,8 +16,8 @@ export const COMPANY_WALLET_UNMET_COPY: Record<string, string> = {
   registry_unavailable: 'The company registry could not be confirmed. Refresh before continuing.',
   whitelist_configuration_changed: 'The configured transaction no longer matches the original instruction.',
   whitelist_target_changed: 'The retained company approval target changed.',
-  target_outcome_required: 'Select a genuine confirmed or unchanged ADD journal for removal.',
-  expiry_required: 'Set a finite approval expiry.',
+  target_outcome_required: 'Choose a wallet whose approval is confirmed on chain to remove it.',
+  expiry_required: 'Set an approval expiry.',
   expiry_exceeds_eligibility: 'Approval cannot outlast the selected company eligibility decision.',
   expiry_lapsed: 'The captured approval expiry has passed.',
   source_lock_busy: 'The original source is temporarily busy. Refresh its original outcome.',
@@ -37,7 +37,7 @@ export const COMPANY_WALLET_COPY = {
     reject: 'Reject wallet instruction',
   } as Record<RegisterDecisionKind, string>,
   CONFIRMATIONS: {
-    approve: 'Approve the exact company, selected wallet target, source, expiry and transaction intent shown.',
+    approve: 'Approve the exact wallet, approval expiry and eligibility shown.',
     apply:
       'Admit this exact approved instruction once for guarded execution. Admission does not confirm chain approval.',
     reject: 'Reject this wallet instruction with the reason given.',
