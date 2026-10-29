@@ -2,7 +2,7 @@ import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useEntryReads } from '@hooks/useEntryReads';
 import { useRunningAction } from '@hooks/useRunningAction';
@@ -127,7 +127,15 @@ function Record({
     </li>
   );
 }
-function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (editing: boolean) => void }) {
+function Preparation({
+  data,
+  onEditingChange,
+  onClose,
+}: {
+  data: Read;
+  onEditingChange: (editing: boolean) => void;
+  onClose: () => void;
+}) {
   const { running, track } = useRunningAction();
   const [draft, setDraft] = useState<{
     owner: typeof data.owner;
@@ -153,9 +161,13 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
     source: !source && (action === 'add' ? 'Choose the shared wallet.' : 'Choose the approved wallet.'),
     expires: action === 'add' && !Number.isFinite(moment) && 'Enter the approval expiry date and time.',
   });
+  const container = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    container.current?.querySelector<HTMLElement>('input:not([disabled]), button:not([disabled])')?.focus();
+  }, []);
   if (!data.canRead) return null;
   return (
-    <div className="space-y-3">
+    <div ref={container} className="space-y-3">
       <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
         Approving covers a wallet the participant has shared with the company, until the expiry you set. Removing
@@ -228,6 +240,14 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
       )}
       <FormActions>
         <PageAction
+          label="Cancel"
+          disabled={data.busy}
+          onClick={() => {
+            onEditingChange(false);
+            onClose();
+          }}
+        />
+        <PageAction
           label="Prepare wallet instruction"
           busy={running === 'prepare'}
           busyLabel="Preparing…"
@@ -243,7 +263,9 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
                       : { action, targetChange: source },
                   )
                   .then((saved) => {
-                    if (saved) onEditingChange(false);
+                    if (!saved) return;
+                    onEditingChange(false);
+                    onClose();
                   }),
               );
           }}
@@ -256,6 +278,13 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
   const context = useCompanyContext();
   const requestedCompany = new URLSearchParams(useLocation().search).get('company');
   const [held, setHeld] = useState<{ scope: string; editing: boolean; records: Set<string> } | null>(null);
+  const [preparing, setPreparing] = useState<string | null>(null);
+  const returning = useRef(false);
+  const focusOpener = useCallback((node: HTMLButtonElement | null) => {
+    if (!node || !returning.current) return;
+    returning.current = false;
+    node.focus();
+  }, []);
   const data = useCompanyWalletInstructions({
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
@@ -312,7 +341,7 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
               {data.companies.find((company) => company.uuid === data.companyUuid)?.name ?? 'Original company'}
             </p>
           ) : null}
-          {data.error && (
+          {data.error && data.canRead && (
             <p role="alert" className="text-sm text-error-light">
               {data.error}
             </p>
@@ -336,15 +365,14 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
               />
             </div>
           )}
-          {data.companyUuid && <Preparation key={data.scopeKey} data={data} onEditingChange={setEditing} />}
           {readFailed && (
             <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
               The current wallet records could not be {data.instructions.data ? 'refreshed' : 'loaded'}. Original
               receipts remain available for recovery.
             </LoadError>
           )}
-          {data.retainedRecords.length > 0 && (
-            <ul hidden={!data.canRead} className="divide-y divide-border-subtle">
+          {data.retainedRecords.length > 0 ? (
+            <ul hidden={!data.canRead || preparing === data.scopeKey} className="divide-y divide-border-subtle">
               {data.retainedRecords.map((record) => (
                 <Record
                   key={`${data.scopeKey}/${record.uuid}`}
@@ -354,7 +382,38 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
                 />
               ))}
             </ul>
+          ) : (
+            data.canRead &&
+            data.instructions.isSuccess &&
+            preparing !== data.scopeKey && (
+              <p role="status" className="text-sm text-text-muted">
+                No wallet approvals yet.
+              </p>
+            )
           )}
+          {data.companyUuid &&
+            (preparing === data.scopeKey ? (
+              <Preparation
+                key={data.scopeKey}
+                data={data}
+                onEditingChange={setEditing}
+                onClose={() => {
+                  returning.current = true;
+                  setPreparing(null);
+                }}
+              />
+            ) : (
+              data.canRead && (
+                <FormActions>
+                  <PageAction
+                    ref={focusOpener}
+                    label="Approve or remove a wallet"
+                    disabled={data.busy || !!data.original || !data.steps.prepare}
+                    onClick={() => setPreparing(data.scopeKey)}
+                  />
+                </FormActions>
+              )
+            ))}
         </>
       )}
     </Section>

@@ -82,11 +82,35 @@ export default function CompanyEligibilityPage() {
     decisionChecks.reset();
     revocationChecks.reset();
   };
-  const appointment = read.appointments.find(
-    (item) => item.uuid === read.appointmentUuid && item.company === read.companyUuid,
+  const current = read.appointments.filter(
+    (item) =>
+      item.company === read.companyUuid &&
+      isCurrentEligibilityAppointment(item) &&
+      item.capabilities.some((capability) => capability === 'prepare' || capability === 'approve'),
   );
-  const canApprove =
-    !!appointment && isCurrentEligibilityAppointment(appointment) && appointment.capabilities.includes('approve');
+  const appointment =
+    current.find((item) => item.uuid === read.appointmentUuid) ?? (current.length === 1 ? current[0] : undefined);
+  const canApprove = !!appointment && appointment.capabilities.includes('approve');
+  const authorityMissing =
+    !!read.companyUuid && !read.loading && !read.refreshing && !read.readFailed && current.length === 0;
+  const chooseAppointment = () => {
+    if (appointment && read.appointmentUuid !== appointment.uuid) read.setAppointment(appointment.uuid);
+  };
+  const appointmentChoice = current.length > 1 && (
+    <SelectField
+      label="Your appointment"
+      options={[
+        { value: '', label: 'Select your appointment' },
+        ...current.map((item) => ({
+          value: item.uuid,
+          label: `${scopeLabels(item.capabilities)} · appointed ${formatDate(item.createdAt)}`,
+          reference: shortReference(item.uuid),
+        })),
+      ]}
+      value={appointment?.uuid ?? ''}
+      onChange={read.setAppointment}
+    />
+  );
   return (
     <Page
       loading={read.loading}
@@ -95,7 +119,8 @@ export default function CompanyEligibilityPage() {
         !read.loading &&
         read.owner &&
         !read.action &&
-        read.companyUuid && (
+        read.companyUuid &&
+        !authorityMissing && (
           <FilterPopover active={!!outcome}>
             {(close) => (
               <SelectField
@@ -121,92 +146,71 @@ export default function CompanyEligibilityPage() {
               The company&apos;s eligibility records could not be loaded.
             </LoadError>
           )}
-          {(read.readFailed ? read.failure : read.error) && !gone && (
+          {(read.readFailed ? read.failure : read.error) && !gone && !(authorityMissing && !read.failure) && (
             <p role="alert" className="text-sm text-error-light">
               {read.readFailed ? read.failure : read.error}
             </p>
           )}
           <div hidden={!!read.action} className="flex flex-col gap-5">
-            <Section title="Your authority">
-              <LinkRow
-                to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
-                label={pageTitle('companyTeam')}
-              />
-              <p className="text-sm text-text-muted">
-                A prepare or approve appointment lets you read this company&apos;s requests and prepare a decision.
-                Recording a decision or revoking an acceptance needs your own approve appointment.
-              </p>
-              {!read.companyUuid && <CompanyContextNotice />}
-              {read.companyUuid && context?.companyUuid !== read.companyUuid && (
-                <p className="text-sm text-text-muted">
-                  {read.companies.find((company) => company.uuid === read.companyUuid)?.name ?? 'Original company'}
-                </p>
-              )}
-              {!read.readFailed && read.companies.length === 0 && (
-                <p>You have no current prepare or approve appointment.</p>
-              )}
-              {read.companyUuid && (
-                <SelectField
-                  label="Your appointment"
-                  options={[
-                    { value: '', label: 'Select your appointment' },
-                    ...read.appointments
-                      .filter(
-                        (item) =>
-                          item.company === read.companyUuid &&
-                          item.capabilities.some((capability) => capability === 'prepare' || capability === 'approve'),
-                      )
-                      .map((item) => ({
-                        value: item.uuid,
-                        label: `${scopeLabels(item.capabilities)} · appointed ${formatDate(item.createdAt)}${
-                          isCurrentEligibilityAppointment(item) ? '' : ' · inactive'
-                        }`,
-                        reference: shortReference(item.uuid),
-                      })),
-                  ]}
-                  value={read.appointmentUuid}
-                  onChange={read.setAppointment}
-                />
-              )}
-            </Section>
+            {!read.companyUuid && <CompanyContextNotice />}
             {read.companyUuid && (
               <Section title="Requests">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <p className="min-w-0 flex-1 text-sm text-text-muted">
-                    Send investors your request link. The requests they send appear here.
+                {context?.companyUuid !== read.companyUuid && (
+                  <p className="text-sm text-text-muted">
+                    {read.companies.find((company) => company.uuid === read.companyUuid)?.name ?? 'Original company'}
                   </p>
-                  <CopyButton
-                    key={read.companyUuid}
-                    value={eligibilityRequestLink(read.companyUuid)}
-                    label="Copy request link"
-                    valueLabel="Request link"
-                  />
-                </div>
-                {queue?.settled && queue.rows.length === 0 ? (
-                  <p role="status" className="text-sm text-text-muted">
-                    {outcome ? 'No requests match.' : 'No requests yet.'}
-                  </p>
-                ) : queue?.rows.length ? (
-                  <div aria-busy={queue.busy} className={queue.busy ? 'opacity-60' : undefined}>
-                    <RecordsList
-                      records={queue.rows}
-                      showInvestor
-                      disabled={queue.busy}
-                      select={(uuid) => {
-                        read.selectRecord(uuid);
-                        forget();
-                      }}
-                      selected={read.selectedRecord?.uuid}
+                )}
+                {authorityMissing ? (
+                  <>
+                    <p role="status" className="text-sm text-text-muted">
+                      You need a prepare or approve appointment for this company to read and decide its requests.
+                      Recording a decision needs approve.
+                    </p>
+                    <LinkRow
+                      to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
+                      label={pageTitle('companyTeam')}
                     />
-                  </div>
-                ) : null}
-                <Pager
-                  label="Request pages"
-                  list={list}
-                  noun={['request', 'requests']}
-                  count={queue?.count ?? 0}
-                  busy={queue?.busy}
-                />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <p className="min-w-0 flex-1 text-sm text-text-muted">
+                        Send investors your request link. The requests they send appear here.
+                      </p>
+                      <CopyButton
+                        key={read.companyUuid}
+                        value={eligibilityRequestLink(read.companyUuid)}
+                        label="Copy request link"
+                        valueLabel="Request link"
+                      />
+                    </div>
+                    {queue?.settled && queue.rows.length === 0 ? (
+                      <p role="status" className="text-sm text-text-muted">
+                        {outcome ? 'No requests match.' : 'No requests yet.'}
+                      </p>
+                    ) : queue?.rows.length ? (
+                      <div aria-busy={queue.busy} className={queue.busy ? 'opacity-60' : undefined}>
+                        <RecordsList
+                          records={queue.rows}
+                          showInvestor
+                          disabled={queue.busy}
+                          select={(uuid) => {
+                            read.selectRecord(uuid);
+                            forget();
+                          }}
+                          selected={read.selectedRecord?.uuid}
+                        />
+                      </div>
+                    ) : null}
+                    <Pager
+                      label="Request pages"
+                      list={list}
+                      noun={['request', 'requests']}
+                      count={queue?.count ?? 0}
+                      busy={queue?.busy}
+                    />
+                  </>
+                )}
               </Section>
             )}
             {read.selectedRecord && (
@@ -215,6 +219,7 @@ export default function CompanyEligibilityPage() {
                 {read.selectedRecord.outcome === 'pending' && (
                   <Section title="Decide this request">
                     <ErrorSummary {...decisionChecks.summary} />
+                    {appointmentChoice}
                     <Choices
                       legend="Decision outcome"
                       options={OUTCOMES}
@@ -249,6 +254,7 @@ export default function CompanyEligibilityPage() {
                         disabled={read.busy || read.refreshing || !appointment}
                         onClick={() => {
                           if (decisionChecks.check()) {
+                            chooseAppointment();
                             setActionOpener(document.activeElement as HTMLElement | null);
                             track('decision', read.previewDecision());
                           }
@@ -260,6 +266,7 @@ export default function CompanyEligibilityPage() {
                 {read.selectedRecord.outcome === 'accepted' && (
                   <Section title="Revoke this acceptance">
                     <ErrorSummary {...revocationChecks.summary} />
+                    {appointmentChoice}
                     <Field {...revocationChecks.field('reason')} label="Revocation reason">
                       <TextInput
                         maxLength={FIELD_LIMITS.ELIGIBILITY_REASON}
@@ -278,6 +285,7 @@ export default function CompanyEligibilityPage() {
                         disabled={read.busy || read.refreshing || !canApprove}
                         onClick={() => {
                           if (revocationChecks.check()) {
+                            chooseAppointment();
                             setActionOpener(document.activeElement as HTMLElement | null);
                             track('revocation', read.prepareRevocation(read.selectedRecord!, revocationReason));
                           }

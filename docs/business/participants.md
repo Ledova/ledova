@@ -148,8 +148,10 @@ attached to it. You can withdraw a pending or accepted request; a refusal stays 
 
 Company approvers open **Company eligibility** at `/company/eligibility` on web.
 
-1. Choose your exact appointment for the selected company, then read the request queue and a
-   request's summary. On the web the queue shows 25 requests a page, newest first, and can be filtered by
+1. Read the request queue and a request's summary. Your appointment for the selected company is
+   used for the decision; you choose one only when you hold more than one. Without a prepare or
+   approve appointment, the page says so and links Team. On the web the queue shows 25 requests a
+   page, newest first, and can be filtered by
    outcome (pending, accepted, refused, withdrawn, revoked or expired) using the Filters icon.
    Selecting an outcome applies it immediately and closes the panel.
 2. Prepare an acceptance with an expiry, or a refusal with its reason, and confirm the previewed
@@ -230,7 +232,8 @@ shares no wallets.
 
 The company adds or removes a wallet on its own on-chain approval registry through a company
 decision in **Company wallet approvals** on the Company eligibility page, following the
-[prepare, approve and apply pattern](README.md#how-a-company-decision-works).
+[prepare, approve and apply pattern](README.md#how-a-company-decision-works). The section lists the
+company's wallet instructions first; **Approve or remove a wallet** opens the form.
 
 - Add prepares from one exact retained nomination and fixes the wallet, its eligibility and proof,
   and a finite expiry no later than the current eligibility expiry. The company must already have
@@ -313,8 +316,8 @@ Verification (investing accounts) has two sections, followed by Supporting paysl
 
 Your company eligibility holds your requests with their outcome history, **Prepare request
 withdrawal** and the wallet nomination. Company eligibility, for company
-approvers and preparers, holds Your authority, the Requests list, the decision and revocation
-forms and Company wallet approvals
+approvers and preparers, holds the Requests list with the company's request link, the decision and
+revocation forms and Company wallet approvals
 ([deciding](#deciding-withdrawing-and-revoking)).
 
 ## Profile and Settings

@@ -280,12 +280,14 @@ create-account page and a finished non-company account that opens a sign-up step
 `/` (`RootRedirect`) sends a signed-out visitor to sign in and an unfinished account into sign-up:
 to `/signup/company-registration` when the account may open company pages and its full name has more
 than one word, otherwise to `SIGNUP_RESUMES_AT`. A finished account opens the unified Dashboard.
-Pending member invitations take precedence. Sign-in navigates to `/`.
+Pending member invitations take precedence, then an eligibility request link kept through sign-in
+(`dashboard/src/utils/requestLink.ts`). Sign-in navigates to `/`.
 
 `ProtectedRoute` (`dashboard/src/routes/ProtectedRoute.tsx`) guards each signed-in route with its
 entry's audience:
 
-- A signed-out visitor goes to sign in.
+- A signed-out visitor goes to sign in. On the eligibility request page, a company's request link
+  (`?to=`) is kept for the session first; an account that can't open that page drops it.
 - The session check shows until the profile, and on an investing or company page the role, is known,
   so no page appears on the way.
 - An unreadable profile (`AccountUnavailable`), or an unreadable role on an investing or company
