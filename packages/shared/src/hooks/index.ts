@@ -2,19 +2,13 @@ export { ApiClientProvider, useApiClient } from './useApiClient';
 export type { ApiClientProviderProps } from './useApiClient';
 export { AUTH_QUERY_KEY, useAuth, AUTH_QUERY_ROOT } from './useAuth';
 export { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
-export { useOrderSubmissions } from './useOrderSubmissions';
-export type { OrderSubmissionSession } from './useOrderSubmissions';
-export { useOrderSubmissionSigning } from './useOrderSubmissionSigning';
 export { useCurrency } from './useCurrency';
-export { useFeatureFlags } from './useFeatureFlags';
 export { useIdentityVerificationStatus, IDENTITY_VERIFICATION_QUERY_KEY } from './useIdentityVerificationStatus';
 export { useFinancialProfile, FINANCIAL_PROFILES_QUERY_KEY } from './useFinancialProfile';
 export { useNotifications } from './useNotifications';
 export { usePublicationSummary, PUBLICATIONS_QUERY_KEY } from './usePublicationSummary';
-export { useOrderActions } from './useOrderActions';
-export { useOrderActionSigning } from './useOrderActionSigning';
-export { useSwapSettlements } from './useSwapSettlements';
 export { useSubmissionOwner } from './useSubmissionOwner';
+export type { OrderSubmissionSession } from './useSubmissionOwner';
 export { hasProblems, useErrorSummary, useFocusClaim } from './useErrorSummary';
 export type { FieldCheck, Problems } from './useErrorSummary';
 export {
@@ -59,6 +53,7 @@ export {
   useDirectoryToken,
   useDirectoryTokens,
   DIRECTORY_QUERY_KEY,
+  INVESTOR_ELIGIBILITY_QUERY_KEY,
   OPERATOR_QUERY_KEY,
 } from './useDirectory';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
@@ -75,16 +70,6 @@ export {
   SIGNUP_COMPANY_QUERY_KEY,
   SIGNUP_COMPANY_DETAIL_QUERY_KEY,
 } from './useSignupReview';
-export {
-  INVESTOR_ELIGIBILITY_QUERY_KEY,
-  TRADING_QUERY_KEY,
-  TRADING_EVENT_INVALIDATION_MAP,
-  tradingQueryKeys,
-  useInvestorReadinessQuery,
-  useOrderBook,
-  useShareTokens,
-} from './useMarket';
-export { useSwapOrdersMulti } from './useAtomicSwaps';
 export {
   useSubscribableWallets,
   useSubscriptions,
@@ -137,12 +122,3 @@ export {
 export { useUserProfile } from './useUserProfile';
 export { useOperator } from './useOperator';
 export { usePublications, PERSONAL_NOTICES_QUERY_KEY } from './usePublications';
-export {
-  TRADING_USER_ORDERS_QUERY_KEY,
-  tradingUserOrdersQueryKey,
-  tradingWalletsQueryKey,
-  useTradingWalletsQuery,
-  useTradingWhitelistQueries,
-  useTradingBalanceQueries,
-  useTradingUserOrdersQuery,
-} from './useTradingReads';

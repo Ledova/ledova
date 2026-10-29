@@ -4,7 +4,7 @@ import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import { isCurrentEligibilityAppointment } from './useCompanyEligibilityRecords';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import {
   getCompanyWalletNominations,

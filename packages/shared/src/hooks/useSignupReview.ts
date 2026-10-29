@@ -13,7 +13,7 @@ import { apiErrorSentence, describeFailure } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 import { useFinancialProfile, FINANCIAL_PROFILES_QUERY_KEY } from './useFinancialProfile';
 import { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { useSignupCompanyAuthority, SIGNUP_AUTHORITY_QUERY_KEY } from './useSignupCompanyAuthority';
 
 export const USER_PROFILES_QUERY_KEY = ['userProfiles'] as const;

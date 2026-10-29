@@ -64,10 +64,6 @@ export const NOTIFICATION_ENDPOINTS = {
   MARK_ALL_READ: '/api/notifications/mark-all-read/',
 } as const;
 
-export const FEATURE_FLAG_ENDPOINTS = {
-  BASE: '/api/feature-flags/',
-} as const;
-
 export const OPERATOR_ENDPOINTS = {
   BASE: '/api/operator/',
 } as const;

@@ -94,6 +94,9 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
     - After the owner's "Please continue until the end", the remaining company chevrons (#1411),
       phase 5's plain eligibility pages and wallet approvals (#1413), and the investor pages'
       content chevrons (#1415) followed.
+- [#1416](https://github.com/Ledova/ledova/issues/1416) then gave Company eligibility, Offerings and
+  Activity sidebar links, listed Published to your members under Documents and removed the web Market
+  page with the client code only it used. The trading API is unchanged.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
@@ -121,9 +124,6 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
   shouldn't use it to check backend changes. Stop both when they are no longer needed. The
   temporary `ledova-exports-pg` test database was removed.
 - **Still open:**
-  - Company eligibility, Published to your members and Market are routed but have no in-app link,
-    and Offerings and Activity are reachable only from the notification bell (Offerings also from an
-    offering page's Back link and the paid-issue flow): an earlier audit question for the owner.
   - Mobile work stays for later.
   - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
     decision; check GitHub before resuming.

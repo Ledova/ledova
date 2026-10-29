@@ -33,7 +33,6 @@ import OfferingPage from '@pages/company/offering';
 import CompanyOfferingDetailPage from '@pages/company/offering/detail';
 import UserProfilePage from '@pages/user-profile';
 import SettingsPage from '@pages/settings';
-import { TradingRoute } from './TradingRoute';
 
 export const PAGES: Record<DestinationKey, ReactElement> = {
   home: <MemberRecordsPage />,
@@ -41,7 +40,6 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   memberRecords: <MemberRecordsPage />,
   wallets: <WalletsPage />,
   transactions: <TransactionsPage />,
-  trading: <TradingRoute />,
   directory: <DirectoryPage />,
   directoryDetail: <DirectoryTokenPage />,
   subscriptions: <SubscriptionsPage />,

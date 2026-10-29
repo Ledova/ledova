@@ -5,9 +5,7 @@ export interface DerivationNode {
 
 interface SigningWallet {
   readonly address: string;
-  signTransaction(transaction: never): Promise<string>;
   signMessage(message: string): Promise<string>;
-  signTypedData(domain: never, types: never, value: Record<string, unknown>): Promise<string>;
 }
 
 export interface LocalSignerCrypto<Wallet, Key> {
@@ -81,26 +79,8 @@ export function createLocalSigner<Wallet extends SigningWallet, Key>({
       );
     },
 
-    async signEthereumTransaction(
-      mnemonic: string,
-      derivationPath: string,
-      unsignedTx: Parameters<Wallet['signTransaction']>[0],
-    ): Promise<string> {
-      return withEthereumSigner(mnemonic, derivationPath, (wallet) => wallet.signTransaction(unsignedTx));
-    },
-
     async signEthereumMessage(mnemonic: string, derivationPath: string, message: string): Promise<string> {
       return withEthereumSigner(mnemonic, derivationPath, (wallet) => wallet.signMessage(message));
-    },
-
-    async signEthereumTypedData(
-      mnemonic: string,
-      derivationPath: string,
-      domain: Parameters<Wallet['signTypedData']>[0],
-      types: Parameters<Wallet['signTypedData']>[1],
-      value: Record<string, unknown>,
-    ): Promise<string> {
-      return withEthereumSigner(mnemonic, derivationPath, (wallet) => wallet.signTypedData(domain, types, value));
     },
   };
 }

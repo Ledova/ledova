@@ -42,7 +42,7 @@ import { isUuid } from '../utils/validation';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 import type { OrderSubmissionOwner } from '../utils/order-submission-storage';
 import { useApiClient } from './useApiClient';
 

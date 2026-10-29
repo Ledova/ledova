@@ -1,7 +1,5 @@
 export const MAX_REQUEST_SHARES = 2_147_483_647n;
 
-export const MAX_ORDER_SHARES = 9_223_372_036_854_775_807n;
-
 export function wholeShares(value: string): bigint | null {
   return /^\d+$/.test(value) ? BigInt(value) : null;
 }

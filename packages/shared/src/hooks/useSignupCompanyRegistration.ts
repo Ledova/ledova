@@ -9,7 +9,7 @@ import type { CompanyRegistration, CompanyType } from '../types';
 import { apiErrorSentence, readApiError } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 import { AUTH_QUERY_KEY, useAuth, AUTH_QUERY_ROOT } from './useAuth';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 

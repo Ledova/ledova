@@ -2,8 +2,8 @@
 
 [Business processes](README.md) · [Documentation](../README.md)
 
-How investors hold assets in their own wallets, send them, and buy and sell existing shares on the
-experimental secondary market, and how those activities sit beside the company's register. The
+How investors hold assets in their own wallets and send them, how the experimental secondary
+market's API trades existing shares, and how those activities sit beside the company's register. The
 order, matching, settlement and transfer mechanisms are in
 [trading protocols](../engineering/trading-protocols.md#intent-and-settlement) and
 [wallet transfers](../engineering/wallet-protocols.md#transfer-lifecycle). These pages are on the
@@ -18,11 +18,16 @@ Contents:
 - [One match, never crossed](#one-match-never-crossed)
 - [Accepted experimental limits](#accepted-experimental-limits)
 - [Wallets and wallet sends](#wallets-and-wallet-sends)
-- [The Market page](#the-market-page)
 - [The Wallets page](#the-wallets-page)
 - [The Activity page](#the-activity-page)
 
 ## What trading is today
+
+The web app has no page for trading: the owner removed Market on 29 October 2026
+([decision](../decisions.md#ownership-dashboard-and-compact-sidebar),
+[#1416](https://github.com/Ledova/ledova/issues/1416)) after secondary share sales were closed as
+not planned. The rest of this page describes the trading API, which keeps its orders, history and
+guards.
 
 Trading (orders, matching and settlement) is on by default on the experimental deployment. Platform
 staff can switch it off for a deployment, as an operations switch, not a product mode. While it is
@@ -30,9 +35,9 @@ off, Ledova refuses every order, trading-wallet, settlement and live-update requ
 read-only market and each wallet's approval status stay available. Being switched on does not
 establish that trading is safe: a release still needs the human checks in
 [#624](https://github.com/Ledova/ledova/issues/624), and operation with real participants follows
-the [regulatory pathway](../regulatory-pathway.md). New trading and settlement work is deferred
-under [#869](https://github.com/Ledova/ledova/issues/869) by the
-[9 October priority](../decisions.md#essential-registry-and-development-workflow-priority).
+the [regulatory pathway](../regulatory-pathway.md). New trading and settlement work was deferred
+by the [9 October priority](../decisions.md#essential-registry-and-development-workflow-priority) and
+is not planned ([#869](https://github.com/Ledova/ledova/issues/869)).
 
 Ledova is never buyer or seller, and investors control their own wallet keys
 ([product §4](../product.md#4-self-custody-and-ownership-records);
@@ -151,18 +156,6 @@ permission to use it ([decision](../decisions.md#registry-priority-crypto-on-ram
 [#920](https://github.com/Ledova/ledova/issues/920)). Ledova checks for a current investor account
 and an owned receiving wallet before it contacts the provider. There is no way to sell crypto for
 money through Ledova.
-
-## The Market page
-
-**Market** (at `/trading` for investing accounts while trading is enabled) shows each share
-class's **For sale** and **Wanted** lists, places buy and sell orders, and lists **Your orders**.
-Selling needs the wallet's share and settlement balances from the chain; if they cannot be read,
-selling is unavailable rather than showing nothing held.
-
-**Trades awaiting signatures** lists matches the person must review and sign. Orders, cancellations,
-changes, signatures and approvals the person started are kept on the device for the signed-in
-account and shown below it under **Saved work** while anything is saved; one refresh rereads them.
-Work saved in another browser tab appears when Market is reopened.
 
 ## The Wallets page
 

@@ -4,10 +4,7 @@ import type {
   MemberCertificateRequest,
   MemberInvitation,
   MemberParticularsRequest,
-  OrderActionChange,
   OwnCompanyAppointment,
-  SwapSettlementApprovalOutcome,
-  TransferOrder,
 } from '../../types';
 import type { SubscriptionStatus } from './subscriptions';
 
@@ -77,29 +74,6 @@ export const COMPANY_SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, stri
   rejected: 'Rejected',
   withdrawn: 'Withdrawn',
   refunded: 'Refunded',
-};
-
-export const ORDER_STATUS_LABELS: Record<TransferOrder['status'], string> = {
-  open: 'Open',
-  partially_filled: 'Partially Filled',
-  held: 'Held Back',
-  matched: 'Matched',
-  pending_signature: 'Pending Signature',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-};
-
-export const ORDER_CHANGE_FIELD_LABELS: Record<OrderActionChange['field'], string> = {
-  quantity: 'Quantity',
-  min_quantity: 'Minimum fill',
-  price_per_share: 'Price per share',
-};
-
-export const SWAP_APPROVAL_OUTCOME_LABELS: Record<SwapSettlementApprovalOutcome['outcome'], string> = {
-  pending: 'Pending',
-  confirmed: 'Confirmed',
-  reverted: 'Reverted',
-  superseded: 'Superseded',
 };
 
 export const IDENTITY_SOURCE_LABELS: Record<string, string> = {

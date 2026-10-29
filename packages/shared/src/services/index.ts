@@ -36,24 +36,7 @@ export {
   archiveNotification,
   markAllNotificationsRead,
 } from './notifications';
-export {
-  getShareTokens,
-  getOrderBook,
-  getOrders,
-  getOrderCreateMessage,
-  getOrderCancelMessage,
-  getOrderActionContext,
-  getOrderAction,
-  createOrder,
-  getOrderSubmission,
-  cancelOrder,
-  getWalletBalances,
-  getWhitelistStatus,
-  parseTradingError,
-  getSwapOrders,
-  getOrderModificationMessage,
-  modifyOrder,
-} from './trading';
+export { getWhitelistStatus } from './trading';
 export {
   getCompanies,
   registerCompany,
@@ -146,7 +129,6 @@ export {
   submitInvestorClassification,
   deleteInvestorClassification,
 } from './investorClassifications';
-export { getFeatureFlags } from './featureFlags';
 export { getOperator } from './operator';
 export { getDirectoryTokens, getDirectoryToken, getDirectoryDocuments } from './directory';
 export {
@@ -168,13 +150,6 @@ export {
   withdrawSubscription,
 } from './subscriptions';
 export { getExchangeRate } from './exchangeRates';
-export {
-  getSwapSettlementContext,
-  submitSwapSettlementSignature,
-  getSwapSettlementApprovalStatus,
-  getSwapSettlementApprovalData,
-  broadcastSwapSettlementApproval,
-} from './swap-settlement';
 export {
   getPublications,
   getPublicationSummary,

@@ -426,7 +426,7 @@ an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Company documents**, **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
+**Company documents**, **Published to your members**, **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Team** and **Activation**, without an extra overview
 page. Profile always holds personal information and Account. Company documents, Team, Activation and
@@ -437,6 +437,9 @@ keep export and deletion under Manage account, with their existing confirmations
 belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation. Company-recorded particulars are a Profile card for a member of the selected company.
+**Offerings** follows Documents for the company's own account and **Company eligibility** for an
+administrator or a prepare or approve appointee. **Activity**, the person's own wallet transfers, sits
+above Settings whatever company is selected.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
 [separately](mobile.md#navigation). The sidebar has no More group or Help & Support link. Removing
@@ -1078,15 +1081,15 @@ by a local helper or a browser `toLocale…` call:
 - **Share counts** use `formatShareCount`, a count with its noun uses `shareCount` ("1 share",
   "1,315 shares", or with a qualifier, "1 issued share") and a signed change uses `shareChange`
   ("+1,000"). Gathered in `packages/shared/src/utils/formatting.ts` with `sharePercentage`.
-  Trading's order quantities that arrive as numbers use `marketQuantity` and `marketShares`, which
-  read "Unavailable" for a quantity too large to show exactly.
+  Application quantities that arrive as numbers use `marketQuantity`, which reads "Unavailable" for
+  a quantity too large to show exactly.
 - **Percentages of a class** use `sharePercentage`, rounded half-up to two places, "<0.01%" for a
   holding too small to show and "Not recorded" without issued shares.
 - **Amounts** use `formatMoney`, which names its currency: "AUD 1,234.50".
 - **On screen** the dashboard's records format their dates, share counts and amounts: register
   records, eligibility history and shared summaries, team invitations and confirmations. An
-  offering's opening and closing show their time, and Trading's quantities and wallet token balances
-  use the share and crypto formatters. Signing screens, technical transaction rows (hashes, data and
+  offering's opening and closing show their time, and wallet token balances use the share and crypto
+  formatters. Signing screens, technical transaction rows (hashes, data and
   transaction values) and the exact offering terms an eligibility request shares keep their exact
   values. A register's amounts paid and unpaid show as recorded, without `formatMoney`, because the
   register cannot name a single currency for them
