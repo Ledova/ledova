@@ -92,7 +92,8 @@ locally: Jordan Ellis's account was created, and Taylor, Casey and Quinn, alread
 since 27 October, were made active. Every other record below went through the API as the real users.
 
 - **Purpose Demo:**
-  - Eligibility requests: Quinn's and Taylor's accepted, one of Casey's refused and one pending.
+  - Eligibility requests: Quinn's and Taylor's accepted, one of Casey's refused and two pending.
+    The newest, which Casey sent with a later certificate after the refusal, carries Casey's name.
   - Member requests: Taylor's address change and certificate requests from Quinn and Casey.
   - A constitution, a shareholders agreement and financial statements under Supporting.
   - An inspection copy and a company pack.
@@ -104,6 +105,8 @@ since 27 October, were made active. Every other record below went through the AP
   - An inspection copy and a company pack.
 - **Harbour:** an allotment, a transfer and an employee award with its first tranche issued.
 - Taylor's request to Banksia was withdrawn.
+- The first inspection copies and packs predate #1429's record of where an output was produced, so
+  they stay unlisted. A second copy and pack for each company, prepared after #1429, fill the lists.
 - Published and Activity stay empty without the local chain.
 
 ## Current handover — 29 October 2026
@@ -134,13 +137,14 @@ since 27 October, were made active. Every other record below went through the AP
   claim), then the backend, with associated-person claims and account readiness. Verification now
   offers two claim categories and links Your company eligibility from Your claims.
   [Planned offerings](business/offerings.md) keeps their design.
-- [#1424](https://github.com/Ledova/ledova/issues/1424) tidies the pages the owner found cluttered:
+- [#1424](https://github.com/Ledova/ledova/issues/1424) tidied the pages the owner found cluttered:
   - A company gives investors a request link instead of its Company ID.
   - Company eligibility lists requests first and picks the reviewer's appointment.
   - Corrections names changes by kind and date.
-  - The owner then chose to share the investor's name with a request, with their consent, and to
-    show the company the inspection copies and packs its own people prepared; those follow as their
-    own PRs on the issue.
+  - At the owner's choice, a request shares the investor's name with their consent (#1428), and
+    Inspection copies and Company pack list what the company's own people prepared (#1429).
+  - Eligibility request details no longer show internal IDs. The investor's name and the company's
+    name identify a request.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
