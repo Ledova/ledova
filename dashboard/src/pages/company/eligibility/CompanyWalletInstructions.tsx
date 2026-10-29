@@ -127,7 +127,15 @@ function Record({
     </li>
   );
 }
-function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (editing: boolean) => void }) {
+function Preparation({
+  data,
+  onEditingChange,
+  onClose,
+}: {
+  data: Read;
+  onEditingChange: (editing: boolean) => void;
+  onClose: () => void;
+}) {
   const { running, track } = useRunningAction();
   const [draft, setDraft] = useState<{
     owner: typeof data.owner;
@@ -228,6 +236,14 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
       )}
       <FormActions>
         <PageAction
+          label="Cancel"
+          disabled={data.busy}
+          onClick={() => {
+            onEditingChange(false);
+            onClose();
+          }}
+        />
+        <PageAction
           label="Prepare wallet instruction"
           busy={running === 'prepare'}
           busyLabel="Preparing…"
@@ -243,7 +259,9 @@ function Preparation({ data, onEditingChange }: { data: Read; onEditingChange: (
                       : { action, targetChange: source },
                   )
                   .then((saved) => {
-                    if (saved) onEditingChange(false);
+                    if (!saved) return;
+                    onEditingChange(false);
+                    onClose();
                   }),
               );
           }}
@@ -256,6 +274,7 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
   const context = useCompanyContext();
   const requestedCompany = new URLSearchParams(useLocation().search).get('company');
   const [held, setHeld] = useState<{ scope: string; editing: boolean; records: Set<string> } | null>(null);
+  const [preparing, setPreparing] = useState<string | null>(null);
   const data = useCompanyWalletInstructions({
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
@@ -336,14 +355,13 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
               />
             </div>
           )}
-          {data.companyUuid && <Preparation key={data.scopeKey} data={data} onEditingChange={setEditing} />}
           {readFailed && (
             <LoadError retry={() => track('refresh', data.refresh())} busy={running === 'refresh' || data.busy}>
               The current wallet records could not be {data.instructions.data ? 'refreshed' : 'loaded'}. Original
               receipts remain available for recovery.
             </LoadError>
           )}
-          {data.retainedRecords.length > 0 && (
+          {data.retainedRecords.length > 0 ? (
             <ul hidden={!data.canRead} className="divide-y divide-border-subtle">
               {data.retainedRecords.map((record) => (
                 <Record
@@ -354,7 +372,32 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
                 />
               ))}
             </ul>
+          ) : (
+            data.canRead &&
+            data.instructions.isSuccess && (
+              <p role="status" className="text-sm text-text-muted">
+                No wallet approvals yet.
+              </p>
+            )
           )}
+          {data.companyUuid &&
+            data.canRead &&
+            (preparing === data.scopeKey ? (
+              <Preparation
+                key={data.scopeKey}
+                data={data}
+                onEditingChange={setEditing}
+                onClose={() => setPreparing(null)}
+              />
+            ) : (
+              <FormActions>
+                <PageAction
+                  label="Approve or remove a wallet"
+                  disabled={data.busy || !!data.original}
+                  onClick={() => setPreparing(data.scopeKey)}
+                />
+              </FormActions>
+            ))}
         </>
       )}
     </Section>

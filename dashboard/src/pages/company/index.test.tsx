@@ -330,7 +330,7 @@ it('shows focused company details without share classes, and uploads documents t
   });
   await waitFor(() => expect(queueReads()).toBeGreaterThan(beforeQueue));
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  fireEvent.change(screen.getByLabelText('Your appointment'), { target: { value: appointment.uuid } });
+  expect(screen.queryByLabelText('Your appointment')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: /^View request/ }));
   fireEvent.change(await screen.findByLabelText('Acceptance expiry (local date and time)'), {
     target: { value: expiresAt },
@@ -401,7 +401,7 @@ it('shows focused company details without share classes, and uploads documents t
     entry: '/company/eligibility?company=unavailable-company',
     path: '/company/eligibility',
   });
-  await screen.findByText(/Current personal prepare or approve authority is required to read this company/);
+  await screen.findByText(/You need a prepare or approve appointment for this company/);
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(queueReads()).toBe(beforeUnavailableCompany);
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
