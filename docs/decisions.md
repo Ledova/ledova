@@ -1373,11 +1373,13 @@ code only it used are gone; secondary trading stays
 [not planned](#registry-focus-and-cancelled-expansion-tickets), and the trading API, its records and
 its guards are unchanged.
 
-Later that day the owner asked for one-line sidebar items: "I don't want to use 2 lines on these
-menu items." ESS becomes Employee scheme, the owner's first choice. Company documents becomes
-Supporting, as the owner suggested, and stays under Documents, since it holds the company's own
-records and offer documents rather than eligibility decisions. Published to your members becomes
-Published. Each link keeps its page's full name as its title.
+Later that day the owner asked for one-line sidebar items: "I dont want to use 2 lines on these
+menu items". ESS becomes Employee scheme, the owner's first choice, Company documents becomes
+Supporting, as the owner suggested, and Published to your members becomes Published. Each link keeps
+its page's full name as its title. The owner also wondered whether Company documents belongs under
+Company eligibility and asked for a view. Claude recommended keeping it under Documents, since it
+holds the company's own records and offer documents rather than eligibility decisions, so it stays
+there until the owner decides.
 
 ### Dashboard, Settings and Register for a new company
 

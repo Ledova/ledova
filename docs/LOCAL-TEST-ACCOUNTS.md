@@ -16,12 +16,12 @@ Open **http://localhost:5173/signin**. Sign out before using another account. Re
 local PostgreSQL database `ledova_walkthrough_20261021`; do not reset it or recreate accounts for
 a fresh chat. A deliberate reset can invalidate these credentials and fixtures.
 
-| Person              | Test role                             | Email                              | Password                                      | What to test                                                                 |
-| ------------------- | ------------------------------------- | ---------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
-| Alex Demo           | Company administrator and shareholder | `director@purpose-demo.test`       | `5TASnw2RJQcPhZ-u-gXvbmF6nk0cRLVM`            | Company Dashboard, Ledger, Shareholders, Employee scheme, Documents and Settings         |
-| Taylor Demo         | Shareholder                           | `taylor@purpose-demo.test`         | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares, member documents and company-recorded details                     |
-| Casey Demo          | Employee shareholder                  | `casey@purpose-demo.test`          | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records, certificates and company-recorded details |
-| Quinn Investor Demo | Investor                              | `quinn.investor@purpose-demo.test` | `TwAFv-SU0E-nrW5je-idauWmZPly8-ZUcMXCTRJMVus` | My shares and investor certificate records                                   |
+| Person              | Test role                             | Email                              | Password                                      | What to test                                                                     |
+| ------------------- | ------------------------------------- | ---------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| Alex Demo           | Company administrator and shareholder | `director@purpose-demo.test`       | `5TASnw2RJQcPhZ-u-gXvbmF6nk0cRLVM`            | Company Dashboard, Ledger, Shareholders, Employee scheme, Documents and Settings |
+| Taylor Demo         | Shareholder                           | `taylor@purpose-demo.test`         | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares, member documents and company-recorded details                         |
+| Casey Demo          | Employee shareholder                  | `casey@purpose-demo.test`          | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records, certificates and company-recorded details     |
+| Quinn Investor Demo | Investor                              | `quinn.investor@purpose-demo.test` | `TwAFv-SU0E-nrW5je-idauWmZPly8-ZUcMXCTRJMVus` | My shares and investor certificate records                                       |
 
 ## What the account types mean
 

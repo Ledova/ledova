@@ -190,9 +190,8 @@ Decisions apply at the moment of each action, against the current decision, evid
 standing and expiry.
 
 - Market reads: through the trading API, a holder without a current general decision cannot see a
-  company's market even for
-  shares they already own, a trade-off the owner recorded for review before live operation
-  ([trading](trading.md)).
+  company's market even for shares they already own, a trade-off the owner recorded for review
+  before live operation ([trading](trading.md)).
 - Applications, orders and signatures: each new subscription, order, order change and swap
   signature needs the matching current decision for that company and keeps a record of it
   ([issuing shares](issuing-shares.md)).

@@ -6,7 +6,7 @@ The identities, locks and recovery contracts behind secondary trading, for engin
 order book or settlement. Who may trade, what investors see, the one-match rule and the accepted
 experimental limits are in [trading](../business/trading.md); the operator response to pending work
 is in [recovery](../operations/recovery.md#wallet-transfers-and-trading). No first-party client
-uses this protocol since the web Market page and its client code were removed on 29 October 2026
+has used this protocol since the web Market page and its client code were removed on 29 October 2026
 ([#1416](https://github.com/Ledova/ledova/issues/1416)); "the client" below means any API client.
 
 Contents: [intent and settlement](#intent-and-settlement) · [creating](#creating-an-order) and
