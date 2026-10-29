@@ -82,34 +82,32 @@ export default function CompanyEligibilityPage() {
     decisionChecks.reset();
     revocationChecks.reset();
   };
-  const choices = read.appointments.filter(
+  const current = read.appointments.filter(
     (item) =>
       item.company === read.companyUuid &&
+      isCurrentEligibilityAppointment(item) &&
       item.capabilities.some((capability) => capability === 'prepare' || capability === 'approve'),
   );
-  const current = choices.filter(isCurrentEligibilityAppointment);
-  const appointmentUuid = read.appointmentUuid || (current.length === 1 ? current[0].uuid : '');
-  const appointment = choices.find((item) => item.uuid === appointmentUuid);
-  const canApprove =
-    !!appointment && isCurrentEligibilityAppointment(appointment) && appointment.capabilities.includes('approve');
-  const authorityMissing = !!read.companyUuid && !read.loading && !read.readFailed && current.length === 0;
+  const appointment =
+    current.find((item) => item.uuid === read.appointmentUuid) ?? (current.length === 1 ? current[0] : undefined);
+  const canApprove = !!appointment && appointment.capabilities.includes('approve');
+  const authorityMissing =
+    !!read.companyUuid && !read.loading && !read.refreshing && !read.readFailed && current.length === 0;
   const chooseAppointment = () => {
-    if (!read.appointmentUuid && appointmentUuid) read.setAppointment(appointmentUuid);
+    if (appointment && read.appointmentUuid !== appointment.uuid) read.setAppointment(appointment.uuid);
   };
-  const appointmentChoice = choices.length > 1 && (
+  const appointmentChoice = current.length > 1 && (
     <SelectField
       label="Your appointment"
       options={[
         { value: '', label: 'Select your appointment' },
-        ...choices.map((item) => ({
+        ...current.map((item) => ({
           value: item.uuid,
-          label: `${scopeLabels(item.capabilities)} · appointed ${formatDate(item.createdAt)}${
-            isCurrentEligibilityAppointment(item) ? '' : ' · inactive'
-          }`,
+          label: `${scopeLabels(item.capabilities)} · appointed ${formatDate(item.createdAt)}`,
           reference: shortReference(item.uuid),
         })),
       ]}
-      value={appointmentUuid}
+      value={appointment?.uuid ?? ''}
       onChange={read.setAppointment}
     />
   );

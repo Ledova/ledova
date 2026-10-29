@@ -2,7 +2,7 @@ import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useEntryReads } from '@hooks/useEntryReads';
 import { useRunningAction } from '@hooks/useRunningAction';
@@ -161,9 +161,13 @@ function Preparation({
     source: !source && (action === 'add' ? 'Choose the shared wallet.' : 'Choose the approved wallet.'),
     expires: action === 'add' && !Number.isFinite(moment) && 'Enter the approval expiry date and time.',
   });
+  const container = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    container.current?.querySelector<HTMLElement>('input:not([disabled]), button:not([disabled])')?.focus();
+  }, []);
   if (!data.canRead) return null;
   return (
-    <div className="space-y-3">
+    <div ref={container} className="space-y-3">
       <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
         Approving covers a wallet the participant has shared with the company, until the expiry you set. Removing
@@ -275,6 +279,7 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
   const requestedCompany = new URLSearchParams(useLocation().search).get('company');
   const [held, setHeld] = useState<{ scope: string; editing: boolean; records: Set<string> } | null>(null);
   const [preparing, setPreparing] = useState<string | null>(null);
+  const opener = useRef<HTMLButtonElement>(null);
   const data = useCompanyWalletInstructions({
     newKey: () => crypto.randomUUID(),
     coordinatedReads: true,
@@ -362,7 +367,7 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
             </LoadError>
           )}
           {data.retainedRecords.length > 0 ? (
-            <ul hidden={!data.canRead} className="divide-y divide-border-subtle">
+            <ul hidden={!data.canRead || preparing === data.scopeKey} className="divide-y divide-border-subtle">
               {data.retainedRecords.map((record) => (
                 <Record
                   key={`${data.scopeKey}/${record.uuid}`}
@@ -374,7 +379,8 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
             </ul>
           ) : (
             data.canRead &&
-            data.instructions.isSuccess && (
+            data.instructions.isSuccess &&
+            preparing !== data.scopeKey && (
               <p role="status" className="text-sm text-text-muted">
                 No wallet approvals yet.
               </p>
@@ -387,13 +393,17 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
                 key={data.scopeKey}
                 data={data}
                 onEditingChange={setEditing}
-                onClose={() => setPreparing(null)}
+                onClose={() => {
+                  setPreparing(null);
+                  requestAnimationFrame(() => opener.current?.focus());
+                }}
               />
             ) : (
               <FormActions>
                 <PageAction
+                  ref={opener}
                   label="Approve or remove a wallet"
-                  disabled={data.busy || !!data.original}
+                  disabled={data.busy || !!data.original || !data.steps.prepare}
                   onClick={() => setPreparing(data.scopeKey)}
                 />
               </FormActions>

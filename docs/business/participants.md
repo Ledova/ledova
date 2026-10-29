@@ -312,8 +312,8 @@ Verification (investing accounts) has two sections, followed by Supporting paysl
 
 Your company eligibility holds your requests with their outcome history, **Prepare request
 withdrawal** and the wallet nomination. Company eligibility, for company
-approvers and preparers, holds Your authority, the Requests list, the decision and revocation
-forms and Company wallet approvals
+approvers and preparers, holds the Requests list with the company's request link, the decision and
+revocation forms and Company wallet approvals
 ([deciding](#deciding-withdrawing-and-revoking)).
 
 ## Profile and Settings

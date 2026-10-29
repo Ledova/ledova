@@ -3,8 +3,8 @@
 [Documentation](README.md) · [Local setup](getting-started.md)
 
 These are intentionally published fictional **localhost-only** credentials, authorised by the
-owner on 28 October 2026 (Jordan Ellis's on 29 October 2026). They are not credentials for ledova.io. Real passwords, tokens, cookies
-and runtime environment files stay outside Git.
+owner on 28 October 2026 (Jordan Ellis's on 29 October 2026). They are not credentials for
+ledova.io. Real passwords, tokens, cookies and runtime environment files stay outside Git.
 
 Last credential verification: **29 October 2026** (Australia/Sydney). After the database was
 rebuilt for #1421, all five accounts signed in to the local API with these passwords.
@@ -86,8 +86,10 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
 
 ### Demo data, 29 October 2026
 
-At the owner's request, more records were added through the API as the real users, so that pages
-are not empty. Nothing was written to the database directly.
+At the owner's request, more records were added so that pages are not empty. Two steps were made
+directly in the local database through the backend's own services, because no identity provider runs
+locally: Jordan Ellis's account was created, and Taylor, Casey and Quinn were marked
+identity-verified and active. Every other record below went through the API as the real users.
 
 - **Purpose Demo:**
   - Eligibility requests: Quinn's and Taylor's accepted, one of Casey's refused and one pending.
@@ -136,8 +138,9 @@ are not empty. Nothing was written to the database directly.
   - A company gives investors a request link instead of its Company ID.
   - Company eligibility lists requests first and picks the reviewer's appointment.
   - Corrections names changes by kind and date.
-  - Naming investors on requests, and showing past inspection copies and packs to the company,
-    wait for the owner's decision on the issue.
+  - The owner then chose to share the investor's name with a request, with their consent, and to
+    show the company the inspection copies and packs its own people prepared; those follow as their
+    own PRs on the issue.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
