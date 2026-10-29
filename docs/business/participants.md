@@ -137,7 +137,8 @@ withdrawn.
    it after signing in.
 3. Choose **Preview company eligibility request**. The preview names the company and shows any
    unmet requirement.
-4. Confirm the sharing summary and the declaration separately, then submit. The request keeps that
+4. Confirm the sharing summary and the declaration separately, then submit. The summary includes
+   your name as it stands on your profile, so the company sees who is asking. The request keeps that
    summary, fingerprints of the evidence and its metadata, the requested expiry and you as holder.
 
 Once a source has been shared with a company in a request, no further supporting documents can be
@@ -165,7 +166,9 @@ Rules:
   source's limits or, for an accountant's certificate, two years from its issue.
 - A refusal or revocation records its reason; a refusal grants nothing.
 - Company readers see the shared summary and the outcome history only: never private files, the
-  financial basis, identity-provider results or document metadata.
+  financial basis, identity-provider results or document metadata. Requests sent from 29 October 2026
+  name the investor in the summary and in the company's list; earlier requests keep the summary as it
+  was shared, without a name. A later change of name does not end an accepted decision.
 - Requests, decisions, withdrawals and revocations cannot be edited or deleted; a lost reply
   follows the [uncertain-outcome rule](README.md#when-the-outcome-is-uncertain).
 

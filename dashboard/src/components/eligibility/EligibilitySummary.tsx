@@ -9,6 +9,7 @@ import {
 import { Row, Rows } from '@components/Ledger';
 
 const summaryLabels = {
+  participantName: 'Investor',
   category: 'Category',
   source: 'Evidence source',
   userAccount: 'Participant account',

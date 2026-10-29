@@ -8,12 +8,14 @@ export function RecordsList({
   selected,
   disabled = false,
   companyName,
+  investor = false,
 }: {
   records: CompanyEligibilityRequest[];
   select: (uuid: string) => void;
   selected?: string;
   disabled?: boolean;
   companyName?: (uuid: string) => string | undefined;
+  investor?: boolean;
 }) {
   const sameAs = (record: CompanyEligibilityRequest) =>
     `${record.company}|${record.category}|${record.outcome}|${formatDateTime(record.submittedAt)}`;
@@ -28,6 +30,9 @@ export function RecordsList({
       {records.map((record) => (
         <li key={record.uuid} className="flex flex-wrap items-center justify-between gap-3 py-3">
           <div className="min-w-0 text-sm">
+            {investor && record.sharedSummary.participantName && (
+              <p className="font-medium text-text-primary">{record.sharedSummary.participantName}</p>
+            )}
             <p>
               {INVESTOR_CATEGORY_LABELS[record.category]} · {ELIGIBILITY_OUTCOME_LABELS[record.outcome]}
             </p>

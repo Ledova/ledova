@@ -118,6 +118,7 @@ class CompanyEligibilitySharedSummarySerializer(serializers.Serializer):
     company = serializers.UUIDField()
     submitted_at = serializers.DateTimeField(allow_null=True)
     requested_expires_at = serializers.DateTimeField()
+    participant_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     certificate_issued_at = serializers.DateField(required=False, allow_null=True)
     certifier_name = serializers.CharField(required=False, allow_blank=True)
     certifier_body = serializers.ChoiceField(choices=CertifierBody.choices, required=False, allow_blank=True)

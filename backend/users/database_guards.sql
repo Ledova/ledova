@@ -606,7 +606,10 @@ BEGIN
     summary := jsonb_build_object('category', source.category, 'declaration_text', source.declaration_text,
         'source', source.uuid::text, 'user_account', source.user_account_id::text, 'company', issuer_id::text,
         'submitted_at', users_company_eligibility_stamp(source.submitted_at),
-        'requested_expires_at', users_company_eligibility_stamp(requested_expires_at));
+        'requested_expires_at', users_company_eligibility_stamp(requested_expires_at),
+        'participant_name', (SELECT profile.full_name FROM customer_accounts_account account
+            JOIN users_userprofile profile ON profile.uuid = account.user_profile_id
+            WHERE account.uuid = source.user_account_id));
     IF source.category = 'accountant_certificate' THEN
         summary := summary || jsonb_build_object('certificate_issued_at', source.certificate_issued_at::text,
             'certifier_name', source.certifier_name, 'certifier_body', source.certifier_body,
@@ -650,7 +653,7 @@ BEGIN
     IF TG_TABLE_NAME = 'users_companyeligibilityrequest' THEN
         SELECT * INTO source FROM users_investorclassification WHERE uuid = NEW.source_id;
         summary := users_company_eligibility_summary(NEW.source_id, NEW.company_id, NEW.requested_expires_at);
-        facts := jsonb_build_object('version', '1', 'shared_summary', summary,
+        facts := jsonb_build_object('version', '2', 'shared_summary', summary,
             'source_fingerprint', NEW.source_fingerprint, 'evidence_hash', NEW.evidence_hash);
         IF operation <> 'submit' OR NEW.submitted_by_id IS DISTINCT FROM principal
             OR (command->>'source')::uuid IS DISTINCT FROM NEW.source_id
@@ -663,7 +666,7 @@ BEGIN
                 JOIN users_userprofile owner ON owner.uuid = account.user_profile_id
                 WHERE account.uuid = NEW.user_account_id AND owner.user_id = principal)
             OR NOT users_company_eligibility_source_current(NEW.source_id, NEW.company_id, at_time)
-            OR NEW.version IS DISTINCT FROM '1' OR NEW.category IS DISTINCT FROM source.category
+            OR NEW.version IS DISTINCT FROM '2' OR NEW.category IS DISTINCT FROM source.category
             OR NOT NEW.sharing_accepted OR NOT NEW.declaration_accepted
             OR NEW.shared_summary IS DISTINCT FROM summary OR NEW.evidence_hash !~ '^[0-9a-f]{64}$'
             OR NEW.source_fingerprint IS DISTINCT FROM encode(sha256(convert_to(
@@ -795,7 +798,7 @@ AS $function$
         AND decision.outcome = 'accepted' AND decision.expires_at > boundary.checked_at
         AND decision.expires_at <= proposal.requested_expires_at
         AND decision.request_digest = proposal.digest
-        AND proposal.version = '1' AND proposal.sharing_accepted AND proposal.declaration_accepted
+        AND proposal.version IN ('1', '2') AND proposal.sharing_accepted AND proposal.declaration_accepted
         AND proposal.user_account_id = account_id AND source.user_account_id = account_id
         AND proposal.submitted_by_id = actor.id AND proposal.category = source.category
         AND proposal.company_id = issuer_id
@@ -828,8 +831,8 @@ AS $function$
         AND proposal.digest = public.users_company_eligibility_hash(jsonb_build_object(
             'version', proposal.version, 'shared_summary', proposal.shared_summary,
             'source_fingerprint', proposal.source_fingerprint, 'evidence_hash', proposal.evidence_hash))
-        AND proposal.shared_summary = public.users_company_eligibility_summary(
-            source.uuid, issuer_id, proposal.requested_expires_at)
+        AND proposal.shared_summary - 'participant_name' = public.users_company_eligibility_summary(
+            source.uuid, issuer_id, proposal.requested_expires_at) - 'participant_name'
         FROM public.users_companyeligibilitydecision decision
         JOIN public.users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id
         JOIN public.users_investorclassification source ON source.uuid = proposal.source_id
