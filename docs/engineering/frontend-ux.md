@@ -242,8 +242,8 @@ and use one empty state when both are confirmed empty; loading or failure is nev
 
 Web Corrections starts with one full-width `Section` titled **Changes**, with compact ruled rows aligned under
 **Change**, **Date** and **Share movements**, and **Correct** at the end of a row the account may correct.
-Rows don't expand; on smaller screens, kind and date sit above the movements. Each row shows the kind,
-entry number and any correction or reversal reference; the company date for an issue or transfer
+Rows don't expand; on smaller screens, kind and date sit above the movements. Each row shows the kind
+and any correction or reversal, named by kind and date; the company date for an issue or transfer
 (ledger effective date for other kinds), with the ledger date beneath when it differs; and the first
 two signed movements, with **Show all N share changes** for the rest. Entries stay immutable; current register readers can
 inspect retained supporting records and permitted downloads. The same view holds capability-guarded
@@ -1095,7 +1095,10 @@ by a local helper or a browser `toLocale…` call:
   tells records apart, such as two shareholders with one name or two options that read the same,
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user
-  numbers are not shown. The reconciliation with the chain under Corrections shows when it ran and,
+  numbers are not shown. Corrections names each change by its kind and date, with no register
+  sequence: a correction reads **Corrects the issue of …**, a reversed change **Reversed on …**, and
+  the copied opening sits in its own **Opening records** card, its decisions reading **Review** and
+  **Confirm** and its history **Reviewed** and **Confirmed**. The reconciliation with the chain under Corrections shows when it ran and,
   for each discrepancy, the completed issue or transfer it concerns (with its `shortReference` only
   where two rows would read the same), the member (named, or `Member` and its `shortReference`),
   address, shares and transaction, with no block or register sequence. A chain opening says when

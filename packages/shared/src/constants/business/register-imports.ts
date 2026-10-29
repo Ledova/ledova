@@ -54,10 +54,12 @@ export const REGISTER_IMPORT_COPY = {
     applied: 'Confirmed',
     rejected: 'Rejected',
   } as Record<string, string>,
-  DECISIONS: { approve: 'Review', apply: 'Confirm mirror', reject: 'Reject' } as Record<RegisterDecisionKind, string>,
+  DECISIONS: { approve: 'Review', apply: 'Confirm', reject: 'Reject' } as Record<RegisterDecisionKind, string>,
+  TRAIL: { approve: 'Reviewed', apply: 'Confirmed', reject: 'Rejected' } as Record<RegisterDecisionKind, string>,
   CONFIRMATIONS: {
     approve: 'Review these company-provided records exactly as prepared.',
-    apply: 'Confirm this exact mirror of the company’s existing register. Earlier snapshots remain retained.',
+    apply:
+      'Confirm this exact copy of the company’s existing register as the opening. Earlier snapshots remain retained.',
     reject: 'Reject this import with the reason given.',
   } as Record<RegisterDecisionKind, string>,
   REJECTION_REASON: 'Reason for rejection',
