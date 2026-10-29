@@ -40,6 +40,7 @@ stay here as history and are marked where they appear.
 | [Required CI and auto-merge on main](#required-ci-and-auto-merge-on-main)                                       | 29 October 2026                                | Current; #1409                                                                                                                     |
 | [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation)                                 | 11 October 2026                                | Current                                                                                                                            |
 | [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation)                      | 11 October 2026                                | Completed under #979; signer and funds decisions remain separate                                                                   |
+| [ledova.io rebuild of 30 October 2026](#ledovaio-rebuild-of-30-october-2026)                                    | 30 October 2026                                | Completed under #1431; no earlier records kept; old data and backups deleted                                                       |
 | [Backend migration baseline](#backend-migration-baseline)                                                       | 10 October 2026                                | Superseded 11 October                                                                                                              |
 | [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands                                                                     |
 | [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred; offering payments removed under #1421                                                   |
@@ -1124,8 +1125,26 @@ separate decisions.
 The authorised operation completed under [#979](https://github.com/Ledova/ledova/issues/979).
 Its [operational record](operations/evidence/ledova-io-rebuild-2026-10-11.md)
 owns the release, retained setup, checks and limits. Existing protected backups
-and private evidence remain retained; this decision does not claim later product
-PRs were deployed.
+and private evidence were retained. The backups and working files on the host
+were deleted in the [30 October rebuild](#ledovaio-rebuild-of-30-october-2026),
+and evidence kept off the host remains. This decision does not claim later
+product PRs were deployed.
+
+## ledova.io rebuild of 30 October 2026
+
+**Owner direction, 30 October 2026**, given in the session under
+[#1431](https://github.com/Ledova/ledova/issues/1431). Asked "Should I start the
+ledova.io release with the fresh rebuild?", the owner answered "Start the
+release". After seeing that ledova.io held only test data, the owner chose to keep
+none of it, so the rebuilt instance started without accounts. After the release
+the owner asked for leftover files and branches to be deleted and for everything
+to be on `main`, and chose to delete the old ledova.io data and backups as well:
+the old databases and volumes, the host's backups, including the 11 October
+rebuild's folder, and the new backup with its off-host copy. Earlier evidence
+folders outside the repository were kept. The
+[operational record](operations/evidence/ledova-io-rebuild-2026-10-30.md) owns the
+release and its checks. Signer activation and real-funds use remain separate
+decisions.
 
 ## Backend migration baseline
 
