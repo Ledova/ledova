@@ -676,7 +676,7 @@ function OwnRegister({
                       onHeldChange={transferHeld}
                     />
                   </div>
-                  <div hidden={view !== 'register' || selectedTask !== 'corrections'}>
+                  <div hidden={view !== 'register' || selectedTask !== 'corrections'} className="flex flex-col gap-5">
                     <Section title="Changes">
                       <ClassCorrections
                         landed={landed}
@@ -694,6 +694,24 @@ function OwnRegister({
                         }
                         onHeldChange={correctionHeld}
                       />
+                      <ClassReconciliation
+                        owner={owner}
+                        guard={guard}
+                        token={register.token.uuid}
+                        chain={classes.data?.find((item) => item.uuid === register.token.uuid)?.chain}
+                        company={scope.company.uuid}
+                        holders={register.holders}
+                        status={register.token.status}
+                        visible={
+                          view === 'register' &&
+                          selectedTask === 'corrections' &&
+                          selectedToken === register.token.uuid &&
+                          sourceReady
+                        }
+                        onHeldChange={correctionHeld}
+                      />
+                    </Section>
+                    <Section title="Opening records">
                       <ClassImports
                         owner={owner}
                         guard={guard}
@@ -723,22 +741,6 @@ function OwnRegister({
                           onHeldChange={correctionHeld}
                         />
                       )}
-                      <ClassReconciliation
-                        owner={owner}
-                        guard={guard}
-                        token={register.token.uuid}
-                        chain={classes.data?.find((item) => item.uuid === register.token.uuid)?.chain}
-                        company={scope.company.uuid}
-                        holders={register.holders}
-                        status={register.token.status}
-                        visible={
-                          view === 'register' &&
-                          selectedTask === 'corrections' &&
-                          selectedToken === register.token.uuid &&
-                          sourceReady
-                        }
-                        onHeldChange={correctionHeld}
-                      />
                     </Section>
                   </div>
                   <div hidden={view !== 'awards'} className="space-y-5">

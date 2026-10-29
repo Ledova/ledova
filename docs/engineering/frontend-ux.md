@@ -1094,7 +1094,10 @@ by a local helper or a browser `toLocale…` call:
   tells records apart, such as two shareholders with one name or two options that read the same,
   the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first eight
   characters), never the full UUID, including in choices and screen-reader context. Internal user
-  numbers are not shown. The reconciliation with the chain under Corrections shows when it ran and,
+  numbers are not shown. Corrections names each change by its kind and date, with no register
+  sequence: a correction reads **Corrects the issue of …**, a reversed change **Reversed on …**, and
+  the copied opening sits in its own **Opening records** card, its import decisions reading
+  **Approve** and **Opening recorded**. The reconciliation with the chain under Corrections shows when it ran and,
   for each discrepancy, the completed issue or transfer it concerns (with its `shortReference` only
   where two rows would read the same), the member (named, or `Member` and its `shortReference`),
   address, shares and transaction, with no block or register sequence. A chain opening says when

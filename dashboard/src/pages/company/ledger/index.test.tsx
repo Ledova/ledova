@@ -2256,7 +2256,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     hash: '#corrections',
     search: '?audit=1',
   });
-  const transferEntry = (await screen.findByText('Entry 3')).closest('li')!;
+  const transferEntry = (await screen.findByText('Ledger date', { exact: false })).closest('li')!;
   expect(within(transferEntry).getByText('Transfer')).toBeTruthy();
   expect(within(transferEntry).getByText('Example Shareholder: -100')).toBeTruthy();
   expect(within(transferEntry).getByText('Taylor Demo: +100')).toBeTruthy();
@@ -2268,7 +2268,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('link', { name: /^Correct \(entry/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Acknowledge/ })).toBeNull();
-  expect(await screen.findByRole('heading', { name: 'Correction of entry 3' })).toBeTruthy();
+  expect(
+    await screen.findByRole('heading', { name: `Correction of the transfer of ${formatDate('2026-10-20')}` }),
+  ).toBeTruthy();
   expect(screen.getByText('Retained correction reason')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
   expect(screen.getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
@@ -2288,7 +2290,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(particularsReview).getByText(formatDate('2026-10-22'))).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Particulars changes' })).toBeNull();
   expect(screen.queryByRole('list', { name: 'Ledger changes' })).toBeNull();
-  expect(screen.queryByRole('button', { name: /^Approve \(correction of entry 3/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Approve \(correction of the transfer/ })).toBeNull();
   expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(beforeParticularsReview);
   fireEvent.click(within(particularsReview).getByRole('button', { name: 'Cancel' }));
   await waitFor(() => expect(document.activeElement).toBe(particularsApproval));
@@ -2307,13 +2309,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     refreshingHistory = client.refetchQueries({ predicate: (query) => query.queryKey.includes('entries') });
   });
   await waitFor(() => expect(releaseHistory).toBeTypeOf('function'));
-  expect(screen.queryByText('Entry 3')).toBeNull();
+  expect(screen.queryByText('Ledger date', { exact: false })).toBeNull();
   await act(async () => {
     pauseHistory = false;
     releaseHistory();
     await refreshingHistory;
   });
-  expect(await screen.findByText('Entry 3')).toBeTruthy();
+  expect(await screen.findByText('Ledger date', { exact: false })).toBeTruthy();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
   fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
   expect(await screen.findByRole('heading', { name: 'Certificates destination' })).toBeTruthy();
@@ -2333,11 +2335,19 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
-  const correctionEntry = (await screen.findByText('Entry 3')).closest('li')!;
-  expect(within(correctionEntry).getByRole('link', { name: 'Correct (entry 3)' })).toBeTruthy();
+  const correctionEntry = (await screen.findByText('Ledger date', { exact: false })).closest('li')!;
+  expect(
+    within(correctionEntry).getByRole('link', {
+      name: `Correct (transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
+    }),
+  ).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
-  expect(screen.getByRole('button', { name: 'Approve (correction of entry 3)' })).toBeTruthy();
+  expect(
+    screen.getByRole('button', {
+      name: `Approve (correction of the transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
+    }),
+  ).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
   expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();

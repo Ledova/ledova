@@ -11,6 +11,7 @@ import { LoadError, Loading, MoreToggle, Status } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
+import { entryDate, entryName } from '@pages/company/shared/proposals';
 import { useRegisterEntries } from '@pages/company/ledger/shared/useRegisterEntries';
 
 const COPY = REGISTER_CORRECTION_COPY;
@@ -44,7 +45,7 @@ export function ClassEntries({
     appointments.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
   const actionReady = privateReady && !history.moreFailed;
-  const sequences = new Map(history.entries.map((entry) => [entry.uuid, entry.sequence]));
+  const entries = new Map(history.entries.map((entry) => [entry.uuid, entry]));
   return (
     <div hidden={!visible} className="flex flex-col gap-3">
       {appointments.isError && (
@@ -74,8 +75,8 @@ export function ClassEntries({
       )}
       <ul aria-label="Ledger changes" className="divide-y divide-border-subtle">
         {history.entries.map((entry) => {
-          const corrected = entry.corrects ? sequences.get(entry.corrects) : undefined;
-          const reversal = entry.correctedBy ? sequences.get(entry.correctedBy) : undefined;
+          const corrected = entry.corrects ? entries.get(entry.corrects) : undefined;
+          const reversal = entry.correctedBy ? entries.get(entry.correctedBy) : undefined;
           const companyDated = ['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase());
           const action = renderAction?.(entry, actionReady);
           return (
@@ -88,17 +89,16 @@ export function ClassEntries({
                 <>
                   <div className="min-w-0 space-y-1 break-words">
                     <p className="font-medium text-text-primary">{COPY.ENTRY_KINDS[entry.kind]}</p>
-                    <p className="text-text-muted">Entry {entry.sequence}</p>
                     {entry.correctedBy && (
                       <p className="text-text-muted">
                         <Status tone="closed">
-                          {reversal === undefined ? 'Reversed' : `Reversed by entry ${reversal}`}
+                          {reversal ? `Reversed on ${formatDate(entryDate(reversal))}` : 'Reversed'}
                         </Status>
                       </p>
                     )}
                     {entry.corrects && (
                       <p className="text-text-muted">
-                        {corrected === undefined ? 'Corrects an earlier entry' : `Corrects entry ${corrected}`}
+                        {corrected ? `Corrects the ${entryName(corrected)}` : 'Corrects an earlier entry'}
                       </p>
                     )}
                   </div>

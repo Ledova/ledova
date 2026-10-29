@@ -54,7 +54,10 @@ export const REGISTER_IMPORT_COPY = {
     applied: 'Confirmed',
     rejected: 'Rejected',
   } as Record<string, string>,
-  DECISIONS: { approve: 'Review', apply: 'Confirm mirror', reject: 'Reject' } as Record<RegisterDecisionKind, string>,
+  DECISIONS: { approve: 'Approve', apply: 'Opening recorded', reject: 'Reject' } as Record<
+    RegisterDecisionKind,
+    string
+  >,
   CONFIRMATIONS: {
     approve: 'Review these company-provided records exactly as prepared.',
     apply: 'Confirm this exact mirror of the company’s existing register. Earlier snapshots remain retained.',
