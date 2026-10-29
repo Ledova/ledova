@@ -3,11 +3,11 @@
 [Documentation](README.md) · [Local setup](getting-started.md)
 
 These are intentionally published fictional **localhost-only** credentials, authorised by the
-owner on 28 October 2026. They are not credentials for ledova.io. Real passwords, tokens, cookies
+owner on 28 October 2026 (Jordan Ellis's on 29 October 2026). They are not credentials for ledova.io. Real passwords, tokens, cookies
 and runtime environment files stay outside Git.
 
 Last credential verification: **29 October 2026** (Australia/Sydney). After the database was
-rebuilt for #1421, all four accounts signed in to the local API with these passwords.
+rebuilt for #1421, all five accounts signed in to the local API with these passwords.
 
 ## Sign in
 
@@ -23,6 +23,7 @@ it was rebuilt from #1421's fresh migrations with every record kept; the earlier
 | Taylor Demo         | Shareholder                           | `taylor@purpose-demo.test`         | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares, member documents and company-recorded details                         |
 | Casey Demo          | Employee shareholder                  | `casey@purpose-demo.test`          | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records, certificates and company-recorded details     |
 | Quinn Investor Demo | Investor                              | `quinn.investor@purpose-demo.test` | `TwAFv-SU0E-nrW5je-idauWmZPly8-ZUcMXCTRJMVus` | My shares and investor certificate records                                       |
+| Jordan Ellis        | Second Purpose Demo officer           | `jordan.ellis@purpose-demo.test`   | `sQS6zJDzdXdXO0SsAPCdksvL-kwhP42i`            | Purpose Demo Team and company authority                                          |
 
 ## What the account types mean
 
@@ -48,8 +49,8 @@ flowchart LR
 - **Quinn Investor Demo:** investor/member in Purpose Demo, for personal holdings and certificates;
   no company administration.
 - Taylor, Casey and Quinn are active, identity-verified investors with eligibility claims.
-- **Jordan Ellis** (`jordan.ellis@purpose-demo.test`): a second Purpose Demo officer, added on
-  29 October 2026 to re-appoint Alex with prepare and approve. The password is kept outside Git.
+- **Jordan Ellis:** a second Purpose Demo officer, added on 29 October 2026 to re-appoint Alex with
+  prepare and approve.
 
 Other people in the ledger are records, not automatic sign-ins. Access to company-wide ownership
 also depends on company sharing and current permissions.
