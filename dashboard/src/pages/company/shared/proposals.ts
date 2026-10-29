@@ -44,7 +44,27 @@ export function retainedName(snapshot: unknown, fallback: string) {
   return typeof name === 'string' && name ? name : fallback;
 }
 
-export function describeEntry(entry: Pick<RegisterEntry, 'kind' | 'sequence' | 'effectiveOn'>) {
-  const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind];
-  return `${kind} · Entry ${entry.sequence} · Effective ${formatDate(entry.effectiveOn)}`;
+type EntryDates = Pick<RegisterEntry, 'kind' | 'effectiveOn' | 'companyEventOn'>;
+
+export function entryDate(entry: EntryDates) {
+  return (['issue', 'transfer'].includes(entry.kind) && entry.companyEventOn) || entry.effectiveOn;
+}
+
+export function entryName(entry: EntryDates) {
+  const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind] ?? 'Register change';
+  return `${kind.toLowerCase()} of ${formatDate(entryDate(entry))}`;
+}
+
+export function entryLabel(entry: EntryDates & Pick<RegisterEntry, 'changes'>) {
+  const names = entry.changes.flatMap((change) => (change.name ? [change.name] : []));
+  const who = names.length > 1 ? `${names[0]} and ${names.length - 1} more` : names[0];
+  return who ? `${entryName(entry)}, ${who}` : entryName(entry);
+}
+
+export function describeEntry(entry: EntryDates) {
+  const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind] ?? 'Register change';
+  const date = entryDate(entry);
+  return date === entry.effectiveOn
+    ? `${kind} · ${formatDate(date)}`
+    : `${kind} · ${formatDate(date)} · Ledger date ${formatDate(entry.effectiveOn)}`;
 }

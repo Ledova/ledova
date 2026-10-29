@@ -15,7 +15,7 @@ import { PageLink } from '@components/Page';
 
 import { CorrectionRecord } from './CorrectionRecord';
 import { ClassEntries } from './ClassEntries';
-import { registerSteps } from '@pages/company/shared/proposals';
+import { entryLabel, registerSteps } from '@pages/company/shared/proposals';
 import { correctionsKey, useClassCorrections } from '@pages/company/ledger/shared/useClassCorrections';
 import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
@@ -90,7 +90,7 @@ export function ClassCorrections({
             <PageLink
               to={generatePath(DESTINATIONS.companyRegisterCorrection.path, { uuid: token, entry: entry.uuid })}
               label="Correct"
-              context={`entry ${entry.sequence}`}
+              context={entryLabel(entry)}
             />
           ) : null
         }

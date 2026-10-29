@@ -6,7 +6,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { describeEntry, type RegisterSteps } from '@pages/company/shared/proposals';
+import { describeEntry, entryLabel, entryName, type RegisterSteps } from '@pages/company/shared/proposals';
 import type { ClassCorrection } from '@pages/company/ledger/shared/useClassCorrections';
 import { useCorrectionRecordDownload } from './useRegisterRecordDownload';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
@@ -34,7 +34,7 @@ export function CorrectionRecord({
 }) {
   const check = useRegisterTaskGuard(visible, guard);
   const download = useCorrectionRecordDownload(proposal, check);
-  const context = `correction of entry ${entry.sequence}`;
+  const context = `correction of the ${entryLabel(entry)}`;
   const downloadAction = (
     <PageAction
       label={COPY.DOWNLOAD}
@@ -48,7 +48,7 @@ export function CorrectionRecord({
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
         <>
-          <h4 className="text-sm font-medium text-text-primary">Correction of entry {entry.sequence}</h4>
+          <h4 className="text-sm font-medium text-text-primary">Correction of the {entryName(entry)}</h4>
           <Rows>
             <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
             {proposal.preparedByName !== null && (
