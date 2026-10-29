@@ -1754,8 +1754,8 @@ keys, digests and internal references (phase 5). The owner then noted that UUIDs
 show people and, with the local walkthrough filled with demo data, chose to tidy the remaining
 cluttered pages ([#1424](https://github.com/Ledova/ledova/issues/1424)). So a company no longer
 hands out a **Company ID**: it copies a request link from **Company eligibility**, and the investor's
-request takes the company from that link or from the companies they hold shares in, with the
-preview naming it.
+request takes the company from that link or from their own companies, with the preview naming
+it.
 
 ## Mobile app for shareholders
 

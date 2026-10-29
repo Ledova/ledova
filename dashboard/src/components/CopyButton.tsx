@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PageAction } from '@components/Page';
 import { TextInput } from '@components/Field';
 
-export function CopyButton({ value, label, hidden = false }: { value: string; label: string; hidden?: boolean }) {
+export function CopyButton({ value, label, valueLabel }: { value: string; label: string; valueLabel?: string }) {
   const [result, setResult] = useState<'idle' | 'copied' | 'failed'>('idle');
   const copy = async () => {
     try {
@@ -23,11 +23,13 @@ export function CopyButton({ value, label, hidden = false }: { value: string; la
       )}
       {result === 'failed' && (
         <span role="alert" className="text-xs text-error-light">
-          {hidden ? 'Could not copy. Select and copy it below.' : 'Could not copy. Select and copy the value above.'}
+          {valueLabel
+            ? 'Could not copy. Select and copy it below.'
+            : 'Could not copy. Select and copy the value above.'}
         </span>
       )}
-      {result === 'failed' && hidden && (
-        <TextInput readOnly aria-label={label} value={value} onFocus={(event) => event.target.select()} />
+      {result === 'failed' && valueLabel && (
+        <TextInput readOnly aria-label={valueLabel} value={value} onFocus={(event) => event.target.select()} />
       )}
     </div>
   );
