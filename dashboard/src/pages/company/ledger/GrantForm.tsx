@@ -160,6 +160,7 @@ export function GrantForm({
               <MoreToggle
                 open={awardDetails || !!checks.field('termsOn').error || !!checks.field('terms').error}
                 controls={awardDetailsId}
+                disabled={!!checks.field('termsOn').error || !!checks.field('terms').error}
                 onToggle={() => setAwardDetails((current) => !current)}
               >
                 {awardDetails || !!checks.field('termsOn').error || !!checks.field('terms').error

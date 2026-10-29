@@ -235,11 +235,11 @@ Issue records align the recipient and issue type, shares, company issue date and
 same labelled summary grid, with the investor amount where relevant. Keep the issued or not-issued
 fact beside the status and use the recipient as the record heading, without separate family headings.
 Longer state explanations, compliance responsibilities, terms, history and downloads open under
-Details and documents.
+**Show details and documents**.
 Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
-Details and documents. Emphasise the review for the current stage. Keep transfer preparation beside
+**Show details and documents**. Emphasise the review for the current stage. Keep transfer preparation beside
 the final record's decision actions in one right-aligned row, wrapping only when needed; an empty
 collection keeps its own preparation row.
 Hide a successfully read empty family when another has records,
