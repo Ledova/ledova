@@ -46,7 +46,9 @@ export function EligibilitySummary({
       <Rows>
         {Object.entries(summaryLabels).map(([key, label]) => {
           const value = summary[key as keyof CompanyEligibilitySharedSummary];
-          return value === undefined || value === null ? null : (
+          return value === undefined ||
+            value === null ||
+            (key === 'participantName' && !String(value).trim()) ? null : (
             <Row key={key} label={label}>
               <span className="break-all">{shown(key, value, summary, companyName)}</span>
             </Row>

@@ -301,8 +301,9 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
       >
         <p className="mb-3 text-sm font-medium">This action cannot be undone.</p>
         <p className="text-sm text-text-muted">
-          This deactivates your account and removes your name, date of birth, phone number and address. Your country of
-          citizenship, financial profile, wallets, verification records and share register entries are kept.
+          This deactivates your account and removes your name, date of birth, phone number and address from your
+          profile. Your country of citizenship, financial profile, wallets, verification records and share register
+          entries are kept, and so are the eligibility requests you sent, with your name as each company received it.
         </p>
         {deleteMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">
