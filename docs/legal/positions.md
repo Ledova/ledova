@@ -119,8 +119,8 @@ requester, share class, register sequence, row counts, time and whether the
 company's own pages or platform admin produced it. Staff can query them all in
 admin. A company's current register readers and administrators see only the
 inspection copies and packs recorded as produced through the company's own
-pages; nothing produced in admin, such as a pack produced on a document that
-compels disclosure, reaches the company. They are kept for the seven-year floor the owner chose on
+pages; no record of an output produced in admin, such as a pack produced on a
+document that compels disclosure, is shown to the company. They are kept for the seven-year floor the owner chose on
 21 September 2026. The record says who took a copy, not what they did with it:
 every download is still a full sheet of members' residential addresses. The
 [company pack](../business/member-records.md#the-company-pack), the export on exit that the
