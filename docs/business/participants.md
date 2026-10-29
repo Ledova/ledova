@@ -137,7 +137,8 @@ withdrawn.
    it after signing in.
 3. Choose **Preview company eligibility request**. The preview names the company and shows any
    unmet requirement.
-4. Confirm the sharing summary and the declaration separately, then submit. The request keeps that
+4. Confirm the sharing summary and the declaration separately, then submit. The summary includes
+   your name as it stands on your profile, so the company sees who is asking. The request keeps that
    summary, fingerprints of the evidence and its metadata, the requested expiry and you as holder.
 
 Once a source has been shared with a company in a request, no further supporting documents can be
@@ -165,7 +166,10 @@ Rules:
   source's limits or, for an accountant's certificate, two years from its issue.
 - A refusal or revocation records its reason; a refusal grants nothing.
 - Company readers see the shared summary and the outcome history only: never private files, the
-  financial basis, identity-provider results or document metadata.
+  financial basis, identity-provider results or document metadata. A request names the investor in
+  the summary and in the company's list; a request sent before names were shared keeps its summary
+  as it was, without a name. A later change of name does not end an accepted decision, and a deleted
+  account's requests keep the name as shared.
 - Requests, decisions, withdrawals and revocations cannot be edited or deleted; a lost reply
   follows the [uncertain-outcome rule](README.md#when-the-outcome-is-uncertain).
 
@@ -363,9 +367,10 @@ permissions; changing personal details does not update a company's records. **Ac
 - **Export data** downloads the person's account data as a JSON file
   ([account-data export](../engineering/records.md#account-data-export)).
 - **Delete account** deactivates the account and removes the person's name, date of birth, phone
-  number and address. Citizenship, financial profile, wallets, verification records and share
-  register entries are kept. The confirmation says so, and the browser's copy of the account's data
-  is cleared once the server confirms.
+  number and address from their profile. Citizenship, financial profile, wallets, verification
+  records and share register entries are kept, and so are the eligibility requests they sent, with
+  their name as each company received it. The confirmation says so, and the browser's copy of the
+  account's data is cleared once the server confirms.
 
 For linked members, Profile also shows **Company-recorded details**: the person's name and residential address
 held by the selected company, with a company-reviewed update request and its status. These are

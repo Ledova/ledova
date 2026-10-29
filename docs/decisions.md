@@ -1764,7 +1764,10 @@ show people and, with the local walkthrough filled with demo data, chose to tidy
 cluttered pages ([#1424](https://github.com/Ledova/ledova/issues/1424)). So a company no longer
 hands out a **Company ID**: it copies a request link from **Company eligibility**, and the investor's
 request takes the company from that link or from their own companies, with the preview naming
-it.
+it. Asked how companies should know who is asking, the owner chose "Share it, with consent": the
+investor's profile name joins the summary they agree to share (summary version 2), the company's
+request list leads with it, requests already sent keep their summary, and a later name change
+leaves an accepted decision current.
 
 ## Mobile app for shareholders
 
