@@ -14,7 +14,7 @@ to the local API with these passwords.
 Open **http://localhost:5173/signin**. Sign out before using another account. Reuse the existing
 local PostgreSQL database `ledova_walkthrough_20261021`; do not reset it or recreate accounts for
 a fresh chat. A deliberate reset can invalidate these credentials and fixtures. It was rebuilt from
-#1421's fresh migrations, keeping every earlier record except the offerings #1421 removed, and the
+#1421's fresh migrations, keeping every earlier record except what #1421 removed, and the
 demo data below was added again on 30 October 2026 (see the note there); the earlier copy is
 `ledova_walkthrough_20261021_before_1421`.
 
@@ -115,7 +115,7 @@ since 27 October, were made active. Every other record below went through the AP
   same passwords, and every other record was added again through the API, so every record has its
   file. The walkthrough now runs from the main checkout, which holds its uploads.
 
-## Current handover — 29 October 2026
+## Current handover — 30 October 2026
 
 - The signed-in web UX walkthrough under [#1378](https://github.com/Ledova/ledova/issues/1378) is
   finished. The owner steered it live in Chrome on localhost, and every change merged after an

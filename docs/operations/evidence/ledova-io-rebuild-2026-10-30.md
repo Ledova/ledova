@@ -21,10 +21,10 @@ are created.
 
 - **Backup:** both databases, the roles, both media volumes, the configuration and the running
   image references, checksummed on the host and copied off it.
-- **Rehearsal:** on a throwaway PostgreSQL 16 and Redis pair on an internal network, with workers,
-  signers and integrations off. The backup restored with the expected counts. The new database
-  migrated, passed the system, role and catalogue checks and took the reference seeds. The backend
-  suite passed on the release image.
+- **Rehearsal:** on a throwaway PostgreSQL 16 and Redis pair on an internal Docker network, with no
+  worker running and no outside access. The backup restored with the expected counts. The new
+  database migrated, passed the system, role and catalogue checks and took the reference seeds. The
+  backend suite passed on the release image.
 - **Cutover:** a new database in the same cluster was migrated, checked and seeded while the old
   release still served. The new release then started with new media volumes, a separate Redis
   index and a new secret key, which also signs JWTs, so nothing issued before the rebuild
