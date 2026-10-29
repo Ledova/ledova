@@ -40,12 +40,14 @@ export function InspectionCopyHistory({
   owner,
   token,
   guard,
+  enabled,
 }: {
   owner: OrderSubmissionOwner;
   token: string;
   guard: () => void;
+  enabled: boolean;
 }) {
-  const copies = useInspectionCopies(owner, token, guard);
+  const copies = useInspectionCopies(owner, token, guard, enabled);
   return (
     <History
       title="Prepared copies"
@@ -53,7 +55,7 @@ export function InspectionCopyHistory({
       query={copies}
       render={(copy) => (
         <li key={copy.uuid} className="flex flex-col gap-1 py-3 text-sm">
-          <p className="font-medium text-text-primary">For {copy.recipient}</p>
+          <p className="break-words font-medium text-text-primary">For {copy.recipient}</p>
           <p className="text-text-muted">
             Requested {formatDate(copy.requestedOn)}
             {copy.late ? ' · provided late' : ''} · {prepared(copy.preparedAt, copy.preparedByName)}
@@ -69,12 +71,14 @@ export function CompanyPackHistory({
   owner,
   company,
   guard,
+  enabled,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
   guard: () => void;
+  enabled: boolean;
 }) {
-  const packs = useCompanyPacks(owner, company, guard);
+  const packs = useCompanyPacks(owner, company, guard, enabled);
   return (
     <History
       title="Prepared packs"
@@ -82,7 +86,7 @@ export function CompanyPackHistory({
       query={packs}
       render={(pack) => (
         <li key={pack.digest} className="flex flex-col gap-1 py-3 text-sm">
-          <p className="font-medium text-text-primary">For {pack.recipient}</p>
+          <p className="break-words font-medium text-text-primary">For {pack.recipient}</p>
           <p className="text-text-muted">
             {prepared(pack.preparedAt, pack.preparedByName)} · {pack.classes}{' '}
             {pack.classes === 1 ? 'share class' : 'share classes'}

@@ -731,7 +731,10 @@ prepare them in admin. The pack route is in [building the pack](#building-and-re
 
 Ledova keeps a fingerprint, not the file. Each output is recorded in `RegisterExport` once its bytes
 are built, with the requester's id, the class, the kind, the register sequence, the current- and
-former-member row counts and the time; a refused or failed output records nothing. Check constraints
+former-member row counts, the time and `produced_through`: `company` for the company's pages
+(inspection copies, certificates, member certificates and core packs) or `admin` for platform admin
+(notice figures and packs produced there), blank on records made before the route was stored; a
+refused or failed output records nothing. Check constraints
 require each kind's fields and refuse another kind's:
 
 - `register_csv`: the head's sequence and the member rows exported. No longer produced since the
@@ -750,7 +753,10 @@ A trigger refuses every update. The table is operator-only: the app role has no 
 route that touches it runs on the operator connection. Each output, from a company route, the
 staff register outputs page or either company pack, and each member certificate fulfilment records
 its row there. The register outputs page and the company pack read the existing rows to list the
-certificates and notice figures still owed. Staff query it in admin. Its purge is in
+certificates and notice figures still owed. Staff query it in admin. The class's Inspection copies
+and the company's Company pack pages list, to current register readers and administrators, only
+the inspection copies and packs whose route is `company`
+(`backend/tokens/services/output_history.py`). Its purge is in
 [retention clocks](security.md#retention-clocks).
 
 ## Output formats

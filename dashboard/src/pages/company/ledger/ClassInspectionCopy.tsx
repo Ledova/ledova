@@ -34,7 +34,7 @@ export function ClassInspectionCopy({
         onEditingChange={onEditingChange}
         onPrepared={() => void client.invalidateQueries({ queryKey: inspectionCopiesKey(owner, register.token.uuid) })}
       />
-      <InspectionCopyHistory owner={owner} token={register.token.uuid} guard={guard} />
+      <InspectionCopyHistory owner={owner} token={register.token.uuid} guard={guard} enabled={sourceReady} />
     </>
   );
 }
