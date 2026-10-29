@@ -12,7 +12,7 @@ import {
   useResolutionStatus,
   type Publication,
 } from '@ledova/shared';
-import { Disclosure, Row, Rows, Status, type Tone } from '@components/Ledger';
+import { Row, Rows, ShowMore, Status, type Tone } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 
 const PUBLICATION_WINDOW_TONES = new Map<string, Tone>([
@@ -81,32 +81,28 @@ export function PublicationRecord({
   const status = useResolutionStatus(publication);
   return (
     <article className="min-w-0 space-y-3 break-words py-3">
-      <Disclosure
-        summary={
-          <span className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-            <span className="min-w-0">
-              <span className="block break-words text-sm font-medium text-text-primary">{publication.title}</span>
-              <span className="block text-sm text-text-muted">
-                {PUBLICATION_KIND_LABELS[publication.kind]} · {publication.tokenName} ({publication.tokenSymbol})
-              </span>
-            </span>
-            <span className="space-y-1 text-sm text-text-muted sm:text-right">
-              {status !== null && (
-                <Status tone={PUBLICATION_WINDOW_TONES.get(status) ?? 'closed'}>
-                  {status === 'upcoming'
-                    ? PUBLICATION_COPY.NOT_OPEN_YET
-                    : status === 'open'
-                      ? 'Voting is open'
-                      : PUBLICATION_COPY.CLOSED}
-                </Status>
-              )}
-              <span className="block">Published {formatDate(publication.createdAt)}</span>
-            </span>
-          </span>
-        }
-      >
+      <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <div className="min-w-0">
+          <h3 className="break-words text-sm font-medium text-text-primary">{publication.title}</h3>
+          <p className="text-sm text-text-muted">
+            {PUBLICATION_KIND_LABELS[publication.kind]} · {publication.tokenName} ({publication.tokenSymbol})
+          </p>
+        </div>
+        <div className="space-y-1 text-sm text-text-muted sm:text-right">
+          {status !== null && (
+            <Status tone={PUBLICATION_WINDOW_TONES.get(status) ?? 'closed'}>
+              {status === 'upcoming'
+                ? PUBLICATION_COPY.NOT_OPEN_YET
+                : status === 'open'
+                  ? 'Voting is open'
+                  : PUBLICATION_COPY.CLOSED}
+            </Status>
+          )}
+          <p>Published {formatDate(publication.createdAt)}</p>
+        </div>
+      </div>
+      <ShowMore show="Show details" hide="Hide details">
         <Rows>
-          <Row label="Company">{publication.companyName}</Row>
           <Row label={PUBLICATION_COPY.RECORD_DATE_LABEL}>{formatDate(publication.recordDate)}</Row>
         </Rows>
         <ResolutionRecord publication={publication} status={status} />
@@ -119,7 +115,7 @@ export function PublicationRecord({
             {publication.paymentDate && <Row label="Payment date">{formatDate(publication.paymentDate)}</Row>}
           </Rows>
         )}
-      </Disclosure>
+      </ShowMore>
       <FormActions>
         <PageAction
           primary

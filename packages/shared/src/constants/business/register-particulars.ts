@@ -44,7 +44,6 @@ export const REGISTER_PARTICULARS_COPY = {
     reject: 'Reject this change with the reason given.',
   } as Record<RegisterDecisionKind, string>,
   REJECTION_REASON: 'Reason for rejection',
-  MEMBER: 'Member',
   UNNAMED_MEMBER: 'A member not named on the current register',
   CURRENT_PARTICULARS: 'Current particulars',
   NO_CURRENT_PARTICULARS: 'No particulars are recorded for this member yet.',

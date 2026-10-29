@@ -8,7 +8,7 @@ import {
   type RegisterLink,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Row, Rows, Disclosure } from '@components/Ledger';
+import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -56,10 +56,8 @@ export function LinkRecord({
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
-        <Disclosure
-          summary={`Wallet link · ${formatDateTime(link.createdAt)} · ${COPY.STAGES[link.stage] ?? link.stage}`}
-          defaultOpen={link.status === 'submitted'}
-        >
+        <>
+          <h3 className="font-medium text-text-primary">Wallet link</h3>
           <Rows>
             <RecordStage stage={link.stage}>{COPY.STAGES[link.stage] ?? link.stage}</RecordStage>
             {link.preparedByName !== null && <Row label="Prepared by">{link.preparedByName || 'Not provided'}</Row>}
@@ -86,7 +84,7 @@ export function LinkRecord({
           <p className="text-sm text-text-muted">
             {link.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
           </p>
-        </Disclosure>
+        </>
       )}
       <FormActions>
         {downloadAction}

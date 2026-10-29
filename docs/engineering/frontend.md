@@ -818,7 +818,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
   Member access.
   Corrections shows immutable recorded entries in rows that don't expand, and retained supporting records
-  with details and permitted downloads on demand, alongside their capability-guarded append-only maintenance workflows. Register-read
+  as titled records with their details and permitted downloads, alongside their capability-guarded append-only maintenance workflows. Register-read
   access alone grants no mutation. Inspection copies keeps class inspection-copy preparation;
   Company pack stays at company scope. `documentTask` isolates one focused output form in the existing
   frame. Its keyed forms retire previews when their context or source readiness changes; draft

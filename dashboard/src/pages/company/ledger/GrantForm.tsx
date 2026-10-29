@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './useGrantPreparation';
 
@@ -7,7 +7,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
-import { Disclosure } from '@components/Ledger';
+import { MoreToggle } from '@components/Ledger';
 
 const DOCUMENTS: Record<DocumentKind, string> = {
   authority: COPY.AUTHORITY_DOCUMENT,
@@ -50,6 +50,7 @@ export function GrantForm({
   });
   const checks = useErrorSummary(model?.problems ?? {});
   const [awardDetails, setAwardDetails] = useState(false);
+  const awardDetailsId = useId();
   if (model === null) return null;
   const {
     today,
@@ -155,20 +156,31 @@ export function GrantForm({
             </Field>
           </div>
           {award ? (
-            <Disclosure
-              summary="Award record details"
-              open={awardDetails || !!checks.field('termsOn').error || !!checks.field('terms').error}
-              onToggle={() => setAwardDetails((current) => !current)}
-              keepMounted
-            >
-              <p className="text-sm text-text-muted">{recipientAddress}</p>
-              <Field {...checks.field('termsOn')} label={COPY.TERMS_ON}>
-                <TextInput type="date" max={today} value={retainedDate} disabled />
-              </Field>
-              <Field {...checks.field('terms')} label={COPY.TERMS}>
-                <TextArea maxLength={FIELD_LIMITS.TERMS} rows={3} value={retainedSummary} disabled />
-              </Field>
-            </Disclosure>
+            <div className="flex flex-col gap-3">
+              <MoreToggle
+                open={awardDetails || !!checks.field('termsOn').error || !!checks.field('terms').error}
+                controls={awardDetailsId}
+                disabled={!!checks.field('termsOn').error || !!checks.field('terms').error}
+                onToggle={() => setAwardDetails((current) => !current)}
+              >
+                {awardDetails || !!checks.field('termsOn').error || !!checks.field('terms').error
+                  ? 'Hide award record details'
+                  : 'Show award record details'}
+              </MoreToggle>
+              <div
+                id={awardDetailsId}
+                hidden={!(awardDetails || !!checks.field('termsOn').error || !!checks.field('terms').error)}
+                className="flex flex-col gap-4"
+              >
+                <p className="text-sm text-text-muted">{recipientAddress}</p>
+                <Field {...checks.field('termsOn')} label={COPY.TERMS_ON}>
+                  <TextInput type="date" max={today} value={retainedDate} disabled />
+                </Field>
+                <Field {...checks.field('terms')} label={COPY.TERMS}>
+                  <TextArea maxLength={FIELD_LIMITS.TERMS} rows={3} value={retainedSummary} disabled />
+                </Field>
+              </div>
+            </div>
           ) : (
             <fieldset className="min-w-0 space-y-4">
               <legend className="sr-only">Agreement</legend>

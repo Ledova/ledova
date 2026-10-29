@@ -9,7 +9,7 @@ import {
   shareCount,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows, Status, Disclosure } from '@components/Ledger';
+import { Row, Rows, Status, ShowMore } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -110,7 +110,7 @@ export function GrantRecord({
               </>
             }
           />
-          <Disclosure summary="Details and documents">
+          <ShowMore show="Show details and documents" hide="Hide details and documents">
             <p className="text-sm text-text-muted">
               {grant.stage === 'applied'
                 ? 'These shares are issued ownership. An employee award and its vesting records remain separate.'
@@ -131,7 +131,7 @@ export function GrantRecord({
             <GrantRows grant={grant} />
             <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
             {documentsView}
-          </Disclosure>
+          </ShowMore>
         </>
       )}
       <RegisterDecisions

@@ -169,8 +169,8 @@ A grant on a class with no contract is a register entry only; a chain grant mint
 register records the issue once the mint is final.
 
 On the web, the first three paths start from Ledger's **Issue shares** task. Choose the class to
-read its issues, each with its recipient, stage, key figures and next action. Details and documents
-open on demand. **Prepare issue**, beneath the records, asks **What kind of issue?**:
+read its issues, each with its recipient, stage, key figures and next action, and **Show details
+and documents** for the rest. **Prepare issue**, beneath the records, asks **What kind of issue?**:
 
 - **Investor issue** opens the external allotment form.
 - **Non-paid issue** opens the non-paid grant form, in place.

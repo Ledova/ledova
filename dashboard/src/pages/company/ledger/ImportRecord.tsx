@@ -1,4 +1,3 @@
-import { useId, useState } from 'react';
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
@@ -12,7 +11,7 @@ import {
   type RegisterImport,
   type RegisterImportDecisionPreview,
 } from '@ledova/shared';
-import { MoreToggle, Row, Rows } from '@components/Ledger';
+import { Row, Rows, ShowMore } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -86,8 +85,6 @@ export function ImportRecord({
   const check = useRegisterTaskGuard(visible, guard);
   const download = useImportRecordDownload(proposal, check);
   const totals = registerImportTotals(proposal.members);
-  const [showMembers, setShowMembers] = useState(proposal.status === 'submitted');
-  const membersId = useId();
   const downloadActions = (
     <>
       {(proposal.registerEvidence || proposal.sourceDocument) && (
@@ -151,14 +148,13 @@ export function ImportRecord({
             {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}
           </p>
           {totals.count > 0 && (
-            <>
-              <MoreToggle open={showMembers} controls={membersId} onToggle={() => setShowMembers((shown) => !shown)}>
-                {showMembers ? 'Hide the shareholders' : `Show the shareholders (${totals.count})`}
-              </MoreToggle>
-              <div id={membersId} hidden={!showMembers}>
-                <MemberRecords members={proposal.members} />
-              </div>
-            </>
+            <ShowMore
+              show={`Show the shareholders (${totals.count})`}
+              hide="Hide the shareholders"
+              defaultOpen={proposal.status === 'submitted'}
+            >
+              <MemberRecords members={proposal.members} />
+            </ShowMore>
           )}
         </>
       )}

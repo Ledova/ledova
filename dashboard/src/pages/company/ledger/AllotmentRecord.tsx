@@ -11,7 +11,7 @@ import {
   formatMoney,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows, Status, Disclosure } from '@components/Ledger';
+import { Row, Rows, Status, ShowMore } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -130,7 +130,7 @@ export function AllotmentRecord({
               </>
             }
           />
-          <Disclosure summary="Details and documents">
+          <ShowMore show="Show details and documents" hide="Hide details and documents">
             <p className="text-sm text-text-muted">
               {allotment.stage === 'applied'
                 ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
@@ -151,7 +151,7 @@ export function AllotmentRecord({
             <AllotmentRows allotment={allotment} />
             <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
             {documentsView}
-          </Disclosure>
+          </ShowMore>
         </>
       )}
       <RegisterDecisions

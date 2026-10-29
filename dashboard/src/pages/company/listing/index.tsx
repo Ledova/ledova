@@ -8,7 +8,7 @@ import {
   useCompanySelection,
 } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { Disclosure, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
+import { ShowMore, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -81,7 +81,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                 </div>
               )}
               {events.length > 0 && (
-                <Disclosure summary="Historical record">
+                <ShowMore show="Show the historical record" hide="Hide the historical record">
                   <Timeline events={events} />
                   {company.rejectionReason && (
                     <p className="text-sm text-text-muted">Rejection reason: {company.rejectionReason}</p>
@@ -95,7 +95,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                   {company.additionalInfoResponse && (
                     <p className="text-sm text-text-muted">Previous response: {company.additionalInfoResponse}</p>
                   )}
-                </Disclosure>
+                </ShowMore>
               )}
               {action.canActivate && (
                 <FormActions>

@@ -155,7 +155,12 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   cards, aligned right. Actions do not wait for a row to be selected.
 - `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
   that shows or hides long optional content in place, such as **Show all 5 share changes** or
-  **Show other certificate requests (2)**. Certificates, Corrections' **Changes**, Member access,
+  **Show other certificate requests (2)**. `ShowMore` pairs it with the content it shows: a saved
+  issue or transfer record and its review start with **Show details and documents** closed, and
+  long lists sit behind **Show other shareholders (N)**, **Show former shareholders (N)**, **Show
+  the holdings (N)** or **Show execution history**. Corrections' corrections, particulars changes
+  and wallet links are titled records with their details shown, and people without shares show
+  their address beneath their name. Certificates, Corrections' **Changes**, Member access,
   Member requests and Team rows don't expand: each shows its facts and status, with its permitted action right-aligned
   at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's
@@ -165,7 +170,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   given as text takes the one summary style. Activity's entries and Wallet shares' rows (opened
   independently through `useOpenRows` from `@ledova/shared`) and Wallets' sort
   hold their detail only while open; every other `Disclosure` keeps its detail mounted while closed,
-  so unfinished input survives. Saved issue and transfer records start with their details closed. The
+  so unfinished input survives. The
   sidebar's group caret is a separate navigation button. Wallets' sort (once a chain holds two
   wallets) remains a `Disclosure` at the top of the card naming what it applies. Substantial record
   reviews use the main page; brief confirmations and signing steps can use dialogs.
@@ -223,18 +228,18 @@ labels and the same responsive grid. While an award editor is open, its footer o
 hide unrelated record actions instead of leaving a disabled row above the form.
 Non-paid issue preparation groups **Issue details** and **Company authority** in the same responsive
 grid. Show an award recipient and available vested shares once; its retained agreement belongs
-under **Award record details**, with read-only validation targets that open on error. Ordinary non-paid terms stay
+behind **Show award record details**, with read-only validation targets that open on error. Ordinary non-paid terms stay
 editable fields. Keep the required fields and guards, without repeated descriptions or routine
 upload hints, and show recovery guidance only while the original preparation is held.
 Issue records align the recipient and issue type, shares, company issue date and status in the
 same labelled summary grid, with the investor amount where relevant. Keep the issued or not-issued
 fact beside the status and use the recipient as the record heading, without separate family headings.
 Longer state explanations, compliance responsibilities, terms, history and downloads open under
-Details and documents.
+**Show details and documents**.
 Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
-Details and documents. Emphasise the review for the current stage. Keep transfer preparation beside
+**Show details and documents**. Emphasise the review for the current stage. Keep transfer preparation beside
 the final record's decision actions in one right-aligned row, wrapping only when needed; an empty
 collection keeps its own preparation row.
 Hide a successfully read empty family when another has records,
@@ -343,8 +348,8 @@ effect. Non-paid and employee-award issues use the same page review, with award 
 impact and company authority grouped, and terms and documents on demand. Their approval remains separate from
 **Record issue**; approval alone changes no holding. Rejection also uses page review.
 Web particulars changes use the same focused page review, with current and proposed name, address
-and as-at date in equal columns on wide screens and stacked on smaller screens. The reason and
-supporting document open on demand. Hide unrelated class records and selectors while reviewing,
+and as-at date in equal columns on wide screens and stacked on smaller screens, with the reason and
+supporting document beneath. Hide unrelated class records and selectors while reviewing,
 without unmounting their controllers. Approval and application remain separate company decisions.
 Other decision families and separate API decisions keep their existing workflow.
 
@@ -355,7 +360,7 @@ Company information and personal Profile details follow this pattern. Activation
 company and declaration on the main page before explicit confirmation. Supporting payslips use
 compact document records with extraction details on demand and warnings visible in the expanded record;
 uploading opens an inline form.
-Class rights follows this pattern: Edit replaces its read view and Previous versions with six
+Class rights follows this pattern: Edit replaces its read view and previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
 details beside their choice; combine conditions, exceptions and custom rights in Additional terms

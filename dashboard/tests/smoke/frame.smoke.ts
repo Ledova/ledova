@@ -386,11 +386,9 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   for (const name of ['Account status', 'Security', 'Preferences', 'Data and privacy', 'Supporting payslips'])
     await expect(page.getByRole('heading', { name, exact: true })).toHaveCount(0);
-  const manageAccount = page.getByRole('button', { name: 'Manage account', exact: true });
-  await manageAccount.click();
+  await expect(page.getByRole('heading', { name: 'Manage account', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export data', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Delete account', exact: true })).toBeVisible();
-  await manageAccount.click();
   if (role === 'both') {
     await page.getByRole('button', { name: 'Edit company', exact: true }).click();
     await page.getByRole('textbox', { name: 'Trading name', exact: true }).fill('Unsent company draft');

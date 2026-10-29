@@ -6,7 +6,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberFields } from './MemberFields';
 import { blankMember, type PreparationDraft, type MemberDraft } from './preparation';
-import { Disclosure } from '@components/Ledger';
+import { ShowMore } from '@components/Ledger';
 
 export function BringRecords({
   draft,
@@ -228,7 +228,7 @@ export function BringRecords({
               </div>
             )}
           </fieldset>
-          <Disclosure summary="Company source copies">
+          <ShowMore show="Show company source copies" hide="Hide company source copies">
             {draft.earlierCopiesNotReused && (
               <p className="text-sm text-text-muted">
                 Earlier source documents remain with their original record. Add replacement documents if needed.
@@ -271,7 +271,7 @@ export function BringRecords({
                 />
               </fieldset>
             )}
-          </Disclosure>
+          </ShowMore>
         </>
       )}
     </>

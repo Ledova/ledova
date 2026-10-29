@@ -9,7 +9,7 @@ import {
   registerImportTotals,
   refusalSentences,
 } from '@ledova/shared';
-import { Row, Rows, Disclosure, Section, Status } from '@components/Ledger';
+import { Row, Rows, ShowMore, Section, Status } from '@components/Ledger';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { FormSteps } from '@components/FormSteps';
@@ -262,7 +262,7 @@ export function ImportForm({
                   proposal.asicMemberCount !== null ||
                   proposal.registerEvidence ||
                   proposal.asicEvidence) && (
-                  <Disclosure summary="Supporting records">
+                  <ShowMore show="Show supporting records" hide="Hide supporting records">
                     <Rows>
                       {(proposal.sourceReference || proposal.authorityReference) !==
                         'Company-provided share records' && (
@@ -279,7 +279,7 @@ export function ImportForm({
                       )}
                       {proposal.asicEvidence && <Row label="ASIC copy">Retained company-provided extract</Row>}
                     </Rows>
-                  </Disclosure>
+                  </ShowMore>
                 )}
                 <MemberRecords members={proposal.members} />
                 {!!proposal.formerMembers.length && (

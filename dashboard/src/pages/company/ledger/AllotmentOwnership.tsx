@@ -5,7 +5,7 @@ import {
   shareCount,
   shortReference,
 } from '@ledova/shared';
-import { Disclosure } from '@components/Ledger';
+import { ShowMore } from '@components/Ledger';
 import { Table } from '@components/List';
 
 export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDecisionPreview }) {
@@ -48,9 +48,9 @@ export function AllotmentOwnership({ preview }: { preview: RegisterAllotmentDeci
     <section className="space-y-3" aria-label={COPY.OWNERSHIP_TITLE}>
       {table(impact.rows.length > 5 ? impact.rows.slice(0, 1) : impact.rows, 'Share class ownership forecast')}
       {impact.rows.length > 5 && (
-        <Disclosure summary={`Other shareholders (${impact.rows.length - 1})`}>
+        <ShowMore show={`Show other shareholders (${impact.rows.length - 1})`} hide="Hide other shareholders">
           {table(impact.rows.slice(1), 'Other shareholder ownership forecast')}
-        </Disclosure>
+        </ShowMore>
       )}
     </section>
   );

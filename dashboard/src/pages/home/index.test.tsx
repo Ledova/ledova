@@ -738,7 +738,7 @@ it('invites and associates a walletless member, recovers one exact request and r
       .getAllByRole('definition')
       .map((item) => item.textContent),
   ).toEqual([MEMBER_RECORD.name, MEMBER_RECORD.residentialAddress]);
-  const previousParticulars = await screen.findByRole('button', { name: 'Previous requests' });
+  const previousParticulars = await screen.findByRole('button', { name: /^Show previous requests/ });
   expect(previousParticulars.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(previousParticulars);
   expect(
