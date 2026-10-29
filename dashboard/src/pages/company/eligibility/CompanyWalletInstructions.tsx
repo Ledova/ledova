@@ -387,7 +387,6 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
             )
           )}
           {data.companyUuid &&
-            data.canRead &&
             (preparing === data.scopeKey ? (
               <Preparation
                 key={data.scopeKey}
@@ -399,14 +398,16 @@ export function CompanyWalletInstructions({ active = true }: { active?: boolean 
                 }}
               />
             ) : (
-              <FormActions>
-                <PageAction
-                  ref={opener}
-                  label="Approve or remove a wallet"
-                  disabled={data.busy || !!data.original || !data.steps.prepare}
-                  onClick={() => setPreparing(data.scopeKey)}
-                />
-              </FormActions>
+              data.canRead && (
+                <FormActions>
+                  <PageAction
+                    ref={opener}
+                    label="Approve or remove a wallet"
+                    disabled={data.busy || !!data.original || !data.steps.prepare}
+                    onClick={() => setPreparing(data.scopeKey)}
+                  />
+                </FormActions>
+              )
             ))}
         </>
       )}
