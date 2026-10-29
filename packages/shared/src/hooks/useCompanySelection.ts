@@ -6,7 +6,7 @@ import type { Company, CompanyListItem, UserPreferences } from '../types';
 import { readEveryPage } from '../utils/pagination';
 import { createUserFriendlyError } from '../utils/errors';
 import { AUTH_QUERY_KEY } from './useAuth';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 import { useApiClient } from './useApiClient';

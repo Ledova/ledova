@@ -18,7 +18,7 @@ import type { CompanyAuthorityRequest, Company, CompanyCapability, OwnCompanyApp
 import { failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 

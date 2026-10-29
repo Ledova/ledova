@@ -61,14 +61,3 @@ export const OFFERING_EXEMPTION_LABELS: Record<OfferingExemption, string> = {
 export const OFFERING_WITHDRAWABLE_STATUSES: OfferingStatus[] = ['draft', 'submitted', 'under_review', 'rejected'];
 
 export const OFFERING_PUBLISHED_STATUSES: OfferingStatus[] = ['approved', 'closed'];
-
-export const DIRECTORY_COPY = {
-  INELIGIBLE_TITLE: 'Check your investor account',
-  MARKET_INELIGIBLE_BODY:
-    'Your account and configured identity checks must be ready. Each company separately decides whether ' +
-    'you may trade its share classes.',
-  MARKET_EMPTY_TITLE: 'No share classes available for your account',
-  MARKET_EMPTY_BODY:
-    'The market shows deployed share classes covered by your current company decisions for secondary trading. ' +
-    'A company acceptance for an associated-person or product-value request does not grant secondary access.',
-} as const;

@@ -476,9 +476,10 @@ value in a twelve-month period, on condition the operator is named on ASIC's
 register; it sunsets on 1 October 2026 and ASIC has consulted (CS 60) on
 remaking it with the value cap raised to $2.5 million.
 
-**What the code does.** Secondary [trading](../business/trading.md) exists
-behind the `trading_enabled` flag, which a data migration turns on by default and
-an operator can turn off. The register itself lets nobody post an offer.
+**What the code does.** Secondary [trading](../business/trading.md) exists in the
+API behind the `trading_enabled` flag, which a data migration turns on by default and
+an operator can turn off; the web app has had no Market page since 29 October 2026.
+The register itself lets nobody post an offer.
 
 **The position.** A register of members, with transfers entered on instruction
 after the parties have agreed elsewhere, is not a facility through which offers

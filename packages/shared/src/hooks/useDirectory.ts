@@ -1,4 +1,3 @@
-import { INVESTOR_ELIGIBILITY_QUERY_KEY } from './useMarket';
 import { useQuery } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
@@ -10,6 +9,7 @@ import { failureStatus } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 
 export const DIRECTORY_QUERY_KEY = ['directory'] as const;
+export const INVESTOR_ELIGIBILITY_QUERY_KEY = ['investor-eligibility'] as const;
 export { OPERATOR_QUERY_KEY } from './useOperator';
 
 export function useDirectoryTokens() {

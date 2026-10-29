@@ -55,7 +55,7 @@ frame share, and `packages/shared` holds what both clients share.
 | `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                             |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                                                                  |
-| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `TradingRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                   |
+| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                                   |
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `qr/`, and single components several areas show (`AwardStatus.tsx`) |
 | `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                             |
@@ -189,7 +189,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   ([loading, empty and error states](frontend-ux.md#loading-empty-and-error-states)).
 - **Formatting.** Figures, amounts and dates use the shared formatters (`formatMoney`,
   `formatShareCount`, `shareCount`, `shareChange`, `sharePercentage`, `marketQuantity`,
-  `marketShares`, `formatCryptoBalance`, `formatDate`, `formatDateTime`;
+  `formatCryptoBalance`, `formatDate`, `formatDateTime`;
   [dates, numbers and identifiers](frontend-ux.md#dates-numbers-and-identifiers)).
   Never define a local formatter or pass a displayed amount through `Number` or `parseFloat`. The
   exception is a market value `useCurrency` converts to AUD, because its rate is a number.
@@ -275,8 +275,7 @@ with audience `everyone` and title Dashboard).
 `everyone` and `company` pages, and a dual-role account all; a role outside the API's list opens
 only `everyone` pages. `landingFor(role)` is `/company/ledger` for a company or dual-role account
 and `/home` otherwise. It receives a refused address (replacing it), a signed-in visitor on the
-create-account page, Market while `trading_enabled` is off (`TradingRoute`) and a finished
-non-company account that opens a sign-up step.
+create-account page and a finished non-company account that opens a sign-up step.
 
 `/` (`RootRedirect`) sends a signed-out visitor to sign in and an unfinished account into sign-up:
 to `/signup/company-registration` when the account may open company pages and its full name has more
@@ -323,13 +322,18 @@ and web-only destinations by their address. Ledger's label opens its overview; a
 expands Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`),
 marking the active child and opening the group on Ledger routes. The web replaces an incoming
 `#history` with `#corrections` without dropping company/class context; shared task names retain
-History. Shareholders' label opens its people list, with the same caret pattern for ESS, Member
-access and Member requests.
-Documents opens one Certificates page (`/documents/certificates`), with Company documents
-(`/documents/company`), Inspection copies and Company pack where company access permits them. There is no separate Your certificates item. Legacy
+History. Shareholders' label opens its people list, with the same caret pattern for Employee scheme,
+Member access and Member requests.
+Documents opens one Certificates page (`/documents/certificates`), with Supporting (Company
+documents, `/documents/company`), Published (Published to your members, `/company/publications`, for
+the company's own account), Inspection copies and Company pack where company access permits them. There is no separate Your certificates item. Legacy
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
 preserving company, class and navigation state. A group without a meaningful overview opens its
 default child, without an extra Overview page or duplicate navigation.
+Offerings (`/company/offering`) follows Documents for the company's own account (`isOwner` with the
+company role), and Company eligibility (`/company/eligibility`) for an administrator or a prepare or
+approve appointee (`canReviewEligibility`). Activity (`/transactions`), the person's own wallet
+transfers, sits above Settings in every company context.
 Settings uses the same one-level pattern: Profile, Team and Activation where permitted. Its default
 is Profile (`/settings#profile`), combining personal details, permitted company information, a
 linked member's Company-recorded details and one compact Account card for identity status,
@@ -339,14 +343,13 @@ to Profile, and `/company#documents` redirects to Company documents.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
 Team remains available for company-invitation acceptance; Profile keeps an acceptance
 entry under Manage account before company access is granted. The sidebar has no More group or Help & Support link;
-their underlying routes retain existing audience and permission checks. Team keeps Representative
+pages without a sidebar item retain their existing audience and permission checks. Team keeps Representative
 authority as a contextual task, with its existing owner and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
 stay siblings where the selected company's current access permits them. Certificates combines the
 permitted company records and the person's own linked records in one list; company output actions
 still require register access, and member actions require a current association.
-Market still requires the investing role and `trading_enabled` ([the app at a
-glance](../business/README.md#the-app-at-a-glance)). Direct Settings children have their own active item
+Direct Settings children have their own active item
 and omit Back to Settings; a contextual page marks its nearest sidebar parent, such as Team
 on Representative authority and Shareholders on a shareholder's page. The register hashes switch the
 visible view without unmounting register forms or their recovery ([page mechanics](#page-mechanics)).
@@ -422,9 +425,7 @@ or failure.
 On the web, signing in and verifying an email (which also signs a new person in) remove every cached
 query except the authentication root, then await an exact authentication refetch. Signing out and
 account deletion mark authentication invalid before clearing the whole cache. These two reset
-sequences share `dashboard/src/utils/session.ts`. The four device stores share the synchronous
-`dashboard/src/services/browserStorage.ts` adapter, resolving browser storage when each operation
-runs. Mobile clears the whole cache whenever the sign-in screen gains focus, and on sign-out and
+sequences share `dashboard/src/utils/session.ts`. Mobile clears the whole cache whenever the sign-in screen gains focus, and on sign-out and
 account deletion. A new person is never guarded by, or signs up against, the previous person's
 account. Mobile adds a session epoch to every read and write ([session scope](mobile.md#session-scope)).
 
@@ -731,7 +732,6 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                        | `/wallets/holdings`                                                                                                                                                          | everyone  |
 | [Verification, Your company eligibility](../business/participants.md#the-verification-page)                  | `/investor-eligibility`, `/eligibility-requests`                                                                                                                             | investing |
 | [Directory, Applications](../business/participants.md#the-directory-page)                                    | `/directory`, `/directory/:uuid`, `/subscriptions`, `/subscriptions/:uuid`                                                                                                   | investing |
-| [Market](../business/trading.md#the-market-page)                                                             | `/trading`                                                                                                                                                                   | investing |
 | [Wallets](../business/trading.md#the-wallets-page)                                                           | `/wallets`                                                                                                                                                                   | everyone  |
 | [Activity](../business/trading.md#the-activity-page)                                                         | `/transactions`                                                                                                                                                              | everyone  |
 | [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default); aliases `/user-profile`, `/company`, `/settings#account`, `/settings#company-recorded-details`                                                | everyone  |
@@ -788,7 +788,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
-  Member requests, Employee share scheme (ESS), Inspection copies and Company pack views by hash.
+  Member requests, Employee share scheme, Inspection copies and Company pack views by hash.
   Legacy certificate hashes redirect to the dedicated Certificates page.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
@@ -824,7 +824,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   frame. Its keyed forms retire previews when their context or source readiness changes; draft
   retention depends on each form's lifetime. Current appointment and exact-source validation still
   apply. Supporting attachments stay with their person, class or company Settings; member-request
-  fulfilment stays under Shareholders. ESS uses the
+  fulfilment stays under Shareholders. Employee share scheme uses the
   shared class-card spacing and shows only the selected class, with one preparation action below its records.
   Share class selection lives in the page heading's Filters popover and locks while award preparation or its recovery is open; all class controllers stay
   mounted. Preparation replaces that class's award list while preserving its controllers. Each award row
@@ -888,8 +888,6 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   its fixed-price total in integer cents with `BigInt`
   (`packages/shared/src/utils/applicationAmount.ts`); Applications shows the recorded values without
   recomputing them, and a copy failure keeps the value available.
-- Market: owned order history reads independently of listed classes and wallets. Device-saved work
-  ([order submissions](trading-protocols.md)) is read when Market loads and after each recovery.
 - Wallets: reads every wallet page into a ledger of its own. Native balances are formatted by
   `formatCryptoBalance` (`packages/shared/src/utils/formatting.ts`) and ordered by decimal-string
   comparison (`sortWallets` in `packages/shared/src/hooks/useWalletSort.ts`). On the web every Sync

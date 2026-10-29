@@ -237,15 +237,19 @@ administers a company and holds its shares sees that company once, with their ow
 the company information they may read. The sidebar keeps focused tasks for the selected company:
 
 - Ledger opens the class overview, with Issue shares, Transfer shares and Corrections beneath it.
-  Shareholders opens the people list, with ESS, Member access and Member requests. Documents opens
-  one Certificates page for company and member records, with Company documents, Inspection copies and
-  Company pack where company access permits them. Matching company and own records appear once.
-- Settings keeps personal Profile and Account, with company information, Team and Activation according
+  Shareholders opens the people list, with Employee scheme, Member access and Member requests.
+  Documents opens one Certificates page for company and member records, with Supporting (company
+  documents), Published (what the company published to its members), Inspection copies and Company
+  pack where company access permits them. Matching company and own records appear once.
+- Offerings follows for the company's own account, and Company eligibility for its administrators and
+  the people appointed to prepare or approve.
+- Activity, the person's own wallet transfers, and Settings come last whatever company is selected.
+  Settings keeps personal Profile and Account, with company information, Team and Activation according
   to current access. Profile also shows the details a company holds about a linked member.
 
-The sidebar has no More group or Help & Support link. Existing offering, publication, eligibility,
-investing and wallet routes retain their access rules. The person's name and selected company sit
-together in the footer while the navigation scrolls above them.
+The sidebar has no More group or Help & Support link. Investing and wallet pages without a sidebar
+item retain their access rules. The person's name and selected company sit together in the footer
+while the navigation scrolls above them.
 
 There is no workspace selector. Signing in opens the company the person used last in that browser,
 or the first in their list. Company selection grants no authority: appointments and real member

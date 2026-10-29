@@ -6,11 +6,15 @@ import {
   BookOpenIcon,
   FilesIcon,
   UsersThreeIcon,
+  MegaphoneIcon,
+  ShieldCheckIcon,
+  LinkIcon,
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
 import { DESTINATIONS, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
+import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { Logo } from './Logo';
@@ -54,12 +58,19 @@ const COMPANY: NavItem[] = [
   { destination: 'companyRegister', view: 'certificates', icon: FilesIcon },
 ];
 
+const OFFERINGS: NavItem = { destination: 'companyOffering', icon: MegaphoneIcon };
+
+const ELIGIBILITY: NavItem = { destination: 'companyEligibility', icon: ShieldCheckIcon };
+
 const PERSONAL: NavItem[] = [
   { destination: 'home', icon: HouseIcon },
   { destination: 'home', view: 'documents', icon: FilesIcon },
 ];
 
-const YOURS: NavItem[] = [{ destination: 'settings', icon: GearIcon }];
+const YOURS: NavItem[] = [
+  { destination: 'transactions', icon: LinkIcon },
+  { destination: 'settings', icon: GearIcon },
+];
 
 const ITEM_CLASS = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors';
 const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary';
@@ -314,7 +325,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
             aria-disabled={blocks(key) || undefined}
             className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocks(key) ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            {key === 'awards' ? 'ESS' : label}
+            {key === 'awards' ? 'Employee scheme' : label}
           </Link>
         ))}
       </div>
@@ -324,6 +335,7 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
 
 function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
   const companyContext = useCompanyContext();
+  const { isCompany } = useRole();
   const location = useLocation();
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
@@ -336,14 +348,16 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
       ? 'certificates'
       : location.pathname === COMPANY_DOCUMENTS_PATH
         ? 'company-documents'
-        : location.pathname === path
-          ? documentView(location.hash.slice(1))
-          : undefined;
+        : location.pathname === DESTINATIONS.companyPublications.path
+          ? 'publications'
+          : location.pathname === path
+            ? documentView(location.hash.slice(1))
+            : undefined;
   const context = ledgerContext(location, state, companyContext?.companyUuid);
   const certificateTarget = certificatesLocation({ search: '', state: context });
   const certificatePath = `${certificateTarget.pathname}${certificateTarget.search}`;
   const certificatesBlocked = location.pathname === path && !!state?.held;
-  const links: { key: string; label: string; to: string; blocked: boolean }[] = DOCUMENT_VIEWS.filter(
+  const links: { key: string; label: string; title?: string; to: string; blocked: boolean }[] = DOCUMENT_VIEWS.filter(
     ({ key }) => key === 'certificates' || companyContext?.company?.canReadRegister,
   ).map(({ key, label }) => ({
     key,
@@ -351,10 +365,19 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
     to: key === 'certificates' ? certificatePath : `${path}#${key}`,
     blocked: key === 'certificates' && certificatesBlocked,
   }));
+  if (companyContext?.company?.isOwner && isCompany)
+    links.splice(1, 0, {
+      key: 'publications',
+      label: 'Published',
+      title: pageTitle('companyPublications'),
+      to: DESTINATIONS.companyPublications.path,
+      blocked: certificatesBlocked,
+    });
   if (companyContext?.company?.canManage)
     links.splice(1, 0, {
       key: 'company-documents',
-      label: 'Company documents',
+      label: 'Supporting',
+      title: 'Company documents',
       to: COMPANY_DOCUMENTS_PATH,
       blocked: certificatesBlocked,
     });
@@ -396,11 +419,12 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
         </button>
       </div>
       <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-        {links.map(({ key, label, to, blocked }) => (
+        {links.map(({ key, label, title, to, blocked }) => (
           <Link
             key={key}
             to={companyContext?.companyPath(to) ?? to}
             state={context}
+            title={title}
             onClick={(event) => {
               if (blocked) event.preventDefault();
               else onNavigate?.();
@@ -495,14 +519,19 @@ interface SidebarProps {
 export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps = {}) {
   const location = useLocation();
   const context = useCompanyContext();
+  const { isCompany } = useRole();
   const settings = useSettingsNavigation();
   const companyTasks = !!(context?.company?.canReadRegister || context?.company?.canManage);
-  const companyItems = context?.company?.canReadRegister
-    ? COMPANY
-    : [
-        ...COMPANY.filter((item) => item.destination === 'home'),
-        ...(context?.company?.memberUuids.length ? [PERSONAL[1]!] : []),
-      ];
+  const companyItems = [
+    ...(context?.company?.canReadRegister
+      ? COMPANY
+      : [
+          ...COMPANY.filter((item) => item.destination === 'home'),
+          ...(context?.company?.memberUuids.length ? [PERSONAL[1]!] : []),
+        ]),
+    ...(context?.company?.isOwner && isCompany ? [OFFERINGS] : []),
+    ...(context?.company?.canReviewEligibility ? [ELIGIBILITY] : []),
+  ];
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
 
@@ -530,7 +559,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     )
     .find(Boolean);
   const activePath =
-    [CERTIFICATES_PATH, COMPANY_DOCUMENTS_PATH].includes(location.pathname) ||
+    [CERTIFICATES_PATH, COMPANY_DOCUMENTS_PATH, DESTINATIONS.companyPublications.path].includes(location.pathname) ||
     (location.pathname === DESTINATIONS.company.path && location.hash === '#documents')
       ? CERTIFICATES_PATH
       : activeItem && itemPath(activeItem);

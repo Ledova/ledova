@@ -7,7 +7,7 @@ import { AUTH_QUERY_KEY, useAuth } from './useAuth';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import { USER_PROFILES_QUERY_KEY } from './useSignupReview';
 import { useSubmissionOwner } from './useSubmissionOwner';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { useApiClient } from './useApiClient';
 
 type PersonalDetails = Pick<UpdateUserProfile, 'fullName' | 'residentialAddress' | 'phoneCountryCode' | 'phoneNumber'>;

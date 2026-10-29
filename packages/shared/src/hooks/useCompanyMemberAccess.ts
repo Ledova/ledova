@@ -18,7 +18,7 @@ import { failureStatus, failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 import type {
   MemberInvitationCreate,
   OwnCompanyAppointment,

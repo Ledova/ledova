@@ -86,8 +86,6 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   companyAuthorityRequest: { destination: 'companyAuthority' },
   companyOfferingDetail: { destination: 'companyOffering' },
   companyClassChain: { destination: 'companyClass' },
-  companyEligibility: { destination: 'settings', back: false },
-  companyPublications: { destination: 'settings', back: false },
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
   companyRegisterOpening: { destination: 'companyRegister', view: 'corrections' },
   companyRegisterLinks: { destination: 'companyRegister', view: 'corrections' },

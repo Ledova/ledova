@@ -45,7 +45,7 @@ stay here as history and are marked where they appear.
 | [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                                                                         |
 | [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October                             |
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey superseded 26 October                                          |
-| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 to 28 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360) |
+| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 to 29 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360); links, one-line labels and Market removal (#1416) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web); mobile (#1157) superseded 26 October                                                      |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                          |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                  |
@@ -1362,6 +1362,24 @@ wonder if we can just merge into Profile". Company documents now sit under Docum
 `/documents/company`, and the old address redirects there. Profile shows the selected company's
 recorded details for a linked member, with its update request, and the separate Settings item is
 gone.
+
+On 29 October 2026 the owner settled the pages that had no in-app link or only the notification
+bell ([#1416](https://github.com/Ledova/ledova/issues/1416)): "Start #1416 with your defaults:
+sidebar links for Company eligibility, Offerings and Activity, Published to your members under
+Documents, and remove Market." Offerings and Company eligibility follow Documents where the person
+may use them. Activity lists the person's own wallet transfers, so it sits above Settings whatever
+company is selected. Published to your members joins Documents. The web Market page and the client
+code only it used are gone; secondary trading stays
+[not planned](#registry-focus-and-cancelled-expansion-tickets), and the trading API, its records and
+its guards are unchanged.
+
+Later that day the owner asked for one-line sidebar items: "I dont want to use 2 lines on these
+menu items". ESS becomes Employee scheme, the owner's first choice, Company documents becomes
+Supporting, as the owner suggested, and Published to your members becomes Published. Each link keeps
+its page's full name as its title. The owner also wondered whether Company documents belongs under
+Company eligibility and asked for a view. Claude recommended keeping it under Documents, since it
+holds the company's own records and offer documents rather than eligibility decisions, so it stays
+there until the owner decides.
 
 ### Dashboard, Settings and Register for a new company
 

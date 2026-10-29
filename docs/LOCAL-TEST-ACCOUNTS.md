@@ -16,12 +16,12 @@ Open **http://localhost:5173/signin**. Sign out before using another account. Re
 local PostgreSQL database `ledova_walkthrough_20261021`; do not reset it or recreate accounts for
 a fresh chat. A deliberate reset can invalidate these credentials and fixtures.
 
-| Person              | Test role                             | Email                              | Password                                      | What to test                                                                 |
-| ------------------- | ------------------------------------- | ---------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
-| Alex Demo           | Company administrator and shareholder | `director@purpose-demo.test`       | `5TASnw2RJQcPhZ-u-gXvbmF6nk0cRLVM`            | Company Dashboard, Ledger, Shareholders, ESS, Documents and Settings         |
-| Taylor Demo         | Shareholder                           | `taylor@purpose-demo.test`         | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares, member documents and company-recorded details                     |
-| Casey Demo          | Employee shareholder                  | `casey@purpose-demo.test`          | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records, certificates and company-recorded details |
-| Quinn Investor Demo | Investor                              | `quinn.investor@purpose-demo.test` | `TwAFv-SU0E-nrW5je-idauWmZPly8-ZUcMXCTRJMVus` | My shares and investor certificate records                                   |
+| Person              | Test role                             | Email                              | Password                                      | What to test                                                                     |
+| ------------------- | ------------------------------------- | ---------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| Alex Demo           | Company administrator and shareholder | `director@purpose-demo.test`       | `5TASnw2RJQcPhZ-u-gXvbmF6nk0cRLVM`            | Company Dashboard, Ledger, Shareholders, Employee scheme, Documents and Settings |
+| Taylor Demo         | Shareholder                           | `taylor@purpose-demo.test`         | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares, member documents and company-recorded details                         |
+| Casey Demo          | Employee shareholder                  | `casey@purpose-demo.test`          | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records, certificates and company-recorded details     |
+| Quinn Investor Demo | Investor                              | `quinn.investor@purpose-demo.test` | `TwAFv-SU0E-nrW5je-idauWmZPly8-ZUcMXCTRJMVus` | My shares and investor certificate records                                       |
 
 ## What the account types mean
 
@@ -34,7 +34,7 @@ An employee award is an entitlement; only an actual issue adds shares to holding
 flowchart LR
     Login["One sign-in account"] --> Appointment["Company appointment"]
     Login --> Association["Accepted member invitation"]
-    Appointment -->|Assigned capabilities| Admin["Company Dashboard, Ledger, Shareholders, ESS and outputs"]
+    Appointment -->|Assigned capabilities| Admin["Company Dashboard, Ledger, Shareholders, Employee scheme and outputs"]
     Association --> Member["Own shares, awards, certificates and company-recorded details"]
 ```
 
@@ -94,6 +94,10 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
     - After the owner's "Please continue until the end", the remaining company chevrons (#1411),
       phase 5's plain eligibility pages and wallet approvals (#1413), and the investor pages'
       content chevrons (#1415) followed.
+- [#1416](https://github.com/Ledova/ledova/issues/1416) then gave Company eligibility, Offerings and
+  Activity sidebar links, listed Published to your members under Documents and removed the web Market
+  page with the client code only it used. The trading API is unchanged. At the owner's request sidebar
+  items stay on one line: Employee scheme, Supporting and Published replace longer labels.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
@@ -121,9 +125,6 @@ aggregate sharing is enabled for the local exercise. No genuine ABR check was fa
   shouldn't use it to check backend changes. Stop both when they are no longer needed. The
   temporary `ledova-exports-pg` test database was removed.
 - **Still open:**
-  - Company eligibility, Published to your members and Market are routed but have no in-app link,
-    and Offerings and Activity are reachable only from the notification bell (Offerings also from an
-    offering page's Back link and the paid-issue flow): an earlier audit question for the owner.
   - Mobile work stays for later.
   - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
     decision; check GitHub before resuming.

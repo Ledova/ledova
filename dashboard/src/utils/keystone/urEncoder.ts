@@ -9,44 +9,6 @@ import {
   describeFailure,
 } from '@ledova/shared';
 
-export function encodeEthereumTypedData(
-  address: string,
-  typedData: object,
-  derivationPath?: string,
-  masterFingerprint?: string,
-  chainId?: number,
-): { type: string; cbor: Buffer; cborHex: string; urString: string } | null {
-  try {
-    const requestId = uuid();
-
-    const typedDataBytes = Buffer.from(JSON.stringify(typedData), 'utf8');
-
-    if (!derivationPath || !masterFingerprint || chainId === undefined || !isSupportedEvmTestChainId(chainId)) {
-      return null;
-    }
-
-    const ethSignRequest = createEthSignRequest(
-      typedDataBytes,
-      EthDataType.typedData,
-      derivationPath,
-      masterFingerprint,
-      requestId,
-      chainId,
-      address,
-      'Ledova',
-    );
-
-    const cbor = ethSignRequest.toCBOR();
-    const cborHex = cbor.toString('hex');
-    const ur = ethSignRequest.toUREncoder(400);
-    const urString = ur.nextPart();
-
-    return { type: 'eth-sign-request', cbor, cborHex, urString };
-  } catch {
-    return null;
-  }
-}
-
 export function encodeEthereumMessage(
   address: string,
   message: string,

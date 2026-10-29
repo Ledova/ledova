@@ -40,7 +40,7 @@ Team invitations and acceptance replace their collection with one focused inline
 mounted editors and drafts. Team's appointment rows show the company or person, actions, any delegation,
 status or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
-acceptance or deadline and the appointment's expiry. Documents → Company documents has its own view, with Category and File in the inline upload.
+acceptance or deadline and the appointment's expiry. Company documents (Documents → Supporting) has its own view, with Category and File in the inline upload.
 The remaining offering, publication, directory, application, wallet, activity and eligibility collections
 use this workspace frame, with their creation and record actions in the same footer. Each offering's row
 opens its own page, whose sections end with the actions they allow, and application summaries open their
@@ -48,7 +48,7 @@ existing detail page. The other collections' short named/status summaries keep s
 copyable technical references on demand.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
-ESS, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
+Employee share scheme, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
 cards, columns, class choices and default class (owner, 28 October 2026). Dashboard ranks its class
 list by issued shares, and Offerings keeps its own order. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The selected company uses one
@@ -203,13 +203,13 @@ to the records; keep their controllers mounted so pending requests and original-
 A class's **Chain actions** cards are the exception: each card's form opens below its records, which
 stay visible, because a grant's wallet link is decided while the grant's draft stays open.
 Issue shares, Transfer shares and Employee share scheme follow this pattern. Award preparation
-keeps the selected class card and returns to its records after Cancel or a successful save. ESS uses the
+keeps the selected class card and returns to its records after Cancel or a successful save. Employee share scheme uses the
 Share class selection in the page heading's Filters popover and one creation action; disable class selection while award preparation
 or its recovery is open, keeping every class controller mounted. Its preparation,
 vesting and entitlement-change forms put Cancel beside the recording action in `FormActions`.
 Award preparation groups the recipient and promised shares, with new-person details beneath. Agreement
 and vesting use the existing responsive two-column grid, stacking on smaller screens, with short
-contextual labels and one vesting explanation. ESS has no background refresh; keep draft controls,
+contextual labels and one vesting explanation. Employee share scheme has no background refresh; keep draft controls,
 selected-file display and focus stable through entry reads, explicit retries and post-save refreshes
 ([read policy](frontend.md#automatic-data-freshness)). Its award list uses `LinkRow`: Recipient and
 agreement date, then Promised, Vested and Issued quantities and the trailing arrow; on small screens the
@@ -424,9 +424,9 @@ The sidebar owns navigation between sections. A related group has one level of c
 opens a meaningful overview or the default child, and a separate caret expands the children, without
 an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
-Shareholders uses the same web pattern for **ESS**, **Member access** and **Member requests**, with its parent
+Shareholders uses the same web pattern for **Employee scheme**, **Member access** and **Member requests**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Company documents**, **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
+**Supporting**, **Published**, **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Team** and **Activation**, without an extra overview
 page. Profile always holds personal information and Account. Company documents, Team, Activation and
@@ -437,6 +437,9 @@ keep export and deletion under Manage account, with their existing confirmations
 belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation. Company-recorded particulars are a Profile card for a member of the selected company.
+**Offerings** follows Documents for the company's own account and **Company eligibility** for an
+administrator or a prepare or approve appointee. **Activity**, the person's own wallet transfers, sits
+above Settings whatever company is selected.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
 [separately](mobile.md#navigation). The sidebar has no More group or Help & Support link. Removing
@@ -457,8 +460,9 @@ replacing an incoming `#history` with `#corrections` while retaining company/cla
 page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. Dashboard is one
 company-centred explorer for all relationships, without a separate Your shares navigation mode.
-The sidebar shows
-Employee share scheme by its short label, ESS, with the full name as the link's `title`. `DESTINATION_PARENTS`
+Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme shows as Employee
+scheme, Company documents as Supporting and Published to your members as Published, each with the
+full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
 link in the title row for a contextual task: Back to Team on Representative authority, Back to
@@ -1078,15 +1082,15 @@ by a local helper or a browser `toLocale…` call:
 - **Share counts** use `formatShareCount`, a count with its noun uses `shareCount` ("1 share",
   "1,315 shares", or with a qualifier, "1 issued share") and a signed change uses `shareChange`
   ("+1,000"). Gathered in `packages/shared/src/utils/formatting.ts` with `sharePercentage`.
-  Trading's order quantities that arrive as numbers use `marketQuantity` and `marketShares`, which
-  read "Unavailable" for a quantity too large to show exactly.
+  Application quantities that arrive as numbers use `marketQuantity`, which reads "Unavailable" for
+  a quantity too large to show exactly.
 - **Percentages of a class** use `sharePercentage`, rounded half-up to two places, "<0.01%" for a
   holding too small to show and "Not recorded" without issued shares.
 - **Amounts** use `formatMoney`, which names its currency: "AUD 1,234.50".
 - **On screen** the dashboard's records format their dates, share counts and amounts: register
   records, eligibility history and shared summaries, team invitations and confirmations. An
-  offering's opening and closing show their time, and Trading's quantities and wallet token balances
-  use the share and crypto formatters. Signing screens, technical transaction rows (hashes, data and
+  offering's opening and closing show their time, and wallet token balances use the share and crypto
+  formatters. Signing screens, technical transaction rows (hashes, data and
   transaction values) and the exact offering terms an eligibility request shares keep their exact
   values. A register's amounts paid and unpaid show as recorded, without `formatMoney`, because the
   register cannot name a single currency for them

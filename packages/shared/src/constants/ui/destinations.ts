@@ -16,7 +16,6 @@ export const DESTINATIONS = {
   walletHoldings: { path: '/wallets/holdings', title: 'Wallet shares', audience: 'everyone' },
   wallets: { path: '/wallets', title: 'Wallets', audience: 'everyone' },
   transactions: { path: '/transactions', title: 'Activity', audience: 'everyone' },
-  trading: { path: '/trading', title: 'Market', audience: 'investing' },
   directory: { path: '/directory', title: 'Directory', audience: 'investing' },
   directoryDetail: { path: '/directory/:uuid', title: 'Directory', audience: 'investing' },
   subscriptions: { path: '/subscriptions', title: 'Applications', audience: 'investing' },
@@ -108,9 +107,7 @@ export const DESTINATION_PARENTS: Partial<Record<DestinationKey, DestinationPare
   company: { destination: 'settings' },
   companyAuthority: { destination: 'company' },
   companyTeam: { destination: 'settings' },
-  companyEligibility: { destination: 'company' },
   companyListing: { destination: 'settings' },
-  companyPublications: { destination: 'company' },
   userProfile: { destination: 'settings' },
 };
 

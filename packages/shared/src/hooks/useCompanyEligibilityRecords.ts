@@ -42,8 +42,7 @@ import { isUuid } from '../utils/validation';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
-import type { OrderSubmissionOwner } from '../utils/order-submission-storage';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 import { useApiClient } from './useApiClient';
 
 const RESULT_UNCERTAIN =

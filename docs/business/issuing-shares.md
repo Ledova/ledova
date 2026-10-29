@@ -262,7 +262,7 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 | Unvested remaining        | Promise less net vesting and ended unvested rights                             |
 | Remaining unissued        | Promise less issued shares and both ended pools                                |
 
-On the web, **Shareholders → ESS** shows the selected class's awards as compact rows: recipient,
+On the web, **Shareholders → Employee scheme** shows the selected class's awards as compact rows: recipient,
 agreement date, promised, vested and issued quantities. Each row opens the award's own page, with
 **Back to Employee share scheme** and **Recipient details** at the top. Its **Entitlement** card holds the
 chart and the award's actions, followed by **Agreement and vesting schedule**, **Vesting history** (the
@@ -271,10 +271,10 @@ shown only when it has records.
 Choose **Share class**, then the single **Record an employee award** action below its card to open preparation; Cancel or a successful save returns to
 the records. Preparation groups recipient and promised shares above Agreement and Vesting, side by side
 on wide screens and stacked on smaller ones. Preparation, vesting and entitlement-change forms keep Cancel beside their recording
-action in the bottom-right footer. ESS reads on entry and after your changes, without background
+action in the bottom-right footer. The view reads on entry and after your changes, without background
 refreshes. Failed reads retain Try again, and an interrupted submission keeps its original retry.
 
-1. Choose Shareholders → ESS in the sidebar, select the share class, then Record an employee award. Choose the recipient
+1. Choose Shareholders → Employee scheme in the sidebar, select the share class, then Record an employee award. Choose the recipient
    ([choosing a person](register.md#choosing-a-person)) and give the promised shares, the agreement date and terms, the recorded vesting
    schedule and the agreement document. An award creates no entry, holding, issued share or
    certificate entitlement. A new recipient gets a person record, a member ID with their name and
@@ -464,7 +464,7 @@ invisible to them while submitted or under review.
 
 ### Offer documents
 
-The company uploads offer documents under **Documents → Company documents** on web
+The company uploads offer documents under **Documents → Supporting** on web
 ([company information and documents](companies.md#company-information-and-documents)), and the
 offering form lists only the offer types: prospectus or information memorandum, risk disclosure,
 business plan, financial statements, auditor report, constitution and shareholder agreement.

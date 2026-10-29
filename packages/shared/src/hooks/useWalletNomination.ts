@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AxiosRequestConfig, AxiosRequestTransformer } from 'axios';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
-import type { OrderSubmissionSession } from './useOrderSubmissions';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { getEligibilityRequest } from '../services/company-eligibility';
 import { getWallets } from '../services/wallets';
 import { createWalletNomination, getWalletNominations, previewWalletNomination } from '../services/company-wallets';
