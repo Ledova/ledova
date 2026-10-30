@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react';
-import { useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import type { AxiosRequestConfig } from 'axios';
 import type { UserPreferences } from '../types';
 import { AUTH_QUERY_KEY } from './useAuth';
@@ -20,14 +20,6 @@ export interface OrderSubmissionSession {
   getEpoch: () => number;
   subscribe: (listener: () => void) => () => void;
   requestConfig: () => AxiosRequestConfig;
-}
-
-export function assertSessionSettled(client: QueryClient) {
-  for (const queryKey of [AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY]) {
-    const state = client.getQueryState(queryKey);
-    if (state?.status !== 'success' || state.fetchStatus !== 'idle' || state.isInvalidated)
-      throw new Error('Your session is being checked. Try again in a moment.');
-  }
 }
 
 export function useSubmissionOwner(session?: OrderSubmissionSession) {

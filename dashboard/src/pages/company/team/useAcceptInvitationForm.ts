@@ -1,7 +1,6 @@
-import { acceptCompanyTeamInvitation, assertSessionSettled, failureSentence, isInvitationCode } from '@ledova/shared';
+import { acceptCompanyTeamInvitation, failureSentence, isInvitationCode } from '@ledova/shared';
 import { appointmentReceipt } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
-import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
 export function useAcceptInvitationForm({
@@ -28,14 +27,9 @@ export function useAcceptInvitationForm({
       mounted.current = false;
     };
   }, []);
-  const client = useQueryClient();
   const check = () => {
     guard();
     if (!mounted.current) throw new Error('Your signed-in account changed. Reopen company team.');
-  };
-  const sendCheck = () => {
-    check();
-    assertSessionSettled(client);
   };
   const ready = accepted && isInvitationCode(code);
   const send = async () => {
@@ -46,8 +40,8 @@ export function useAcceptInvitationForm({
     setError('');
     setReceipt('');
     try {
-      sendCheck();
-      const { data } = await acceptCompanyTeamInvitation(apiClient, code, { ledovaSubmissionGuard: sendCheck });
+      check();
+      const { data } = await acceptCompanyTeamInvitation(apiClient, code, { ledovaSubmissionGuard: check });
       check();
       if (!appointmentReceipt(data) || data.source !== 'invitation')
         throw new Error('The appointment outcome could not be confirmed. Retry the same code.');

@@ -5,7 +5,7 @@ export { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPrefere
 export { useIdentityVerificationStatus, IDENTITY_VERIFICATION_QUERY_KEY } from './useIdentityVerificationStatus';
 export { useFinancialProfile, FINANCIAL_PROFILES_QUERY_KEY } from './useFinancialProfile';
 export { useNotifications } from './useNotifications';
-export { assertSessionSettled, useSubmissionOwner } from './useSubmissionOwner';
+export { useSubmissionOwner } from './useSubmissionOwner';
 export type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 export { hasProblems, useErrorSummary, useFocusClaim } from './useErrorSummary';
 export type { FieldCheck, Problems } from './useErrorSummary';

@@ -1,6 +1,5 @@
 import {
   admitCompanyAuthorityRequest,
-  assertSessionSettled,
   downloadCompanyAuthorityFile,
   getCompanies,
   getCompanyAuthorityRequests,
@@ -84,18 +83,14 @@ export function useAuthorityRequests({
       request: CompanyAuthorityRequest;
       action: 'withdraw' | 'admit' | 'revoke';
     }) => {
-      const sendGuard = () => {
-        guard();
-        assertSessionSettled(client);
-      };
-      sendGuard();
+      guard();
       const send =
         action === 'admit'
           ? admitCompanyAuthorityRequest
           : action === 'revoke'
             ? revokeCompanyAuthorityAppointment
             : withdrawCompanyAuthorityRequest;
-      const { data } = await send(apiClient, request.uuid, { ledovaSubmissionGuard: sendGuard });
+      const { data } = await send(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
       guard();
       if (
         data.uuid !== request.uuid ||

@@ -8,8 +8,6 @@ import {
   exportAccountData,
   newPasswordProblem,
   PASSWORD_PROBLEMS,
-  assertSessionSettled,
-  useSubmissionOwner,
   utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
@@ -21,7 +19,6 @@ import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 export function useSettings() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { owner, boundary } = useSubmissionOwner();
   const theme = useTheme();
   const [modal, setModal] = useState<'password' | 'export' | 'delete' | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -29,29 +26,15 @@ export function useSettings() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordChanged, setPasswordChanged] = useState(false);
 
-  const accountGuard = () => {
-    if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed. Reopen Settings.');
-    assertSessionSettled(queryClient);
-  };
   const deleteMutation = useMutation({
-    mutationFn: () => {
-      accountGuard();
-      return deleteAccount(apiClient, { ledovaSubmissionGuard: accountGuard });
-    },
+    mutationFn: () => deleteAccount(apiClient),
     onSuccess: () => {
       clearSessionQueries(queryClient);
       navigate(SIGNIN_PATH);
     },
   });
   const passwordMutation = useMutation({
-    mutationFn: () => {
-      accountGuard();
-      return changePassword(
-        apiClient,
-        { currentPassword, newPassword, newPasswordConfirm: confirmPassword },
-        { ledovaSubmissionGuard: accountGuard },
-      );
-    },
+    mutationFn: () => changePassword(apiClient, { currentPassword, newPassword, newPasswordConfirm: confirmPassword }),
     onSuccess: () => {
       setModal(null);
       setCurrentPassword('');
