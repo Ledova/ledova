@@ -465,8 +465,10 @@ decision review or original-request recovery is open.
 Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
 so user preferences still recheck the signed-in identity on focus and reconnect. While a recheck of
-the same account runs, the frame, the page and its drafts stay and writes wait; a failed check or a
-changed account withholds private content, including after an account changes in another tab. Keep bounded status checks for a submitted upload, extraction or identity
+the same account runs, the frame, the page and its drafts stay, and a write sent before it finishes
+is refused (`assertSessionSettled` in `packages/shared/src/hooks/useSubmissionOwner.ts`); a failed
+check or a changed account withholds private content, including after an account changes in another
+tab. Keep bounded status checks for a submitted upload, extraction or identity
 verification, stopping when the operation finishes or its view closes. A status read must never
 repeat a write, upload or share issue.
 

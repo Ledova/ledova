@@ -31,8 +31,12 @@ export const getUserProfiles = (apiClient: AxiosInstance, config?: AxiosRequestC
     ? apiClient.get<PaginatedResponse<UserProfile>>(USER_PROFILE_ENDPOINTS.BASE, config)
     : apiClient.get<PaginatedResponse<UserProfile>>(USER_PROFILE_ENDPOINTS.BASE);
 
-export const deleteAccount = (apiClient: AxiosInstance) =>
-  apiClient.post<ApiResponse<'api_user_profiles_delete_account_create'>>(USER_PROFILE_ENDPOINTS.DELETE_ACCOUNT);
+export const deleteAccount = (apiClient: AxiosInstance, config: AxiosRequestConfig = {}) =>
+  apiClient.post<ApiResponse<'api_user_profiles_delete_account_create'>>(
+    USER_PROFILE_ENDPOINTS.DELETE_ACCOUNT,
+    undefined,
+    config,
+  );
 
 export const exportAccountData = (apiClient: AxiosInstance, config: AxiosRequestConfig = {}) =>
   apiClient.get<AccountExportData>(USER_PROFILE_ENDPOINTS.EXPORT_DATA, config);

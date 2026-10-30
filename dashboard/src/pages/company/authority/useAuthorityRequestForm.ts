@@ -1,4 +1,5 @@
 import {
+  assertSessionSettled,
   isCalendarDate,
   submitCompanyAuthorityRequest,
   type CompanyAuthorityRequest,
@@ -9,7 +10,7 @@ import {
 import apiClient from '@services/apiClient';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { useIncompleteDates } from '@hooks/useIncompleteDates';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
 export function useAuthorityRequestForm({
@@ -36,13 +37,18 @@ export function useAuthorityRequestForm({
       active.current = false;
     };
   }, []);
+  const client = useQueryClient();
   const check = () => {
     guard();
     if (!active.current) throw new Error('The selected company changed. Reopen the request to continue.');
   };
+  const sendCheck = () => {
+    check();
+    assertSessionSettled(client);
+  };
   const submission = useMutation({
     mutationFn: async () => {
-      check();
+      sendCheck();
       key.current ??= crypto.randomUUID();
       const response = await submitCompanyAuthorityRequest(
         apiClient,
@@ -54,7 +60,7 @@ export function useAuthorityRequestForm({
           delegatableCapabilities: delegatable,
           ...(expiry ? { requestedExpiresAt: `${expiry}T23:59:59Z` } : {}),
         },
-        { ledovaSubmissionGuard: check },
+        { ledovaSubmissionGuard: sendCheck },
       );
       check();
       return response;

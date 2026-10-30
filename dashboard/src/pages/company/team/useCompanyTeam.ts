@@ -5,6 +5,7 @@ import {
   readEveryPage,
   revokeCompanyAppointment,
   USER_PREFERENCES_QUERY_KEY,
+  assertSessionSettled,
   type CompanyTeamAppointment,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
@@ -151,6 +152,7 @@ export function useCompanyTeam({
     try {
       const check = () => {
         guard();
+        assertSessionSettled(client);
         if (!canRevoke(target))
           throw new Error('Your company appointment changed. Check the current record before revoking it.');
       };

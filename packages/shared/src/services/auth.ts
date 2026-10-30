@@ -48,6 +48,10 @@ export const verifyAuth = (apiClient: AxiosInstance) => {
   return apiClient.get<AuthVerificationResponse>(AUTH_ENDPOINTS.VERIFY);
 };
 
-export const changePassword = (apiClient: AxiosInstance, data: ChangePasswordRequest) => {
-  return apiClient.post<ChangePasswordResponse>(AUTH_ENDPOINTS.CHANGE_PASSWORD, data);
+export const changePassword = (
+  apiClient: AxiosInstance,
+  data: ChangePasswordRequest,
+  config: AxiosRequestConfig = {},
+) => {
+  return apiClient.post<ChangePasswordResponse>(AUTH_ENDPOINTS.CHANGE_PASSWORD, data, config);
 };

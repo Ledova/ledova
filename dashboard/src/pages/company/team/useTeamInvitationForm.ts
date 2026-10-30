@@ -1,5 +1,6 @@
 import {
   addCalendarDays,
+  assertSessionSettled,
   createCompanyTeamInvitation,
   type CompanyCapability,
   type OwnCompanyAppointment,
@@ -11,6 +12,7 @@ import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { sameScope } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
 export function useTeamInvitationForm({
@@ -44,9 +46,14 @@ export function useTeamInvitationForm({
       mounted.current = false;
     };
   }, []);
+  const client = useQueryClient();
   const check = () => {
     guard();
     if (!mounted.current) throw new Error('Your selected appointment changed. Reopen the invitation.');
+  };
+  const sendCheck = () => {
+    check();
+    assertSessionSettled(client);
   };
   const change = (apply: () => void) => {
     keyRef.current = null;
@@ -74,7 +81,7 @@ export function useTeamInvitationForm({
     onBusy(true);
     setError('');
     try {
-      check();
+      sendCheck();
       if (![...personal, ...delegatable].every((value) => available.includes(value)))
         throw new Error('Your delegation scope changed. Choose the permitted actions again.');
       keyRef.current ??= crypto.randomUUID();
@@ -89,7 +96,7 @@ export function useTeamInvitationForm({
           ...(deadline ? { acceptanceDeadline: `${deadline}T23:59:59Z` } : {}),
           ...(expiry ? { appointmentExpiresAt: `${expiry}T23:59:59Z` } : {}),
         },
-        { ledovaSubmissionGuard: check },
+        { ledovaSubmissionGuard: sendCheck },
       );
       check();
       if (
