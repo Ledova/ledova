@@ -19,7 +19,7 @@ export {
   exportAccountData,
 } from './users';
 export { getIdentityVerificationToken, getIdentityVerificationStatus } from './identityVerification';
-export { getCurrentUserPreferences, upsertCurrentUserPreferences } from './userPreferences';
+export { getCurrentUserPreferences } from './userPreferences';
 export {
   registerDeviceToken,
   unregisterDeviceToken,

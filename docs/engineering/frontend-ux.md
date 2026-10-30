@@ -858,8 +858,7 @@ such as Notices' "What has been published to you could not be loaded."
 
 A failed read shows this block, not an empty state. The notification bell, profile documents and
 classification claims, which used to show an empty state, now show the failure. A failed refresh
-shows the same block. Its sentence says what could not be loaded or refreshed, and several also say
-what remains, such as "Retained original receipts remain available." The block provides the retry
+shows the same block. Its sentence says what could not be loaded or refreshed. The block provides the retry
 where the affected records would appear; a separate Refresh action is unnecessary. Automatic reads
 and their recovery follow the [freshness standard](frontend.md#automatic-data-freshness).
 

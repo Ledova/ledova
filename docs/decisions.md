@@ -958,9 +958,10 @@ we were only planning to develop it later so maybe we should just remove for the
 whether the features that need a wallet should go too, the owner chose "Everything wallet-based",
 keeping the backend and data so they can return later.
 
-The web app therefore drops Wallets, Wallet shares, Activity, Send and Buy crypto, wallet nominations
-and company wallet approvals, and the class's on-chain mirror: the Chain actions page, wallet links
-and on-chain status. The register needs no wallet: without a contract, every grant, allotment and
+The web app therefore drops Wallets, Wallet shares, Activity, Send and Buy crypto, transaction
+alerts, wallet nominations and company wallet approvals, and the class's on-chain mirror: the Chain
+actions page, wallet links, openings from the chain, reconciliation and its acknowledgements, and
+on-chain status. The register needs no wallet: without a contract, every grant, allotment and
 transfer is a register entry. The backend, its API and all stored records stay, as do #920's investor
 and provider guards, so the features can return from Git history under a new decision. For the web
 app this supersedes the 26 September choice that crypto lives inside Wallets and the 9 October
