@@ -24,8 +24,8 @@ mailbox and on ledova.io on the server.
 
 ledova.io has answered from any network since 30 October 2026
 ([#1437](https://github.com/Ledova/ledova/issues/1437)), so anyone who reads this guide can sign in
-there and change its demo data. Each account takes 10 sign-in attempts an hour from everyone
-together, so give each person a different account.
+there and change the demo data or an account's password. Each account takes 10 sign-in attempts an
+hour from everyone together, so give each person a different account.
 
 ## Sign in
 
