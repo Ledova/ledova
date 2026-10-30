@@ -12,10 +12,10 @@ import { pendingRequestLink } from '@utils/requestLink';
 import { MEMBER_INVITATION_PATH } from '@utils/paths';
 
 export function RootRedirect() {
-  const { isAuthenticated, isUnavailable, isLoading, refetch } = useAuth();
+  const { isAuthenticated, isUnavailable, isLoading, isFetching, refetch } = useAuth();
   const preferences = useUserPreferences();
   const profile = useUserProfile();
-  if (isLoading || (isAuthenticated && profile.isLoading)) return null;
+  if (isLoading || (!isAuthenticated && isFetching) || (isAuthenticated && profile.isLoading)) return null;
   if (isUnavailable) return <SessionUnavailable onRetry={() => void refetch()} />;
   if (!isAuthenticated) return <Navigate to={SIGNIN_PATH} replace />;
   if (!profile.userProfile) return <AccountUnavailable onRetry={profile.refreshProfile} />;

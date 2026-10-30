@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import { focusManager, onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import axios from 'axios';
 import type { PropsWithChildren } from 'react';
 
@@ -31,7 +31,7 @@ afterEach(() => {
 });
 
 describe('shared authentication follows the client refetch policy', () => {
-  it('retries a failed check once, reports it unavailable rather than signed out, and recovers on a later mount', async () => {
+  it('retries a failed check once and reports it unavailable rather than signed out, on first load and on a re-check', async () => {
     const { get, wrapper } = harness();
     get.mockRejectedValueOnce(new Error('Network unavailable')).mockRejectedValueOnce(new Error('Network unavailable'));
     const first = renderHook(() => useAuth(), { wrapper });
@@ -45,6 +45,20 @@ describe('shared authentication follows the client refetch policy', () => {
     await waitFor(() => expect(second.result.current.isAuthenticated).toBe(true));
     expect(second.result.current.isUnavailable).toBe(false);
     expect(get).toHaveBeenCalledTimes(3);
+
+    get.mockRejectedValueOnce(new Error('Server unavailable')).mockRejectedValueOnce(new Error('Server unavailable'));
+    await act(async () => {
+      await second.result.current.refetch();
+    });
+    await waitFor(() => expect(second.result.current.isUnavailable).toBe(true));
+    expect(second.result.current.isAuthenticated).toBe(false);
+    expect(get).toHaveBeenCalledTimes(5);
+
+    await act(async () => {
+      await second.result.current.refetch();
+    });
+    await waitFor(() => expect(second.result.current.isAuthenticated).toBe(true));
+    expect(second.result.current.isUnavailable).toBe(false);
   });
 
   it('shares one session check between consumers of the same client', async () => {
