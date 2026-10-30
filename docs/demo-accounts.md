@@ -8,7 +8,7 @@ that they are public ([#1435](https://github.com/Ledova/ledova/issues/1435)). Re
 tokens, cookies and runtime environment files stay outside Git.
 
 Last credential verification: **30 October 2026** (Australia/Sydney). All five accounts signed in
-to the local API with these passwords, and ledova.io holds the same accounts, copied that day.
+to the local API with these addresses and passwords, and ledova.io holds the same accounts.
 
 ## Where they work
 
@@ -35,13 +35,22 @@ reset can invalidate these credentials and fixtures. It was rebuilt from #1421's
 keeping every earlier record except what #1421 removed, and the demo data below was added again on
 30 October 2026 (see the note there); the earlier copy is `ledova_walkthrough_20261021_before_1421`.
 
-| Person              | Test role                             | Email                              | Password                                      | What to test                                                                     |
-| ------------------- | ------------------------------------- | ---------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| Alex Demo           | Company administrator and shareholder | `director@purpose-demo.test`       | `5TASnw2RJQcPhZ-u-gXvbmF6nk0cRLVM`            | Company Dashboard, Ledger, Shareholders, Employee scheme, Documents and Settings |
-| Taylor Demo         | Shareholder                           | `taylor@purpose-demo.test`         | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares, member documents and company-recorded details                         |
-| Casey Demo          | Employee shareholder                  | `casey@purpose-demo.test`          | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records, certificates and company-recorded details     |
-| Quinn Investor Demo | Investor                              | `quinn.investor@purpose-demo.test` | `TwAFv-SU0E-nrW5je-idauWmZPly8-ZUcMXCTRJMVus` | My shares and investor certificate records                                       |
-| Jordan Ellis        | Second Purpose Demo officer           | `jordan.ellis@purpose-demo.test`   | `sQS6zJDzdXdXO0SsAPCdksvL-kwhP42i`            | Purpose Demo Team and company authority                                          |
+| Person              | Test role                             | Email                      | Password                                      | What to test                                                                     |
+| ------------------- | ------------------------------------- | -------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
+| Alex Demo           | Company administrator and shareholder | `director@ledova.io`       | `5TASnw2RJQcPhZ-u-gXvbmF6nk0cRLVM`            | Company Dashboard, Ledger, Shareholders, Employee scheme, Documents and Settings |
+| Taylor Demo         | Shareholder                           | `shareholder1@ledova.io`   | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares, member documents and company-recorded details                         |
+| Casey Demo          | Employee shareholder                  | `employee1@ledova.io`      | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records, certificates and company-recorded details     |
+| Quinn Investor Demo | Investor                              | `investor1@ledova.io`      | `TwAFv-SU0E-nrW5je-idauWmZPly8-ZUcMXCTRJMVus` | My shares and investor certificate records                                       |
+| Jordan Ellis        | Second Purpose Demo officer           | `director@blueberry.money` | `sQS6zJDzdXdXO0SsAPCdksvL-kwhP42i`            | Purpose Demo Team and company authority                                          |
+
+The addresses name each account's role, at the owner's domains ledova.io and blueberry.money.
+Until 30 October 2026 they ended in @purpose-demo.test. They were then renamed in place on both
+copies ([#1439](https://github.com/Ledova/ledova/issues/1439)), so each account kept its records
+and password. Records the app never changes still show the old addresses:
+
+- a company's member access page lists the address each member accepted an invitation with;
+- authority requests keep the requester's details as given;
+- the sample evidence files carry the address they were made with.
 
 ## What the account types mean
 
@@ -204,7 +213,8 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   ([#1432](https://github.com/Ledova/ledova/issues/1432)). The local demo data was then copied to
   ledova.io ([#1435](https://github.com/Ledova/ledova/issues/1435)), so the five accounts above are
   there with the same passwords. Afterwards ledova.io's app was opened to every network
-  ([#1437](https://github.com/Ledova/ledova/issues/1437)).
+  ([#1437](https://github.com/Ledova/ledova/issues/1437)), and the five accounts were given their
+  role-based addresses on both ([#1439](https://github.com/Ledova/ledova/issues/1439)).
 
 ## Continue on this Mac
 
