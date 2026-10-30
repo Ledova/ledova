@@ -291,8 +291,10 @@ entry's audience:
 - A session check that fails is not a sign-out. `/auth/verify` answers `valid: false` to anyone
   signed out; that answer, or a 401, means signed out. `useAuth`
   (`packages/shared/src/hooks/useAuth.ts`) retries any other failure once, then reports
-  `isUnavailable`, and this guard and `RootRedirect` show `SessionUnavailable` ("We could not
-  check your session") with Try again, keeping the address. A failed re-check of a confirmed
+  `isUnavailable`, and this guard, `RootRedirect` and the sign-up guard show `SessionUnavailable`
+  ("We could not check your session") with Try again, keeping the address; the member invitation
+  page says its session could not be checked, with Try again, and the sign-in form is its own
+  recovery. A failed re-check of a confirmed
   session shows the same message, and a check paused offline or in a hidden tab still counts as
   checking. Mobile doesn't read `isUnavailable`: a failed check still returns it to Sign in.
 - The session check shows until the profile, and on an investing or company page the role, is known,
@@ -462,8 +464,9 @@ decision review or original-request recovery is open.
 
 Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
-so user preferences still recheck the signed-in identity on focus and reconnect; unconfirmed identity
-continues to withhold private content, including after an account changes in another tab. Keep bounded status checks for a submitted upload, extraction or identity
+so user preferences still recheck the signed-in identity on focus and reconnect. While a recheck of
+the same account runs, the frame, the page and its drafts stay and writes wait; a failed check or a
+changed account withholds private content, including after an account changes in another tab. Keep bounded status checks for a submitted upload, extraction or identity
 verification, stopping when the operation finishes or its view closes. A status read must never
 repeat a write, upload or share issue.
 
