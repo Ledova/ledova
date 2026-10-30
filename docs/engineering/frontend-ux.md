@@ -139,9 +139,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
   muted sentence ("No activity yet.") and at most one action; a state is never a
-  title. A card's title is a heading, such as each class's summary on Ledger. On the web, the
-  card's own paragraphs, a page's lede and a form's longer note keep a readable width
-  (`max-w-prose`).
+  title. A card's title is a heading, such as each class's summary on Ledger. On the web, every
+  paragraph in a card, including its forms' notes but not flex or right-aligned rows, and a page's
+  lede keep a readable width (`max-w-prose`).
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
   mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals on the web,

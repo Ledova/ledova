@@ -27,7 +27,7 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
       }}
     >
       <ErrorSummary {...checks.summary} />
-      <p className="max-w-prose text-sm text-text-muted">{props.vesting ? COPY.REVERSAL_NOTE : COPY.END_NOTE}</p>
+      <p className="text-sm text-text-muted">{props.vesting ? COPY.REVERSAL_NOTE : COPY.END_NOTE}</p>
       {props.vesting && <p className="text-sm">Original vesting: {props.vestingLabel}</p>}
       <fieldset
         disabled={form.busy || props.blocked || form.held || !props.canPrepare}

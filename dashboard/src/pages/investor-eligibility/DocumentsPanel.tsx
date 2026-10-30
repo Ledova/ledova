@@ -329,7 +329,7 @@ export function DocumentsPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="max-w-prose text-sm text-text-muted">
+      <p className="text-sm text-text-muted">
         Payslips support classification claims for human review; extraction does not establish eligibility. They are
         private to you and permitted platform operations staff. Issuers cannot review them.
       </p>
