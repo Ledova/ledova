@@ -32,6 +32,7 @@ stay here as history and are marked where they appear.
 | [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October                                                                     |
 | [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                                           |
 | [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                         | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md)                                       |
+| [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                           | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165                                                                                   |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                                            |
@@ -46,7 +47,7 @@ stay here as history and are marked where they appear.
 | [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands                                                                     |
 | [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred; offering payments removed under #1421                                                   |
 | [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                                                                                            |
-| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October                                                |
+| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October; web wallets removed 31 October                |
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey superseded 26 October                                                             |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 to 29 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360); links, one-line labels and Market removal (#1416) |
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web); mobile (#1157) superseded 26 October                                                                         |
@@ -864,7 +865,9 @@ deferred issues. Reuse existing issues and preserve the delivered #865 history;
 do not create a parallel programme or adopt another agent's claimed assets.
 
 Keep useful existing payment and chain functionality, retained records and
-execution recovery controls. No new chain or payment integration is required
+execution recovery controls. The
+[31 October decision](#wallets-removed-from-the-web-app) later removed wallets and the class's
+on-chain features from the web app; the backend keeps them. No new chain or payment integration is required
 for an off-chain registry entry. Existing company authority, tenant isolation,
 private evidence, arithmetic, immutable history and retention remain effective.
 Companies must not buy cryptocurrency through the on-ramp; personal investor
@@ -944,6 +947,25 @@ kind of company decision remains. Removing the offerings app regenerated the fre
 migrations, so a database migrated before this change, ledova.io included, needs a
 [fresh rebuild](operations/README.md#rebuild-a-database) before it runs this code; that rebuild is
 the owner's call.
+
+### Wallets removed from the web app
+
+**Owner decision, 31 October 2026**, given in the session
+([#1452](https://github.com/Ledova/ledova/issues/1452)). Asked whether Activity, the person's own
+wallet transfers, belonged in the Ledger menu, the review found that Wallets had lost its menu entry
+when #1378 removed the More group. The owner answered: "We dont have wallets now and this something
+we were only planning to develop it later so maybe we should just remove for the time being". Asked
+whether the features that need a wallet should go too, the owner chose "Everything wallet-based",
+keeping the backend and data so they can return later.
+
+The web app therefore drops Wallets, Wallet shares, Activity, Send and Buy crypto, wallet nominations
+and company wallet approvals, and the class's on-chain mirror: the Chain actions page, wallet links
+and on-chain status. The register needs no wallet: without a contract, every grant, allotment and
+transfer is a register entry. The backend, its API and all stored records stay, as do #920's investor
+and provider guards, so the features can return from Git history under a new decision. For the web
+app this supersedes the 26 September choice that crypto lives inside Wallets and the 9 October
+instruction to keep existing payment and chain controls. It authorises no live operation or data
+deletion.
 
 ### Member invitations and account association
 
@@ -1877,6 +1899,8 @@ company authority.
   supersedes unrestricted Buy crypto availability: purchases are optional and
   investor-only; companies must not use the on-ramp to buy cryptocurrency.
   Sending and authorised company share-wallet operations remain separate.
+  Superseded for the web by the [31 October decision](#wallets-removed-from-the-web-app): the web
+  app has no wallet pages.
 - **One look.** Paper only, with no theme switch, and no test-network or
   synthetic-data notices in the product. The theme part is superseded by the
   [14 October theme decision](#paper-and-dark-themes): Paper stays the default

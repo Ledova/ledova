@@ -9,7 +9,6 @@ export {
   verifyAuth,
   changePassword,
 } from './auth';
-export { getAssets } from './assets';
 export { getUserAccount, setAccountRole } from './userAccount';
 export { createFinancialProfile, updateFinancialProfile, getFinancialProfiles } from './financialProfile';
 export {
@@ -21,12 +20,6 @@ export {
 } from './users';
 export { getIdentityVerificationToken, getIdentityVerificationStatus } from './identityVerification';
 export { getCurrentUserPreferences, upsertCurrentUserPreferences } from './userPreferences';
-export { getWallets, createWallet, updateWallet, deleteWallet } from './wallets';
-export { requestVerificationChallenge, verifyWalletSignature, syncWallet } from './wallet-verification';
-export { prepareTransfer, prepareBitcoinTransfer, broadcastTransfer } from './wallet-transfers';
-export { getWalletHoldings, fetchBatchBalances, fetchImportBalances } from './wallet-balances';
-export { getTransactions, getTransactionsNextPage } from './transactions';
-export { getOnRampWidgetUrl } from './onramp';
 export {
   registerDeviceToken,
   unregisterDeviceToken,
@@ -36,7 +29,6 @@ export {
   archiveNotification,
   markAllNotificationsRead,
 } from './notifications';
-export { getWhitelistStatus } from './trading';
 export {
   getCompanies,
   registerCompany,
@@ -130,16 +122,13 @@ export {
   deleteInvestorClassification,
 } from './investorClassifications';
 export { getOperator } from './operator';
-export { getExchangeRate } from './exchangeRates';
 export {
   getPublications,
-  getPublicationSummary,
   getPublicationsNextPage,
   openPublication,
   downloadPublication,
   castBallot,
 } from './publications';
-export { getShareHoldings } from './share-holdings';
 export * from './company-eligibility';
 export * from './company-wallets';
 export * from './register-issues';

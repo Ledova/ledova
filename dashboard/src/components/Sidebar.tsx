@@ -7,7 +7,6 @@ import {
   FilesIcon,
   UsersThreeIcon,
   ShieldCheckIcon,
-  LinkIcon,
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
@@ -70,10 +69,7 @@ const PERSONAL: NavItem[] = [
   { destination: 'home', view: 'documents', icon: FilesIcon },
 ];
 
-const YOURS: NavItem[] = [
-  { destination: 'transactions', icon: LinkIcon },
-  { destination: 'settings', icon: GearIcon },
-];
+const YOURS: NavItem[] = [{ destination: 'settings', icon: GearIcon }];
 
 const ITEM_CLASS = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors';
 const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary';

@@ -1,6 +1,5 @@
 import type {
   CompanyEligibilityRequest,
-  CompanyWalletInstruction,
   MemberCertificateRequest,
   MemberInvitation,
   MemberParticularsRequest,
@@ -42,16 +41,6 @@ export const APPOINTMENT_STATUS_LABELS: Record<OwnCompanyAppointment['status'], 
   active: 'Active',
   expired: 'Expired',
   revoked: 'Revoked',
-};
-
-export const COMPANY_WALLET_ACTION_LABELS: Record<CompanyWalletInstruction['action'], string> = {
-  add: 'Approve nominated wallet',
-  remove: 'Remove retained approval',
-};
-
-export const CHAIN_FAILURE_LABELS: Record<string, string> = {
-  failed: 'Failed before signing',
-  reverted: 'Reverted',
 };
 
 export const DEPLOYMENT_SWAP_APPROVAL_LABELS: Record<string, string> = {

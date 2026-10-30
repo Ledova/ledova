@@ -45,7 +45,7 @@ person, actions, any delegation (**May delegate all of these** when it matches t
 or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
 acceptance or deadline and the appointment's expiry. Company documents (Eligibility → Supporting) has its own view, with Category and File in the inline upload.
-The remaining publication, wallet, activity and eligibility collections use this workspace frame, with
+The remaining publication and eligibility collections use this workspace frame, with
 their creation and record actions in the same footer. Their short named/status summaries keep
 secondary facts and copyable technical references on demand.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
@@ -138,7 +138,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   `rounded-2xl` in the frame, `rounded-xl` outside it) with its Newsreader title inside. Forms and
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
-  muted sentence ("No activity yet.") and at most one action; a state is never a
+  muted sentence ("No share classes yet.") and at most one action; a state is never a
   title. A card's title is a heading, such as each class's summary on Ledger. On the web, every
   paragraph in a card, including its forms' notes but not flex, right-aligned or truncated rows, and a page's
   lede keep a readable width (`max-w-prose`).
@@ -170,14 +170,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   at the row's end. On wide screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's
   facts. Representative authority requests are `LinkRow`s that open each request's own page.
-- `Disclosure`: a button with `aria-expanded` and a leading caret that opens its detail in place
-  under its row, used only by Activity's entries and Wallet shares' rows (opened independently
-  through `useOpenRows` from `@ledova/shared`) and Wallets' sort, which hold their detail only while
-  open. Other optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished
-  input survives. The
-  sidebar's group caret is a separate navigation button. Wallets' sort (once a chain holds two
-  wallets) remains a `Disclosure` at the top of the card naming what it applies. Substantial record
-  reviews use the main page; brief confirmations and signing steps can use dialogs.
+- Optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished input
+  survives. The sidebar's group caret is a separate navigation button. Substantial record reviews
+  use the main page; brief confirmations can use dialogs.
 - `Popover`: compact secondary controls, such as filters and notifications, may open an anchored
   panel without moving page content. Filters use `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`), which shares Headless UI's `Popover`,
@@ -452,8 +447,8 @@ labelled **Eligibility**; for an administrator it uses
 the same pattern, its label opening its own page and its caret showing **Supporting** (Company
 documents).
 An investing account's **Eligibility** opens Verification, stays marked on Your company eligibility
-and sits above Activity; beside the company's own Eligibility item it reads **Your eligibility**.
-**Activity**, the person's own wallet transfers, sits above Settings whatever company is selected.
+and sits above Settings; beside the company's own Eligibility item it reads **Your eligibility**.
+**Settings** comes last whatever company is selected.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
 [separately](mobile.md#navigation). The sidebar has no More group or Help & Support link. Removing
@@ -521,7 +516,7 @@ confirmation) or pressed, and comes in four forms:
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
   the title row's way back, Add share class, a shareholder's Details, Issue shares to them.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
-  it at once: the shown eligibility request and Wallets' sort.
+  it at once, such as the shown eligibility request.
 
 All four are at least 44 px tall below `sm`, so they are easy to tap on a phone; wider screens keep
 the compact size. `MoreToggle`'s "Show …" text links get a 44 px tap area from an `after:` overlay,
@@ -549,8 +544,6 @@ way:
 
 - Activation's review hides its action and shows "Checking activation…".
 - A register decision's rejection preview shows "Loading the preview…".
-- Submitting a wallet nomination replaces the form with its saved request.
-- Signing flows, in Trading and wallet transfers, move to their own submitting step.
 
 A load error's Try again and recovery actions keep their label while they run; a form's submit
 button that also recovers an earlier attempt keeps its busy label. Icon buttons, register setup's Import
@@ -727,9 +720,8 @@ company-change safeguards are checked in review and the existing dashboard journ
 Lists that grow with a company's shareholders use the same searchable list, named by what a person
 recognises rather than an internal identifier:
 
-- a share-class issue's nominated wallet, and a wallet nomination in Company eligibility's wallet
-  approvals: the wallet address, with its proof date or whether its source is ready;
-- a retained approval in the same section: the wallet address, with when the approval ends.
+- a share-class issue's nominated wallet: the wallet address, with its proof date or whether its
+  source is ready.
 
 These lists are checked in review; no dashboard case drives them.
 
@@ -753,9 +745,7 @@ answers. It asks for:
 
 A question with no answer yet shows no button chosen. The answer takes effect with the form or
 filter it belongs to. [Compact filters](#lists-search-filters-and-paging) use labelled selectors to
-keep their secondary panels small. Wallets' sort is the exception: each sort applies as soon as it is chosen, so
-its answers are a row of buttons marked pressed, since moving through radio buttons with the arrow
-keys would re-sort the list at every step.
+keep their secondary panels small.
 
 ## Choosing from a bounded list
 
@@ -766,8 +756,7 @@ field and options named in words:
 
 - an appointment reads as the date it was made, then its actions, so a phone keeps the date in view;
 - an evidence source reads as its kind, status and date, and a classification claim as its kind and
-  date;
-- a company wallet approval for a nominated wallet reads as when it was admitted and until when.
+  date.
 
 These lists add a short record reference only to options that would otherwise read the same,
 as with people who share a name and address; a delegating appointment adds the time it was made
@@ -813,10 +802,9 @@ server:
   the existing editor and unfinished-work locks.
   Shareholders puts Search people inside the panel above Share class, keeping
   its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
-  scope without repeating it in a header summary or badge. Certificates and Activity keep labelled
+  scope without repeating it in a header summary or badge. Certificates keeps labelled
   draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;
-  Apply and Clear close the panel and return focus to its button. Activity retains its date
-  validation, whole-local-day bounds and separate wallet-read retry. Shareholders' class filter,
+  Apply and Clear close the panel and return focus to its button. Shareholders' class filter,
   Member requests' type and company eligibility's Outcome apply
   immediately, closing the panel on selection. Member requests' person search stays inside its panel
   and uses the existing 300 ms timing, without an Apply action. Escape and an outside click dismiss
@@ -824,7 +812,6 @@ server:
   accessible. Fit the panel within the viewport, scrolling inside when needed rather than
   overflowing or shifting the table. Preserve each page's URL, paging, full-history matching and
   loading/error rules; opening the panel or editing a draft does not start a new results read.
-  Wallets' sort keeps its separate existing disclosure.
 - **The address:** `useListParams` (`dashboard/src/hooks/useListParams.ts`) keeps the search
   (`q`), the filters and the page in the URL, so Back, a refresh or a shared link keep them. Typing
   replaces the history entry, while a filter or page change adds one. Any change but the page
@@ -843,7 +830,7 @@ server:
   "1–25 of 1,240 requests", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it
   is loading.
-- **Feeds:** `LoadMore` ends a feed with "Load more notices" (or activity,
+- **Feeds:** `LoadMore` ends a feed with "Load more notices" (or
   notifications and so on), which names its work while it runs. When a later page fails, the shown
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
@@ -857,11 +844,11 @@ popover, with the same search timing and pager. Search matches every word, ignor
 (`searchRows` in `packages/shared/src/utils/search.ts`); selecting a class applies it immediately and
 closes the panel.
 
-The feeds are Activity, Notices, the notification bell, Published to
+The feeds are Notices, the notification bell, Published to
 your members, a class's register entries, a share class's issuance requests, authorised share
 requests and issuances (`useRecordFeed`), and each class's former shareholders, shown 25 at a time
-from the register already read. A list bounded by one person, such as their own documents,
-classification claims or wallets, reads every page. Other lists still read every page
+from the register already read. A list bounded by one person, such as their own documents or
+classification claims, reads every page. Other lists still read every page
 ([frontend](frontend.md#lists-figures-and-currency)).
 
 **The register's records are the one stated exception.** Each share class's allotments, transfers,
@@ -949,7 +936,7 @@ Some messages keep their own form:
   Labels use the group's context instead of repeating its name: **Documents** contains **Category**
   and **File**, with a numbered accessible group name distinguishing each attachment.
   Omitting a repeated optional marker does not make the field required. A sentence about one field is that field's hint, and an action
-  beside the label, such as Scan QR, is its `aside`. Choices, the searchable pickers, the list search
+  beside the label is its `aside`. Choices, the searchable pickers, the list search
   and checkboxes that need no check keep their own controls, and sign-in and sign-up keep their own
   look on the same Headless parts.
 - **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
@@ -1016,7 +1003,7 @@ Some messages keep their own form:
 This section covers how a form reports a problem: when it is submitted, and when its request fails.
 
 - **Checking on submit.** Web forms check their fields when submitted. Filters that only narrow a
-  list, such as Activity's dates, keep their own rules.
+  list keep their own rules.
   - **Summary and fields.** A problem shows twice. `ErrorSummary` (`dashboard/src/components/`)
     lists each problem at the top of the form as `role="alert"` and takes focus, each item linking
     to its field. The field shows the same sentence as its error and turns `aria-invalid`; on
@@ -1127,10 +1114,8 @@ by a local helper or a browser `toLocale…` call:
   name the kind of completion without its reference or block numbers.
   The eligibility pages list requests by category, outcome and submission time, the company's list
   leading with the investor's name when the request shared one, and show their
-  history without request keys, digests or appointment references. Company wallet approvals and
-  wallet nominations show the wallet, its eligibility and proof dates and the decisions, with
-  **View transaction**, without nomination, request or decision references, fingerprints or
-  transaction internals, and name a company from the person's own companies (`Company` and its
+  history without request keys, digests or appointment references, and name a company from the
+  person's own companies (`Company` and its
   `shortReference` when it is not among them). A request's shared summary shows its readable values,
   and the investor's view names the company when it is one of theirs. Its references to the chosen
   evidence source, the investor's account and the company are not shown: a request is sent only when

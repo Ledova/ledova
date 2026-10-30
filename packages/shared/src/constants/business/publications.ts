@@ -12,7 +12,6 @@ export const PUBLICATION_ENDPOINTS = {
   BASE: '/api/v1/publications/',
   FILE: (uuid: string) => `/api/v1/publications/${uuid}/file/` as const,
   BALLOT: (uuid: string) => `/api/v1/publications/${uuid}/ballot/` as const,
-  SUMMARY: '/api/v1/publications/summary/',
 } as const;
 
 export const PUBLICATION_NOTICE = 'publication';

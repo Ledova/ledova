@@ -3,7 +3,6 @@ export {
   addCalendarYears,
   formatDate,
   formatDateTime,
-  formatSyncAge,
   isCalendarDate,
   parseDateString,
   formatDateToString,
@@ -11,11 +10,8 @@ export {
   utcToday,
 } from './date';
 export {
-  formatCurrency,
-  type FormatCurrencyOptions,
   formatCryptoBalance,
   formatFileSize,
-  formatPlainDecimal,
   formatShareCount,
   shareChange,
   shareCount,
@@ -34,15 +30,6 @@ export {
   formatPhoneNumber,
   isUuid,
 } from './validation';
-export {
-  validateWalletAddress,
-  detectChainFromAddress,
-  isValidBitcoinNativeSegwitTestAddress,
-  isBitcoinTestnetSigningPath,
-  normalizeBitcoinRawTransactionHex,
-  formatWalletAddressShort,
-  formatWalletAddressMedium,
-} from './validation/wallets';
 export { hasActiveFilters } from './filters';
 export { formatPhoneForDisplay, formatPhoneWithCountryCode, cleanPhoneNumber } from './phoneFormatting';
 export { formatSourceOfFunds, sourceOfFundsChoices, formatIntendedUse } from './formatting-labels';
@@ -63,12 +50,6 @@ export {
   refusalSentences,
 } from './errors';
 export type { SignInErrorReading, ApiErrorReading, ReadApiErrorOptions } from './errors';
-export { getHoldingTokenDeployment } from './asset-deployment';
-export { importAddressKey, importOnEvmNetwork, importedParentKey, canDeriveNextWalletAddress } from './wallet-import';
-export { readTransactionSignature, type TransactionSignature } from './transaction-signature';
-export { readWei } from './wei';
-export { canonicalDecimal, validatePreparedTransfer } from './prepared-transfer';
-export { parseFiatValue } from './valuation';
 export {
   formatMoney,
   describeRate,
@@ -77,9 +58,7 @@ export {
   paymentRecordState,
   type PaymentRecordState,
 } from './distributions';
-export { createLocalSigner } from './local-signer';
 export { readIdentityVerification } from './identity-verification';
-export { summarizeShareHoldings, type ShareHoldingRow } from './share-holdings';
 export {
   appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,
@@ -119,13 +98,10 @@ export {
   remainingRegisterAwardVesting,
 } from './register-awards';
 export { isPreparedRegisterDeployment } from './register-deployments';
-export { isWalletNominationReceipt, isPreparedCompanyWalletInstruction } from './company-wallets';
 export { isPreparedRegisterTransfer } from './register-transfers';
 export { ownershipSummary } from './register-ownership';
 export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
 export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
-export { activityAmount, activityDirection, feeUnit } from './activity';
-export { shownSymbol } from './asset-symbol';
 export { parseTheme } from './theme';
 export * from './register-issues';
 export * from './register-capital-increases';

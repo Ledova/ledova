@@ -24,10 +24,6 @@ export const AUTH_ENDPOINTS = {
   TOKEN_REFRESH: '/api/token/refresh/',
   VERIFY: '/api/auth/verify/',
 } as const;
-export const ASSET_ENDPOINTS = {
-  BASE: '/api/assets/',
-  EXCHANGE_RATES: '/api/assets/exchange-rates/',
-} as const;
 export const USER_PROFILE_ENDPOINTS = {
   BASE: '/api/user-profiles/',
   DETAIL: (uuid: string) => `/api/user-profiles/${uuid}/` as const,
@@ -207,26 +203,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_PAUSE_CHANGE_FILE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/file/` as const,
   CAPITAL_INCREASES: '/api/v1/tokens/capital-increases/',
   ISSUANCE_REQUESTS: '/api/v1/tokens/issuance-requests/',
-} as const;
-
-export const WALLET_ENDPOINTS = {
-  BASE: '/api/wallets/',
-  DETAIL: (uuid: string) => `/api/wallets/${uuid}/` as const,
-  HOLDINGS: (uuid: string) => `/api/wallets/${uuid}/holdings/` as const,
-  BATCH_BALANCES: '/api/wallets/batch-check-balances/',
-  REQUEST_VERIFICATION: (uuid: string) => `/api/wallets/${uuid}/request-verification/` as const,
-  VERIFY_SIGNATURE: (uuid: string) => `/api/wallets/${uuid}/verify-signature/` as const,
-  SYNC: (uuid: string) => `/api/wallets/${uuid}/sync/` as const,
-  PREPARE_TRANSFER: (uuid: string) => `/api/wallets/${uuid}/prepare-transfer/` as const,
-  BROADCAST_TRANSFER: (uuid: string) => `/api/wallets/${uuid}/broadcast-transfer/` as const,
-} as const;
-
-export const TRANSACTION_ENDPOINTS = {
-  BASE: '/api/transactions/',
-} as const;
-
-export const ONRAMP_ENDPOINTS = {
-  WIDGET_URL: '/api/fiat-purchases/transak-widget-url/',
 } as const;
 
 export const USER_DOCUMENT_ENDPOINTS = {

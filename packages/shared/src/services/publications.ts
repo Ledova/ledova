@@ -6,7 +6,6 @@ import type {
   Publication,
   PublicationFilters,
   PublicationQueryParams,
-  PublicationSummary,
 } from '../types';
 import { getNextPageParam } from '../utils';
 
@@ -14,9 +13,6 @@ export const getPublications = (apiClient: AxiosInstance, page = 1, filters: Pub
   apiClient.get<PaginatedResponse<Publication>>(PUBLICATION_ENDPOINTS.BASE, {
     params: { page, ...filters } satisfies PublicationQueryParams,
   });
-
-export const getPublicationSummary = (apiClient: AxiosInstance) =>
-  apiClient.get<PublicationSummary>(PUBLICATION_ENDPOINTS.SUMMARY);
 
 export const getPublicationsNextPage = (lastPage: AxiosResponse<PaginatedResponse<Publication>>): number | undefined =>
   getNextPageParam(lastPage.data);

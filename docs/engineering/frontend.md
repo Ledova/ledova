@@ -60,7 +60,7 @@ frame share, and `packages/shared` holds what both clients share.
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `qr/`, and single components several areas show (`AwardStatus.tsx`) |
 | `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                             |
 | `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                                                                                    |
-| `utils/`              | Browser and pure helpers used by more than one area or the frame (the software signer, `siteUrl.ts`, Keystone UR coding) and the web-only paths (`paths.ts`)                                                                                                                                                                     |
+| `utils/`              | Browser and pure helpers used by more than one area or the frame (`siteUrl.ts`, `saveFile.ts`, the session resets) and the web-only paths (`paths.ts`)                                                                                                                                                                           |
 | `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                          |
 | `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                    |
 
@@ -94,18 +94,18 @@ second user needs it, as on the [backend](backend.md#backend-layers). `pages/pub
 reference page. Where a rule and a file disagree, the rule wins and the file is the backlog;
 existing code is being brought in line under [#1065](https://github.com/Ledova/ledova/issues/1065).
 
-| Layer                                  | Owns                                                                                                                                         | Never contains                                                                                | Reference                                                                                             |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Route table and guards (`routes/`)     | `PAGES` keyed by `DESTINATIONS`, the sign-up and public routes, guards with their waiting and failure states, where an account lands         | A page's files other than its entry; page content; reads beyond the session and access checks | `dashboard/src/routes/pages.tsx`                                                                      |
-| Page entry (`index.tsx`)               | One route: its parameters, hash and navigation state, the owner boundary, and `Page` with its title row and sections fed by hooks            | `useQuery`, `useMutation`, `apiClient` or a service call; another page's files                | `dashboard/src/pages/publications/index.tsx`                                                          |
-| Page files (beside the entry)          | The page's sections and dialogs, its hooks and its pure helpers, told apart by file name                                                     | `components/` or `hooks/` subfolders; a file a second page imports                            | `dashboard/src/pages/publications/Resolution.tsx`, `dashboard/src/pages/transactions/presentation.ts` |
-| Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                   | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/shared/RegisterDecisions.tsx`                                            |
-| UI kit and frame (`components/`)       | The kit, the frame and public layout with their contexts, and group folders or single components for UI that several areas or the frame show | Imports of `pages/` or `routes/`; in kit files, queries or domain rules                       | `dashboard/src/components/Ledger.tsx`, `dashboard/src/components/qr/`                                 |
-| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `packages/shared/src/hooks/useTransactions.ts`                                                        |
-| Services (`services/`)                 | `apiClient` (CSRF retry, the submission guard, friendly network errors) and the browser device stores                                        | API call functions; React                                                                     | `dashboard/src/services/apiClient.ts`                                                                 |
-| Utils (`utils/`)                       | Client-only helpers and web-only paths used by more than one area or the frame                                                               | React; API calls; logic mobile also needs on the same libraries                               | `dashboard/src/utils/siteUrl.ts`                                                                      |
-| Types                                  | A type beside its only user; API-derived and cross-client types in `packages/shared/src/types`                                               | Hand-written API shapes; a dashboard `types/` folder; client prop types in the shared package | `packages/shared/src/types/domain/publication.ts`                                                     |
-| Shared package (`packages/shared/src`) | What both clients need (query hooks, pure utils, constants, contract types) and every API call function, even one only one client calls      | JSX beyond `ApiClientProvider`; DOM or native APIs (stores take an injected storage)          | `packages/shared/src/services/publications.ts`                                                        |
+| Layer                                  | Owns                                                                                                                                         | Never contains                                                                                | Reference                                                                                      |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Route table and guards (`routes/`)     | `PAGES` keyed by `DESTINATIONS`, the sign-up and public routes, guards with their waiting and failure states, where an account lands         | A page's files other than its entry; page content; reads beyond the session and access checks | `dashboard/src/routes/pages.tsx`                                                               |
+| Page entry (`index.tsx`)               | One route: its parameters, hash and navigation state, the owner boundary, and `Page` with its title row and sections fed by hooks            | `useQuery`, `useMutation`, `apiClient` or a service call; another page's files                | `dashboard/src/pages/publications/index.tsx`                                                   |
+| Page files (beside the entry)          | The page's sections and dialogs, its hooks and its pure helpers, told apart by file name                                                     | `components/` or `hooks/` subfolders; a file a second page imports                            | `dashboard/src/pages/publications/Resolution.tsx`, `dashboard/src/pages/home/ownershipView.ts` |
+| Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                   | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/shared/RegisterDecisions.tsx`                                     |
+| UI kit and frame (`components/`)       | The kit, the frame and public layout with their contexts, and group folders or single components for UI that several areas or the frame show | Imports of `pages/` or `routes/`; in kit files, queries or domain rules                       | `dashboard/src/components/Ledger.tsx`, `dashboard/src/components/auth/`                        |
+| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `dashboard/src/hooks/useOwnershipCompanies.ts`                                                 |
+| Services (`services/`)                 | `apiClient` (CSRF retry, the submission guard, friendly network errors) and the browser device stores                                        | API call functions; React                                                                     | `dashboard/src/services/apiClient.ts`                                                          |
+| Utils (`utils/`)                       | Client-only helpers and web-only paths used by more than one area or the frame                                                               | React; API calls; logic mobile also needs on the same libraries                               | `dashboard/src/utils/siteUrl.ts`                                                               |
+| Types                                  | A type beside its only user; API-derived and cross-client types in `packages/shared/src/types`                                               | Hand-written API shapes; a dashboard `types/` folder; client prop types in the shared package | `packages/shared/src/types/domain/publication.ts`                                              |
+| Shared package (`packages/shared/src`) | What both clients need (query hooks, pure utils, constants, contract types) and every API call function, even one only one client calls      | JSX beyond `ApiClientProvider`; DOM or native APIs (stores take an injected storage)          | `packages/shared/src/services/publications.ts`                                                 |
 
 ### Dependency direction and placement
 
@@ -158,7 +158,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
 - **Data access.** Components render and call actions. Each query and mutation, with its key,
   owner guard and invalidation, lives in a `use<Thing>.ts` hook, and only `main.tsx`, hooks and
   `services/` import `apiClient`. A hook that shapes its result names the fields `isLoading`,
-  `hasError`, `isRefreshing` and `retry` (`packages/shared/src/hooks/useTransactions.ts`).
+  `hasError`, `isRefreshing` and `retry` (`dashboard/src/hooks/useOwnershipCompanies.ts`).
 - **Account boundary.** Work bound to the signed-in account takes its owner from
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
@@ -191,15 +191,14 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `formatShareCount`, `shareCount`, `shareChange`, `sharePercentage`, `marketQuantity`,
   `formatCryptoBalance`, `formatDate`, `formatDateTime`;
   [dates, numbers and identifiers](frontend-ux.md#dates-numbers-and-identifiers)).
-  Never define a local formatter or pass a displayed amount through `Number` or `parseFloat`. The
-  exception is a market value `useCurrency` converts to AUD, because its rate is a number.
+  Never define a local formatter or pass a displayed amount through `Number` or `parseFloat`.
 - **Naming and exports.** A page folder takes the last fixed segment of its address and sits in the
   folder of the nearest page whose fixed address begins its own: `/company/ledger/:uuid/transfer`
   is `pages/company/ledger/transfer/`. An address that only adds a parameter to that page is `detail/`
   (`/company/ledger/:uuid` is `pages/company/ledger/detail/`), and a `detail/` folder never holds sub-pages;
   an address that renders another's page (`/member-records`, `/company/ledger/setup`) has no
   folder, and the not-found page is `pages/not-found/`. Page folders and `components/` groups are
-  kebab-case (`eligibility-requests/`, `qr/`). A file is named after its main export, or after what
+  kebab-case (`eligibility-requests/`, `member-records/`). A file is named after its main export, or after what
   small siblings share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a
   hook without JSX, `<Thing>Provider.tsx` for a provider, `PascalCase.ts` for a React context,
   camelCase `.ts` for a module without React. Components and hooks are function declarations. A page
@@ -341,8 +340,7 @@ preserving company, class and navigation state. A group without a meaningful ove
 default child, without an extra Overview page or duplicate navigation.
 Company eligibility (`/company/eligibility`) follows Documents for an administrator or a prepare or
 approve appointee (`canReviewEligibility`). Its sidebar label is Eligibility. A company administrator (`canManage`) also
-gets its caret, with Supporting (Company documents, `/documents/company`) beneath it. Activity (`/transactions`), the person's own wallet
-transfers, sits above Settings in every company context.
+gets its caret, with Supporting (Company documents, `/documents/company`) beneath it.
 Settings uses the same one-level pattern: Profile, Team and Activation where permitted; a group with
 one permitted page, such as a member's Documents or Settings, is a plain link to it. Its default
 is Profile (`/settings#profile`), combining personal details, permitted company information, a
@@ -412,9 +410,6 @@ frame with a link to `landingFor(role)`, or in the public layout with a link to 
 sign-up. The public layout gives any signed-in visitor Sign out (`AuthLayoutAction`), so an account
 still signing up can always leave.
 
-The frame also mounts the Buy crypto and Send flows (`BuyCryptoProvider`, `SendTransferProvider`),
-so an open flow survives Wallets reloading its list or being left.
-
 ## Client sessions and caches
 
 Browser blob downloads use `dashboard/src/utils/saveFile.ts`: it clicks one temporary link, removes
@@ -439,8 +434,8 @@ sequences share `dashboard/src/utils/session.ts`. Mobile clears the whole cache 
 account deletion. A new person is never guarded by, or signs up against, the previous person's
 account. Mobile adds a session epoch to every read and write ([session scope](mobile.md#session-scope)).
 
-The shared `useUserPreferences` and `useCurrency` queries start only after authentication, and
-cached preferences are hidden again when authentication is lost.
+The shared `useUserPreferences` query starts only after authentication, and cached preferences are
+hidden again when authentication is lost.
 
 ## Automatic data freshness
 
@@ -490,11 +485,10 @@ Every list follows these rules:
 
 - Web list filters use the UI-only `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`); pages retain their data and field state. Certificates
-  and Activity keep Apply/Clear drafts, while Shareholders' class and company eligibility's outcome
+  keeps Apply/Clear drafts, while Shareholders' class and company eligibility's outcome
   retain immediate selection. Member requests uses debounced person
   search and immediate request-type selection inside its panel. Shareholders keeps Search people inside
-  its panel above the class selector, with its existing debounce, Clear and match counts. Wallets'
-  sort remains separate.
+  its panel above the class selector, with its existing debounce, Clear and match counts.
   Every filter icon sits in the page heading's top-right actions, without a separate row or
   card-specific placement, apart from Dashboard's class details card
   ([UX](frontend-ux.md#lists-search-filters-and-paging)). Page-level owners pass `Page.actions`;
@@ -525,9 +519,7 @@ safe range is marked unavailable, not rounded. Share arithmetic uses whole integ
 `requestShares`), and a quantity or resulting cap above `MAX_REQUEST_SHARES` (2,147,483,647) is
 refused.
 
-Market values are shown in AUD: `useCurrency` converts the API's US-dollar values at the current
-rate, shows a dash while it is unknown and offers no other currency. Every amount names its currency
-(`formatMoney`).
+Every amount names its currency (`formatMoney`).
 
 The company ownership ring uses Apache ECharts, with only its pie chart and SVG renderer
 loaded when the desktop overview is visible. Use one ring and a linked class list, with the existing
@@ -711,7 +703,7 @@ Its screenshot provenance and update procedure are in the
 [site guide](../../site/README.md#product-screenshots).
 
 The dashboard stylesheet defines a `dark:` variant that follows `data-theme`, never the operating-system
-setting, for theme-specific adjustments: `QRCodeFrame`'s white quiet zone around QR codes, the
+setting, for theme-specific adjustments: the
 active sidebar item's `bg-brand-tint`, and signed-out primary buttons without their green glow. The
 identity check's widget opens in its dark theme on Dark. Both web clients bundle Newsreader for
 display text and Instrument Sans for everything else (`@fontsource-variable`).
@@ -734,10 +726,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                                       | everyone  |
 | [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                                                      | company   |
 | [Notices](../business/publications.md#the-notices-page)                                                      | `/publications`                                                                                                                                                              | everyone  |
-| [Wallet shares](../business/member-records.md#the-wallet-shares-page)                                        | `/wallets/holdings`                                                                                                                                                          | everyone  |
 | [Verification, Your company eligibility](../business/participants.md#the-verification-page)                  | `/investor-eligibility`, `/eligibility-requests`                                                                                                                             | investing |
-| [Wallets](../business/trading.md#the-wallets-page)                                                           | `/wallets`                                                                                                                                                                   | everyone  |
-| [Activity](../business/trading.md#the-activity-page)                                                         | `/transactions`                                                                                                                                                              | everyone  |
 | [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default); aliases `/user-profile`, `/company`, `/settings#account`, `/settings#company-recorded-details`                                                | everyone  |
 
 ### Page mechanics
@@ -883,19 +872,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 - Published to your members: reads the selected company's publications with `issuer` set, newest
   first, a page at a time with Load more; the card title carries the server's complete count. A
   document opens only while every loaded page is current.
-- Wallet shares: reads every page of the person's wallets, names each asset from the API's current
-  class and company names and adds whole share counts without floating-point conversion.
 - Verification: the claim history has its own cache, and every claim page loads before a submission
   is offered, so a pending claim on a later page still prevents a second one.
-- Wallets: reads every wallet page into a ledger of its own. Native balances are formatted by
-  `formatCryptoBalance` (`packages/shared/src/utils/formatting.ts`) and ordered by decimal-string
-  comparison (`sortWallets` in `packages/shared/src/hooks/useWalletSort.ts`). On the web every Sync
-  waits while one runs. Imports run one address at a time. Purchase-page errors are read with
-  `readApiError` (`packages/shared/src/utils/errors.ts`), never a proxy's error page. Web Send
-  counts the wallets last read even while re-reading; Buy crypto (`walletsSettled`) skips the wallet
-  chooser only after a finished read.
-- Activity: the history read does not depend on the wallet filter read; filters use only supported
-  API fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
   personal, company and account sections, keeping each editor's data and authority separate. One Account
   card holds relevant identity status, password, appearance and notifications; Manage account contains

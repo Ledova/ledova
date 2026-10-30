@@ -8,11 +8,8 @@ import prettierPlugin from 'eslint-plugin-prettier';
 import prettierConfig from 'eslint-config-prettier';
 
 const NODE_GLOBALS_THE_BROWSER_LACKS = [
-  { name: 'Buffer', message: "The browser has no Buffer global. Import it: import { Buffer } from 'buffer'." },
-  {
-    name: 'process',
-    message: "The browser has no process global. Import it (import process from 'process') or read import.meta.env.",
-  },
+  { name: 'Buffer', message: 'The browser has no Buffer global. Use Uint8Array, TextEncoder or btoa.' },
+  { name: 'process', message: 'The browser has no process global. Read import.meta.env.' },
   { name: 'global', message: 'The browser has no global variable. Use globalThis.' },
 ];
 

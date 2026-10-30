@@ -216,13 +216,15 @@ account; neither it nor a signing preference gives anyone control of a participa
 allotment or transfer on a class with no contract is a register entry only: it needs no wallet and
 creates no wallet holding ([register](register.md)).
 
+The web app no longer offers nominations or approvals: the owner removed them with the wallet pages
+on 31 October 2026 ([decision](../decisions.md#wallets-removed-from-the-web-app),
+[#1452](https://github.com/Ledova/ledova/issues/1452)). The API keeps them, with the rules below.
+
 ### Nominating a wallet
 
-1. Open your eligibility request in **Your company eligibility** and go to **Nominate one own Base
-   wallet**.
-2. Select one of your own verified Base wallets. Refresh its possession proof if needed: the proof
-   is your signed challenge, and an old verified status set without one is not enough.
-3. Review and submit the nomination, confirming that the address is shared with that exact company.
+A nomination selects one of the participant's own verified Base wallets, with a current possession
+proof: their signed challenge, since an old verified status set without one is not enough. Submitting
+it confirms that the address is shared with that exact company.
 
 A nomination needs the company's current general decision, with its source, account and identity
 conditions met. One nomination selects one wallet, with no set maximum, withdrawal or replacement
@@ -234,9 +236,7 @@ shares no wallets.
 ### Company wallet instructions
 
 The company adds or removes a wallet on its own on-chain approval registry through a company
-decision in **Company wallet approvals** on the Company eligibility page, following the
-[prepare, approve and apply pattern](README.md#how-a-company-decision-works). The section lists the
-company's wallet instructions first; **Approve or remove a wallet** opens the form.
+decision, following the [prepare, approve and apply pattern](README.md#how-a-company-decision-works).
 
 - Add prepares from one exact retained nomination and fixes the wallet, its eligibility and proof,
   and a finite expiry no later than the current eligibility expiry. The company must already have
@@ -318,10 +318,10 @@ a company's own Eligibility item) has two sections, followed by Supporting paysl
   verified under the retired staff review shows Historical verification.
 - How you qualify: the two categories, with **Submit evidence** or **Add evidence**.
 
-Your company eligibility holds your requests with their outcome history, **Prepare request
-withdrawal** and the wallet nomination. Company eligibility, for company
-approvers and preparers, holds the Requests list with the company's request link, the decision and
-revocation forms and Company wallet approvals
+Your company eligibility holds your requests with their outcome history and **Prepare request
+withdrawal**. Company eligibility, for company
+approvers and preparers, holds the Requests list with the company's request link and the decision and
+revocation forms
 ([deciding](#deciding-withdrawing-and-revoking)). Both request lists show each outcome, such as
 Pending or Accepted, as a status mark.
 

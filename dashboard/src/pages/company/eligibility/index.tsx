@@ -24,7 +24,6 @@ import { PAGE_SIZE, useFirstPageWhenGone, useListParams } from '@hooks/useListPa
 import { FormActions, Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
 import { Field, TextInput } from '@components/Field';
-import { CompanyWalletInstructions } from './CompanyWalletInstructions';
 import { scopeLabels } from '@pages/company/shared/appointments';
 import { pageTitle } from '@utils/destinations';
 import { eligibilityRequestLink } from '@utils/requestLink';
@@ -308,9 +307,6 @@ export default function CompanyEligibilityPage() {
           )}
         </>
       )}
-      <div hidden={!!read.action || !read.companyUuid}>
-        <CompanyWalletInstructions active={!read.action} />
-      </div>
     </Page>
   );
 }

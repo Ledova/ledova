@@ -272,27 +272,9 @@ exact tested head, in the PR; JavaScript tests alone do not close a native harde
 ## Pre-release device checks
 
 Complete these flows on physical hardware before a release and record them under the
-[physical acceptance checklist](https://github.com/Ledova/ledova/issues/624). The Keystone and
-Bitcoin checks use the web app and a Keystone; the mobile checks need a development or production
-build on a device. Emulator and
+[physical acceptance checklist](https://github.com/Ledova/ledova/issues/624). They need a
+development or production build on a device. Emulator and
 simulator checks can supplement them.
-
-### The Keystone QR round trip
-
-Verify a wallet, send one EVM crypto transfer through the transfer signing flow, and sign one
-trading order through the QR branch. A transfer and a settlement's token approval are the only raw
-transaction UR uses; both are legacy type-0 transactions, as the backend prepares them, so check
-that what the Keystone displays matches what was prepared. The firmware answers a transaction with
-an EIP-155 `v` in as few bytes as it needs; the web app reads 65 to 72 bytes and refuse a `v` for
-another network or a signature that does not recover to the wallet's address, and only a device
-shows the firmware's actual result. Messages and typed data are signed with `v` 27 or 28, always 65
-bytes. The dashboard's seed-phrase alternative covers none of this.
-
-### Bitcoin manual send
-
-Prepare a transfer from a Bitcoin wallet, sign the raw transaction with your own tooling, paste the
-hex, broadcast it, and confirm the success state links to the testnet explorer. The web app never
-builds or signs a Bitcoin transaction.
 
 ### Biometric sign-in
 
@@ -334,105 +316,6 @@ only Android's write prompt does.
 Push delivery needs the Expo project ID and a device build
 ([push notifications](../operations/configuration.md#push-notifications)); supported emulators and
 simulators can also exercise it.
-
-### Keystone ownership on a Mac
-
-This check uses a real Keystone 3 Pro (the owner's reported firmware 2.3.6) and Chrome's camera
-against the web dashboard on a fresh synthetic local instance, on a Mac with a working camera
-because the Linux deployment computer has none. It verifies an EIP-191 ownership message and needs
-no operator private key, deployed contract, company approval, funds or gas. Signature recovery is
-local: unavailable RPC can leave balances unavailable and wallet sync queued without blocking
-verification, and neither is a chain-sync result. The procedure is source-reviewed but not yet run
-on a Mac. Its database is separate from the Linux instance holding the
-[Base Sepolia evidence](../operations/approval-controls.md#base-sepolia); never copy that instance's
-operator key, reset its database or repeat its public deployment for this test.
-
-#### Prepare the Keystone
-
-The [official firmware guide](https://keystone3.com/en/docs/firmware-upgrade/) requires devices
-below 2.4.0 to install that security upgrade first: for 2.3.6, take the path for 2.0.0 or above,
-then the official updater for supported Multi-Coin firmware, which supports Ethereum accounts
-(current release on the [official download page](https://keyst.one/firmware)). The owner performs
-the update and any on-device approval, following the vendor's battery, backup and
-[checksum instructions](https://keystone3.com/en/docs/firmware-checksum/), and records the firmware
-actually installed. The recovery phrase stays offline, never entered into Ledova, a browser, the
-assistant or GitHub.
-
-#### Start a separate local instance
-
-With Docker Desktop (Compose), Git and Python 3, use a clean checkout of the reviewed commit named
-in the #624 handover whose required checks passed, Chrome on the Mac, no connection to the Linux
-computer and no environment files from an unrelated checkout. From that checkout:
-
-```sh
-python3 scripts/init-local-env.py
-docker compose -p ledova-keystone-local up --build -d backend dashboard
-```
-
-Wait for the backend's normal initialisation, migration and role checks and for both application
-surfaces to respond; if startup fails, check `docker compose -p ledova-keystone-local ps` and the
-backend logs, never weakening database role checks. Operator and external-provider credentials stay
-unconfigured, as the fresh templates leave them; the stack's own chain, contract deployment and
-scanner start as dependencies with the compose anchor's chain addresses, no worker is needed and
-nothing is signed. Create the synthetic demo once, keeping its generated credentials in a private
-local file:
-
-```sh
-umask 077
-mkdir -p "$HOME/.local/share/ledova-keystone-local"
-docker compose -p ledova-keystone-local exec -T backend \
-  python manage.py seed_demo \
-  > "$HOME/.local/share/ledova-keystone-local/demo-credentials.txt"
-```
-
-The owner reads the investor login privately; never paste credentials or the file into an issue or
-assistant output ([demo data](../getting-started.md#demo-data)). The demo's sign-up, identity,
-terms, classification and preverified development wallets are synthetic setup, not human acceptance.
-Open <http://localhost:5174> in Chrome, sign in and open Wallets (the API is
-<http://localhost:8000>; the Linux acceptance instance uses other ports). Check the camera permission
-in [macOS Privacy & Security](https://support.apple.com/guide/mac-help/mchlf6d108da/mac) and allow
-the site's camera request when the scanner opens: `localhost` is a
-[camera-capable secure context](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia),
-and a plain HTTP LAN address is not.
-
-#### Import and prove the hardware account
-
-1. On the unlocked device, select Connect Software Wallet → MetaMask to display the public-account
-   QR (an export mode; Ledova's direct QR flow needs no MetaMask extension connection).
-2. In Wallets → Base → + Add wallet → Scan QR, scan it. At Review the accounts to import, select
-   Base as the EVM network, deselect unrelated accounts, compare the address with the device, and
-   import only the intended test account. An unavailable balance is not an ownership result.
-3. Select the newly imported Keystone wallet. It must start unverified (the seed's preverified
-   development wallet is not the device under test) and keep the imported derivation path and master
-   fingerprint; a manually entered address does not establish the hardware import flow.
-4. Choose Verify → Continue and scan the QR under Scan challenge with the Keystone. The owner
-   checks the ownership message and signs on the device; the challenge expires after five minutes,
-   so generate a fresh one if needed.
-5. Choose I've signed the message, scan the device's response, and keep the actual Wallet verified!
-   result. Reload the wallet and confirm it stays verified through the normal authenticated
-   readback.
-
-Public-account import supports multipart `ur:crypto-multi-accounts`; the signature scanner requires
-one complete `eth-signature` QR with a 65-byte signature, and the camera has no QR-file-upload
-alternative. If a device emits an unsupported format or a scanner fails, keep the error and report
-it on #624; never substitute a database override or the seeded wallet's verified status.
-
-#### Record the Keystone result
-
-Record the tester, time with timezone, application commit, macOS and Chrome versions, Keystone
-model, firmware before and after, camera result, public-account import, challenge signing, signature
-decoding and verified-wallet readback. Hardware addresses, account metadata, credentials and QR
-payloads stay in private evidence unless the owner publishes them; a public issue comment can show a
-masked address and PASS or BLOCK with the observed error. Ownership PASS does not complete EIP-712
-order signing, transaction signing, physical Android or iPhone acceptance or #624's
-release-deployment swap; coordinate defects with the existing issues before any parallel
-implementation. To stop the Mac instance and keep its data:
-
-```sh
-docker compose -p ledova-keystone-local down
-```
-
-Add `-v` only to delete the separate Mac test database intentionally.
 
 ## iOS distribution builds
 

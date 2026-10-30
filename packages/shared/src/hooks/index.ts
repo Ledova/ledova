@@ -2,11 +2,9 @@ export { ApiClientProvider, useApiClient } from './useApiClient';
 export type { ApiClientProviderProps } from './useApiClient';
 export { AUTH_QUERY_KEY, useAuth, AUTH_QUERY_ROOT } from './useAuth';
 export { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
-export { useCurrency } from './useCurrency';
 export { useIdentityVerificationStatus, IDENTITY_VERIFICATION_QUERY_KEY } from './useIdentityVerificationStatus';
 export { useFinancialProfile, FINANCIAL_PROFILES_QUERY_KEY } from './useFinancialProfile';
 export { useNotifications } from './useNotifications';
-export { usePublicationSummary, PUBLICATIONS_QUERY_KEY } from './usePublicationSummary';
 export { useSubmissionOwner } from './useSubmissionOwner';
 export type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 export { hasProblems, useErrorSummary, useFocusClaim } from './useErrorSummary';
@@ -16,7 +14,6 @@ export {
   REGISTER_IMPORT_DECISIONS,
   REGISTER_GRANT_DECISIONS,
   REGISTER_DEPLOYMENT_DECISIONS,
-  COMPANY_WALLET_DECISIONS,
   REGISTER_TRANSFER_DECISIONS,
   REGISTER_LINK_DECISIONS,
   REGISTER_OPENING_DECISIONS,
@@ -24,8 +21,6 @@ export {
   useRegisterDecision,
 } from './useRegisterDecision';
 export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';
-export { useWalletNomination } from './useWalletNomination';
-export { useCompanyWalletInstructions } from './useCompanyWalletInstructions';
 export { useDiscrepancyAcknowledgement } from './useDiscrepancyAcknowledgement';
 export type { DiscrepancyAcknowledgementOptions } from './useDiscrepancyAcknowledgement';
 export {
@@ -36,17 +31,11 @@ export {
   COMPANY_QUERY_KEY,
 } from './useCompanySelection';
 export { useResolutionStatus } from './useResolutionStatus';
-export { useShareHoldings } from './useShareHoldings';
-export { walletHoldingsKey, useWalletHoldings } from './useWalletHoldings';
-export { WALLETS_QUERY_KEY, buyWalletsKey, useBuyWallets } from './useBuyWallets';
 export {
   INVESTOR_CLASSIFICATIONS_QUERY_KEY,
   investorClassificationsKey,
   useInvestorClassifications,
 } from './useInvestorClassifications';
-export { useOpenRows } from './useOpenRows';
-export { WALLET_SORTS, sortWallets, useWalletSort } from './useWalletSort';
-export type { WalletSortOption } from './useWalletSort';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { SIGNUP_RESTART_FIELDS, useSignupRestart } from './useSignupRestart';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
@@ -61,8 +50,6 @@ export {
   SIGNUP_COMPANY_QUERY_KEY,
   SIGNUP_COMPANY_DETAIL_QUERY_KEY,
 } from './useSignupReview';
-export { useTransactions, ALL_TRANSACTIONS_QUERY_KEY } from './useTransactions';
-export type { TransactionFilters } from './useTransactions';
 export { useLaterPages } from './useLaterPages';
 export { useCompanyActivation } from './useCompanyActivation';
 export {
@@ -101,4 +88,4 @@ export {
 
 export { useUserProfile } from './useUserProfile';
 export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
-export { usePublications, PERSONAL_NOTICES_QUERY_KEY } from './usePublications';
+export { usePublications, PUBLICATIONS_QUERY_KEY, PERSONAL_NOTICES_QUERY_KEY } from './usePublications';
