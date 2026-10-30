@@ -46,10 +46,11 @@ keeping every earlier record except what #1421 removed, and the demo data below 
 The addresses name each account's role, at the owner's domains ledova.io and blueberry.money.
 Until 30 October 2026 they ended in @purpose-demo.test. They were then renamed in place on both
 copies ([#1439](https://github.com/Ledova/ledova/issues/1439)), so each account kept its records
-and password. Records the app never changes still show the old addresses:
+and password. Records the app never changes still hold the old addresses:
 
-- a company's member access page lists the address each member accepted an invitation with;
-- authority requests keep the requester's details as given;
+- a company's member access page lists each invitation's address and the address each member
+  accepted with;
+- authority requests keep the requester's details as recorded when made;
 - the sample evidence files carry the address they were made with.
 
 ## What the account types mean
