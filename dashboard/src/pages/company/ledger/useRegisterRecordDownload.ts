@@ -4,16 +4,12 @@ import {
   downloadRegisterCorrectionFile,
   downloadRegisterGrantFile,
   downloadRegisterImportFile,
-  downloadRegisterLinkFile,
-  downloadRegisterOpeningFile,
   downloadRegisterParticularsChangeFile,
   downloadRegisterTransferFile,
   type RegisterAllotment,
   type RegisterCorrection,
   type RegisterGrant,
   type RegisterImport,
-  type RegisterLink,
-  type RegisterOpening,
   type RegisterParticularsChange,
   type RegisterTransfer,
 } from '@ledova/shared';
@@ -84,28 +80,6 @@ export function useImportRecordDownload(proposal: RegisterImport, check: () => v
           ? retainedName(proposal.asicSnapshot, `asic-extract-${proposal.uuid}`)
           : retainedName(proposal.evidenceSnapshot, `register-import-${proposal.uuid}`),
       );
-    },
-  });
-}
-
-export function useLinkRecordDownload(link: RegisterLink, check: () => void) {
-  return useMutation({
-    mutationFn: async () => {
-      check();
-      const { data } = await downloadRegisterLinkFile(apiClient, link.uuid, { ledovaSubmissionGuard: check });
-      check();
-      saveFile(data, retainedName(link.evidenceSnapshot, `wallet-link-${link.uuid}`));
-    },
-  });
-}
-
-export function useOpeningRecordDownload(proposal: RegisterOpening, check: () => void) {
-  return useMutation({
-    mutationFn: async () => {
-      check();
-      const { data } = await downloadRegisterOpeningFile(apiClient, proposal.uuid, { ledovaSubmissionGuard: check });
-      check();
-      saveFile(data, retainedName(proposal.evidenceSnapshot, `register-opening-${proposal.uuid}`));
     },
   });
 }

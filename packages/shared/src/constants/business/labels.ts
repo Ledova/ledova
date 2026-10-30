@@ -42,24 +42,3 @@ export const APPOINTMENT_STATUS_LABELS: Record<OwnCompanyAppointment['status'], 
   expired: 'Expired',
   revoked: 'Revoked',
 };
-
-export const DEPLOYMENT_SWAP_APPROVAL_LABELS: Record<string, string> = {
-  pending: 'Pending approval',
-  executing: 'Approval in progress',
-  confirmed: 'Approval confirmed',
-  observed_approved: 'Existing approval observed',
-  not_configured: 'Swap unavailable at deployment',
-  failed: 'Approval failed',
-};
-
-export const IDENTITY_SOURCE_LABELS: Record<string, string> = {
-  profile: 'Current profile',
-  stamped: 'Stamped at the time',
-  recorded: 'Name recorded at allotment, identity never resolved',
-  particulars: 'Recorded register particulars',
-  treasury_label: 'Whitelist entry label, no profile exists',
-  unresolvable: 'Not resolvable, two wallets share this address',
-  none: 'Not identified',
-  unknown: 'Never identified while it held shares',
-  company_recorded: 'Recorded by the company',
-};

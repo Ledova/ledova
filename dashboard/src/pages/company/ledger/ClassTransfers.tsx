@@ -87,16 +87,13 @@ export function ClassTransfers({
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
             ? 'Set up this share register before recording a transfer.'
-            : 'Tokenised share transfers use wallet and chain controls. This task records non-paid transfers for a non-tokenised register.'}
+            : 'Transfers for a class on chain aren’t available in the web app.'}
         </p>
       )}
-      {!supported && privateReady && steps?.prepare && (
+      {!supported && privateReady && steps?.prepare && register.token.status === 'draft' && (
         <LinkRow
-          to={generatePath(
-            (register.token.status === 'draft' ? DESTINATIONS.companyRegisterImport : DESTINATIONS.companyClass).path,
-            { uuid: token },
-          )}
-          label={pageTitle(register.token.status === 'draft' ? 'companyRegisterImport' : 'companyClass')}
+          to={generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: token })}
+          label={pageTitle('companyRegisterImport')}
         />
       )}
       {appointments.isError && (

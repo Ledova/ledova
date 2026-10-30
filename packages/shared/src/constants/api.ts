@@ -6,7 +6,6 @@ export const CACHE_TIMING = {
   VERY_SHORT_STALE_TIME: 30 * 1000,
   SHORT_STALE_TIME: 2 * 60 * 1000,
   DEFAULT_STALE_TIME: 5 * 60 * 1000,
-  LONG_STALE_TIME: 10 * 60 * 1000,
   DEFAULT_GC_TIME: 2 * 60 * 1000,
   MEDIUM_GC_TIME: 5 * 60 * 1000,
   LONG_GC_TIME: 10 * 60 * 1000,
@@ -106,15 +105,9 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_INSPECTION_COPY: (uuid: string) => `/api/v1/tokens/${uuid}/register/inspection-copy/` as const,
   REGISTER_INSPECTION_COPIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/inspection-copies/` as const,
   REGISTER_ENTRIES: (uuid: string) => `/api/v1/tokens/${uuid}/register/entries/` as const,
-  REGISTER_OPENING_HOLDERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/opening-holders/` as const,
   REGISTER_EVIDENCE: '/api/v1/tokens/register-evidence/',
   REGISTER_MEMBER_DOCUMENTS: '/api/v1/tokens/register-member-documents/',
   REGISTER_MEMBER_DOCUMENT_FILE: (uuid: string) => `/api/v1/tokens/register-member-documents/${uuid}/file/` as const,
-  REGISTER_DEPLOYMENTS: '/api/v1/tokens/register-deployments/',
-  REGISTER_DEPLOYMENT_DETAIL: (uuid: string) => `/api/v1/tokens/register-deployments/${uuid}/` as const,
-  REGISTER_DEPLOYMENT_PREVIEW: (uuid: string) =>
-    `/api/v1/tokens/register-deployments/${uuid}/decision-preview/` as const,
-  REGISTER_DEPLOYMENT_DECIDE: (uuid: string) => `/api/v1/tokens/register-deployments/${uuid}/decide/` as const,
   REGISTER_MEMBERS: (uuid: string) => `/api/v1/tokens/${uuid}/register/members/` as const,
   REGISTER_PEOPLE: '/api/v1/tokens/register-people/',
   REGISTER_TRANSFERS: '/api/v1/tokens/register-transfers/',
@@ -162,15 +155,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_CORRECTION_PREVIEW: (uuid: string) =>
     `/api/v1/tokens/register-corrections/${uuid}/decision-preview/` as const,
   REGISTER_CORRECTION_DECIDE: (uuid: string) => `/api/v1/tokens/register-corrections/${uuid}/decide/` as const,
-  REGISTER_LINKS: '/api/v1/tokens/register-links/',
-  REGISTER_LINK_WAITING_WALLETS: '/api/v1/tokens/register-links/waiting-wallets/',
-  REGISTER_LINK_FILE: (uuid: string) => `/api/v1/tokens/register-links/${uuid}/file/` as const,
-  REGISTER_LINK_PREVIEW: (uuid: string) => `/api/v1/tokens/register-links/${uuid}/decision-preview/` as const,
-  REGISTER_LINK_DECIDE: (uuid: string) => `/api/v1/tokens/register-links/${uuid}/decide/` as const,
-  REGISTER_OPENINGS: '/api/v1/tokens/register-openings/',
-  REGISTER_OPENING_FILE: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/file/` as const,
-  REGISTER_OPENING_PREVIEW: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/decision-preview/` as const,
-  REGISTER_OPENING_DECIDE: (uuid: string) => `/api/v1/tokens/register-openings/${uuid}/decide/` as const,
   REGISTER_PARTICULARS_CHANGES: '/api/v1/tokens/register-particulars-changes/',
   REGISTER_PARTICULARS_CHANGE_FILE: (uuid: string) =>
     `/api/v1/tokens/register-particulars-changes/${uuid}/file/` as const,
@@ -178,31 +162,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
     `/api/v1/tokens/register-particulars-changes/${uuid}/decision-preview/` as const,
   REGISTER_PARTICULARS_CHANGE_DECIDE: (uuid: string) =>
     `/api/v1/tokens/register-particulars-changes/${uuid}/decide/` as const,
-  REGISTER_RECONCILIATIONS: '/api/v1/tokens/register-reconciliations/',
-  REGISTER_RECONCILIATION_ACKNOWLEDGE: (uuid: string) =>
-    `/api/v1/tokens/register-reconciliations/${uuid}/acknowledge/` as const,
-  REGISTER_ISSUES: '/api/v1/tokens/register-issues/',
-  REGISTER_ISSUE_PREVIEW: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/decision-preview/` as const,
-  REGISTER_ISSUE_DECIDE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/decide/` as const,
-  REGISTER_ISSUE_FILE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/file/` as const,
-  REGISTER_ISSUE_TERMS_FILE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/terms-file/` as const,
-  REGISTER_ISSUE_ACCEPTANCE_FILE: (uuid: string) => `/api/v1/tokens/register-issues/${uuid}/acceptance-file/` as const,
-  ISSUANCES: (uuid: string) => `/api/v1/tokens/${uuid}/issuances/` as const,
-  REGISTER_CAPITAL_INCREASES: '/api/v1/tokens/register-capital-increases/',
-  REGISTER_CAPITAL_INCREASE: (uuid: string) => `/api/v1/tokens/register-capital-increases/${uuid}/` as const,
-  REGISTER_CAPITAL_INCREASE_PREVIEW: (uuid: string) =>
-    `/api/v1/tokens/register-capital-increases/${uuid}/decision-preview/` as const,
-  REGISTER_CAPITAL_INCREASE_DECIDE: (uuid: string) =>
-    `/api/v1/tokens/register-capital-increases/${uuid}/decide/` as const,
-  REGISTER_CAPITAL_INCREASE_FILE: (uuid: string) => `/api/v1/tokens/register-capital-increases/${uuid}/file/` as const,
-  REGISTER_PAUSE_CHANGES: '/api/v1/tokens/register-pause-changes/',
-  REGISTER_PAUSE_CHANGE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/` as const,
-  REGISTER_PAUSE_CHANGE_PREVIEW: (uuid: string) =>
-    `/api/v1/tokens/register-pause-changes/${uuid}/decision-preview/` as const,
-  REGISTER_PAUSE_CHANGE_DECIDE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/decide/` as const,
-  REGISTER_PAUSE_CHANGE_FILE: (uuid: string) => `/api/v1/tokens/register-pause-changes/${uuid}/file/` as const,
-  CAPITAL_INCREASES: '/api/v1/tokens/capital-increases/',
-  ISSUANCE_REQUESTS: '/api/v1/tokens/issuance-requests/',
 } as const;
 
 export const USER_DOCUMENT_ENDPOINTS = {

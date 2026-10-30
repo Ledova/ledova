@@ -17,7 +17,6 @@ export const DESTINATIONS = {
   eligibilityRequests: { path: '/eligibility-requests', title: 'Your company eligibility', audience: 'investing' },
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
   companyClass: { path: '/company/ledger/:uuid', title: 'Share class', audience: 'everyone' },
-  companyClassChain: { path: '/company/ledger/:uuid/chain', title: 'Chain actions', audience: 'everyone' },
   companyRegister: {
     path: '/company/ledger',
     title: 'Ledger',
@@ -36,17 +35,11 @@ export const DESTINATIONS = {
     title: 'Correction',
     audience: 'everyone',
   },
-  companyRegisterLinks: {
-    path: '/company/ledger/companies/:company/links',
-    title: 'Wallet links',
-    audience: 'everyone',
-  },
   companyRegisterTransfer: {
     path: '/company/ledger/:uuid/transfer',
     title: 'Non-paid transfer',
     audience: 'everyone',
   },
-  companyRegisterOpening: { path: '/company/ledger/:uuid/open', title: 'Ledger opening', audience: 'everyone' },
   companyRegisterParticulars: {
     path: '/company/ledger/members/:member/particulars',
     title: 'Particulars change',
@@ -86,9 +79,7 @@ export const DESTINATION_PARENTS: Partial<Record<DestinationKey, DestinationPare
   companyRegisterSetup: { destination: 'companyRegister', back: false },
   companyRegisterImport: { destination: 'companyRegister', back: false },
   companyRegisterCorrection: { destination: 'companyRegister' },
-  companyRegisterLinks: { destination: 'companyRegister' },
   companyRegisterTransfer: { destination: 'companyRegister' },
-  companyRegisterOpening: { destination: 'companyRegister' },
   companyRegisterParticulars: { destination: 'companyRegister', view: 'shareholders' },
   companyShareholder: { destination: 'companyRegister', view: 'shareholders' },
   companyRegisterAward: { destination: 'companyRegister', view: 'awards' },

@@ -899,12 +899,6 @@ function useEligibilityRecords(
       : undefined,
     listError: list.error,
     selectedRecord,
-    selectedRequestUuid: selection.record,
-    guardOwnRequest: (uuid: string) => {
-      ownerGuard();
-      if (mode !== 'participant' || selected.current.record !== uuid)
-        throw createUserFriendlyError('Your selected own eligibility request changed.');
-    },
     selectRecord: (uuid: string | null) => {
       setDrafting(null);
       change({ record: uuid ?? '' });

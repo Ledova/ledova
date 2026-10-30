@@ -1,25 +1,17 @@
 export * from './user-accounts';
 export * from './investments';
-export * from './wallets';
 export * from './publications';
 export * from './register';
 export * from './register-grants';
 export * from './register-awards';
-export * from './register-deployments';
 export * from './register-transfers';
 export * from './register-imports';
 export * from './register-corrections';
-export * from './register-links';
-export * from './register-openings';
 export * from './register-particulars';
-export * from './register-reconciliations';
 export * from './company-documents';
 export * from './company-authority';
 export * from './signup';
 export * from './company-activation';
-export * from './register-issues';
-export * from './register-capital-increases';
-export * from './register-pause-changes';
 
 export * from './register-allotments';
 

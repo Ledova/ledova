@@ -45,7 +45,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   leadingAction,
   approveLabel,
   pageReview,
-  formatError = (message) => message,
 }: {
   family: RegisterDecisionFamily<Shown, Previewed>;
   copy: DecisionCopy;
@@ -70,7 +69,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     title: string;
     labels: Record<RegisterDecisionKind, string>;
   };
-  formatError?: (message: string) => string;
 }) {
   const [active, setActive] = useState<RegisterDecisionKind | null>(null);
   const [reason, setReason] = useState('');
@@ -246,7 +244,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
       )}
       {decision.error && (
         <p role="alert" className="text-sm text-error-light">
-          {formatError(decision.error)}
+          {decision.error}
         </p>
       )}
       {preview && !current && !decision.recovery && (
@@ -346,7 +344,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
               />
               {active !== kind && decisions[kind].error && (
                 <p role="alert" className="text-sm text-error-light">
-                  {formatError(decisions[kind].error)}
+                  {decisions[kind].error}
                 </p>
               )}
             </div>

@@ -46,15 +46,10 @@ import CompanyDashboardPage from '@pages/home';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { ShareClass } from './detail/ShareClass';
-import CompanyClassChainPage from './chain';
 import { MemberDocuments } from './shared/MemberDocuments';
-import { ClassReconciliation } from './ClassReconciliation';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
-import { useShareClass } from './shared/useShareClass';
-import { useDeploymentFlow } from './chain/useDeploymentFlow';
-import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, readPeople } from './shared/usePeople';
 import {
   blankAllotment,
@@ -80,11 +75,8 @@ const REGISTER = COMPANY_TOKEN_ENDPOINTS.REGISTER;
 const IMPORTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS;
 const GRANTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANTS;
 const TRANSFERS = COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFERS;
-const OPENINGS = COMPANY_TOKEN_ENDPOINTS.REGISTER_OPENINGS;
 const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
-const RECONCILIATIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_RECONCILIATIONS;
 const PARTICULARS = COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGES;
-const LINKS = COMPANY_TOKEN_ENDPOINTS.REGISTER_LINKS;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const PROFILES = '/api/user-profiles/';
 const NO_REGISTER = REGISTER_COPY.NO_REGISTER;
@@ -139,17 +131,8 @@ function page(classes: Listed[] = [harbour('ordinary')], next: string | null = n
 }
 
 function noCommands(url: string) {
-  return [
-    OPENINGS,
-    IMPORTS,
-    GRANTS,
-    TRANSFERS,
-    CORRECTIONS,
-    RECONCILIATIONS,
-    PARTICULARS,
-    LINKS,
-    APPOINTMENTS,
-  ].includes(url) || url.endsWith('/register/entries/')
+  return [IMPORTS, GRANTS, TRANSFERS, CORRECTIONS, PARTICULARS, APPOINTMENTS].includes(url) ||
+    url.endsWith('/register/entries/')
     ? { data: { results: [], count: 0, next: null, previous: null } }
     : null;
 }
@@ -840,22 +823,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByRole('link', { name: 'Back to Ledger' }).getAttribute('href')).toBe(
     '/company/ledger?company=harbour',
   );
-  expect(screen.queryByRole('button', { name: 'Technical details and chain workflows' })).toBeNull();
-  const onChain = within(screen.getByRole('heading', { name: 'On chain' }).closest('section')!);
-  expect(onChain.getByRole('link', { name: 'Chain actions' }).getAttribute('href')).toBe(
-    '/company/ledger/ordinary/chain?company=harbour',
-  );
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  const chainReads: string[] = [
-    COMPANY_TOKEN_ENDPOINTS.REGISTER_DEPLOYMENTS,
-    COMPANY_TOKEN_ENDPOINTS.REGISTER_ISSUES,
-    COMPANY_TOKEN_ENDPOINTS.REGISTER_CAPITAL_INCREASES,
-    COMPANY_TOKEN_ENDPOINTS.REGISTER_PAUSE_CHANGES,
-    COMPANY_TOKEN_ENDPOINTS.ISSUANCES('ordinary'),
-    COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES,
-    COMPANY_TOKEN_ENDPOINTS.ISSUANCE_REQUESTS,
-  ];
-  expect(api.get.mock.calls.filter(([url]) => chainReads.includes(url))).toEqual([]);
 
   pauseHolders = true;
   const holderKey = ['token', 'ordinary', 'profile-one', 'account-one', 'holders'];
@@ -961,20 +929,6 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
 
   cleanup();
-  const readsBeforeChain = api.get.mock.calls.length;
-  const writesBeforeChain = api.post.mock.calls.length;
-  show('investor', <CompanyClassChainPage />, 'Chain actions', {
-    entry: '/company/ledger/ordinary/chain?company=harbour',
-    path: DESTINATIONS.companyClassChain.path,
-  });
-  expect(await screen.findByRole('heading', { name: 'Non-paid chain grants' })).toBeTruthy();
-  await waitFor(() =>
-    expect(api.get.mock.calls.slice(readsBeforeChain).some(([url]) => url === APPOINTMENTS)).toBe(true),
-  );
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(api.post.mock.calls).toHaveLength(writesBeforeChain);
-
-  cleanup();
   client.clear();
   let pauseMemberHolders = false;
   let releaseMemberHolders!: () => void;
@@ -1057,7 +1011,6 @@ it('reads every class page and groups exact holdings by member identity with sea
     const holding = screen.getByRole('heading', { name }).closest('section')!;
     expect(within(holding).getByText(formatDate(date))).toBeTruthy();
     expect(within(holding).getByText(HOLDER_TYPE_LABELS.member)).toBeTruthy();
-    expect(within(holding).getByText(`0x${'1'.repeat(40)} · Active`)).toBeTruthy();
   }
   expect(screen.getByText('Preference Member Name')).toBeTruthy();
   expect(await screen.findByText('+9,007,199,254,740,993 shares')).toBeTruthy();
@@ -1097,79 +1050,8 @@ it('reads every class page and groups exact holdings by member identity with sea
     ),
   ).toBe(true);
 
-  cleanup();
-  client.clear();
-  const issue = '12345678-1234-1234-1234-123456789abc';
-  const transfer = 'abcdefab-1234-1234-1234-123456789abc';
-  const transaction = `0x${'7'.repeat(64)}`;
-  const address = `0x${'8'.repeat(40)}`;
-  const attribution =
-    'has no verified final chain inclusion. It requires operator attribution ' +
-    'before a register boundary can represent or exclude it.';
-  const knownDetails = [
-    `The completed issue ${issue} ${attribution}`,
-    `The completed transfer ${transfer} ${attribution}`,
-    `The completed issue ${issue} was finally included in block 20, after the captured boundary block 10, ` +
-      'so this boundary does not represent it. Prepare a fresh opening.',
-    `The completed transfer ${transfer} is not in the captured boundary's canonical history at block 20, ` +
-      'so this boundary does not represent it. Prepare a fresh opening.',
-  ];
-  const plainDetails = [
-    "A completed issue has no confirmed final inclusion on chain, so an opening can't include or exclude it until it is attributed.",
-    "A completed transfer has no confirmed final inclusion on chain, so an opening can't include or exclude it until it is attributed.",
-    "A completed issue was included on chain after these holdings were read, so this opening doesn't show it. Prepare a fresh opening.",
-    "A completed transfer isn't in the chain's history where these holdings were read, so this opening doesn't show it. Prepare a fresh opening.",
-  ];
-  const unrelatedDetail = `The completed issue ${issue} needs another review. Transaction ${transaction}.`;
-  const retainedReconciliation = {
-    uuid: 'retained-reconciliation',
-    token: 'ordinary',
-    blockNumber: 20,
-    blockHash: transaction,
-    registerSequence: 1,
-    createdAt: '2026-10-20T00:00:00Z',
-    status: 'discrepant',
-    failure: '',
-    latest: true,
-    discrepancies: [...knownDetails, unrelatedDetail].map((detail) => ({
-      kind: 'attribution',
-      detail,
-      source: issue,
-      transaction,
-      address,
-      acknowledgeable: false,
-      acknowledgement: null,
-    })),
-  };
-  const retainedSnapshot = JSON.stringify(retainedReconciliation);
-  api.get.mockReset().mockImplementation(async (url: string) => ({
-    data: {
-      results: url === APPOINTMENTS ? [reader] : url === RECONCILIATIONS ? [retainedReconciliation] : [],
-      count: 1,
-      next: null,
-      previous: null,
-    },
-  }));
-  show(
-    'company',
-    <ClassReconciliation
-      owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
-      guard={() => {}}
-      token="ordinary"
-      company="harbour"
-      holders={[]}
-      status="deployed"
-    />,
-  );
-  for (const [index, detail] of knownDetails.entries()) {
-    expect(await screen.findByText(plainDetails[index])).toBeTruthy();
-    expect(screen.queryByText(detail)).toBeNull();
-  }
-  expect(screen.getByText(unrelatedDetail)).toBeTruthy();
-  expect(screen.getAllByText(transaction)).toHaveLength(5);
-  expect(screen.getAllByText(address)).toHaveLength(5);
-  expect(JSON.stringify(retainedReconciliation)).toBe(retainedSnapshot);
   expect(api.post).toHaveBeenCalledTimes(4);
+  api.get.mockReset();
   cleanup();
   client.clear();
   api.post.mockReset();
@@ -1330,75 +1212,6 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('button', { name: 'Recover original save' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(documentRows).toHaveLength(1);
-
-  cleanup();
-  client.clear();
-  prepareCompanyClient(client);
-  const deploymentToken = 'deployment-class';
-  api.get.mockReset().mockImplementation(async (url: string) => {
-    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(deploymentToken))
-      return {
-        data: {
-          ...ordinary.token,
-          uuid: deploymentToken,
-          company: 'harbour',
-          companyUuid: 'harbour',
-          status: 'draft',
-          isOwner: false,
-        },
-      };
-    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(deploymentToken)) return { data: register(deploymentToken) };
-    if (url === APPOINTMENTS)
-      return {
-        data: {
-          results: [{ ...CURRENT_APPOINTMENT, company: 'harbour', capabilities: ['prepare'] }],
-          count: 1,
-          next: null,
-          previous: null,
-        },
-      };
-    return { data: { results: [], count: 0, next: null, previous: null } };
-  });
-  api.post.mockReset().mockRejectedValue(new Error('Synthetic interrupted deployment preparation'));
-  const deployment = renderHook(
-    () => {
-      const data = useShareClass(deploymentToken);
-      return useDeploymentFlow({ uuid: deploymentToken, data });
-    },
-    {
-      wrapper: ({ children }) => (
-        <QueryClientProvider client={client}>
-          <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
-        </QueryClientProvider>
-      ),
-    },
-  );
-  await waitFor(() => expect(deployment.result.current.canPrepare).toBe(true));
-  await act(async () => {
-    await deployment.result.current.prepare();
-  });
-  expect(deployment.result.current.uncertain).toBe(true);
-  expect(api.post).toHaveBeenCalledTimes(1);
-  const replacement = companyPreferences();
-  act(() =>
-    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-      data: {
-        ...replacement,
-        userProfile: 'replacement-profile',
-        userAccount: { ...replacement.userAccount!, uuid: 'replacement-account' },
-      },
-    }),
-  );
-  await waitFor(() => expect(deployment.result.current.owner?.ownerAccountUuid).toBe('replacement-account'));
-  await waitFor(() => expect(deployment.result.current.canPrepare).toBe(true));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(deployment.result.current.uncertain).toBe(false);
-  await act(async () => {
-    client.setQueryData(ownAppointmentsKey(deployment.result.current.owner!), []);
-    await deployment.result.current.prepare();
-  });
-  expect(api.post).toHaveBeenCalledTimes(1);
-  expect(deployment.result.current.error).toMatch(/appointment before starting this decision/);
 });
 
 it('brings complete mirror records, recovers uncertain requests and confirms one snapshot with separate company appointments', async () => {
@@ -2618,11 +2431,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     client.clear();
     token.status = status;
     showJourney(importPath);
-    expect(await screen.findByText(/This class cannot open from copied records/)).toBeTruthy();
+    expect(await screen.findByText('This class is on chain, and the web app can’t open its register.')).toBeTruthy();
     expect(screen.queryByLabelText('Record date')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Open Ledger' }).getAttribute('href')).toBe(
-      `/company/ledger?company=${company.uuid}`,
-    );
   }
   cleanup();
   client.clear();
@@ -3190,11 +3000,10 @@ it("retains a dashboard's validated company/class context and reads only the cho
     ),
   ).toEqual([COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'), COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary')]);
   expect(readUrls()).not.toContain(COMPANY_TOKEN_ENDPOINTS.BASE);
-  for (const read of [PARTICULARS, LINKS])
-    expect(api.get.mock.calls.filter(([url]) => url === read).map(([, config]) => config.params.company)).toEqual([
-      'inland',
-      'harbour',
-    ]);
+  expect(api.get.mock.calls.filter(([url]) => url === PARTICULARS).map(([, config]) => config.params.company)).toEqual([
+    'inland',
+    'harbour',
+  ]);
 
   fireEvent.click(screen.getByRole('link', { name: 'Open dashboard shareholders' }));
   await waitFor(() =>

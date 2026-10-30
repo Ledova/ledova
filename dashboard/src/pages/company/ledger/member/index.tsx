@@ -277,20 +277,6 @@ function OwnShareholder({
                 {holder.holderType === 'unidentified' && (
                   <p className="text-sm text-text-muted">{REGISTER_COPY.UNIDENTIFIED_NOTE}</p>
                 )}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-text-primary">Optional wallet links</h4>
-                  {holder.wallets.length ? (
-                    <ul className="space-y-2 text-sm text-text-muted">
-                      {holder.wallets.map((wallet) => (
-                        <li key={wallet.address} className="break-all">
-                          {wallet.address} · {wallet.whitelistStatus}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-text-muted">{REGISTER_COPY.NO_WALLET}</p>
-                  )}
-                </div>
                 {prepare && !holder.wallets.length && register.initialized && register.token.status === 'draft' && (
                   <PageLink
                     to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: register.token.uuid })}

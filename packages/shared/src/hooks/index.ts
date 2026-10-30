@@ -13,16 +13,11 @@ export {
   REGISTER_CORRECTION_DECISIONS,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_GRANT_DECISIONS,
-  REGISTER_DEPLOYMENT_DECISIONS,
   REGISTER_TRANSFER_DECISIONS,
-  REGISTER_LINK_DECISIONS,
-  REGISTER_OPENING_DECISIONS,
   REGISTER_PARTICULARS_DECISIONS,
   useRegisterDecision,
 } from './useRegisterDecision';
 export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';
-export { useDiscrepancyAcknowledgement } from './useDiscrepancyAcknowledgement';
-export type { DiscrepancyAcknowledgementOptions } from './useDiscrepancyAcknowledgement';
 export {
   canAdministerCompany,
   canPersonallyAdministerCompany,
@@ -63,16 +58,7 @@ export type {
   EligibilityRequestDraft,
   EligibilityDecisionDraft,
 } from './useCompanyEligibilityRecords';
-export { useCompanyIssueInstructions } from './useCompanyIssueInstructions';
-export {
-  REGISTER_ISSUE_DECISIONS,
-  REGISTER_CAPITAL_INCREASE_DECISIONS,
-  REGISTER_PAUSE_CHANGE_DECISIONS,
-  REGISTER_ALLOTMENT_DECISIONS,
-} from './useRegisterDecision';
-
-export { useCompanyCapitalIncreases } from './useCompanyCapitalIncreases';
-export { useCompanyPauseChanges } from './useCompanyPauseChanges';
+export { REGISTER_ALLOTMENT_DECISIONS } from './useRegisterDecision';
 
 export { ownMemberRecordsKey, useMemberRecords } from './useMemberRecords';
 
@@ -80,11 +66,7 @@ export { useCompanyMemberAccess } from './useCompanyMemberAccess';
 
 export { SIGNUP_AUTHORITY_QUERY_KEY } from './useSignupCompanyAuthority';
 
-export {
-  OWN_APPOINTMENTS_QUERY_KEY,
-  eligibilityRecordsKey,
-  eligibilityRecordKey,
-} from './useCompanyEligibilityRecords';
+export { OWN_APPOINTMENTS_QUERY_KEY, eligibilityRecordsKey } from './useCompanyEligibilityRecords';
 
 export { useUserProfile } from './useUserProfile';
 export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';

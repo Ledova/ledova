@@ -281,14 +281,6 @@ it('shows focused company details without share classes, and uploads documents t
     }
     if (url === queueUrl) return { data: { ...EMPTY, count: 1, results: [eligibility] } };
     if (url === `${queueUrl}${requestUuid}/`) return { data: eligibility };
-    if (
-      [
-        '/api/v1/whitelist/company-wallet-nominations/',
-        '/api/v1/whitelist/company-wallet-targets/',
-        '/api/v1/whitelist/company-wallet-instructions/',
-      ].includes(url)
-    )
-      return { data: EMPTY };
     throw new Error(`Unexpected eligibility request: ${url}`);
   });
   api.post.mockImplementation(async (url: string) => {

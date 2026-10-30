@@ -66,16 +66,12 @@ export {
   createRegisterInspectionCopy,
   getRegisterCertificatePreview,
   createRegisterCertificate,
-  getCompanyTokenIssuances,
-  getCapitalIncreases,
-  getShareIssuanceRequests,
 } from './company-tokens';
 export { uploadRegisterEvidence } from './register-commands';
 export * from './register-member-documents';
 export { downloadClassRightsFile, getClassRights, recordClassRights } from './class-rights';
 export * from './register-grants';
 export * from './register-awards';
-export * from './register-deployments';
 export * from './register-transfers';
 export {
   prepareRegisterImport,
@@ -93,29 +89,12 @@ export {
   downloadRegisterCorrectionFile,
 } from './register-corrections';
 export {
-  getRegisterLinks,
-  getRegisterWaitingWallets,
-  prepareRegisterLink,
-  previewRegisterLinkDecision,
-  decideRegisterLink,
-  downloadRegisterLinkFile,
-} from './register-links';
-export {
-  getRegisterOpeningHolders,
-  getRegisterOpenings,
-  prepareRegisterOpening,
-  previewRegisterOpeningDecision,
-  decideRegisterOpening,
-  downloadRegisterOpeningFile,
-} from './register-openings';
-export {
   getRegisterParticularsChanges,
   prepareRegisterParticularsChange,
   previewRegisterParticularsChangeDecision,
   decideRegisterParticularsChange,
   downloadRegisterParticularsChangeFile,
 } from './register-particulars';
-export { getRegisterReconciliations, acknowledgeRegisterDiscrepancy } from './register-reconciliations';
 export {
   getInvestorClassifications,
   submitInvestorClassification,
@@ -130,10 +109,6 @@ export {
   castBallot,
 } from './publications';
 export * from './company-eligibility';
-export * from './company-wallets';
-export * from './register-issues';
-export * from './register-capital-increases';
-export * from './register-pause-changes';
 
 export * from './register-allotments';
 

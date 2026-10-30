@@ -256,7 +256,7 @@ function FreshClass({
               >
                 open Ledger
               </Link>{' '}
-              to open their register or bring in shareholder particulars.
+              to bring in shareholder particulars.
             </p>
           )}
           {choice === 'custom' && (

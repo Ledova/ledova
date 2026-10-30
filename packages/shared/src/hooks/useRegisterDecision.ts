@@ -2,45 +2,17 @@ import { REGISTER_ALLOTMENT_COPY, REGISTER_ALLOTMENT_UNMET_COPY } from '../const
 import { previewRegisterAllotmentDecision, decideRegisterAllotment } from '../services/register-allotments';
 import { isRegisterAllotmentDecisionReceipt } from '../utils/register-allotments';
 import type { RegisterAllotment, RegisterAllotmentDecisionPreview } from '../types';
-import {
-  REGISTER_PAUSE_CHANGE_COPY,
-  REGISTER_PAUSE_CHANGE_UNMET_COPY,
-} from '../constants/business/register-pause-changes';
-import { previewRegisterPauseChangeDecision, decideRegisterPauseChange } from '../services/register-pause-changes';
-import { isRegisterPauseChangeDecisionReceipt } from '../utils/register-pause-changes';
-import type { RegisterPauseChange, RegisterPauseChangeDecisionPreview } from '../types';
-import {
-  REGISTER_CAPITAL_INCREASE_COPY,
-  REGISTER_CAPITAL_INCREASE_UNMET_COPY,
-} from '../constants/business/register-capital-increases';
-import {
-  previewRegisterCapitalIncreaseDecision,
-  decideRegisterCapitalIncrease,
-} from '../services/register-capital-increases';
-import { isRegisterCapitalIncreaseDecisionReceipt } from '../utils/register-capital-increases';
-import type { RegisterCapitalIncrease, RegisterCapitalIncreaseDecisionPreview } from '../types';
-import { isRegisterLinkDecisionReceipt } from '../utils/register-links';
-import { REGISTER_ISSUE_COPY, REGISTER_ISSUE_UNMET_COPY } from '../constants/business/register-issues';
-import { previewRegisterIssueDecision, decideRegisterIssue } from '../services/register-issues';
-import { isRegisterIssueDecisionReceipt } from '../utils/register-issues';
-import type { RegisterIssue, RegisterIssueDecisionPreview } from '../types';
 import { useEffect, useRef, useState } from 'react';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_UNMET_COPY } from '../constants/business/register-corrections';
 import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
-import { REGISTER_LINK_COPY, REGISTER_LINK_UNMET_COPY } from '../constants/business/register-links';
-import { REGISTER_OPENING_COPY, REGISTER_OPENING_UNMET_COPY } from '../constants/business/register-openings';
 import { REGISTER_PARTICULARS_COPY, REGISTER_PARTICULARS_UNMET_COPY } from '../constants/business/register-particulars';
 import { REGISTER_GRANT_COPY, REGISTER_GRANT_UNMET_COPY } from '../constants/business/register-grants';
 import { REGISTER_TRANSFER_COPY, REGISTER_TRANSFER_UNMET_COPY } from '../constants/business/register-transfers';
-import { REGISTER_DEPLOYMENT_COPY, REGISTER_DEPLOYMENT_UNMET_COPY } from '../constants/business/register-deployments';
-import { decideRegisterDeployment, previewRegisterDeploymentDecision } from '../services/register-deployments';
 import { decideRegisterTransfer, previewRegisterTransferDecision } from '../services/register-transfers';
 import { decideRegisterGrant, previewRegisterGrantDecision } from '../services/register-grants';
 import { decideRegisterCorrection, previewRegisterCorrectionDecision } from '../services/register-corrections';
 import { decideRegisterImport, previewRegisterImportDecision } from '../services/register-imports';
-import { decideRegisterLink, previewRegisterLinkDecision } from '../services/register-links';
-import { decideRegisterOpening, previewRegisterOpeningDecision } from '../services/register-openings';
 import {
   decideRegisterParticularsChange,
   previewRegisterParticularsChangeDecision,
@@ -55,14 +27,8 @@ import type {
   RegisterImportDecisionPreview,
   RegisterGrant,
   RegisterGrantDecisionPreview,
-  RegisterDeployment,
-  RegisterDeploymentDecisionPreview,
   RegisterTransfer,
   RegisterTransferDecisionPreview,
-  RegisterLink,
-  RegisterLinkDecisionPreview,
-  RegisterOpening,
-  RegisterOpeningDecisionPreview,
   RegisterParticularsChange,
   RegisterParticularsChangeDecisionPreview,
 } from '../types';
@@ -71,7 +37,6 @@ import { isRegisterDecisionReceipt } from '../utils/register-commands';
 import { isRegisterCorrectionDecisionReceipt } from '../utils/register-corrections';
 import { isRegisterGrantDecisionReceipt } from '../utils/register-grants';
 import { isRegisterTransferDecisionReceipt } from '../utils/register-transfers';
-import { isRegisterDeploymentDecisionReceipt } from '../utils/register-deployments';
 import { useApiClient } from './useApiClient';
 
 type DecisionPreview = { previewDigest: string; canDecide: boolean };
@@ -93,36 +58,6 @@ export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = 
   isReceipt: (proposal: Proposal, uuid: string, request: RegisterDecideRequest, preview?: Preview) => boolean;
   unmet: Record<string, string>;
   copy: { PREVIEW_FAILED: string; DECIDE_FAILED: string; DECISION_RECEIPT_FAILED: string };
-};
-
-export const REGISTER_PAUSE_CHANGE_DECISIONS: RegisterDecisionFamily<
-  RegisterPauseChange,
-  RegisterPauseChangeDecisionPreview
-> = {
-  preview: previewRegisterPauseChangeDecision,
-  decide: decideRegisterPauseChange,
-  isReceipt: isRegisterPauseChangeDecisionReceipt,
-  unmet: REGISTER_PAUSE_CHANGE_UNMET_COPY,
-  copy: REGISTER_PAUSE_CHANGE_COPY,
-};
-
-export const REGISTER_CAPITAL_INCREASE_DECISIONS: RegisterDecisionFamily<
-  RegisterCapitalIncrease,
-  RegisterCapitalIncreaseDecisionPreview
-> = {
-  preview: previewRegisterCapitalIncreaseDecision,
-  decide: decideRegisterCapitalIncrease,
-  isReceipt: isRegisterCapitalIncreaseDecisionReceipt,
-  unmet: REGISTER_CAPITAL_INCREASE_UNMET_COPY,
-  copy: REGISTER_CAPITAL_INCREASE_COPY,
-};
-
-export const REGISTER_ISSUE_DECISIONS: RegisterDecisionFamily<RegisterIssue, RegisterIssueDecisionPreview> = {
-  preview: previewRegisterIssueDecision,
-  decide: decideRegisterIssue,
-  isReceipt: isRegisterIssueDecisionReceipt,
-  unmet: REGISTER_ISSUE_UNMET_COPY,
-  copy: REGISTER_ISSUE_COPY,
 };
 
 export const REGISTER_IMPORT_DECISIONS: RegisterDecisionFamily<RegisterImport, RegisterImportDecisionPreview> = {
@@ -150,17 +85,6 @@ export const REGISTER_GRANT_DECISIONS: RegisterDecisionFamily<RegisterGrant, Reg
   copy: REGISTER_GRANT_COPY,
 };
 
-export const REGISTER_DEPLOYMENT_DECISIONS: RegisterDecisionFamily<
-  RegisterDeployment,
-  RegisterDeploymentDecisionPreview
-> = {
-  preview: previewRegisterDeploymentDecision,
-  decide: decideRegisterDeployment,
-  isReceipt: isRegisterDeploymentDecisionReceipt,
-  unmet: REGISTER_DEPLOYMENT_UNMET_COPY,
-  copy: REGISTER_DEPLOYMENT_COPY,
-};
-
 export const REGISTER_TRANSFER_DECISIONS: RegisterDecisionFamily<RegisterTransfer, RegisterTransferDecisionPreview> = {
   preview: previewRegisterTransferDecision,
   decide: decideRegisterTransfer,
@@ -178,22 +102,6 @@ export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<
   isReceipt: isRegisterCorrectionDecisionReceipt,
   unmet: REGISTER_CORRECTION_UNMET_COPY,
   copy: REGISTER_CORRECTION_COPY,
-};
-
-export const REGISTER_LINK_DECISIONS: RegisterDecisionFamily<RegisterLink, RegisterLinkDecisionPreview> = {
-  preview: previewRegisterLinkDecision,
-  decide: decideRegisterLink,
-  isReceipt: isRegisterLinkDecisionReceipt,
-  unmet: REGISTER_LINK_UNMET_COPY,
-  copy: REGISTER_LINK_COPY,
-};
-
-export const REGISTER_OPENING_DECISIONS: RegisterDecisionFamily<RegisterOpening, RegisterOpeningDecisionPreview> = {
-  preview: previewRegisterOpeningDecision,
-  decide: decideRegisterOpening,
-  isReceipt: isRegisterDecisionReceipt,
-  unmet: REGISTER_OPENING_UNMET_COPY,
-  copy: REGISTER_OPENING_COPY,
 };
 
 export const REGISTER_PARTICULARS_DECISIONS: RegisterDecisionFamily<

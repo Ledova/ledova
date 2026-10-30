@@ -77,14 +77,6 @@ export {
   isPreparedRegisterCorrection,
   isRegisterCorrectionDecisionReceipt,
 } from './register-corrections';
-export { isPreparedRegisterLink, registerLinkMemberLabels } from './register-links';
-export {
-  hasWholeShares,
-  isPreparedRegisterOpening,
-  isRegisterOpeningHoldingsMoved,
-  largestHoldingsFirst,
-  openingMemberLabels,
-} from './register-openings';
 export { isPreparedRegisterParticularsChange } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
 export {
@@ -97,15 +89,10 @@ export {
   hasValidRegisterAwardVestingReversal,
   remainingRegisterAwardVesting,
 } from './register-awards';
-export { isPreparedRegisterDeployment } from './register-deployments';
 export { isPreparedRegisterTransfer } from './register-transfers';
 export { ownershipSummary } from './register-ownership';
-export { appointmentForAcknowledgement, isDiscrepancyAcknowledgementReceipt } from './register-reconciliations';
-export { MAX_REQUEST_SHARES, raisedSupply, requestShares, wholeShares } from './share-quantities';
+export { hasWholeShares, wholeShares } from './share-quantities';
 export { parseTheme } from './theme';
-export * from './register-issues';
-export * from './register-capital-increases';
-export * from './register-pause-changes';
 
 export {
   allotmentAud,

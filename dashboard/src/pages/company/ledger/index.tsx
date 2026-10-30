@@ -27,14 +27,11 @@ import { ClassImports } from './ClassImports';
 import { ClassIssues } from './ClassIssues';
 import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
-import { ClassOpenings } from './ClassOpenings';
-import { ClassReconciliation } from './ClassReconciliation';
 import { ClassRegister } from '@pages/company/ledger/shared/ClassRegister';
 import { CompanyPeople } from './CompanyPeople';
 import { ClassInspectionCopy } from './ClassInspectionCopy';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyPack } from './CompanyPack';
-import { RegisterLinks } from './RegisterLinks';
 import { RegisterParticulars } from './RegisterParticulars';
 import { RegisterSetup } from './RegisterSetup';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
@@ -42,7 +39,6 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 
-const ON_CHAIN = ['deployed', 'paused'];
 function RegisterPage({ sections, task, children }: { sections?: ReactNode; task?: LedgerTask; children: ReactNode }) {
   const { hash } = useLocation();
   const hashTask = hash.slice(1);
@@ -425,17 +421,6 @@ function OwnRegister({
                 onHeldChange={companyCorrectionHeld}
                 onReviewChange={particularsReviewChanged}
               />
-              <div hidden={reviewingParticulars} className="empty:hidden">
-                <RegisterLinks
-                  landed={landed}
-                  owner={owner}
-                  guard={guard}
-                  company={scope.company.uuid}
-                  registers={scope.registers}
-                  visible={view === 'register' && selectedTask === 'corrections' && sourceReady}
-                  onHeldChange={companyCorrectionHeld}
-                />
-              </div>
             </div>
             <div hidden={documents !== 'company-pack'}>
               {readable && (
@@ -694,22 +679,6 @@ function OwnRegister({
                         }
                         onHeldChange={correctionHeld}
                       />
-                      <ClassReconciliation
-                        owner={owner}
-                        guard={guard}
-                        token={register.token.uuid}
-                        chain={classes.data?.find((item) => item.uuid === register.token.uuid)?.chain}
-                        company={scope.company.uuid}
-                        holders={register.holders}
-                        status={register.token.status}
-                        visible={
-                          view === 'register' &&
-                          selectedTask === 'corrections' &&
-                          selectedToken === register.token.uuid &&
-                          sourceReady
-                        }
-                        onHeldChange={correctionHeld}
-                      />
                     </Section>
                     <Section title="Opening records">
                       <ClassImports
@@ -725,22 +694,6 @@ function OwnRegister({
                         }
                         onHeldChange={correctionHeld}
                       />
-                      {ON_CHAIN.includes(register.token.status) && (
-                        <ClassOpenings
-                          landed={landed}
-                          owner={owner}
-                          guard={guard}
-                          register={register}
-                          company={scope.company.uuid}
-                          visible={
-                            view === 'register' &&
-                            selectedTask === 'corrections' &&
-                            selectedToken === register.token.uuid &&
-                            sourceReady
-                          }
-                          onHeldChange={correctionHeld}
-                        />
-                      )}
                     </Section>
                   </div>
                   <div hidden={view !== 'awards'} className="space-y-5">

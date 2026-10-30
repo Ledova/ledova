@@ -9,17 +9,15 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   formatShareCount,
   useUserPreferences,
-  wholeShares,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { LinkRow, LoadError, Loading, Section, Status } from '@components/Ledger';
-import { classPath, registerPlace } from '@pages/company/ledger/shared/registerPlace';
+import { LoadError, Loading, Section, Status } from '@components/Ledger';
+import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 import { useShareClass } from '@pages/company/ledger/shared/useShareClass';
 import { ClassRights } from './ClassRights';
 import { useClassRights } from './useClassRights';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
-import { OnChain } from './OnChain';
 
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
@@ -156,23 +154,6 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
             ) : null}
           </section>
         )}
-        {(token.status === 'deploying' ||
-          (token.status === 'draft' &&
-            !!register &&
-            (!register.initialized || wholeShares(register.issuedSupply ?? '') === 0n))) && (
-          <LinkRow
-            to={classPath('companyClassChain', token.uuid, token.companyUuid)}
-            label="Put this class on chain"
-            context={token.status === 'deploying' ? token.statusDisplay.toLowerCase() : undefined}
-            aside={token.status === 'deploying' && <Status tone="moving">{token.statusDisplay}</Status>}
-          >
-            <span className="block text-xs text-text-muted">
-              {token.status === 'deploying'
-                ? 'The deployment waits for confirmation on chain.'
-                : 'Creates its contract. It issues no shares and changes no holding.'}
-            </span>
-          </LinkRow>
-        )}
       </Section>
       {rights}
       {data.owner && (
@@ -192,7 +173,6 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
           }))}
         />
       )}
-      {(token.status === 'deployed' || token.status === 'paused') && <OnChain token={token} />}
     </>
   );
 }

@@ -76,8 +76,6 @@ const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-tex
 const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, LedgerTask>> = {
   companyRegisterTransfer: 'transfer',
   companyRegisterCorrection: 'corrections',
-  companyRegisterOpening: 'corrections',
-  companyRegisterLinks: 'corrections',
   companyRegisterParticulars: 'corrections',
 };
 
@@ -101,7 +99,6 @@ function ledgerContext(
   const classPath =
     destination &&
     (destination === 'companyClass' ||
-      destination === 'companyClassChain' ||
       destination === 'companyRegisterImport' ||
       destination === 'companyRegisterAward' ||
       LEDGER_TASK_PARENTS[destination])
@@ -172,7 +169,6 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const classPath =
     destination &&
     (destination === 'companyClass' ||
-      destination === 'companyClassChain' ||
       destination === 'companyRegisterImport' ||
       destination === 'companyRegisterAward' ||
       LEDGER_TASK_PARENTS[destination])
