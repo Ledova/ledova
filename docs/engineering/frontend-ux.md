@@ -88,9 +88,10 @@ companies, **Switch company** in the page heading chooses one ([choosing a compa
 the overview uses the full workspace width. A single company opens directly. Show a company
 once even when the person both administers it and holds shares. Use the same ownership ring, linked
 class list and hover/focus treatment across relationships, with the person's own position beside the
-company figures they may read. Selection progresses from company to class to permitted detail;
-keep a breadcrumb and browser Back/Forward, with company and class in the address. On narrow screens,
-stack the levels rather than squeezing several columns together.
+company figures they may read: a member's overview starts with **Your shares**, and a class row adds
+"You:" with their count only where they hold shares in it. Selection progresses from company to class
+to permitted detail; keep a breadcrumb and browser Back/Forward, with company and class in the
+address. On narrow screens, stack the levels rather than squeezing several columns together.
 
 Company-authorised readers may open the class's paged holder breakdown. A member without that access
 sees only their own position and, where the company enables sharing, aggregate company/class totals.
@@ -276,8 +277,10 @@ Certificates uses one list for the selected company and class. Company readers s
 company entries; members see only their own history, request status and actions. Mixed-role accounts
 see matching entries once. Each aligned row shows the shareholder or change, shares, kind, class and
 entry number, the date (with the ledger date beneath when it differs) and status with the latest request's date, and its permitted action at the row's
-end: **Prepare certificate**, **Request certificate**, **Withdraw request** or **Download PDF**. Rows
-don't expand; earlier requests for the same entry are listed beneath the row with their own actions.
+end: **Prepare certificate**, **Request certificate**, **Withdraw request** or **Download PDF**. While
+the latest request is pending, **Withdraw request** takes the place of **Request certificate**. Rows
+don't expand; earlier requests for the same entry are listed beneath the row, each with its action on
+its own line.
 Company-only rows show certificate eligibility; request status comes only from an actual readable
 request. Older or other-class requests sit behind **Show other certificate requests (N)** with their
 own actions. Preparing a company PDF never marks a member request fulfilled. Particulars requests stay
@@ -440,6 +443,8 @@ invitation. Company-recorded particulars are a Profile card for a member of the 
 labelled **Eligibility**; for an administrator it uses
 the same pattern, its label opening its own page and its caret showing **Supporting** (Company
 documents).
+An investing account's **Eligibility** opens Verification, stays marked on Your company eligibility
+and sits above Activity; beside the company's own Eligibility item it reads **Your eligibility**.
 **Activity**, the person's own wallet transfers, sits above Settings whatever company is selected.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
@@ -462,8 +467,8 @@ page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. Dashboard is one
 company-centred explorer for all relationships, without a separate Your shares navigation mode.
 Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme shows as Employee
-scheme, Company eligibility as Eligibility, Company documents as Supporting and Published to your
-members as Published, each with the full name as the link's `title`. `DESTINATION_PARENTS`
+scheme, Company eligibility and Verification as Eligibility, Company documents as Supporting and
+Published to your members as Published, each with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
 link in the title row for a contextual task: Back to Team on Representative authority, Back to

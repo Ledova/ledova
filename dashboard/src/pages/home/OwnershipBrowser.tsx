@@ -231,7 +231,14 @@ function SignedInOwnership({
                           .join(' · ')}
                       </p>
                       {view.summary ? (
-                        <OwnershipMetrics summary={view.summary} />
+                        <OwnershipMetrics
+                          summary={view.summary}
+                          own={
+                            record
+                              ? String(view.classes.reduce((sum, row) => sum + BigInt(row.ownShares ?? '0'), 0n))
+                              : undefined
+                          }
+                        />
                       ) : (
                         <dl className="grid grid-cols-2 gap-4 border-b border-border-subtle pb-4">
                           <div>

@@ -17,7 +17,7 @@ import {
 } from '@ledova/shared';
 import { MoreToggle } from '@components/Ledger';
 import { LoadMore, TABLE_SCROLL_CLASS, TABLE_HEADER_CLASS } from '@components/List';
-import { FormActions, PageAction } from '@components/Page';
+import { PageAction } from '@components/Page';
 import { ClassCertificate } from './ClassCertificate';
 import { useMemberCertificateDownload } from './useMemberCertificateDownload';
 import { CERTIFICATE_STATUSES, type CertificateFilterValues, type CertificateStatus } from './useCompanyCertificates';
@@ -116,15 +116,15 @@ export function CertificateRecords({
     <CertificateActions key={request.uuid} read={read} request={request} held={held} onWithdraw={onWithdraw} />
   );
   const requestRecord = (request: MemberCertificateRequest) => (
-    <div key={request.uuid} className="space-y-2 py-3 text-sm">
-      <p className="font-medium">
-        {record?.classes.find((item) => item.uuid === request.token)?.name ?? 'Share certificate'} ·{' '}
-        {MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}
-      </p>
-      <p className="text-text-muted">Requested {formatDate(request.createdAt)}</p>
-      {(request.status === 'requested' || (request.status === 'fulfilled' && request.fulfilment)) && (
-        <FormActions>{actions(request)}</FormActions>
-      )}
+    <div key={request.uuid} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 text-sm">
+      <div className="min-w-0 space-y-1">
+        <p className="font-medium">
+          {record?.classes.find((item) => item.uuid === request.token)?.name ?? 'Share certificate'} ·{' '}
+          {MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}
+        </p>
+        <p className="text-text-muted">Requested {formatDate(request.createdAt)}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 empty:hidden">{actions(request)}</div>
     </div>
   );
   return (
@@ -217,7 +217,7 @@ export function CertificateRecords({
                       onEditingChange={editingChange}
                     />
                   )}
-                  {!focused && receiving && (
+                  {!focused && receiving && latest?.status !== 'requested' && (
                     <PageAction
                       label="Request certificate"
                       context={`${selectedClass?.name ?? 'Shares'}, entry ${entry.sequence}`}
@@ -231,7 +231,7 @@ export function CertificateRecords({
                 </div>
                 {related.length > 1 && (
                   <div hidden={focused} className="divide-y divide-border-subtle md:col-span-4 xl:col-span-5">
-                    <h4 className="text-sm font-medium">Earlier requests</h4>
+                    <h3 className="text-sm font-medium">Earlier requests</h3>
                     {related.slice(1).map(requestRecord)}
                   </div>
                 )}

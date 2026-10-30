@@ -111,7 +111,7 @@ export function OwnershipClasses({
                         </span>
                       </span>
                     )}
-                    {!personalOnly && hasMember && row.ownShares !== null && (
+                    {!personalOnly && hasMember && row.ownShares !== null && BigInt(row.ownShares) > 0n && (
                       <span className="block text-xs text-text-muted">You: {formatShareCount(row.ownShares)}</span>
                     )}
                   </span>
