@@ -8,7 +8,7 @@ import {
   sharePercentage,
   type Person,
 } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { LinkRow, Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { PageAction, PageActions, PageLink } from '@components/Page';
 import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
@@ -74,6 +74,7 @@ export function CompanyShareholders({
   const page = Math.min(list.page, Math.max(1, Math.ceil(count / PAGE_SIZE)));
   const start = (page - 1) * PAGE_SIZE;
   const end = page * PAGE_SIZE;
+  const shownShareholders = found.slice(start, end);
   const shownPeople = withoutShares.slice(Math.max(0, start - found.length), Math.max(0, end - found.length));
   const unresolved = shareholders.filter(({ holdings }) => holdings.some(needsIdentityReview)).length;
   const filters = visible && (shareholders.length > 0 || people.length > 0) && (
@@ -123,64 +124,106 @@ export function CompanyShareholders({
               details before relying on these records.
             </p>
           )}
-          {found.slice(start, end).length > 0 && (
-            <Table
-              caption="Company shareholders"
-              columns={[
-                { label: 'Shareholder' },
-                ...visibleClasses.map(({ token }) => ({
-                  label: token.symbol,
-                  detail: `shares and percentage of ${token.name}`,
-                  align: 'right' as const,
-                })),
-                { label: 'Details', align: 'right', hidden: true },
-              ]}
-            >
-              {found.slice(start, end).map((member) => (
-                <tr key={member.member}>
-                  <th scope="row" className="break-words px-4 py-3 text-left font-normal">
-                    <p className="font-medium text-text-primary">{member.name}</p>
+          {shownShareholders.length > 0 && (
+            <div className="hidden sm:block">
+              <Table
+                caption="Company shareholders"
+                columns={[
+                  { label: 'Shareholder' },
+                  ...visibleClasses.map(({ token }) => ({
+                    label: token.symbol,
+                    detail: `shares and percentage of ${token.name}`,
+                    align: 'right' as const,
+                  })),
+                  { label: 'Details', align: 'right', hidden: true },
+                ]}
+              >
+                {shownShareholders.map((member) => (
+                  <tr key={member.member}>
+                    <th scope="row" className="break-words px-4 py-3 text-left font-normal">
+                      <p className="font-medium text-text-primary">{member.name}</p>
+                      {member.holdings.some(needsIdentityReview) && (
+                        <p className="mt-1 text-xs text-text-muted">Identity needs review</p>
+                      )}
+                    </th>
+                    {visibleClasses.map((register) => {
+                      const holding = member.holdings.find(
+                        ({ register: held }) => held.token.uuid === register.token.uuid,
+                      );
+                      return (
+                        <td
+                          key={register.token.uuid}
+                          className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-text-primary"
+                        >
+                          {!register.initialized ? (
+                            <span className="text-xs text-text-muted">Not opened</span>
+                          ) : holding ? (
+                            <>
+                              {formatShareCount(holding.holder.balance)}
+                              <span className="mt-1 block text-xs text-text-muted">
+                                {sharePercentage(holding.holder.balance, register.issuedSupply)}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span aria-hidden="true">—</span>
+                              <span className="sr-only">No {register.token.symbol} holding</span>
+                            </>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="px-4 py-3 text-right">
+                      {blocked ? (
+                        <PageAction label="Details" context={member.name} disabled onClick={() => undefined} />
+                      ) : (
+                        <PageLink to={shareholderPath(member.member, company)} label="Details" context={member.name} />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </Table>
+            </div>
+          )}
+          {shownShareholders.length > 0 && (
+            <ul aria-label="Company shareholders" className="divide-y divide-border-subtle sm:hidden">
+              {shownShareholders.map((member) => {
+                const details = (
+                  <>
+                    {visibleClasses.map((register) => {
+                      const holding =
+                        register.initialized &&
+                        member.holdings.find(({ register: held }) => held.token.uuid === register.token.uuid);
+                      return (
+                        holding && (
+                          <span key={register.token.uuid} className="mt-1 block tabular-nums text-text-muted">
+                            {register.token.symbol} {formatShareCount(holding.holder.balance)} ·{' '}
+                            {sharePercentage(holding.holder.balance, register.issuedSupply)}
+                          </span>
+                        )
+                      );
+                    })}
                     {member.holdings.some(needsIdentityReview) && (
-                      <p className="mt-1 text-xs text-text-muted">Identity needs review</p>
+                      <span className="mt-1 block text-xs text-text-muted">Identity needs review</span>
                     )}
-                  </th>
-                  {visibleClasses.map((register) => {
-                    const holding = member.holdings.find(
-                      ({ register: held }) => held.token.uuid === register.token.uuid,
-                    );
-                    return (
-                      <td
-                        key={register.token.uuid}
-                        className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-text-primary"
-                      >
-                        {!register.initialized ? (
-                          <span className="text-xs text-text-muted">Not opened</span>
-                        ) : holding ? (
-                          <>
-                            {formatShareCount(holding.holder.balance)}
-                            <span className="mt-1 block text-xs text-text-muted">
-                              {sharePercentage(holding.holder.balance, register.issuedSupply)}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span aria-hidden="true">—</span>
-                            <span className="sr-only">No {register.token.symbol} holding</span>
-                          </>
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td className="px-4 py-3 text-right">
+                  </>
+                );
+                return (
+                  <li key={member.member}>
                     {blocked ? (
-                      <PageAction label="Details" context={member.name} disabled onClick={() => undefined} />
+                      <div className="py-3 text-sm">
+                        <p className="break-words font-medium text-text-primary">{member.name}</p>
+                        {details}
+                      </div>
                     ) : (
-                      <PageLink to={shareholderPath(member.member, company)} label="Details" context={member.name} />
+                      <LinkRow to={shareholderPath(member.member, company)} label={member.name}>
+                        {details}
+                      </LinkRow>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </Table>
+                  </li>
+                );
+              })}
+            </ul>
           )}
           {shareholders.length === 0 && <p className="text-sm text-text-muted">No current shareholders yet.</p>}
           {shownPeople.length > 0 && (

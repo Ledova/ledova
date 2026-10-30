@@ -177,7 +177,7 @@ export function MoreToggle({
       aria-controls={controls}
       disabled={disabled}
       onClick={onToggle}
-      className="w-fit text-left text-sm text-brand-light hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline"
+      className="-my-3 w-fit py-3 text-left text-sm text-brand-light hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline"
     >
       {children}
     </button>

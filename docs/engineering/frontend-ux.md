@@ -187,7 +187,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   tone map; shared resolution-result tones live in `dashboard/src/components/statusTones.ts`.
 
 On workflow collections, show the saved records first, with class context once where needed.
-The sidebar footer identifies the current company. Keep each recipient, status and key facts together,
+The sidebar footer, or the top bar below `lg`, identifies the current company. Keep each recipient,
+status and key facts together,
 its details on demand, and its next action
 in a right-aligned footer after secondary actions.
 Particulars changes keep supporting-document download and decision actions together in one right-aligned,
@@ -404,7 +405,8 @@ content", which moves focus to the page's heading.
 The Dashboard selects company context; there is no workspace or role selector. Keep the selected
 company below the person's name in the sidebar footer and preserve its context in task links. Both
 names use small text (`text-xs`), retain stored capitalization and stay on one truncated line with
-the full name in a title. The navigation scrolls between the fixed brand header and footer.
+the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar shows the same
+company line under the wordmark. The navigation scrolls between the fixed brand header and footer.
 Do not repeat the current company name as a passive heading, subtitle or card label in signed-in
 content. Keep it where it identifies a functional company picker, a company Profile field, a record
 in a multi-company list or asset holding, or the exact legal, declaration, snapshot or recovery target.
@@ -506,6 +508,9 @@ confirmation) or pressed, and comes in four forms:
   the title row's way back, Add share class, a shareholder's Details, Issue shares to them.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
   it at once: the shown eligibility request and Wallets' sort.
+
+All four are at least 44 px tall below `sm`, so they are easy to tap on a phone; wider screens keep
+the compact size. `MoreToggle`'s "Show …" text links keep a 44 px tap area without moving the layout.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a
@@ -693,8 +698,8 @@ account by `dashboard/src/utils/lastCompany.ts`), or the first company in their 
 no longer available or none was chosen yet (owner, 28 October 2026). If an explicit address names an
 unavailable company, Dashboard offers **Open your company** when only one company remains, without
 silently replacing the address's scope. Other company-related pages inherit the selection through their
-address and task links; the sidebar footer identifies it without another company picker or passive
-page label. When the selected company is unavailable, `CompanyContextNotice`
+address and task links; the sidebar footer, or the top bar below `lg`, identifies it without another
+company picker or passive page label. When the selected company is unavailable, `CompanyContextNotice`
 (`dashboard/src/components/CompanyContextNotice.tsx`) links to Dashboard. An explicit company link is
 never silently replaced with a different company. Valid company and record links still open directly.
 Account-wide Profile, own appointments and invitation acceptance do not depend on the selected company.

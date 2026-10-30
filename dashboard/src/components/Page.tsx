@@ -97,7 +97,7 @@ const ACTION_LOOKS = {
 };
 
 const actionClass = (look: string) =>
-  `relative inline-flex w-fit items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${look}`;
+  `relative inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 ${look}`;
 
 function ActionText({ icon, label, context }: Omit<ActionContent, 'primary'>) {
   return (
