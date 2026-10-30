@@ -73,9 +73,9 @@ export function PrivacyPolicy() {
               </li>
               <li>
                 <strong className={LABEL}>In your browser:</strong> cookies that keep you signed in and protect forms.
-                Your browser also keeps your theme, the last company you opened and, while you sign up or accept an
-                invitation, your email address and the link you followed. There are no analytics, advertising or
-                tracking cookies.
+                Your browser also keeps your theme, the last company you opened, your email address while you sign up,
+                and any invitation or request link you followed. There are no analytics, advertising or tracking
+                cookies.
               </li>
             </ul>
           </Section>
@@ -96,7 +96,9 @@ export function PrivacyPolicy() {
               <li>
                 In each company, the people authorised to manage it see its records, and shareholders, employees and
                 investors see their own. Companies don&apos;t see your phone number, date of birth, financial profile or
-                the evidence behind your eligibility claims, and see only totals for votes and notices read.
+                the evidence behind your eligibility claims, and see only totals for votes and notices read. If you send
+                a company an eligibility request, it sees the claim, including the accountant&apos;s details, and your
+                name if you agree.
               </li>
               <li>We can reach the server and its database to run and fix the preview.</li>
               <li>
@@ -119,9 +121,11 @@ export function PrivacyPolicy() {
           <Section title="Your choices">
             <p>
               In Settings you can change your name, phone number and address, export your data and delete your account.
-              Deleting your account removes your name, date of birth, phone number and address. Your citizenship,
-              financial profile, wallets, verification records, register entries and eligibility requests stay until the
-              next reset. To change anything else, or to ask what we hold about you, email {CONTACT}.
+              Deleting your account removes your name, date of birth, phone number and address from your profile.
+              Everything else may stay until the next reset. That includes your citizenship, financial profile, wallets
+              and verification records, the records companies keep about you, your eligibility claims and requests,
+              documents you uploaded, your votes and notice reads, and invitations that hold your email address. To
+              change anything else, or to ask what we hold about you, email {CONTACT}.
             </p>
           </Section>
           <Section title="Running Ledova yourself">
