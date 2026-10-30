@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { LoadFailure } from '@components/LoadFailure';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ApiClientProvider } from '@ledova/shared';
@@ -10,7 +11,7 @@ import '@fontsource-variable/newsreader/opsz.css';
 import '@fontsource-variable/instrument-sans';
 import './styles/index.css';
 
-const router = createBrowserRouter([{ path: '*', element: <App /> }]);
+const router = createBrowserRouter([{ path: '*', element: <App />, errorElement: <LoadFailure /> }]);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
