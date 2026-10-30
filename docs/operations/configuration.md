@@ -244,10 +244,12 @@ means accepted for sending, not delivered to an inbox.
 
 ## On-ramp
 
-The on-ramp is an optional personal investor feature outside the register. The API and both
-clients admit only a current `investor` or `both` personal account, so companies cannot buy
-cryptocurrency through it ([#920](https://github.com/Ledova/ledova/issues/920)); configuring
-Transak selects no AUD share-payment provider
+The on-ramp is an optional personal investor feature outside the register, reached through the
+API: neither client offers it since the web app's Buy crypto was removed
+([#1452](https://github.com/Ledova/ledova/issues/1452)). The API admits only a current `investor` or
+`both` personal account, so companies cannot buy cryptocurrency through it
+([#920](https://github.com/Ledova/ledova/issues/920)); configuring Transak selects no AUD
+share-payment provider
 ([decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments)).
 
 | Variable                                                                              | Default     | Required                 |

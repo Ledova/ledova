@@ -2,7 +2,6 @@ import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany'
 import { PreparationNotice, PreparationPreferences } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useImportRegister, importRegisterKey } from './useImportRegister';
-import { DESTINATIONS } from '@ledova/shared';
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -180,17 +179,7 @@ function OwnImport({
     if (!mirrorAllowed)
       return (
         <Section title={`${listed.name} · ${listed.symbol}`}>
-          <p className="text-sm text-text-muted">
-            This class cannot open from copied records.{' '}
-            <Link
-              to={`${DESTINATIONS.companyRegister.path}?company=${listed.companyUuid}`}
-              state={{ registerCompany: listed.companyUuid }}
-              className="text-brand-light underline"
-            >
-              Open Ledger
-            </Link>{' '}
-            to open it from the chain or check its deployment state.
-          </p>
+          <p className="text-sm text-text-muted">This class uses the chain, and the web app can’t open its register.</p>
         </Section>
       );
     if (!correctable) {

@@ -31,7 +31,6 @@ const ORDINARY = {
 
 async function serveASignedInAccount(page: Page, role: Role) {
   const reads = { memberLists: 0, appointments: 0, companies: 0 };
-  let transactionAlerts = false;
   const company = {
     uuid: 'company',
     name: LONG_NAME,
@@ -117,10 +116,8 @@ async function serveASignedInAccount(page: Page, role: Role) {
     if (path === '/api/v1/companies/') reads.companies += 1;
     if (path === '/api/auth/verify/') return answer({ valid: true });
     if (path === '/api/user-accounts/') return answer({ uuid: 'account', role });
-    if (path === '/api/user-preferences/') {
-      if (route.request().method() === 'POST') transactionAlerts = route.request().postDataJSON().transactionAlerts;
-      return answer({ userProfile: 'profile', userAccount: { uuid: 'account', role }, transactionAlerts });
-    }
+    if (path === '/api/user-preferences/')
+      return answer({ userProfile: 'profile', userAccount: { uuid: 'account', role }, transactionAlerts: false });
     if (path === '/api/user-profiles/')
       return answer({
         ...EMPTY,
@@ -403,9 +400,6 @@ async function openTheSidebar(page: Page, role: Role) {
   if (role === 'both') {
     await page.getByRole('button', { name: 'Edit company', exact: true }).click();
     await page.getByRole('textbox', { name: 'Trading name', exact: true }).fill('Unsent company draft');
-    const alerts = page.getByRole('switch', { name: 'Transaction alerts', exact: true });
-    await alerts.click();
-    await expect(alerts).toHaveAttribute('aria-checked', 'true');
     await expect(page.getByRole('textbox', { name: 'Trading name', exact: true })).toHaveValue('Unsent company draft');
     aside = await visibleSidebar(page);
     await aside.getByRole('link', { name: 'Dashboard', exact: true }).click();

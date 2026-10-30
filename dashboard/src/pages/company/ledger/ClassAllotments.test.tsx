@@ -119,7 +119,6 @@ it('preserves original preparation and combined approval recovery through refres
       };
     }
     if (url === URLS.HOLDERS(preference.token.uuid)) return { data: preference };
-    if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     if (url === '/api/v1/company-authority/appointments/') return { data: { results: appointments, next: null } };
     if (url === URLS.REGISTER_ALLOTMENTS) {
       if (config?.params?.token === preference.token.uuid) return { data: { results: [], next: null } };

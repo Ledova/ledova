@@ -1,4 +1,3 @@
-import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -71,7 +70,6 @@ export function useShareClass(uuid: string) {
     },
   });
   const enabled = !!owner && token.isSuccess;
-  const isOwner = enabled && !token.isFetching && token.data.isOwner === true;
   const register = useQuery({
     queryKey: [...tokenKey, 'holders'],
     enabled,
@@ -90,22 +88,13 @@ export function useShareClass(uuid: string) {
       return data;
     },
   });
-  const refresh = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: shareClassKey(uuid) }),
-      queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
-    ]);
   return {
     owner,
-    boundary,
     guard,
     tokenKey,
-    scopeKey,
     readingPaused,
     holdReads,
-    isOwner,
     token,
     register,
-    refresh,
   };
 }

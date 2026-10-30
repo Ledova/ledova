@@ -3,7 +3,7 @@ import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_DECISIONS, formatDateTime, formatDate } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
-import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
+import { DecisionTrail } from './DecisionTrail';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { describeEntry, entryLabel, entryName, type RegisterSteps } from '@pages/company/shared/proposals';

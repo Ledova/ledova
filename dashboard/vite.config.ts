@@ -1,65 +1,12 @@
 /// <reference types="vitest/config" />
-import { defineConfig, loadEnv, normalizePath, type Plugin } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import { createRequire } from 'node:module';
-import { dirname } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
-
-const require = createRequire(import.meta.url);
-const resolvePolyfill = (moduleId: string) => normalizePath(require.resolve(moduleId));
-const resolvePolyfillRoot = (moduleId: string) => normalizePath(dirname(require.resolve(`${moduleId}/package.json`)));
-const TRAILING_SLASH_IMPORT = /\/$/;
-
-const browserPolyfills: Record<string, string> = {
-  buffer: resolvePolyfillRoot('buffer'),
-  process: resolvePolyfill('process/browser'),
-  util: resolvePolyfillRoot('util'),
-  events: resolvePolyfillRoot('events'),
-  stream: resolvePolyfillRoot('stream-browserify'),
-};
-
-export function nodePolyfills(): Plugin {
-  const alias: Record<string, string> = {};
-  for (const [mod, resolved] of Object.entries(browserPolyfills)) {
-    alias[mod] = resolved;
-    alias[`node:${mod}`] = resolved;
-  }
-
-  const inject: Record<string, string | [string, string]> = {
-    Buffer: [browserPolyfills.buffer, 'Buffer'],
-    process: browserPolyfills.process,
-  };
-
-  return {
-    name: 'node-polyfills',
-    enforce: 'pre',
-    resolveId(source) {
-      if (!TRAILING_SLASH_IMPORT.test(source)) return null;
-      return alias[source.replace(TRAILING_SLASH_IMPORT, '')] ?? null;
-    },
-    config() {
-      return {
-        resolve: { alias },
-        build: {
-          rolldownOptions: { transform: { inject } },
-        },
-        optimizeDeps: {
-          rolldownOptions: { transform: { inject } },
-        },
-      };
-    },
-  };
-}
-
-function nodeBuiltins(modules: string[]): Plugin {
-  const alias = Object.fromEntries(modules.map((mod) => [mod, `node:${mod}`]));
-  return { name: 'node-builtins', config: () => ({ resolve: { alias } }) };
-}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
-    plugins: [process.env.VITEST === 'true' ? nodeBuiltins(['buffer']) : nodePolyfills(), react(), tailwindcss()],
+    plugins: [react(), tailwindcss()],
     resolve: {
       tsconfigPaths: true,
     },
@@ -67,17 +14,6 @@ export default defineConfig(({ mode }) => {
       host: env.VITE_HOST,
       port: Number(env.VITE_PORT),
       allowedHosts: env.VITE_ALLOWED_HOSTS?.split(','),
-    },
-    optimizeDeps: {
-      include: [
-        '@noble/hashes/hmac',
-        '@noble/hashes/sha512',
-        '@noble/hashes/sha256',
-        '@noble/hashes/ripemd160',
-        'ethereum-cryptography/secp256k1',
-        'ethereum-cryptography/keccak',
-        'bech32',
-      ],
     },
     test: {
       testTimeout: 15_000,

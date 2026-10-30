@@ -1171,9 +1171,7 @@ Both clients read it through `@ledova/shared` (`getPublications`, `openPublicati
 `downloadPublication`, and `publicationFilename`, which names the `.bin` stored object from the type
 served). `useResolutionStatus` keeps one timer for the next opening or close, capped at the longest
 delay a timer holds and re-armed, so an open page offers or withdraws the ballot without reloading.
-The member's notices read the listing with `addressed=me`, [the Wallet shares
-page](../business/member-records.md#the-wallet-shares-page) counts what waits through
-`usePublicationSummary`, and the company's [Published
+The member's notices read the listing with `addressed=me`, and the company's [Published
 page](../business/publications.md#the-published-page) reads an owned company's publications with
 `issuer`.
 

@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
-import { TestRouter } from '../../../testSupport/TestRouter';
+import { TestRouter } from '../../testSupport/TestRouter';
 
-import { PageTitle } from '../../../components/PageTitle';
-import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
+import { PageTitle } from '@components/PageTitle';
+import { MemberRecordsProvider } from './MemberRecordsProvider';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { useCompanyContext } from '@hooks/useCompanyContext';
@@ -13,94 +13,23 @@ import {
   AUTH_QUERY_KEY,
   COMPANY_ENDPOINTS,
   COMPANY_TOKEN_ENDPOINTS as URLS,
-  HOLDING_ASSET_TYPE,
   ownMemberRecordsKey,
   USER_PREFERENCES_QUERY_KEY,
-  WALLET_ENDPOINTS,
-  type WalletHolding,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
 import { Link, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import HomePage from './index';
-import MemberRecordsPage from '../../home/index';
+import MemberRecordsPage from '@pages/home';
 import CertificatesPage from '@pages/documents/certificates';
 import { CERTIFICATES_PATH } from '@utils/paths';
-import { choose, MEMBER_ENTRY, MEMBER_RECORD } from '../../../testSupport/company';
+import { choose, MEMBER_ENTRY, MEMBER_RECORD } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('./HoldingWork', () => ({ HoldingWork: () => null }));
 
-const firstWallet = { uuid: 'wallet-one', name: 'Primary', address: `0x${'1'.repeat(40)}`, chain: 'base' };
-const secondWallet = { uuid: 'wallet-two', name: 'Reserve', address: `0x${'2'.repeat(40)}`, chain: 'ethereum' };
 let client: QueryClient;
-
-function holding(overrides: Partial<WalletHolding> = {}): WalletHolding {
-  return {
-    uuid: 'holding-one',
-    createdAt: '2026-09-01T00:00:00Z',
-    updatedAt: '2026-09-01T00:00:00Z',
-    walletUuid: firstWallet.uuid,
-    walletAddress: firstWallet.address,
-    chain: 'base',
-    assetUuid: 'asset-one',
-    assetSymbol: 'ORD',
-    assetName: 'Harbour Example Ordinary',
-    quantity: '250.000000000000000000',
-    marketValue: null,
-    valueSource: 'unpriced',
-    lastSyncedAt: '2026-09-01T00:00:00Z',
-    shareClass: { uuid: 'class-one', name: 'Ordinary', symbol: 'ORD', companyName: 'Harbour Example Pty Ltd' },
-    asset: {
-      uuid: 'asset-one',
-      symbol: 'ORD',
-      name: 'Harbour Example Ordinary',
-      assetType: HOLDING_ASSET_TYPE.TOKENIZED_SECURITY,
-      assetTypeDisplay: 'Tokenized Security',
-      chainDeployments: [],
-      navPerToken: null,
-      lastNavUpdate: null,
-      isYieldToken: false,
-      chain: 'base',
-      contractAddress: `0x${'3'.repeat(40)}`,
-      decimals: 0,
-      currentPrice: null,
-      valueSource: 'unpriced',
-      priceCurrency: 'USD',
-      isActive: true,
-      createdAt: '2026-09-01T00:00:00Z',
-      updatedAt: '2026-09-01T00:00:00Z',
-    },
-    ...overrides,
-  };
-}
-
-function page(wallets = [firstWallet], next: string | null = null) {
-  return { data: { results: wallets, count: wallets.length, next, previous: null } };
-}
-
-function detailOf(row: HTMLElement) {
-  const detail = document.getElementById(row.getAttribute('aria-controls') ?? '');
-  expect(detail).not.toBeNull();
-  return detail!;
-}
-
-function renderPage() {
-  return render(
-    <QueryClientProvider client={client}>
-      <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <TestRouter>
-          <PageTitle.Provider value="Holdings">
-            <HomePage />
-          </PageTitle.Provider>
-        </TestRouter>
-      </ApiClientProvider>
-    </QueryClientProvider>,
-  );
-}
 
 function MemberNavigation() {
   const context = useCompanyContext();
@@ -164,47 +93,6 @@ afterEach(() => {
   client.clear();
   vi.restoreAllMocks();
   vi.useRealTimers();
-});
-
-it('reads every wallet page and shows exact share totals with company/class names and hidden-class fallback', async () => {
-  const share = holding({ quantity: '9007199254740993.000000000000000000' });
-  const crypto = holding({
-    assetUuid: 'coin',
-    assetName: 'A coin',
-    asset: { ...share.asset, assetType: HOLDING_ASSET_TYPE.STABLECOIN },
-    quantity: '0.125',
-    shareClass: null,
-  });
-  api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
-    if (url === WALLET_ENDPOINTS.BASE) {
-      return config?.params?.page === 2
-        ? page([secondWallet])
-        : page([firstWallet], 'https://example.test/api/wallets/?page=2');
-    }
-    if (url === WALLET_ENDPOINTS.HOLDINGS(firstWallet.uuid)) return { data: [share, crypto] };
-    if (url === WALLET_ENDPOINTS.HOLDINGS(secondWallet.uuid)) {
-      return {
-        data: [
-          holding({ walletUuid: secondWallet.uuid, chain: 'ethereum', quantity: '2.000000000000000000' }),
-          holding({ assetUuid: 'hidden-class', assetName: 'Hidden Example Ordinary', quantity: '3', shareClass: null }),
-        ],
-      };
-    }
-    throw new Error(`Unexpected request: ${url}`);
-  });
-  renderPage();
-
-  expect(await screen.findByText('Harbour Example Pty Ltd')).toBeTruthy();
-  expect(screen.getByText('9,007,199,254,740,995 shares')).toBeTruthy();
-  expect(screen.getByText('Hidden Example Ordinary')).toBeTruthy();
-  expect(screen.queryByText('A coin')).toBeNull();
-  expect(screen.queryByText(/AUD|USD|Coin prices|Total value/)).toBeNull();
-  expect(api.get).toHaveBeenCalledWith(WALLET_ENDPOINTS.BASE, { params: { page: 2 } });
-
-  const row = screen.getByRole('button', { name: /Harbour Example Pty Ltd\s*Ordinary/ });
-  fireEvent.click(row);
-  expect(within(detailOf(row)).getByText('Primary')).toBeTruthy();
-  expect(within(detailOf(row)).getByText('Reserve')).toBeTruthy();
 });
 
 it('updates ownership and member workflows after invalidation without idle refreshes or losing drafts or revoked-record guards', async () => {
@@ -313,8 +201,6 @@ it('updates ownership and member workflows after invalidation without idle refre
       .map((item) => item.textContent),
   ).toEqual(['Unvested', 'Vested, awaiting issue']);
   expect(screen.queryByRole('button', { name: 'Read own entries for Ordinary' })).toBeNull();
-  expect(api.get.mock.calls.some(([url]) => url === WALLET_ENDPOINTS.BASE)).toBe(false);
-  expect(screen.queryByRole('heading', { name: 'Shares in your wallets' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Accept another member invitation' })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Member invitation code' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();

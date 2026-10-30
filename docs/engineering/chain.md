@@ -320,7 +320,7 @@ company-decided families share this mechanism, and their sections give only what
   approval.
 - Only the original operation's canonical successful receipt with the family's event, where it has
   one, and the projection, complete the work: current chain state never substitutes, missing or duplicate events
-  stay unresolved, and a contradiction is held for operator attribution. Clients show approval,
+  stay unresolved, and a contradiction is held for operator attribution. The API reports approval,
   admission, unsigned holds, signed uncertainty and the projected outcome apart.
 
 ### Share-class deployment
@@ -540,8 +540,8 @@ peer. `confirmed` needs a unique matching `Paused` or `Unpaused` from the admitt
 sender in the original receipt, and completed projection; no finality policy applies, and a
 `completedAt` value cannot stand in. The incomplete command reserves its chain and contract until
 projection, observed or confirmed outcomes included. Projection locks target, company, class, source
-and journal on one operator alias under the original company operation. The API and clients report
-the requested state and the observation or receipt separately from the class's current state.
+and journal on one operator alias under the original company operation. The API reports the
+requested state and the observation or receipt separately from the class's current state.
 
 ### Mint requests
 
@@ -611,25 +611,10 @@ not match `BITCOIN_NETWORK` (`m`, `n`, `2` or `tb1` for `test`, `bcrt1` for `reg
 otherwise). `parse_bitcoin_network` in `backend/ledova_backend/chain_safety.py` refuses to start the
 process unless that setting is `test` or `regtest`.
 
-Both client signing paths are legitimate. The Keystone path wraps the challenge as a UR/CBOR
-`eth-sign-request` QR and reads an `eth-signature` UR back through the camera; the seed-phrase path
-derives the key on the client and never stores or transmits the phrase. The dashboard's
-`localSigner` builds on the shared `createLocalSigner` (`packages/shared/src/utils/local-signer.ts`),
-which holds key handling and EVM signing, passing its bundled `ethers` and `ethereum-cryptography`.
-The derived private key is wiped in a `finally`, but the BIP-39 seed and master key only on
-`deriveKey`'s normal and guarded exits, so a throw from `masterKey.derive(derivationPath)`,
-reachable because `derivation_path` is a free-text `CharField` with no format validation, leaves
-them unzeroed.
-
-The dashboard compares `deriveAddress` case-insensitively with the wallet's address before spending
-anything, refusing a wrong phrase in the browser; its default path is `m/44'/60'/0'/0/0`, overridden
-by a wallet's `derivation_path`, and it is offered only on EVM chains (the dashboard bundle has no
-Bitcoin software signer).
-
-The camera and firmware journey is a
-[pre-release device check](mobile-releases.md#pre-release-device-checks). The client code is in
-`dashboard/src/components/wallet/useWalletVerification.ts` and
-`dashboard/src/utils/softwareWallet/localSigner.ts`.
+The web app no longer signs wallet challenges: its Keystone QR exchange and on-device seed-phrase
+signer went with the wallet pages ([decision](../decisions.md#wallets-removed-from-the-web-app)).
+The backend still verifies a signature from any client, as above, and the last client
+implementation is in Git history.
 
 ### Network identity
 
@@ -680,8 +665,8 @@ read without rewriting the asset's name ([decision](../decisions.md#the-signed-i
 Asset symbols are unique, so a second company's class with the same symbol is stored as the symbol
 plus its company's ACN (`ORD.123456782`), or part of its contract address when that is taken too.
 The stored symbol stays the asset's identity in the API's `assetSymbol`, the asset admin, the staff
-transactions filter and the account export. Each Activity row (`GET /api/transactions/`) resolves
-`shareClass` the same way, so Activity amounts, transaction notices and the staff holdings and
+transactions filter and the account export. Each transaction row (`GET /api/transactions/`) resolves
+`shareClass` the same way, so transaction amounts, transaction notices and the staff holdings and
 transactions lists show the class's own symbol with its company (`40 ORD`, "100 ORD (Example Pty
 Ltd)"); crypto, and a class the reader cannot see, keep the asset symbol.
 
@@ -730,7 +715,6 @@ how the demo seed dates its testers from their identity decision.
 None exists. A `Holding` carries only its current quantity, which the hourly sync, history imports
 and transfer confirmation rewrite without a dated series; no past-date valuation, snapshot route,
 holding snapshot or value-series service exists, and the portfolios API only groups wallets.
-The web's Wallet shares page shows share quantities by company and class, not a chart.
 
 Next: [wallet protocols](wallet-protocols.md), [trading protocols](trading-protocols.md),
 [chain setup](../operations/chains.md) and [recovery](../operations/recovery.md).

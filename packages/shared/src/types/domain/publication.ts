@@ -6,8 +6,6 @@ export type PublicationQueryParams = ApiQuery<'api_v1_publications_list'>;
 
 export type PublicationFilters = Pick<PublicationQueryParams, 'kind' | 'addressed' | 'issuer'>;
 
-export type PublicationSummary = ApiResponse<'api_v1_publications_summary_retrieve'>;
-
 export type PublicationBallot = ApiSchema<'PublicationBallot'>;
 
 export type PublicationCount = ApiSchema<'PublicationCount'>;

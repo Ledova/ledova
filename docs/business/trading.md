@@ -2,12 +2,13 @@
 
 [Business processes](README.md) · [Documentation](../README.md)
 
-How investors hold assets in their own wallets and send them, how the experimental secondary
-market's API trades existing shares, and how those activities sit beside the company's register. The
-order, matching, settlement and transfer mechanisms are in
+How the API keeps investors' own wallets and their sends, how the experimental secondary market's
+API trades existing shares, and how both sit beside the company's register. The order, matching,
+settlement and transfer mechanisms are in
 [trading protocols](../engineering/trading-protocols.md#intent-and-settlement) and
-[wallet transfers](../engineering/wallet-protocols.md#transfer-lifecycle). These pages are on the
-web; the mobile app is for shareholders ([decision](../decisions.md#mobile-app-for-shareholders)).
+[wallet transfers](../engineering/wallet-protocols.md#transfer-lifecycle). Neither has a page in the
+web app ([wallets](#wallets-and-wallet-sends), [trading](#what-trading-is-today)), and the mobile app
+is for shareholders ([decision](../decisions.md#mobile-app-for-shareholders)).
 
 Contents:
 
@@ -18,8 +19,6 @@ Contents:
 - [One match, never crossed](#one-match-never-crossed)
 - [Accepted experimental limits](#accepted-experimental-limits)
 - [Wallets and wallet sends](#wallets-and-wallet-sends)
-- [The Wallets page](#the-wallets-page)
-- [The Activity page](#the-activity-page)
 
 ## What trading is today
 
@@ -135,52 +134,31 @@ keeps orders private.
 
 ## Wallets and wallet sends
 
+The web app has no wallet pages. On 31 October 2026 the owner removed Wallets, Wallet shares,
+Activity, Send and Buy crypto, with wallet nominations and company wallet approvals, until wallets
+are developed ([decision](../decisions.md#wallets-removed-from-the-web-app), [#1452](https://github.com/Ledova/ledova/issues/1452)). The API keeps wallets, sends and their records, as below.
+
 A wallet is an account's address on one network. Proving control of it (verification) is the
 participant's fact; the company's approval of it for its shares is a separate company decision. A
 member recorded on an imported register needs no wallet.
 
-From **Wallets** a person sends native and other crypto assets and payment tokens on the supported
-test networks. Wallets on Ethereum and Base sign on the device or through a hardware wallet's QR
-exchange; Bitcoin sends are signed with external tooling. Ledova records what the signed transaction
+Through the API a person prepares sends of native and other crypto assets and payment tokens on the
+supported test networks and signs them with their own key. Ledova records what the signed transaction
 says, not what the sender typed, and a broadcast but unconfirmed send is not evidence that it was
 mined. Base transfers pay fees in ETH.
 
-Shares are never sent from Wallets: Ledova refuses a share class as a send, including while the
+Shares are never sent as a wallet send: Ledova refuses a share class as a send, including while the
 class is paused. A share moves only through a company-recorded
 [register transfer](register.md#non-paid-transfers-between-members), an issue, or a settled trade
 that the company then enters on its register.
 
-**Buy crypto** is optional and only for investors acting in their personal capacity. Companies must
+Buying crypto through the provider is optional and only for investors acting in their personal
+capacity. Companies must
 not buy cryptocurrency through it, and a company appointment or a company's wallet gives no
 permission to use it ([decision](../decisions.md#registry-priority-crypto-on-ramp-and-aud-payments),
 [#920](https://github.com/Ledova/ledova/issues/920)). Ledova checks for a current investor account
 and an owned receiving wallet before it contacts the provider. There is no way to sell crypto for
 money through Ledova.
-
-## The Wallets page
-
-**Wallets** lists the person's wallets on one card per network, each with its verification and
-signing preference, when it last synced, its native balance to at most eight decimal places and its
-value in AUD (**Value**). Each wallet has **Edit**, **Sync** and **Delete**, with **Verify** and
-**Derive address** where they apply, and **Add wallet** is a page action. Adding, editing, deriving
-and deleting keep what was entered and stay open until they succeed; an import of several addresses
-remembers the ones already added if it is retried. A failed sync is reported in that wallet's row.
-
-**Send** opens its form directly, offering Cancel rather than Back, when the person has exactly one
-verified wallet on its networks (Ethereum, Bitcoin and Base), and otherwise asks which wallet. It
-offers crypto and payment tokens, including AUDY, never shares. **Buy crypto** goes straight to the
-provider when exactly one verified wallet is on the chosen asset's network. Each wallet chooser
-lists only the networks Wallets lists. When the purchase page cannot be opened, the page gives the
-server's reason or "The purchase page could not be opened. Try again." **Wallet shares** opens
-[the Wallet shares page](member-records.md#the-wallet-shares-page).
-
-## The Activity page
-
-**Activity** lists recorded wallet transfers, read-only, with exact amounts, network fees and
-status. A share transfer's amount carries its class's own symbol. The Filters icon opens a compact
-panel for direction, network, wallet and dates, retaining Apply/Clear and whole-local-day bounds.
-Each entry opens in place to its detail and a block-explorer link. Dividends are not transfers
-and do not appear here; they are on [Notices](publications.md#the-notices-page).
 
 Next: [the register of members](register.md),
 [investors and eligibility](participants.md) and

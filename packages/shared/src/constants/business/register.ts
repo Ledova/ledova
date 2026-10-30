@@ -28,8 +28,8 @@ export const REGISTER_COPY = {
     'opening or register import starts it.',
   WAITING_NOTE: (count: number) =>
     `${count} completed ${count === 1 ? 'issue or transfer waits' : 'issues or transfers wait'} to be recorded, ` +
-    'so these holdings leave them out. Recording stops at the first one that cannot be recorded yet, such as one ' +
-    'whose wallet is not yet linked to a member, and every later one waits behind it.',
+    'so these holdings leave them out. Recording stops at the first one that cannot be recorded yet, and every ' +
+    'later one waits behind it.',
   WAITING_UNKNOWN_NOTE:
     'Whether any completed issue or transfer waits to be recorded could not be checked. Try again before relying ' +
     'on these holdings.',
@@ -40,10 +40,8 @@ export const REGISTER_COPY = {
   FORMER_NOTE:
     'Each row retains the particulars and holding when membership ceased. A return keeps the same member ID and its recorded return date.',
   NO_WALLET: 'No linked wallet',
-  AMBIGUOUS_NOTE:
-    "This member's wallets point to more than one person, so no name is shown. Resolve the wallet records before " +
-    'relying on the register.',
+  AMBIGUOUS_NOTE: "This member's wallets point to more than one person, so no name is shown.",
   UNIDENTIFIED_NOTE:
     'No linked wallet resolves to a named person through its retained whitelist entry. Ask the participant to ' +
-    'add their full name in Profile, or to verify and nominate the linked wallet for company approval.',
+    'add their full name in Profile.',
 } as const;

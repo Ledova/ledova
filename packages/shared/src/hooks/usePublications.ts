@@ -4,8 +4,8 @@ import { getPublications, getPublicationsNextPage } from '../services/publicatio
 import { assertNextPageAdvances } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
 import { useLaterPages } from './useLaterPages';
-import { PUBLICATIONS_QUERY_KEY } from './usePublicationSummary';
 
+export const PUBLICATIONS_QUERY_KEY = ['publications'] as const;
 export const PERSONAL_NOTICES_QUERY_KEY = [...PUBLICATIONS_QUERY_KEY, 'addressed', 'me'];
 
 export function usePublications() {

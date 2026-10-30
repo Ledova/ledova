@@ -7,7 +7,6 @@ import {
   FilesIcon,
   UsersThreeIcon,
   ShieldCheckIcon,
-  LinkIcon,
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
@@ -70,18 +69,13 @@ const PERSONAL: NavItem[] = [
   { destination: 'home', view: 'documents', icon: FilesIcon },
 ];
 
-const YOURS: NavItem[] = [
-  { destination: 'transactions', icon: LinkIcon },
-  { destination: 'settings', icon: GearIcon },
-];
+const YOURS: NavItem[] = [{ destination: 'settings', icon: GearIcon }];
 
 const ITEM_CLASS = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors';
 const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary';
 const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, LedgerTask>> = {
   companyRegisterTransfer: 'transfer',
   companyRegisterCorrection: 'corrections',
-  companyRegisterOpening: 'corrections',
-  companyRegisterLinks: 'corrections',
   companyRegisterParticulars: 'corrections',
 };
 
@@ -105,7 +99,6 @@ function ledgerContext(
   const classPath =
     destination &&
     (destination === 'companyClass' ||
-      destination === 'companyClassChain' ||
       destination === 'companyRegisterImport' ||
       destination === 'companyRegisterAward' ||
       LEDGER_TASK_PARENTS[destination])
@@ -176,7 +169,6 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const classPath =
     destination &&
     (destination === 'companyClass' ||
-      destination === 'companyClassChain' ||
       destination === 'companyRegisterImport' ||
       destination === 'companyRegisterAward' ||
       LEDGER_TASK_PARENTS[destination])

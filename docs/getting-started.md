@@ -49,9 +49,10 @@ Signup requires an emailed six-digit code. The local debug stack prints the veri
 another. Dashboard cookie-authenticated writes require its origin in `DJANGO_CSRF_TRUSTED_ORIGINS`;
 the template includes `http://localhost:5174`.
 
-Beyond the demo data, use Ledger for the company-authorised chain
-actions listed in the
-[implementation index](plans/company-managed-registers/README.md); the
+Beyond the demo data, the company-authorised chain actions listed in the
+[implementation index](plans/company-managed-registers/README.md) run through the API: the web app
+has had none since [#1452](https://github.com/Ledova/ledova/issues/1452)
+([decision](decisions.md#wallets-removed-from-the-web-app)). The
 [issuance data flow](engineering/chain.md#issuance-data-flow) explains how the company's decision,
 technical execution and chain confirmation stay distinct.
 

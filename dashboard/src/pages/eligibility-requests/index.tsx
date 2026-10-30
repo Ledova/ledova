@@ -1,7 +1,7 @@
 import { SelectField } from '@components/SelectField';
 import { useRunningAction } from '@hooks/useRunningAction';
 import { useEntryReads } from '@hooks/useEntryReads';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   DESTINATIONS,
@@ -20,23 +20,10 @@ import { LinkRow, Section, LoadError } from '@components/Ledger';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
 import { Field, TextInput } from '@components/Field';
-import { WalletNomination } from './WalletNomination';
 
 export default function ParticipantEligibilityPage() {
   const [actionOpener, setActionOpener] = useState<HTMLElement | null>(null);
-  const [walletHeld, setWalletHeld] = useState<{ scope: string; held: boolean } | null>(null);
-  const read = useParticipantEligibilityRecords(() => crypto.randomUUID(), undefined, {
-    coordinatedReads: true,
-    pausedScope: walletHeld?.held ? walletHeld.scope : undefined,
-  });
-  const onWalletHeld = useCallback(
-    (held: boolean) => {
-      setWalletHeld((prior) =>
-        prior?.scope === read.scopeKey && prior.held === held ? prior : { scope: read.scopeKey, held },
-      );
-    },
-    [read.scopeKey],
-  );
+  const read = useParticipantEligibilityRecords(() => crypto.randomUUID(), undefined, { coordinatedReads: true });
   useEntryReads({ scope: read.owner ? read.scopeKey : null, paused: read.readingPaused, refresh: read.refresh });
   const { running, track } = useRunningAction();
   const source = read.sources.find((item) => item.uuid === read.draft.source);
@@ -175,17 +162,6 @@ export default function ParticipantEligibilityPage() {
             )}
           </div>
         </>
-      )}
-      {read.selectedRequestUuid && (
-        <div hidden={!!read.action}>
-          <WalletNomination
-            key={`${read.scopeKey}/${read.selectedRequestUuid}`}
-            requestUuid={read.selectedRequestUuid}
-            guardRequest={() => read.guardOwnRequest(read.selectedRequestUuid)}
-            onHeldChange={onWalletHeld}
-            active={!read.action}
-          />
-        </div>
       )}
     </Page>
   );

@@ -169,7 +169,6 @@ export interface EligibilityQueuePage {
 type EligibilityReadOptions = {
   coordinatedReads?: boolean;
   paused?: boolean;
-  pausedScope?: string;
   selectedCompany?: string;
 };
 
@@ -227,7 +226,6 @@ function useEligibilityRecords(
   const scopeKey = [...scope, selection.company, selection.record, view.current.generation].join('/');
   const readingPaused =
     !!options.paused ||
-    options.pausedScope === scopeKey ||
     (!!owner && (drafting === owner || action?.owner === owner || (busy && workingOwner === owner)));
   const timing = options.coordinatedReads ? { refetchOnWindowFocus: false, refetchOnReconnect: false } : {};
   const reading = !options.coordinatedReads || !readingPaused;
@@ -901,12 +899,6 @@ function useEligibilityRecords(
       : undefined,
     listError: list.error,
     selectedRecord,
-    selectedRequestUuid: selection.record,
-    guardOwnRequest: (uuid: string) => {
-      ownerGuard();
-      if (mode !== 'participant' || selected.current.record !== uuid)
-        throw createUserFriendlyError('Your selected own eligibility request changed.');
-    },
     selectRecord: (uuid: string | null) => {
       setDrafting(null);
       change({ record: uuid ?? '' });

@@ -333,8 +333,8 @@ resolution shows the question, the basis, the person's votes, the window and, wh
 open, the ballot choices; afterwards it shows the person's ballot and the result. A dividend shows
 the declared rate, the payment date, the person's entitlement and what the company has recorded.
 
-What waits on the person as a member is counted on
-[the Wallet shares page](member-records.md#the-wallet-shares-page): open resolutions on which one of
+What waits on the person as a member is counted by the API's publication summary, which no page
+shows since the wallet pages were removed ([#1452](https://github.com/Ledova/ledova/issues/1452)): open resolutions on which one of
 their holdings has no ballot, with the soonest close, and dividends on which a holding owed at least
 a cent has no standing payment record. A person on a roll twice waits until each holding is settled,
 and a withdrawn record makes a holding wait again. Only the person's own roll rows count, so a

@@ -13,7 +13,7 @@ import {
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { PageAction, PageLink } from '@components/Page';
-import { Outcome, Row, Rows, Section, Status, SwitchRow, LoadError, Loading } from '@components/Ledger';
+import { Outcome, Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
 import { setTheme } from '@hooks/useTheme';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
@@ -79,10 +79,7 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
   const [verificationOpen, setVerificationOpen] = useState(false);
   const verification = getUserVerificationStatus(profile.userProfile);
   const {
-    preferences,
     theme,
-    transactionAlerts,
-    alerts,
     modal,
     setModal,
     currentPassword,
@@ -143,30 +140,6 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
             checked={theme === 'dark'}
             onChange={(dark) => setTheme(dark ? 'dark' : 'paper')}
           />
-          <div>
-            {preferences.isError ? (
-              <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-                Notification preferences could not be loaded.
-              </LoadError>
-            ) : preferences.isLoading ? (
-              <Loading>Loading notification preferences…</Loading>
-            ) : transactionAlerts === undefined ? (
-              <p className="text-sm text-text-muted">Notification preferences are unavailable.</p>
-            ) : (
-              <SwitchRow
-                label="Transaction alerts"
-                description="Notifications for transaction status changes."
-                checked={transactionAlerts}
-                disabled={alerts.isPending}
-                onChange={(value) => alerts.mutate(value)}
-              />
-            )}
-            {alerts.isError && (
-              <p role="alert" className="text-sm text-error-light">
-                Your notification preference could not be saved. Try again.
-              </p>
-            )}
-          </div>
         </div>
         <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
           <h3 className="text-sm font-medium text-text-primary">Manage account</h3>

@@ -1,28 +1,3 @@
-export interface FormatCurrencyOptions {
-  currency?: string;
-  locale?: string;
-  decimals?: number;
-  minimumFractionDigits?: number;
-  maximumFractionDigits?: number;
-}
-
-export function formatCurrency(value?: number, options: FormatCurrencyOptions = {}): string {
-  if (value === undefined || value === null || isNaN(value)) return '—';
-  const {
-    currency = 'AUD',
-    locale = 'en-AU',
-    decimals = 2,
-    minimumFractionDigits = decimals,
-    maximumFractionDigits = decimals,
-  } = options;
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits,
-    maximumFractionDigits,
-  }).format(value);
-}
-
 export const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 export const shortReference = (uuid: string) => uuid.slice(0, 8);
@@ -41,11 +16,6 @@ export function sharePercentage(shares: string, total: string | null) {
   const whole = BigInt(total);
   const rounded = (part * 10000n + whole / 2n) / whole;
   return rounded === 0n && part > 0n ? '<0.01%' : `${(Number(rounded) / 100).toFixed(2)}%`;
-}
-
-export function formatPlainDecimal(value: number, maxDecimals: number): string {
-  const fixed = value.toFixed(maxDecimals);
-  return fixed.includes('.') ? fixed.replace(/\.?0+$/, '') : fixed;
 }
 
 const DECIMAL = /^(-?)(\d+)(?:\.(\d+))?$/;

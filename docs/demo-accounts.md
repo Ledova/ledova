@@ -136,7 +136,7 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 - Taylor's request to Banksia was withdrawn.
 - Inspection copies and packs prepared before #1429 have no record of where they were produced, so
   they stay unlisted.
-- Published and Activity stay empty without a chain.
+- Published stays empty without a chain.
 - On 30 October 2026 the files of these records were lost: the walkthrough API had run from a
   worktree, and the uploads stored under its backend folder were deleted with it. The database was
   rebuilt from `ledova_walkthrough_20261021_before_1421`. The two direct steps were repeated with the
@@ -183,12 +183,16 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   of the signed-in pages: the phone layout (#1446), a failed session check that no longer signs
   people out (#1447), clearer members' pages (#1448), particulars changes that start from the
   member's current details and a tidier Team (#1449), and seven small fixes (#1450).
+- At the owner's direction on 31 October,
+  [#1452](https://github.com/Ledova/ledova/issues/1452) removes wallets and the class's on-chain
+  features from the web app, keeping the backend and its data, and
+  [#1453](https://github.com/Ledova/ledova/issues/1453) simplifies the frontend architecture after
+  that day's review.
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
   - No internal IDs are shown. A short reference appears only where records would otherwise read
     the same or have no name. A company gives investors a request link instead of an ID.
-  - `Disclosure` remains only for Activity's entries, Wallet shares' rows and Wallets' sort.
 - **Process:**
   - A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date
     with `main` ([decision](decisions.md#required-ci-and-auto-merge-on-main), #1409).
@@ -197,7 +201,7 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
     the delta's review. Each merge is checked for tree and parent and recorded on its PR, and the
     owner is not asked to merge.
 - **Checks:**
-  - Local preflight passes dashboard **20** and browser smoke **9**, within the unchanged caps.
+  - Local preflight passes dashboard **19** and browser smoke **7**, within the unchanged caps.
   - Local backend verification stops at Python **3.13.15** (this Mac has **3.13.3**), and CI runs
     the pinned suite.
   - Pages are checked against the demo data above. Before it was added, pages without local data

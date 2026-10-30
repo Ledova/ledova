@@ -380,7 +380,6 @@ it('retains original award, vesting and linked issue preparations through interr
       config?.params?.token === siblingRegister.token.uuid
     )
       return { data: { results: [], next: null } };
-    if (url === URLS.REGISTER_LINK_WAITING_WALLETS) return { data: { wallets: [] } };
     if (url === URLS.REGISTER_GRANTS) {
       await delay();
       if (grantsFailed) throw new Error('Issues unavailable');

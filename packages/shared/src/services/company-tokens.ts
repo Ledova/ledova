@@ -13,11 +13,7 @@ import type {
   RegisterInspectionPreview,
   RegisterInspectionCopies,
   RegisterInspectionRequest,
-  TokenIssuance,
-  CapitalIncreaseListItem,
   PaginatedResponse,
-  ShareIssuanceRequest,
-  ShareIssuanceRequestQueryParams,
 } from '../types';
 
 export const getCompanyToken = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
@@ -68,33 +64,6 @@ export const createRegisterInspectionCopy = (
   apiClient.post<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), data, {
     ...config,
     responseType: 'blob',
-  });
-
-export const getCompanyTokenIssuances = (
-  apiClient: AxiosInstance,
-  uuid: string,
-  params?: { page?: number; page_size?: number; status?: string },
-  config: AxiosRequestConfig = {},
-) => apiClient.get<PaginatedResponse<TokenIssuance>>(COMPANY_TOKEN_ENDPOINTS.ISSUANCES(uuid), { ...config, params });
-
-export const getCapitalIncreases = (
-  apiClient: AxiosInstance,
-  params?: { token?: string; status?: string; page?: number; page_size?: number },
-  config: AxiosRequestConfig = {},
-) =>
-  apiClient.get<PaginatedResponse<CapitalIncreaseListItem>>(COMPANY_TOKEN_ENDPOINTS.CAPITAL_INCREASES, {
-    ...config,
-    params,
-  });
-
-export const getShareIssuanceRequests = (
-  apiClient: AxiosInstance,
-  params?: ShareIssuanceRequestQueryParams,
-  config: AxiosRequestConfig = {},
-) =>
-  apiClient.get<PaginatedResponse<ShareIssuanceRequest>>(COMPANY_TOKEN_ENDPOINTS.ISSUANCE_REQUESTS, {
-    ...config,
-    params,
   });
 
 export const getRegisterCertificatePreview = (

@@ -18,7 +18,6 @@ Contents:
 - [Notice figures](#notice-figures)
 - [The due list](#the-due-list)
 - [The company pack](#the-company-pack)
-- [The Wallet shares page](#the-wallet-shares-page)
 
 ## Outputs at a glance
 
@@ -144,8 +143,7 @@ opened from the company's page, shows its history; a change's certificate status
 request, withdraw or share it, with that change's other requests and their actions, and requests
 for changes not in the history are listed below it. Mobile **Documents** lists the ready and
 requested certificates from every company, filtered by company, each opening its sheet to share
-or withdraw it. Wallet holdings are on
-[the Wallet shares page](#the-wallet-shares-page).
+or withdraw it.
 
 ### Share-event notifications
 
@@ -535,25 +533,6 @@ What a recipient should know (the builder's own limits are in
   register instead.
 - In a small company a tally, set against the roll's holdings, can show how members voted;
   withholding ballots adds nothing to what the company can infer from Ledova.
-
-## The Wallet shares page
-
-**Wallet shares** (from **Wallets** on the web) lists the share-class tokens in the person's
-own wallets, one row per company and class across networks, expanding into each network's and
-wallet's balance. A holding whose class details
-cannot be read is listed under the asset's name. Company-recorded shares, wallet or not, are on
-**Dashboard** or mobile **Holdings**.
-
-Below the shares:
-
-- **Needs you** counts resolutions awaiting the person's vote with the first close.
-- **In progress** counts dividends awaiting a payment record from the company, which is not proof of
-  a bank transfer.
-- **Recently published to you** lists the three latest notices, each with its company, kind, date
-  and, for a resolution, until when voting is open.
-
-Actions only open [Notices](publications.md#the-notices-page), which defines what counts as waiting;
-nothing pays or votes here.
 
 Next: [the register of members](register.md),
 [shareholder publications](publications.md),

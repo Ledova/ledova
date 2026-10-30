@@ -46,13 +46,10 @@ ISSUE; a subsequent approved grant or investor allotment records the first share
 this empty-opening choice through the same draft, review and confirmation as copied holdings
 ([register setup](register.md#bringing-in-existing-records)).
 
-On the web, the chain actions described below are on a class's own **Chain actions** page. The Share
-class page opens it from its **On chain** card once the class is deployed, or through **Put this
-class on chain** while the class is a draft without shares or is being deployed. Each action is a
-card listing its records, with its Prepare action at the foot. Deployment prepares at once; the
-others open their form in the card below the records, and Cancel or a prepared record closes it,
-while a prepared wallet link keeps the grant's form open. Records show names, dates, amounts and
-their decisions, and a transaction as **View transaction** on the block explorer.
+The web app no longer offers the chain actions described below: the owner removed a class's
+**Chain actions** page, its **On chain** card and **Put this class on chain** on 31 October 2026
+([decision](../decisions.md#wallets-removed-from-the-web-app),
+[#1452](https://github.com/Ledova/ledova/issues/1452)). The API keeps them, with the rules below.
 
 ### Class rights
 
@@ -100,15 +97,11 @@ this increment.
 ### Deploying an empty class
 
 A company appointee can have Ledova's technical signer create the class's contract. Deployment
-issues no shares, takes no payment and changes no holding.
+issues no shares, takes no payment and changes no holding. The company prepares the deployment
+through the API, then approves and applies it; the proposal captures the class, its whole-share cap
+and identifier, the selected issuer address, the exact transaction and the register's state.
 
-1. On the class's Share class page, choose **Put this class on chain**, then under Deployment choose
-   Prepare deployment. The proposal captures the class, its whole-share cap and identifier, the
-   selected issuer address, the exact transaction and the register's state.
-2. Review the authorised shares, issuer wallet and ledger shown, then Approve deployment and Apply
-   deployment.
-
-Applying means admitted, not deployed: the page shows admission, holds, a signed transaction
+Applying means admitted, not deployed: the API reports admission, holds, a signed transaction
 awaiting confirmation and the outcome separately, and a contract address alone does not show
 completion. The issuer address is contract information, separate from the technical sender and any
 future recipient.
@@ -123,14 +116,11 @@ executes it is in [engineering](../engineering/chain.md#share-class-deployment).
 
 ### Raising the authorised shares
 
-A company appointee can raise the authorised shares of a deployed class, including a paused one.
-
-1. On the class's Chain actions page, under Capital increases, choose Prepare capital increase and
-   give the additional whole shares and the new total, which must equal the current cap plus the
-   addition (each from 1 to 2,147,483,647).
-2. Give the purpose, the board resolution reference, any shareholder approval reference and the
-   authority document.
-3. Approve, then Apply.
+A company appointee can raise the authorised shares of a deployed class, including a paused one,
+through the API. The preparation gives the additional whole shares and the new total, which must
+equal the current cap plus the addition (each from 1 to 2,147,483,647), with the purpose, the board
+resolution reference, any shareholder approval reference and the authority document. It is then
+approved and applied.
 
 Raising the cap mints no shares, changes no holding and approves no grant, allotment or payment; the
 optional shareholder reference sets no approval threshold, and Ledova does not verify the
@@ -142,12 +132,12 @@ issued.
 ### Pausing and unpausing a class
 
 A company appointee can pause a deployed class, which stops every movement of its shares on chain,
-or unpause it: on the class's Chain actions page, under Pausing, choose Prepare pause change and give
-the requested state with a reason, an authority reference and the authority document, then Approve and
-Apply. Pausing needs no eligibility decision, nomination, payment or issue, and changes neither the
-cap nor the issued shares.
+or unpause it, through the API: the preparation gives the requested state with a reason, an
+authority reference and the authority document, and is then approved and applied. Pausing needs no
+eligibility decision, nomination, payment or issue, and changes neither the cap nor the issued
+shares.
 
-Approval or admitted work does not mean transfers have stopped or resumed: the page shows the
+Approval or admitted work does not mean transfers have stopped or resumed: the API reports the
 requested state and its outcome apart from the class's current state. If the class is already in the
 requested state, the outcome is recorded as observed, with no transaction. A paused class keeps its
 members, and publications still reach them.
@@ -174,8 +164,7 @@ and documents** for the rest. **Prepare issue**, beneath the records, asks **Wha
 Preparation replaces the record list with the chosen form. Switching between the two keeps what
 was entered in each form until it is closed or an issue is prepared, when the records return.
 A sibling group is hidden only after a current successful read proves it empty; loading and failed
-reads remain visible. For a deployed class the task links to the class's Chain actions page, where
-chain grants stay.
+reads remain visible. For a class that uses the chain the task says "Issues for a class that uses the chain aren’t available in the web app." Chain grants go through the API.
 
 ### What each record changes
 
@@ -390,10 +379,12 @@ chain; a class opened by an import cannot use it. It needs, separately:
 - a [wallet link](register.md#linking-wallets-to-members) from that wallet to the member, made
   before the first grant to a new or existing member.
 
-On the class's Chain actions page, under Non-paid chain grants, choose Prepare non-paid grant,
-select the member, their nomination and the company's approval, and give the shares, terms,
-approving director and documents, including acceptance evidence where the terms require it. Then
-Approve and Apply. Matching an address alone never identifies the approval or the member.
+The web app no longer offers chain grants
+([decision](../decisions.md#wallets-removed-from-the-web-app),
+[#1452](https://github.com/Ledova/ledova/issues/1452)); the API keeps them. A preparation names the
+member, their nomination and the company's approval, and gives the shares, terms, approving director
+and documents, including acceptance evidence where the terms require it; it is then approved and
+applied. Matching an address alone never identifies the approval or the member.
 
 Applying admits the original mint; it creates no holding. The register records the Issue once the
 mint is final, and until then the allocation keeps reserving authorised shares. If authority or the

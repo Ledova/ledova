@@ -19,8 +19,10 @@ when starting or resuming work, including after context compaction.
   employee awards and vesting records, externally arranged investor capital and
   company-approved allotments, accurate ownership, member access and basic
   outputs. An award is an entitlement, not issued shares. New integrated AUD
-  payments, trading, advanced governance and filings are deferred; keep useful
-  existing payment/chain controls and history. Companies must not buy
+  payments, trading, advanced governance and filings are deferred. Wallets and
+  the class's on-chain features are out of the web app for now under the
+  [31 October decision](docs/decisions.md#wallets-removed-from-the-web-app);
+  the backend keeps their controls and history. Companies must not buy
   cryptocurrency through the on-ramp; #920's investor and provider guards stand.
 - Tidy as each issue progresses. Remove code, imports, configuration, routes,
   tests and documentation that become obsolete when their replacement lands.
