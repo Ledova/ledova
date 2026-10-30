@@ -310,7 +310,8 @@ risk assessment, transaction and any company decision stay as they are.
 
 ## The Verification page
 
-Verification (investing accounts) has two sections, followed by Supporting payslips:
+Verification (investing accounts; on web, **Eligibility** in the menu, or **Your eligibility** beside
+a company's own Eligibility item) has two sections, followed by Supporting payslips:
 
 - Your claims: a link to Your company eligibility, then each source's status and dates, with
   **Withdraw claim** while it is submitted. A submitted source shows Available to share; one

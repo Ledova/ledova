@@ -59,6 +59,11 @@ const COMPANY: NavItem[] = [
 ];
 
 const ELIGIBILITY: NavItem = { destination: 'companyEligibility', icon: ShieldCheckIcon, label: 'Eligibility' };
+const INVESTOR_ELIGIBILITY: NavItem = {
+  destination: 'investorEligibility',
+  icon: ShieldCheckIcon,
+  label: 'Eligibility',
+};
 
 const PERSONAL: NavItem[] = [
   { destination: 'home', icon: HouseIcon },
@@ -574,13 +579,18 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         ]),
     ...(context?.company?.canReviewEligibility ? [ELIGIBILITY] : []),
   ];
+  const role = useRole();
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
+  const investorEligibility =
+    companyTasks && companyItems.includes(ELIGIBILITY)
+      ? { ...INVESTOR_ELIGIBILITY, label: 'Your eligibility' }
+      : INVESTOR_ELIGIBILITY;
 
   const groups: NavGroup[] = [
     ...(companyTasks ? [{ id: 'company', items: companyItems }] : []),
     ...(!companyTasks ? [{ id: 'shares', items: PERSONAL }] : []),
-    { id: 'yours', items: YOURS },
+    { id: 'yours', items: role.isKnown && role.isInvestor ? [investorEligibility, ...YOURS] : YOURS },
   ];
   const allItems = groups.flatMap((group) => group.items);
   const activeItem = placesAt(location.pathname, location.hash)

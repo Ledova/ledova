@@ -21,7 +21,7 @@ import {
   sharePercentage,
   shareCount,
 } from '@ledova/shared';
-import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -30,6 +30,7 @@ import { registerClassesKey } from '@hooks/useRegisterClasses';
 import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useShareholder } from './useShareholder';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
+import { awardPath } from '@pages/company/ledger/shared/awards';
 
 const PRIVATE_NOTE =
   'Particulars, history and awards show only to someone with a current company register appointment.';
@@ -355,14 +356,24 @@ function OwnShareholder({
           )}
           {settled(data.awards) && !!data.awards.data?.length && (
             <Section title="Employee awards">
-              <Rows>
+              <ul aria-label="Employee awards" className="divide-y divide-border-subtle">
                 {data.awards.data.map((award) => (
-                  <Row key={award.uuid} label={className(award.token)}>
-                    {formatShareCount(award.shares)} promised · {formatShareCount(award.vestedShares)} vested ·{' '}
-                    {formatShareCount(award.issuedShares)} issued
-                  </Row>
+                  <li key={award.uuid}>
+                    <LinkRow
+                      to={awardPath(award.token, award.uuid, company)}
+                      state={{ registerCompany: company, registerToken: award.token }}
+                      label={className(award.token)}
+                      context={`employee award, agreement ${formatDate(award.termsOn)}`}
+                    >
+                      <span className="block text-xs text-text-muted">Agreement {formatDate(award.termsOn)}</span>
+                      <span className="block text-xs text-text-muted">
+                        {formatShareCount(award.shares)} promised · {formatShareCount(award.vestedShares)} vested ·{' '}
+                        {formatShareCount(award.issuedShares)} issued
+                      </span>
+                    </LinkRow>
+                  </li>
                 ))}
-              </Rows>
+              </ul>
               <PageLink
                 to={`${DESTINATIONS.companyRegister.path}?company=${company}#awards`}
                 state={{ registerCompany: company }}

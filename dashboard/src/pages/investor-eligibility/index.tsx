@@ -41,7 +41,7 @@ export default function InvestorEligibilityPage() {
 
   return (
     <>
-      <Page narrow>
+      <Page>
         {isLoading ? (
           <Loading>Loading your verification…</Loading>
         ) : hasError ? (
