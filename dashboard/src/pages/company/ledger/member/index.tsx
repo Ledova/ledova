@@ -21,7 +21,7 @@ import {
   sharePercentage,
   shareCount,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -243,9 +243,9 @@ function OwnShareholder({
               />
             )}
             {navigationError && (
-              <p role="alert" className="text-sm text-error-light">
+              <Failure>
                 Refresh the register and your current preparation appointment before changing particulars.
-              </p>
+              </Failure>
             )}
           </Section>
           <Section title="Holdings">

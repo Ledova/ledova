@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { failureSentence, formatDate } from '@ledova/shared';
 import { AuthHeader, AuthLayout } from '@components/auth';
 import { InSignedInFrame } from '@components/InSignedInFrame';
-import { Loading, LoadError, Row, Rows, Section } from '@components/Ledger';
+import { Loading, LoadError, Row, Rows, Section, Failure } from '@components/Ledger';
 import { FormActions, Page, PageAction, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { clearMemberInvitation } from '@utils/memberInvitation';
@@ -58,11 +58,7 @@ export default function MemberInvitationPage() {
             <Row label="Email">{shown.intendedEmail}</Row>
             <Row label="Accept by">{formatDate(shown.acceptanceDeadline)}</Row>
           </Rows>
-          {failure && (
-            <p role="alert" className="text-sm text-error-light">
-              {failure}
-            </p>
-          )}
+          <Failure>{failure}</Failure>
           {shown.status === 'accepted' ? (
             <>
               <p role="status" className="text-sm text-text-primary">

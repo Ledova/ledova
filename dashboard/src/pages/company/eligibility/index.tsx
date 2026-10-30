@@ -18,7 +18,7 @@ import {
   formatDate,
   shortReference,
 } from '@ledova/shared';
-import { LinkRow, Section, LoadError } from '@components/Ledger';
+import { LinkRow, Section, LoadError, Failure } from '@components/Ledger';
 import { Pager } from '@components/List';
 import { PAGE_SIZE, useFirstPageWhenGone, useListParams } from '@hooks/useListParams';
 import { FormActions, Page, PageAction } from '@components/Page';
@@ -146,9 +146,7 @@ export default function CompanyEligibilityPage() {
             </LoadError>
           )}
           {(read.readFailed ? read.failure : read.error) && !gone && !(authorityMissing && !read.failure) && (
-            <p role="alert" className="text-sm text-error-light">
-              {read.readFailed ? read.failure : read.error}
-            </p>
+            <Failure>{read.readFailed ? read.failure : read.error}</Failure>
           )}
           <div hidden={!!read.action} className="flex flex-col gap-5">
             {!read.companyUuid && <CompanyContextNotice />}

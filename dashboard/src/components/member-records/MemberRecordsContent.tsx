@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
-import { LoadError, Loading, Section } from '@components/Ledger';
+import { LoadError, Loading, Section, Failure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { useMemberWorkspace } from './useMemberWorkspace';
 
@@ -24,11 +24,7 @@ export function MemberRecordsContent({ children }: { children: ReactNode }) {
           Your member records could not be loaded.
         </LoadError>
       )}
-      {!read.readFailed && read.error && (
-        <p role="alert" className="text-sm text-error-light">
-          {read.error}
-        </p>
-      )}
+      {!read.readFailed && read.error && <Failure>{read.error}</Failure>}
       {read.retry && (
         <PageAction
           label="Retry original member action"

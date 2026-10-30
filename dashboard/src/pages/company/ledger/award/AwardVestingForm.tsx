@@ -9,6 +9,7 @@ import {
   type RegisterAward,
 } from '@ledova/shared';
 import { useAwardVestingForm } from './useAwardVestingForm';
+import { Failure } from '@components/Ledger';
 
 export function AwardVestingForm({
   award,
@@ -73,11 +74,7 @@ export function AwardVestingForm({
           <FileField {...checks.field('file')} label="Document" showUploadHint={false} onFile={setFile} />
         </div>
       </fieldset>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
       <FormActions>
         {cancel}

@@ -10,6 +10,7 @@ import { useSignupPreScreening } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { Failure } from '@components/Ledger';
 
 export default function SignupPreScreening() {
   const navigate = useNavigate();
@@ -104,9 +105,7 @@ export default function SignupPreScreening() {
                   <WarningIcon size={ICON_MD} className="text-error-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-error-light" role="alert">
-                    {generalError}
-                  </p>
+                  <Failure>{generalError}</Failure>
                 </div>
               </div>
             </div>

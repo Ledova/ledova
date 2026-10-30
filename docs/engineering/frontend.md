@@ -184,7 +184,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   the web `pageTitle` mapping used by `signedInRoutes`
   ([routes, audiences and guards](#routes-audiences-and-guards)); a page sets `PageTitle` only for a
   hash view.
-- **Errors and waiting.** A failed request reads as a `role="alert"` sentence
+- **Errors and waiting.** A failed request reads as a `role="alert"` sentence, the kit's `Failure`
   ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
   cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
   ([loading, empty and error states](frontend-ux.md#loading-empty-and-error-states)).

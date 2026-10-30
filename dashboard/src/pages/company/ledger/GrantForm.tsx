@@ -7,7 +7,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
-import { MoreToggle } from '@components/Ledger';
+import { MoreToggle, Failure } from '@components/Ledger';
 
 const DOCUMENTS: Record<DocumentKind, string> = {
   authority: COPY.AUTHORITY_DOCUMENT,
@@ -242,11 +242,7 @@ export function GrantForm({
           {documentKinds.includes('acceptance') && document('acceptance')}
         </fieldset>
       </fieldset>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       {held && (
         <p className="text-sm text-text-muted">
           Recover the original preparation before starting another. Preparation creates no issued shares.

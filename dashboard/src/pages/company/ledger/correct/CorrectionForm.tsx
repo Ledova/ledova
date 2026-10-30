@@ -6,6 +6,7 @@ import { FIELD_LIMITS, type RegisterCorrectionAuthority } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { Failure } from '@components/Ledger';
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 
@@ -90,11 +91,7 @@ export function CorrectionForm({
           />
         </Field>
       </fieldset>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       <FormActions>
         <PageAction
           type="submit"

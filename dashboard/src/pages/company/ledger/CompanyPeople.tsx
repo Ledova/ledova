@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { OrderSubmissionOwner, TokenHoldersResponse } from '@ledova/shared';
 import { ErrorSummary } from '@components/ErrorSummary';
-import { Loading, LoadError, Outcome, Section } from '@components/Ledger';
+import { Loading, LoadError, Outcome, Section, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { FormerShareholders } from './shared/ClassRegister';
@@ -38,11 +38,7 @@ function PersonForm({ person }: { person: ReturnType<typeof usePersonRegistratio
             addressCheck={checks.field('address')}
           />
         </fieldset>
-        {person.error && (
-          <p role="alert" className="text-sm text-error-light">
-            {person.error}
-          </p>
-        )}
+        <Failure>{person.error}</Failure>
         <FormActions>
           <PageAction label="Cancel" disabled={person.busy || person.held} onClick={person.close} />
           <PageAction

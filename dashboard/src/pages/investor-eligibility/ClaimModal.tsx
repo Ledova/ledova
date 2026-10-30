@@ -8,7 +8,7 @@ import { FIELD_LIMITS, UPLOAD_RULE, formatFileSize } from '@ledova/shared';
 import type { InvestorCategory } from '@ledova/shared';
 import { useInvestorClaim } from './useInvestorClaim';
 import { CERTIFIER_BODIES } from './constants';
-import { LoadError } from '@components/Ledger';
+import { LoadError, Failure } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 
@@ -100,11 +100,7 @@ export function ClaimModal({
               {submissionBlockedReason}
             </p>
           ))}
-        {error && (
-          <p role="alert" className="text-sm text-error-light">
-            {error}
-          </p>
-        )}
+        <Failure>{error}</Failure>
 
         <p className="text-sm text-text-secondary">{spec?.evidence}</p>
 

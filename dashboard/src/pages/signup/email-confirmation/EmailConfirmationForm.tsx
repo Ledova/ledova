@@ -13,6 +13,7 @@ import type { FormErrors } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
+import { Failure } from '@components/Ledger';
 
 interface EmailConfirmationFormProps {
   verificationCode: string;
@@ -53,9 +54,7 @@ export function EmailConfirmationForm({
                   <WarningIcon size={ICON_MD} className="text-error-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-error-light" role="alert">
-                    {generalError}
-                  </p>
+                  <Failure>{generalError}</Failure>
                 </div>
               </div>
             </div>

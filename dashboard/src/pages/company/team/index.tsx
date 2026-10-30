@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
-import { Section, LoadError, Loading } from '@components/Ledger';
+import { Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { FormActions, Page, PageAction, PageLink } from '@components/Page';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
@@ -328,11 +328,7 @@ function OwnTeam({
           </Section>
         </div>
       </div>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       <Modal
         isOpen={!!confirmation}
         onClose={close}

@@ -7,7 +7,7 @@ import {
   useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { LoadError, Loading } from '@components/Ledger';
+import { LoadError, Loading, Failure } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { useCompanyContext } from '@hooks/useCompanyContext';
@@ -78,14 +78,12 @@ function OwnAuthorityRequest({
           onRevoke={() => lifecycle.mutateAsync({ request, action: 'revoke' })}
         />
         {opening.isError && (
-          <p role="alert" className="text-sm text-error-light">
-            {failureSentence(opening.error, 'Your evidence could not be downloaded.')}
-          </p>
+          <Failure>{failureSentence(opening.error, 'Your evidence could not be downloaded.')}</Failure>
         )}
         {lifecycle.isError && (
-          <p role="alert" className="text-sm text-error-light">
+          <Failure>
             {failureSentence(lifecycle.error, 'Your request outcome could not be confirmed. Refresh or retry.')}
-          </p>
+          </Failure>
         )}
       </>
     );

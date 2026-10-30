@@ -195,6 +195,15 @@ export function Outcome({ children }: { children?: ReactNode }) {
   );
 }
 
+export function Failure({ id, children }: { id?: string; children?: ReactNode }) {
+  if (!children) return null;
+  return (
+    <p id={id} role="alert" className="text-sm text-error-light">
+      {children}
+    </p>
+  );
+}
+
 export function Loading({ children }: { children: ReactNode }) {
   return (
     <p role="status" className="py-3 text-sm text-text-muted">

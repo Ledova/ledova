@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { formatDate, useSubmissionOwner, type OrderSubmissionOwner } from '@ledova/shared';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
-import { LoadError, Loading, Section } from '@components/Ledger';
+import { LoadError, Loading, Section, Failure } from '@components/Ledger';
 import { Confirmation } from '@components/Modal';
 import { Page, PageAction, PageActions } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -212,11 +212,7 @@ function CertificateWorkspace({
           ownRecord={ownRecord}
         />
       </PageActions>
-      {read.error && (
-        <p role="alert" className="text-sm text-error-light">
-          {read.error}
-        </p>
-      )}
+      <Failure>{read.error}</Failure>
       {read.retry && (
         <PageAction
           label="Retry original member action"
@@ -227,9 +223,7 @@ function CertificateWorkspace({
       {CERTIFICATE_STATUSES.some(([value]) => value === filters.status) ? (
         children
       ) : (
-        <p role="alert" className="text-sm text-error-light">
-          This certificate status is unavailable. Choose a status or Clear in Filters.
-        </p>
+        <Failure>This certificate status is unavailable. Choose a status or Clear in Filters.</Failure>
       )}
     </Section>
   );

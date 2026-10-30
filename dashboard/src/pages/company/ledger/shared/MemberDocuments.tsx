@@ -1,4 +1,4 @@
-import { LoadError, Loading, Section } from '@components/Ledger';
+import { LoadError, Loading, Section, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { SearchSelect } from '@components/SearchSelect';
 import { REGISTER_MEMBER_DOCUMENT_CATEGORIES, type OrderSubmissionOwner } from '@ledova/shared';
@@ -134,11 +134,7 @@ function OwnMemberDocuments(
           </FormActions>
         </form>
       )}
-      {documents.error && (
-        <p role="alert" className="text-sm text-error-light">
-          {documents.error}
-        </p>
-      )}
+      <Failure>{documents.error}</Failure>
     </Section>
   );
 }

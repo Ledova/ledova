@@ -1009,18 +1009,19 @@ This section covers how a form reports a problem: when it is submitted, and when
     input and blur, and the form treats it as a problem: the team invitation's deadline and
     appointment expiry and a representative authority request's expiry.
 
-- **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
-  (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code
-  400". When the server answered, the sentence is its own words with each field error included
-  (`apiErrorSentence`), or else the caller's fallback, which names what failed ("Your personal
-  details could not be saved. Try again."). A failure that never reached the server shows its own
-  message, such as "Unable to connect to our servers…" or "Your signed-in account changed. Reopen
-  company team.", or the fallback when it has none. Pages that still read with `apiErrorSentence`,
-  such as the register preparation forms, documents and sign-up, show their fallback for such a
-  failure instead; those that pass the fallback twice still show a message thrown with
-  `createUserFriendlyError`.
-  Sign-in, sign-up, company details and change password place the server's field errors on their
-  fields with `readApiError`; other forms show them in the one sentence.
+- **Request errors.** A failure reads as one `role="alert"` sentence, `Failure`
+  (`dashboard/src/components/Ledger.tsx`, which renders nothing without a sentence), from
+  `failureSentence` (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed
+  with status code 400". When the server answered, the sentence is its own words with each field
+  error included (`apiErrorSentence`), or else the caller's fallback, which names what failed ("Your
+  personal details could not be saved. Try again."). A failure that never reached the server shows
+  its own message, such as "Unable to connect to our servers…" or "Your signed-in account changed.
+  Reopen company team.", or the fallback when it has none. Pages that still read with
+  `apiErrorSentence`, such as the register preparation forms, documents and sign-up, show their
+  fallback for such a failure instead; those that pass the fallback twice still show a message
+  thrown with `createUserFriendlyError`. Sign-in, sign-up, company details and change password place
+  the server's field errors on their fields with `readApiError`; other forms show them in the one
+  sentence.
 - **Refusal codes.** The server names unmet requirements and refusals as codes. Each family's copy
   map in `packages/shared/src/constants/business/` turns them into sentences: `refusalSentences` for
   a preview's or record's list, and `refusalSentence` for a refused request, before any other

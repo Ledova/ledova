@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { apiErrorSentence } from '@ledova/shared';
-import { Outcome, Row, Status } from '@components/Ledger';
+import { Outcome, Row, Status, Failure } from '@components/Ledger';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { DOWNLOAD_FAILED, STAGE_TONES } from '@pages/company/shared/proposals';
 
@@ -43,9 +43,5 @@ export function RecordStage({ stage, children }: { stage: string; children: Reac
 }
 
 export function RecordDownloadFailure({ error, children }: { error?: unknown; children?: ReactNode }) {
-  return (
-    <p role="alert" className="text-sm text-error-light">
-      {children ?? apiErrorSentence(error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-    </p>
-  );
+  return <Failure>{children ?? apiErrorSentence(error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}</Failure>;
 }

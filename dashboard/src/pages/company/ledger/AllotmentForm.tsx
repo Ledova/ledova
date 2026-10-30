@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Field, TextInput, TextArea, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { FormSteps } from '@components/FormSteps';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Failure } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
@@ -262,11 +262,7 @@ export function AllotmentForm({
           </fieldset>
         </div>
       </fieldset>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
       <FormActions>
         {stepIndex > 0 && (

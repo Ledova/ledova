@@ -21,6 +21,7 @@ import { Field, Label, Description } from '@headlessui/react';
 import { WarningIcon } from '@phosphor-icons/react';
 import RadioGroupField from './RadioGroupField';
 import CheckboxGroupField from './CheckboxGroupField';
+import { Failure } from '@components/Ledger';
 
 interface FinancialProfileFormProps {
   form: FinancialProfileFormState;
@@ -73,9 +74,7 @@ export function FinancialProfileForm({
                   <WarningIcon size={ICON_MD} className="text-error-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-error-light" role="alert">
-                    {generalError}
-                  </p>
+                  <Failure>{generalError}</Failure>
                 </div>
               </div>
             </div>

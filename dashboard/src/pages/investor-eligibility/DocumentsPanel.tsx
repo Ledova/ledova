@@ -19,7 +19,7 @@ import {
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
-import { LoadError, Loading, Row, Rows, ShowMore, Status } from '@components/Ledger';
+import { LoadError, Loading, Row, Rows, ShowMore, Status, Failure } from '@components/Ledger';
 
 const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',
@@ -195,9 +195,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         </fieldset>
       )}
       {(attach.error || del.error) && (
-        <p role="alert" className="text-sm text-error-light">
-          {apiErrorSentence(attach.error || del.error, 'The document could not be updated.')}
-        </p>
+        <Failure>{apiErrorSentence(attach.error || del.error, 'The document could not be updated.')}</Failure>
       )}
       {confirmingDelete && (
         <Confirmation
@@ -218,11 +216,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
         !Array.isArray(extraction.parsedJson) && (
           <PayslipResult data={extraction.parsedJson} durationMs={extraction.durationMs} />
         )}
-      {extraction?.status === 'failed' && extraction.error && (
-        <p role="alert" className="text-sm text-error-light">
-          {extraction.error}
-        </p>
-      )}
+      {extraction?.status === 'failed' && extraction.error && <Failure>{extraction.error}</Failure>}
     </li>
   );
 }
@@ -300,11 +294,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
             disabled={upload.isPending}
           />
         </div>
-        {upload.error && (
-          <p role="alert" className="text-sm text-error-light">
-            {apiErrorSentence(upload.error, 'The payslip could not be uploaded.')}
-          </p>
-        )}
+        {upload.error && <Failure>{apiErrorSentence(upload.error, 'The payslip could not be uploaded.')}</Failure>}
         <FormActions>
           <PageAction label="Cancel" context="payslip upload" disabled={upload.isPending} onClick={close} />
           <PageAction
