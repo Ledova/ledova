@@ -81,7 +81,7 @@ function OwnTeam({
     companyName,
   } = useCompanyTeam({ owner, currentOwner, editing: task !== null });
   const [started, setStarted] = useState(false);
-  if (!started && own.isSuccess && !own.isFetching) {
+  if (!started && own.isSuccess && !own.isFetching && !settings.isLoading) {
     setStarted(true);
     if (appointments.length === 0 && !settings.hasOwnedCompany) setTask('accept');
   }

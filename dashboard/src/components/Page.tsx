@@ -50,7 +50,7 @@ export function Page({ actions, back, documentTitle, lede, loading = false, narr
             </div>
           </div>
           {lede && (
-            <p id={ledeId} className="break-words text-sm text-text-muted">
+            <p id={ledeId} className="max-w-prose break-words text-sm text-text-muted">
               {lede}
             </p>
           )}
@@ -174,6 +174,8 @@ export function PageLink({ icon, label, context, primary = false, to, state, onC
 
 export function FormActions({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4">{children}</div>
+    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4 empty:hidden">
+      {children}
+    </div>
   );
 }

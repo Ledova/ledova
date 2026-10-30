@@ -322,7 +322,8 @@ Your company eligibility holds your requests with their outcome history, **Prepa
 withdrawal** and the wallet nomination. Company eligibility, for company
 approvers and preparers, holds the Requests list with the company's request link, the decision and
 revocation forms and Company wallet approvals
-([deciding](#deciding-withdrawing-and-revoking)).
+([deciding](#deciding-withdrawing-and-revoking)). Both request lists show each outcome, such as
+Pending or Accepted, as a status mark.
 
 ## Profile and Settings
 

@@ -594,8 +594,9 @@ corrections, chain openings, reconciliation acknowledgements, particulars and wa
 titled record showing its snapshot, documents and decision trail; an opening's holdings or
 shareholders sit behind **Show the holdings** or **Show the shareholders**, open while it awaits a
 decision. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
-Confirmed), and evidence reads as
-provided by the company or, before the work became company-run, "Verified by Ledova staff". A
+Confirmed), and an import, opening, correction, particulars change or wallet link has an Evidence
+row reading Provided by the company or, before the work became company-run, "Verified by Ledova
+staff". A
 section that read successfully with nothing to show is left out, but a class on chain without a
 reconciliation says so. An unfinished request keeps its class and exact request, and while one is
 held the company, task and class cannot be changed; its sidebar link lets the person return from
@@ -683,8 +684,9 @@ person chosen.
 
 ### The Share class page
 
-Each class opens directly from **Class details** on its Ledger card. Its details show the class's
-name, code, type, state and current register summary, followed by the company's optional
+Each class opens directly from **Class details** on its Ledger card, titled with the class's name.
+Its Summary card shows the class's code, type, state and current register summary, followed by the
+company's optional
 [Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
 and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and
 register downloads on Documents. The summary gives the authorised shares when the class has a limit

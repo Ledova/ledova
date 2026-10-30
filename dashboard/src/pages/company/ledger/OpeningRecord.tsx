@@ -103,11 +103,11 @@ export function OpeningRecord({
             {proposal.approvingDirector && <Row label={COPY.APPROVING_DIRECTOR}>{proposal.approvingDirector}</Row>}
             <Row label={COPY.AUTHORITY_REFERENCE}>{proposal.authorityReference}</Row>
             <Row label={COPY.REASON}>{proposal.reason}</Row>
+            <Row label="Evidence">
+              {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
+            </Row>
             <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
           </Rows>
-          <p className="text-sm text-text-muted">
-            {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
-          </p>
         </>
       )}
       <FormActions>

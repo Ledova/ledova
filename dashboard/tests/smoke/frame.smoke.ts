@@ -284,12 +284,13 @@ async function openTheSidebar(page: Page, role: Role) {
       page.getByText('Only your own holdings and awards are shown. Other shareholders’ records are private.'),
     ).toBeVisible();
     await showAllClasses(page);
-    const documents = (await visibleSidebar(page))
-      .getByRole('link', { name: 'Documents', exact: true })
-      .locator('../..');
-    await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
-    await expect(documents.getByRole('link', { name: 'Certificates', exact: true })).toBeVisible();
-    await expect((await visibleSidebar(page)).getByRole('link', { name: 'Eligibility', exact: true })).toHaveAttribute(
+    const sidebar = await visibleSidebar(page);
+    await expect(sidebar.getByRole('link', { name: 'Documents', exact: true })).toHaveAttribute(
+      'href',
+      '/documents/certificates?company=company',
+    );
+    await expect(sidebar.getByRole('button', { name: 'Expand Documents navigation' })).toHaveCount(0);
+    await expect(sidebar.getByRole('link', { name: 'Eligibility', exact: true })).toHaveAttribute(
       'href',
       '/investor-eligibility?company=company',
     );
@@ -372,11 +373,15 @@ async function openTheSidebar(page: Page, role: Role) {
   const settings = aside.getByRole('link', { name: 'Settings', exact: true }).locator('../..');
   const settingsLink = settings.getByRole('link', { name: 'Settings', exact: true });
   await expect(settingsLink).toHaveAttribute('href', '/settings?company=company#profile');
-  await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
-  await expect(settings.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute(
-    'href',
-    '/settings?company=company#profile',
-  );
+  if (role === 'investor')
+    await expect(settings.getByRole('button', { name: 'Expand Settings navigation' })).toHaveCount(0);
+  else {
+    await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
+    await expect(settings.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute(
+      'href',
+      '/settings?company=company#profile',
+    );
+  }
   await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
   for (const name of ['Documents', 'Company-recorded details'])
     await expect(settings.getByRole('link', { name, exact: true })).toHaveCount(0);

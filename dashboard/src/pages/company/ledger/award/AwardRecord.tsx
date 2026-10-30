@@ -250,56 +250,71 @@ export function AwardRecord({
             vestings.length > 0 && (
               <Section title="Vesting history">
                 <div id={vestingsId} className="divide-y divide-border-subtle">
-                  {(allVestings ? vestings : vestings.slice(0, LATEST_VESTINGS)).map((event) => (
-                    <div key={event.uuid} className="space-y-2 py-3 first:pt-0">
-                      <Rows>
-                        <Row label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Row>
-                        <Row label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Row>
-                      </Rows>
-                      <p className="text-xs text-text-muted">
-                        Recorded {formatDateTime(event.createdAt)}
-                        {event.preparedByName && ` by ${event.preparedByName}`}
-                      </p>
-                      <FormActions>
-                        <PageAction
-                          label="Download vesting evidence"
-                          busy={
-                            download.isPending &&
-                            download.variables?.kind === 'vesting' &&
-                            download.variables.uuid === event.uuid
-                          }
-                          busyLabel="Downloading…"
-                          context={vestingName(event)}
-                          disabled={blocked || download.isPending || !eventReady}
-                          onClick={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
-                        />
-                        {appointment && (
+                  {(allVestings ? vestings : vestings.slice(0, LATEST_VESTINGS)).map((event) => {
+                    const remaining = remainingRegisterAwardVesting(event, reversals.data ?? []);
+                    const reverseReason = !eventReady
+                      ? null
+                      : BigInt(award.availableShares) === 0n
+                        ? 'No vested shares await issue, so this vesting can’t be corrected.'
+                        : remaining !== null && BigInt(remaining) === 0n
+                          ? 'This vesting event is already fully reversed.'
+                          : null;
+                    return (
+                      <div key={event.uuid} className="space-y-2 py-3 first:pt-0">
+                        <Rows>
+                          <Row label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Row>
+                          <Row label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Row>
+                        </Rows>
+                        <p className="text-xs text-text-muted">
+                          Recorded {formatDateTime(event.createdAt)}
+                          {event.preparedByName && ` by ${event.preparedByName}`}
+                        </p>
+                        <FormActions>
                           <PageAction
-                            label={COPY.REVERSE}
-                            context={vestingName(event)}
-                            disabled={
-                              blocked ||
-                              !eventReady ||
-                              formHeld ||
-                              BigInt(award.availableShares) === 0n ||
-                              remainingRegisterAwardVesting(event, reversals.data ?? []) === null ||
-                              BigInt(remainingRegisterAwardVesting(event, reversals.data ?? []) ?? '0') === 0n
+                            label="Download vesting evidence"
+                            busy={
+                              download.isPending &&
+                              download.variables?.kind === 'vesting' &&
+                              download.variables.uuid === event.uuid
                             }
-                            onClick={() => {
-                              recordGuard();
-                              const remaining = remainingRegisterAwardVesting(event, reversals.data ?? []);
-                              if (remaining !== null)
-                                setAdjusting({
-                                  appointment,
-                                  vesting: event.uuid,
-                                  vestingLabel: vestingName(event),
-                                });
-                            }}
+                            busyLabel="Downloading…"
+                            context={vestingName(event)}
+                            disabled={blocked || download.isPending || !eventReady}
+                            onClick={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
                           />
+                          {appointment && (
+                            <PageAction
+                              label={COPY.REVERSE}
+                              context={vestingName(event)}
+                              describedBy={reverseReason ? `${vestingsId}-${event.uuid}-reason` : undefined}
+                              disabled={
+                                blocked ||
+                                !eventReady ||
+                                formHeld ||
+                                BigInt(award.availableShares) === 0n ||
+                                remaining === null ||
+                                BigInt(remaining) === 0n
+                              }
+                              onClick={() => {
+                                recordGuard();
+                                if (remaining !== null)
+                                  setAdjusting({
+                                    appointment,
+                                    vesting: event.uuid,
+                                    vestingLabel: vestingName(event),
+                                  });
+                              }}
+                            />
+                          )}
+                        </FormActions>
+                        {appointment && reverseReason && (
+                          <p id={`${vestingsId}-${event.uuid}-reason`} className="text-right text-xs text-text-muted">
+                            {reverseReason}
+                          </p>
                         )}
-                      </FormActions>
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
                 {vestings.length > LATEST_VESTINGS && (
                   <MoreToggle

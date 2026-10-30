@@ -91,9 +91,9 @@ export function ParticularsRecord({
           <Particulars title={COPY.PROPOSED_PARTICULARS} held={change} />
           <Rows>
             <Row label={COPY.REASON}>{change.reason}</Row>
+            <Row label="Evidence">{COPY.PROVIDED_BY_COMPANY}</Row>
             <DecisionTrail proposal={change} labels={COPY.DECISIONS} />
           </Rows>
-          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
         </>
       )}
       <FormActions>

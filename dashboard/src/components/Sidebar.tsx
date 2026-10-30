@@ -376,6 +376,7 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
       blocked: certificatesBlocked,
     });
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+  const single = links.length === 1;
 
   if (shownPlace !== place) {
     setShownPlace(place);
@@ -395,45 +396,50 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
           onAuxClick={(event) => {
             if (certificatesBlocked) event.preventDefault();
           }}
+          aria-current={single && active ? 'page' : undefined}
           aria-disabled={certificatesBlocked || undefined}
-          className={`${ITEM_CLASS} min-w-0 flex-1 ${IDLE_CLASS} ${certificatesBlocked ? 'cursor-not-allowed opacity-50' : ''}`}
+          className={`${ITEM_CLASS} min-w-0 flex-1 ${single && active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${certificatesBlocked ? 'cursor-not-allowed opacity-50' : ''}`}
         >
           <FilesIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
           <span>Documents</span>
         </Link>
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} Documents navigation`}
-          aria-expanded={expanded}
-          aria-controls={id}
-          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
-        >
-          <Caret size={16} />
-        </button>
-      </div>
-      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-        {links.map(({ key, label, title, to, blocked }) => (
-          <Link
-            key={key}
-            to={companyContext?.companyPath(to) ?? to}
-            state={context}
-            title={title}
-            onClick={(event) => {
-              if (blocked) event.preventDefault();
-              else onNavigate?.();
-            }}
-            onAuxClick={(event) => {
-              if (blocked) event.preventDefault();
-            }}
-            aria-current={selected === key ? 'page' : undefined}
-            aria-disabled={blocked || undefined}
-            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocked ? 'cursor-not-allowed opacity-50' : ''}`}
+        {!single && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            aria-label={`${expanded ? 'Collapse' : 'Expand'} Documents navigation`}
+            aria-expanded={expanded}
+            aria-controls={id}
+            className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
           >
-            {label}
-          </Link>
-        ))}
+            <Caret size={16} />
+          </button>
+        )}
       </div>
+      {!single && (
+        <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
+          {links.map(({ key, label, title, to, blocked }) => (
+            <Link
+              key={key}
+              to={companyContext?.companyPath(to) ?? to}
+              state={context}
+              title={title}
+              onClick={(event) => {
+                if (blocked) event.preventDefault();
+                else onNavigate?.();
+              }}
+              onAuxClick={(event) => {
+                if (blocked) event.preventDefault();
+              }}
+              aria-current={selected === key ? 'page' : undefined}
+              aria-disabled={blocked || undefined}
+              className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocked ? 'cursor-not-allowed opacity-50' : ''}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -515,6 +521,7 @@ function SettingsGroup({
       (selected === item.key || navigation.items.includes(item)),
   );
   const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+  const single = items.length === 1;
 
   if (shownPlace !== place) {
     setShownPlace(place);
@@ -527,35 +534,40 @@ function SettingsGroup({
         <Link
           to={context?.companyPath(navigation.defaultPath) ?? navigation.defaultPath}
           onClick={onNavigate}
-          className={`${ITEM_CLASS} min-w-0 flex-1 ${IDLE_CLASS}`}
+          aria-current={single && active ? 'page' : undefined}
+          className={`${ITEM_CLASS} min-w-0 flex-1 ${single && active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
         >
           <GearIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
           <span>Settings</span>
         </Link>
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} Settings navigation`}
-          aria-expanded={expanded}
-          aria-controls={id}
-          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
-        >
-          <Caret size={16} />
-        </button>
-      </div>
-      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-        {items.map(({ key, label, to }) => (
-          <Link
-            key={key}
-            to={context?.companyPath(to) ?? to}
-            onClick={onNavigate}
-            aria-current={selected === key ? 'page' : undefined}
-            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
+        {!single && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            aria-label={`${expanded ? 'Collapse' : 'Expand'} Settings navigation`}
+            aria-expanded={expanded}
+            aria-controls={id}
+            className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
           >
-            {label}
-          </Link>
-        ))}
+            <Caret size={16} />
+          </button>
+        )}
       </div>
+      {!single && (
+        <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
+          {items.map(({ key, label, to }) => (
+            <Link
+              key={key}
+              to={context?.companyPath(to) ?? to}
+              onClick={onNavigate}
+              aria-current={selected === key ? 'page' : undefined}
+              className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

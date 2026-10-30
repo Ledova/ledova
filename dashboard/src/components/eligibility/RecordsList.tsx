@@ -1,6 +1,16 @@
 import { ELIGIBILITY_OUTCOME_LABELS, INVESTOR_CATEGORY_LABELS, formatDateTime, shortReference } from '@ledova/shared';
 import type { CompanyEligibilityRequest } from '@ledova/shared';
+import { Status, type Tone } from '@components/Ledger';
 import { PageAction } from '@components/Page';
+
+const OUTCOME_TONES: Record<CompanyEligibilityRequest['outcome'], Tone> = {
+  pending: 'waiting',
+  accepted: 'done',
+  refused: 'closed',
+  withdrawn: 'closed',
+  revoked: 'closed',
+  expired: 'closed',
+};
 
 export function RecordsList({
   records,
@@ -33,8 +43,9 @@ export function RecordsList({
         <li key={record.uuid} className="flex flex-wrap items-center justify-between gap-3 py-3">
           <div className="min-w-0 text-sm">
             {investorName(record) && <p className="font-medium text-text-primary">{investorName(record)}</p>}
+            <p>{INVESTOR_CATEGORY_LABELS[record.category]}</p>
             <p>
-              {INVESTOR_CATEGORY_LABELS[record.category]} · {ELIGIBILITY_OUTCOME_LABELS[record.outcome]}
+              <Status tone={OUTCOME_TONES[record.outcome]}>{ELIGIBILITY_OUTCOME_LABELS[record.outcome]}</Status>
             </p>
             <p className="text-text-muted">Submitted {submitted(record)}</p>
             {companyName && <p>{companyName(record.company) ?? `Company ${shortReference(record.company)}`}</p>}

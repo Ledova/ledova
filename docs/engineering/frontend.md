@@ -343,7 +343,8 @@ Company eligibility (`/company/eligibility`) follows Documents for an administra
 approve appointee (`canReviewEligibility`). Its sidebar label is Eligibility. A company administrator (`canManage`) also
 gets its caret, with Supporting (Company documents, `/documents/company`) beneath it. Activity (`/transactions`), the person's own wallet
 transfers, sits above Settings in every company context.
-Settings uses the same one-level pattern: Profile, Team and Activation where permitted. Its default
+Settings uses the same one-level pattern: Profile, Team and Activation where permitted; a group with
+one permitted page, such as a member's Documents or Settings, is a plain link to it. Its default
 is Profile (`/settings#profile`), combining personal details, permitted company information, a
 linked member's Company-recorded details and one compact Account card for identity status,
 password, appearance and notifications. These sections keep their separate records, editors and authority checks. Existing
