@@ -1,11 +1,12 @@
 import { PageHeader } from '../components/PageHeader';
+import { PAGE_SECTION } from '../styles';
 
 export function PrivacyPolicy() {
   return (
     <>
       <PageHeader title="Developer preview privacy notice" lead="For the public repository, not a hosted service" />
       <section className="border-t border-border-subtle">
-        <div className="mx-auto max-w-3xl space-y-8 px-5 py-16 text-base leading-relaxed text-text-muted md:px-8 lg:py-20">
+        <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
           <p>
             Ledova is experimental software. The project does not provide a hosted production service and does not
             collect personal information merely because you download or run the source code.

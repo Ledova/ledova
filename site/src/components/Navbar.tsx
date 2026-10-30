@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { List as ListIcon, X as XIcon } from '@phosphor-icons/react';
 import { Logo } from './Logo';
@@ -13,6 +13,7 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const nav = useRef<HTMLElement>(null);
   const { pathname, hash } = useLocation();
   const currentPath = pathname + hash;
   const closeMenu = () => setMobileOpen(false);
@@ -22,12 +23,22 @@ export function Navbar() {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMobileOpen(false);
     };
+    const closeOnFocusOutside = (event: FocusEvent) => {
+      if (!nav.current?.contains(event.target as Node)) setMobileOpen(false);
+    };
     document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
+    document.addEventListener('focusin', closeOnFocusOutside);
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      document.removeEventListener('focusin', closeOnFocusOutside);
+    };
   }, [mobileOpen]);
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-border-subtle bg-surface-base/90 backdrop-blur-md">
+    <nav
+      ref={nav}
+      className="fixed inset-x-0 top-0 z-50 border-b border-border-subtle bg-surface-base/90 backdrop-blur-md"
+    >
       <div className="mx-auto grid h-16 max-w-6xl grid-cols-[auto_1fr_auto] items-center px-5 md:h-20 md:px-8 lg:grid-cols-[1fr_auto_1fr]">
         <Link to="/" onClick={closeMenu} className="col-start-1 justify-self-start">
           <Logo />
@@ -74,7 +85,10 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div id="site-menu" className="border-t border-border-subtle bg-surface-base px-5 pb-6 md:px-8 lg:hidden">
+        <div
+          id="site-menu"
+          className="h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border-subtle bg-surface-base px-5 pb-6 md:h-[calc(100dvh-5rem)] md:px-8 lg:hidden"
+        >
           <div className="mx-auto flex max-w-6xl flex-col">
             {NAV_LINKS.map((link) => (
               <Link

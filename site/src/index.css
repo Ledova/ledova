@@ -11,6 +11,12 @@ html {
   color-scheme: light;
 }
 
+@media (width < 64rem) {
+  body:has(#site-menu) {
+    overflow: hidden;
+  }
+}
+
 body {
   background-color: var(--color-surface-base);
   color: var(--color-text-primary);

@@ -1,12 +1,12 @@
 import { PageHeader } from '../components/PageHeader';
-import { INLINE_LINK } from '../styles';
+import { INLINE_LINK, PAGE_SECTION } from '../styles';
 
 export function TermsOfService() {
   return (
     <>
       <PageHeader title="Terms of Service" lead="Experimental-use terms · Version 2026-10-14" />
       <section className="border-t border-border-subtle">
-        <div className="mx-auto max-w-3xl space-y-8 px-5 py-16 text-base leading-relaxed text-text-muted md:px-8 lg:py-20">
+        <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
           <p>
             These terms apply to the experimental Ledova workspace. By completing registration, you accept this version.
             Ledova provides software and tools; companies manage their own share information and decisions.

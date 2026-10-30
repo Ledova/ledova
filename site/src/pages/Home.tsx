@@ -6,7 +6,7 @@ const PRODUCT_VIEWS = [
   {
     label: 'Ownership',
     image: 'ownership',
-    alt: 'Ledova company dashboard with 19,000 issued shares across six share classes, an ownership ring and class list.',
+    alt: 'Ledova company dashboard with 19,000 issued shares across six share classes and each class’s share of ownership.',
     caption: 'See ownership by share class, then explore the detail.',
   },
   {
@@ -88,7 +88,7 @@ function ProductPreview() {
 
   return (
     <figure id="product" className="mt-10 scroll-mt-24 text-left md:scroll-mt-28">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-3 sm:justify-between">
         <div ref={tabs} role="tablist" aria-label="Explore the product" onKeyDown={navigate} className="flex gap-1">
           {PRODUCT_VIEWS.map((view, index) => (
             <button
@@ -115,18 +115,28 @@ function ProductPreview() {
           role="tabpanel"
           aria-labelledby={`product-tab-${view.image}`}
           hidden={selected !== index}
-          className="aspect-[1468/875] overflow-hidden rounded-xl border border-border-subtle bg-surface-raised shadow-[0_20px_50px_-18px_rgba(23,25,30,0.12)]"
+          className="mx-auto aspect-[3/4] max-w-[390px] overflow-hidden rounded-xl border border-border-subtle bg-surface-raised shadow-[0_20px_50px_-18px_rgba(23,25,30,0.12)] sm:aspect-[1468/875] sm:max-w-none"
         >
-          {['paper', 'dark'].map((theme) => (
-            <img
-              key={theme}
-              src={`/screenshots/${view.image}${theme === 'dark' ? '-dark' : ''}.jpg`}
-              alt={view.alt}
-              width={1969}
-              height={1251}
-              loading={index === 0 ? 'eager' : 'lazy'}
-              className={`h-auto w-[134.1281%] max-w-none ${theme === 'dark' ? 'hidden [[data-theme=dark]_&]:block' : 'block [[data-theme=dark]_&]:hidden'}`}
-            />
+          {['', '-dark'].map((suffix) => (
+            <picture
+              key={suffix}
+              className={suffix ? 'hidden [[data-theme=dark]_&]:block' : 'block [[data-theme=dark]_&]:hidden'}
+            >
+              <source
+                media="(width < 40rem)"
+                srcSet={`/screenshots/${view.image}-phone${suffix}.jpg`}
+                width={780}
+                height={1040}
+              />
+              <img
+                src={`/screenshots/${view.image}${suffix}.jpg`}
+                alt={view.alt}
+                width={1969}
+                height={1251}
+                loading={index === 0 ? 'eager' : 'lazy'}
+                className="h-auto w-full max-w-none sm:w-[134.1281%]"
+              />
+            </picture>
           ))}
         </div>
       ))}
@@ -211,8 +221,8 @@ export function Home() {
           </div>
           <div>
             {QUESTIONS.map(({ question, answer }) => (
-              <details key={question} className="group border-b border-border-subtle py-4 first:pt-0">
-                <summary className="flex min-h-6 cursor-pointer list-none items-start justify-between gap-4 text-sm font-medium text-text-primary [&::-webkit-details-marker]:hidden">
+              <details key={question} className="group border-b border-border-subtle">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 pb-5 pt-4 text-sm font-medium text-text-primary group-first:pt-0 [&::-webkit-details-marker]:hidden">
                   {question}
                   <span aria-hidden="true" className="text-lg leading-none text-text-muted group-open:hidden">
                     +
@@ -221,7 +231,7 @@ export function Home() {
                     −
                   </span>
                 </summary>
-                <p className="pr-6 pt-3 text-sm leading-relaxed text-text-muted">{answer}</p>
+                <p className="-mt-1 pb-4 pr-6 text-sm leading-relaxed text-text-muted">{answer}</p>
               </details>
             ))}
           </div>

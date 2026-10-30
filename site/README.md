@@ -9,8 +9,9 @@ list as delivered; planned workflows are described as planned.
 
 The navbar owns the Register action at every screen width.
 
-Secondary pages use `PageHeader`, the `max-w-3xl` reading width and the same outer spacing as
-About. Links within content use `INLINE_LINK`; legal sections keep their smaller reading headings.
+Secondary pages use `PageHeader` and `PAGE_SECTION`: one `max-w-2xl` reading column, with the
+homepage's section spacing on both sides of each divider. Links within content use `INLINE_LINK`;
+legal sections keep their smaller reading headings.
 Page titles follow each heading and restore the homepage title on return.
 Review navigation, page width and readability in Paper and Dark on desktop and narrow screens.
 Visual cleanup preserves the Terms and Privacy wording and consent version.
@@ -38,10 +39,13 @@ the repository root and never edited
 `public/screenshots/ownership.jpg`, `ledger.jpg` and `certificates.jpg`, with their `-dark.jpg`
 counterparts, are genuine localhost captures of fictional Purpose Demo on 30 October 2026.
 The homepage shows the capture matching the website theme, including a saved preference.
+Screens narrower than 640 px show the `-phone.jpg` and `-phone-dark.jpg` versions instead: the same
+pages captured 390 px wide, so their text stays readable.
 These are static previews; they do not call the API or operate the depicted application.
 
 When updating them, capture the current local demo with fictional data, check every visible field
-before publication and crop only irrelevant margins. Never publish production records, credentials
+before publication and crop only irrelevant margins; a phone capture keeps the top 520 px of its
+page. Never publish production records, credentials
 or private evidence. Keep original captures outside Git under `~/Developer/ledova-artifacts/`.
 
 ## Commands
