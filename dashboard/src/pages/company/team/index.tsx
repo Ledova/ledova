@@ -15,7 +15,7 @@ import {
   formatDateTime,
   DESTINATIONS,
 } from '@ledova/shared';
-import { scopeLabels, invitationOpen } from '@pages/company/shared/appointments';
+import { delegationLabel, scopeLabels, invitationOpen } from '@pages/company/shared/appointments';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
 import { AppointmentRecord } from './AppointmentRecord';
 import { TeamInvitationForm } from './TeamInvitationForm';
@@ -80,6 +80,11 @@ function OwnTeam({
     issueGuard,
     companyName,
   } = useCompanyTeam({ owner, currentOwner, editing: task !== null });
+  const [started, setStarted] = useState(false);
+  if (!started && own.isSuccess && !own.isFetching) {
+    setStarted(true);
+    if (appointments.length === 0) setTask('accept');
+  }
   useEffect(() => {
     if (task) heading.current?.focus();
   }, [task]);
@@ -99,6 +104,15 @@ function OwnTeam({
   };
   const invitationSource = source ?? (draftSource?.uuid === sourceId ? draftSource : null);
   const sourceReady = own.isSuccess && !own.isFetching && !!source;
+  const taskHeading = (name: 'accept' | 'invite', title: string) => (
+    <h2
+      ref={task === name ? heading : undefined}
+      tabIndex={-1}
+      className="break-words font-display text-xl tracking-[-0.01em] text-text-primary focus:outline-none"
+    >
+      {title}
+    </h2>
+  );
   const accountStatus = own.isError ? (
     <LoadError retry={() => own.refetch()} busy={own.isFetching}>
       Your appointments could not be loaded.
@@ -212,7 +226,9 @@ function OwnTeam({
                     <p className="font-medium text-text-primary">{item.companyName}</p>
                     <p className="text-text-muted">{scopeLabels(item.capabilities)}</p>
                     {item.delegatableCapabilities.length > 0 && (
-                      <p className="text-text-muted">May delegate: {scopeLabels(item.delegatableCapabilities)}</p>
+                      <p className="text-text-muted">
+                        {delegationLabel(item.capabilities, item.delegatableCapabilities)}
+                      </p>
                     )}
                   </div>
                   <div className="min-w-0 space-y-1 break-words text-text-muted">
@@ -249,12 +265,9 @@ function OwnTeam({
         </Section>
       </div>
       <div hidden={!task} className="space-y-5">
-        <h2 ref={heading} tabIndex={-1} className="font-display text-xl text-text-primary focus:outline-none">
-          {task === 'accept' ? 'Accept a company invitation' : 'Invite a company user'}
-        </h2>
         {accountStatus}
         <div hidden={task !== 'accept'}>
-          <Section title="Authorisation">
+          <Section title="Accept a company invitation" header={taskHeading('accept', 'Accept a company invitation')}>
             <AcceptInvitationForm
               disabled={disabled || task !== 'accept'}
               guard={guard}
@@ -268,14 +281,14 @@ function OwnTeam({
           </Section>
         </div>
         <div hidden={task !== 'invite'}>
-          <Section title="Company invitation">
+          <Section title="Invite a company user" header={taskHeading('invite', 'Invite a company user')}>
             <SelectField
               label="Delegating appointment"
               options={[
                 { value: '', label: 'Select a current appointment' },
                 ...sources.map((item) => ({
                   value: item.uuid,
-                  label: `${scopeLabels(item.delegatableCapabilities)} · appointed ${formatDate(item.createdAt)}`,
+                  label: `Appointed ${formatDate(item.createdAt)} · ${scopeLabels(item.delegatableCapabilities)}`,
                   reference: formatDateTime(item.createdAt),
                 })),
               ]}

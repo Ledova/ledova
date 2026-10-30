@@ -13,7 +13,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Section, LoadError, Loading } from '@components/Ledger';
+import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -79,6 +79,7 @@ function OwnParticulars({
     name: string | null;
     label: string;
     read: { isError: boolean; refetch: () => unknown };
+    particulars: (typeof people)[number];
   }>((company, index) => {
     const holder = registers[index].data?.flatMap((register) => register.holders).find((row) => row.member === member);
     if (holder)
@@ -88,11 +89,20 @@ function OwnParticulars({
           name: holder.name,
           label: holder.name || HOLDER_TYPE_LABELS[holder.holderType],
           read: registers[index],
+          particulars: people[index],
         },
       ];
     const recipient = people[index].data?.members.find((row) => row.member === member && row.onRegister === false);
     return recipient
-      ? [{ company, name: recipient.name, label: recipient.name || COPY.UNNAMED_MEMBER, read: people[index] }]
+      ? [
+          {
+            company,
+            name: recipient.name,
+            label: recipient.name || COPY.UNNAMED_MEMBER,
+            read: people[index],
+            particulars: people[index],
+          },
+        ]
       : [];
   })[0];
   const companyMatches = useRecordCompany(found?.company.uuid, guard);
@@ -128,10 +138,22 @@ function OwnParticulars({
     ) : (
       <p className="py-3 text-sm text-text-muted">This member is not a current member of a register you can change.</p>
     );
-  else
+  else if (found.particulars.isPending) content = <Loading>Loading the register…</Loading>;
+  else {
+    const recorded = found.particulars.data?.members.find((row) => row.member === member);
     content = (
       <>
-        <Section title={found.name || COPY.UNNAMED_MEMBER}>
+        <Section title="Current particulars">
+          {found.particulars.isError ? (
+            <LoadError retry={() => found.particulars.refetch()} busy={found.particulars.isFetching}>
+              Their recorded particulars could not be loaded.
+            </LoadError>
+          ) : (
+            <Rows>
+              <Row label="Name">{recorded?.name || found.label}</Row>
+              <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
+            </Rows>
+          )}
           <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>
         </Section>
         <Section title={COPY.PREPARE}>
@@ -146,6 +168,7 @@ function OwnParticulars({
             company={found.company.uuid}
             member={member}
             appointment={found.company.appointment}
+            current={{ name: recorded?.name || found.name || '', address: recorded?.residentialAddress ?? '' }}
             blocked={stale}
             onConflict={() => {
               void found.read.refetch();
@@ -156,6 +179,7 @@ function OwnParticulars({
         </Section>
       </>
     );
+  }
   return (
     <Page
       narrow
