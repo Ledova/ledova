@@ -54,8 +54,8 @@ frame share, and `packages/shared` holds what both clients share.
 
 | `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                               |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                                                                    |
-| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                                     |
+| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`, whose `LoadFailure` error page offers Try again), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                   |
+| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes, each page loaded on demand from `lazyPages.ts` under one `Suspense` with `RouteLoading`) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                            |
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                  |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `auth/`, and single components several areas show (`AwardStatus.tsx`) |
 | `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                               |
@@ -239,8 +239,9 @@ test placement remain review checks. Moves remove the corresponding debt in the 
    address, title and audience.
 2. Create its folder by the [naming rule](#frontend-rules) with an `index.tsx` that default-exports
    the page rendered in `Page`.
-3. Add it to `PAGES` (`dashboard/src/routes/pages.tsx`); TypeScript refuses the table until both
-   exist, and `signedInRoutes` adds the title and `ProtectedRoute`.
+3. Declare it in `dashboard/src/routes/lazyPages.ts`, so it loads on demand, and add it to `PAGES`
+   (`dashboard/src/routes/pages.tsx`); TypeScript refuses the table until both exist, and
+   `signedInRoutes` adds the title and `ProtectedRoute`.
 4. Read and write through a `use<Thing>.ts` beside the entry over shared services. A new endpoint
    gets its service and contract types in `packages/shared` first; add a shared hook when mobile
    needs the same logic.
@@ -262,8 +263,14 @@ folder under `pages/signup/`, added to `SIGNUP_STEPS` and to the step map in `ro
 their address, title and audience. The whole dashboard route table is in
 `dashboard/src/routes/AppRoutes.tsx`, using `signedInRoutes` from `PAGES`
 (`dashboard/src/routes/pages.tsx`), a map keyed by that table, so
-TypeScript refuses an entry without a page or a page without an entry. Each route, detail pages
-included, gets the entry's title through `PageTitle`. The web-only `pageTitle` mapping
+TypeScript refuses an entry without a page or a page without an entry. Every page is a
+`React.lazy` import in `dashboard/src/routes/lazyPages.ts`, so the browser downloads only the
+pages it opens. The routes share one `Suspense` whose fallback, `RouteLoading`, shows a spinner
+without a heading on a first load; later navigations keep the current page until the next one is
+ready. A page that fails to load, such as an old file after a release, shows `LoadFailure` with
+Try again, which reloads. `packages/shared` declares `"sideEffects": false`, so the bundler drops
+shared code no page imports. Each route, detail pages included, gets the entry's title through
+`PageTitle`. The web-only `pageTitle` mapping
 (`dashboard/src/utils/destinations.ts`) titles `home` Dashboard; the other titles, Ledger and its
 tasks included, are the shared ones. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
 `companyRegisterImport` render the same page. Outside the table sit the
