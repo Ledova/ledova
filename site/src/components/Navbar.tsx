@@ -74,7 +74,10 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div id="site-menu" className="border-t border-border-subtle bg-surface-base px-5 pb-6 md:px-8 lg:hidden">
+        <div
+          id="site-menu"
+          className="h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border-subtle bg-surface-base px-5 pb-6 md:h-[calc(100dvh-5rem)] md:px-8 lg:hidden"
+        >
           <div className="mx-auto flex max-w-6xl flex-col">
             {NAV_LINKS.map((link) => (
               <Link

@@ -15,19 +15,27 @@ export function Footer() {
   return (
     <footer className="border-t border-border-subtle">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 text-sm text-text-muted md:px-8 lg:flex-row lg:items-center lg:justify-between">
-        <p>&copy; {currentYear} Ledova contributors · Ledova Noncommercial License 1.0</p>
+        <p>
+          <span className="whitespace-nowrap">&copy; {currentYear} Ledova contributors</span> ·{' '}
+          <span className="whitespace-nowrap">Ledova Noncommercial License 1.0</span>
+        </p>
         <div className="flex flex-wrap gap-x-6 gap-y-3 md:gap-x-8">
           {FOOTER_LINKS.map((link) => (
             <Link
               key={link.to}
               to={link.to}
               aria-current={link.to === pathname ? 'page' : undefined}
-              className="transition-colors hover:text-text-primary"
+              className="-my-3 py-3 transition-colors hover:text-text-primary"
             >
               {link.label}
             </Link>
           ))}
-          <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="transition-colors hover:text-text-primary">
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="-my-3 py-3 transition-colors hover:text-text-primary"
+          >
             GitHub
           </a>
         </div>

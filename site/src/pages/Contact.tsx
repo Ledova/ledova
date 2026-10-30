@@ -1,6 +1,6 @@
 import { PageHeader } from '../components/PageHeader';
 import { GITHUB_URL } from '../appLinks';
-import { INLINE_LINK } from '../styles';
+import { INLINE_LINK, PAGE_SECTION } from '../styles';
 
 const CHANNELS = [
   { title: 'Questions about Ledova', label: 'hello@ledova.io', href: 'mailto:hello@ledova.io' },
@@ -14,7 +14,7 @@ export function Contact() {
       <PageHeader title="Contact" lead="Tell us about your company's register, or ask us anything about Ledova." />
 
       <section className="border-t border-border-subtle">
-        <ul className="mx-auto max-w-3xl px-5 py-16 md:px-8 lg:py-20">
+        <ul className={PAGE_SECTION}>
           {CHANNELS.map((channel) => (
             <li
               key={channel.title}
