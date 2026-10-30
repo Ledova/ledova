@@ -179,10 +179,10 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
     Inspection copies and Company pack list what the company's own people prepared (#1429).
   - Eligibility request details no longer show internal IDs. They show the investor's name when the
     request shared one, and the investor sees the company's name when it is one of theirs.
-- [#1445](https://github.com/Ledova/ledova/issues/1445) applied the owner's second review of the
-  signed-in pages: the phone layout (#1446), a failed session check that no longer signs people out
-  (#1447), clearer members' pages (#1448), particulars changes that start from the member's current
-  details and a shorter Team (#1449), and seven small fixes (#1450).
+- [#1445](https://github.com/Ledova/ledova/issues/1445) applied the owner-approved 30 October review
+  of the signed-in pages: the phone layout (#1446), a failed session check that no longer signs
+  people out (#1447), clearer members' pages (#1448), particulars changes that start from the
+  member's current details and a tidier Team (#1449), and seven small fixes (#1450).
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
@@ -207,7 +207,7 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   The backend must run the branch's own code. Stop both when they are no longer needed.
 - **Still open:**
   - Mobile work stays for later.
-  - From #1445: on a tab focus after the five-minute stale time the signed-in frame briefly
+  - From #1445: on a tab focus after the five-minute stale time, the signed-in frame briefly
     disappears, and sign-up and the member invitation page still read a failed session check as
     signed out.
   - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
