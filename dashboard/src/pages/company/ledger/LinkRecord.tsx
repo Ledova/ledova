@@ -79,11 +79,9 @@ export function LinkRecord({
             {link.approvingDirector && <Row label={COPY.APPROVING_DIRECTOR}>{link.approvingDirector}</Row>}
             <Row label={COPY.AUTHORITY_REFERENCE}>{link.authorityReference}</Row>
             <Row label={COPY.REASON}>{link.reason}</Row>
+            <Row label="Evidence">{link.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}</Row>
             <DecisionTrail proposal={link} labels={COPY.DECISIONS} />
           </Rows>
-          <p className="text-sm text-text-muted">
-            {link.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
-          </p>
         </>
       )}
       <FormActions>

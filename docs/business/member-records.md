@@ -241,7 +241,8 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
 2. On web, open **Documents** → **Inspection copies** for the selected company, choose the share class,
-   then **Prepare inspection copy**. Enter the reference, recipient and request date.
+   then **Prepare inspection copy** after the copies already made. Enter the reference, recipient
+   and request date.
 3. Choose **Preview inspection copy**, check the request, then **Confirm and
    download inspection copy**.
 
@@ -459,7 +460,7 @@ without which it cannot be checked.
 ### Producing a core pack
 
 A company administrator produces the pack in **Documents** → **Company pack**, at company scope.
-On web, choose **Prepare company pack** to open the form; enter the company's written instruction and the
+On web, choose **Prepare company pack**, after the packs already prepared, to open the form; enter the company's written instruction and the
 recipient, then choose **Prepare and download company pack**. The appointment is checked again
 before the pack is recorded.
 

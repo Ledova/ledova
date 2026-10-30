@@ -33,6 +33,7 @@ export function CompanyPack({
         </LoadError>
       ) : appointment ? (
         <>
+          <CompanyPackHistory owner={owner} company={company} guard={check} enabled={sourceReady} />
           <PackForm
             key={JSON.stringify([company, appointment.uuid, sourceReady])}
             company={company}
@@ -42,7 +43,6 @@ export function CompanyPack({
             onEditingChange={onEditingChange}
             onPrepared={() => void client.invalidateQueries({ queryKey: companyPacksKey(owner, company) })}
           />
-          <CompanyPackHistory owner={owner} company={company} guard={check} enabled={sourceReady} />
         </>
       ) : appointments.isSuccess && !appointments.isFetching ? (
         <p className="text-sm text-text-muted">A current administrator appointment for this company is required.</p>

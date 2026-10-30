@@ -139,7 +139,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
   muted sentence ("No activity yet.") and at most one action; a state is never a
-  title. A card's title is a heading, such as each class's summary on Ledger.
+  title. A card's title is a heading, such as each class's summary on Ledger. The card's own
+  paragraphs, like a page's lede, keep a readable width (`max-w-prose`).
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
   mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals on the web,
@@ -218,7 +219,8 @@ agreement date, then Promised, Vested and Issued quantities and the trailing arr
 three quantities sit beneath the recipient as one line. Each row opens the award's own page, built like a
 shareholder's page: the recipient as its title, the class and agreement date as its lede, **Back to
 Employee share scheme** and **Recipient details** in the heading, then headed cards without chevrons:
-**Entitlement** (the chart and the award's actions), **Agreement and vesting schedule**, **Vesting
+**Entitlement** (the chart, whose legend keys each colour and lists only non-zero parts, and the
+award's actions), **Agreement and vesting schedule**, **Vesting
 history** (the latest three events, with **Show all**), **Entitlement changes** and **Non-paid issues
 from this award**, each shown only when it has records, and one muted recorded line. Record vesting, End
 unissued rights and Correct a vesting event open their form inside the Entitlement card, keeping the
@@ -273,7 +275,7 @@ right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when 
 Inspection copy and Company pack open from their preparation actions; privacy and source guidance stays with the opened form
 or download. Inspection copy shows editable request fields before preview and captured summary rows afterwards.
 Correction, particulars, wallet-link and opening forms use the same
-responsive field grid; their records group document and decision actions in one wrapping footer. Keep current source and appointment validation and error retries, without routine
+responsive field grid; their records group document and decision actions in one wrapping footer, left out when no action applies. Keep current source and appointment validation and error retries, without routine
 refresh controls.
 
 Certificates uses one list for the selected company and class. Company readers see permitted
@@ -759,7 +761,7 @@ wallets, a company's share classes or document types, or someone's appointments,
 native select in `SelectField` (`dashboard/src/components/SelectField.tsx`): the label above the
 field and options named in words:
 
-- an appointment reads as its actions and the date it was made;
+- an appointment reads as the date it was made, then its actions, so a phone keeps the date in view;
 - an evidence source reads as its kind, status and date, and a classification claim as its kind and
   date;
 - a company wallet approval for a nominated wallet reads as when it was admitted and until when.

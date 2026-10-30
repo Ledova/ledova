@@ -292,7 +292,8 @@ refreshes. Failed reads retain Try again, and an interrupted submission keeps it
 5. To correct an erroneous vesting, choose Correct a vesting event beside the original event. Record a
    positive reversal quantity, company date, reason and evidence. Cumulative reversals cannot exceed
    that event or remove rights already issued or ended as vested. Additional vesting uses Record
-   vesting. Original entries remain visible.
+   vesting. Original entries remain visible. When an event can't be corrected, because no vested
+   shares await issue or it is already fully reversed, the page says why beside the action.
 
 The linked issue reuses the exact fingerprinted agreement already retained for the award; no
 agreement upload is needed. Current company authority and the private file are checked again, and

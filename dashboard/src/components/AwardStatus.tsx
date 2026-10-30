@@ -42,6 +42,7 @@ export function AwardStatus({
     { label: COPY.ENDED_UNVESTED, quantity: BigInt(endedUnvestedShares), look: 'bg-text-muted/70' },
     { label: COPY.ENDED_VESTED, quantity: BigInt(endedVestedShares), look: 'bg-text-muted/70' },
   ];
+  const shown = parts.filter((part) => part.quantity > 0n);
   return (
     <div className="space-y-3">
       <p className="text-sm text-text-muted">
@@ -63,14 +64,15 @@ export function AwardStatus({
         ))}
       </div>
       <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-        {parts
-          .filter((part) => !compact || part.quantity > 0n)
-          .map((part) => (
-            <div key={part.label} className="min-w-0">
-              <dt className="text-text-muted">{part.label}</dt>
-              <dd className="break-words font-medium tabular-nums">{shareCount(String(part.quantity))}</dd>
-            </div>
-          ))}
+        {shown.map((part) => (
+          <div key={part.label} className="min-w-0">
+            <dt className="flex items-center gap-2 text-text-muted">
+              <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-sm ${part.look}`} />
+              {part.label}
+            </dt>
+            <dd className="break-words font-medium tabular-nums">{shareCount(String(part.quantity))}</dd>
+          </div>
+        ))}
       </dl>
       <p className="text-xs text-text-muted">
         {!compact &&

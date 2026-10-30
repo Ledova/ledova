@@ -125,13 +125,13 @@ export function ImportRecord({
             <Row label="Record date">{formatDate(proposal.asAt)}</Row>
             {proposal.sourceReference && <Row label="Source record">{proposal.sourceReference}</Row>}
             <Row label="Reason">{proposal.reason}</Row>
+            <Row label="Evidence">
+              {proposal.providedBy === 'company'
+                ? REGISTER_IMPORT_COPY.PROVIDED_BY_COMPANY
+                : REGISTER_IMPORT_COPY.STAFF_VERIFIED}
+            </Row>
             <DecisionTrail proposal={proposal} labels={REGISTER_IMPORT_COPY.TRAIL} />
           </Rows>
-          <p className="text-sm text-text-muted">
-            {proposal.providedBy === 'company'
-              ? REGISTER_IMPORT_COPY.PROVIDED_BY_COMPANY
-              : REGISTER_IMPORT_COPY.STAFF_VERIFIED}
-          </p>
           {(proposal.asicIssuedTotal !== null || proposal.asicMemberCount !== null) && (
             <p className="text-sm text-text-primary">
               {proposal.asicIssuedTotal === null

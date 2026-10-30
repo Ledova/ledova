@@ -3,6 +3,7 @@ import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  DESTINATIONS,
   REGISTER_COPY,
   TECHNICAL_SHARE_LIMIT,
   USER_PREFERENCES_QUERY_KEY,
@@ -11,6 +12,7 @@ import {
   wholeShares,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
+import { PageTitle } from '@components/PageTitle';
 import { LinkRow, LoadError, Loading, Section, Status } from '@components/Ledger';
 import { classPath, registerPlace } from '@pages/company/ledger/shared/registerPlace';
 import { useShareClass } from '@pages/company/ledger/shared/useShareClass';
@@ -29,9 +31,11 @@ export function ShareClass({ uuid }: { uuid: string }) {
       </Page>
     );
   return (
-    <Page back={{ ...registerPlace({ company: data.token.data?.companyUuid }), label: 'Back to Ledger' }}>
-      <ShareClassRecord data={data} uuid={uuid} />
-    </Page>
+    <PageTitle.Provider value={data.token.data?.name ?? DESTINATIONS.companyClass.title}>
+      <Page back={{ ...registerPlace({ company: data.token.data?.companyUuid }), label: 'Back to Ledger' }}>
+        <ShareClassRecord data={data} uuid={uuid} />
+      </Page>
+    </PageTitle.Provider>
   );
 }
 
@@ -95,7 +99,7 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
   const register = registerReady ? data.register.data : undefined;
   return (
     <>
-      <Section title={token.name}>
+      <Section title="Summary">
         <p className="text-sm text-text-muted">
           {token.symbol} · {token.tokenTypeDisplay}
         </p>
