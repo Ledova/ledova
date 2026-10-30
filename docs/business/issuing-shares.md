@@ -293,7 +293,7 @@ refreshes. Failed reads retain Try again, and an interrupted submission keeps it
    positive reversal quantity, company date, reason and evidence. Cumulative reversals cannot exceed
    that event or remove rights already issued or ended as vested. Additional vesting uses Record
    vesting. Original entries remain visible. When an event can't be corrected, because no vested
-   shares await issue or it is already fully reversed, the page says why beside the action.
+   shares await issue or it is already fully reversed, the page says why under the event's actions.
 
 The linked issue reuses the exact fingerprinted agreement already retained for the award; no
 agreement upload is needed. Current company authority and the private file are checked again, and

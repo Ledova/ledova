@@ -75,17 +75,17 @@ function InspectionForm({
     );
   return (
     <form
-      aria-label="Inspection copy"
-      className="flex flex-col gap-4"
+      aria-label="New inspection copy"
+      className="flex flex-col gap-4 border-t border-border-subtle pt-4"
       onSubmit={(event) => {
         event.preventDefault();
         if (!target && checks.check()) void preview();
       }}
     >
-      <h3 ref={heading} tabIndex={-1} className="sr-only focus:outline-none">
-        Inspection copy
+      <h3 ref={heading} tabIndex={-1} className="text-sm font-medium text-text-primary focus:outline-none">
+        New inspection copy
       </h3>
-      <p className="text-sm text-text-muted">
+      <p className="max-w-prose text-sm text-text-muted">
         Prepare an inspection CSV under your current company appointment. It includes residential addresses. The
         company&apos;s request and output provenance are retained.
       </p>

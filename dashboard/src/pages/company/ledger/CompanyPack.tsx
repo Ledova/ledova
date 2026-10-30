@@ -92,8 +92,9 @@ function PackForm({
       </FormActions>
     );
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-text-muted">
+    <div className="flex flex-col gap-4 border-t border-border-subtle pt-4">
+      <h3 className="text-sm font-medium text-text-primary">New company pack</h3>
+      <p className="max-w-prose text-sm text-text-muted">
         This company ZIP includes residential addresses and private records. Current company administration, a written
         instruction and a named recipient are required; the captured records and generation time are retained.
       </p>

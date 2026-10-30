@@ -139,8 +139,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
   muted sentence ("No activity yet.") and at most one action; a state is never a
-  title. A card's title is a heading, such as each class's summary on Ledger. The card's own
-  paragraphs, like a page's lede, keep a readable width (`max-w-prose`).
+  title. A card's title is a heading, such as each class's summary on Ledger. On the web, the
+  card's own paragraphs, a page's lede and a form's longer note keep a readable width
+  (`max-w-prose`).
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
   mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals on the web,
@@ -436,7 +437,9 @@ opening the people list. Documents uses the same pattern for **Certificates** (t
 **Published**, **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Team** and **Activation**, without an extra overview
-page. Profile always holds personal information and Account. Company documents, Team, Activation and
+page. A group with only one permitted page, such as a member's Documents (Certificates) or
+Settings (Profile), is a plain link to that page, marked current there. Profile always holds
+personal information and Account. Company documents, Team, Activation and
 Company details follow current company access; Profile's Company-recorded details follows an actual
 member association. Personal edits never change company-recorded particulars.
 Use one compact Account card for relevant identity status, password, appearance and notifications;

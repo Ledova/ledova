@@ -110,7 +110,7 @@ export function TeamInvitationForm({
         }}
       >
         <ErrorSummary {...checks.summary} />
-        <p className="text-sm text-text-muted">
+        <p className="max-w-prose text-sm text-text-muted">
           Personal actions and permission to delegate are separate. Choose only actions your selected appointment may
           delegate.
         </p>

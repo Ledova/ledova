@@ -240,9 +240,9 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
-2. On web, open **Documents** → **Inspection copies** for the selected company, choose the share class,
-   then **Prepare inspection copy** after the copies already made. Enter the reference, recipient
-   and request date.
+2. On web, open **Documents** → **Inspection copies** for the selected company and choose the share
+   class. Its prepared copies come first; choose **Prepare inspection copy** below them and enter the
+   reference, recipient and request date.
 3. Choose **Preview inspection copy**, check the request, then **Confirm and
    download inspection copy**.
 
@@ -460,8 +460,9 @@ without which it cannot be checked.
 ### Producing a core pack
 
 A company administrator produces the pack in **Documents** → **Company pack**, at company scope.
-On web, choose **Prepare company pack**, after the packs already prepared, to open the form; enter the company's written instruction and the
-recipient, then choose **Prepare and download company pack**. The appointment is checked again
+On web, the prepared packs come first; choose **Prepare company pack** below them to open the form,
+enter the company's written instruction and the recipient, then choose **Prepare and download
+company pack**. The appointment is checked again
 before the pack is recorded.
 
 This route produces only a complete core pack: every share class is an opened imported register

@@ -594,8 +594,9 @@ corrections, chain openings, reconciliation acknowledgements, particulars and wa
 titled record showing its snapshot, documents and decision trail; an opening's holdings or
 shareholders sit behind **Show the holdings** or **Show the shareholders**, open while it awaits a
 decision. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
-Confirmed), and each record's Evidence row reads Provided by the company or, before the work
-became company-run, "Verified by Ledova staff". A
+Confirmed), and an import, opening, correction, particulars change or wallet link has an Evidence
+row reading Provided by the company or, before the work became company-run, "Verified by Ledova
+staff". A
 section that read successfully with nothing to show is left out, but a class on chain without a
 reconciliation says so. An unfinished request keeps its class and exact request, and while one is
 held the company, task and class cannot be changed; its sidebar link lets the person return from

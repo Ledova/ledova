@@ -169,7 +169,7 @@ function Preparation({
   return (
     <div ref={container} className="space-y-3">
       <ErrorSummary {...checks.summary} />
-      <p className="text-sm text-text-muted">
+      <p className="max-w-prose text-sm text-text-muted">
         Approving covers a wallet the participant has shared with the company, until the expiry you set. Removing
         withdraws an earlier approval, even after the wallet or the eligibility has been lost.
       </p>
