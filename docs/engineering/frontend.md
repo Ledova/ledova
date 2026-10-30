@@ -35,7 +35,8 @@ v4), `mobile/` the Expo React Native app ([mobile](mobile.md)), and `site/` the 
 root npm workspace link (`node_modules/@ledova/shared` to `packages/shared`), and Vite and `tsc -b`
 follow the symlink, so the sources are transformed and type-checked as application code. Mobile
 resolves it through Metro ([shared package resolution](mobile.md#shared-package-resolution)). The
-site cannot import it, because its Docker context is `site/`.
+site cannot import it, because its Docker context is `site/`. The package declares
+`"sideEffects": false`, so the dashboard's bundler drops shared code no page imports.
 
 Clients import the package as `@ledova/shared`, never by a deep path; inside a workspace package,
 imports are relative and never use the package's own name (`make check-self-imports` refuses that).
@@ -266,10 +267,11 @@ their address, title and audience. The whole dashboard route table is in
 TypeScript refuses an entry without a page or a page without an entry. Every page is a
 `React.lazy` import in `dashboard/src/routes/lazyPages.ts`, so the browser downloads only the
 pages it opens. The routes share one `Suspense` whose fallback, `RouteLoading`, shows a spinner
-without a heading on a first load; later navigations keep the current page until the next one is
-ready. A page that fails to load, such as an old file after a release, shows `LoadFailure` with
-Try again, which reloads. `packages/shared` declares `"sideEffects": false`, so the bundler drops
-shared code no page imports. Each route, detail pages included, gets the entry's title through
+without a heading on a first load. Every signed-in route, the Certificates, Company documents and
+company dashboard routes included, renders through `signedInPage`, so a navigation between them keeps
+the same guard and the current page until the next one is ready, and focus then moves to its heading.
+An error while rendering a page, such as an old file that no longer downloads after a release, shows
+`LoadFailure` with Try again, which reloads. Each route, detail pages included, gets the entry's title through
 `PageTitle`. The web-only `pageTitle` mapping
 (`dashboard/src/utils/destinations.ts`) titles `home` Dashboard; the other titles, Ledger and its
 tasks included, are the shared ones. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and

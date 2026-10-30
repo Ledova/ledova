@@ -2,10 +2,8 @@ import { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { RootRedirect } from './RootRedirect';
 import { PAGES } from './pages';
-import { signedInRoutes } from './signedInRoutes';
+import { signedInPage, signedInRoutes } from './signedInRoutes';
 import { signupRoutes } from './signupRoutes';
-import { PageTitle } from '@components/PageTitle';
-import { ProtectedRoute } from './ProtectedRoute';
 import {
   COMPANY_DASHBOARD_PATH,
   CERTIFICATES_PATH,
@@ -66,36 +64,12 @@ export function AppRoutes() {
         {SIGNUP_ROUTES}
 
         {SIGNED_IN_ROUTES}
-        <Route
-          path={CERTIFICATES_PATH}
-          element={
-            <PageTitle.Provider value="Certificates">
-              <ProtectedRoute audience="everyone">
-                <CertificatesPage />
-              </ProtectedRoute>
-            </PageTitle.Provider>
-          }
-        />
+        <Route path={CERTIFICATES_PATH} element={signedInPage(<CertificatesPage />, 'Certificates', 'everyone')} />
         <Route
           path={COMPANY_DOCUMENTS_PATH}
-          element={
-            <PageTitle.Provider value="Company documents">
-              <ProtectedRoute audience="everyone">
-                <CompanyDocumentsPage />
-              </ProtectedRoute>
-            </PageTitle.Provider>
-          }
+          element={signedInPage(<CompanyDocumentsPage />, 'Company documents', 'everyone')}
         />
-        <Route
-          path={COMPANY_DASHBOARD_PATH}
-          element={
-            <PageTitle.Provider value="Dashboard">
-              <ProtectedRoute audience="everyone">
-                <DashboardPage />
-              </ProtectedRoute>
-            </PageTitle.Provider>
-          }
-        />
+        <Route path={COMPANY_DASHBOARD_PATH} element={signedInPage(<DashboardPage />, 'Dashboard', 'everyone')} />
 
         <Route path={NOT_FOUND_PATH} element={<NotFoundPage />} />
       </Routes>
