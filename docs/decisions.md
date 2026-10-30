@@ -1160,7 +1160,10 @@ published at the owner's choice
 ([#1435](https://github.com/Ledova/ledova/issues/1435)), so anyone can sign in
 to the [demo accounts](demo-accounts.md) there. Email is still saved to files,
 so a new sign-up cannot verify its address or create a company. Signer
-activation and real-funds use remain separate decisions.
+activation and real-funds use remain separate decisions. At the owner's request
+("can you just write it for me"), the website's Privacy page was rewritten the
+same day to describe this public preview
+([#1443](https://github.com/Ledova/ledova/issues/1443)).
 
 ## Backend migration baseline
 
