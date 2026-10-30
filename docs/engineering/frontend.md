@@ -182,7 +182,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `AUTH_QUERY_KEY` is. A key is its resource's root (kebab-case for a new root), then the owner for
   account-bound data (anything read or written for the signed-in account), then parameters. It never
   starts with another resource's root, and an invalidation names the narrowest prefix that covers
-  the change.
+  the change. Every company list starts with `ownCompaniesKey(owner)`, so a company rename or
+  activation refreshes them all.
 - **Paths and titles.** Link and navigate with `DESTINATIONS` paths, filling parameters with React
   Router's `generatePath`, or with the web-only paths in `utils/paths.ts` (the company dashboard,
   sign-in, sign-up and `SIGNUP_STEPS`); source writes no literal path. Titles come from

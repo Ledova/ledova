@@ -22,8 +22,8 @@ export {
   canAdministerCompany,
   canPersonallyAdministerCompany,
   useCompanySelection,
-  COMPANIES_QUERY_KEY,
   COMPANY_QUERY_KEY,
+  ownCompaniesKey,
 } from './useCompanySelection';
 export { useResolutionStatus } from './useResolutionStatus';
 export {
@@ -34,7 +34,7 @@ export {
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { SIGNUP_RESTART_FIELDS, useSignupRestart } from './useSignupRestart';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
-export { useSignupAccountType, USER_ACCOUNT_QUERY_KEY } from './useSignupAccountType';
+export { useSignupAccountType } from './useSignupAccountType';
 export { useSignupPreScreening } from './useSignupPreScreening';
 export { USER_PROFILE_FIELDS, useSignupUserProfile } from './useSignupUserProfile';
 export { FINANCIAL_PROFILE_FIELDS, useSignupFinancialProfile } from './useSignupFinancialProfile';

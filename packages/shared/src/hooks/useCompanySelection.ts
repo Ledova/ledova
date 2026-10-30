@@ -6,13 +6,17 @@ import type { Company, CompanyListItem, UserPreferences } from '../types';
 import { readEveryPage } from '../utils/pagination';
 import { createUserFriendlyError } from '../utils/errors';
 import { AUTH_QUERY_KEY } from './useAuth';
-import type { OrderSubmissionSession } from './useSubmissionOwner';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 import { useApiClient } from './useApiClient';
 
-export const COMPANIES_QUERY_KEY = ['companies'] as const;
+const COMPANIES_QUERY_KEY = ['companies'] as const;
 export const COMPANY_QUERY_KEY = ['company'] as const;
+
+export function ownCompaniesKey(owner: OrderSubmissionOwner | null) {
+  return [...COMPANIES_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid];
+}
 
 export function canAdministerCompany(company: Company | CompanyListItem) {
   const access = company.administrativeAccess;
@@ -83,14 +87,7 @@ export function useCompanySelection({
     )
       throw createUserFriendlyError('Your signed-in account changed. Reopen company information.');
   };
-  const companiesKey = [
-    ...COMPANIES_QUERY_KEY,
-    owner?.userUuid,
-    owner?.ownerAccountUuid,
-    scopeKey,
-    ownedOnly,
-    personalOnly,
-  ];
+  const companiesKey = [...ownCompaniesKey(owner), scopeKey, ownedOnly, personalOnly];
   const companies = useQuery({
     queryKey: companiesKey,
     enabled: enabled && (!coordinatedReads || !readingPaused),
@@ -206,6 +203,7 @@ export function useCompanySelection({
       throw createUserFriendlyError('Your company or authority changed. Reopen this action.');
   };
   return {
+    owner,
     company,
     retainedCompany,
     companyUuid,

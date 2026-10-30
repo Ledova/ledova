@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CACHE_TIMING } from '../constants';
 import { getUserProfiles, updateUserProfile } from '../services/users';
@@ -17,10 +17,7 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
   const client = useQueryClient();
   const { isAuthenticated } = useAuth();
   const { owner, boundary } = useSubmissionOwner(session);
-  const id = useId();
-  const [generation, setGeneration] = useState({ owner, value: 0 });
-  if (generation.owner !== owner) setGeneration({ owner, value: generation.value + 1 });
-  const key = [...USER_PROFILES_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid, id, generation.value];
+  const key = [...USER_PROFILES_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid, session?.getEpoch() ?? 0];
   const mounted = useRef(true);
   const pending = useRef(false);
   const transport = useRef<AbortController | null>(null);
@@ -35,7 +32,6 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
   const guard = () => {
     const auth = client.getQueryState<{ data: { valid: boolean } }>(AUTH_QUERY_KEY);
     if (
-      !mounted.current ||
       !owner ||
       boundary.get() !== owner ||
       auth?.status !== 'success' ||

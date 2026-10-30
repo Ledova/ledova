@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CACHE_TIMING,
-  COMPANIES_QUERY_KEY,
   OWN_APPOINTMENTS_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
   appointmentForRegisterStep,
@@ -9,6 +8,7 @@ import {
   getCompanies,
   getOwnMemberRecords,
   hasCurrentRegisterReadAuthority,
+  ownCompaniesKey,
   ownMemberRecordsKey,
   readEveryPage,
   useSubmissionOwner,
@@ -31,7 +31,7 @@ export interface OwnershipCompany {
 }
 
 export function ownershipCompaniesKey(owner: OrderSubmissionOwner | null) {
-  return [...COMPANIES_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid, 'ownership-browser'];
+  return [...ownCompaniesKey(owner), 'ownership-browser'];
 }
 
 function confirmedMemberRows(rows: OwnMemberRecord[]) {
