@@ -143,7 +143,7 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   same passwords, and every other record was added again through the API, so every record has its
   file. The walkthrough now runs from the main checkout, which holds its uploads.
 
-## Current handover — 30 October 2026
+## Current handover — 31 October 2026
 
 - The signed-in web UX walkthrough under [#1378](https://github.com/Ledova/ledova/issues/1378) is
   finished. The owner steered it live in Chrome on localhost, and every change merged after an
@@ -179,6 +179,10 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
     Inspection copies and Company pack list what the company's own people prepared (#1429).
   - Eligibility request details no longer show internal IDs. They show the investor's name when the
     request shared one, and the investor sees the company's name when it is one of theirs.
+- [#1445](https://github.com/Ledova/ledova/issues/1445) applied the owner-approved 30 October review
+  of the signed-in pages: the phone layout (#1446), a failed session check that no longer signs
+  people out (#1447), clearer members' pages (#1448), particulars changes that start from the
+  member's current details and a tidier Team (#1449), and seven small fixes (#1450).
 - The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
   - Lists don't expand, and a record opens its own page or is a titled record.
   - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
@@ -203,6 +207,9 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   The backend must run the branch's own code. Stop both when they are no longer needed.
 - **Still open:**
   - Mobile work stays for later.
+  - From #1445: on a tab focus after the five-minute stale time, the signed-in frame briefly
+    disappears, and sign-up and the member invitation page still read a failed session check as
+    signed out.
   - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
     decision; check GitHub before resuming.
 - The walkthrough database was rebuilt and given demo data at the owner's request.
@@ -215,7 +222,11 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   ledova.io ([#1435](https://github.com/Ledova/ledova/issues/1435)), so the five accounts above are
   there with the same passwords. Afterwards ledova.io's app was opened to every network
   ([#1437](https://github.com/Ledova/ledova/issues/1437)), and the five accounts were given their
-  role-based addresses on both ([#1439](https://github.com/Ledova/ledova/issues/1439)).
+  role-based addresses on both ([#1439](https://github.com/Ledova/ledova/issues/1439)). The
+  website's layout ([#1441](https://github.com/Ledova/ledova/issues/1441)) and Privacy page
+  ([#1443](https://github.com/Ledova/ledova/issues/1443)) followed that day, and #1445's app
+  changes on 31 October. ledova.io now runs main `3f3018c3` for the website, `c73d3978` for the
+  dashboard and `90274b07` for the backend.
 
 ## Continue on this Mac
 
