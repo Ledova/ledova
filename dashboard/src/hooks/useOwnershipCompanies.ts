@@ -101,8 +101,7 @@ export function useOwnershipCompanies() {
     appointments.isError ||
     memberRows.isError ||
     (memberRows.isSuccess && !confirmedMemberRows(memberRows.data));
-  const confirmed =
-    known && !isRefreshing && !hasError && companyRows.isSuccess && appointments.isSuccess && memberRows.isSuccess;
+  const confirmed = known && !hasError && companyRows.isSuccess && appointments.isSuccess && memberRows.isSuccess;
   const companies = new Map<string, OwnershipCompany>();
   const members: OwnMemberRecord[] = confirmed ? memberRows.data : [];
   if (confirmed) {
