@@ -2,7 +2,7 @@ import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany'
 import { PreparationNotice, PreparationShell } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useParticularsRegisters } from './useParticularsRegisters';
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
@@ -106,6 +106,14 @@ function OwnParticulars({
       : [];
   })[0];
   const companyMatches = useRecordCompany(found?.company.uuid, guard);
+  const [formOpen, setFormOpen] = useState(false);
+  if (
+    !formOpen &&
+    found?.particulars.isSuccess &&
+    found.particulars.isFetchedAfterMount &&
+    found.particulars.fetchStatus === 'idle'
+  )
+    setFormOpen(true);
   const reads = [...registers, ...people];
   const retry = () => {
     if (classes.isError) void classes.refetch();
@@ -150,33 +158,41 @@ function OwnParticulars({
             </LoadError>
           ) : (
             <Rows>
-              <Row label="Name">{recorded?.name || found.label}</Row>
-              <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
+              <Row label="Name">{recorded?.name || found.name || 'Not recorded'}</Row>
+              <Row label="Residential address">
+                <span className="whitespace-pre-line break-words">
+                  {recorded?.residentialAddress || 'Not recorded'}
+                </span>
+              </Row>
             </Rows>
           )}
           <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>
         </Section>
-        <Section title={COPY.PREPARE}>
-          {stale && (
-            <LoadError retry={retry} busy={fetching}>
-              The register or your appointments could not be loaded.
-            </LoadError>
-          )}
-          <ParticularsForm
-            owner={owner}
-            guard={guard}
-            company={found.company.uuid}
-            member={member}
-            appointment={found.company.appointment}
-            current={{ name: recorded?.name || found.name || '', address: recorded?.residentialAddress ?? '' }}
-            blocked={stale}
-            onConflict={() => {
-              void found.read.refetch();
-              void appointments.refetch();
-            }}
-            onMissing={() => void appointments.refetch()}
-          />
-        </Section>
+        {formOpen ? (
+          <Section title={COPY.PREPARE}>
+            {stale && (
+              <LoadError retry={retry} busy={fetching}>
+                The register or your appointments could not be loaded.
+              </LoadError>
+            )}
+            <ParticularsForm
+              owner={owner}
+              guard={guard}
+              company={found.company.uuid}
+              member={member}
+              appointment={found.company.appointment}
+              current={{ name: recorded?.name || found.name || '', address: recorded?.residentialAddress ?? '' }}
+              blocked={stale}
+              onConflict={() => {
+                void found.read.refetch();
+                void appointments.refetch();
+              }}
+              onMissing={() => void appointments.refetch()}
+            />
+          </Section>
+        ) : (
+          !found.particulars.isError && <Loading>Loading their particulars…</Loading>
+        )}
       </>
     );
   }

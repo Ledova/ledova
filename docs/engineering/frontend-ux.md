@@ -39,7 +39,7 @@ Register setup's card is titled with the class being set up, and a recorded ledg
 Company information, company documents, authority records and company team use this workspace frame too.
 Team invitations and acceptance replace their collection with one focused inline task, a card titled
 **Invite a company user** or **Accept a company invitation** that retains its mounted editors and
-drafts; someone with no appointments opens straight on accepting one. The invitation's appointment
+drafts; someone with no appointments, other than a company's owner, opens straight on accepting one. The invitation's appointment
 choice starts each option with its appointment date. Team's appointment rows show the company or
 person, actions, any delegation (**May delegate all of these** when it matches the actions), status
 or revocation, expiry and source, with **Revoke appointment** at the row's end and an own

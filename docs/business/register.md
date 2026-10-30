@@ -347,8 +347,8 @@ and ask for changes separately ([member profile](participants.md#member-profile)
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
    Recipient details on their award's page, and choose Change particulars.
-2. The page shows the member's current recorded name and residential address, and the form starts
-   with them. Upload one supporting document, such as a deed poll or the member's notice of a new
+2. The page re-reads the member's current recorded name and residential address, shows them, and
+   starts the form with them. Upload one supporting document, such as a deed poll or the member's notice of a new
    address, change the name or residential address, and give the "as at" date the company's register
    records (today in UTC or earlier) and a reason.
 3. In **Ledger** → **Corrections**, choose **Approve**. On web, compare the current and proposed

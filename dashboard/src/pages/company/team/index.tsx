@@ -83,7 +83,7 @@ function OwnTeam({
   const [started, setStarted] = useState(false);
   if (!started && own.isSuccess && !own.isFetching) {
     setStarted(true);
-    if (appointments.length === 0) setTask('accept');
+    if (appointments.length === 0 && !settings.hasOwnedCompany) setTask('accept');
   }
   useEffect(() => {
     if (task) heading.current?.focus();
@@ -99,6 +99,7 @@ function OwnTeam({
   }, [task, returnFocus, disabled, own.isFetching]);
   const endTask = () => {
     if (disabled) return;
+    setStarted(true);
     setReturnFocus(task);
     setTask(null);
   };
@@ -154,7 +155,10 @@ function OwnTeam({
             ref={acceptOpener}
             label="Accept a company invitation"
             disabled={disabled}
-            onClick={() => setTask('accept')}
+            onClick={() => {
+              setStarted(true);
+              setTask('accept');
+            }}
           />
         </div>
         <Section title="Team">

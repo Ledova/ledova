@@ -103,7 +103,7 @@ export default function CompanyEligibilityPage() {
         { value: '', label: 'Select your appointment' },
         ...current.map((item) => ({
           value: item.uuid,
-          label: `${scopeLabels(item.capabilities)} · appointed ${formatDate(item.createdAt)}`,
+          label: `Appointed ${formatDate(item.createdAt)} · ${scopeLabels(item.capabilities)}`,
           reference: shortReference(item.uuid),
         })),
       ]}
