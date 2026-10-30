@@ -11,7 +11,7 @@ Start with the question you need answered. Each entry page leads to focused docu
 | Understand how the business processes work   | [Business processes](business/README.md)                                                                                               |
 | Understand how the software is built         | [Engineering](engineering/README.md)                                                                                                   |
 | Run it locally                               | [Getting started](getting-started.md)                                                                                                  |
-| Try the local demo or resume its walkthrough | [Local demo accounts and handover](LOCAL-TEST-ACCOUNTS.md)                                                                             |
+| Sign in to the demo, locally or on ledova.io | [Demo accounts and handover](demo-accounts.md)                                                                                         |
 | Configure or operate an instance             | [Operations](operations/README.md)                                                                                                     |
 | Change or test the code                      | [Contributing](../CONTRIBUTING.md) · [Testing and review](engineering/testing.md)                                                      |
 | Understand the route to lawful launch        | [Regulatory pathway](regulatory-pathway.md)                                                                                            |
