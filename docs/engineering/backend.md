@@ -168,7 +168,7 @@ to members needs a verified document of the class's company and records its fing
 
 ## External API consumers
 
-Two route groups have no bundled client and are kept deliberately:
+These route groups have no bundled client and are kept deliberately:
 
 - The `IsAdminUser`-gated whitelist entry routes under `/api/v1/whitelist/`
   ([entry.py](../../backend/whitelist/views/entry.py)): list, detail, `entry/{address}/`,
@@ -179,6 +179,13 @@ Two route groups have no bundled client and are kept deliberately:
 - The portfolio routes under `/api/portfolios/`, including `{uuid}/add-wallet/` and
   `{uuid}/remove-wallet/`, on an ordinary authenticated viewset scoped to the caller's own active
   portfolios; not a staff surface.
+- Since [#1452](https://github.com/Ledova/ledova/issues/1452), the wallet routes (`/api/wallets/`,
+  `/api/transactions/`, `/api/assets/`, the on-ramp's `/api/fiat-purchases/` and the wallet
+  nominations and instructions), the share-class chain decisions with the retained issuance and
+  capital-increase reads, the register's openings, wallet links and reconciliations with their
+  acknowledgements, and the publication summary. The
+  [31 October decision](../decisions.md#wallets-removed-from-the-web-app) keeps them, with their
+  records, so the features can return.
 
 `GET /api/operator/` is not one of them: signed-in clients read it, and its
 `payment_instructions` are null except for platform staff and holders of a current
@@ -577,7 +584,7 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | ------------------ | -------------------------------------------------------------------------------------------------- | -------------- |
 | `company`          | Retained history only: the sender is retired, and no activation or company status change sends one | Activation     |
 | `publication`      | `shareholders/services/publications.py`, when a publication is announced to its roll               | Notices        |
-| `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Activity       |
+| `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Nothing        |
 | `identity`         | `users/services/identity.py`, when the identity check's result changes                             | Profile        |
 | `certificate`      | `tokens/services/member_events.py`, when a member's certificate request is fulfilled               | Nothing        |
 | `award`            | `tokens/services/member_events.py`, when shares vest under a member's award                        | Nothing        |

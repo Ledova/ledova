@@ -29,7 +29,7 @@ stay here as history and are marked where they appear.
 | [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion not planned (#870)                                                                                              |
 | [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                                                                                              |
 | [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                                                                                            |
-| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October                                                                     |
+| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October; web wallet and chain controls removed 31 October                   |
 | [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                                           |
 | [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                         | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md)                                       |
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                           | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
@@ -46,7 +46,7 @@ stay here as history and are marked where they appear.
 | [Backend migration baseline](#backend-migration-baseline)                                                       | 10 October 2026                                | Superseded 11 October                                                                                                              |
 | [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands                                                                     |
 | [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred; offering payments removed under #1421                                                   |
-| [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current                                                                                                                            |
+| [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current; web Wallets removed 31 October                                                                                            |
 | [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October; web wallets removed 31 October                |
 | [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey superseded 26 October                                                             |
 | [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 to 29 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360); links, one-line labels and Market removal (#1416) |
@@ -1239,7 +1239,9 @@ investor-role loss. Unknown accounts fail closed. This adds no server signup,
 identity or account-status requirement. A company appointment or share-operation
 wallet grants no on-ramp purchase permission; authorised company wallet operations
 remain separate. Synthetic tests establish the guards, with external-provider
-and physical-device acceptance remaining separate.
+and physical-device acceptance remaining separate. The client part is superseded for the web by
+the [31 October decision](#wallets-removed-from-the-web-app): the web app has no Buy crypto, and
+the API's guards stand.
 
 At this decision's date no payment rail, provider, collection, receipt
 verification, reconciliation, refund or secondary AUD settlement mechanism had
@@ -1324,7 +1326,8 @@ explicitly identify unpriced holdings
 [#346](https://github.com/Ledova/ledova/issues/346)). The
 [signed-in app decision](#the-signed-in-app) replaced the earlier per-asset
 chart presentation: Holdings lists shares by company and class, and crypto
-actions stay in Wallets.
+actions stay in Wallets. Superseded for the web by the
+[31 October decision](#wallets-removed-from-the-web-app): the web app has no Wallets.
 
 ## Simpler signed-in journeys
 
@@ -1475,7 +1478,8 @@ may use them. Activity lists the person's own wallet transfers, so it sits above
 company is selected. Published to your members joins Documents. The web Market page and the client
 code only it used are gone; secondary trading stays
 [not planned](#registry-focus-and-cancelled-expansion-tickets), and the trading API, its records and
-its guards are unchanged.
+its guards are unchanged. The Activity part is superseded for the web by the
+[31 October decision](#wallets-removed-from-the-web-app): the web app has no Activity.
 
 Later that day the owner asked for one-line sidebar items: "I dont want to use 2 lines on these
 menu items". ESS becomes Employee scheme, the owner's first choice, Company documents becomes
@@ -1549,7 +1553,8 @@ On 20 October 2026 the owner approved the
 record lists, and awards listing their non-paid issues." Register's one task, Issue shares, asks
 which kind of issue, shows that form in place, and lists the class's investor and non-paid issues
 under it. Each award lists the non-paid issues prepared from it. Tokenised classes keep their chain
-issues in Share class settings.
+issues in Share class settings. That part is superseded for the web by the
+[31 October decision](#wallets-removed-from-the-web-app): the web app has no chain issues.
 
 On 21 October 2026 the owner approved the revised structure under
 [#1165](https://github.com/Ledova/ledova/issues/1165). The register view starts with the company's current
@@ -1819,7 +1824,9 @@ class page drops **Technical details and chain workflows**, and the chain workfl
 class's own **Chain actions** page. On 29 October 2026, with phase 4 merged, the owner asked:
 "Please continue until the end". So the remaining record chevrons on company pages give way to plain
 **Show …** toggles and titled records, and the eligibility pages and wallet approvals drop their
-keys, digests and internal references (phase 5). The owner then noted that UUIDs make no sense to
+keys, digests and internal references (phase 5). The chain views and wallet approvals are
+superseded for the web by the [31 October decision](#wallets-removed-from-the-web-app): the web app
+has neither. The owner then noted that UUIDs make no sense to
 show people and, with the local walkthrough filled with demo data, chose to tidy the remaining
 cluttered pages ([#1424](https://github.com/Ledova/ledova/issues/1424)). So a company no longer
 hands out a **Company ID**: it copies a request link from **Company eligibility**, and the investor's

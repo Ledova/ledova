@@ -87,7 +87,7 @@ export function ClassTransfers({
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
             ? 'Set up this share register before recording a transfer.'
-            : 'Transfers for a class on chain aren’t available in the web app.'}
+            : 'Transfers for a class that uses the chain aren’t available in the web app.'}
         </p>
       )}
       {!supported && privateReady && steps?.prepare && register.token.status === 'draft' && (

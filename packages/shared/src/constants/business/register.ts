@@ -40,9 +40,7 @@ export const REGISTER_COPY = {
   FORMER_NOTE:
     'Each row retains the particulars and holding when membership ceased. A return keeps the same member ID and its recorded return date.',
   NO_WALLET: 'No linked wallet',
-  AMBIGUOUS_NOTE:
-    "This member's wallets point to more than one person, so no name is shown. Resolve the wallet records before " +
-    'relying on the register.',
+  AMBIGUOUS_NOTE: "This member's wallets point to more than one person, so no name is shown.",
   UNIDENTIFIED_NOTE:
     'No linked wallet resolves to a named person through its retained whitelist entry. Ask the participant to ' +
     'add their full name in Profile.',

@@ -320,7 +320,7 @@ company-decided families share this mechanism, and their sections give only what
   approval.
 - Only the original operation's canonical successful receipt with the family's event, where it has
   one, and the projection, complete the work: current chain state never substitutes, missing or duplicate events
-  stay unresolved, and a contradiction is held for operator attribution. Clients show approval,
+  stay unresolved, and a contradiction is held for operator attribution. The API reports approval,
   admission, unsigned holds, signed uncertainty and the projected outcome apart.
 
 ### Share-class deployment
@@ -540,8 +540,8 @@ peer. `confirmed` needs a unique matching `Paused` or `Unpaused` from the admitt
 sender in the original receipt, and completed projection; no finality policy applies, and a
 `completedAt` value cannot stand in. The incomplete command reserves its chain and contract until
 projection, observed or confirmed outcomes included. Projection locks target, company, class, source
-and journal on one operator alias under the original company operation. The API and clients report
-the requested state and the observation or receipt separately from the class's current state.
+and journal on one operator alias under the original company operation. The API reports the
+requested state and the observation or receipt separately from the class's current state.
 
 ### Mint requests
 
@@ -665,8 +665,8 @@ read without rewriting the asset's name ([decision](../decisions.md#the-signed-i
 Asset symbols are unique, so a second company's class with the same symbol is stored as the symbol
 plus its company's ACN (`ORD.123456782`), or part of its contract address when that is taken too.
 The stored symbol stays the asset's identity in the API's `assetSymbol`, the asset admin, the staff
-transactions filter and the account export. Each Activity row (`GET /api/transactions/`) resolves
-`shareClass` the same way, so Activity amounts, transaction notices and the staff holdings and
+transactions filter and the account export. Each transaction row (`GET /api/transactions/`) resolves
+`shareClass` the same way, so transaction amounts, transaction notices and the staff holdings and
 transactions lists show the class's own symbol with its company (`40 ORD`, "100 ORD (Example Pty
 Ltd)"); crypto, and a class the reader cannot see, keep the asset symbol.
 

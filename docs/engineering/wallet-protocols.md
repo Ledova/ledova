@@ -16,10 +16,10 @@ Contents: [transfer lifecycle](#transfer-lifecycle) · [EVM](#evm-transfers) and
 ## Transfer lifecycle
 
 Preparation and broadcast support selected native and crypto asset transfers on allowed test
-networks. Share classes are refused: the dashboard's Send picker offers no asset of
-type `tokenized_security`, so a paused class without readable class details stays excluded, and the
-backend refusal resolves the destination through the caller's view of the class and then the global
-asset catalogue, so it holds while a class is paused and hidden from non-issuers. A class marked
+networks, through the API since the web app's Send went with its wallet pages
+([#1452](https://github.com/Ledova/ledova/issues/1452)). Share classes are refused: the backend
+refusal resolves the destination through the caller's view of the class and then the global asset
+catalogue, so it holds while a class is paused and hidden from non-issuers. A class marked
 deployed whose address the factory never attested has no catalogue entry yet; until recovery
 re-projects the deployment, only its issuer's view refuses a value-only transaction to it.
 
@@ -309,19 +309,16 @@ supply.
 
 ## History imports and previews
 
-Manual wallet sync returns `success: false` with an actionable `syncResult.error`, which the
-dashboard shows, when verification is missing, the provider fails, history is unreadable or a known
-holding cannot be refreshed; a partial refresh keeps the balances it read and the last successful
-sync time.
+Manual wallet sync returns `success: false` with an actionable `syncResult.error` when
+verification is missing, the provider fails, history is unreadable or a known holding cannot be
+refreshed; a partial refresh keeps the balances it read and the last successful sync time.
 
 Import previews use `POST /api/wallets/batch-check-balances/` with a `chain` (`ethereum`, `base` or
 `bitcoin`) and 1 to 20 addresses, for the signed-in user's own account (not named in the request,
 and not widened by staff status); the addresses need not be registered. The response repeats the
 account and network and returns `balances[address]` as a decimal string, or `null` when the provider
 cannot supply a valid balance; a confirmed zero stays `"0"`. Previews create or update no wallet or
-holding. The dashboard shows failed reads as **Unavailable** and discards pending responses when the
-network changes, and its hardware and software import screens let the user choose Ethereum or Base
-for EVM addresses.
+holding.
 
 Alchemy transfer history follows each direction's `pageKey` to the end, newest first, before any
 receipt lookup, because cursors expire after ten minutes. A repeated cursor, unreadable response or

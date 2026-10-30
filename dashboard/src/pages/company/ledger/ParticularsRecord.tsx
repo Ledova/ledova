@@ -10,7 +10,7 @@ import {
 } from '@ledova/shared';
 import { Row, Rows, Section } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
-import { DecisionTrail } from '@pages/company/ledger/shared/DecisionTrail';
+import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useParticularsRecordDownload } from './useRegisterRecordDownload';

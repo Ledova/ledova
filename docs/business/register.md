@@ -106,8 +106,7 @@ shares; a member can have no linked wallet or several. Holder types:
 - Ambiguous: its wallets point to more than one person, or two wallet records share its address, so
   no name is shown and the shareholder view says the identity needs review.
 - Unidentified: no wallet resolves to a named person and no particulars are recorded, so the
-  shareholder view suggests asking the participant to add their full name in Profile, or to verify and
-  nominate the wallet for approval.
+  shareholder view suggests asking the participant to add their full name in Profile.
 
 A member's name and residential address come from the first available of: the live verified identity
 behind its wallets, if unambiguous; the latest identity recorded when shares were allotted to one of
@@ -264,10 +263,10 @@ extraction will later fill these forms for review. Earlier imports keep their ev
 authority, and fields their snapshots lack stay unknown.
 
 An import is refused when the class already has an applied import; once an issue was approved or an
-instruction applied for the class (open it from the chain, then import particulars); when its
-holdings differ from the stored register of a class opened from the chain; when a former member
-ceased after the register date, on or after an existing opening, or before the retention period; and while a deployment of the class
-is pending.
+instruction applied for the class (open it from the chain through the API, then import
+particulars); when its holdings differ from the stored register of a class opened from the chain;
+when a former member ceased after the register date, on or after an existing opening, or before the
+retention period; and while a deployment of the class is pending.
 
 ### Shareholder documents
 
@@ -301,24 +300,25 @@ A deployed or paused class whose register has no entry is opened from the chain 
 wallet holding shares at one block, the boundary, to a company member. Nothing is typed and no
 particulars are stored; a later import adds them.
 
-1. In Ledger's Corrections view, under Openings, choose Open this ledger. The page reads the
-   holdings on chain, largest first, or says the chain cannot be read.
-2. Assign each address to a member: a linked address keeps its member, others go to an existing or
-   new member, and several can share one.
-3. Upload the authority document, choose Director resolution (naming the director) or Court order,
-   give the reference and reason, and choose Prepare opening, which captures the boundary.
-4. Approve, then Apply; both read the chain again.
+The web app no longer opens a register from the chain: the owner removed the class's on-chain
+features on 31 October 2026 ([decision](../decisions.md#wallets-removed-from-the-web-app),
+[#1452](https://github.com/Ledova/ledova/issues/1452)), and for such a class the import page says
+"This class uses the chain, and the web app can’t open its register." The API keeps openings, with the
+rules below.
+
+The mapping assigns each address to a member: a linked address keeps its member, others go to an
+existing or new member, and several can share one. Preparing it, with the authority document (a
+director resolution naming the director, or a court order), the reference and the reason, captures
+the boundary. Approval and application each read the chain again.
 
 Applying records the members, their wallet links and the Opening state entry, dated on the boundary
 block's date (an explicitly empty register if nothing was held), and changes nothing on chain.
 
-The mapping must cover exactly the addresses holding at the boundary; if holdings moved, reload and
-map again. A choice resets, with a notice, only when its address no longer holds or its member is no
-longer offered. An address belongs to one member per company, and an existing link must agree. An
-opening is refused if a completed issue or transfer is not represented at its boundary, including
-one completed after the opening was prepared; if the chain
-no longer confirms the boundary, or a mapped wallet was linked elsewhere since, reject it and
-prepare another.
+The mapping must cover exactly the addresses holding at the boundary; if holdings moved, read them
+again and map again. An address belongs to one member per company, and an existing link must agree.
+An opening is refused if a completed issue or transfer is not represented at its boundary, including
+one completed after the opening was prepared; if the chain no longer confirms the boundary, or a
+mapped wallet was linked elsewhere since, reject it and prepare another.
 
 ## Changing the register after the opening
 
@@ -369,14 +369,15 @@ which member owns it: a new subscriber's, a first-time buyer's or another of an 
 wallets. A [chain grant](issuing-shares.md#non-paid-chain-grants) links its nominated wallet the
 same way before minting.
 
-1. Choose Link waiting wallets under Wallet links in Ledger's Corrections view. Only waiting
-   wallets are listed, each with the number of issues or transfers waiting for it.
-2. Each wallet starts as its own new member; choose the existing or new member who owns it, the same
-   one for one person's wallets. For a whitelisted wallet the page shows, for information only,
-   whether its holder proved control on Ledova and their name. A choice resets, with a notice, only
-   when its wallet stops waiting or its member is no longer offered.
-3. Upload the authority document, give the authority, approving director, reference and reason, then
-   Approve and Apply.
+The web app no longer offers wallet links
+([decision](../decisions.md#wallets-removed-from-the-web-app),
+[#1452](https://github.com/Ledova/ledova/issues/1452)). The API keeps them, with the rules below.
+
+Only waiting wallets can be linked, each read with the number of issues or transfers waiting for
+it. Each goes to an existing or new member, the same one for one person's wallets. For a
+whitelisted wallet the API adds, for information only, whether its holder proved control on Ledova
+and their name. A link carries the authority document, the authority, approving director, reference
+and reason, and is approved and applied.
 
 Links are company-wide: one serves every class and needs no opened register. An address is linked
 once; if another member got it meanwhile, reject the link and prepare another. Applying records the
@@ -392,7 +393,7 @@ account, payment, application or chain transaction.
 
 1. In Ledger choose Transfer shares, the class, then Prepare a non-paid transfer, or open
    **Transfer shares** on a holding on the shareholder page, which chooses the transferor. For a
-   tokenised class the task says its transfers use wallet and chain controls.
+   class that uses the chain the task says "Transfers for a class that uses the chain aren’t available in the web app."
 2. In **People and shares**, choose the transferor, recipient and shares
    ([choosing a person](#choosing-a-person)), and give the company transfer date. An
    existing company recipient keeps their member ID, including someone holding only another class,
@@ -514,9 +515,11 @@ of zero shares, which anyone can send, are ignored.
 
 Each run is kept as Matched, Discrepant or Failed, with the block and register entry compared. An
 unreadable chain fails the reconciliation, never the register, and reconciliation never writes a
-register entry. The company cannot start a run; it sees the latest in the register view and in an
-inspection copy's summary. The register cannot follow a divergence it did not cause: no entry records an outside
-transfer, and a correction only reverses an existing entry.
+register entry. The company cannot start a run; it reads the latest through the API and in an
+inspection copy's summary, since the web app no longer shows reconciliations
+([#1452](https://github.com/Ledova/ledova/issues/1452)). The register cannot follow a divergence it
+did not cause: no entry records an outside transfer, and a correction only reverses an existing
+entry.
 
 ### What each discrepancy means
 
@@ -535,11 +538,11 @@ acknowledged once the cause is understood.
 ### Acknowledging a discrepancy
 
 Once the company has investigated and accepted a discrepancy, someone whose appointment holds
-administration or approve opens Ledger's Corrections view and chooses Acknowledge on its row in
-the class's latest reconciliation, with a reason of up to 1,000 characters; there is no staff step
-or second person. Only the latest
-reconciliation can be acknowledged (for an older one, wait for the next run); attribution and
-missing-transfer rows cannot be, and a row is acknowledged once.
+administration or approve acknowledges its row in the class's latest reconciliation, with a reason
+of up to 1,000 characters; there is no staff step or second person. The web app no longer offers
+acknowledgements ([#1452](https://github.com/Ledova/ledova/issues/1452)); the API keeps them. Only
+the latest reconciliation can be acknowledged (for an older one, wait for the next run); attribution
+and missing-transfer rows cannot be, and a row is acknowledged once.
 
 Later runs treat an acknowledged row as explained: an unrecognised transfer is not reported again
 for that transaction, and a member, unlinked or supply difference is added to what is expected, so a
@@ -582,26 +585,24 @@ Each entry shows its kind and any correction or reversal, named by kind and date
 for an issue or transfer (ledger effective date for other kinds), with the ledger date beneath when it
 differs; and its first two signed shareholder movements, with Show all for the rest. Rows don't
 expand, and Correct sits at the end of a row that may be corrected. An older issue or transfer with
-no company date says Date not recorded. Retained source imports, chain openings, corrections, reconciliation,
-particulars and wallet-link records stay listed with their details and permitted evidence downloads.
-Entries remain immutable. Current register readers can inspect the records; preparation, approval,
-application and acknowledgement controls still require their respective company appointments.
+no company date says Date not recorded. Retained source imports, corrections and particulars records
+stay listed with their details and permitted evidence downloads; chain openings, reconciliations and
+wallet links are read through the API since [#1452](https://github.com/Ledova/ledova/issues/1452).
+Entries remain immutable. Current register readers can inspect the records; preparation, approval
+and application controls still require their respective company appointments.
 The former web History address opens Corrections with the same company and class. Certificates are
 prepared in [Documents](member-records.md#preparing-a-certificate).
 
 The same view holds the existing append-only correction and maintenance workflows: source opening
-corrections, chain openings, reconciliation acknowledgements, particulars and wallet links. Each is a
-titled record showing its snapshot, documents and decision trail; an opening's holdings or
-shareholders sit behind **Show the holdings** or **Show the shareholders**, open while it awaits a
-decision. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
-Confirmed), and an import, opening, correction, particulars change or wallet link has an Evidence
-row reading Provided by the company or, before the work became company-run, "Verified by Ledova
-staff". A
-section that read successfully with nothing to show is left out, but a class on chain without a
-reconciliation says so. An unfinished request keeps its class and exact request, and while one is
-held the company, task and class cannot be changed; its sidebar link lets the person return from
-another view to resume the same request. A failed read withholds the class cards and the
-shareholder list rather than implying holdings are zero.
+corrections and particulars changes. Each is a titled record showing its snapshot, documents and
+decision trail; a copied opening's shareholders sit behind **Show the shareholders**, open while it
+awaits a decision. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
+Confirmed), and an import, correction or particulars change has an Evidence row reading Provided by
+the company or, before the work became company-run, "Verified by Ledova staff". A section that read
+successfully with nothing to show is left out. An unfinished request keeps its class and exact
+request, and while one is held the company, task and class cannot be changed; its sidebar link lets
+the person return from another view to resume the same request. A failed read withholds the class
+cards and the shareholder list rather than implying holdings are zero.
 
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
@@ -634,7 +635,7 @@ reached from Recipient details on their award's page. It shows:
 
 - Particulars: the name and residential address the company has recorded, with **Change
   particulars** for someone who can prepare the register;
-- Holdings: per class, Shares held, % of class, Date added, Holder type and any wallet links, then
+- Holdings: per class, Shares held, % of class, Date added and Holder type, then
   any former holding with the shares held when it ended, its date, and whether they returned or the
   cessation was corrected;
 - History: every register entry naming them across classes, newest first, with its date, class, kind
@@ -690,15 +691,13 @@ company's optional
 [Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
 and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and
 register downloads on Documents. The summary gives the authorised shares when the class has a limit
-other than the internal quantity guard, and says when the class is recorded as non-transferable. A
-deployed or paused class adds an **On chain** card: its state, deployment date and exact contract
-address with **Copy contract address**, links to the contract and its deployment transaction on the
-block explorer, and **Chain actions**, which opens the class's own page of company-authorised chain
-grant, capital and pause workflows, its deployment and any earlier issuance and capital
-requests. A draft class without shares offers **Put this class on chain** in its summary instead,
-which opens the same page at its deployment, and keeps that row, marked Deploying, while the
-deployment waits for confirmation. A draft class with shares offers neither, because deployment
-cannot mirror its holdings ([share classes](issuing-shares.md#share-classes)).
+other than the internal quantity guard, and says when the class is recorded as non-transferable.
+
+The page no longer shows a class's chain state or offers its chain workflows: the owner removed the
+**On chain** card, **Chain actions** and **Put this class on chain** on 31 October 2026
+([decision](../decisions.md#wallets-removed-from-the-web-app),
+[#1452](https://github.com/Ledova/ledova/issues/1452)). The API keeps deployment, chain grants,
+capital increases and pausing ([share classes](issuing-shares.md#share-classes)).
 
 Next: [share classes and issuing shares](issuing-shares.md),
 [member records and register outputs](member-records.md),

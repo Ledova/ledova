@@ -2431,7 +2431,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     client.clear();
     token.status = status;
     showJourney(importPath);
-    expect(await screen.findByText('This class is on chain, and the web app can’t open its register.')).toBeTruthy();
+    expect(await screen.findByText('This class uses the chain, and the web app can’t open its register.')).toBeTruthy();
     expect(screen.queryByLabelText('Record date')).toBeNull();
   }
   cleanup();

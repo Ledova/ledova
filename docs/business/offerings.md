@@ -182,13 +182,14 @@ cut strands becomes a refund owed.
 
 ## Company paid issues
 
-The company issues the shares for a Paid application itself. On the class's Chain actions page,
-under Paid issues, the preparer chooses Prepare paid issue and a Paid application, whose proposal
-captures the application, recipient, shares, price and payment facts (a partial receipt, a
-scaled-back quantity and a refund owed stay distinct from the requested shares and a refund paid),
-and adds the authority document, approving director, authority reference and reason; no new
-eligibility decision, wallet nomination, member choice, grant terms or acceptance is needed. Then
-Approve and Apply.
+The company issues the shares for a Paid application itself. The last implementation offered this
+under Paid issues on the class's Chain actions page, which the web app no longer has
+([#1452](https://github.com/Ledova/ledova/issues/1452)). The preparer chooses Prepare paid issue
+and a Paid application, whose proposal captures the application, recipient, shares, price and
+payment facts (a partial receipt, a scaled-back quantity and a refund owed stay distinct from the
+requested shares and a refund paid), and adds the authority document, approving director, authority
+reference and reason; no new eligibility decision, wallet nomination, member choice, grant terms or
+acceptance is needed. Then Approve and Apply.
 
 Preparation and approval admit nothing; applying admits the original mint. The issue must fit both
 the offering's remaining cap and the authorised shares less those issued and still to be minted; the

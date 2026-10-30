@@ -52,17 +52,17 @@ area. The tables below are the standard; where today's code differs, the gap is 
 with the issue that closes it. The other folders hold what several areas, the route table or the
 frame share, and `packages/shared` holds what both clients share.
 
-| `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                             |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                                                                  |
-| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                                   |
-| `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                |
-| `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `qr/`, and single components several areas show (`AwardStatus.tsx`) |
-| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                             |
-| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                                                                                    |
-| `utils/`              | Browser and pure helpers used by more than one area or the frame (`siteUrl.ts`, `saveFile.ts`, the session resets) and the web-only paths (`paths.ts`)                                                                                                                                                                           |
-| `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                          |
-| `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                    |
+| `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                               |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                                                                    |
+| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                                     |
+| `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                  |
+| `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `auth/`, and single components several areas show (`AwardStatus.tsx`) |
+| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                               |
+| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                                                                                      |
+| `utils/`              | Browser and pure helpers used by more than one area or the frame (`siteUrl.ts`, `saveFile.ts`, the session resets) and the web-only paths (`paths.ts`)                                                                                                                                                                             |
+| `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                            |
+| `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                      |
 
 | `packages/shared/src/` | Owns                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -168,9 +168,10 @@ The [principles](README.md#principles) apply; in particular, do not add:
   ([session scope](mobile.md#session-scope)).
 - **API client.** Shared services take the axios instance first. Shared hooks read it with
   `useApiClient()` and never take it as an argument; dashboard hooks import the `apiClient`
-  singleton, which `main.tsx` also gives `ApiClientProvider`. Every endpoint has its function in
-  `packages/shared/src/services`; [the API type drift gate](gates.md#the-api-type-drift-gate)
-  accounts for each operation, not for where it is called.
+  singleton, which `main.tsx` also gives `ApiClientProvider`. Every endpoint a client calls has its
+  function in `packages/shared/src/services`;
+  [the API type drift gate](gates.md#the-api-type-drift-gate) accounts for each operation, not for
+  where it is called.
 - **Query keys.** The module that owns a query exports its key or key factory, and every other
   reader and invalidation imports it; a key both clients use is exported from the shared hook, as
   `AUTH_QUERY_KEY` is. A key is its resource's root (kebab-case for a new root), then the owner for
@@ -188,8 +189,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
   ([loading, empty and error states](frontend-ux.md#loading-empty-and-error-states)).
 - **Formatting.** Figures, amounts and dates use the shared formatters (`formatMoney`,
-  `formatShareCount`, `shareCount`, `shareChange`, `sharePercentage`, `marketQuantity`,
-  `formatCryptoBalance`, `formatDate`, `formatDateTime`;
+  `formatShareCount`, `shareCount`, `shareChange`, `sharePercentage`, `formatCryptoBalance`,
+  `formatDate`, `formatDateTime`;
   [dates, numbers and identifiers](frontend-ux.md#dates-numbers-and-identifiers)).
   Never define a local formatter or pass a displayed amount through `Number` or `parseFloat`.
 - **Naming and exports.** A page folder takes the last fixed segment of its address and sits in the
@@ -457,17 +458,14 @@ unfinished drafts and original-request recovery across navigation.
 `dashboard/src/hooks/useEntryReads.ts` and
 `dashboard/src/pages/company/ledger/useIssueEntryRead.ts` retain ordered entry reads:
 confirm current authority or association before dependent records, and defer a read while an editor,
-decision review or original-request recovery is open. Class-operation entry reads run only on a
-class's Chain actions page; the Share class page reads none of them, and leaving the page discards
-its unfinished drafts as leaving any page does.
+decision review or original-request recovery is open.
 
 Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
 so user preferences still recheck the signed-in identity on focus and reconnect; unconfirmed identity
 continues to withhold private content, including after an account changes in another tab. Keep bounded status checks for a submitted upload, extraction or identity
 verification, stopping when the operation finishes or its view closes. A status read must never
-repeat a write, upload or share issue. Explicit possession-proof renewal and indexer synchronisation
-remain commands.
+repeat a write, upload or share issue.
 
 Every read and command retains its account, company, association, appointment and source guards.
 Cached client authority never replaces the server's check. A failed or inconsistent read withholds
@@ -515,9 +513,8 @@ fails or a `next` link names no later page, so a stalled or malformed link is ne
 end. Lists loaded on request check each link with `assertNextPageAdvances`.
 
 Share counts, prices and amounts stay exact decimal strings; a legacy count outside JavaScript's
-safe range is marked unavailable, not rounded. Share arithmetic uses whole integers (`wholeShares`,
-`requestShares`), and a quantity or resulting cap above `MAX_REQUEST_SHARES` (2,147,483,647) is
-refused.
+safe range is marked unavailable, not rounded. Share arithmetic uses whole integers
+(`wholeShares`).
 
 Every amount names its currency (`formatMoney`).
 
@@ -589,17 +586,17 @@ The server side, including how identical and changed retries are answered, is th
 
 ## The shared register client layer
 
-`packages/shared` holds the client layer for every company-run register command:
+`packages/shared` holds the client layer for the company-run register commands the web app runs
+(imports, corrections, particulars changes, grants, transfers and allotments); the chain and wallet
+commands' client layer went with their pages under
+[#1452](https://github.com/Ledova/ledova/issues/1452). It has:
 
 - a service for each list, preview, decision, preparation and document download;
-- a check of each prepared proposal against every field of its request (`isPreparedRegisterOpening`,
-  `isPreparedRegisterParticularsChange`, `isPreparedRegisterLink` and siblings for imports,
-  corrections, grants, transfers, issues, capital increases, pause changes, deployments
-  and allotments), narrowing an opening's or link's mapping at runtime and comparing a link's
-  address and member pairs in any order and letter case;
-- the decision families for `useRegisterDecision` (`REGISTER_*_DECISIONS` and
-  `COMPANY_WALLET_DECISIONS` in `packages/shared/src/hooks/useRegisterDecision.ts`) with the generic
-  receipt check;
+- a check of each prepared proposal against every field of its request
+  (`isPreparedRegisterImport`, `isPreparedRegisterParticularsChange` and siblings for corrections,
+  grants, transfers and allotments);
+- the decision families for `useRegisterDecision` (`REGISTER_*_DECISIONS` in
+  `packages/shared/src/hooks/useRegisterDecision.ts`) with the generic receipt check;
 - copy with a sentence for every requirement a decision can leave unmet.
 
 The web's base class read in `dashboard/src/hooks/useRegisterClasses.ts` and holder reads in
@@ -610,10 +607,9 @@ a late reply after an account change or reauthentication is discarded. Query key
 stay unchanged.
 
 The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
-`/company/ledger/setup`; import, correction, opening and transfer under `/company/ledger/:uuid/`
-(`import`, `correct/:entry`, `open`, `transfer`); particulars
-changes at `/company/ledger/members/:member/particulars`; and wallet links at
-`/company/ledger/companies/:company/links`. Setup is the import page without a class in its
+`/company/ledger/setup`; import, correction and transfer under `/company/ledger/:uuid/`
+(`import`, `correct/:entry`, `transfer`); and particulars changes at
+`/company/ledger/members/:member/particulars`. Setup is the import page without a class in its
 address: it chooses or creates a share class, then prepares the mirror import.
 Non-paid and employee-award grants are prepared inline in Issue shares.
 
@@ -634,13 +630,6 @@ finishes the shareholder. Historical quantities
 neither set nor limit the current holding; new paid/unpaid blanks normalize to zero
 ([form conventions](frontend-ux.md#forms)).
 
-The helpers order an opening's holdings largest first by exact share count, check that every count
-is whole, label each mapped member once (by name, or numbered as an unnamed or new member;
-`registerLinkMemberLabels` for links) so the page, the record and the preview agree, and recognise a
-holdings-moved refusal by its `opening_holdings_moved` code
-(`REGISTER_OPENING_HOLDINGS_MOVED_CODE`). A wallet's proof is worded as the holder's own proof on
-Ledova, never as a verification by Ledova.
-
 Every decision uses the preview-first `useRegisterDecision`, in a dialog or the web's main-page
 issue, transfer and particulars reviews. It previews the exact decision, its unmet requirements in
 words and its register effect, takes a rejection reason
@@ -649,17 +638,15 @@ with a retry key reused only for the same preview while the step's appointment i
 previewed. The investor's final Approve and a transfer's Approve each send one combined command
 (approval with the issue, or approval with the transfer), never an approval followed by a
 client-side application request. A review in place stays open when a refresh withdraws its step,
-saying so with its confirmation disabled.
-`useDiscrepancyAcknowledgement` takes the reason for
-[acknowledging a discrepancy](../business/register.md#acknowledging-a-discrepancy), keeps the
-appointment it opened with and holds confirmation if a refresh changes it. Form inputs are described
-with each procedure in [the register of members](../business/register.md).
+saying so with its confirmation disabled. Form inputs are described with each procedure in
+[the register of members](../business/register.md).
 
 The web register's repeated row wrappers, stage rows and download failures use
-`dashboard/src/pages/company/ledger/shared/RecordShell.tsx`; `shared/DecisionTrail.tsx` serves both
-the Ledger and share-class detail page. Six records use `useRegisterTaskGuard.ts` for their existing visible-task
-check, while grant, allotment and award keep their distinct guards and wrappers. The preparation
-pages share `PreparationShell.tsx` for Back, preference fallback and read-only paragraphs, and
+`dashboard/src/pages/company/ledger/shared/RecordShell.tsx`, and the Ledger's records show their
+decisions through `dashboard/src/pages/company/ledger/DecisionTrail.tsx`. Four records (import, correction, particulars change and transfer) use
+`useRegisterTaskGuard.ts` for their existing visible-task check, while grant, allotment and award
+keep their distinct guards and wrappers. The preparation pages share `PreparationShell.tsx` for
+Back, preference fallback and read-only paragraphs, and
 `useRegisterPreparationOwner.ts` for the same account boundary and preferences reads. Page and form
 keys, held work, specialised refusal states and the import title remain with their pages.
 
@@ -720,7 +707,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [Ledger, Shareholders, Employee share scheme and company outputs](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#inspection-copies` (legacy `#ledger-exports`), `#company-pack`; preparation routes | everyone  |
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                                                   | everyone  |
 | [An employee award's page](../business/issuing-shares.md#employee-awards-and-vesting)                        | `/company/ledger/:uuid/awards/:award?company=`                                                                                                                               | everyone  |
-| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid` and its Chain actions page, `/company/ledger/:uuid/chain?company=`                                                                                   | everyone  |
+| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid?company=`                                                                                                                                             | everyone  |
 | [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`, `/company/listing`                                             | everyone  |
 | [Company documents](../business/companies.md#company-information-and-documents)                              | `/documents/company`; legacy `/company#documents` redirects with company context                                                                                             | everyone  |
 | [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                                       | everyone  |
@@ -833,12 +820,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   `register/members/` read validated by `isRegisterImportMembers`) and render `PersonSelect` and
   `PersonFields` (`shared/PersonPicker.tsx`), the searchable list in
   [choosing a person](frontend-ux.md#choosing-a-person).
-  - Member invitations give `PersonSelect` the company's holders and award recipients from
-    `invitationMembers`.
-  - The share-class issue's member choice reads `register/members/` through
-    `useCompanyIssueInstructions`, which leaves out award recipients without shares.
-  - Wallet links label the holders of every class with `registerLinkMemberLabels`, and register
-    opening labels its linked members with `openingMemberLabels`.
+  Member invitations give `PersonSelect` the company's holders and award recipients from
+  `invitationMembers`.
 
   The list includes award recipients without shares, whose first award gave them a person record;
   `on_register` false marks them. `personRequest` (`packages/shared/src/utils/people.ts`) sends a
@@ -860,14 +843,14 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   authority, and attachment downloads require current register-read authority. While register work
   is held, Shareholders' Details links are disabled.
 - Register reads: the web reads the person's appointments through Team's account-bound cache and
-  rereads them after a revocation on Team or Representative authority, a refused decision, preview
-  or acknowledgement, a waiting-wallets read refused as not found and a recorded decision other than
-  an import's (which refreshes the imports, the register and its entries). Entries load newest
-  first, a page per Load more: an entry a later page repeats is listed once, a page with a non-whole
-  share change fails, and a corrected or reversing entry reads as not loaded yet until its page
-  arrives. A proposal of another company or class, an unreadable mapping or holding, and a
-  correction lookup answering with entries it was not asked for fail the read. Each repeated control
-  is named for screen readers after its visible label and its entry, proposal or discrepancy.
+  rereads them after a revocation on Team or Representative authority, a refused decision or
+  preview and a recorded decision other than an import's (which refreshes the imports, the register
+  and its entries). Entries load newest first, a page per Load more: an entry a later page repeats
+  is listed once, a page with a non-whole share change fails, and a corrected or reversing entry
+  reads as not loaded yet until its page arrives. A proposal of another company or class, an
+  unreadable holding and a correction lookup answering with entries it was not asked for fail the
+  read. Each repeated control is named for screen readers after its visible label and its entry or
+  proposal.
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Published to your members: reads the selected company's publications with `issuer` set, newest
   first, a page at a time with Load more; the card title carries the server's complete count. A
@@ -880,10 +863,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   export and deletion. Payslip evidence lives with investor classification claims. Documents and Team
   stay focused pages; Activation keeps its existing company workflow. Signup and the mobile
   Account tab keep their own navigation.
-- Profile on web: transaction alerts are the `transactionAlerts` field of the one preferences
-  record (`useUserPreferences`, saved with a partial `POST` to `/api/user-preferences/`). On web, a
-  confirmed preference save updates the current account cache without remounting Profile or
-  discarding open edits. Account deletion clears cached account data after the server confirms.
+- Profile on web: account deletion clears cached account data after the server confirms.
 
 Next: [frontend UX standards](frontend-ux.md), [mobile](mobile.md), [authentication](security.md#authentication-and-sessions),
 [company workflow API](backend.md#company-workflow-api) and [testing](testing.md).

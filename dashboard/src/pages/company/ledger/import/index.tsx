@@ -179,7 +179,7 @@ function OwnImport({
     if (!mirrorAllowed)
       return (
         <Section title={`${listed.name} · ${listed.symbol}`}>
-          <p className="text-sm text-text-muted">This class is on chain, and the web app can’t open its register.</p>
+          <p className="text-sm text-text-muted">This class uses the chain, and the web app can’t open its register.</p>
         </Section>
       );
     if (!correctable) {

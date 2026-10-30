@@ -157,7 +157,7 @@ export function useInvestorIssues({
         <p className="text-sm text-text-muted">
           {register.token.status === 'draft'
             ? 'Set up this share register before issuing shares.'
-            : 'Issues for a class on chain aren’t available in the web app.'}
+            : 'Issues for a class that uses the chain aren’t available in the web app.'}
         </p>
       )}
       {appointment && privateReady && register.token.status === 'draft' && (

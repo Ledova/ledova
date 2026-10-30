@@ -201,7 +201,7 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
     the delta's review. Each merge is checked for tree and parent and recorded on its PR, and the
     owner is not asked to merge.
 - **Checks:**
-  - Local preflight passes dashboard **20** and browser smoke **9**, within the unchanged caps.
+  - Local preflight passes dashboard **19** and browser smoke **7**, within the unchanged caps.
   - Local backend verification stops at Python **3.13.15** (this Mac has **3.13.3**), and CI runs
     the pinned suite.
   - Pages are checked against the demo data above. Before it was added, pages without local data

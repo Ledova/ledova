@@ -292,10 +292,11 @@ Follow a company and its participants through Ledova:
 1. [Company setup and authority](companies.md): signup, the representative's
    declaration, the team, company information and documents, and activation.
 2. [Investors, members and eligibility](participants.md): accounts and identity
-   checks, each company's eligibility decisions, wallet nominations and approvals, and monitoring.
-3. [Register of members](register.md): opening the mirror from company records or
-   from the chain, corrections, particulars, wallet links, reconciliation, transfers and former
-   members.
+   checks, each company's eligibility decisions, the API's wallet nominations and approvals, and
+   monitoring.
+3. [Register of members](register.md): opening the mirror from company records, corrections,
+   particulars, transfers and former members, with the API's openings from the chain, wallet links
+   and reconciliation.
 4. [Issuing shares](issuing-shares.md): share classes, employee awards and vesting,
    grants and externally arranged allotments.
 5. [Member access and register outputs](member-records.md): member invitations,

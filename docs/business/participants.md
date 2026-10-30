@@ -365,8 +365,9 @@ under company [Shareholders](register.md#the-register-page).
 
 **Profile** combines Personal information and one Account card, with permitted Company details.
 Account includes
-relevant identity status, **Change password**, **Dark theme** (remembered in this browser with Paper as
-the default) and **Transaction alerts** for transaction status changes. Each editor retains its own
+relevant identity status, **Change password** and **Dark theme** (remembered in this browser with
+Paper as the default); the web app no longer offers transaction alerts
+([#1452](https://github.com/Ledova/ledova/issues/1452)). Each editor retains its own
 permissions; changing personal details does not update a company's records. **Activation** retains the
 [company activation workflow](companies.md#activation-and-the-registry-check).
 

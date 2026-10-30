@@ -213,7 +213,9 @@ check whether stored classes belong to a retired factory; step 8 does.
    creates no bootstrap record: resolve the reported problem while retaining the original manifest.
 
 5. After admission, start the backend and workers and recreate companies and users through the
-   browser; only `createsuperuser` and admin wallet verification happen outside it.
+   browser, with only `createsuperuser` and admin wallet verification outside it. Since
+   [#1452](https://github.com/Ledova/ledova/issues/1452) the web app has no chain or wallet pages,
+   so steps 6 and 7 go through the API.
 6. Deploy each share class. A company's first class creates its registry; its later classes share
    it.
 7. Approve wallets only through the

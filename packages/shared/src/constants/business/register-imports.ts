@@ -22,8 +22,7 @@ export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
     'An award recipient in these records no longer matches the company’s award records. Reject this import and ' +
     'prepare a new one.',
   class_not_openable:
-    'An issue was approved or a register instruction applied for this class, so an import can no longer open it. ' +
-    'Open it from the chain, then import its particulars.',
+    'An issue was approved or a register instruction applied for this class, so an import can no longer open it.',
   holdings_differ:
     "The import's holdings differ from the stored register. Reject it and prepare one as at the stored holdings.",
   former_member_after_opening: 'A former member ceased on or after the register was opened.',

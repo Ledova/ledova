@@ -90,9 +90,9 @@ blocked removal job ([whitelist changes](../engineering/chain.md#whitelist-chang
 untouched for ten minutes, oldest update first, keeping the original signed bytes and nonce or
 finishing an already recorded outcome without provider access. Approval alone admits no execution;
 what a pending result does and does not mean is in
-[pausing and unpausing a class](../business/issuing-shares.md#pausing-and-unpausing-a-class). A
-company pause panel reads the original proposal and its recorded execution outcome. A completed
-failure permits a deliberate new company preparation
+[pausing and unpausing a class](../business/issuing-shares.md#pausing-and-unpausing-a-class). The
+company's pause-change API returns the original proposal with its recorded execution outcome. A
+completed failure permits a deliberate new company preparation
 ([pause and unpause](../engineering/chain.md#pause-and-unpause)).
 
 ## Wallet transfers and trading

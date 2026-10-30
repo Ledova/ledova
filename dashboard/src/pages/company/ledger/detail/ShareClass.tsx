@@ -14,7 +14,7 @@ import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { LoadError, Loading, Section, Status } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
-import { useShareClass } from '@pages/company/ledger/shared/useShareClass';
+import { useShareClass } from './useShareClass';
 import { ClassRights } from './ClassRights';
 import { useClassRights } from './useClassRights';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
