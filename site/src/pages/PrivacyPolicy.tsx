@@ -97,8 +97,8 @@ export function PrivacyPolicy() {
                 In each company, the people authorised to manage it see its records, and shareholders, employees and
                 investors see their own. Companies don&apos;t see your phone number, date of birth, financial profile or
                 the evidence behind your eligibility claims, and see only totals for votes and notices read. If you send
-                a company an eligibility request, it sees the claim, including the accountant&apos;s details, and your
-                name if you agree.
+                a company an eligibility request, it sees the summary you agreed to share: your name and the claim,
+                including the accountant&apos;s details.
               </li>
               <li>We can reach the server and its database to run and fix the preview.</li>
               <li>
