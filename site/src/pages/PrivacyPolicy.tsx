@@ -27,7 +27,7 @@ export function PrivacyPolicy() {
     <>
       <PageHeader
         title="Privacy policy"
-        lead={'For the ledova.io preview and the public source code · Updated 30 October 2026'}
+        lead="For the ledova.io preview and the public source code · Updated 30&nbsp;October&nbsp;2026"
       />
       <section className="border-t border-border-subtle">
         <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
@@ -52,21 +52,30 @@ export function PrivacyPolicy() {
             <ul className={LIST}>
               <li>
                 <strong className={LABEL}>When you register:</strong> your email address, a password (kept only as a
-                one-way hash), and your full name, date of birth, phone number and residential address.
+                one-way hash), and your full name, date of birth, phone number and residential address. Investors also
+                confirm they are 18 or older, an Australian resident and acting for themselves, and give their
+                occupation, source of funds and intended use.
               </li>
               <li>
                 <strong className={LABEL}>What you record:</strong> company details, share classes and holdings, wallet
                 addresses, the names, addresses and email addresses of people you add or invite, and documents you
-                upload.
+                upload. An investor&apos;s eligibility claim can include the name, professional body and membership
+                number of the accountant who certified it.
+              </li>
+              <li>
+                <strong className={LABEL}>What you do in a company:</strong> your votes on resolutions, and which
+                company notices you open.
               </li>
               <li>
                 <strong className={LABEL}>When you use the site:</strong> the server&apos;s logs record requests to the
-                app and can include network addresses. Network addresses are also used briefly to limit repeated sign-in
-                attempts.
+                app and can include network addresses. Your network address and email address are also used for a short
+                time to limit repeated sign-in attempts.
               </li>
               <li>
-                <strong className={LABEL}>In your browser:</strong> cookies that keep you signed in and protect forms,
-                and a few settings such as your theme. There are no analytics, advertising or tracking cookies.
+                <strong className={LABEL}>In your browser:</strong> cookies that keep you signed in and protect forms.
+                Your browser also keeps your theme, the last company you opened and, while you sign up or accept an
+                invitation, your email address and the link you followed. There are no analytics, advertising or
+                tracking cookies.
               </li>
             </ul>
           </Section>
@@ -80,10 +89,14 @@ export function PrivacyPolicy() {
           </Section>
           <Section title="Where it's kept and who can see it">
             <ul className={LIST}>
-              <li>Everything is stored on one server in Sydney, Australia, hosted by Amazon Web Services.</li>
+              <li>
+                Everything is stored on one server in Sydney, Australia, hosted by Amazon Web Services. Email you send
+                to hello@ledova.io is handled by Google Workspace.
+              </li>
               <li>
                 In each company, the people authorised to manage it see its records, and shareholders, employees and
-                investors see their own.
+                investors see their own. Companies don&apos;t see your phone number, date of birth, financial profile or
+                the evidence behind your eligibility claims, and see only totals for votes and notices read.
               </li>
               <li>We can reach the server and its database to run and fix the preview.</li>
               <li>
@@ -91,23 +104,24 @@ export function PrivacyPolicy() {
                 registrations can&apos;t be completed yet; use a demo account instead.
               </li>
               <li>
-                No other service receives your information. Identity checks, company register lookups, payment services,
-                push notifications and error tracking are all switched off.
+                Apart from email you send us, no other service receives your information. Identity checks, company
+                register lookups and payment services are switched off, push notifications aren&apos;t set up, and there
+                is no error tracking.
               </li>
             </ul>
           </Section>
           <Section title="How long it's kept">
             <p>
               The preview can be reset at any time, which deletes every account and record, and it keeps no backups.
-              Server logs are overwritten once they reach a set size. To have your account removed sooner, email{' '}
-              {CONTACT}. Records the app keeps unchanged by design, such as invitations and register entries, may stay
-              until the next reset.
+              Server logs are overwritten once they reach a set size.
             </p>
           </Section>
           <Section title="Your choices">
             <p>
-              You can see and correct your profile in the app. To ask what we hold about you, or to have it corrected or
-              removed, email {CONTACT}.
+              In Settings you can change your name, phone number and address, export your data and delete your account.
+              Deleting your account removes your name, date of birth, phone number and address. Your citizenship,
+              financial profile, wallets, verification records, register entries and eligibility requests stay until the
+              next reset. To change anything else, or to ask what we hold about you, email {CONTACT}.
             </p>
           </Section>
           <Section title="Running Ledova yourself">
