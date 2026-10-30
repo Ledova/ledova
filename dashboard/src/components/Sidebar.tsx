@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Link, matchPath, useLocation, type Location } from 'react-router-dom';
 import {
   HouseIcon,
@@ -45,7 +45,7 @@ interface NavItem {
   label?: string;
 }
 
-interface NavGroup {
+interface NavSection {
   id: string;
   items: NavItem[];
 }
@@ -57,7 +57,11 @@ const COMPANY: NavItem[] = [
   { destination: 'companyRegister', view: 'certificates', icon: FilesIcon },
 ];
 
-const ELIGIBILITY: NavItem = { destination: 'companyEligibility', icon: ShieldCheckIcon, label: 'Eligibility' };
+const ELIGIBILITY = {
+  destination: 'companyEligibility',
+  icon: ShieldCheckIcon,
+  label: 'Eligibility',
+} satisfies NavItem;
 const INVESTOR_ELIGIBILITY: NavItem = {
   destination: 'investorEligibility',
   icon: ShieldCheckIcon,
@@ -73,6 +77,7 @@ const YOURS: NavItem[] = [{ destination: 'settings', icon: GearIcon }];
 
 const ITEM_CLASS = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors';
 const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-text-primary';
+const CURRENT_CLASS = 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint';
 const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, LedgerTask>> = {
   companyRegisterTransfer: 'transfer',
   companyRegisterCorrection: 'corrections',
@@ -135,11 +140,133 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
       }}
       title={item.label ? title : undefined}
       aria-current={active ? 'page' : undefined}
-      className={`${ITEM_CLASS} ${active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
+      className={`${ITEM_CLASS} ${active ? CURRENT_CLASS : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
       <span>{item.label ?? title}</span>
     </Link>
+  );
+}
+
+interface GroupItem {
+  key: string;
+  label: string;
+  to: string;
+  title?: string;
+  current: boolean;
+  blocked?: boolean;
+}
+
+function GroupLink({
+  to,
+  state,
+  title,
+  current,
+  blocked = false,
+  onNavigate,
+  className = '',
+  children,
+}: Omit<GroupItem, 'key' | 'label'> & {
+  state?: unknown;
+  onNavigate?: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const context = useCompanyContext();
+  return (
+    <Link
+      to={context?.companyPath(to) ?? to}
+      state={state}
+      title={title}
+      onClick={(event) => {
+        if (blocked) event.preventDefault();
+        else onNavigate?.();
+      }}
+      onAuxClick={(event) => {
+        if (blocked) event.preventDefault();
+      }}
+      aria-current={current ? 'page' : undefined}
+      aria-disabled={blocked || undefined}
+      className={`${ITEM_CLASS} ${className} ${current ? CURRENT_CLASS : IDLE_CLASS} ${blocked ? 'cursor-not-allowed opacity-50' : ''}`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function NavGroup({
+  icon: Icon,
+  label,
+  title,
+  to,
+  state,
+  active,
+  current,
+  blocked,
+  items,
+  onNavigate,
+}: {
+  icon: Icon;
+  label: string;
+  title?: string;
+  to: string;
+  state?: unknown;
+  active: boolean;
+  current: boolean;
+  blocked?: boolean;
+  items: GroupItem[];
+  onNavigate?: () => void;
+}) {
+  const location = useLocation();
+  const place = `${location.pathname}${location.hash}`;
+  const [shownPlace, setShownPlace] = useState(place);
+  const [expanded, setExpanded] = useState(active);
+  const id = useId();
+  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+
+  if (shownPlace !== place) {
+    setShownPlace(place);
+    if (active) setExpanded(true);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <GroupLink
+          to={to}
+          state={state}
+          title={title}
+          current={current}
+          blocked={blocked}
+          onNavigate={onNavigate}
+          className="min-w-0 flex-1"
+        >
+          <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
+          <span>{label}</span>
+        </GroupLink>
+        {items.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded(!expanded)}
+            aria-label={`${expanded ? 'Collapse' : 'Expand'} ${label} navigation`}
+            aria-expanded={expanded}
+            aria-controls={id}
+            className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
+          >
+            <Caret size={16} />
+          </button>
+        )}
+      </div>
+      {items.length > 0 && (
+        <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
+          {items.map(({ key, label, ...item }) => (
+            <GroupLink key={key} {...item} state={state} onNavigate={onNavigate}>
+              {label}
+            </GroupLink>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -148,11 +275,6 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
   const location = useLocation();
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
-  const current = active;
-  const place = `${location.pathname}${location.hash}`;
-  const [shownPlace, setShownPlace] = useState(place);
-  const [expanded, setExpanded] = useState(current);
-  const id = useId();
   const tasks = Object.entries(LEDGER_TASKS);
   const hashTask = location.pathname === path ? location.hash.slice(1) : '';
   const routedTask = ledgerTask(hashTask);
@@ -183,65 +305,25 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
         : companyContext?.companyUuid
           ? { registerCompany: companyContext.companyUuid }
           : undefined;
-  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
-
-  if (shownPlace !== place) {
-    setShownPlace(place);
-    if (current) setExpanded(true);
-  }
-
-  const navigate = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (blocks(event.currentTarget.hash.slice(1) || undefined)) event.preventDefault();
-    else onNavigate?.();
-  };
 
   return (
-    <div>
-      <div className="flex items-center gap-1">
-        <Link
-          to={companyContext?.companyPath(path) ?? path}
-          state={context}
-          onClick={navigate}
-          onAuxClick={(event) => {
-            if (blocks()) event.preventDefault();
-          }}
-          aria-current={active && !selectedTask ? 'page' : undefined}
-          aria-disabled={blocked || undefined}
-          className={`${ITEM_CLASS} min-w-0 flex-1 ${active && !selectedTask ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocked ? 'cursor-not-allowed opacity-50' : ''}`}
-        >
-          <BookOpenIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-          <span>{pageTitle('companyRegister')}</span>
-        </Link>
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} Ledger navigation`}
-          aria-expanded={expanded}
-          aria-controls={id}
-          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
-        >
-          <Caret size={16} />
-        </button>
-      </div>
-      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-        {tasks.map(([key, label]) => (
-          <Link
-            key={key}
-            to={companyContext?.companyPath(`${path}#${key}`) ?? `${path}#${key}`}
-            state={context}
-            onClick={navigate}
-            onAuxClick={(event) => {
-              if (blocks(key)) event.preventDefault();
-            }}
-            aria-current={task === key ? 'page' : undefined}
-            aria-disabled={blocks(key) || undefined}
-            className={`${ITEM_CLASS} ${task === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocks(key) ? 'cursor-not-allowed opacity-50' : ''}`}
-          >
-            {label}
-          </Link>
-        ))}
-      </div>
-    </div>
+    <NavGroup
+      icon={BookOpenIcon}
+      label={pageTitle('companyRegister')}
+      to={path}
+      state={context}
+      active={active}
+      current={active && !selectedTask}
+      blocked={blocks()}
+      onNavigate={onNavigate}
+      items={tasks.map(([key, label]) => ({
+        key,
+        label,
+        to: `${path}#${key}`,
+        current: task === key,
+        blocked: blocks(key),
+      }))}
+    />
   );
 }
 
@@ -250,10 +332,6 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
   const location = useLocation();
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
-  const place = `${location.pathname}${location.hash}`;
-  const [shownPlace, setShownPlace] = useState(place);
-  const [expanded, setExpanded] = useState(active);
-  const id = useId();
   const children = Object.entries(SHAREHOLDER_VIEWS);
   const routedView =
     location.pathname === path
@@ -265,67 +343,26 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
   const selectedChild = children.some(([key]) => key === selected);
   const blocked = location.pathname === path && (!state || state.blocked);
   const blocks = (view: string) => blocked && view !== (state?.shareholderView ?? selected);
-  const context = ledgerContext(location, state, companyContext?.companyUuid);
-  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
-
-  if (shownPlace !== place) {
-    setShownPlace(place);
-    if (active) setExpanded(true);
-  }
-
-  const navigate = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (blocks(event.currentTarget.hash.slice(1))) event.preventDefault();
-    else onNavigate?.();
-  };
 
   return (
-    <div>
-      <div className="flex items-center gap-1">
-        <Link
-          to={companyContext?.companyPath(`${path}#shareholders`) ?? `${path}#shareholders`}
-          state={context}
-          onClick={navigate}
-          onAuxClick={(event) => {
-            if (blocks('shareholders')) event.preventDefault();
-          }}
-          aria-current={active && !selectedChild ? 'page' : undefined}
-          aria-disabled={blocks('shareholders') || undefined}
-          className={`${ITEM_CLASS} min-w-0 flex-1 ${active && !selectedChild ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocks('shareholders') ? 'cursor-not-allowed opacity-50' : ''}`}
-        >
-          <UsersThreeIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-          <span>{pageTitle('companyRegister', 'shareholders')}</span>
-        </Link>
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} Shareholders navigation`}
-          aria-expanded={expanded}
-          aria-controls={id}
-          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
-        >
-          <Caret size={16} />
-        </button>
-      </div>
-      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-        {children.map(([key, label]) => (
-          <Link
-            key={key}
-            to={companyContext?.companyPath(`${path}#${key}`) ?? `${path}#${key}`}
-            state={context}
-            title={key === 'awards' ? label : undefined}
-            onClick={navigate}
-            onAuxClick={(event) => {
-              if (blocks(key)) event.preventDefault();
-            }}
-            aria-current={selected === key ? 'page' : undefined}
-            aria-disabled={blocks(key) || undefined}
-            className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocks(key) ? 'cursor-not-allowed opacity-50' : ''}`}
-          >
-            {key === 'awards' ? 'Employee scheme' : label}
-          </Link>
-        ))}
-      </div>
-    </div>
+    <NavGroup
+      icon={UsersThreeIcon}
+      label={pageTitle('companyRegister', 'shareholders')}
+      to={`${path}#shareholders`}
+      state={ledgerContext(location, state, companyContext?.companyUuid)}
+      active={active}
+      current={active && !selectedChild}
+      blocked={blocks('shareholders')}
+      onNavigate={onNavigate}
+      items={children.map(([key, label]) => ({
+        key,
+        label: key === 'awards' ? 'Employee scheme' : label,
+        title: key === 'awards' ? label : undefined,
+        to: `${path}#${key}`,
+        current: selected === key,
+        blocked: blocks(key),
+      }))}
+    />
   );
 }
 
@@ -335,10 +372,6 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   const location = useLocation();
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
-  const place = `${location.pathname}${location.hash}`;
-  const [shownPlace, setShownPlace] = useState(place);
-  const [expanded, setExpanded] = useState(active);
-  const id = useId();
   const selected =
     location.pathname === CERTIFICATES_PATH
       ? 'certificates'
@@ -351,143 +384,63 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   const certificateTarget = certificatesLocation({ search: '', state: context });
   const certificatePath = `${certificateTarget.pathname}${certificateTarget.search}`;
   const certificatesBlocked = location.pathname === path && !!state?.held;
-  const links: { key: string; label: string; title?: string; to: string; blocked: boolean }[] = DOCUMENT_VIEWS.filter(
+  const items: GroupItem[] = DOCUMENT_VIEWS.filter(
     ({ key }) => key === 'certificates' || companyContext?.company?.canReadRegister,
   ).map(({ key, label }) => ({
     key,
     label,
     to: key === 'certificates' ? certificatePath : `${path}#${key}`,
+    current: selected === key,
     blocked: key === 'certificates' && certificatesBlocked,
   }));
   if (companyContext?.company?.isOwner && isCompany)
-    links.splice(1, 0, {
+    items.splice(1, 0, {
       key: 'publications',
       label: 'Published',
       title: pageTitle('companyPublications'),
       to: DESTINATIONS.companyPublications.path,
+      current: selected === 'publications',
       blocked: certificatesBlocked,
     });
-  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
-  const single = links.length === 1;
-
-  if (shownPlace !== place) {
-    setShownPlace(place);
-    if (active) setExpanded(true);
-  }
+  const single = items.length === 1;
 
   return (
-    <div>
-      <div className="flex items-center gap-1">
-        <Link
-          to={companyContext?.companyPath(certificatePath) ?? certificatePath}
-          state={context}
-          onClick={(event) => {
-            if (certificatesBlocked) event.preventDefault();
-            else onNavigate?.();
-          }}
-          onAuxClick={(event) => {
-            if (certificatesBlocked) event.preventDefault();
-          }}
-          aria-current={single && active ? 'page' : undefined}
-          aria-disabled={certificatesBlocked || undefined}
-          className={`${ITEM_CLASS} min-w-0 flex-1 ${single && active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${certificatesBlocked ? 'cursor-not-allowed opacity-50' : ''}`}
-        >
-          <FilesIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-          <span>Documents</span>
-        </Link>
-        {!single && (
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            aria-label={`${expanded ? 'Collapse' : 'Expand'} Documents navigation`}
-            aria-expanded={expanded}
-            aria-controls={id}
-            className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
-          >
-            <Caret size={16} />
-          </button>
-        )}
-      </div>
-      {!single && (
-        <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-          {links.map(({ key, label, title, to, blocked }) => (
-            <Link
-              key={key}
-              to={companyContext?.companyPath(to) ?? to}
-              state={context}
-              title={title}
-              onClick={(event) => {
-                if (blocked) event.preventDefault();
-                else onNavigate?.();
-              }}
-              onAuxClick={(event) => {
-                if (blocked) event.preventDefault();
-              }}
-              aria-current={selected === key ? 'page' : undefined}
-              aria-disabled={blocked || undefined}
-              className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS} ${blocked ? 'cursor-not-allowed opacity-50' : ''}`}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
+    <NavGroup
+      icon={FilesIcon}
+      label="Documents"
+      to={certificatePath}
+      state={context}
+      active={active}
+      current={single && active}
+      blocked={certificatesBlocked}
+      onNavigate={onNavigate}
+      items={single ? [] : items}
+    />
   );
 }
 
 function EligibilityGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
-  const context = useCompanyContext();
   const location = useLocation();
-  const place = `${location.pathname}${location.hash}`;
-  const [shownPlace, setShownPlace] = useState(place);
-  const [expanded, setExpanded] = useState(active);
-  const id = useId();
-  const path = DESTINATIONS.companyEligibility.path;
   const supporting = location.pathname === COMPANY_DOCUMENTS_PATH;
-  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
-
-  if (shownPlace !== place) {
-    setShownPlace(place);
-    if (active) setExpanded(true);
-  }
-
   return (
-    <div>
-      <div className="flex items-center gap-1">
-        <Link
-          to={context?.companyPath(path) ?? path}
-          onClick={onNavigate}
-          title={pageTitle('companyEligibility')}
-          aria-current={active && !supporting ? 'page' : undefined}
-          className={`${ITEM_CLASS} min-w-0 flex-1 ${active && !supporting ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
-        >
-          <ShieldCheckIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-          <span>{ELIGIBILITY.label}</span>
-        </Link>
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${ELIGIBILITY.label} navigation`}
-          aria-expanded={expanded}
-          aria-controls={id}
-          className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
-        >
-          <Caret size={16} />
-        </button>
-      </div>
-      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-        <Link
-          to={context?.companyPath(COMPANY_DOCUMENTS_PATH) ?? COMPANY_DOCUMENTS_PATH}
-          onClick={onNavigate}
-          title="Company documents"
-          aria-current={supporting ? 'page' : undefined}
-          className={`${ITEM_CLASS} ${supporting ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
-        >
-          Supporting
-        </Link>
-      </div>
-    </div>
+    <NavGroup
+      icon={ShieldCheckIcon}
+      label={ELIGIBILITY.label}
+      title={pageTitle('companyEligibility')}
+      to={DESTINATIONS.companyEligibility.path}
+      active={active}
+      current={active && !supporting}
+      onNavigate={onNavigate}
+      items={[
+        {
+          key: 'supporting',
+          label: 'Supporting',
+          title: 'Company documents',
+          to: COMPANY_DOCUMENTS_PATH,
+          current: supporting,
+        },
+      ]}
+    />
   );
 }
 
@@ -502,65 +455,24 @@ function SettingsGroup({
 }) {
   const context = useCompanyContext();
   const location = useLocation();
-  const place = `${location.pathname}${location.hash}`;
-  const [shownPlace, setShownPlace] = useState(place);
-  const [expanded, setExpanded] = useState(active);
-  const id = useId();
   const selected = settingsView(location.pathname, location.hash);
   const items = SETTINGS_VIEWS.filter(
     (item) =>
       (item.key === 'profile' || !!context?.company?.canManage) &&
       (selected === item.key || navigation.items.includes(item)),
   );
-  const Caret = expanded ? CaretDownIcon : CaretRightIcon;
   const single = items.length === 1;
 
-  if (shownPlace !== place) {
-    setShownPlace(place);
-    if (active) setExpanded(true);
-  }
-
   return (
-    <div>
-      <div className="flex items-center gap-1">
-        <Link
-          to={context?.companyPath(navigation.defaultPath) ?? navigation.defaultPath}
-          onClick={onNavigate}
-          aria-current={single && active ? 'page' : undefined}
-          className={`${ITEM_CLASS} min-w-0 flex-1 ${single && active ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
-        >
-          <GearIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-          <span>Settings</span>
-        </Link>
-        {!single && (
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            aria-label={`${expanded ? 'Collapse' : 'Expand'} Settings navigation`}
-            aria-expanded={expanded}
-            aria-controls={id}
-            className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
-          >
-            <Caret size={16} />
-          </button>
-        )}
-      </div>
-      {!single && (
-        <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-          {items.map(({ key, label, to }) => (
-            <Link
-              key={key}
-              to={context?.companyPath(to) ?? to}
-              onClick={onNavigate}
-              aria-current={selected === key ? 'page' : undefined}
-              className={`${ITEM_CLASS} ${selected === key ? 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint' : IDLE_CLASS}`}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
+    <NavGroup
+      icon={GearIcon}
+      label="Settings"
+      to={navigation.defaultPath}
+      active={active}
+      current={single && active}
+      onNavigate={onNavigate}
+      items={single ? [] : items.map(({ key, label, to }) => ({ key, label, to, current: selected === key }))}
+    />
   );
 }
 
@@ -591,7 +503,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
       ? { ...INVESTOR_ELIGIBILITY, label: 'Your eligibility' }
       : INVESTOR_ELIGIBILITY;
 
-  const groups: NavGroup[] = [
+  const groups: NavSection[] = [
     ...(companyTasks ? [{ id: 'company', items: companyItems }] : []),
     ...(!companyTasks ? [{ id: 'shares', items: PERSONAL }] : []),
     { id: 'yours', items: role.isKnown && role.isInvestor ? [investorEligibility, ...YOURS] : YOURS },
