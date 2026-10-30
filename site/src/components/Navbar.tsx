@@ -27,7 +27,12 @@ export function Navbar() {
   }, [mobileOpen]);
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-border-subtle bg-surface-base/90 backdrop-blur-md">
+    <nav
+      onBlur={(event) => {
+        if (mobileOpen && event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) closeMenu();
+      }}
+      className="fixed inset-x-0 top-0 z-50 border-b border-border-subtle bg-surface-base/90 backdrop-blur-md"
+    >
       <div className="mx-auto grid h-16 max-w-6xl grid-cols-[auto_1fr_auto] items-center px-5 md:h-20 md:px-8 lg:grid-cols-[1fr_auto_1fr]">
         <Link to="/" onClick={closeMenu} className="col-start-1 justify-self-start">
           <Logo />

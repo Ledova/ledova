@@ -222,7 +222,7 @@ export function Home() {
           <div>
             {QUESTIONS.map(({ question, answer }) => (
               <details key={question} className="group border-b border-border-subtle">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-sm font-medium text-text-primary group-first:pt-0 [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 pb-5 pt-4 text-sm font-medium text-text-primary group-first:pt-0 [&::-webkit-details-marker]:hidden">
                   {question}
                   <span aria-hidden="true" className="text-lg leading-none text-text-muted group-open:hidden">
                     +

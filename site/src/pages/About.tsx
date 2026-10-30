@@ -30,7 +30,7 @@ export function About() {
           <h2 className={SECTION_HEADING}>What Ledova helps you do</h2>
           <ul className="mt-8">
             {CAPABILITIES.map(({ title, body }) => (
-              <li key={title} className="flex flex-col gap-1.5 border-t border-border-subtle py-5 lg:py-6">
+              <li key={title} className="flex flex-col gap-1.5 border-t border-border-subtle py-5 last:pb-0 lg:py-6">
                 <h3 className="text-base font-semibold text-text-primary lg:text-lg">{title}</h3>
                 <p className="text-[15px] leading-relaxed text-text-muted lg:text-base">{body}</p>
               </li>

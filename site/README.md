@@ -40,11 +40,12 @@ the repository root and never edited
 counterparts, are genuine localhost captures of fictional Purpose Demo on 30 October 2026.
 The homepage shows the capture matching the website theme, including a saved preference.
 Screens narrower than 640 px show the `-phone.jpg` and `-phone-dark.jpg` versions instead: the same
-pages captured 390 px wide and cropped to their top 520 px, so their text stays readable.
+pages captured 390 px wide, so their text stays readable.
 These are static previews; they do not call the API or operate the depicted application.
 
 When updating them, capture the current local demo with fictional data, check every visible field
-before publication and crop only irrelevant margins. Never publish production records, credentials
+before publication and crop only irrelevant margins; a phone capture keeps the top 520 px of its
+page. Never publish production records, credentials
 or private evidence. Keep original captures outside Git under `~/Developer/ledova-artifacts/`.
 
 ## Commands
