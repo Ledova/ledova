@@ -4,7 +4,7 @@ export function OwnershipMetrics({ summary, own }: { summary: CompanyOwnershipSu
   const unopened = summary.classes.filter(({ initialized }) => !initialized).length;
   return (
     <section aria-label="Company ownership summary" className="border-b border-border-subtle pb-4">
-      <dl className={`grid grid-cols-2 gap-4 sm:gap-6 ${own === undefined ? 'sm:grid-cols-3' : 'sm:grid-cols-4'}`}>
+      <dl className={`grid grid-cols-2 gap-4 sm:gap-6 ${own === undefined ? 'sm:grid-cols-3' : 'md:grid-cols-4'}`}>
         {[
           ...(own === undefined ? [] : [['Your shares', formatShareCount(own)]]),
           ['Issued shares', summary.issuedSupply === null ? 'Not complete' : formatShareCount(summary.issuedSupply)],

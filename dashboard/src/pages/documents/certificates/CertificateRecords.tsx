@@ -124,7 +124,7 @@ export function CertificateRecords({
         </p>
         <p className="text-text-muted">Requested {formatDate(request.createdAt)}</p>
       </div>
-      <div className="flex flex-wrap items-center gap-2 empty:hidden">{actions(request)}</div>
+      <div className="ml-auto flex flex-wrap items-center gap-2 empty:hidden">{actions(request)}</div>
     </div>
   );
   return (

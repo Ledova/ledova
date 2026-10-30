@@ -857,12 +857,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   certificates = certificates.map((row) => (row.status === 'requested' ? { ...row, status: 'withdrawn' } : row));
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   const finalRecords = await screen.findByRole('list', { name: 'Certificate records' });
-  await act(async () => {
-    await client.refetchQueries({
-      queryKey: ['member-records', 'profile-one', 'account-one', 0, MEMBER_RECORD.uuid, 'requests'],
-      exact: true,
-    });
-  });
+  await act(async () => client.refetchQueries({ queryKey: [...ownDetailKey, 'requests'], exact: true }));
   fireEvent.click(await within(finalRecords).findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' }));
   await waitFor(() => expect(release).toBeTypeOf('function'));
   refused = true;
