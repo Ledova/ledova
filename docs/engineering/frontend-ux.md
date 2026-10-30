@@ -31,7 +31,8 @@ Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 simple task forms and most detailed records, including compact tables. Profile, ownership dashboards,
 company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
 invitation reviews, company-recorded member details and wide tables take the standard workspace width. Inline preparation, review
-and result states retain their collection's frame. Tables scroll within their card on small screens.
+and result states retain their collection's frame. Tables scroll within their card on small screens,
+except Shareholders, which lists each person with only the classes they hold below `md`.
 A stepped preparation (register setup, an investor issue, a transfer) is one card: its title names the class or
 the task, `FormSteps` sits at its top, each step has a small heading, and one primary action ends the step.
 Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
@@ -510,7 +511,8 @@ confirmation) or pressed, and comes in four forms:
   it at once: the shown eligibility request and Wallets' sort.
 
 All four are at least 44 px tall below `sm`, so they are easy to tap on a phone; wider screens keep
-the compact size. `MoreToggle`'s "Show …" text links keep a 44 px tap area without moving the layout.
+the compact size. `MoreToggle`'s "Show …" text links get a 44 px tap area from an `after:` overlay,
+which moves nothing.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a

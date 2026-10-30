@@ -125,7 +125,7 @@ export function CompanyShareholders({
             </p>
           )}
           {shownShareholders.length > 0 && (
-            <div className="hidden sm:block">
+            <div className="hidden md:block">
               <Table
                 caption="Company shareholders"
                 columns={[
@@ -186,7 +186,7 @@ export function CompanyShareholders({
             </div>
           )}
           {shownShareholders.length > 0 && (
-            <ul aria-label="Company shareholders" className="divide-y divide-border-subtle sm:hidden">
+            <ul aria-label="Company shareholders" className="divide-y divide-border-subtle md:hidden">
               {shownShareholders.map((member) => {
                 const details = (
                   <>

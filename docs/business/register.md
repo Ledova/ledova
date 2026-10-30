@@ -607,8 +607,8 @@ The web refinements were delivered under [#1165](https://github.com/Ledova/ledov
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
 and flagging an identity that needs review. The search, the filter and the page stay in the address.
-Details opens the shareholder's page. On phones each shareholder is one row listing only the classes
-they hold, and the row opens their page. Former shareholders follows, holding each class's
+Details opens the shareholder's page. On narrow screens each shareholder is one row listing only the
+classes they hold, and the row opens their page. Former shareholders follows, holding each class's
 Former-member history 25 at a time, with Details for a former member the register names.
 Shareholders' sidebar submenus open Employee scheme for employee awards, Member access for invitations and access, and Member requests
 for particulars and certificate requests ([member records](member-records.md)). While register work is unfinished,

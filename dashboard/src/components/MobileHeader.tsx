@@ -44,7 +44,7 @@ export function MobileHeader() {
             </p>
           )}
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
           <NotificationBell align="end" />
         </div>

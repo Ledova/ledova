@@ -77,7 +77,7 @@ export function ListSearch({
             autoComplete="off"
             data-1p-ignore
             aria-describedby={hint ? `${id}hint` : undefined}
-            className={`${FIELD_BASE} [&::-webkit-search-cancel-button]:hidden`}
+            className={`${FIELD_BASE} min-h-11 sm:min-h-0 [&::-webkit-search-cancel-button]:hidden`}
             onChange={(event) => list.type(event.target.value)}
           />
           {(list.typed || list.search) && (
