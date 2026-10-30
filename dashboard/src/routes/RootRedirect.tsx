@@ -4,7 +4,7 @@ import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { SIGNIN_PATH, SIGNUP_PATHS } from '@utils/paths';
 import { useUserProfile } from '@hooks/useUserProfile';
-import { AccountUnavailable } from './AccountUnavailable';
+import { AccountUnavailable, SessionUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';
 import { LoadError, Loading } from '@components/Ledger';
 import { pendingMemberInvitation } from '@utils/memberInvitation';
@@ -12,10 +12,11 @@ import { pendingRequestLink } from '@utils/requestLink';
 import { MEMBER_INVITATION_PATH } from '@utils/paths';
 
 export function RootRedirect() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isUnavailable, isLoading, refetch } = useAuth();
   const preferences = useUserPreferences();
   const profile = useUserProfile();
   if (isLoading || (isAuthenticated && profile.isLoading)) return null;
+  if (isUnavailable) return <SessionUnavailable onRetry={() => void refetch()} />;
   if (!isAuthenticated) return <Navigate to={SIGNIN_PATH} replace />;
   if (!profile.userProfile) return <AccountUnavailable onRetry={profile.refreshProfile} />;
   if (!profile.userProfile.isSignupCompleted)

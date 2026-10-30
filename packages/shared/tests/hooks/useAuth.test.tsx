@@ -31,19 +31,20 @@ afterEach(() => {
 });
 
 describe('shared authentication follows the client refetch policy', () => {
-  it('recovers a failed verification on a later mount without retrying it in a loop', async () => {
+  it('retries a failed check once, reports it unavailable rather than signed out, and recovers on a later mount', async () => {
     const { get, wrapper } = harness();
-    get.mockRejectedValueOnce(new Error('Network unavailable'));
+    get.mockRejectedValueOnce(new Error('Network unavailable')).mockRejectedValueOnce(new Error('Network unavailable'));
     const first = renderHook(() => useAuth(), { wrapper });
-    await waitFor(() => expect(first.result.current.isFetching).toBe(false));
+    await waitFor(() => expect(first.result.current.isUnavailable).toBe(true), { timeout: 3000 });
     expect(first.result.current.isAuthenticated).toBe(false);
-    expect(get).toHaveBeenCalledTimes(1);
+    expect(get).toHaveBeenCalledTimes(2);
     first.unmount();
 
     const second = renderHook(() => useAuth(), { wrapper });
 
     await waitFor(() => expect(second.result.current.isAuthenticated).toBe(true));
-    expect(get).toHaveBeenCalledTimes(2);
+    expect(second.result.current.isUnavailable).toBe(false);
+    expect(get).toHaveBeenCalledTimes(3);
   });
 
   it('shares one session check between consumers of the same client', async () => {
@@ -54,13 +55,23 @@ describe('shared authentication follows the client refetch policy', () => {
     expect(get).toHaveBeenCalledTimes(1);
   });
 
-  it('reports a completed check that answers invalid as signed out', async () => {
+  it('reports an invalid answer, or a 401 after the token refresh failed, as signed out without retrying', async () => {
     const { get, wrapper } = harness();
     get.mockResolvedValue({ data: { valid: false } });
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.isUnavailable).toBe(false);
     expect(get).toHaveBeenCalledTimes(1);
+
+    const expired = harness();
+    expired.get.mockRejectedValue(Object.assign(new Error('Unauthorized'), { response: { status: 401 } }));
+    const after = renderHook(() => useAuth(), { wrapper: expired.wrapper });
+
+    await waitFor(() => expect(after.result.current.isFetching).toBe(false));
+    expect(after.result.current.isAuthenticated).toBe(false);
+    expect(after.result.current.isUnavailable).toBe(false);
+    expect(expired.get).toHaveBeenCalledTimes(1);
   });
 });

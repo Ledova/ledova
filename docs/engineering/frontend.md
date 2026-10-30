@@ -288,6 +288,11 @@ entry's audience:
 
 - A signed-out visitor goes to sign in. On the eligibility request page, a company's request link
   (`?to=`) is kept for the session first; an account that can't open that page drops it.
+- A session check that fails is not a sign-out. `/auth/verify` answers `valid: false` to anyone
+  signed out, so only a 401 left after the token refresh means signed out. `useAuth`
+  (`packages/shared/src/hooks/useAuth.ts`) retries any other failure once, then reports
+  `isUnavailable`, and this guard and `RootRedirect` show `SessionUnavailable` ("We could not
+  check your session") with Try again. A failed background re-check keeps a confirmed session.
 - The session check shows until the profile, and on an investing or company page the role, is known,
   so no page appears on the way.
 - An unreadable profile (`AccountUnavailable`), or an unreadable role on an investing or company
