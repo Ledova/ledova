@@ -49,6 +49,7 @@ export type ParticularsFormProps = {
   company: string;
   member: string;
   appointment: OwnCompanyAppointment;
+  current: { name: string; address: string };
   blocked: boolean;
   onConflict: () => void;
   onMissing: () => void;
@@ -60,6 +61,7 @@ export function useParticularsPreparation({
   company,
   member,
   appointment,
+  current,
   blocked,
   onConflict,
   onMissing,
@@ -67,7 +69,13 @@ export function useParticularsPreparation({
   const client = useQueryClient();
   const navigate = useNavigate();
   const today = utcToday();
-  const [draft, setDraft] = useState<Draft>(() => ({ file: null, name: '', address: '', asAt: today, reason: '' }));
+  const [draft, setDraft] = useState<Draft>(() => ({
+    file: null,
+    name: current.name,
+    address: current.address,
+    asAt: today,
+    reason: '',
+  }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const uploaded = useRef<Upload | null>(null);

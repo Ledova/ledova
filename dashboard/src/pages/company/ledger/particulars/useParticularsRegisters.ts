@@ -16,6 +16,7 @@ export function useParticularsRegisters(
       enabled: company.classes.length > 0,
       queryFn: () => readPeople(company.classes[0], guard),
       ...READ_TIMING,
+      refetchOnMount: 'always' as const,
     })),
   });
   return { registers, people };

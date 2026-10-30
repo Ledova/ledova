@@ -33,6 +33,12 @@ export function sameScope(left: CompanyCapability[], right: CompanyCapability[])
   return Array.isArray(left) && Array.isArray(right) && [...left].sort().join('/') === [...right].sort().join('/');
 }
 
+export function delegationLabel(capabilities: CompanyCapability[], delegatable: CompanyCapability[]) {
+  return sameScope(capabilities, delegatable)
+    ? 'May delegate all of these'
+    : `May delegate: ${scopeLabels(delegatable)}`;
+}
+
 export function appointmentReceipt(data: OwnCompanyAppointment) {
   return (
     typeof data?.uuid === 'string' &&

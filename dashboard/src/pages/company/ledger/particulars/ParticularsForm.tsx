@@ -12,6 +12,7 @@ export function ParticularsForm({
   company,
   member,
   appointment,
+  current,
   blocked,
   onConflict,
   onMissing,
@@ -22,6 +23,7 @@ export function ParticularsForm({
     company,
     member,
     appointment,
+    current,
     blocked,
     onConflict,
     onMissing,
@@ -55,7 +57,8 @@ export function ParticularsForm({
           />
         </Field>
         <Field {...checks.field('address')} label={COPY.RESIDENTIAL_ADDRESS} className="sm:col-span-2">
-          <TextInput
+          <TextArea
+            rows={3}
             value={draft.address}
             maxLength={FIELD_LIMITS.RESIDENTIAL_ADDRESS}
             onChange={(event) => update({ address: event.target.value })}

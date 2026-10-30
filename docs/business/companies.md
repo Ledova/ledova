@@ -117,8 +117,9 @@ Open the team from **Settings → Team** for the selected company. Before compan
 open **Settings → Profile → Manage account → Accept a company invitation**. Investor-only accounts
 can open it too: accepting an invitation or reading your appointments needs no company appointment. The web page starts with
 appointments, the selected company's team and issued invitations; **Invite a company user** and
-**Accept a company invitation** open focused inline forms. It also keeps the owner's contextual
-Representative authority task.
+**Accept a company invitation** open focused inline forms. Someone with no appointments, other than
+a company's owner, lands straight on accepting an invitation. It also keeps the owner's contextual Representative authority
+task.
 [Company eligibility](participants.md#company-eligibility-decisions) remains available at
 `/company/eligibility` on web to authorised company users.
 

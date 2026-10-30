@@ -477,7 +477,7 @@ test.describe('the signed-in sidebar and compact account footer', () => {
         await checkTheCutEdge(await openTheSidebar(page, role));
         if (role === 'investor') {
           await page.goto('/company/team');
-          await page.getByRole('button', { name: 'Accept a company invitation', exact: true }).click();
+          await expect(page.getByRole('heading', { name: 'Accept a company invitation', exact: true })).toBeFocused();
           await expect(page.getByRole('textbox', { name: 'Invitation code', exact: true })).toBeVisible();
         }
       });
