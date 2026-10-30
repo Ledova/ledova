@@ -288,6 +288,13 @@ entry's audience:
 
 - A signed-out visitor goes to sign in. On the eligibility request page, a company's request link
   (`?to=`) is kept for the session first; an account that can't open that page drops it.
+- A session check that fails is not a sign-out. `/auth/verify` answers `valid: false` to anyone
+  signed out; that answer, or a 401, means signed out. `useAuth`
+  (`packages/shared/src/hooks/useAuth.ts`) retries any other failure once, then reports
+  `isUnavailable`, and this guard and `RootRedirect` show `SessionUnavailable` ("We could not
+  check your session") with Try again, keeping the address. A failed re-check of a confirmed
+  session shows the same message, and a check paused offline or in a hidden tab still counts as
+  checking. Mobile doesn't read `isUnavailable`: a failed check still returns it to Sign in.
 - The session check shows until the profile, and on an investing or company page the role, is known,
   so no page appears on the way.
 - An unreadable profile (`AccountUnavailable`), or an unreadable role on an investing or company
@@ -417,12 +424,12 @@ The session itself is in [authentication](security.md#authentication-and-session
 `packages/shared/src/hooks/useAuth.ts` owns the authentication query (`AUTH_QUERY_KEY`).
 `ApiClientProvider` gives the shared hooks the client's API instance ([API
 client](#frontend-rules)); the web authentication and user-preferences identity queries revalidate on focus and reconnect,
-separately from page-data reads, while mobile's `QueryClient` (`mobile/App.tsx`) revalidates on reconnect. Authentication does not retry a failed request
-automatically; a later mount may recheck. The hook exposes fetching separately from the first
-session check, so a retry does not restore initial loading, and public forms keep their nested
-authentication consumers mounted so a failure cannot create a remount loop. The protected route
-hides protected content while a cached negative is rechecked and redirects after a negative answer
-or failure.
+separately from page-data reads, while mobile's `QueryClient` (`mobile/App.tsx`) turns off focus revalidation and wires no online manager. Authentication retries a failed request once,
+except a 401; a later mount may recheck. The hook exposes fetching, including a paused check,
+separately from the first session check, so a retry does not restore initial loading, and public
+forms keep their nested authentication consumers mounted so a failure cannot create a remount loop.
+The protected route hides protected content while a cached negative is rechecked, redirects after a
+negative answer or a 401, and otherwise shows `SessionUnavailable`.
 
 On the web, signing in and verifying an email (which also signs a new person in) remove every cached
 query except the authentication root, then await an exact authentication refetch. Signing out and

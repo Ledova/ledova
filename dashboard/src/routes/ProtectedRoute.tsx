@@ -7,7 +7,7 @@ import { useUserProfile } from '@hooks/useUserProfile';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { Page } from '@components/Page';
 import { FullScreenSpinner } from '@components/FullScreenSpinner';
-import { AccountUnavailable } from './AccountUnavailable';
+import { AccountUnavailable, SessionUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT, SIGNIN_PATH } from '@utils/paths';
 import { dropRequestLink, keepRequestLink } from '@utils/requestLink';
 
@@ -29,7 +29,7 @@ function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
 }
 
 export function ProtectedRoute({ audience, children }: { audience: Audience; children: ReactNode }) {
-  const { isAuthenticated, isLoading, isFetching } = useAuth();
+  const { isAuthenticated, isUnavailable: sessionUnavailable, isLoading, isFetching, refetch } = useAuth();
   const { role, isKnown, isUnavailable, retry } = useRole();
   const { userProfile, isLoading: isProfileLoading, refreshProfile } = useUserProfile();
   const needsRole = isAuthenticated && audience !== 'everyone';
@@ -40,6 +40,8 @@ export function ProtectedRoute({ audience, children }: { audience: Audience; chi
   if (isLoading || (!isAuthenticated && isFetching) || waitingForAccount) {
     return inFrame ? <Page loading /> : <FullScreenSpinner label="Checking your session" />;
   }
+
+  if (sessionUnavailable) return <SessionUnavailable onRetry={() => void refetch()} />;
 
   if (!isAuthenticated) {
     keepRequestLink(location.pathname, location.search);

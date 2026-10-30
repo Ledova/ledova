@@ -1,10 +1,16 @@
 import { AuthLayout } from '@components/auth';
 
-export function AccountUnavailable({ onRetry }: { onRetry: () => void }) {
+export function AccountUnavailable({
+  title = 'We could not load your account',
+  onRetry,
+}: {
+  title?: string;
+  onRetry: () => void;
+}) {
   return (
     <AuthLayout>
       <div role="alert" className="text-center">
-        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">We could not load your account</h1>
+        <h1 className="font-display text-3xl tracking-[-0.01em] text-text-primary">{title}</h1>
         <p className="mt-2 text-sm text-text-muted">Check your connection and try again.</p>
         <button
           type="button"
@@ -16,4 +22,8 @@ export function AccountUnavailable({ onRetry }: { onRetry: () => void }) {
       </div>
     </AuthLayout>
   );
+}
+
+export function SessionUnavailable({ onRetry }: { onRetry: () => void }) {
+  return <AccountUnavailable title="We could not check your session" onRetry={onRetry} />;
 }
