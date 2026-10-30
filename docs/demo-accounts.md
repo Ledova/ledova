@@ -1,22 +1,34 @@
-# Local demo accounts and handover
+# Demo accounts and handover
 
 [Documentation](README.md) · [Local setup](getting-started.md)
 
-These are intentionally published fictional **localhost-only** credentials, authorised by the
-owner on 28 October 2026 (Jordan Ellis's on 29 October 2026). They are not credentials for
-ledova.io. Real passwords, tokens, cookies and runtime environment files stay outside Git.
+These are intentionally published fictional credentials. The owner authorised them for localhost on
+28 October 2026 (Jordan Ellis's on 29 October 2026) and for ledova.io on 30 October 2026, accepting
+that they are public ([#1435](https://github.com/Ledova/ledova/issues/1435)). Real passwords,
+tokens, cookies and runtime environment files stay outside Git.
 
 Last credential verification: **30 October 2026** (Australia/Sydney). All five accounts signed in
-to the local API with these passwords.
+to the local API with these passwords, and ledova.io holds the same accounts, copied that day.
+
+## Where they work
+
+| Where     | Sign in at                                                               | Data                                                    |
+| --------- | ------------------------------------------------------------------------ | ------------------------------------------------------- |
+| This Mac  | **http://localhost:5173/signin**                                         | `ledova_walkthrough_20261021` in the local PostgreSQL   |
+| ledova.io | **https://ledova.io/signin**, from the owner's allowed network addresses | A copy of the local data and its files, made 30 October |
+
+Both have the same five accounts and the same demo data as of 30 October 2026. They are separate
+copies: a change in one does not reach the other. Neither has a platform staff account, and neither
+sends email: messages such as invitations are saved to files, locally in the walkthrough's private
+mailbox and on ledova.io on the server.
 
 ## Sign in
 
-Open **http://localhost:5173/signin**. Sign out before using another account. Reuse the existing
-local PostgreSQL database `ledova_walkthrough_20261021`; do not reset it or recreate accounts for
-a fresh chat. A deliberate reset can invalidate these credentials and fixtures. It was rebuilt from
-#1421's fresh migrations, keeping every earlier record except what #1421 removed, and the
-demo data below was added again on 30 October 2026 (see the note there); the earlier copy is
-`ledova_walkthrough_20261021_before_1421`.
+Sign out before using another account. Locally, reuse the existing PostgreSQL database
+`ledova_walkthrough_20261021`; do not reset it or recreate accounts for a fresh chat. A deliberate
+reset can invalidate these credentials and fixtures. It was rebuilt from #1421's fresh migrations,
+keeping every earlier record except what #1421 removed, and the demo data below was added again on
+30 October 2026 (see the note there); the earlier copy is `ledova_walkthrough_20261021_before_1421`.
 
 | Person              | Test role                             | Email                              | Password                                      | What to test                                                                     |
 | ------------------- | ------------------------------------- | ---------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -83,7 +95,7 @@ Recorded 27 October 2026; use the running application for current balances and c
 
 Alex's Purpose member access was linked through invitation and acceptance for #1360; matching a
 display name alone grants no access. Taylor has three associations and Casey has one. Company
-aggregate sharing is enabled for the local exercise. No genuine ABR check was fabricated.
+aggregate sharing is enabled in the demo data. No genuine ABR check was fabricated.
 
 ### Demo data, 29 and 30 October 2026
 
@@ -91,6 +103,7 @@ At the owner's request, more records were added so that pages are not empty. Two
 directly in the local database through the backend's own services, because no identity provider runs
 locally: Jordan Ellis's account was created, and Taylor, Casey and Quinn, already identity-verified
 since 27 October, were made active. Every other record below went through the API as the real users.
+ledova.io holds a copy of the same records and files, made on 30 October 2026.
 
 - **Purpose Demo:**
   - Eligibility requests, each sharing the investor's name: Quinn's and Taylor's accepted, one of
@@ -108,7 +121,7 @@ since 27 October, were made active. Every other record below went through the AP
 - Taylor's request to Banksia was withdrawn.
 - Inspection copies and packs prepared before #1429 have no record of where they were produced, so
   they stay unlisted.
-- Published and Activity stay empty without the local chain.
+- Published and Activity stay empty without a chain.
 - On 30 October 2026 the files of these records were lost: the walkthrough API had run from a
   worktree, and the uploads stored under its backend folder were deleted with it. The database was
   rebuilt from `ledova_walkthrough_20261021_before_1421`. The two direct steps were repeated with the
@@ -179,10 +192,13 @@ since 27 October, were made active. Every other record below went through the AP
     decision; check GitHub before resuming.
 - The walkthrough database was rebuilt and given demo data at the owner's request.
 - [#1431](https://github.com/Ledova/ledova/issues/1431) rebuilt ledova.io on a fresh database on
-  30 October 2026, serving main `90274b07`. At the owner's choice it kept no earlier test data, so
-  it has no accounts until someone signs up and no staff account until one is created. At the
-  owner's request, every branch except `main`, every extra worktree and ledova.io's old data and
+  30 October 2026, serving main `90274b07`. At the owner's choice it kept no earlier test data. At
+  the owner's request, every branch except `main`, every extra worktree and ledova.io's old data and
   backups were then deleted ([record](operations/evidence/ledova-io-rebuild-2026-10-30.md)).
+- #1433's homepage previews were released to ledova.io the same day
+  ([#1432](https://github.com/Ledova/ledova/issues/1432)). The local demo data was then copied to
+  ledova.io ([#1435](https://github.com/Ledova/ledova/issues/1435)), so the five accounts above are
+  there with the same passwords.
 
 ## Continue on this Mac
 
@@ -208,4 +224,4 @@ PATH=/Users/ronildo/.nvm/versions/node/v22.22.2/bin:$PATH VITE_API_URL=http://lo
 The backend launcher uses its private local environment and invitation mailbox rather than external
 email. Keep those runtime files, cookie jars and invitation links out of Git and public artifacts.
 Keep `~/Developer/ledova-artifacts/` outside the repository and preserve unrelated evidence.
-Update this guide if a local test password or scenario changes.
+Update this guide if a demo password or scenario changes, locally or on ledova.io.

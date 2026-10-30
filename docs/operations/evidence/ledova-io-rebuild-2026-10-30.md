@@ -42,6 +42,6 @@ are created.
 
 At the owner's request the host keeps only what runs. The old databases and volumes, earlier
 release folders, unused images and both backups, including the off-host copy, were deleted. Main
-later gained #1433, a website-only change that is not deployed. No signer, chain or funds
-activation took place, email is still saved to files, and the physical-device acceptance in #624
-remains.
+later gained #1433, a website-only change that was not deployed with this release; it was released
+later that day under #1432. No signer, chain or funds activation took place, email is still saved
+to files, and the physical-device acceptance in #624 remains.
