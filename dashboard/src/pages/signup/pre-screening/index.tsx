@@ -1,4 +1,4 @@
-import { AuthLayout, AUTH_BUTTON_CLASS, ERROR_BANNER_CLASS, AuthHeader, AuthCard, AuthDivider } from '@components/auth';
+import { AuthLayout, ERROR_BANNER_CLASS, AuthHeader, AuthCard, AuthDivider, AuthSubmit } from '@components/auth';
 import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { Checkbox, Description, Field, Label } from '@headlessui/react';
@@ -134,16 +134,9 @@ export default function SignupPreScreening() {
             );
           })}
 
-          <button type="submit" disabled={isSubmitting} className={AUTH_BUTTON_CLASS}>
-            {isSubmitting ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Saving…</span>
-              </div>
-            ) : (
-              'Continue'
-            )}
-          </button>
+          <AuthSubmit busy={isSubmitting} busyLabel="Saving…">
+            Continue
+          </AuthSubmit>
         </form>
       </AuthCard>
 

@@ -1,4 +1,4 @@
-import { AuthLayout, AUTH_BUTTON_CLASS, AuthHeader, AuthDivider } from '@components/auth';
+import { AuthLayout, AuthHeader, AuthDivider, AuthSubmit } from '@components/auth';
 import { SIGNUP_PATHS, SITE_PATHS } from '@utils/paths';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -266,23 +266,15 @@ export default function SignupReview() {
               {completionError}
             </p>
           )}
-          <button
+          <AuthSubmit
+            busy={isSubmitting}
+            busyLabel="Completing…"
+            disabled={!canCompleteSignup || isSubmitting || isResettingAuthority}
             type="button"
             onClick={() => void completeSignup().catch(() => undefined)}
-            disabled={!canCompleteSignup || isSubmitting || isResettingAuthority}
-            className={AUTH_BUTTON_CLASS}
           >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Completing…</span>
-              </div>
-            ) : isCompany ? (
-              'Complete company setup'
-            ) : (
-              'Complete signup'
-            )}
-          </button>
+            {isCompany ? 'Complete company setup' : 'Complete signup'}
+          </AuthSubmit>
         </div>
       </div>
 

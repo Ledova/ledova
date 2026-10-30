@@ -1,4 +1,4 @@
-import { AuthLayout, AUTH_BUTTON_CLASS, ERROR_BANNER_CLASS, AuthHeader, AuthCard, AuthInput } from '@components/auth';
+import { AuthLayout, ERROR_BANNER_CLASS, AuthHeader, AuthCard, AuthInput, AuthSubmit } from '@components/auth';
 import { SIGNUP_PATHS } from '@utils/paths';
 import { clearSessionQueries } from '@utils/session';
 import { useNavigate } from 'react-router-dom';
@@ -151,18 +151,9 @@ export function YourAccount() {
             </>
           )}
 
-          <button type="submit" disabled={isSubmitting} className={AUTH_BUTTON_CLASS}>
-            {isSubmitting ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Changing email…</span>
-              </div>
-            ) : changed ? (
-              'Change email and start again'
-            ) : (
-              'Continue'
-            )}
-          </button>
+          <AuthSubmit busy={isSubmitting} busyLabel="Changing email…">
+            {changed ? 'Change email and start again' : 'Continue'}
+          </AuthSubmit>
         </form>
       </AuthCard>
     </AuthLayout>

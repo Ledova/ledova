@@ -1,11 +1,4 @@
-import {
-  AUTH_BUTTON_CLASS,
-  ERROR_BANNER_CLASS,
-  AuthCard,
-  AuthInput,
-  authFieldClass,
-  AuthDivider,
-} from '@components/auth';
+import { ERROR_BANNER_CLASS, AuthCard, AuthInput, authFieldClass, AuthDivider, AuthSubmit } from '@components/auth';
 import React from 'react';
 import {
   FIELD_LIMITS,
@@ -154,16 +147,9 @@ export function FinancialProfileForm({
             )}
           </Field>
 
-          <button type="submit" disabled={isSubmitting} onClick={submit} className={AUTH_BUTTON_CLASS}>
-            {isSubmitting ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Saving…</span>
-              </div>
-            ) : (
-              'Continue'
-            )}
-          </button>
+          <AuthSubmit busy={isSubmitting} busyLabel="Saving…" onClick={submit}>
+            Continue
+          </AuthSubmit>
         </form>
       </AuthCard>
 
