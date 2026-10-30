@@ -12,15 +12,20 @@ to the local API with these passwords, and ledova.io holds the same accounts, co
 
 ## Where they work
 
-| Where     | Sign in at                                                               | Data                                                    |
-| --------- | ------------------------------------------------------------------------ | ------------------------------------------------------- |
-| This Mac  | **http://localhost:5173/signin**                                         | `ledova_walkthrough_20261021` in the local PostgreSQL   |
-| ledova.io | **https://ledova.io/signin**, from the owner's allowed network addresses | A copy of the local data and its files, made 30 October |
+| Where     | Sign in at                                     | Data                                                    |
+| --------- | ---------------------------------------------- | ------------------------------------------------------- |
+| This Mac  | **http://localhost:5173/signin**               | `ledova_walkthrough_20261021` in the local PostgreSQL   |
+| ledova.io | **https://ledova.io/signin**, from any network | A copy of the local data and its files, made 30 October |
 
 Both have the same five accounts and the same demo data as of 30 October 2026. They are separate
 copies: a change in one does not reach the other. Neither has a platform staff account, and neither
 sends email: messages such as invitations are saved to files, locally in the walkthrough's private
 mailbox and on ledova.io on the server.
+
+ledova.io has answered from any network since 30 October 2026
+([#1437](https://github.com/Ledova/ledova/issues/1437)), so anyone who reads this guide can sign in
+there and change its demo data. Each account takes 10 sign-in attempts an hour from everyone
+together, so give each person a different account.
 
 ## Sign in
 
@@ -198,7 +203,8 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 - #1433's homepage previews were released to ledova.io the same day
   ([#1432](https://github.com/Ledova/ledova/issues/1432)). The local demo data was then copied to
   ledova.io ([#1435](https://github.com/Ledova/ledova/issues/1435)), so the five accounts above are
-  there with the same passwords.
+  there with the same passwords. Afterwards ledova.io's app was opened to every network
+  ([#1437](https://github.com/Ledova/ledova/issues/1437)).
 
 ## Continue on this Mac
 

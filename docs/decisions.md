@@ -41,6 +41,7 @@ stay here as history and are marked where they appear.
 | [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation)                                 | 11 October 2026                                | Current                                                                                                                            |
 | [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation)                      | 11 October 2026                                | Completed under #979; signer and funds decisions remain separate                                                                   |
 | [ledova.io rebuild of 30 October 2026](#ledovaio-rebuild-of-30-october-2026)                                    | 30 October 2026                                | Completed under #1431; no earlier records kept; old data and backups deleted                                                       |
+| [ledova.io open to the public](#ledovaio-open-to-the-public)                                                    | 30 October 2026                                | Current; #1437; `/admin/` still limited to the owner's addresses                                                                   |
 | [Backend migration baseline](#backend-migration-baseline)                                                       | 10 October 2026                                | Superseded 11 October                                                                                                              |
 | [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands                                                                     |
 | [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred; offering payments removed under #1421                                                   |
@@ -1145,6 +1146,21 @@ folders outside the repository were kept. The
 [operational record](operations/evidence/ledova-io-rebuild-2026-10-30.md) owns the
 release and its checks. Signer activation and real-funds use remain separate
 decisions.
+
+## ledova.io open to the public
+
+**Owner direction, 30 October 2026**, given in the session under
+[#1437](https://github.com/Ledova/ledova/issues/1437): "My ip address keep
+changing all the time so the idea of blocking by ip address is quite annoying so
+I think we should open to the public specially because I want to show it to
+some friends". ledova.io's app and API therefore answer from any network; before,
+only the owner's addresses reached them. `/admin/` still refuses other
+addresses, although no platform staff account exists. The demo passwords are
+published at the owner's choice
+([#1435](https://github.com/Ledova/ledova/issues/1435)), so anyone can sign in
+to the [demo accounts](demo-accounts.md) there. Email is still saved to files,
+so a new sign-up cannot verify its address or create a company. Signer
+activation and real-funds use remain separate decisions.
 
 ## Backend migration baseline
 
