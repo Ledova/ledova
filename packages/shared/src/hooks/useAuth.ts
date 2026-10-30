@@ -7,8 +7,6 @@ import { useApiClient } from './useApiClient';
 export const AUTH_QUERY_ROOT = ['auth'] as const;
 export const AUTH_QUERY_KEY = [...AUTH_QUERY_ROOT, 'verify'] as const;
 
-// The check answers 200 with `valid: false` for anyone signed out, so a failed check means the session
-// could not be checked, except a 401 left after the client's token refresh also failed.
 const signedOut = (error: unknown) => (error as { response?: { status?: number } } | null)?.response?.status === 401;
 
 export function useAuth() {
