@@ -7,13 +7,11 @@ import { DOWNLOAD_FAILED, STAGE_TONES } from '@pages/company/shared/proposals';
 export function RecordShell({
   children,
   hidden,
-  className = 'flex flex-col gap-3 py-4',
   focusKey,
   landed,
 }: {
   children: ReactNode;
   hidden?: boolean;
-  className?: string;
   focusKey?: string;
   landed?: Landed;
 }) {
@@ -27,7 +25,7 @@ export function RecordShell({
     item.current?.scrollIntoView?.({ block: 'start' });
   }, [key, hidden]);
   return (
-    <li ref={item} hidden={hidden} tabIndex={key ? -1 : undefined} className={className}>
+    <li ref={item} hidden={hidden} tabIndex={key ? -1 : undefined} className="flex flex-col gap-3 py-4">
       {landed?.outcome && <Outcome>{landed.outcome}</Outcome>}
       {children}
     </li>

@@ -79,7 +79,6 @@ export function CorrectionForm({
           {...checks.field('file')}
           label={COPY.AUTHORITY_DOCUMENT}
           hint={COPY.AUTHORITY_DOCUMENT_NOTE}
-          showUploadHint={false}
           onFile={(file) => update({ file })}
         />
         <Field {...checks.field('reason')} label={COPY.REASON} className="sm:col-span-2">

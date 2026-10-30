@@ -729,7 +729,6 @@ export function CompanyMemberAccess({
                   <FileField
                     {...checks.field('file')}
                     label="Company supporting document"
-                    showUploadHint={false}
                     disabled={held}
                     onFile={selectFile}
                   />

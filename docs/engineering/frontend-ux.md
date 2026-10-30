@@ -226,8 +226,9 @@ behind **Show award record details**, with read-only validation targets that ope
 editable fields. Keep the required fields and guards, without repeated descriptions or routine
 upload hints, and show recovery guidance only while the original preparation is held.
 Issue records align the recipient and issue type, shares, company issue date and status in the
-same labelled summary grid, with the investor amount where relevant. Keep the issued or not-issued
-fact beside the status and use the recipient as the record heading, without separate family headings.
+same labelled summary grid (`Fact` in `dashboard/src/components/Ledger.tsx` for each plain label
+and value), with the investor amount where relevant. Keep the issued or not-issued fact beside the
+status and use the recipient as the record heading, without separate family headings.
 Longer state explanations, compliance responsibilities, terms, history and downloads open under
 **Show details and documents**.
 Transfer records align From, To, Shares,
@@ -509,7 +510,8 @@ confirmation) or pressed, and comes in four forms:
   right-aligned row with any plain actions first and the primary submit last. The form's own submit
   handler does the work, so Enter in a field submits the form unless the submit button is disabled.
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
-  the title row's way back, Add share class, a shareholder's Details, Issue shares to them.
+  the title row's way back, Add share class, a shareholder's Details, Issue shares to them. While a
+  held Ledger action blocks leaving, `disabled` shows it as a disabled action instead.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
   it at once, such as the shown eligibility request.
 
@@ -914,9 +916,9 @@ Some messages keep their own form:
 - **Files.** A web upload is `FileField`, a `Field` around a file input. It applies `UPLOAD_RULE`
   (`field-limits.ts`), the server's rule: a PDF, PNG or JPEG whose type matches its extension, up to
   10 MB. Its empty control reads **Choose file**, showing the filename after selection while keeping
-  the native picker, keyboard focus and accessible label. By default its hint starts with
-  "PDF, PNG or JPEG, up to 10 MB." Compact forms such as
-  Investor issue and employee awards may omit this routine hint with `showUploadHint={false}`. Validation stays
+  the native picker, keyboard focus and accessible label. Most forms omit the routine hint; one that
+  shows it passes `showUploadHint`, and its hint then starts with "PDF, PNG or JPEG, up to 10 MB."
+  (class rights, bringing records, award adjustments and document attachments). Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
   of up to 10 MB." on the field. The evidence in an eligibility claim keeps its dashed
   area but applies the same rule.

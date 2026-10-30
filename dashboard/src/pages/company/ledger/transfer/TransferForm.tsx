@@ -110,7 +110,6 @@ export function TransferForm({
     <FileField
       {...checks.field(`${kind}Document`)}
       label={label}
-      showUploadHint={false}
       onFile={(file) => {
         setOperation(null);
         setFiles((current) => ({ ...current, [kind]: file ?? undefined }));

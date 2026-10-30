@@ -54,6 +54,7 @@ export function DocumentAttachments({
                   </p>
                 ) : (
                   <FileField
+                    showUploadHint
                     label="File"
                     onFile={(file) => update(documents.map((row) => (row.id === document.id ? { ...row, file } : row)))}
                   />

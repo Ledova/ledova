@@ -89,7 +89,6 @@ export function GrantForm({
     <FileField
       {...checks.field(`${kind}Document`)}
       label={DOCUMENTS[kind]}
-      showUploadHint={false}
       onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
     />
   );

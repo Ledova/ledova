@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { formatDate, shareCount, type RegisterTransfer, type RegisterTransferDecisionPreview } from '@ledova/shared';
-import { ShowMore, Row, Rows, Section } from '@components/Ledger';
+import { ShowMore, Row, Rows, Section, Fact } from '@components/Ledger';
 import { Table } from '@components/List';
 
 export function TransferReview({
@@ -20,18 +20,11 @@ export function TransferReview({
     <>
       <Section title="Transfer summary">
         <dl className="grid gap-4 sm:grid-cols-3">
-          <div className="min-w-0">
-            <dt className="text-sm text-text-muted">From</dt>
-            <dd className="mt-1 break-words text-sm font-medium">{from}</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-sm text-text-muted">To</dt>
-            <dd className="mt-1 break-words text-sm font-medium">{to}</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-sm text-text-muted">Shares</dt>
-            <dd className="mt-1 text-sm font-medium tabular-nums">{shareCount(preview.shares)}</dd>
-          </div>
+          <Fact label="From">{from}</Fact>
+          <Fact label="To">{to}</Fact>
+          <Fact label="Shares" numeric>
+            {shareCount(preview.shares)}
+          </Fact>
         </dl>
       </Section>
       {showOwnership && (

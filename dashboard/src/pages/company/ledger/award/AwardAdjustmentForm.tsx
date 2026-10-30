@@ -78,7 +78,7 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
             onChange={(event) => form.setReason(event.target.value)}
           />
         </Field>
-        <FileField {...checks.field('file')} label={COPY.ADJUSTMENT_DOCUMENT} onFile={form.setFile} />
+        <FileField showUploadHint {...checks.field('file')} label={COPY.ADJUSTMENT_DOCUMENT} onFile={form.setFile} />
       </fieldset>
       <Failure>{form.error}</Failure>
       {form.held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}

@@ -277,7 +277,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
         <h3 ref={formHeading} tabIndex={-1} className="text-sm font-medium text-text-primary focus:outline-none">
           Upload a payslip
         </h3>
-        <FileField key={selection} label="File" showUploadHint={false} disabled={upload.isPending} onFile={setFile} />
+        <FileField key={selection} label="File" disabled={upload.isPending} onFile={setFile} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Note">
             <TextInput

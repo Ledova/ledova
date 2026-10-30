@@ -151,7 +151,6 @@ export function AllotmentForm({
     <FileField
       {...checks.field(`${kind}Document`)}
       label={label ?? COPY.DOCUMENTS[kind]}
-      showUploadHint={false}
       onFile={(file) => setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
     />
   );

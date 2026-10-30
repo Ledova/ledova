@@ -71,7 +71,7 @@ export function AwardVestingForm({
           <TextInput type="date" max={today} value={vestedOn} onChange={(event) => setVestedOn(event.target.value)} />
         </Field>
         <div className="sm:col-span-2 lg:col-span-1">
-          <FileField {...checks.field('file')} label="Document" showUploadHint={false} onFile={setFile} />
+          <FileField {...checks.field('file')} label="Document" onFile={setFile} />
         </div>
       </fieldset>
       <Failure>{error}</Failure>

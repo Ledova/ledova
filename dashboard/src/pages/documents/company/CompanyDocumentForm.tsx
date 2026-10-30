@@ -87,7 +87,7 @@ export function CompanyDocumentForm({
           disabled={!available}
           onChange={(type) => onTypeChange(type as DocumentType)}
         />
-        <FileField {...checks.field('file')} label="File" showUploadHint={false} onFile={setFile} />
+        <FileField {...checks.field('file')} label="File" onFile={setFile} />
       </fieldset>
       <FormActions>
         <PageAction label="Cancel" disabled={upload.isPending} onClick={onClose} />

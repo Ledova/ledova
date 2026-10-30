@@ -70,7 +70,6 @@ export function ParticularsForm({
             {...checks.field('file')}
             label={COPY.SUPPORTING_DOCUMENT}
             hint={COPY.SUPPORTING_DOCUMENT_NOTE}
-            showUploadHint={false}
             onFile={(file) => update({ file })}
           />
         </div>

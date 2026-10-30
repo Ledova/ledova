@@ -163,6 +163,7 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
               <p className="break-words text-sm text-text-primary">{document.snapshot?.name ?? document.file?.name}</p>
             ) : (
               <FileField
+                showUploadHint
                 label="File"
                 onFile={(file) =>
                   rights.setEditor({

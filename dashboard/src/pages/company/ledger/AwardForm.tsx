@@ -125,7 +125,7 @@ export function AwardForm({
                   onChange={(event) => setTermsOn(event.target.value)}
                 />
               </Field>
-              <FileField {...checks.field('file')} label="Document" showUploadHint={false} onFile={setFile} />
+              <FileField {...checks.field('file')} label="Document" onFile={setFile} />
             </div>
             <Field {...checks.field('terms')} label="Terms">
               <TextArea

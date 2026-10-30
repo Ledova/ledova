@@ -235,11 +235,13 @@ export function BringRecords({
               </p>
             )}
             <FileField
+              showUploadHint
               label="Current share register"
               hint={draft.registerEvidence && 'The retained source copy will be reused unless you choose another file.'}
               onFile={(file) => update((current) => ({ ...current, registerFile: file }))}
             />
             <FileField
+              showUploadHint
               label="ASIC extract"
               hint={draft.asicEvidence && 'The retained ASIC copy and figures will be reused unless you change them.'}
               onFile={(file) => update((current) => ({ ...current, asicFile: file }))}

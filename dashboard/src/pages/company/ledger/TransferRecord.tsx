@@ -10,7 +10,7 @@ import {
   shareCount,
   formatDate,
 } from '@ledova/shared';
-import { Row, Rows, Status, ShowMore } from '@components/Ledger';
+import { Row, Rows, Status, ShowMore, Fact } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -111,24 +111,14 @@ export function TransferRecord({
             Transfer from {transfer.fromName || 'Name not recorded'} to {transfer.name || 'Name not recorded'}
           </h3>
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
-            <div className="min-w-0 space-y-1">
-              <dt className="text-text-muted">From</dt>
-              <dd className="break-words font-medium">{transfer.fromName || 'Name not recorded'}</dd>
-            </div>
-            <div className="min-w-0 space-y-1">
-              <dt className="text-text-muted">To</dt>
-              <dd className="break-words font-medium">{transfer.name || 'Name not recorded'}</dd>
-            </div>
-            <div className="min-w-0 space-y-1">
-              <dt className="text-text-muted">Shares</dt>
-              <dd className="break-words font-medium tabular-nums">{shareCount(transfer.shares)}</dd>
-            </div>
-            <div className="min-w-0 space-y-1">
-              <dt className="text-text-muted">Transfer date</dt>
-              <dd className="break-words font-medium tabular-nums">
-                {formatDate(transfer.companyEventOn, 'Not recorded')}
-              </dd>
-            </div>
+            <Fact label="From">{transfer.fromName || 'Name not recorded'}</Fact>
+            <Fact label="To">{transfer.name || 'Name not recorded'}</Fact>
+            <Fact label="Shares" numeric>
+              {shareCount(transfer.shares)}
+            </Fact>
+            <Fact label="Transfer date" numeric>
+              {formatDate(transfer.companyEventOn, 'Not recorded')}
+            </Fact>
             <div className="min-w-0 space-y-1">
               <dt className="text-text-muted">Status</dt>
               <dd>
