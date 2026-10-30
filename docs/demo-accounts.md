@@ -18,7 +18,9 @@ to the local API with these passwords, and ledova.io holds the same accounts, co
 | ledova.io | **https://ledova.io/signin**, from the owner's allowed network addresses | A copy of the local data and its files, made 30 October |
 
 Both have the same five accounts and the same demo data as of 30 October 2026. They are separate
-copies: a change in one does not reach the other. Neither has a platform staff account.
+copies: a change in one does not reach the other. Neither has a platform staff account, and neither
+sends email: messages such as invitations are saved to files, locally in the walkthrough's private
+mailbox and on ledova.io on the server.
 
 ## Sign in
 
@@ -93,7 +95,7 @@ Recorded 27 October 2026; use the running application for current balances and c
 
 Alex's Purpose member access was linked through invitation and acceptance for #1360; matching a
 display name alone grants no access. Taylor has three associations and Casey has one. Company
-aggregate sharing is enabled for the local exercise. No genuine ABR check was fabricated.
+aggregate sharing is enabled in the demo data. No genuine ABR check was fabricated.
 
 ### Demo data, 29 and 30 October 2026
 
@@ -119,7 +121,7 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 - Taylor's request to Banksia was withdrawn.
 - Inspection copies and packs prepared before #1429 have no record of where they were produced, so
   they stay unlisted.
-- Published and Activity stay empty without the local chain.
+- Published and Activity stay empty without a chain.
 - On 30 October 2026 the files of these records were lost: the walkthrough API had run from a
   worktree, and the uploads stored under its backend folder were deleted with it. The database was
   rebuilt from `ledova_walkthrough_20261021_before_1421`. The two direct steps were repeated with the
@@ -195,8 +197,8 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   backups were then deleted ([record](operations/evidence/ledova-io-rebuild-2026-10-30.md)).
 - #1433's homepage previews were released to ledova.io the same day
   ([#1432](https://github.com/Ledova/ledova/issues/1432)). The local demo data was then copied to
-  ledova.io ([#1435](https://github.com/Ledova/ledova/issues/1435)), so the five accounts above sign
-  in there too.
+  ledova.io ([#1435](https://github.com/Ledova/ledova/issues/1435)), so the five accounts above are
+  there with the same passwords.
 
 ## Continue on this Mac
 
@@ -222,4 +224,4 @@ PATH=/Users/ronildo/.nvm/versions/node/v22.22.2/bin:$PATH VITE_API_URL=http://lo
 The backend launcher uses its private local environment and invitation mailbox rather than external
 email. Keep those runtime files, cookie jars and invitation links out of Git and public artifacts.
 Keep `~/Developer/ledova-artifacts/` outside the repository and preserve unrelated evidence.
-Update this guide if a local test password or scenario changes.
+Update this guide if a demo password or scenario changes, locally or on ledova.io.
