@@ -593,9 +593,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
           <div className="min-w-0 flex-1">
             <SignOutButton variant="sidebar" />
           </div>
-          <div className="hidden lg:block">
-            <ThemeToggle />
-          </div>
+          <ThemeToggle />
         </div>
       </div>
     </aside>

@@ -217,7 +217,7 @@ async function closeSidebar(page: Page) {
 async function openTheSidebar(page: Page, role: Role) {
   const reads = await serveASignedInAccount(page, role);
   const companyChoice = page.getByRole('combobox', { name: 'Your companies', exact: true });
-  const companySwitch = page.locator('main header').getByRole('button', { name: 'Switch company', exact: true });
+  const companySwitch = page.getByRole('button', { name: 'Switch company', exact: true });
   const chooseCompany = async (search: string, name: RegExp) => {
     await expect(companySwitch).toHaveCount(1);
     await expect(companySwitch).toHaveAttribute('title', 'Switch company');

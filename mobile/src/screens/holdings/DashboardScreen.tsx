@@ -33,9 +33,7 @@ function useDashboardStyles() {
       height: 40,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
+      borderRadius: 20,
     },
     trail: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, alignItems: 'center' as const, gap: 12 },
     trailLink: {

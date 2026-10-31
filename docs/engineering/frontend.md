@@ -717,8 +717,8 @@ earlier, removed switch is not read. The choice is written only when someone pic
 in that browser, not on the account, through reloads and sign-out.
 
 The dashboard's switches (Settings > Profile > Account > Dark theme, and the `ThemeToggle` icon in the
-signed-out and sign-up header, the desktop sidebar's account footer and the small-screen signed-in
-header) use `dashboard/src/hooks/useTheme.ts`. The public site's navbar has its own theme toggle
+signed-out and sign-up header and in the sidebar's account footer, which is the phone's menu) use
+`dashboard/src/hooks/useTheme.ts`. The public site's navbar has its own theme toggle
 and `ledova.site.theme` preference, applied before the first paint in `site/index.html`. Only an
 exact saved `dark` value enables Dark; Paper is the default, including when storage is unavailable.
 The site neither reads nor writes the dashboard's preference, even when both share an origin.

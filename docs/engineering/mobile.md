@@ -64,11 +64,13 @@ the individual role, then pre-screening, personal details, financial profile and
 dashboard's routes and guards do not apply.
 
 The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Every page shows
-the web's top bar (`TopBar`), never a back button: the menu button, the logo, the Dark theme switch
-and the notifications bell. The menu (`AppMenu`) slides in from the left like the
+the web's phone top bar (`TopBar`), never a back button: the menu button, the page's title, its
+action (such as Switch company or Filters) and the notifications bell. Inside the frame `Page` sets
+the title and action as the screen's `title` and `headerRight` options and starts with its lede.
+The menu (`AppMenu`) slides in from the left like the
 web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and a footer with the
 person's name, the selected company as on the web, and Sign out, which asks first as Settings' Sign
-out does. It closes when its screen
+out does, beside the Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Documents for Certificates and Notices,
 Settings for Profile, Details and Your details, Dashboard for Invitation. Choosing Dashboard returns
 to it. Documents opens Certificates, as a member's Documents does on the web, and Settings opens
@@ -130,7 +132,7 @@ missing, unknown or unreadable value, or a read pending after two seconds, means
 build's `ledova-theme` key is ignored. `useAppTheme()` returns one precomputed theme object per look
 (`mode`, semantic colours, spacing, radius, type, layout and icon scales, font families),
 `useThemedStyles` builds style sheets from it, and `useThemeChoice()` gives Settings' Dark theme
-switch and the top bar's the mode and a setter. The choice is written only when picked and stays on the device,
+switch and the menu's the mode and a setter. The choice is written only when picked and stays on the device,
 not the account, through sign-out and restarts. One extra spacing step, `smd` (12), matches the
 web's 12px.
 

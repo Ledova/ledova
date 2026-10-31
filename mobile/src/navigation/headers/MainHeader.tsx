@@ -1,18 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BellIcon } from 'phosphor-react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../contexts';
-import {
-  AppMenu,
-  AppearanceButton,
-  MenuButton,
-  SECTION_ROUTES,
-  Wordmark,
-  type Section,
-  type SectionRoute,
-} from '../AppMenu';
+import { AppMenu, MenuButton, SECTION_ROUTES, type Section, type SectionRoute } from '../AppMenu';
 
 function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void; unreadCount?: number }) {
   const theme = useAppTheme();
@@ -63,11 +55,15 @@ function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void
 
 export function TopBar({
   navigation,
+  title,
+  action,
   current,
   onNotifications,
   unreadCount,
 }: {
   navigation: NavigationProp<Record<SectionRoute, undefined>>;
+  title: string | undefined;
+  action: ReactNode;
   current: Section;
   onNotifications: () => void;
   unreadCount: number;
@@ -95,11 +91,23 @@ export function TopBar({
         }}
       >
         <MenuButton expanded={open} onPress={() => setOpen(true)} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Wordmark />
-        </View>
+        <Text
+          accessibilityRole="header"
+          numberOfLines={1}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontFamily: theme.fontFamily.display,
+            fontSize: theme.fontSize.xl,
+            lineHeight: 28,
+            letterSpacing: -0.2,
+            color: theme.colors.text.primary,
+          }}
+        >
+          {title}
+        </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <AppearanceButton />
+          {action}
           <NotificationsButton onPress={onNotifications} unreadCount={unreadCount} />
         </View>
       </View>

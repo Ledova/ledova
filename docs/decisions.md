@@ -1892,6 +1892,15 @@ Profile for that company, and a company switcher. The top bar shows only the Led
 think we need to display the name of the company … keep the logo Ledova"). The owner also put
 Notices under Documents on both, and kept details changes to one company at a time, as on the web.
 
+**The phone top bar, also decided on 31 October 2026.** The owner then dropped the Ledova branding
+from the phone top bar on web and app ("I don't think we need to display the "Ledova" branding in the
+header, as it takes up valuable screen space"). From the options offered, they chose a bar with only
+the menu button and the notifications bell, with the Dark theme switch beside Sign out in the menu,
+which keeps the logo. On seeing it, the owner moved each page's title into the bar ("the header
+Dashboard should be placed at the top nav bar … do the same to all other pages"), with the page's
+action beside the bell ("the button to select a company should be placed next to bell icon"). The
+page then starts with its content.
+
 This replaces the [shareholder app](#mobile-app-for-shareholders)'s three tabs and no drawer now,
 and its shareholder-only scope as phases 3 to 5 arrive. The app still has no links or hand-offs to
 the web.
