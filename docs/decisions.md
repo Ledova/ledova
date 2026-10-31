@@ -54,7 +54,8 @@ stay here as history and are marked where they appear.
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                                             |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                                     |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201)                      |
-| [Mobile app for shareholders](#mobile-app-for-shareholders)                                                     | 26 October 2026                                | Current; delivered under #1201                                                                                                     |
+| [Mobile app for shareholders](#mobile-app-for-shareholders)                                                     | 26 October 2026                                | Current; delivered under #1201; tabs and no drawer superseded 31 October                                                           |
+| [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                               | 31 October 2026                                | Current; phase 1, the phone frame, delivered (#1464)                                                                               |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                                            |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                                            |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                                            |
@@ -1839,6 +1840,9 @@ leaves an accepted decision current.
 
 ## Mobile app for shareholders
 
+Its three tabs and no drawer were superseded on 31 October 2026 by the
+[web's phone frame](#mobile-app-like-the-web-at-phone-width); the rest stands.
+
 On 26 October 2026 the owner made the mobile app a shareholder app: "make mobile shareholder-only.
 Company administration, registration and activation stay on the web". The owner then added: "My
 intention is not to provide mobile users with a way to access the remaining functionality through a
@@ -1863,6 +1867,26 @@ agreed the screens through [mockups](https://claude.ai/artifact/CHeXcDVycP9csCT3
   that has not finished signup is told the app is for shareholders.
 - **Notifications for share events** (a certificate ready, shares vested or issued, a details
   change decided) needed new server notifications; S7 (#1344) adds them.
+
+## Mobile app like the web at phone width
+
+On 31 October 2026 the owner asked for the mobile app to match the web: "I think we should start
+working to get the mobile to work the same as we see in the browser when you switch to mobile".
+From the options offered, the owner chose to rebuild it natively, in phases, keeping a real app for
+the App Store rather than showing the web app inside one. Each phase is its own PR under #1464:
+
+1. **The phone frame:** the web's top bar (menu button, logo, Dark theme switch and notifications
+   bell) and its slide-out menu with the person's name and Sign out. The three tabs go. The menu
+   lists the sections the app has, Dashboard, Documents and Settings; others join it with their
+   pages. Delivered.
+2. **The pages every member sees,** matching the web at phone width.
+3. **Team, Activation, representative authority and the eligibility pages.**
+4. **The Ledger and company tasks.**
+5. **Sign-up for company accounts.**
+
+This replaces the [shareholder app](#mobile-app-for-shareholders)'s three tabs and no drawer now,
+and its shareholder-only scope as phases 3 to 5 arrive. The app still has no links or hand-offs to
+the web.
 
 ## The signed-in app
 

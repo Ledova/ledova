@@ -230,7 +230,7 @@ it('associates a member by invitation code, opens their company, award, details 
   await screen.findByRole('header', { name: MEMBER_RECORD.company.name });
   await fireEvent.press(screen.getByRole('button', { name: 'Employee award, 2 of 5 vested' }));
   expect(mockNavigate).toHaveBeenCalledWith('Award', { record, award });
-  await fireEvent.press(screen.getByRole('button', { name: 'Ordinary shares, 10' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Ordinary, 10' }));
   expect(mockNavigate).toHaveBeenCalledWith('Class', { record, token });
   await fireEvent.press(screen.getByRole('button', { name: `Your details: ${MEMBER_RECORD.name}` }));
   expect(mockNavigate).toHaveBeenCalledWith('Details', { record });
@@ -422,10 +422,7 @@ it('lists certificates from every member association in Documents, refuses a lis
   expect(await screen.findByText('No notices yet.')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'All', selected: true })).toBeTruthy();
   const notice = { type: PUBLICATION_NOTICE };
-  expect(destinationOf(notice)).toEqual({
-    screen: 'Main',
-    params: { screen: 'Documents', params: { show: 'notices' } },
-  });
+  expect(destinationOf(notice)).toEqual({ screen: 'Documents', params: { show: 'notices' } });
   expect(destinationOf(notice)).not.toBe(destinationOf(notice));
   const award = 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5';
   const vested = { type: 'award', event: 'vested', record: MEMBER_RECORD.uuid, award };

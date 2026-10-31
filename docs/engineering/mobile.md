@@ -27,7 +27,7 @@ folder names, with relative imports and no path aliases:
 
 | `mobile/src/`         | Dashboard counterpart   | Owns                                                                          |
 | --------------------- | ----------------------- | ----------------------------------------------------------------------------- |
-| `navigation/`         | `routes/` and the frame | The root stack, the sign-up gate and the signed-in tabs                       |
+| `navigation/`         | `routes/` and the frame | The root stack, the sign-up gate and the signed-in frame                      |
 | `screens/<area>/`     | `pages/`                | An area's screens with their hooks and helpers                                |
 | `components/`         | `components/`           | `Page`, `Ledger` and groups such as `modal/` and `register/`                  |
 | `hooks/`, `contexts/` | `hooks/`                | App-wide hooks; the app-lock and theme contexts                               |
@@ -61,8 +61,13 @@ pull to refresh that succeeds keeps the screen and any unfinished work. Sign-up'
 the individual role, then pre-screening, personal details, financial profile and review follow; the
 dashboard's routes and guards do not apply.
 
-The signed-in app (`SignedInNavigator`) is a stack holding three bottom tabs and the Company, Class,
-Award, Details, Past holdings, Invitation, Your details and Profile screens. Holdings (`mobile/src/screens/holdings`) shows a card per company with
+The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Its sections,
+Dashboard, Documents and Settings, show the web's top bar (`TopBar`): the menu button, the logo, the
+Dark theme switch and the notifications bell. The menu (`AppMenu`) slides in from the left like the
+web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and a footer with the
+person's name and Sign out. Choosing a section replaces the stack with it. The Company, Class, Award,
+Details, Past holdings, Invitation, Your details and Profile screens open above a section with a
+back button. Dashboard (`mobile/src/screens/holdings`) shows a card per company with
 a line per share class and each award's vesting bar, the award parts matching the web's; above six
 companies it becomes a searchable list. Classes with no shares left sit under Past holdings. With no
 member records it shows No shares yet and Accept an invitation. The Invitation screen takes the
@@ -83,7 +88,7 @@ empty one while the list rereads. Only the focused screen selects its record and
 (`mobile/src/screens/documents`) lists the ready and requested certificates from every company,
 each read for that member association alone, and the notices, with a chip per company to filter
 both; a company's Documents row opens it filtered to that company. A certificate opens its sheet to
-share or withdraw it through the same member-records state. Account
+share or withdraw it through the same member-records state. Settings
 opens Profile from its profile card, Your details from Details at each company (with the number of
 changes waiting) and Invitation from Accept an invitation. Your details lists each company's
 recorded name and address, marking those where a change waits, and sends one particulars change to
@@ -91,14 +96,14 @@ every company in turn through the same member-records state. It skips a company 
 records the change or where the same change already waits, checking that company's own requests
 again just before sending. A send that is refused or not confirmed stops the run until it is retried
 or skipped, and the summary counts the companies where the change waits or is recorded, from the
-server's records and requests. Account holds the sign-in
+server's records and requests. Settings holds the sign-in
 and app lock switches, Notifications (the notifications list), the dark theme, password and data,
-the app actions and Sign out. Holdings and Documents have the notifications bell in their header.
+the app actions and Sign out.
 A notification, tapped in that list or as a push, opens its screen: a notice opens Documents on
 Notices for every company, a ready certificate Documents on Certificates for that company, vested
 shares the award, issued shares the class, and a decided particulars change the company's details.
 Screens set their own titles inside the page; a pushed
-screen's back button names the tab or screen it came from.
+screen's back button names the section or screen it came from.
 
 ## Theme and appearance
 

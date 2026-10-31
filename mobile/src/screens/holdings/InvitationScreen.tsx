@@ -115,7 +115,7 @@ export function InvitationScreen() {
           <Text accessibilityLiveRegion="polite" style={styles.text}>
             Invitation accepted. Your company records are available.
           </Text>
-          <Action label="View my shares" primary onPress={() => navigation.popTo('Main', { screen: 'Holdings' })} />
+          <Action label="View my shares" primary onPress={() => navigation.popTo('Dashboard')} />
         </View>
       ) : (
         <View style={look.actions}>

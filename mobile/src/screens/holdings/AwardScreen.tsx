@@ -74,7 +74,7 @@ export function AwardScreen({ route }: { route: RouteProp<SignedInStackParamList
     <Page
       testID="award-scroll"
       title="Employee award"
-      lede={[className && `${className} shares`, record?.company.name].filter(Boolean).join(' · ') || undefined}
+      lede={[className, record?.company.name].filter(Boolean).join(' · ') || undefined}
       refreshControl={refresh}
     >
       <MemberNotice read={read} />

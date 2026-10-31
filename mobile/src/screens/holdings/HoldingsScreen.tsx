@@ -32,7 +32,7 @@ function Holdings({ read }: { read: ReturnType<typeof useMemberRecords> }) {
   return (
     <Page
       testID="holdings-scroll"
-      title="Holdings"
+      title="Dashboard"
       lede={current.length > 0 ? holdingsSummary(current) : undefined}
       refreshControl={refresh}
     >

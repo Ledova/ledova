@@ -1,64 +1,110 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BellIcon } from 'phosphor-react-native';
 import { Header } from '@react-navigation/elements';
+import type { NavigationProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../contexts';
+import { AppMenu, AppearanceButton, MenuButton, Wordmark, type Section } from '../AppMenu';
 
 type ThemeParam = ReturnType<typeof useAppTheme>;
 
-interface MainHeaderProps {
-  theme: ThemeParam;
-  onNotifications: () => void;
-  unreadCount?: number;
-}
-
-export function MainHeader({ theme, onNotifications, unreadCount = 0 }: MainHeaderProps) {
+export function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void; unreadCount?: number }) {
+  const theme = useAppTheme();
   const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
-
-  return {
-    headerRight: () => (
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel="Notifications"
-        onPress={onNotifications}
-        style={{
-          width: 44,
-          height: 44,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <BellIcon size={theme.icon.sizes.lg} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
-        {unreadCount > 0 && (
-          <View
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel="Notifications"
+      onPress={onPress}
+      style={{
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <BellIcon size={theme.icon.sizes.lg} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
+      {unreadCount > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 4,
+            right: 2,
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
+            backgroundColor: theme.colors.error.default,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 4,
+          }}
+        >
+          <Text
             style={{
-              position: 'absolute',
-              top: 4,
-              right: 2,
-              minWidth: 18,
-              height: 18,
-              borderRadius: 9,
-              backgroundColor: theme.colors.error.default,
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingHorizontal: 4,
+              fontSize: 10,
+              fontWeight: 'bold',
+              color: theme.colors.utility.white,
             }}
           >
-            <Text
-              style={{
-                fontSize: 10,
-                fontWeight: 'bold',
-                color: theme.colors.utility.white,
-              }}
-            >
-              {badgeText}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    ),
-    headerRightContainerStyle: { paddingRight: theme.spacing.md, paddingBottom: theme.spacing.xs },
-  };
+            {badgeText}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+export function TopBar({
+  navigation,
+  current,
+  onNotifications,
+  unreadCount,
+}: {
+  navigation: NavigationProp<Record<Section, undefined>>;
+  current: Section;
+  onNotifications: () => void;
+  unreadCount: number;
+}) {
+  const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const [open, setOpen] = useState(false);
+  return (
+    <View
+      style={{
+        paddingTop: insets.top,
+        backgroundColor: theme.colors.surface.base,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.border.subtle,
+      }}
+    >
+      <View
+        style={{
+          height: 56,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.sm,
+        }}
+      >
+        <MenuButton onPress={() => setOpen(true)} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Wordmark />
+        </View>
+        <AppearanceButton />
+        <NotificationsButton onPress={onNotifications} unreadCount={unreadCount} />
+      </View>
+      <AppMenu
+        visible={open}
+        current={current}
+        onClose={() => setOpen(false)}
+        onSelect={(section) => {
+          setOpen(false);
+          if (section !== current) navigation.reset({ index: 0, routes: [{ name: section }] });
+        }}
+      />
+    </View>
+  );
 }
 
 export function getMainHeaderStyle(theme: ThemeParam) {

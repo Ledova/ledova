@@ -7,7 +7,7 @@ import { CustomModal, useDialogStyles } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import type { TabParamList } from '../../navigation/SignedInNavigator';
+import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { CertificatePill } from '../holdings/CertificatePill';
 import { CertificateSheet, entryDate, entryKind } from '../holdings/CertificateSheet';
 import { Avatar } from '../holdings/CompanyHoldings';
@@ -66,12 +66,12 @@ function DocumentSheet({ certificate, onClose }: { certificate: MemberCertificat
   );
 }
 
-export function DocumentsScreen({ route }: { route: RouteProp<TabParamList, 'Documents'> }) {
+export function DocumentsScreen({ route }: { route: RouteProp<SignedInStackParamList, 'Documents'> }) {
   const theme = useAppTheme();
   const styles = useCompanyStyles();
   const look = useDocumentStyles();
   const card = useCardStyles();
-  const navigation = useNavigation<NavigationProp<TabParamList>>();
+  const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const { read } = useMemberRecordsState();
   const certificates = useMemberCertificates(read);
   const notices = usePublications();
