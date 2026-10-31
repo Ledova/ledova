@@ -75,9 +75,7 @@ Project migrations start fresh
 current models and PostgreSQL guards, and an older database cannot adopt that history in place.
 Before changing a running instance, agree with the owner what is worth keeping and the recovery
 checkpoint; live deployment, live migrations, signer activation and real-funds use need the owner's
-explicit direction ([CONTRIBUTING](../../CONTRIBUTING.md#review-and-merge)). The
-[ledova.io rebuild of 11 October 2026](evidence/ledova-io-rebuild-2026-10-11.md)
-is the completed example.
+explicit direction ([CONTRIBUTING](../../CONTRIBUTING.md#review-and-merge)).
 
 1. Back up the database and all private storage, including retained files without rows, with
    matching release and configuration provenance and restricted file permissions. Record the
@@ -105,6 +103,10 @@ needs no routine extra approval. Rollback restores the matching old release, dat
 storage and configuration while writers remain stopped. Writes accepted after cutover would need
 separate recovery; the backup does not preserve them automatically.
 
+## ledova.io
+
+ledova.io is run from the private `Ledova/infra` repository.
+
 ## Evidence
 
 Dated records of what an instance or a check actually did. They are historical evidence, not
@@ -112,8 +114,6 @@ descriptions of current behaviour.
 
 | Record                                                                                     | What it records                                                                                |
 | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| [ledova.io rebuild, 30 October 2026](evidence/ledova-io-rebuild-2026-10-30.md)             | The fresh-database rebuild that kept no earlier records, and its rolled-back first switch      |
-| [ledova.io rebuild, 11 October 2026](evidence/ledova-io-rebuild-2026-10-11.md)             | The completed fresh-database rebuild and release of the private test deployment                |
 | [Essential journey, 11 October 2026](evidence/essential-register-2026-10-11.md)            | The fresh-schema company and member observation and its substitutions                          |
 | [Demonstration journey, September 2026](evidence/demonstration-journey-2026-09.md)         | The original synthetic chain journey                                                           |
 | [Approval controls](approval-controls.md)                                                  | The company-scoped approval controls, the bypass review and the fresh-start redeploy rehearsal |
