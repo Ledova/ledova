@@ -482,7 +482,9 @@ Authentication and user-preferences identity checks, token renewal and checks of
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
 so user preferences still recheck the signed-in identity on focus and reconnect. While a recheck of
 the same account runs, the frame, the page and its drafts stay, and the web API client refuses every
-write until it finishes ([API client](#frontend-rules)); a failed check or a changed account withholds
+write until it finishes ([API client](#frontend-rules)). The two eligibility pages and member records
+are the exception: their records wait for the recheck, so they show "Loading your account…" until it
+finishes. A failed check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
 the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload, extraction or identity
 verification, stopping when the operation finishes or its view closes. A status read must never
