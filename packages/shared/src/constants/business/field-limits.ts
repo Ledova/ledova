@@ -56,13 +56,13 @@ export const UPLOAD_RULE = {
   REFUSAL: 'Choose a PDF, PNG or JPEG of up to 10 MB.',
 } as const;
 
+export function uploadType(name: string): string | undefined {
+  const dot = name.lastIndexOf('.');
+  const extension = /[^.]/.test(name.slice(0, dot)) ? name.slice(dot).toLowerCase() : '';
+  return Object.prototype.hasOwnProperty.call(UPLOAD_TYPES, extension) ? UPLOAD_TYPES[extension] : undefined;
+}
+
 export function uploadRefusal(file: { name: string; type: string; size: number }): string | null {
-  const dot = file.name.lastIndexOf('.');
-  const extension = /[^.]/.test(file.name.slice(0, dot)) ? file.name.slice(dot).toLowerCase() : '';
-  const fits =
-    Object.prototype.hasOwnProperty.call(UPLOAD_TYPES, extension) &&
-    UPLOAD_TYPES[extension] === file.type &&
-    file.size > 0 &&
-    file.size <= UPLOAD_RULE.MAX_BYTES;
+  const fits = uploadType(file.name) === file.type && file.size > 0 && file.size <= UPLOAD_RULE.MAX_BYTES;
   return fits ? null : UPLOAD_RULE.REFUSAL;
 }

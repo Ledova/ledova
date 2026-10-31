@@ -905,7 +905,9 @@ Some messages keep their own form:
 - **Fields.** A web form field is `Field` (`dashboard/src/components/Field.tsx`): Headless UI's
   `Field`, `Label` and `Description` around a `TextInput` or `TextArea` with the `FIELD_CLASS` look,
   or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
-  to the control and an error sets `aria-invalid`. The label sits above the control. A standalone optional
+  to the control and an error sets `aria-invalid`. The label sits above the control. In the app, a multiline
+  `Field` starts at the web textarea's height: two rows unless the web sets more, such as three for a
+  claim's basis. A standalone optional
   field ends with "(optional)"; an optional group declares this once in its heading, without repeating it
   on each field. Repeatable sections added on demand use plain headings, such as
   **Allocation history** and **Documents** in ledger setup; an empty section requires no entry.
@@ -928,7 +930,8 @@ Some messages keep their own form:
   (class rights, bringing records, award adjustments and document attachments). Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
   of up to 10 MB." on the field. The evidence in an eligibility claim keeps its dashed
-  area but applies the same rule.
+  area but applies the same rule. In the app, that evidence comes from the phone's document picker,
+  and `uploadRefusal` checks it as it is chosen.
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
 - **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
@@ -989,7 +992,11 @@ This section covers how a form reports a problem: when it is submitted, and when
     access's invitation, revocation and certificate instruction, check only the fields their action
     needs. A box that must be ticked is a `CheckboxField`,
     except the eligibility claim's long declaration and sign-up pre-screening's four declarations,
-    which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
+    which keep their own layout with the same checks. The app's `CheckboxField`
+    (`mobile/src/components/register/RegisterFields.tsx`), a box ticked beside its label, serves
+    the claim's declaration. The app's `ErrorSummary` (`mobile/src/components/ErrorSummary.tsx`)
+    gives the claim form the same summary, without links, at the top of its scroll content: a
+    refused Save scrolls to it and moves the screen reader's focus there. Register import names each shareholder and allotment in its summary instead of linking
     to a field, and lists the problems current at the time. Its shareholder editor lists the problems
     with the shareholder being edited. A summary link focuses the control the field's label points
     to, or else the field's first control, including Headless UI checkboxes and radios.

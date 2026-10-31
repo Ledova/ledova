@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, type Key, type ReactElement, type ReactNode } from 'react';
+import { useContext, useEffect, useRef, type Key, type ReactElement, type ReactNode, type Ref } from 'react';
 import {
   AccessibilityInfo,
   KeyboardAvoidingView,
@@ -85,6 +85,7 @@ interface CustomModalProps {
   busy?: boolean;
   dismissLabel?: string;
   refreshControl?: ReactElement<RefreshControlProps>;
+  scrollRef?: Ref<ScrollView>;
   showFooter?: boolean;
   showCancelButton?: boolean;
   cancelLabel?: string;
@@ -105,6 +106,7 @@ export function CustomModal({
   busy = false,
   dismissLabel = 'Close dialog',
   refreshControl,
+  scrollRef,
   showFooter = false,
   showCancelButton = true,
   cancelLabel = 'Cancel',
@@ -177,6 +179,7 @@ export function CustomModal({
                 {title}
               </Text>
               <ScrollView
+                ref={scrollRef}
                 style={styles.body}
                 contentContainerStyle={styles.content}
                 keyboardShouldPersistTaps="handled"

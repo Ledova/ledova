@@ -1,27 +1,19 @@
 import { useState } from 'react';
-import { DESTINATIONS, formatDate, failureSentence } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  formatDate,
+  failureSentence,
+  investorClaimState,
+  useInvestorEligibility,
+  useInvestorWithdrawal,
+} from '@ledova/shared';
 import type { InvestorCategory, InvestorClassification } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, Status, type Tone, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
 import { Page, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
-import { useInvestorWithdrawal } from './useInvestorWithdrawal';
 import { CATEGORIES } from './constants';
 import { ClaimModal } from './ClaimModal';
-import { useInvestorEligibility } from './useInvestorEligibility';
 import { DocumentsPanel } from './DocumentsPanel';
-
-const CLASSIFICATION_TONES = new Map<string, Tone>([['submitted', 'moving']]);
-
-function claimState(classification: InvestorClassification): { label: string; tone: Tone } {
-  const tone = CLASSIFICATION_TONES.get(classification.status) ?? 'closed';
-  if (classification.status === 'submitted') return { label: 'Available to share', tone };
-  if (classification.status === 'verified')
-    return {
-      label: classification.isExpired ? 'Historical verification expired' : 'Historical verification',
-      tone,
-    };
-  return { label: classification.statusDisplay, tone };
-}
 
 export default function InvestorEligibilityPage() {
   const { classifications, isLoading, hasError, isRefreshing, retry, refresh } = useInvestorEligibility();
@@ -62,7 +54,7 @@ export default function InvestorEligibilityPage() {
               ) : (
                 <div className="divide-y divide-border-subtle">
                   {classifications.map((claim) => {
-                    const state = claimState(claim);
+                    const state = investorClaimState(claim);
                     return (
                       <article key={claim.uuid} className="min-w-0 py-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">

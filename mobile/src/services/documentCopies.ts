@@ -1,7 +1,11 @@
+import { Platform } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
-import { assertSessionEpoch, subscribeSession } from './sessionScope';
+import { uploadType } from '@ledova/shared';
+import { assertSessionEpoch, getSessionEpoch, subscribeSession } from './sessionScope';
 
 const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
+const picked = new Set<string>();
 let viewing: number | undefined;
 
 interface DocumentView {
@@ -10,14 +14,33 @@ interface DocumentView {
   bytes: Uint8Array;
 }
 
-function removeCopy(file: File): boolean {
+export interface PickedDocument {
+  uri: string;
+  name: string;
+  type: string;
+  size: number;
+  epoch: number;
+}
+
+function temporaryDirectory(): Directory {
+  return new Directory(Paths.document, '..', 'tmp');
+}
+
+function local(uri: string): string {
+  return uri.replace(/^file:\/\/(\/private(?=\/))?/, '');
+}
+
+function inside(file: File, directory: Directory): boolean {
+  return local(file.uri).startsWith(local(directory.uri).replace(/\/?$/, '/'));
+}
+
+function removeCopy(file: File): void {
   try {
+    if (!inside(file, Paths.cache) && !(Platform.OS === 'ios' && inside(file, temporaryDirectory()))) return;
     if (file.info().exists) file.delete();
     if (file.info().exists) throw new Error('Document copy remains.');
-    return true;
   } catch {
     console.warn('Document cache cleanup did not complete.');
-    return false;
   }
 }
 
@@ -25,24 +48,41 @@ function viewDirectory(): Directory {
   return new Directory(Paths.cache, 'ledova-document-views-v1');
 }
 
-function sweep(directory: Directory, owned: (name: string) => boolean): void {
+function entries(directory: Directory): (File | Directory)[] {
   try {
-    if (!directory.exists) return;
-    for (const entry of directory.list()) {
-      if (entry instanceof File && owned(entry.name)) removeCopy(entry);
-    }
+    return directory.exists ? directory.list() : [];
   } catch {
     console.warn('Document cache cleanup did not complete.');
+    return [];
+  }
+}
+
+function sweep(directory: Directory, owned: (name: string) => boolean = () => true): void {
+  for (const entry of entries(directory)) {
+    if (entry instanceof File && owned(entry.name)) removeCopy(entry);
   }
 }
 
 function sweepViewCopies(): void {
-  sweep(viewDirectory(), () => true);
+  sweep(viewDirectory());
+}
+
+export function sweepPickedCopies(): void {
+  sweep(new Directory(Paths.cache, 'DocumentPicker'), (name) => PICKER_NAME.test(name));
+  if (Platform.OS !== 'ios') return;
+  for (const entry of entries(temporaryDirectory())) {
+    if (entry instanceof Directory && entry.name.endsWith('-Inbox')) sweep(entry);
+  }
+}
+
+export function discardDocument(uri: string): void {
+  if (picked.delete(uri)) removeCopy(new File(uri));
 }
 
 subscribeSession(() => {
-  sweep(new Directory(Paths.cache, 'DocumentPicker'), (name) => PICKER_NAME.test(name));
-  sweep(new Directory(Paths.cache, 'ledova-upload-copies-v1'), () => true);
+  [...picked].forEach(discardDocument);
+  sweepPickedCopies();
+  sweep(new Directory(Paths.cache, 'ledova-upload-copies-v1'));
   sweepViewCopies();
 });
 
@@ -89,4 +129,28 @@ export async function shareDocumentCopy(
   assertSessionEpoch(sessionEpoch);
   guard?.();
   await share(copy.uri, copy.type);
+}
+
+export async function pickDocument(): Promise<PickedDocument | null> {
+  const epoch = getSessionEpoch();
+  const result = await DocumentPicker.getDocumentAsync({
+    type: Object.keys(EXTENSION_BY_MIME_TYPE),
+    copyToCacheDirectory: Platform.OS === 'android',
+    multiple: false,
+  });
+  const asset = result.assets?.[0];
+  if (result.canceled || !asset) return null;
+  picked.add(asset.uri);
+  if (epoch !== getSessionEpoch()) {
+    discardDocument(asset.uri);
+    return null;
+  }
+  const declared = asset.mimeType !== 'application/octet-stream' && asset.mimeType;
+  return {
+    uri: asset.uri,
+    name: asset.name,
+    type: declared || uploadType(asset.name) || '',
+    size: asset.size ?? new File(asset.uri).info().size ?? 0,
+    epoch,
+  };
 }

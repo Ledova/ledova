@@ -4,10 +4,12 @@
 
 How the Expo React Native app consumes the shared package, navigates, themes itself, reaches the
 network and stores secrets, and how its temporary document copies respond to session changes. The
-app is for shareholders ([decision](../decisions.md#mobile-app-for-shareholders)). Shared page
-conventions are in [signed-in page conventions](frontend-ux.md#signed-in-page-conventions); builds,
-probes and device checks in [mobile releases](mobile-releases.md). Use a Ledova native build; Expo
-Go lacks its networking overrides.
+app began as a shareholder app ([decision](../decisions.md#mobile-app-for-shareholders)) and is
+being rebuilt like the web at phone width
+([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Shared page conventions are in
+[signed-in page conventions](frontend-ux.md#signed-in-page-conventions); builds, probes and device
+checks in [mobile releases](mobile-releases.md). Use a Ledova native build; Expo Go lacks its
+networking overrides.
 
 - [Architecture](#architecture)
 - [Theme and appearance](#theme-and-appearance)
@@ -16,6 +18,7 @@ Go lacks its networking overrides.
 - [Secret storage](#secret-storage)
 - [Native dependencies and randomness](#native-dependencies-and-randomness)
 - [Document view copies](#document-view-copies)
+- [Picked evidence copies](#picked-evidence-copies)
 
 ## Architecture
 
@@ -36,9 +39,9 @@ folder names, with relative imports and no path aliases:
 | `testSupport/`        | `testSupport/`          | Test helpers                                                                  |
 
 Shared register UI (fields and document sharing) lives in `components/register`, and its styles in
-`hooks/`. Production screens import no other area's internals. Profile, operator, member and
-publication-list reads live in `packages/shared`, with native session, result and transport policies
-kept in the client.
+`hooks/`. Production screens import no other area's internals. Profile, operator, member,
+publication-list and investor classification reads live in `packages/shared`, with native session,
+result and transport policies kept in the client.
 
 ### Shared package resolution
 
@@ -69,12 +72,14 @@ action (such as Switch company or Filters) and the notifications bell. Inside th
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede.
 The menu (`AppMenu`) slides in from the left like the
-web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and a footer with the
-person's name, the selected company as on the web, and Sign out, which asks first, beside the Dark
-theme switch. It closes when its screen
+web's phone drawer, 208 points wide: Dashboard and Documents, then Eligibility for an investing
+account (the web's rule: a known account whose role opens investing pages) and Settings, and a footer
+with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
+Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Documents for Certificates and Notices,
-Settings for Profile, Account and Data and privacy, Dashboard for Invitation. Choosing Dashboard returns
-to it. Documents opens Certificates and Settings opens Profile, and like the web's groups each caret
+Eligibility for Verification, Settings for Profile, Account and Data and privacy, Dashboard for
+Invitation. Choosing Dashboard returns to it. Documents opens Certificates, Eligibility opens
+Verification and Settings opens Profile, and like the web's groups each caret
 shows its pages beneath it, Certificates and Notices, or Profile, Account and Data and privacy, open
 while one of them is shown. Every other choice opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
@@ -103,7 +108,19 @@ certificate status from the shared `certificateStatus`, with Request certificate
 certificate requests, including those the filters hide, open on demand. A class the member is not
 recorded in says so, and a failed read offers Try again. Notices
 (`NoticesScreen`), under Documents, is the web's Notices page: every company's notices, each opened
-or voted on as on the web. Settings has the web's three pages for a member
+or voted on as on the web. Verification (`mobile/src/screens/eligibility/VerificationScreen.tsx`) is
+the web's page without Supporting payslips, which the app does not have yet. Your claims lists each
+classification claim with its status from the shared `investorClaimState`, its dates and any reason
+given, and **Withdraw claim** on a submitted claim after the web's confirmation; the app has no Your
+company eligibility page yet, so there is no link to it. How you qualify offers each category with
+**Submit evidence**, or **Add evidence** once one of its claims is submitted, opening the web's claim
+form (`ClaimModal`): the accountant's certificate fields where they apply, the basis, one evidence
+file ([picked evidence copies](#picked-evidence-copies)) and the declaration, checked on Save with the
+shared `investorClaimChecks`, whose messages head the form in the
+[error summary](frontend-ux.md#validation) and sit beside their fields. A server refusal, such as a failed malware check,
+shows above the fields. The claims come from the shared `useInvestorEligibility`, and the withdrawal
+(`useInvestorWithdrawal`) and the upload carry the session epoch ([session scope](#session-scope)).
+Settings has the web's three pages for a member
 (`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, keeps the web's two cards.
 Personal information shows the person's details, each label above its value, and **Edit personal
 details** opens their form in the card. The web's read-only card, titled with the company's name
@@ -243,13 +260,17 @@ without declaring it, and `assert` and `util` arrive through `expo-notifications
 check confirms that the app's own imports reach declared runtime dependencies; imports inside
 `node_modules` are resolved by Metro when the app is bundled.
 
+`expo-document-picker` loads its native module when imported, and the app imports it at start
+through `mobile/src/services/documentCopies.ts`, so a development app built before the picker was
+added fails to start. Rebuild the development app, and make release builds from a fresh prebuild
+([building from a clean checkout](mobile-releases.md#building-from-a-clean-checkout)).
+
 ## Document view copies
 
 Viewing a document downloads it into the app-owned `ledova-document-views-v1` cache directory and
 hands the copy to the share sheet (`shareDocumentCopy`). Every document view works this way: a
 member's own certificates and publication documents. Data and privacy shares the
-[account-data export](records.md#account-data-export) the same way, as one JSON copy. A session
-change also removes the private document picker and upload copies earlier builds left in the cache.
+[account-data export](records.md#account-data-export) the same way, as one JSON copy.
 
 A view is bound to the session current when tapped: its download carries that epoch
 ([session scope](#session-scope)), and a session change before the write stops it without an alert.
@@ -260,6 +281,23 @@ app still reading it then loses access. Neither platform says when a receiver ha
 (Android's chooser result does not wait, and the pinned iOS sharing module never settles a share
 whose follow-up dialog is cancelled), so the guard ends before the share opens and one unsettled
 share cannot block later views. Copies earlier builds wrote to the cache root are not found.
+
+## Picked evidence copies
+
+A claim's evidence is chosen with Expo's document picker (`pickDocument` in
+`mobile/src/services/documentCopies.ts`), offering PDF, PNG and JPEG files, and the shared
+`uploadRefusal` checks it as it is chosen, as on the web. A file the picker gives no size is
+measured from its copy, and one without a type, or with `application/octet-stream`, takes the type
+its extension names (`uploadType`) before that check. The app uploads a private copy as React
+Native's `{ uri, name, type }`, with the session epoch of the pick: on Android the picker copies the
+file into its `DocumentPicker` folder in the cache, and on iOS the app uses the copy the system
+makes in a `-Inbox` folder in its temporary folder. The app deletes only files inside its own cache
+or, on iOS, temporary folder, so never a provider's original: a picked copy when another file
+replaces it, when it is removed, refused or saved, when the form or the page closes and on every
+session change. Every session change and each app start also sweep the picker's UUID-named files
+from the `DocumentPicker` folder and, on iOS, the files in the temporary folder's `-Inbox` folders,
+where a killed app leaves its copies; a session change also removes the upload copies earlier builds
+left in the cache.
 
 Test coverage of these lifetimes is in
 [what automated checks do not establish](mobile-releases.md#what-automated-checks-do-not-establish).

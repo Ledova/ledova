@@ -18,7 +18,7 @@ export const submitInvestorClassification = (
   config?: AxiosRequestConfig,
 ) => {
   const formData = new FormData();
-  formData.append('evidence_file', data.file);
+  formData.append('evidence_file', data.file as Blob);
   formData.append('category', data.category);
   formData.append('declaration_accepted', 'true');
   if (data.declaredBasis !== undefined) formData.append('declared_basis', data.declaredBasis);
@@ -35,5 +35,5 @@ export const submitInvestorClassification = (
   });
 };
 
-export const deleteInvestorClassification = (apiClient: AxiosInstance, uuid: string) =>
-  apiClient.delete(INVESTOR_CLASSIFICATION_ENDPOINTS.DETAIL(uuid));
+export const deleteInvestorClassification = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
+  apiClient.delete(INVESTOR_CLASSIFICATION_ENDPOINTS.DETAIL(uuid), config);

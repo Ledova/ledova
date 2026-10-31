@@ -115,13 +115,14 @@ export function Fact({ label, children }: { label: string; children: string | Re
   );
 }
 
-export type Tone = 'waiting' | 'done' | 'closed';
+export type Tone = 'waiting' | 'moving' | 'done' | 'closed';
 
 export function Status({ tone, muted = false, children }: { tone: Tone; muted?: boolean; children: string }) {
   const styles = useThemedStyles((theme) => ({
     status: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.sm },
     mark: { width: 8, height: 8, borderRadius: 4 },
     waiting: { borderWidth: 1, borderColor: theme.colors.text.muted },
+    moving: { backgroundColor: theme.colors.brand.mid, opacity: 0.5 },
     done: { backgroundColor: theme.colors.brand.mid },
     closed: { backgroundColor: theme.colors.text.muted },
     label: {

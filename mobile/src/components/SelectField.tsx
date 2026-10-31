@@ -10,12 +10,14 @@ export function SelectField<T extends string>({
   options,
   onChange,
   disabled = false,
+  error,
 }: {
   label: string;
   value: T;
   options: readonly { value: T; label: string }[];
   onChange: (value: T) => void;
   disabled?: boolean;
+  error?: string | null;
 }) {
   const theme = useAppTheme();
   const form = useCompanyStyles();
@@ -56,6 +58,7 @@ export function SelectField<T extends string>({
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${current}`}
         accessibilityState={{ expanded: open, disabled }}
+        accessibilityHint={error ?? undefined}
         disabled={disabled}
         onPress={() => setOpen((shown) => !shown)}
         style={[styles.control, open && styles.open, disabled && styles.disabled]}
@@ -85,6 +88,7 @@ export function SelectField<T extends string>({
           })}
         </View>
       )}
+      {!!error && <Text style={form.error}>{error}</Text>}
     </View>
   );
 }

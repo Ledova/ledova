@@ -7,7 +7,10 @@ const files = new Map<string, Entry>();
 export const cache = 'file:///private/cache/';
 
 function join(parts: (string | { uri: string })[]) {
-  return parts.map((part) => (typeof part === 'string' ? part : part.uri).replace(/\/$/, '')).join('/');
+  return parts
+    .map((part) => (typeof part === 'string' ? part : part.uri).replace(/\/$/, ''))
+    .join('/')
+    .replace(/\/[^/]+\/\.\.(?=\/|$)/g, '');
 }
 
 class File {
@@ -54,7 +57,11 @@ class Directory {
   }
 }
 
-export const nativeFileSystem = { File, Directory, Paths: { cache: new Directory(cache) } };
+export const nativeFileSystem = {
+  File,
+  Directory,
+  Paths: { cache: new Directory(cache), document: new Directory('file:///private/document/') },
+};
 
 export function resetFiles() {
   files.clear();
