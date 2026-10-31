@@ -1,1 +1,1 @@
-export { NotificationsButton, TopBar, getMainHeaderStyle } from './MainHeader';
+export { TopBar, getMainHeaderStyle } from './MainHeader';

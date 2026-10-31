@@ -65,7 +65,9 @@ The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame.
 Dashboard, Documents and Settings, show the web's top bar (`TopBar`): the menu button, the logo, the
 Dark theme switch and the notifications bell. The menu (`AppMenu`) slides in from the left like the
 web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and a footer with the
-person's name and Sign out. Choosing a section replaces the stack with it. The Company, Class, Award,
+person's name and Sign out, which asks first as Settings' Sign out does. It closes when its screen
+loses focus. Choosing Dashboard returns to it; Documents and Settings open above Dashboard, so
+Android's Back returns there as it did from the tabs. The Company, Class, Award,
 Details, Past holdings, Invitation, Your details and Profile screens open above a section with a
 back button. Dashboard (`mobile/src/screens/holdings`) shows a card per company with
 a line per share class and each award's vesting bar, the award parts matching the web's; above six
@@ -114,8 +116,8 @@ The app has the web's Paper and Dark looks from the same tokens
 missing, unknown or unreadable value, or a read pending after two seconds, means Paper, and an older
 build's `ledova-theme` key is ignored. `useAppTheme()` returns one precomputed theme object per look
 (`mode`, semantic colours, spacing, radius, type, layout and icon scales, font families),
-`useThemedStyles` builds style sheets from it, and `useThemeChoice()` gives Account > Appearance >
-Dark theme the mode and a setter. The choice is written only when picked and stays on the device,
+`useThemedStyles` builds style sheets from it, and `useThemeChoice()` gives Settings' Dark theme
+switch and the top bar's the mode and a setter. The choice is written only when picked and stays on the device,
 not the account, through sign-out and restarts. One extra spacing step, `smd` (12), matches the
 web's 12px.
 
@@ -228,7 +230,7 @@ check confirms that the app's own imports reach declared runtime dependencies; i
 
 Viewing a document downloads it into the app-owned `ledova-document-views-v1` cache directory and
 hands the copy to the share sheet (`shareDocumentCopy`). Every document view works this way: a
-member's own certificates and publication documents. Account shares the
+member's own certificates and publication documents. Settings shares the
 [account-data export](records.md#account-data-export) the same way, as one JSON copy. A session
 change also removes the private document picker and upload copies earlier builds left in the cache.
 

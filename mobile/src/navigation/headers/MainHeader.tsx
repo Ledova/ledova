@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BellIcon } from 'phosphor-react-native';
 import { Header } from '@react-navigation/elements';
@@ -9,7 +9,7 @@ import { AppMenu, AppearanceButton, MenuButton, Wordmark, type Section } from '.
 
 type ThemeParam = ReturnType<typeof useAppTheme>;
 
-export function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void; unreadCount?: number }) {
+function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void; unreadCount?: number }) {
   const theme = useAppTheme();
   const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
   return (
@@ -69,6 +69,7 @@ export function TopBar({
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
+  useEffect(() => navigation.addListener('blur', () => setOpen(false)), [navigation]);
   return (
     <View
       style={{
@@ -87,7 +88,7 @@ export function TopBar({
           paddingHorizontal: theme.spacing.sm,
         }}
       >
-        <MenuButton onPress={() => setOpen(true)} />
+        <MenuButton expanded={open} onPress={() => setOpen(true)} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Wordmark />
         </View>
@@ -100,7 +101,12 @@ export function TopBar({
         onClose={() => setOpen(false)}
         onSelect={(section) => {
           setOpen(false);
-          if (section !== current) navigation.reset({ index: 0, routes: [{ name: section }] });
+          if (section !== current)
+            navigation.reset(
+              section === 'Dashboard'
+                ? { index: 0, routes: [{ name: 'Dashboard' }] }
+                : { index: 1, routes: [{ name: 'Dashboard' }, { name: section }] },
+            );
         }}
       />
     </View>

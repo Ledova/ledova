@@ -13,6 +13,7 @@ import {
   type IconProps,
 } from 'phosphor-react-native';
 import { useAppTheme, useThemeChoice } from '../contexts';
+import { SignOutModal } from '../components/auth/SignOutModal';
 import { LogoMark } from '../components/LogoMark';
 import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
@@ -35,6 +36,7 @@ export function Wordmark() {
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <LogoMark width={28} />
       <Text
+        allowFontScaling={false}
         style={{
           fontFamily: theme.fontFamily.display,
           fontSize: 26,
@@ -48,12 +50,13 @@ export function Wordmark() {
   );
 }
 
-export function MenuButton({ onPress }: { onPress: () => void }) {
+export function MenuButton({ expanded, onPress }: { expanded: boolean; onPress: () => void }) {
   const theme = useAppTheme();
   return (
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityLabel="Open navigation"
+      accessibilityState={{ expanded }}
       onPress={onPress}
       style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
     >
@@ -97,6 +100,7 @@ export function AppMenu({
   const { signOut, signingOut } = useSignOut();
   const [progress] = useState(() => new Animated.Value(0));
   const [shown, setShown] = useState(visible);
+  const [confirming, setConfirming] = useState(false);
   if (visible && !shown) setShown(true);
   useEffect(() => {
     Animated.timing(progress, {
@@ -109,6 +113,7 @@ export function AppMenu({
     });
   }, [progress, visible]);
   const person = userProfile?.fullName?.trim() || userProfile?.email;
+  const currentBackground = theme.mode === 'dark' ? theme.colors.brand.tint : `${theme.colors.brand.mid}1a`;
   const item = (section: { name: Section; label: string; icon: ComponentType<IconProps> }) => {
     const active = section.name === current;
     const Icon = section.icon;
@@ -125,7 +130,7 @@ export function AppMenu({
           paddingHorizontal: theme.spacing.smd,
           paddingVertical: 10,
           borderRadius: theme.borderRadius.md,
-          backgroundColor: active ? theme.colors.brand.tint : 'transparent',
+          backgroundColor: active ? currentBackground : theme.colors.utility.transparent,
         }}
       >
         <Icon
@@ -147,20 +152,24 @@ export function AppMenu({
   };
   return (
     <Modal visible={shown} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
-      <View style={{ flex: 1 }} accessibilityViewIsModal>
+      <View
+        style={{ flex: 1 }}
+        accessibilityViewIsModal
+        onAccessibilityEscape={onClose}
+        pointerEvents={visible ? 'auto' : 'none'}
+      >
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
             {
-              backgroundColor: 'black',
+              backgroundColor: theme.colors.utility.black,
               opacity: progress.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] }),
             },
           ]}
         >
-          <Pressable accessibilityLabel="Close navigation" style={{ flex: 1 }} onPress={onClose} />
+          <Pressable accessible={false} importantForAccessibility="no" style={{ flex: 1 }} onPress={onClose} />
         </Animated.View>
         <Animated.View
-          accessibilityLabel="Navigation"
           style={{
             position: 'absolute',
             top: 0,
@@ -216,13 +225,14 @@ export function AppMenu({
             <TouchableOpacity
               accessibilityRole="button"
               disabled={signingOut}
-              onPress={() => void signOut()}
+              onPress={() => setConfirming(true)}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: theme.spacing.smd,
                 paddingHorizontal: theme.spacing.smd,
                 paddingVertical: 10,
+                opacity: signingOut ? 0.5 : 1,
               }}
             >
               <SignOutIcon size={theme.icon.sizes.md} color={theme.colors.text.secondary} />
@@ -238,6 +248,12 @@ export function AppMenu({
             </TouchableOpacity>
           </View>
         </Animated.View>
+        <SignOutModal
+          visible={confirming}
+          isLoading={signingOut}
+          onClose={() => setConfirming(false)}
+          onConfirm={() => void signOut()}
+        />
       </View>
     </Modal>
   );
