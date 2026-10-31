@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -23,9 +24,10 @@ export interface MemberDraft {
   name: string;
   address: string;
   confirmed: boolean;
+  open: boolean;
 }
 
-const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false };
+const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open: false };
 
 type Read = ReturnType<typeof useMemberRecords>;
 
@@ -45,6 +47,15 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   useEffect(() => setDraft(EMPTY_DRAFT), [read.scopeOwner]);
+  const busy = read.busy || !!read.retry;
+  const sent = useRef('');
+  useEffect(() => {
+    if (read.retry?.kind === 'particulars') sent.current = read.retry.operationId;
+    if (!busy && read.requests?.particulars.some((request) => request.uuid === sent.current)) {
+      sent.current = '';
+      setDraft(EMPTY_DRAFT);
+    }
+  }, [read.retry, read.requests, busy]);
   const companies = useMemo(
     () => [...read.records].sort((left, right) => left.company.name.localeCompare(right.company.name)),
     [read.records],
@@ -64,7 +75,6 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const remembered = key && chosen?.key === key ? chosen.company : undefined;
   const company =
     remembered === undefined ? undefined : (companies.find((row) => row.company.uuid === remembered) ?? companies[0]);
-  const busy = read.busy || !!read.retry;
   const selectCompany = useCallback(
     (companyUuid: string) => {
       if (!key || busy || !companies.some((row) => row.company.uuid === companyUuid)) return false;
@@ -161,7 +171,7 @@ export function RecordGate({
   return <>{children}</>;
 }
 
-export function useMemberRefresh(read: Read, testID?: string) {
+export function useMemberRefresh(read: Read, testID?: string, also?: () => Promise<unknown>) {
   const theme = useAppTheme();
   const [refreshing, setRefreshing] = useState(false);
   return (
@@ -172,7 +182,7 @@ export function useMemberRefresh(read: Read, testID?: string) {
       onRefresh={() => {
         if (read.busy || refreshing) return;
         setRefreshing(true);
-        void read.refresh().finally(() => setRefreshing(false));
+        void Promise.all([read.refresh(), also?.()]).finally(() => setRefreshing(false));
       }}
     />
   );

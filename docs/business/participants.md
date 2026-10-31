@@ -332,8 +332,9 @@ Pending or Accepted, as a status mark.
 Profile shows Personal information (full name, email, phone, date of birth, address and citizenship).
 On web, one compact Account card holds password, appearance and notifications, with identity status
 and **Review identity check**. Existing company and investor verification requirements stay unchanged.
-Mobile keeps its Account status section, with member since and last login.
-Web personal-details editing opens inline, with aligned Cancel and save actions.
+Mobile shows the same Profile and Account card, with the identity status but no **Review identity
+check**, since the app has no identity check flow.
+Personal-details editing opens inline, with aligned Cancel and save actions.
 
 To change your full name, residential address or phone, choose **Edit personal details**, change
 them and choose **Save personal details**. These details are self-reported: editing them verifies
@@ -385,10 +386,12 @@ For linked members, Profile also shows **Company-recorded details**: the person'
 held by the selected company, with a company-reviewed update request and its status. These are
 separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
 
-On mobile, Settings opens Profile and offers biometric sign-in, **App lock** (biometrics
-after the app goes into the background), **Dark theme** (saved on the device), **Rate the app**,
-**Share with friends** and **Sign out**. Its Account section holds **Change password**, **Export
-data** (a private JSON file to save or share) and **Delete account**.
+On mobile, Settings opens the same Profile for the selected company. Its Account card has **Dark
+theme** saved on the device, then biometric sign-in and **App lock** (biometrics after the app goes
+into the background); **Accept an invitation** opens the app's member
+[invitation](member-records.md#accepting-an-invitation), **Export data** saves or shares a private
+JSON file, and **Rate the app** and **Share with friends** end the card. **Sign out** is in the
+menu.
 
 Next: [company setup](companies.md) ·
 [issuing shares](issuing-shares.md) ·

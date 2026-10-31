@@ -18,7 +18,7 @@ import {
 } from '@ledova/shared';
 import { SelectField } from '../../components/SelectField';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Rows, Section } from '../../components/Ledger';
+import { Action, FormActions, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { Field } from '../../components/register/RegisterFields';
@@ -83,15 +83,6 @@ function useCertificateStyles() {
       others: { gap: theme.spacing.sm },
       toggle: { ...text, color: theme.colors.brand.light },
       off: { opacity: 0.5 },
-      formActions: {
-        flexDirection: 'row' as const,
-        flexWrap: 'wrap' as const,
-        justifyContent: 'flex-end' as const,
-        gap: theme.spacing.sm,
-        paddingTop: theme.spacing.md,
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.border.subtle,
-      },
     };
   });
 }
@@ -354,7 +345,6 @@ function FilterFields({
   disabled: boolean;
   onApply: (filters: Filters) => void;
 }) {
-  const look = useCertificateStyles();
   const [draft, setDraft] = useState(applied);
   const classes = record?.classes ?? [];
   const valid = classes.some((row) => row.uuid === draft.token);
@@ -384,7 +374,7 @@ function FilterFields({
         disabled={disabled}
         onChange={(status) => setDraft((current) => ({ ...current, status }))}
       />
-      <View style={look.formActions}>
+      <FormActions>
         <Action
           label="Clear"
           accessibilityLabel="Clear (certificate filters)"
@@ -404,7 +394,7 @@ function FilterFields({
           disabled={disabled || !valid}
           onPress={() => onApply({ ...draft, search: draft.search.trim() })}
         />
-      </View>
+      </FormActions>
     </>
   );
 }

@@ -75,13 +75,15 @@ export default function InvestorEligibilityPage() {
                             </p>
                           </div>
                           {claim.status === 'submitted' && (
-                            <PageAction
-                              label="Withdraw claim"
-                              busy={withdraw.isPending && withdraw.variables === claim.uuid}
-                              busyLabel="Withdrawing…"
-                              onClick={() => setWithdrawing(claim)}
-                              disabled={withdraw.isPending}
-                            />
+                            <div className="ml-auto">
+                              <PageAction
+                                label="Withdraw claim"
+                                busy={withdraw.isPending && withdraw.variables === claim.uuid}
+                                busyLabel="Withdrawing…"
+                                onClick={() => setWithdrawing(claim)}
+                                disabled={withdraw.isPending}
+                              />
+                            </div>
                           )}
                         </div>
                         <Rows>
@@ -108,11 +110,13 @@ export default function InvestorEligibilityPage() {
                       <p className="mt-1 text-sm text-text-muted">{item.evidence}</p>
                       <p className="mt-1 text-xs text-text-muted">{item.section}</p>
                     </div>
-                    <PageAction
-                      label={submittedCategories.has(item.category) ? 'Add evidence' : 'Submit evidence'}
-                      onClick={() => setClaimCategory(item.category)}
-                      disabled={withdraw.isPending || isRefreshing}
-                    />
+                    <div className="ml-auto">
+                      <PageAction
+                        label={submittedCategories.has(item.category) ? 'Add evidence' : 'Submit evidence'}
+                        onClick={() => setClaimCategory(item.category)}
+                        disabled={withdraw.isPending || isRefreshing}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
