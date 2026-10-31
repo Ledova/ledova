@@ -187,6 +187,7 @@ export function AppMenu({
             accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${section.label} navigation`}
             accessibilityState={{ expanded }}
             onPress={() => setToggled((shown) => ({ ...shown, [section.name]: !expanded }))}
+            hitSlop={{ top: 2, bottom: 2, left: 6, right: 6 }}
             style={{ width: 32, height: 40, alignItems: 'center', justifyContent: 'center' }}
           >
             <Caret size={theme.icon.sizes.sm} color={theme.colors.text.secondary} />
