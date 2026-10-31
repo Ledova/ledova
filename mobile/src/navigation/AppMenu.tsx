@@ -42,6 +42,7 @@ export function Wordmark() {
           fontSize: 26,
           letterSpacing: -0.26,
           color: theme.colors.text.primary,
+          transform: [{ translateY: 3 }],
         }}
       >
         Ledova
@@ -58,9 +59,10 @@ export function MenuButton({ expanded, onPress }: { expanded: boolean; onPress: 
       accessibilityLabel="Open navigation"
       accessibilityState={{ expanded }}
       onPress={onPress}
-      style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+      hitSlop={2}
+      style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
     >
-      <ListIcon size={theme.icon.sizes.lg} color={theme.colors.text.muted} />
+      <ListIcon size={theme.icon.sizes.md} color={theme.colors.text.muted} />
     </TouchableOpacity>
   );
 }
@@ -76,9 +78,10 @@ export function AppearanceButton() {
       accessibilityLabel="Dark theme"
       accessibilityState={{ checked: dark }}
       onPress={() => setMode(dark ? 'paper' : 'dark')}
-      style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+      hitSlop={2}
+      style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
     >
-      <Icon size={theme.icon.sizes.lg} color={theme.colors.text.muted} />
+      <Icon size={theme.icon.sizes.md} color={theme.colors.text.muted} />
     </TouchableOpacity>
   );
 }

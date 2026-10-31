@@ -186,7 +186,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   tone map; shared resolution-result tones live in `dashboard/src/components/statusTones.ts`.
 
 On workflow collections, show the saved records first, with class context once where needed.
-The sidebar footer, or the top bar below `lg`, identifies the current company. Keep each recipient,
+The sidebar footer identifies the current company. Keep each recipient,
 status and key facts together,
 its details on demand, and its next action
 in a right-aligned footer after secondary actions.
@@ -406,8 +406,8 @@ content", which moves focus to the page's heading.
 The Dashboard selects company context; there is no workspace or role selector. Keep the selected
 company below the person's name in the sidebar footer and preserve its context in task links. Both
 names use small text (`text-xs`), retain stored capitalization and stay on one truncated line with
-the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar shows the same
-company line under the wordmark. The navigation scrolls between the fixed brand header and footer.
+the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar shows only the
+wordmark, beside the menu button, Dark theme and the bell, all on one line. The navigation scrolls between the fixed brand header and footer.
 Do not repeat the current company name as a passive heading, subtitle or card label in signed-in
 content. Keep it where it identifies a functional company picker, a company Profile field, a record
 in a multi-company list or asset holding, or the exact legal, declaration, snapshot or recovery target.

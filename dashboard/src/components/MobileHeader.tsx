@@ -7,11 +7,9 @@ import { Sidebar } from './Sidebar';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
 import { ICON_MD } from './iconSizes';
-import { useCompanyContext } from '@hooks/useCompanyContext';
 
 export function MobileHeader() {
   const [isOpen, setIsOpen] = useState(false);
-  const company = useCompanyContext()?.company;
   const location = useLocation();
   const place = `${location.pathname}${location.hash}`;
   const [shownPlace, setShownPlace] = useState(place);
@@ -36,13 +34,8 @@ export function MobileHeader() {
         >
           <ListIcon size={ICON_MD} />
         </button>
-        <div className="flex min-w-0 flex-1 flex-col justify-center">
+        <div className="min-w-0 flex-1">
           <Logo />
-          {company && (
-            <p className="truncate text-xs text-text-muted" title={company.name}>
-              {company.name}
-            </p>
-          )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
