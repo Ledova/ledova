@@ -15,7 +15,7 @@ import * as Crypto from 'expo-crypto';
 import { RefreshControl, Text } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useMemberRecords, type OwnMemberRecord } from '@ledova/shared';
-import { Action } from '../../components/Ledger';
+import { Action, Actions } from '../../components/Ledger';
 import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -140,7 +140,9 @@ export function MemberNotice({ read }: { read: Read }) {
       )}
       {pending && <Text style={styles.muted}>Your request to {pending} is waiting to be retried.</Text>}
       {read.retry && (
-        <Action label="Retry original member action" disabled={read.busy} onPress={() => void read.recover()} />
+        <Actions>
+          <Action label="Retry original member action" disabled={read.busy} onPress={() => void read.recover()} />
+        </Actions>
       )}
     </>
   );

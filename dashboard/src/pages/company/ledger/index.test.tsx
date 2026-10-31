@@ -2910,7 +2910,7 @@ it('shows an account without register access a calm empty state, reads no member
   cleanup();
   show('investor', <SettingsPage />, 'Settings', { entry: '/settings', path: '/settings' });
   expect(await screen.findByRole('heading', { level: 1, name: 'Profile' })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Change password' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Personal information' })).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(readUrls().sort()).toEqual([REGISTER, APPOINTMENTS, PROFILES].sort());
   expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();

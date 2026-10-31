@@ -9,7 +9,7 @@ import {
   type MemberParticularsRequest,
   type OwnMemberRecord,
 } from '@ledova/shared';
-import { Action, Choice, Fact, FormActions, Rows, Section, Status } from '../../components/Ledger';
+import { Action, Actions, Choice, Fact, FormActions, Rows, Section, Status } from '../../components/Ledger';
 import { Field } from '../../components/register/RegisterFields';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -54,7 +54,9 @@ export function CompanyRecordedDetails({ opened }: { opened: string | undefined 
     <Section title="Company-recorded details">
       <MemberNotice read={read} />
       {read.readFailed ? (
-        <Action label="Try again" disabled={read.busy} onPress={() => void read.refresh()} />
+        <Actions>
+          <Action label="Try again" disabled={read.busy} onPress={() => void read.refresh()} />
+        </Actions>
       ) : !opened && !company && read.listReady ? (
         <Text style={styles.muted}>Loading member records…</Text>
       ) : (

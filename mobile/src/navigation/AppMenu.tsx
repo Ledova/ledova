@@ -23,7 +23,7 @@ import { useMemberRecordsState } from '../screens/holdings/MemberRecordsProvider
 
 export type Section = 'Dashboard' | 'Documents' | 'Settings';
 
-export type MenuRoute = 'Dashboard' | 'Certificates' | 'Notices' | 'Settings';
+export type MenuRoute = 'Dashboard' | 'Certificates' | 'Notices' | 'Settings' | 'Account' | 'DataPrivacy';
 
 type MenuItem = {
   name: Section;
@@ -46,7 +46,19 @@ const SECTIONS: MenuItem[] = [
     ],
   },
 ];
-const YOURS: MenuItem[] = [{ name: 'Settings', label: 'Settings', icon: GearIcon, route: 'Settings' }];
+const YOURS: MenuItem[] = [
+  {
+    name: 'Settings',
+    label: 'Settings',
+    icon: GearIcon,
+    route: 'Settings',
+    items: [
+      { route: 'Settings', label: 'Profile' },
+      { route: 'Account', label: 'Account' },
+      { route: 'DataPrivacy', label: 'Data and privacy' },
+    ],
+  },
+];
 
 const MENU_WIDTH = 208;
 

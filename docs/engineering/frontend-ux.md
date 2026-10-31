@@ -169,9 +169,11 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   each shows its facts and status, with its permitted action right-aligned at the row's end. On wide
   screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's
-  facts, still at the right edge. Profile's account rows and Verification's claim and evidence rows follow
-  the same edge on web and in the app, so their buttons never alternate between the left and the right. Representative authority requests are `LinkRow`s that open
-  each request's own page.
+  facts, still at the right edge. The Account and Data and privacy rows, Verification's claim and
+  evidence rows and an action that stands on its own follow the same edge on web and in the app: Try
+  again after a failed read, **Retry original member action**, and in the app Notices' **Open** and the
+  Invitation page's and empty Dashboard's actions. Load more and the app's voting choices keep their place.
+  Representative authority requests are `LinkRow`s that open each request's own page.
 - Optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished input
   survives. The sidebar's group caret is a separate navigation button. Substantial record reviews
   use the main page; brief confirmations can use dialogs.
@@ -182,9 +184,10 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   panel, focus and viewport bounds. Pages keep their fields, data, drafts and validation.
   The [filter rules](#lists-search-filters-and-paging) describe its interaction. Editing records,
   preparation and substantial reviews stay on the main page.
-- `SwitchRow`: a setting that takes effect at once (Dark theme), as an On/Off pill or native switch (`role="switch"`,
-  `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
-  an alert in the card. A choice saved with a form stays a checkbox.
+- `SwitchRow` (mobile): a setting that takes effect at once (biometric sign-in, App lock), as a native
+  switch named by its label, disabled while saving; a refusal keeps the saved value and shows an alert
+  in the card. The theme switch is the icon beside Sign out on web and in the app, not a row. A choice
+  saved with a form stays a checkbox.
 - `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event;
   `Choice` (mobile) is an outlined choice marked selected. Each status family has its own
   tone map; shared resolution-result tones live in `dashboard/src/components/statusTones.ts`.
@@ -434,14 +437,15 @@ Shareholders uses the same web pattern for **Employee scheme**, **Member access*
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
 **Published**, **Inspection copies** and **Company pack** where permitted, and **Notices** for a member of the
 selected company, with its label opening Certificates at `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
-one-level group for **Profile** (the default), **Team** and **Activation**, without an extra overview
-page. A group with only one permitted page, such as Settings (Profile), is a plain link to that
-page, marked current there. Profile always holds
-personal information and Account. Company documents, Team, Activation and
+one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
+**Team** and **Activation** where permitted, without an extra overview page. A group with only one
+permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
+there. Profile always holds personal information. Company documents, Team, Activation and
 Company details follow current company access; Profile's Company-recorded details follows an actual
 member association. Personal edits never change company-recorded particulars.
-Use one compact Account card for relevant identity status, password, appearance and notifications;
-keep export and deletion under Manage account, with their existing confirmations. Payslip evidence
+Use one compact Account card for relevant identity status, password and Manage account (member since
+and last login); keep export and deletion on Data and privacy, with their existing confirmations. The
+theme switch sits beside Sign out in the sidebar's footer, not in Settings. Payslip evidence
 belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation. Company-recorded particulars are a Profile card for a member of the selected company.
@@ -516,7 +520,8 @@ confirmation) or pressed, and comes in four forms:
 - **A submit button** (`type="submit"`) ends every page form, inside `FormActions`: a rule, then one
   right-aligned row with any plain actions first and the primary submit last. The form's own submit
   handler does the work, so Enter in a field submits the form unless the submit button is disabled.
-  Mobile's `FormActions` draws the same rule and row.
+  Mobile's `FormActions` draws the same rule and row; its `Actions` is that row without the rule, for
+  an action that stands on its own.
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
   the title row's way back, Add share class, a shareholder's Details, Issue shares to them. While a
   held Ledger action blocks leaving, `disabled` shows it as a disabled action instead.
@@ -858,7 +863,7 @@ that stands for a whole step carries a status role with its words, such as the s
 sign-up's steps.
 
 A read that fails shows `LoadError` (`dashboard/src/components/Ledger.tsx`): one `role="alert"`
-block with a sentence in the primary text colour and a Try again action. The sentence names what
+block with a sentence in the primary text colour and a Try again action at its right edge. The sentence names what
 failed, such as "Imports could not be loaded." or "The register or your appointments could
 not be loaded.", and adds a second sentence only for what the block can't otherwise say: a
 consequence, such as "The list is incomplete.", or a likely cause, such as "It may be unavailable

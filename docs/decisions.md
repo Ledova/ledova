@@ -1901,6 +1901,13 @@ Dashboard should be placed at the top nav bar … do the same to all other pages
 action beside the bell ("the button to select a company should be placed next to bell icon"). The
 page then starts with its content.
 
+**Settings pages, also decided on 31 October 2026.** Finding the single Profile page cluttered ("maybe
+we should create submenus so we have profile, account and etc"), the owner chose, from the options
+offered, to make Settings a group of three pages, the same on web and app: Profile (personal information and company-recorded details), Account
+(identity check, password, the app's biometric sign-in and App lock, Manage account with accepting an
+invitation, and the app's Rate the app and Share with friends) and Data and privacy (export and
+deletion). The Dark theme row goes, since the theme switch sits beside Sign out.
+
 This replaces the [shareholder app](#mobile-app-for-shareholders)'s three tabs and no drawer now,
 and its shareholder-only scope as phases 3 to 5 arrive. The app still has no links or hand-offs to
 the web.

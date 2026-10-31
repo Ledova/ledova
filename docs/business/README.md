@@ -240,7 +240,7 @@ the company information they may read. The sidebar keeps focused tasks for the s
 - Company eligibility follows for its administrators and the people appointed to prepare or approve.
   Its sidebar label is Eligibility, and administrators find Supporting (the company's documents)
   beneath it.
-- Settings comes last whatever company is selected. It keeps personal Profile and Account, with company information, Team and Activation according
+- Settings comes last whatever company is selected. It keeps personal Profile, Account and Data and privacy, with company information, Team and Activation according
   to current access. Profile also shows the details a company holds about a linked member.
 
 The sidebar has no More group or Help & Support link. Investing pages without a sidebar
@@ -279,8 +279,8 @@ requests are in Documents → Certificates on the web and on mobile
 The mobile app has the web's phone frame: a top bar with the menu and the notifications bell, and a
 slide-out menu with the Dark theme switch. It opens on **Dashboard**, the selected company's ownership
 overview, as on the web; **Switch company** changes the company. **Documents** holds that company's Certificates and the [notices](publications.md#the-notices-page) from every company, as the web shows a member, and **Settings** opens
-the web's Profile for that company, with accepting an invitation and the app's own settings
-([Profile and Settings](participants.md#profile-and-settings)).
+the web's Profile for that company, with Account (accepting an invitation and the app's own settings)
+and Data and privacy beneath it ([Profile and Settings](participants.md#profile-and-settings)).
 Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).
 
 Each page is described in the domain document for its process below;

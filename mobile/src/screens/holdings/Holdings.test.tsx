@@ -19,7 +19,6 @@ import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/s
 import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/tests/fixtures/register-outputs';
 import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { destinationOf } from '../../components/notifications/NotificationsModal';
-import { AppLockProvider } from '../../contexts';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { SettingsScreen } from '../settings';
 import { DashboardScreen } from './DashboardScreen';
@@ -225,9 +224,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <AppLockProvider>
-          <MemberRecordsProvider>{children}</MemberRecordsProvider>
-        </AppLockProvider>
+        <MemberRecordsProvider>{children}</MemberRecordsProvider>
       </ApiClientProvider>
     </QueryClientProvider>
   );

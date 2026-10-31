@@ -273,19 +273,26 @@ export function Action({
   );
 }
 
-export function FormActions({ children }: { children: ReactNode }) {
-  const styles = useThemedStyles((theme) => ({
+function useActionsStyles() {
+  return useThemedStyles((theme) => ({
     actions: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
       justifyContent: 'flex-end' as const,
       gap: theme.spacing.sm,
-      paddingTop: theme.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.subtle,
     },
+    ruled: { paddingTop: theme.spacing.md, borderTopWidth: 1, borderTopColor: theme.colors.border.subtle },
   }));
+}
+
+export function Actions({ children }: { children: ReactNode }) {
+  const styles = useActionsStyles();
   return <View style={styles.actions}>{children}</View>;
+}
+
+export function FormActions({ children }: { children: ReactNode }) {
+  const styles = useActionsStyles();
+  return <View style={[styles.actions, styles.ruled]}>{children}</View>;
 }
 
 export function Choice({

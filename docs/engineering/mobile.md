@@ -73,9 +73,10 @@ web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and
 person's name, the selected company as on the web, and Sign out, which asks first, beside the Dark
 theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Documents for Certificates and Notices,
-Settings for Profile, Dashboard for Invitation. Choosing Dashboard returns
-to it. Documents opens Certificates, and like the web's group its caret shows Certificates and
-Notices beneath it, open while one of them is shown. Settings opens
+Settings for Profile, Account and Data and privacy, Dashboard for Invitation. Choosing Dashboard returns
+to it. Documents opens Certificates and Settings opens Profile, and like the web's groups each caret
+shows its pages beneath it, Certificates and Notices, or Profile, Account and Data and privacy, open
+while one of them is shown. Every other choice opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
 (`Section`) use the web's phone sizes: 16-point margins and gaps, and cards with 16-point padding and
 corners under a 20-point title; the page's own title is the top bar's. Dashboard
@@ -102,17 +103,20 @@ certificate status from the shared `certificateStatus`, with Request certificate
 certificate requests, including those the filters hide, open on demand. A class the member is not
 recorded in says so, and a failed read offers Try again. Notices
 (`NoticesScreen`), under Documents, is the web's Notices page: every company's notices, each opened
-or voted on as on the web. Settings opens the web's Profile page for a member
-(`mobile/src/screens/settings/index.tsx`), with its three cards. Personal information shows the
+or voted on as on the web. Settings has the web's three pages for a member
+(`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, keeps the web's two cards and
+the route's `record` parameter. Personal information shows the
 person's details, each label above its value, and **Edit personal details** opens their form in the
 card. Company-recorded details shows the selected company's recorded name and residential address,
 its classes under **Show ledger details**, and the member's update requests with their status;
 **Request update** opens the web's particulars request in the card, which closes once the company has
-the request. Account shows the identity check status from the profile (the app has no identity
-check flow, so there is no **Review identity check**), Change password and Dark theme, then the
-app's biometric sign-in and App lock switches; Manage account adds member since and last login,
-**Accept an invitation** (the member Invitation page), Export data and Delete account, and Rate the
-app and Share with friends end the card. These pages share one member-records state
+the request. Account (`Account`) shows the identity check status from the profile (the app has no
+identity check flow, so there is no **Review identity check**) and Change password, then the app's
+biometric sign-in and App lock switches; Manage account adds member since and last login and
+**Accept an invitation** (the member Invitation page), and Rate the app and Share with friends end the
+card. Data and privacy (`DataPrivacy`) has Export data, which saves or shares the file, and Delete
+account. Each of these rows' actions carries the row's description, so a screen reader hears it once,
+with the action. The theme is the menu's switch. The member pages share one member-records state
 (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
 original operation, after leaving the page, an unsent particulars draft stays for the same company,
 and the pages show a loading line rather than an empty one while the list rereads. Only the focused
@@ -133,8 +137,8 @@ The app has the web's Paper and Dark looks from the same tokens
 missing, unknown or unreadable value, or a read pending after two seconds, means Paper, and an older
 build's `ledova-theme` key is ignored. `useAppTheme()` returns one precomputed theme object per look
 (`mode`, semantic colours, spacing, radius, type, layout and icon scales, font families),
-`useThemedStyles` builds style sheets from it, and `useThemeChoice()` gives Settings' Dark theme
-switch and the menu's the mode and a setter. The choice is written only when picked and stays on the device,
+`useThemedStyles` builds style sheets from it, and `useThemeChoice()` gives the menu's Dark theme
+switch the mode and a setter. The choice is written only when picked and stays on the device,
 not the account, through sign-out and restarts. One extra spacing step, `smd` (12), matches the
 web's 12px.
 
@@ -247,7 +251,7 @@ check confirms that the app's own imports reach declared runtime dependencies; i
 
 Viewing a document downloads it into the app-owned `ledova-document-views-v1` cache directory and
 hands the copy to the share sheet (`shareDocumentCopy`). Every document view works this way: a
-member's own certificates and publication documents. Settings shares the
+member's own certificates and publication documents. Data and privacy shares the
 [account-data export](records.md#account-data-export) the same way, as one JSON copy. A session
 change also removes the private document picker and upload copies earlier builds left in the cache.
 

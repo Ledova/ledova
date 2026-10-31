@@ -1,7 +1,7 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 import { PUBLICATION_COPY, PUBLICATION_KIND_LABELS, formatDate, formatShareCount } from '@ledova/shared';
 import type { Publication } from '@ledova/shared';
-import { Action, Row, Section } from '../../components/Ledger';
+import { Action, Actions, Row, Section } from '../../components/Ledger';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
@@ -68,12 +68,14 @@ export function NoticeList({
           {publication.tokenName} ({publication.tokenSymbol})
         </Text>
       </View>
-      <Action
-        label={openingUuid === publication.uuid ? PUBLICATION_COPY.OPENING : PUBLICATION_COPY.OPEN}
-        accessibilityLabel={`${PUBLICATION_COPY.OPEN}: ${publication.title}`}
-        onPress={() => void open(publication.uuid)}
-        disabled={openingUuid !== undefined}
-      />
+      <Actions>
+        <Action
+          label={openingUuid === publication.uuid ? PUBLICATION_COPY.OPENING : PUBLICATION_COPY.OPEN}
+          accessibilityLabel={`${PUBLICATION_COPY.OPEN}: ${publication.title}`}
+          onPress={() => void open(publication.uuid)}
+          disabled={openingUuid !== undefined}
+        />
+      </Actions>
       <Row label={PUBLICATION_COPY.RECORD_DATE_LABEL}>{formatDate(publication.recordDate)}</Row>
       {publication.shares !== null && publication.shares !== undefined && (
         <View style={styles.details}>
@@ -112,7 +114,9 @@ export function NoticeList({
               ? 'Your notices could not be refreshed. Try again before continuing.'
               : PUBLICATION_COPY.LIST_FAILED}
           </Text>
-          <Action label={PUBLICATION_COPY.RETRY} onPress={retry} disabled={isRefreshing} />
+          <Actions>
+            <Action label={PUBLICATION_COPY.RETRY} onPress={retry} disabled={isRefreshing} />
+          </Actions>
         </View>
       ) : (
         <>
@@ -128,7 +132,9 @@ export function NoticeList({
               <Text accessibilityRole="alert" style={styles.message}>
                 Earlier notices could not be loaded. The list is incomplete.
               </Text>
-              <Action label="Try earlier notices again" onPress={loadMore} disabled={isRefreshing} />
+              <Actions>
+                <Action label="Try earlier notices again" onPress={loadMore} disabled={isRefreshing} />
+              </Actions>
             </View>
           ) : (
             hasMore && (

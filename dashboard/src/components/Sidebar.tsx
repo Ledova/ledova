@@ -463,10 +463,9 @@ function SettingsGroup({
   const selected = settingsView(location.pathname, location.hash);
   const items = SETTINGS_VIEWS.filter(
     (item) =>
-      (item.key === 'profile' || !!context?.company?.canManage) &&
+      ((item.key !== 'company-team' && item.key !== 'activation') || !!context?.company?.canManage) &&
       (selected === item.key || navigation.items.includes(item)),
   );
-  const single = items.length === 1;
 
   return (
     <NavGroup
@@ -474,9 +473,9 @@ function SettingsGroup({
       label="Settings"
       to={navigation.defaultPath}
       active={active}
-      current={single && active}
+      current={active && !items.some(({ key }) => key === selected)}
       onNavigate={onNavigate}
-      items={single ? [] : items.map(({ key, label, to }) => ({ key, label, to, current: selected === key }))}
+      items={items.map(({ key, label, to }) => ({ key, label, to, current: selected === key }))}
     />
   );
 }

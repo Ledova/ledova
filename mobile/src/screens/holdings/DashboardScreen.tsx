@@ -13,7 +13,7 @@ import {
   type OwnMemberRecord,
   type useMemberRecords,
 } from '@ledova/shared';
-import { Action, Fact, LinkRow, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, Fact, LinkRow, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -143,11 +143,15 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
               No company relationships yet. Open an invitation email from your company to access your shares or employee
               awards.
             </Text>
-            <Action label="Accept an invitation" primary onPress={() => navigation.navigate('Invitation')} />
+            <Actions>
+              <Action label="Accept an invitation" primary onPress={() => navigation.navigate('Invitation')} />
+            </Actions>
           </Section>
         )
       ) : read.readFailed ? (
-        <Action label="Try again" disabled={read.busy} onPress={() => void read.refresh()} />
+        <Actions>
+          <Action label="Try again" disabled={read.busy} onPress={() => void read.refresh()} />
+        </Actions>
       ) : (
         <CompanyOwnership
           key={company.uuid}

@@ -3,7 +3,7 @@ import { Page } from '../../components/Page';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { useMemberRecordsState, useMemberRefresh } from '../holdings/MemberRecordsProvider';
-import { AccountSettings } from './AccountSettings';
+import { AccountData, AccountSettings } from './AccountSettings';
 import { CompanyRecordedDetails } from './CompanyRecordedDetails';
 import { PersonalProfile } from './PersonalProfile';
 
@@ -15,7 +15,22 @@ export function SettingsScreen({ route }: { route: RouteProp<SignedInStackParamL
     <Page testID="profile-scroll" title="Profile" refreshControl={refresh}>
       <PersonalProfile profile={profile} />
       <CompanyRecordedDetails opened={route.params?.record} />
-      <AccountSettings profile={profile} />
+    </Page>
+  );
+}
+
+export function AccountScreen() {
+  return (
+    <Page testID="account-scroll" title="Account">
+      <AccountSettings />
+    </Page>
+  );
+}
+
+export function DataPrivacyScreen() {
+  return (
+    <Page testID="data-privacy-scroll" title="Data and privacy">
+      <AccountData />
     </Page>
   );
 }
