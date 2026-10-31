@@ -160,7 +160,10 @@ The [principles](README.md#principles) apply; in particular, do not add:
   owner guard and invalidation, lives in a `use<Thing>.ts` hook, and only `main.tsx`, hooks and
   `services/` import `apiClient`. A thin read hook may return its query as it is; a hook that shapes
   its result names the fields `isLoading`, `hasError`, `isRefreshing` and `retry`
-  (`dashboard/src/hooks/useOwnershipCompanies.ts`).
+  (`dashboard/src/hooks/useOwnershipCompanies.ts`). Four older hooks still use other names:
+  `useSettingsNavigation` (`isError`, `isFetching`), the dashboard's `useUserProfile` (`isError`,
+  `isFetching`, `refreshProfile`), `useRegisterEntries` (`isPending`, `isFetching`) and
+  `usePublications` (`listFailed`).
 - **Account boundary.** Work bound to the signed-in account takes its owner from
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
@@ -210,7 +213,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   kebab-case (`eligibility-requests/`, `member-records/`). A file is named after its main export, or after what
   small siblings share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a
   hook without JSX (`use<Thing>.tsx` for the two Ledger issue hooks, `useInvestorIssues` and
-  `useNonPaidIssues`, which return the rendered parts their class page interleaves),
+  `useNonPaidIssues`, which return the rendered parts their class page interleaves, and for the
+  shared `useApiClient.tsx`, which also holds `ApiClientProvider`),
   `<Thing>Provider.tsx` for a provider, `PascalCase.ts` for a React context,
   camelCase `.ts` for a module without React. Components and hooks are function declarations. A page
   entry default-exports its page and nothing else; other exports are named, and only when another
@@ -485,10 +489,12 @@ decision review or original-request recovery is open.
 Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
 so user preferences still recheck the signed-in identity on focus and reconnect. While a recheck of
-the same account runs, the frame, the page and its drafts stay, and the web API client refuses every
-write until it finishes ([API client](#frontend-rules)). The two eligibility pages and member records
-are the exception: their records wait for the recheck, so they show "Loading your account…" until it
-finishes. A failed check or a changed account withholds
+the same account runs, the frame and every page's drafts stay, and the web API client refuses every
+write until it finishes ([API client](#frontend-rules)). Pages whose records wait for the recheck show
+a loading line meanwhile, such as the Ledger's "Loading the register…" or "Loading your account…" on
+the two eligibility pages and member records. Certificates is the exception: its "Loading certificate
+records…" replaces the Filters popover, so a search typed but not yet applied is lost. A failed
+check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
 the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload, extraction or identity
 verification, stopping when the operation finishes or its view closes. A status read must never
@@ -510,7 +516,7 @@ Every list follows these rules:
 
 - Web list filters use the UI-only `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`); pages retain their data and field state. Certificates
-  keeps Apply/Clear drafts, while Shareholders' class and company eligibility's outcome
+  keeps Apply/Clear drafts until a session recheck replaces its list, while Shareholders' class and company eligibility's outcome
   retain immediate selection. Member requests uses debounced person
   search and immediate request-type selection inside its panel. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts.
