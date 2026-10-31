@@ -217,7 +217,7 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 - [#1431](https://github.com/Ledova/ledova/issues/1431) rebuilt ledova.io on a fresh database on
   30 October 2026, serving main `90274b07`. At the owner's choice it kept no earlier test data. At
   the owner's request, every branch except `main`, every extra worktree and ledova.io's old data and
-  backups were then deleted ([record](operations/evidence/ledova-io-rebuild-2026-10-30.md)).
+  backups were then deleted ([record](operations/README.md#ledovaio)).
 - #1433's homepage previews were released to ledova.io the same day
   ([#1432](https://github.com/Ledova/ledova/issues/1432)). The local demo data was then copied to
   ledova.io ([#1435](https://github.com/Ledova/ledova/issues/1435)), so the five accounts above are
