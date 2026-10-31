@@ -156,10 +156,24 @@ export function PageAction({
 interface PageLinkProps extends ActionContent {
   to: To;
   state?: unknown;
+  disabled?: boolean;
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 }
 
-export function PageLink({ icon, label, context, primary = false, to, state, onClick }: PageLinkProps) {
+export function PageLink({
+  icon,
+  label,
+  context,
+  primary = false,
+  to,
+  state,
+  disabled = false,
+  onClick,
+}: PageLinkProps) {
+  if (disabled)
+    return (
+      <PageAction icon={icon} label={label} context={context} primary={primary} disabled onClick={() => undefined} />
+    );
   return (
     <Link
       to={to}

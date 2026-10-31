@@ -38,7 +38,7 @@ const SESSION_CALLS: string[] = [
 ];
 
 const sessionSettled = () => {
-  if (!queryClient.getQueryData<{ data: { valid: boolean } }>(AUTH_QUERY_KEY)?.data.valid) return true;
+  if (!queryClient.getQueryData<{ data: { valid: boolean } }>(AUTH_QUERY_KEY)?.data?.valid) return true;
   return [AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY].every((queryKey) => {
     const state = queryClient.getQueryState(queryKey);
     return state?.status === 'success' && state.fetchStatus === 'idle' && !state.isInvalidated;

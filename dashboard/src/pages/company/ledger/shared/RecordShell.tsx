@@ -1,19 +1,17 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { apiErrorSentence } from '@ledova/shared';
-import { Outcome, Row, Status } from '@components/Ledger';
+import { Outcome, Row, Status, Failure } from '@components/Ledger';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { DOWNLOAD_FAILED, STAGE_TONES } from '@pages/company/shared/proposals';
 
 export function RecordShell({
   children,
   hidden,
-  className = 'flex flex-col gap-3 py-4',
   focusKey,
   landed,
 }: {
   children: ReactNode;
   hidden?: boolean;
-  className?: string;
   focusKey?: string;
   landed?: Landed;
 }) {
@@ -27,7 +25,7 @@ export function RecordShell({
     item.current?.scrollIntoView?.({ block: 'start' });
   }, [key, hidden]);
   return (
-    <li ref={item} hidden={hidden} tabIndex={key ? -1 : undefined} className={className}>
+    <li ref={item} hidden={hidden} tabIndex={key ? -1 : undefined} className="flex flex-col gap-3 py-4">
       {landed?.outcome && <Outcome>{landed.outcome}</Outcome>}
       {children}
     </li>
@@ -43,9 +41,5 @@ export function RecordStage({ stage, children }: { stage: string; children: Reac
 }
 
 export function RecordDownloadFailure({ error, children }: { error?: unknown; children?: ReactNode }) {
-  return (
-    <p role="alert" className="text-sm text-error-light">
-      {children ?? apiErrorSentence(error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}
-    </p>
-  );
+  return <Failure>{children ?? apiErrorSentence(error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}</Failure>;
 }

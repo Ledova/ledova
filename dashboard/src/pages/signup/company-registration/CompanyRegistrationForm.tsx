@@ -1,18 +1,12 @@
 import { FIELD_LIMITS } from '@ledova/shared';
-import {
-  AUTH_BUTTON_CLASS,
-  ERROR_BANNER_CLASS,
-  AuthCard,
-  AuthInput,
-  AuthDivider,
-  authFieldClass,
-} from '@components/auth';
+import { ERROR_BANNER_CLASS, AuthCard, AuthInput, AuthDivider, authFieldClass, AuthSubmit } from '@components/auth';
 import { Field, Label, Description, Select } from '@headlessui/react';
 import { BuildingsIcon, WarningIcon, CaretDownIcon } from '@phosphor-icons/react';
 import { ICON_MD } from '@components/iconSizes';
 import { COMPANY_TYPES } from '@pages/signup/shared/constants';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
+import { Failure } from '@components/Ledger';
 
 interface CompanyFormData {
   name: string;
@@ -59,9 +53,7 @@ export function CompanyRegistrationForm({
                   <WarningIcon size={ICON_MD} className="text-error-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-error-light" role="alert">
-                    {generalError}
-                  </p>
+                  <Failure>{generalError}</Failure>
                 </div>
               </div>
             </div>
@@ -172,16 +164,9 @@ export function CompanyRegistrationForm({
             </Field>
           </div>
 
-          <button type="submit" disabled={isSubmitting || !canSubmit} className={AUTH_BUTTON_CLASS}>
-            {isSubmitting ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Saving…</span>
-              </div>
-            ) : (
-              'Continue'
-            )}
-          </button>
+          <AuthSubmit busy={isSubmitting} busyLabel="Saving…" disabled={isSubmitting || !canSubmit}>
+            Continue
+          </AuthSubmit>
         </form>
       </AuthCard>
 

@@ -23,7 +23,7 @@ export function SignupCompletionGate() {
   if (completed && !opened) setOpened(true);
   const rereading = auth.isFetching || preferences.isFetching || profile.isFetching;
   const kept =
-    opened && auth.isAuthenticated && !profile.isError && (userProfile ? userProfile.isSignupCompleted : rereading);
+    opened && auth.isAuthenticated && (userProfile ? userProfile.isSignupCompleted : rereading && !profile.isError);
   useEffect(() => {
     if (auth.isLoading || auth.isFetching) return;
     if (!auth.isAuthenticated) {

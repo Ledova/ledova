@@ -1,13 +1,13 @@
 import { FIELD_LIMITS } from '@ledova/shared';
 import {
   AuthLayout,
-  AUTH_BUTTON_CLASS,
   ERROR_BANNER_CLASS,
   AuthHeader,
   AuthCard,
   AuthInput,
   AuthDivider,
   authFieldClass,
+  AuthSubmit,
 } from '@components/auth';
 import { ROOT_PATH, SIGNUP_PATH } from '@utils/paths';
 import { Link, useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon, WarningIcon } from '@pho
 import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
+import { Failure } from '@components/Ledger';
 
 function SignInPage() {
   const navigate = useNavigate();
@@ -46,9 +47,7 @@ function SignInPage() {
                   <WarningIcon size={ICON_MD} className="text-error-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-error-light" role="alert">
-                    {generalError}
-                  </p>
+                  <Failure>{generalError}</Failure>
                 </div>
               </div>
             </div>
@@ -106,16 +105,9 @@ function SignInPage() {
             {password.error && <Description className="text-error-light text-sm mt-1">{password.error}</Description>}
           </Field>
 
-          <button type="submit" disabled={isLoading} className={AUTH_BUTTON_CLASS}>
-            {isLoading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Signing in…</span>
-              </div>
-            ) : (
-              'Sign in'
-            )}
-          </button>
+          <AuthSubmit busy={isLoading} busyLabel="Signing in…">
+            Sign in
+          </AuthSubmit>
         </form>
       </AuthCard>
 

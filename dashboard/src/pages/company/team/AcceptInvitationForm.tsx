@@ -1,6 +1,6 @@
 import { CheckboxField, Field, TextInput } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
-import { Outcome } from '@components/Ledger';
+import { Outcome, Failure } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
@@ -80,11 +80,7 @@ export function AcceptInvitationForm({
         disabled={disabled || busy}
         onChange={(event) => setAccepted(event.target.checked)}
       />
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       <Outcome>{receipt}</Outcome>
       <FormActions>
         <PageAction label={receipt ? 'Done' : 'Cancel'} disabled={busy} onClick={onCancel} />

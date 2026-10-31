@@ -226,8 +226,9 @@ behind **Show award record details**, with read-only validation targets that ope
 editable fields. Keep the required fields and guards, without repeated descriptions or routine
 upload hints, and show recovery guidance only while the original preparation is held.
 Issue records align the recipient and issue type, shares, company issue date and status in the
-same labelled summary grid, with the investor amount where relevant. Keep the issued or not-issued
-fact beside the status and use the recipient as the record heading, without separate family headings.
+same labelled summary grid (`Fact` in `dashboard/src/components/Ledger.tsx` for each plain label
+and value), with the investor amount where relevant. Keep the issued or not-issued fact beside the
+status and use the recipient as the record heading, without separate family headings.
 Longer state explanations, compliance responsibilities, terms, history and downloads open under
 **Show details and documents**.
 Transfer records align From, To, Shares,
@@ -509,7 +510,8 @@ confirmation) or pressed, and comes in four forms:
   right-aligned row with any plain actions first and the primary submit last. The form's own submit
   handler does the work, so Enter in a field submits the form unless the submit button is disabled.
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
-  the title row's way back, Add share class, a shareholder's Details, Issue shares to them.
+  the title row's way back, Add share class, a shareholder's Details, Issue shares to them. While a
+  held Ledger action blocks leaving, `disabled` shows it as a disabled action instead.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
   it at once, such as the shown eligibility request.
 
@@ -854,7 +856,10 @@ not be loaded.", and adds a second sentence only for what the block can't otherw
 consequence, such as "The list is incomplete.", or a likely cause, such as "It may be unavailable
 to this account." Try again is described by that sentence, so a screen reader says which read it
 retries, and it stays disabled while the read runs again. Shared copy passes through unchanged,
-such as Notices' "What has been published to you could not be loaded."
+such as Notices' "What has been published to you could not be loaded." A page that waits for the
+signed-in account shows `AccountCheck` (`dashboard/src/components/AccountCheck.tsx`): "Loading your
+account…" while preferences load or refresh, then "Your account could not be loaded." with Try
+again.
 
 A failed read shows this block, not an empty state. The notification bell, profile documents and
 classification claims, which used to show an empty state, now show the failure. A failed refresh
@@ -914,9 +919,9 @@ Some messages keep their own form:
 - **Files.** A web upload is `FileField`, a `Field` around a file input. It applies `UPLOAD_RULE`
   (`field-limits.ts`), the server's rule: a PDF, PNG or JPEG whose type matches its extension, up to
   10 MB. Its empty control reads **Choose file**, showing the filename after selection while keeping
-  the native picker, keyboard focus and accessible label. By default its hint starts with
-  "PDF, PNG or JPEG, up to 10 MB." Compact forms such as
-  Investor issue and employee awards may omit this routine hint with `showUploadHint={false}`. Validation stays
+  the native picker, keyboard focus and accessible label. Most forms omit the routine hint; one that
+  shows it passes `showUploadHint`, and its hint then starts with "PDF, PNG or JPEG, up to 10 MB."
+  (class rights, bringing records, award adjustments and document attachments). Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
   of up to 10 MB." on the field. The evidence in an eligibility claim keeps its dashed
   area but applies the same rule.
@@ -1009,18 +1014,19 @@ This section covers how a form reports a problem: when it is submitted, and when
     input and blur, and the form treats it as a problem: the team invitation's deadline and
     appointment expiry and a representative authority request's expiry.
 
-- **Request errors.** A failure reads as one `role="alert"` sentence from `failureSentence`
-  (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed with status code
-  400". When the server answered, the sentence is its own words with each field error included
-  (`apiErrorSentence`), or else the caller's fallback, which names what failed ("Your personal
-  details could not be saved. Try again."). A failure that never reached the server shows its own
-  message, such as "Unable to connect to our servers…" or "Your signed-in account changed. Reopen
-  company team.", or the fallback when it has none. Pages that still read with `apiErrorSentence`,
-  such as the register preparation forms, documents and sign-up, show their fallback for such a
-  failure instead; those that pass the fallback twice still show a message thrown with
-  `createUserFriendlyError`.
-  Sign-in, sign-up, company details and change password place the server's field errors on their
-  fields with `readApiError`; other forms show them in the one sentence.
+- **Request errors.** A failure reads as one `role="alert"` sentence, `Failure`
+  (`dashboard/src/components/Ledger.tsx`, which renders nothing without a sentence), from
+  `failureSentence` (`packages/shared/src/utils/errors.ts`), never the transport's "Request failed
+  with status code 400". When the server answered, the sentence is its own words with each field
+  error included (`apiErrorSentence`), or else the caller's fallback, which names what failed ("Your
+  personal details could not be saved. Try again."). A failure that never reached the server shows
+  its own message, such as "Unable to connect to our servers…" or "Your signed-in account changed.
+  Reopen company team.", or the fallback when it has none. Pages that still read with
+  `apiErrorSentence`, such as the register preparation forms, documents and sign-up, show their
+  fallback for such a failure instead; those that pass the fallback twice still show a message
+  thrown with `createUserFriendlyError`. Sign-in, sign-up, company details and change password place
+  the server's field errors on their fields with `readApiError`; other forms show them in the one
+  sentence.
 - **Refusal codes.** The server names unmet requirements and refusals as codes. Each family's copy
   map in `packages/shared/src/constants/business/` turns them into sentences: `refusalSentences` for
   a preview's or record's list, and `refusalSentence` for a refused request, before any other

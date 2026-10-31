@@ -11,7 +11,7 @@ import {
 import { Modal } from '@components/Modal';
 import { FormActions, PageAction } from '@components/Page';
 import { STEP_CHANGED, type RegisterSteps } from './proposals';
-import { Loading } from '@components/Ledger';
+import { Loading, Failure } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 
@@ -242,16 +242,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
           />
         </>
       )}
-      {decision.error && (
-        <p role="alert" className="text-sm text-error-light">
-          {decision.error}
-        </p>
-      )}
-      {preview && !current && !decision.recovery && (
-        <p role="alert" className="text-sm text-error-light">
-          {STEP_CHANGED}
-        </p>
-      )}
+      <Failure>{decision.error}</Failure>
+      {preview && !current && !decision.recovery && <Failure>{STEP_CHANGED}</Failure>}
       {decision.busy && !preview && <Loading>Loading the preview…</Loading>}
       {preview && (
         <>
@@ -342,11 +334,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
                 disabled={busy}
                 onClick={() => void decisions[kind].recover()}
               />
-              {active !== kind && decisions[kind].error && (
-                <p role="alert" className="text-sm text-error-light">
-                  {decisions[kind].error}
-                </p>
-              )}
+              {active !== kind && decisions[kind].error && <Failure>{decisions[kind].error}</Failure>}
             </div>
           ),
       )}

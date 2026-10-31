@@ -36,7 +36,7 @@ root npm workspace link (`node_modules/@ledova/shared` to `packages/shared`), an
 follow the symlink, so the sources are transformed and type-checked as application code. Mobile
 resolves it through Metro ([shared package resolution](mobile.md#shared-package-resolution)). The
 site cannot import it, because its Docker context is `site/`. The package declares
-`"sideEffects": false`, so the dashboard's bundler drops shared code no page imports.
+`"sideEffects": false`, so the dashboard's bundler drops shared code no module imports.
 
 Clients import the package as `@ledova/shared`, never by a deep path; inside a workspace package,
 imports are relative and never use the package's own name (`make check-self-imports` refuses that).
@@ -171,9 +171,10 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `useApiClient()` and never take it as an argument; dashboard hooks import the `apiClient`
   singleton, which `main.tsx` also gives `ApiClientProvider`. While a signed-in session is being
   rechecked (authentication or user preferences fetching, failed or invalidated), the web client
-  refuses every request other than a read with "Your session is being checked. Try again in a
+  refuses every request other than a GET with "Your session is being checked. Try again in a
   moment.", except the session's own calls: signing in, signing out, signing up, email verification
-  and token refresh (`dashboard/src/services/apiClient.ts`, reading `services/queryClient.ts`).
+  and its resend, and token refresh (`dashboard/src/services/apiClient.ts`, reading
+  `services/queryClient.ts`).
   Every endpoint a client calls has its function in `packages/shared/src/services`;
   [the API type drift gate](gates.md#the-api-type-drift-gate) accounts for each operation, not for
   where it is called.
@@ -182,14 +183,15 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `AUTH_QUERY_KEY` is. A key is its resource's root (kebab-case for a new root), then the owner for
   account-bound data (anything read or written for the signed-in account), then parameters. It never
   starts with another resource's root, and an invalidation names the narrowest prefix that covers
-  the change.
+  the change. Every signed-in company list starts with `ownCompaniesKey(owner)`, so a company rename or
+  activation refreshes them all.
 - **Paths and titles.** Link and navigate with `DESTINATIONS` paths, filling parameters with React
   Router's `generatePath`, or with the web-only paths in `utils/paths.ts` (the company dashboard,
   sign-in, sign-up and `SIGNUP_STEPS`); source writes no literal path. Titles come from
   the web `pageTitle` mapping used by `signedInRoutes`
   ([routes, audiences and guards](#routes-audiences-and-guards)); a page sets `PageTitle` only for a
   hash view.
-- **Errors and waiting.** A failed request reads as a `role="alert"` sentence
+- **Errors and waiting.** A failed request reads as a `role="alert"` sentence, the kit's `Failure`
   ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
   cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
   ([loading, empty and error states](frontend-ux.md#loading-empty-and-error-states)).
@@ -310,10 +312,12 @@ entry's audience:
   recovery. A failed re-check of a confirmed
   session shows the same message, and a check paused offline or in a hidden tab still counts as
   checking. Mobile doesn't read `isUnavailable`: a failed check still returns it to Sign in.
-- The session check shows until the profile, and on an investing or company page the role, is known,
-  so no page appears on the way.
-- An unreadable profile (`AccountUnavailable`), or an unreadable role on an investing or company
-  page, shows an error with Try again rather than a guess.
+- The session check shows until the profile is known, so no page appears on the way. The role comes
+  with the user preferences the profile already needs.
+- An unreadable profile (`AccountUnavailable`) shows an error with Try again rather than a guess. Every
+  reader shares one profile read, so a failed refresh of a profile already read keeps the frame and
+  the page, with the last confirmed profile, and only the profile's own sections show the error and
+  hold their saves.
 - A profile without `isSignupCompleted` returns to `SIGNUP_RESUMES_AT`, the account-type step,
   because email verification issues a full session before sign-up finishes; later steps refill their
   forms from what was saved.
@@ -664,7 +668,7 @@ The web register's repeated row wrappers, stage rows and download failures use
 decisions through `dashboard/src/pages/company/ledger/DecisionTrail.tsx`. Four records (import, correction, particulars change and transfer) use
 `useRegisterTaskGuard.ts` for their existing visible-task check, while grant, allotment and award
 keep their distinct guards and wrappers. The preparation pages share `PreparationShell.tsx` for
-Back, preference fallback and read-only paragraphs, and
+the account-check page and read-only paragraphs, and
 `useRegisterPreparationOwner.ts` for the same account boundary and preferences reads. Page and form
 keys, held work, specialised refusal states and the import title remain with their pages.
 

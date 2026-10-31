@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { formatDate, shareCount, type RegisterGrant, type RegisterGrantDecisionPreview } from '@ledova/shared';
-import { ShowMore, Row, Rows, Section } from '@components/Ledger';
+import { ShowMore, Row, Rows, Section, Fact } from '@components/Ledger';
 
 export function GrantReview({
   preview,
@@ -22,16 +22,12 @@ export function GrantReview({
       <Section title={preview.name}>
         <p className="text-sm text-text-muted">{classLabel}</p>
         <dl className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <dt className="text-sm text-text-muted">Shares</dt>
-            <dd className="mt-1 text-sm font-medium tabular-nums">{shareCount(preview.shares)}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-text-muted">Company issue date</dt>
-            <dd className="mt-1 text-sm font-medium tabular-nums">
-              {formatDate(preview.companyEventOn, 'Not recorded')}
-            </dd>
-          </div>
+          <Fact label="Shares" numeric>
+            {shareCount(preview.shares)}
+          </Fact>
+          <Fact label="Company issue date" numeric>
+            {formatDate(preview.companyEventOn, 'Not recorded')}
+          </Fact>
         </dl>
       </Section>
       {showOwnership && (

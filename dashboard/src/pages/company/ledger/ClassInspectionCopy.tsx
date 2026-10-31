@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type OrderSubmissionOwner, type TokenHoldersResponse, formatDate } from '@ledova/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { Outcome, Row, Rows } from '@components/Ledger';
+import { Outcome, Row, Rows, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -124,11 +124,7 @@ function InspectionForm({
           </Field>
         </fieldset>
       )}
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       <Outcome>{downloaded && 'The inspection copy was downloaded.'}</Outcome>
       <FormActions>
         <PageAction

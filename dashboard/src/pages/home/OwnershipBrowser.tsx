@@ -6,7 +6,6 @@ import {
   formatShareCount,
   sharePercentage,
   useSubmissionOwner,
-  useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Page, PageAction, PageLink } from '@components/Page';
@@ -27,21 +26,15 @@ import { OwnershipHolders } from './OwnershipHolders';
 import { OwnershipLoading } from './OwnershipLoading';
 import { MemberAwards } from './MemberAwards';
 import { GettingStarted } from './GettingStarted';
+import { AccountCheck } from '@components/AccountCheck';
 
 export function OwnershipBrowser() {
   const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
   return owner ? (
     <SignedInOwnership key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} currentOwner={boundary.get} />
   ) : (
     <Page>
-      {preferences.isLoading || preferences.isFetching ? (
-        <Loading>Loading your account…</Loading>
-      ) : (
-        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-          Your account could not be loaded.
-        </LoadError>
-      )}
+      <AccountCheck />
     </Page>
   );
 }
@@ -62,8 +55,7 @@ function SignedInOwnership({
     directory.owner?.userUuid === owner.userUuid &&
     directory.owner?.ownerAccountUuid === owner.ownerAccountUuid &&
     !directory.hasError &&
-    !directory.isLoading &&
-    !directory.isRefreshing;
+    !directory.isLoading;
   const guard = useMemo(
     () => () => {
       if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen your dashboard.');

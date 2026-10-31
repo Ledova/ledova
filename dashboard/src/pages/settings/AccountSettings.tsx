@@ -13,7 +13,7 @@ import {
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { PageAction, PageLink } from '@components/Page';
-import { Outcome, Row, Rows, Section, Status, SwitchRow } from '@components/Ledger';
+import { Outcome, Row, Rows, Section, Status, SwitchRow, Failure } from '@components/Ledger';
 import { setTheme } from '@hooks/useTheme';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
@@ -102,6 +102,7 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
     ? readApiError(passwordMutation.error, {
         fallback: 'Your password could not be changed. Try again.',
         displayedFields: ['currentPassword', 'newPassword', 'newPasswordConfirm'],
+        unanswered: 'Your password could not be changed. Try again.',
       })
     : null;
   const passwordField = (key: keyof typeof passwordProblems) => {
@@ -235,9 +236,9 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
               disabled={passwordMutation.isPending}
             />
             {passwordReading && (
-              <p role="alert" className="text-sm text-error-light">
+              <Failure>
                 {passwordReading.generalError ?? 'The password was not changed. Check the fields above.'}
-              </p>
+              </Failure>
             )}
           </form>
         )}

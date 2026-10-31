@@ -13,7 +13,7 @@ import {
   MEMBER_CERTIFICATE_STATUS_LABELS,
   searchRows,
 } from '@ledova/shared';
-import { Outcome, Section, Loading, LoadError, Rows, Row } from '@components/Ledger';
+import { Outcome, Section, Loading, LoadError, Rows, Row, Failure } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
 import { FormActions, PageAction, PageActions } from '@components/Page';
 import { Confirmation } from '@components/Modal';
@@ -208,9 +208,7 @@ export function CompanyMemberAccess({
           </LoadError>
         )}
         {(access.readFailed ? access.failure : access.error) && (
-          <p role="alert" className="text-sm text-error-light">
-            {access.readFailed ? access.failure : access.error}
-          </p>
+          <Failure>{access.readFailed ? access.failure : access.error}</Failure>
         )}
         <Outcome>{access.notice}</Outcome>
         {access.retry && (
@@ -511,11 +509,7 @@ export function CompanyMemberAccess({
                       The company recipients could not be loaded.
                     </LoadError>
                   ) : (
-                    recipientsError && (
-                      <p role="alert" className="text-sm text-error-light">
-                        {recipientsError}
-                      </p>
-                    )
+                    recipientsError && <Failure>{recipientsError}</Failure>
                   )}
                   {recipientsReady && candidates.length === 0 && (
                     <p className="text-sm text-text-muted">
@@ -735,7 +729,6 @@ export function CompanyMemberAccess({
                   <FileField
                     {...checks.field('file')}
                     label="Company supporting document"
-                    showUploadHint={false}
                     disabled={held}
                     onFile={selectFile}
                   />
@@ -762,11 +755,7 @@ export function CompanyMemberAccess({
                 <p className="text-sm text-text-muted">
                   This records the company instruction. Review and approve it separately in Ledger, Corrections.
                 </p>
-                {uploadError && (
-                  <p role="alert" className="text-sm text-error-light">
-                    {uploadError}
-                  </p>
-                )}
+                <Failure>{uploadError}</Failure>
                 <FormActions>
                   <PageAction
                     label="Cancel"
