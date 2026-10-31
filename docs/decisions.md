@@ -13,7 +13,7 @@ stay here as history and are marked where they appear.
 | Decision                                                                                                        | Date                                           | Status                                                                                                                             |
 | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                                          |
-| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                                                                                            |
+| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476)                                                                        |
 | [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148                                                                                   |
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148                                                                 |
 | [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148                                                                            |
@@ -36,6 +36,7 @@ stay here as history and are marked where they appear.
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October                                          |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; #1476; certificate requests and the company's own particulars change stay                                                 |
+| [One-step particulars edit](#one-step-particulars-edit)                                                         | 1 November 2026                                | Current; #1476                                                                                                                     |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                                            |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                                                                                            |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                                                                                            |
@@ -143,6 +144,8 @@ corrections and openings recorded on #864 and #860;
   "as at" date wins, and a member's live verified identity still wins over both,
   as decided on 22 September 2026. Members editing their own particulars is
   separate work in [#866](https://github.com/Ledova/ledova/issues/866).
+  _The reason and supporting document were superseded on 1 November 2026 by the
+  [one-step particulars edit](#one-step-particulars-edit): a change needs neither._
 
 ### Company representative verification
 
@@ -1015,11 +1018,29 @@ directly. Profile keeps a small read-only view of how the selected company's reg
 member, their name and residential address, with a short line to contact the company, titled so it
 does not read as a second profile. Certificate requests stay. The company's own particulars change,
 prepared, approved and applied with a supporting document, is unchanged by this decision and is to
-be simplified separately.
+be simplified separately. It became [one step](#one-step-particulars-edit) on 1 November 2026.
 
 The legal basis: under s169 of the Corporations Act 2001, a register of members must hold each
 member's name and address. No law requires a member request workflow, a supporting document or an
 approval step for the member to tell the company about a change.
+
+### One-step particulars edit
+
+**Owner decision, 1 November 2026**, given in the session and tracked in
+[#1476](https://github.com/Ledova/ledova/issues/1476). The company's change to a member's recorded
+name and residential address becomes one audited step, with no mandatory supporting document and no
+separate approval and application. The owner chose the recommended answer to each question:
+
+- **Who may change particulars:** "Same people as today": an administrator, or one appointment
+  holding prepare, approve and apply, which could already finish a change alone. A delegate holding
+  only prepare cannot change an existing member's particulars.
+- **Reason:** "Optional". This relaxes the
+  [5 October rule](#company-run-register-authority-and-evidence) that every change states why.
+- **Member notice:** "No notice". The member sees the current particulars on Profile.
+
+Each change is kept as one immutable record of who made it, when, and the particulars it replaced.
+Earlier changes, their supporting documents and decisions are kept; one prepared or approved but
+never applied stays as history and is no longer decided.
 
 ## Minimum tests and fresh migrations
 

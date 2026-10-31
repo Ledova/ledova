@@ -192,8 +192,8 @@ On workflow collections, show the saved records first, with class context once w
 The sidebar footer identifies the current company. Keep each recipient, status and key facts
 together, its details on demand, and its next action in a right-aligned footer after secondary
 actions.
-Particulars changes keep supporting-document download and decision actions together in one right-aligned,
-wrapping footer, with download errors visible beside that action group.
+A particulars change from before the one-step edit keeps its supporting-document download in a
+right-aligned footer, with download errors beside it; a one-step change has no actions.
 Name a preview-opening action for that review, such as **Review and approve**; opening it is not approval.
 The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
@@ -341,10 +341,9 @@ distinct retained facts, with atomic failure and same-request recovery that cann
 effect. Non-paid and employee-award issues use the same page review, with award quantities, ownership
 impact and company authority grouped, and terms and documents on demand. Their approval remains separate from
 **Record issue**; approval alone changes no holding. Rejection also uses page review.
-Web particulars changes use the same focused page review, with current and proposed name, address
-and as-at date in equal columns on wide screens and stacked on smaller screens, with the reason and
-supporting document beneath. Hide unrelated class records and selectors while reviewing,
-without unmounting their controllers. Approval and application remain separate company decisions.
+A web particulars change has no review: it applies in one step, and its record shows the name,
+address and as-at date before and after in equal columns on wide screens, stacked on smaller
+screens, with any reason beneath.
 Other decision families and separate API decisions keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the
@@ -485,7 +484,7 @@ A way back to a Ledger class or task carries the place it means, built by `regis
 class's Corrections view, a class's own page to Ledger and a non-paid transfer to that class's
 Transfer shares. A shareholder's page links back to Shareholders with its company through `Page`'s
 parent link, and a transfer started there links back to them by name. Preparing a correction or
-particulars change lands on its new record under Corrections; a non-paid transfer lands under
+making a particulars change lands on its new record under Corrections; a non-paid transfer lands under
 Transfer shares. Each keeps its class and task, with focus and one line naming what was prepared
 ([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
 Ledger, since a shareholder's page doesn't list prepared records.
@@ -580,9 +579,9 @@ rather than its identifier. It reports:
 - a changed password and saved personal details;
 - the downloaded unsigned certificate, inspection copy and company pack;
 - a recorded team invitation, an accepted invitation and a representative authority request;
-- member access's recorded invitation, certificate fulfilment and particulars instruction;
-- a prepared correction, non-paid transfer or particulars change, on the record you land on in
-  Ledger.
+- member access's recorded invitation and certificate fulfilment;
+- a prepared correction or non-paid transfer, or a made particulars change, on the record you land
+  on in Ledger.
 
 Identity verification shows its result in its own dialog, sign-in and sign-up keep their boxed
 outcomes, and `CopyButton` (a company's request link) confirms a copy with Copied beside the button.

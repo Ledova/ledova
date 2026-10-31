@@ -301,10 +301,11 @@ It removes nothing else of a register opening, import, correction, wallet link, 
 grant or direct transfer: during the synthetic experiment a proposal's document copies, decisions,
 captured boundaries and identity snapshots, and the company's evidence uploads, used or not, have no
 automatic expiry. Every register decision retains a private copy of the company's upload with its
-size, type and SHA-256, a particulars change also its own copy of the recorded name and residential
-address, and a staff-era proposal its copy of the staff-verified document. The database refuses
-ordinary deletion of these rows; only copies left by a rolled-back or interrupted preparation fall
-under the orphan sweep.
+size, type and SHA-256, except a one-step particulars change, which takes no upload; a particulars
+change also keeps its own copy of the recorded name and residential address and, when made in one
+step, of the particulars it replaced; and a staff-era proposal keeps its copy of the staff-verified
+document. The database refuses ordinary deletion of these rows; only copies left by a rolled-back
+or interrupted preparation fall under the orphan sweep.
 
 Documents uploaded after an authority request belong to the company document record and do not
 alter the request. Production retention is decided before any real data, and account and company deletion still respect the

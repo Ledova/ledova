@@ -6,17 +6,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_UNMET_COPY } from '../constants/business/register-corrections';
 import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
-import { REGISTER_PARTICULARS_COPY, REGISTER_PARTICULARS_UNMET_COPY } from '../constants/business/register-particulars';
 import { REGISTER_GRANT_COPY, REGISTER_GRANT_UNMET_COPY } from '../constants/business/register-grants';
 import { REGISTER_TRANSFER_COPY, REGISTER_TRANSFER_UNMET_COPY } from '../constants/business/register-transfers';
 import { decideRegisterTransfer, previewRegisterTransferDecision } from '../services/register-transfers';
 import { decideRegisterGrant, previewRegisterGrantDecision } from '../services/register-grants';
 import { decideRegisterCorrection, previewRegisterCorrectionDecision } from '../services/register-corrections';
 import { decideRegisterImport, previewRegisterImportDecision } from '../services/register-imports';
-import {
-  decideRegisterParticularsChange,
-  previewRegisterParticularsChangeDecision,
-} from '../services/register-particulars';
 import type {
   RegisterCorrection,
   RegisterCorrectionDecisionPreview,
@@ -29,8 +24,6 @@ import type {
   RegisterGrantDecisionPreview,
   RegisterTransfer,
   RegisterTransferDecisionPreview,
-  RegisterParticularsChange,
-  RegisterParticularsChangeDecisionPreview,
 } from '../types';
 import { failureStatus, createUserFriendlyError, refusalSentence, failureSentence } from '../utils/errors';
 import { isRegisterDecisionReceipt } from '../utils/register-commands';
@@ -102,17 +95,6 @@ export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<
   isReceipt: isRegisterCorrectionDecisionReceipt,
   unmet: REGISTER_CORRECTION_UNMET_COPY,
   copy: REGISTER_CORRECTION_COPY,
-};
-
-export const REGISTER_PARTICULARS_DECISIONS: RegisterDecisionFamily<
-  RegisterParticularsChange,
-  RegisterParticularsChangeDecisionPreview
-> = {
-  preview: previewRegisterParticularsChangeDecision,
-  decide: decideRegisterParticularsChange,
-  isReceipt: isRegisterDecisionReceipt,
-  unmet: REGISTER_PARTICULARS_UNMET_COPY,
-  copy: REGISTER_PARTICULARS_COPY,
 };
 
 export type RegisterDecisionTarget<Preview> = {

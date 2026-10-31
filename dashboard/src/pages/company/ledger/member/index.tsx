@@ -8,6 +8,7 @@ import {
   REGISTER_CORRECTION_COPY,
   REGISTER_PARTICULARS_COPY,
   USER_PREFERENCES_QUERY_KEY,
+  appointmentForParticularsEdit,
   appointmentForRegisterStep,
   formatDate,
   formatDateTime,
@@ -102,7 +103,9 @@ function OwnShareholder({
     appointments.isSuccess &&
     !appointments.isFetching &&
     !!appointmentForRegisterStep(appointments.data, company, 'prepare');
-  const guardPreparation = () => {
+  const edit =
+    appointments.isSuccess && !appointments.isFetching && !!appointmentForParticularsEdit(appointments.data, company);
+  const guardEdit = () => {
     guard();
     for (const key of [
       USER_PREFERENCES_QUERY_KEY,
@@ -112,16 +115,15 @@ function OwnShareholder({
     ]) {
       const current = client.getQueryState(key);
       if (current?.status !== 'success' || current.fetchStatus !== 'idle')
-        throw new Error('Refresh the register and your current preparation appointment.');
+        throw new Error('Refresh the register and your current appointment.');
     }
     if (
-      !appointmentForRegisterStep(
+      !appointmentForParticularsEdit(
         client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
         company,
-        'prepare',
       )
     )
-      throw new Error('A current company preparation appointment is required.');
+      throw new Error('A current company appointment that can change particulars is required.');
   };
   const authorised =
     appointments.isSuccess &&
@@ -216,13 +218,13 @@ function OwnShareholder({
                 <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
               </Rows>
             ))}
-            {prepare && (holdings.length > 0 || recorded?.onRegister === false) && (
+            {edit && (holdings.length > 0 || recorded?.onRegister === false) && (
               <PageLink
                 to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
                 label={REGISTER_PARTICULARS_COPY.PREPARE}
                 onClick={(event) => {
                   try {
-                    guardPreparation();
+                    guardEdit();
                     setNavigationError(false);
                   } catch {
                     event.preventDefault();
@@ -232,9 +234,7 @@ function OwnShareholder({
               />
             )}
             {navigationError && (
-              <Failure>
-                Refresh the register and your current preparation appointment before changing particulars.
-              </Failure>
+              <Failure>Refresh the register and your current appointment before changing particulars.</Failure>
             )}
           </Section>
           <Section title="Holdings">

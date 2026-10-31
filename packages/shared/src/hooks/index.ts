@@ -14,7 +14,6 @@ export {
   REGISTER_IMPORT_DECISIONS,
   REGISTER_GRANT_DECISIONS,
   REGISTER_TRANSFER_DECISIONS,
-  REGISTER_PARTICULARS_DECISIONS,
   useRegisterDecision,
 } from './useRegisterDecision';
 export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';

@@ -2517,27 +2517,6 @@ BEGIN
 END;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.tokens_check_register_particulars_decision()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-DECLARE
-    proposal tokens_registerparticularschange;
-BEGIN
-    SELECT * INTO proposal FROM tokens_registerparticularschange WHERE uuid = NEW.register_particulars_change_id;
-    IF (NEW.kind = 'approve' AND proposal.status <> 'submitted')
-        OR (NEW.kind <> 'approve' AND (proposal.status <> CASE NEW.kind WHEN 'apply' THEN 'applied' ELSE 'rejected' END
-            OR proposal.reviewed_by_id IS DISTINCT FROM NEW.decided_by_id
-            OR proposal.reviewed_at IS DISTINCT FROM NEW.decided_at
-            OR (NEW.kind = 'reject' AND proposal.rejection_reason IS DISTINCT FROM NEW.reason)))
-    THEN
-        RAISE EXCEPTION 'A register particulars decision must carry exactly its own effect' USING ERRCODE = '23514';
-    END IF;
-    RETURN NULL;
-END;
-$function$;
-
 CREATE OR REPLACE FUNCTION public.tokens_check_register_transfer_decision()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -4655,67 +4634,66 @@ AS $function$
 DECLARE
     principal bigint;
     at_time timestamptz;
-    supporting_copy tokens_registerevidence;
+    previous jsonb;
 BEGIN
-    IF TG_OP = 'DELETE' THEN
-        RAISE EXCEPTION 'Retain particulars changes and their supporting evidence' USING ERRCODE = '23514';
+    IF TG_OP <> 'INSERT' THEN
+        RAISE EXCEPTION 'Retain particulars changes exactly as recorded' USING ERRCODE = '23514';
     END IF;
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     at_time := clock_timestamp();
-    IF TG_OP = 'INSERT' THEN
-        PERFORM 1 FROM companies_company WHERE uuid = NEW.company_id FOR UPDATE;
-        SELECT * INTO supporting_copy FROM tokens_registerevidence WHERE uuid = NEW.supporting_evidence_id;
-        IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL
-            OR NEW.submitted_by_id IS DISTINCT FROM principal
-            OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_particulars_prepare'
-            OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text
-            OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
-                'prepare', at_time)
-            OR NEW.status <> 'submitted' OR NEW.reviewed_by_id IS NOT NULL OR NEW.reviewed_at IS NOT NULL
-            OR NEW.rejection_reason <> ''
-            OR NOT EXISTS (SELECT 1 FROM tokens_registermember member WHERE member.uuid = NEW.member_id
-                AND member.company_id = NEW.company_id)
-            OR NEW.name !~ '[^[:space:]]' OR NEW.residential_address !~ '[^[:space:]]'
-            OR NEW.reason !~ '[^[:space:]]' OR NEW.as_at > current_date
-            OR supporting_copy.uuid IS NULL OR supporting_copy.company_id <> NEW.company_id
-            OR supporting_copy.kind <> 'supporting' OR supporting_copy.uploaded_by_id <> principal
-            OR NEW.evidence_fingerprint IS DISTINCT FROM supporting_copy.sha256
-            OR NEW.evidence_snapshot IS DISTINCT FROM tokens_register_evidence_snapshot(supporting_copy)
-            OR NEW.file !~ ('^companies/' || NEW.company_id || '/register-particulars/' || NEW.uuid
-                || '/[0-9a-f-]{36}[.]bin$')
-        THEN
-            RAISE EXCEPTION 'Particulars changes require exact current intent, company authority and evidence'
-                USING ERRCODE = '23514';
-        END IF;
-        RETURN NEW;
-    END IF;
-    IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR OLD.status <> 'submitted'
-        OR NEW.status NOT IN ('applied', 'rejected')
-        OR (to_jsonb(NEW) - ARRAY['status', 'reviewed_by_id', 'reviewed_at', 'rejection_reason', 'updated_at'])
-            IS DISTINCT FROM
-            (to_jsonb(OLD) - ARRAY['status', 'reviewed_by_id', 'reviewed_at', 'rejection_reason', 'updated_at'])
-        OR NEW.reviewed_at IS NULL OR NEW.reviewed_by_id IS DISTINCT FROM principal
-        OR NOT EXISTS (SELECT 1 FROM tokens_registerparticularschangedecision decision
-            WHERE decision.register_particulars_change_id = NEW.uuid AND decision.decided_by_id = NEW.reviewed_by_id
-                AND decision.decided_at = NEW.reviewed_at
-                AND decision.kind = CASE NEW.status WHEN 'applied' THEN 'apply' ELSE 'reject' END
-                AND (NEW.status = 'applied' OR decision.reason = NEW.rejection_reason))
+    PERFORM 1 FROM companies_company WHERE uuid = NEW.company_id FOR UPDATE;
+    previous := tokens_register_particulars_snapshot(NEW.member_id);
+    IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL
+        OR NEW.submitted_by_id IS DISTINCT FROM principal OR NEW.reviewed_by_id IS DISTINCT FROM principal
+        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_particulars_edit'
+        OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text
+        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
+            'prepare', at_time)
+        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
+            'approve', at_time)
+        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
+            'apply', at_time)
+        OR NEW.status <> 'applied' OR NEW.rejection_reason <> ''
+        OR NOT EXISTS (SELECT 1 FROM tokens_registermember member WHERE member.uuid = NEW.member_id
+            AND member.company_id = NEW.company_id)
+        OR NEW.name !~ '[^[:space:]]' OR NEW.residential_address !~ '[^[:space:]]'
+        OR NEW.as_at IS DISTINCT FROM (at_time AT TIME ZONE 'UTC')::date
+        OR NEW.supporting_evidence_id IS NOT NULL OR NEW.evidence_fingerprint <> ''
+        OR NEW.evidence_snapshot IS DISTINCT FROM '{}'::jsonb OR NEW.file <> ''
+        OR (NEW.name IS NOT DISTINCT FROM previous->>'name'
+            AND NEW.residential_address IS NOT DISTINCT FROM previous->>'residential_address')
     THEN
-        RAISE EXCEPTION 'Only the exact company decision may decide an immutable particulars change'
+        RAISE EXCEPTION 'Particulars edits require exact current intent, company authority and new particulars'
             USING ERRCODE = '23514';
     END IF;
-    IF NEW.status = 'applied' THEN
-        IF NEW.rejection_reason <> '' OR NOT EXISTS (SELECT 1 FROM tokens_registermemberparticulars held
+    NEW.previous_particulars := previous;
+    NEW.reviewed_at := at_time;
+    NEW.created_at := at_time;
+    NEW.updated_at := at_time;
+    RETURN NEW;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.tokens_check_register_particulars_edit()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+AS $function$
+BEGIN
+    IF NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, NEW.reviewed_by_id,
+            'prepare', clock_timestamp())
+        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, NEW.reviewed_by_id,
+            'approve', clock_timestamp())
+        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, NEW.reviewed_by_id,
+            'apply', clock_timestamp())
+        OR NOT EXISTS (SELECT 1 FROM tokens_registermemberparticulars held
             WHERE held.member_id = NEW.member_id AND held.source_change_id = NEW.uuid AND held.name = NEW.name
                 AND held.residential_address = NEW.residential_address AND held.as_at = NEW.as_at)
-        THEN
-            RAISE EXCEPTION 'Application must record the change''s particulars for its member'
-                USING ERRCODE = '23514';
-        END IF;
-    ELSIF NEW.rejection_reason !~ '[^[:space:]]' THEN
-        RAISE EXCEPTION 'Rejection requires a reason' USING ERRCODE = '23514';
+    THEN
+        RAISE EXCEPTION 'A particulars edit must record its particulars under current company authority at commit'
+            USING ERRCODE = '23514';
     END IF;
-    RETURN NEW;
+    RETURN NULL;
 END;
 $function$;
 
@@ -4724,40 +4702,8 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_particulars_decision()
  LANGUAGE plpgsql
  SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
-DECLARE
-    principal bigint;
-    at_time timestamptz;
-    proposal tokens_registerparticularschange;
 BEGIN
-    IF TG_OP <> 'INSERT' THEN
-        RAISE EXCEPTION 'Register particulars decisions are append-only' USING ERRCODE = '23514';
-    END IF;
-    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
-    at_time := clock_timestamp();
-    SELECT * INTO proposal FROM tokens_registerparticularschange WHERE uuid = NEW.register_particulars_change_id;
-    PERFORM 1 FROM companies_company WHERE uuid = proposal.company_id FOR UPDATE;
-    SELECT * INTO proposal FROM tokens_registerparticularschange WHERE uuid = NEW.register_particulars_change_id
-        FOR UPDATE;
-    IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL OR proposal.uuid IS NULL
-        OR NEW.decided_by_id IS DISTINCT FROM principal
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_particulars_' || NEW.kind
-        OR current_setting('app.company_id', true) IS DISTINCT FROM proposal.company_id::text
-        OR proposal.status <> 'submitted' OR NEW.kind NOT IN ('approve', 'apply', 'reject')
-        OR (NEW.kind = 'reject') <> (NEW.reason ~ '[^[:space:]]')
-        OR NEW.digest IS DISTINCT FROM tokens_register_particulars_decision_digest(proposal.uuid, NEW.kind,
-            principal, NEW.appointment_id, NEW.reason)
-        OR NOT tokens_register_appointment_current(NEW.appointment_id, proposal.company_id, principal,
-            CASE NEW.kind WHEN 'apply' THEN 'apply' ELSE 'approve' END, at_time)
-        OR (NEW.kind = 'approve' AND tokens_register_particulars_approved(proposal.uuid, at_time))
-        OR (NEW.kind = 'apply' AND NOT tokens_register_particulars_approved(proposal.uuid, at_time))
-    THEN
-        RAISE EXCEPTION 'Register particulars decisions need the exact current company authority'
-            USING ERRCODE = '23514';
-    END IF;
-    NEW.decided_at := at_time;
-    NEW.created_at := at_time;
-    NEW.updated_at := at_time;
-    RETURN NEW;
+    RAISE EXCEPTION 'Retain register particulars decisions exactly as recorded' USING ERRCODE = '23514';
 END;
 $function$;
 
@@ -7174,7 +7120,7 @@ CREATE TRIGGER tokens_register_opening_decision_guard BEFORE INSERT OR DELETE OR
 
 CREATE TRIGGER tokens_register_particulars_change_identity BEFORE INSERT OR DELETE OR UPDATE ON tokens_registerparticularschange FOR EACH ROW EXECUTE FUNCTION tokens_guard_register_particulars_change();
 
-CREATE CONSTRAINT TRIGGER tokens_register_particulars_decision_effect AFTER INSERT ON tokens_registerparticularschangedecision DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_register_particulars_decision();
+CREATE CONSTRAINT TRIGGER tokens_register_particulars_edit_commit AFTER INSERT ON tokens_registerparticularschange DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_register_particulars_edit();
 
 CREATE TRIGGER tokens_register_particulars_decision_guard BEFORE INSERT OR DELETE OR UPDATE ON tokens_registerparticularschangedecision FOR EACH ROW EXECUTE FUNCTION tokens_guard_register_particulars_decision();
 

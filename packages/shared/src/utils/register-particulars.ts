@@ -1,18 +1,16 @@
-import type { RegisterParticularsChange, RegisterParticularsChangePreparation } from '../types';
+import type { RegisterParticularsChange, RegisterParticularsEdit } from '../types';
 
-export function isPreparedRegisterParticularsChange(
-  change: RegisterParticularsChange,
-  request: RegisterParticularsChangePreparation,
-) {
+export function isRegisterParticularsEditReceipt(change: RegisterParticularsChange, request: RegisterParticularsEdit) {
   return (
     change.uuid === request.operationId &&
     change.preparingAppointment === request.appointment &&
     change.member === request.member &&
-    change.supportingEvidence === request.supportingEvidence &&
     change.name === request.name &&
     change.residentialAddress === request.residentialAddress &&
-    change.asAt === request.asAt &&
-    change.reason === request.reason &&
+    change.reason === (request.reason ?? '') &&
+    (change.previousParticulars?.name ?? '') === request.expected.name &&
+    (change.previousParticulars?.residentialAddress ?? '') === request.expected.residentialAddress &&
+    change.status === 'applied' &&
     change.providedBy === 'company'
   );
 }

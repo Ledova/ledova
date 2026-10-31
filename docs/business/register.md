@@ -56,11 +56,11 @@ changes have no admin page.
 
 ### Company evidence
 
-Every change rests on evidence the company provides
-([company-provided evidence](README.md#company-provided-evidence)). The authority document behind an
-opening, correction, wallet link or transfer is a director resolution naming the approving director
-or, except for a transfer, a court order with its reference. Uploads are PDF, PNG or JPEG files
-within the upload limit (10 MB by default); evidence downloads are not logged.
+Every change except a [particulars change](#changing-a-members-particulars) rests on evidence the
+company provides ([company-provided evidence](README.md#company-provided-evidence)). The authority
+document behind an opening, correction, wallet link or transfer is a director resolution naming the
+approving director or, except for a transfer, a court order with its reference. Uploads are PDF,
+PNG or JPEG files within the upload limit (10 MB by default); evidence downloads are not logged.
 
 ## What the register records
 
@@ -346,20 +346,28 @@ address is wrong tells the company directly; editing their own profile does not 
 ([member profile](participants.md#member-profile)).
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
-   Recipient details on their award's page, and choose Change particulars.
+   Recipient details on their award's page, and choose **Change particulars**.
 2. The page re-reads the member's current recorded name and residential address, shows them, and
-   starts the form with them. Upload one supporting document, such as a deed poll or the member's notice of a new
-   address, change the name or residential address, and give the "as at" date the company's register
-   records (today in UTC or earlier) and a reason.
-3. In **Ledger** → **Corrections**, choose **Approve**. On web, compare the current and proposed
-   particulars on the main page before confirming; **Cancel** returns to the prepared record.
-   **Apply** records the approved update separately.
+   starts the form with them. Change the name or residential address, optionally give a reason, and
+   choose **Save change**.
+3. The change applies at once, dated today (UTC), and opens on its record in **Ledger** →
+   **Corrections**, which shows the particulars before and after.
+
+**Change particulars** is offered to an administrator, or to an appointment holding prepare, approve
+and apply: whoever could already finish a change alone
+([decision](../decisions.md#one-step-particulars-edit)). There is no supporting document, approval
+or application step, and the member is not notified; they see the current particulars on Profile.
+Each change is kept with who made it and when, its reason if given, and the particulars it
+replaced. A change is refused if the recorded particulars changed after the form read them (read
+them again and retry), if it changes neither the name nor the address, or for a member who has held
+no shares in the company for the retention period. Names take up to 255 characters, and addresses
+and reasons up to 1,000.
 
 The latest "as at" date wins between imports and changes
-([identity order](#members-holder-types-and-identity)). A change is refused if dated before the
-current particulars, or for a member who has held no shares in the company for the retention period,
-and becomes unusable if later particulars are recorded meanwhile. Names take up to 255 characters,
-and addresses and reasons up to 1,000.
+([identity order](#members-holder-types-and-identity)), so a later import replaces a change's
+particulars. Changes made before 1 November 2026 were prepared with a supporting document, then
+approved and applied. They are kept with their documents and decisions, and one never applied shows
+as Prepared, not applied or Approved, not applied, with no action.
 
 ### Linking wallets to members
 
@@ -596,9 +604,12 @@ prepared in [Documents](member-records.md#preparing-a-certificate).
 The same view holds the existing append-only correction and maintenance workflows: source opening
 corrections and particulars changes. Each is a titled record showing its snapshot, documents and
 decision trail; a copied opening's shareholders sit behind **Show the shareholders**, open while it
-awaits a decision. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
-Confirmed), and an import, correction or particulars change has an Evidence row reading Provided by
-the company or, before the work became company-run, "Verified by Ledova staff". A section that read
+awaits a decision, and a particulars change shows who changed the particulars and when, with the
+particulars before and after. Stages read Prepared, Approved, Applied or Rejected (for an import,
+Reviewed and Confirmed; for a particulars change from before the one-step edit that was never
+applied, Prepared, not applied or Approved, not applied), and an import, a correction or such an
+earlier particulars change has an Evidence row reading Provided by the company or, before the work
+became company-run, "Verified by Ledova staff". A section that read
 successfully with nothing to show is left out. An unfinished request keeps its class and exact
 request, and while one is held the company, task and class cannot be changed; its sidebar link lets
 the person return from another view to resume the same request. A failed read withholds the class
@@ -634,7 +645,7 @@ Each shareholder has a page, reached from Details on Shareholders, and so does e
 reached from Recipient details on their award's page. It shows:
 
 - Particulars: the name and residential address the company has recorded, with **Change
-  particulars** for someone who can prepare the register;
+  particulars** for an administrator or an appointment holding prepare, approve and apply;
 - Holdings: per class, Shares held, % of class, Date added and Holder type, then
   any former holding with the shares held when it ended, its date, and whether they returned or the
   cessation was corrected;

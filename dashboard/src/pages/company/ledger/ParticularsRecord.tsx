@@ -1,18 +1,9 @@
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
-import { useCallback } from 'react';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
-import {
-  REGISTER_PARTICULARS_COPY,
-  REGISTER_PARTICULARS_DECISIONS,
-  formatDateTime,
-  type RegisterParticularsChange,
-  formatDate,
-} from '@ledova/shared';
-import { Row, Rows, Section } from '@components/Ledger';
+import { REGISTER_PARTICULARS_COPY, formatDateTime, type RegisterParticularsChange, formatDate } from '@ledova/shared';
+import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
-import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { type RegisterSteps } from '@pages/company/shared/proposals';
 import { useParticularsRecordDownload } from './useRegisterRecordDownload';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
@@ -31,7 +22,7 @@ function Particulars({ title, held }: { title: string; held: Held | null }) {
           <Row label={COPY.AS_AT}>{formatDate(held.asAt)}</Row>
         </Rows>
       ) : (
-        <p className="text-sm text-text-primary">{COPY.NO_CURRENT_PARTICULARS}</p>
+        <p className="text-sm text-text-primary">{COPY.NOT_RECORDED_BEFORE}</p>
       )}
     </div>
   );
@@ -41,43 +32,18 @@ export function ParticularsRecord({
   landed,
   change,
   member,
-  steps,
   guard,
-  onDecided,
-  onRefused,
   visible = true,
-  onHeldChange,
-  reviewTarget,
-  onReviewChange,
 }: {
   landed?: Landed;
   change: RegisterParticularsChange;
   member: string;
-  steps: RegisterSteps;
   guard: () => void;
-  onDecided: () => Promise<unknown>;
-  onRefused: () => Promise<unknown>;
   visible?: boolean;
-  onHeldChange?: (uuid: string, held: boolean) => void;
-  reviewTarget: HTMLElement | null;
-  onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
   const download = useParticularsRecordDownload(change, check);
-  const context = `change for ${member} prepared ${formatDateTime(change.createdAt)}`;
-  const reviewChanged = useCallback(
-    (open: boolean) => onReviewChange(change.uuid, open),
-    [change.uuid, onReviewChange],
-  );
-  const downloadAction = (
-    <PageAction
-      label={COPY.DOWNLOAD}
-      context={context}
-      busy={download.isPending}
-      busyLabel="Downloading…"
-      onClick={() => download.mutate()}
-    />
-  );
+  const edit = !change.supportingEvidence;
   return (
     <RecordShell hidden={!visible} landed={landed}>
       {visible && (
@@ -85,60 +51,44 @@ export function ParticularsRecord({
           <h3 className="font-medium text-text-primary">{member}</h3>
           <Rows>
             <RecordStage stage={change.stage}>{COPY.STAGES[change.stage] ?? change.stage}</RecordStage>
-            {change.preparedByName !== null && <Row label="Prepared by">{change.preparedByName || 'Not provided'}</Row>}
-            <Row label="Prepared on">{formatDateTime(change.createdAt)}</Row>
+            {change.preparedByName !== null && (
+              <Row label={edit ? 'Changed by' : 'Prepared by'}>{change.preparedByName || 'Not provided'}</Row>
+            )}
+            <Row label={edit ? 'Changed on' : 'Prepared on'}>{formatDateTime(change.createdAt)}</Row>
           </Rows>
-          <Particulars title={COPY.PROPOSED_PARTICULARS} held={change} />
-          <Rows>
-            <Row label={COPY.REASON}>{change.reason}</Row>
-            <Row label="Evidence">{COPY.PROVIDED_BY_COMPANY}</Row>
-            <DecisionTrail proposal={change} labels={COPY.DECISIONS} />
-          </Rows>
+          {edit ? (
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Particulars title={COPY.BEFORE} held={change.previousParticulars} />
+              <Particulars title={COPY.AFTER} held={change} />
+            </div>
+          ) : (
+            <Particulars title={COPY.PROPOSED_PARTICULARS} held={change} />
+          )}
+          {(change.reason || !edit) && (
+            <Rows>
+              {change.reason && <Row label={COPY.REASON}>{change.reason}</Row>}
+              {!edit && (
+                <>
+                  <Row label="Evidence">{COPY.PROVIDED_BY_COMPANY}</Row>
+                  <DecisionTrail proposal={change} labels={COPY.DECISIONS} />
+                </>
+              )}
+            </Rows>
+          )}
+          {!edit && (
+            <FormActions>
+              <PageAction
+                label={COPY.DOWNLOAD}
+                context={`change for ${member} prepared ${formatDateTime(change.createdAt)}`}
+                busy={download.isPending}
+                busyLabel="Downloading…"
+                onClick={() => download.mutate()}
+              />
+            </FormActions>
+          )}
+          {download.isError && <RecordDownloadFailure error={download.error} />}
         </>
       )}
-      <FormActions>
-        {downloadAction}
-        <RegisterDecisions
-          family={REGISTER_PARTICULARS_DECISIONS}
-          copy={COPY}
-          noun="particulars change"
-          proposal={change}
-          steps={steps}
-          guard={guard}
-          newEffectGuard={check}
-          visible={visible}
-          onHeldChange={onHeldChange}
-          context={context}
-          onDecided={onDecided}
-          onRefused={onRefused}
-          note={(kind) => kind !== 'reject' && <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>}
-          pageReview={{
-            target: reviewTarget,
-            onChange: reviewChanged,
-            title: 'Review particulars change',
-            labels: {
-              approve: 'Approve particulars change',
-              apply: 'Apply particulars change',
-              reject: 'Reject particulars change',
-            },
-          }}
-        >
-          {(preview) => (
-            <Section title={member}>
-              <div className="grid gap-6 lg:grid-cols-2">
-                <Particulars title={COPY.CURRENT_PARTICULARS} held={preview.current} />
-                <Particulars title={COPY.PROPOSED_PARTICULARS} held={preview} />
-              </div>
-              <Rows>
-                <Row label={COPY.REASON}>{change.reason}</Row>
-              </Rows>
-              <FormActions>{downloadAction}</FormActions>
-              {download.isError && <RecordDownloadFailure error={download.error} />}
-            </Section>
-          )}
-        </RegisterDecisions>
-      </FormActions>
-      {download.isError && <RecordDownloadFailure error={download.error} />}
     </RecordShell>
   );
 }

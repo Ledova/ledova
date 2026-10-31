@@ -341,8 +341,7 @@ To change your full name, residential address or phone, choose **Edit personal d
 them and choose **Save personal details**. These details are self-reported: editing them verifies
 nothing and leaves existing identity results unchanged. A Profile save creates no company
 appointment, member association or register instruction and does not change your register
-particulars, which the
-company changes only through its own evidenced workflow
+particulars, which only the company changes, recording who changed them and what they replaced
 ([particulars](register.md#changing-a-members-particulars);
 [member access](member-records.md#member-access)).
 
