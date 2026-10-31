@@ -20,6 +20,7 @@ import { LinkRow, Section, LoadError, Failure } from '@components/Ledger';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { ActionConfirmation, EligibilityHistory, RecordsList } from '@components/eligibility';
 import { Field, TextInput } from '@components/Field';
+import { AccountCheck } from '@components/AccountCheck';
 
 export default function ParticipantEligibilityPage() {
   const [actionOpener, setActionOpener] = useState<HTMLElement | null>(null);
@@ -43,7 +44,7 @@ export default function ParticipantEligibilityPage() {
   return (
     <Page loading={read.loading} lede={ELIGIBILITY_RECORDS_NOTICE}>
       {!read.owner ? (
-        <p>Your signed-in account must be checked before opening these records.</p>
+        <AccountCheck />
       ) : (
         <>
           {read.readFailed && (

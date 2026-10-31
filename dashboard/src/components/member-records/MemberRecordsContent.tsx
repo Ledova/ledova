@@ -4,6 +4,7 @@ import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { LoadError, Loading, Section, Failure } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { useMemberWorkspace } from './useMemberWorkspace';
+import { AccountCheck } from '@components/AccountCheck';
 
 export function MemberRecordsContent({ children }: { children: ReactNode }) {
   const { read } = useMemberWorkspace();
@@ -33,7 +34,7 @@ export function MemberRecordsContent({ children }: { children: ReactNode }) {
         />
       )}
       {!read.owner ? (
-        <p role="status">Check your signed-in account before opening member records.</p>
+        <AccountCheck />
       ) : read.loading || retrying || read.refreshing || (read.busy && read.records.length === 0) ? (
         <Loading>Loading member records…</Loading>
       ) : (

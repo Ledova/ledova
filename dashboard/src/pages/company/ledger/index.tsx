@@ -38,6 +38,7 @@ import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
+import { AccountCheck } from '@components/AccountCheck';
 
 function RegisterPage({ sections, task, children }: { sections?: ReactNode; task?: LedgerTask; children: ReactNode }) {
   const { hash } = useLocation();
@@ -80,7 +81,6 @@ function RegisterPage({ sections, task, children }: { sections?: ReactNode; task
 export default function CompanyRegisterPage() {
   const location = useLocation();
   const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
   if (location.hash === '#certificates' || location.hash === '#documents')
     return <Navigate to={certificatesLocation(location)} state={location.state} replace />;
   if (owner)
@@ -89,13 +89,7 @@ export default function CompanyRegisterPage() {
     );
   return (
     <RegisterPage>
-      {preferences.isLoading ? (
-        <Loading>Loading your account…</Loading>
-      ) : (
-        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-          Your account could not be loaded.
-        </LoadError>
-      )}
+      <AccountCheck />
     </RegisterPage>
   );
 }

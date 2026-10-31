@@ -1,35 +1,21 @@
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  DESTINATIONS,
-  failureSentence,
-  useSubmissionOwner,
-  useUserPreferences,
-  type OrderSubmissionOwner,
-} from '@ledova/shared';
+import { DESTINATIONS, failureSentence, useSubmissionOwner, type OrderSubmissionOwner } from '@ledova/shared';
 import { LoadError, Loading, Failure } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useAuthorityRequests } from '@pages/company/authority/shared/useAuthorityRequests';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
+import { AccountCheck } from '@components/AccountCheck';
 
 export default function CompanyAuthorityRequestPage() {
   const { uuid = '' } = useParams();
   const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
   if (!owner)
     return (
       <Page>
-        {preferences.isError ? (
-          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-            Your account could not be loaded.
-          </LoadError>
-        ) : (
-          <p className="text-sm text-text-muted">
-            Verify your signed-in account before opening representative authority.
-          </p>
-        )}
+        <AccountCheck />
       </Page>
     );
   return (

@@ -28,6 +28,7 @@ import { scopeLabels } from '@pages/company/shared/appointments';
 import { pageTitle } from '@utils/destinations';
 import { eligibilityRequestLink } from '@utils/requestLink';
 import { CopyButton } from '@components/CopyButton';
+import { AccountCheck } from '@components/AccountCheck';
 
 const OUTCOMES = [
   ['accepted', 'Accept'],
@@ -137,7 +138,7 @@ export default function CompanyEligibilityPage() {
       }
     >
       {!read.owner ? (
-        <p>Your signed-in account must be checked before opening these records.</p>
+        <AccountCheck />
       ) : (
         <>
           {read.readFailed && !gone && (

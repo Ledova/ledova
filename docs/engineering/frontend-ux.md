@@ -856,7 +856,9 @@ not be loaded.", and adds a second sentence only for what the block can't otherw
 consequence, such as "The list is incomplete.", or a likely cause, such as "It may be unavailable
 to this account." Try again is described by that sentence, so a screen reader says which read it
 retries, and it stays disabled while the read runs again. Shared copy passes through unchanged,
-such as Notices' "What has been published to you could not be loaded."
+such as Notices' "What has been published to you could not be loaded." A page that waits for the
+signed-in account shows `AccountCheck` (`dashboard/src/components/AccountCheck.tsx`): "Loading your
+account…" while preferences load, then "Your account could not be loaded." with Try again.
 
 A failed read shows this block, not an empty state. The notification bell, profile documents and
 classification claims, which used to show an empty state, now show the failure. A failed refresh
