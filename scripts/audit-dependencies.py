@@ -15,7 +15,7 @@ MOBILE_ACCEPTED = {
     ("deepmerge", "GHSA-gcqx-w48m-w2h4"),
     ("image-size", "GHSA-5p2g-fcmc-qvqq"),
     ("image-size", "GHSA-w3rx-r6r6-pgpr"),
-    ("node-forge", "GHSA-86w9-cpqp-85rv"),
+    ("minimatch", "GHSA-g3hv-75wg-m249"),
     ("postcss", "GHSA-6g55-p6wh-862q"),
     ("postcss", "GHSA-fxqj-rqcc-2cmp"),
     ("postcss", "GHSA-qx2v-qp2m-jg93"),
