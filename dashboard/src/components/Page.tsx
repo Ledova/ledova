@@ -7,6 +7,7 @@ import { PhoneBar } from './PhoneBar';
 
 interface PageProps {
   actions?: ReactNode;
+  links?: ReactNode;
   back?: Partial<PageBackLink>;
   documentTitle?: string;
   lede?: string;
@@ -15,7 +16,16 @@ interface PageProps {
   children?: ReactNode;
 }
 
-export function Page({ actions, back, documentTitle, lede, loading = false, narrow = false, children }: PageProps) {
+export function Page({
+  actions,
+  links,
+  back,
+  documentTitle,
+  lede,
+  loading = false,
+  narrow = false,
+  children,
+}: PageProps) {
   const title = useContext(PageTitle);
   const parent = useContext(PageBack);
   const link = { ...parent, ...back };
@@ -59,6 +69,7 @@ export function Page({ actions, back, documentTitle, lede, loading = false, narr
           <>
             {heading('sr-only')}
             {backLink}
+            {links}
             {ledeText}
             {bar.actions && actions && createPortal(actions, bar.actions)}
           </>
@@ -68,6 +79,7 @@ export function Page({ actions, back, documentTitle, lede, loading = false, narr
               {heading('font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none')}
               <div ref={setActionsTarget} className="flex flex-wrap items-center gap-2 empty:hidden">
                 {backLink}
+                {links}
                 {actions}
               </div>
             </div>

@@ -4,7 +4,7 @@ import { BellIcon } from 'phosphor-react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../contexts';
-import { AppMenu, MenuButton, SECTION_ROUTES, type Section, type SectionRoute } from '../AppMenu';
+import { AppMenu, MenuButton, type MenuRoute, type Section } from '../AppMenu';
 
 function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void; unreadCount?: number }) {
   const theme = useAppTheme();
@@ -55,13 +55,15 @@ function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void
 
 export function TopBar({
   navigation,
+  route,
   title,
   action,
   current,
   onNotifications,
   unreadCount,
 }: {
-  navigation: NavigationProp<Record<SectionRoute, undefined>>;
+  navigation: NavigationProp<Record<MenuRoute, undefined>>;
+  route: string;
   title: string | undefined;
   action: ReactNode;
   current: Section;
@@ -114,10 +116,10 @@ export function TopBar({
       <AppMenu
         visible={open}
         current={current}
+        route={route}
         onClose={() => setOpen(false)}
-        onSelect={(section) => {
+        onSelect={(target) => {
           setOpen(false);
-          const target = SECTION_ROUTES[section];
           navigation.reset(
             target === 'Dashboard'
               ? { index: 0, routes: [{ name: 'Dashboard' }] }

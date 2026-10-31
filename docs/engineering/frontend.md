@@ -361,7 +361,8 @@ History. Shareholders' label opens its people list, with the same caret pattern 
 Member access and Member requests.
 Documents opens one Certificates page (`/documents/certificates`), with Published (Published to
 your members, `/company/publications`, for the company's own account), Inspection copies and Company
-pack where company access permits them. There is no separate Your certificates item. Legacy
+pack where company access permits them, and Notices (`/publications`) for a member of the selected
+company. There is no separate Your certificates item. Legacy
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
 preserving company, class and navigation state. A group without a meaningful overview opens its
 default child, without an extra Overview page or duplicate navigation.
@@ -369,7 +370,7 @@ Company eligibility (`/company/eligibility`) follows Documents for an administra
 approve appointee (`canReviewEligibility`). Its sidebar label is Eligibility. A company administrator (`canManage`) also
 gets its caret, with Supporting (Company documents, `/documents/company`) beneath it.
 Settings uses the same one-level pattern: Profile, Team and Activation where permitted; a group with
-one permitted page, such as a member's Documents or Settings, is a plain link to it. Its default
+one permitted page, such as Settings with only Profile, is a plain link to it. Its default
 is Profile (`/settings#profile`), combining personal details, permitted company information, a
 linked member's Company-recorded details and one compact Account card for identity status,
 password, appearance and notifications. These sections keep their separate records, editors and authority checks. Existing

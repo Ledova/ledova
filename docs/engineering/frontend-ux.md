@@ -407,7 +407,8 @@ company below the person's name in the sidebar footer and preserve its context i
 names use small text (`text-xs`), retain stored capitalization and stay on one truncated line with
 the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar holds the menu
 button, the page's title and its actions, then the bell (`PhoneBar`); the page keeps its `h1` for
-screen readers and starts with its lede. The bar names no company. Dark theme sits beside Sign out in
+screen readers and starts with its back link, any `links` (such as an award's Recipient details) and its
+lede. The bar names no company. Dark theme sits beside Sign out in
 the sidebar's footer at every width. The navigation scrolls between the fixed
 brand header and footer.
 Do not repeat the current company name as a passive heading, subtitle or card label in signed-in
@@ -427,11 +428,11 @@ an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **Employee scheme**, **Member access** and **Member requests**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Published**, **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
-`/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
+**Published**, **Inspection copies** and **Company pack** where permitted, and **Notices** for a member of the
+selected company, with its label opening Certificates at `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Team** and **Activation**, without an extra overview
-page. A group with only one permitted page, such as a member's Documents (Certificates) or
-Settings (Profile), is a plain link to that page, marked current there. Profile always holds
+page. A group with only one permitted page, such as Settings (Profile), is a plain link to that
+page, marked current there. Profile always holds
 personal information and Account. Company documents, Team, Activation and
 Company details follow current company access; Profile's Company-recorded details follows an actual
 member association. Personal edits never change company-recorded particulars.

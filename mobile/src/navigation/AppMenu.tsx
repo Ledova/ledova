@@ -2,6 +2,8 @@ import { useEffect, useState, type ComponentType } from 'react';
 import { Animated, Easing, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  CaretDownIcon,
+  CaretRightIcon,
   FilesIcon,
   GearIcon,
   HouseIcon,
@@ -21,17 +23,30 @@ import { useMemberRecordsState } from '../screens/holdings/MemberRecordsProvider
 
 export type Section = 'Dashboard' | 'Documents' | 'Settings';
 
-export const SECTION_ROUTES = { Dashboard: 'Dashboard', Documents: 'Certificates', Settings: 'Settings' } as const;
+export type MenuRoute = 'Dashboard' | 'Certificates' | 'Notices' | 'Settings';
 
-export type SectionRoute = (typeof SECTION_ROUTES)[Section];
+type MenuItem = {
+  name: Section;
+  label: string;
+  icon: ComponentType<IconProps>;
+  route: MenuRoute;
+  items?: { route: MenuRoute; label: string }[];
+};
 
-const SECTIONS: { name: Section; label: string; icon: ComponentType<IconProps> }[] = [
-  { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon },
-  { name: 'Documents', label: 'Documents', icon: FilesIcon },
+const SECTIONS: MenuItem[] = [
+  { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
+  {
+    name: 'Documents',
+    label: 'Documents',
+    icon: FilesIcon,
+    route: 'Certificates',
+    items: [
+      { route: 'Certificates', label: 'Certificates' },
+      { route: 'Notices', label: 'Notices' },
+    ],
+  },
 ];
-const YOURS: { name: Section; label: string; icon: ComponentType<IconProps> }[] = [
-  { name: 'Settings', label: 'Settings', icon: GearIcon },
-];
+const YOURS: MenuItem[] = [{ name: 'Settings', label: 'Settings', icon: GearIcon, route: 'Settings' }];
 
 const MENU_WIDTH = 208;
 
@@ -94,12 +109,14 @@ function AppearanceButton() {
 export function AppMenu({
   visible,
   current,
+  route,
   onSelect,
   onClose,
 }: {
   visible: boolean;
   current: Section | undefined;
-  onSelect: (section: Section) => void;
+  route: string;
+  onSelect: (route: MenuRoute) => void;
   onClose: () => void;
 }) {
   const theme = useAppTheme();
@@ -110,6 +127,7 @@ export function AppMenu({
   const [progress] = useState(() => new Animated.Value(0));
   const [shown, setShown] = useState(visible);
   const [confirming, setConfirming] = useState(false);
+  const [toggled, setToggled] = useState<Partial<Record<Section, boolean>>>({});
   if (visible && !shown) setShown(true);
   useEffect(() => {
     Animated.timing(progress, {
@@ -123,40 +141,83 @@ export function AppMenu({
   }, [progress, visible]);
   const person = userProfile?.fullName?.trim() || userProfile?.email;
   const currentBackground = theme.mode === 'dark' ? theme.colors.brand.tint : `${theme.colors.brand.mid}1a`;
-  const item = (section: { name: Section; label: string; icon: ComponentType<IconProps> }) => {
+  const row = (here: boolean) => ({
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: theme.spacing.smd,
+    paddingHorizontal: theme.spacing.smd,
+    paddingVertical: 10,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: here ? currentBackground : theme.colors.utility.transparent,
+  });
+  const label = (active: boolean) => ({
+    fontFamily: theme.fontFamily.medium,
+    fontSize: theme.fontSize.sm,
+    color: active ? theme.colors.brand.light : theme.colors.text.secondary,
+  });
+  const item = (section: MenuItem) => {
     const active = section.name === current;
+    const here = active && !section.items;
+    const expanded = toggled[section.name] ?? active;
     const Icon = section.icon;
-    return (
+    const Caret = expanded ? CaretDownIcon : CaretRightIcon;
+    const link = (
       <TouchableOpacity
         key={section.name}
         accessibilityRole="button"
-        accessibilityState={{ selected: active }}
-        onPress={() => onSelect(section.name)}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.smd,
-          paddingHorizontal: theme.spacing.smd,
-          paddingVertical: 10,
-          borderRadius: theme.borderRadius.md,
-          backgroundColor: active ? currentBackground : theme.colors.utility.transparent,
-        }}
+        accessibilityState={{ selected: here }}
+        onPress={() => onSelect(section.route)}
+        style={[row(here), !!section.items && { flex: 1 }]}
       >
         <Icon
           size={theme.icon.sizes.md}
-          color={active ? theme.colors.brand.light : theme.colors.text.secondary}
+          color={here ? theme.colors.brand.light : theme.colors.text.secondary}
           weight={active ? 'fill' : 'regular'}
         />
-        <Text
-          style={{
-            fontFamily: theme.fontFamily.medium,
-            fontSize: theme.fontSize.sm,
-            color: active ? theme.colors.brand.light : theme.colors.text.secondary,
-          }}
-        >
-          {section.label}
-        </Text>
+        <Text style={label(here)}>{section.label}</Text>
       </TouchableOpacity>
+    );
+    if (!section.items) return link;
+    return (
+      <View key={section.name}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          {link}
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${section.label} navigation`}
+            accessibilityState={{ expanded }}
+            onPress={() => setToggled((shown) => ({ ...shown, [section.name]: !expanded }))}
+            hitSlop={{ top: 2, bottom: 2, left: 6, right: 6 }}
+            style={{ width: 32, height: 40, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Caret size={theme.icon.sizes.sm} color={theme.colors.text.secondary} />
+          </TouchableOpacity>
+        </View>
+        {expanded && (
+          <View
+            style={{
+              marginLeft: 20,
+              marginTop: 4,
+              gap: 4,
+              paddingLeft: 12,
+              borderLeftWidth: 1,
+              borderLeftColor: theme.colors.border.subtle,
+            }}
+          >
+            {section.items.map((child) => (
+              <TouchableOpacity
+                key={child.route}
+                accessibilityRole="button"
+                accessibilityState={{ selected: child.route === route }}
+                onPress={() => onSelect(child.route)}
+                style={row(child.route === route)}
+              >
+                <Text style={label(child.route === route)}>{child.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
     );
   };
   return (

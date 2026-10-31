@@ -1,8 +1,8 @@
 import { useContext, useLayoutEffect, type ReactNode, type Ref } from 'react';
 import { ScrollView, Text, View, type ScrollViewProps } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, type NavigationProp, type NavigationState, type ParamListBase } from '@react-navigation/native';
 import { useThemedStyles } from '../contexts';
-import { InSignedInFrame } from './InSignedInFrame';
+import { InSignedInFrame, type FrameOptions } from './InSignedInFrame';
 
 type PageProps = Pick<ScrollViewProps, 'testID' | 'refreshControl' | 'showsVerticalScrollIndicator'> & {
   ref?: Ref<ScrollView>;
@@ -14,9 +14,10 @@ type PageProps = Pick<ScrollViewProps, 'testID' | 'refreshControl' | 'showsVerti
 
 export function Page({ ref, title, titleAction, lede, children, ...scroll }: PageProps) {
   const inFrame = useContext(InSignedInFrame);
-  const navigation = useNavigation();
+  const navigation =
+    useNavigation<NavigationProp<ParamListBase, string, string | undefined, NavigationState, FrameOptions>>();
   useLayoutEffect(() => {
-    if (inFrame) navigation.setOptions({ title, headerRight: titleAction ? () => titleAction : undefined });
+    if (inFrame) navigation.setOptions({ title, action: titleAction });
   });
   const styles = useThemedStyles((theme) => ({
     page: { flex: 1, backgroundColor: theme.colors.surface.base },

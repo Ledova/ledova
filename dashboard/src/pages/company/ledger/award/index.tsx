@@ -198,7 +198,7 @@ function OwnAward({
             : undefined
         }
         back={{ state: company ? { registerCompany: company, registerToken: token } : undefined }}
-        actions={
+        links={
           visible &&
           award.data &&
           !held &&
