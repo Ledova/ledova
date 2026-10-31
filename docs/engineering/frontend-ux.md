@@ -126,9 +126,9 @@ Ledger's Add share class follows this pattern for both empty and populated colle
 section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground: the title (Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions
-as one wrapping row, since a phone's large title leaves no room beside it; the header holds only
-the back button and, on a tab, the bell. A tap on a control acts at once, even while the keyboard
-is up.
+as one wrapping row, since a phone's large title leaves no room beside it. A section's header is the
+web's top bar (menu button, wordmark, Dark theme and the bell), and a detail screen's holds only the
+back button. A tap on a control acts at once, even while the keyboard is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
 `PageAction` (`dashboard/src/components/Page.tsx`) each enforce one rule:
@@ -186,10 +186,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   tone map; shared resolution-result tones live in `dashboard/src/components/statusTones.ts`.
 
 On workflow collections, show the saved records first, with class context once where needed.
-The sidebar footer identifies the current company. Keep each recipient,
-status and key facts together,
-its details on demand, and its next action
-in a right-aligned footer after secondary actions.
+The sidebar footer identifies the current company. Keep each recipient, status and key facts
+together, its details on demand, and its next action in a right-aligned footer after secondary
+actions.
 Particulars changes keep supporting-document download and decision actions together in one right-aligned,
 wrapping footer, with download errors visible beside that action group.
 Name a preview-opening action for that review, such as **Review and approve**; opening it is not approval.
@@ -406,8 +405,9 @@ content", which moves focus to the page's heading.
 The Dashboard selects company context; there is no workspace or role selector. Keep the selected
 company below the person's name in the sidebar footer and preserve its context in task links. Both
 names use small text (`text-xs`), retain stored capitalization and stay on one truncated line with
-the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar shows only the
-wordmark, beside the menu button, Dark theme and the bell, all on one line. The navigation scrolls between the fixed brand header and footer.
+the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar holds the menu button,
+the wordmark, Dark theme and the bell; it names no company. The navigation scrolls between the fixed
+brand header and footer.
 Do not repeat the current company name as a passive heading, subtitle or card label in signed-in
 content. Keep it where it identifies a functional company picker, a company Profile field, a record
 in a multi-company list or asset holding, or the exact legal, declaration, snapshot or recovery target.
@@ -694,8 +694,8 @@ account by `dashboard/src/utils/lastCompany.ts`), or the first company in their 
 no longer available or none was chosen yet (owner, 28 October 2026). If an explicit address names an
 unavailable company, Dashboard offers **Open your company** when only one company remains, without
 silently replacing the address's scope. Other company-related pages inherit the selection through their
-address and task links; the sidebar footer, or the top bar below `lg`, identifies it without another
-company picker or passive page label. When the selected company is unavailable, `CompanyContextNotice`
+address and task links; the sidebar footer identifies it without another company picker or passive
+page label. When the selected company is unavailable, `CompanyContextNotice`
 (`dashboard/src/components/CompanyContextNotice.tsx`) links to Dashboard. An explicit company link is
 never silently replaced with a different company. Valid company and record links still open directly.
 Account-wide Profile, own appointments and invitation acceptance do not depend on the selected company.
