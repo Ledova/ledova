@@ -326,7 +326,7 @@ and payment date. There are no ballot or publishing controls.
 
 ## The Notices page
 
-**Notices** (at `/publications` on web, and the **Documents** tab on mobile) lists, newest first,
+**Notices** (at `/publications` on web, and in **Documents** on mobile) lists, newest first,
 what was published to the signed-in person as a member, with older items loaded on request. Each
 notice shows its title, company, class, kind and record date, and opens the stored document. A
 resolution shows the question, the basis, the person's votes, the window and, while voting is

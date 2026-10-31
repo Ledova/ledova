@@ -883,8 +883,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   personal, company and account sections, keeping each editor's data and authority separate. One Account
   card holds relevant identity status, password, appearance and notifications; Manage account contains
   export and deletion. Payslip evidence lives with investor classification claims. Documents and Team
-  stay focused pages; Activation keeps its existing company workflow. Signup and the mobile
-  Account tab keep their own navigation.
+  stay focused pages; Activation keeps its existing company workflow. Signup and mobile
+  Settings keep their own navigation.
 - Profile on web: account deletion clears cached account data after the server confirms.
 
 Next: [frontend UX standards](frontend-ux.md), [mobile](mobile.md), [authentication](security.md#authentication-and-sessions),

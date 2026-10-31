@@ -72,12 +72,7 @@ export function ClassScreen({ route }: { route: RouteProp<SignedInStackParamList
     ? currentRequest(sheetRequests)
     : requests.find((request) => request.uuid === sheet?.request);
   return (
-    <Page
-      testID="class-scroll"
-      title={item ? `${item.name} shares` : 'Shares'}
-      lede={record?.company.name}
-      refreshControl={refresh}
-    >
+    <Page testID="class-scroll" title={item?.name ?? 'Shares'} lede={record?.company.name} refreshControl={refresh}>
       <MemberNotice read={read} />
       <RecordGate read={read} record={record} ready={!!selected}>
         {!item ? (
