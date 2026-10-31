@@ -30,21 +30,21 @@ class DependencyAuditTest(unittest.TestCase):
                 },
             },
             "vulnerabilities": {
-                "node-forge": {
-                    "name": "node-forge",
+                "uuid": {
+                    "name": "uuid",
                     "severity": "low",
                     "via": [
                         {
-                            "name": "node-forge",
+                            "name": "uuid",
                             "severity": "low",
-                            "url": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+                            "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
                         }
                     ],
                 },
-                "@expo/code-signing-certificates": {
-                    "name": "@expo/code-signing-certificates",
+                "xcode": {
+                    "name": "xcode",
                     "severity": "low",
-                    "via": ["node-forge"],
+                    "via": ["uuid"],
                 },
             },
         }
@@ -92,23 +92,21 @@ class DependencyAuditTest(unittest.TestCase):
                                     "synthetic",
                                 )
         for package, identifier, severity in (
-            ("node-forge", "GHSA-cfgh-jmpq-rvwx", "low"),
-            ("different-package", "GHSA-86w9-cpqp-85rv", "low"),
-            ("node-forge", "GHSA-86w9-cpqp-85rv", "critical"),
+            ("uuid", "GHSA-cfgh-jmpq-rvwx", "low"),
+            ("different-package", "GHSA-w5hq-g745-h8pq", "low"),
+            ("uuid", "GHSA-w5hq-g745-h8pq", "critical"),
         ):
             changed = copy.deepcopy(npm)
-            changed["vulnerabilities"]["node-forge"]["via"][0].update(
+            changed["vulnerabilities"]["uuid"]["via"][0].update(
                 name=package,
                 severity=severity,
                 url=f"https://github.com/advisories/{identifier}",
             )
-            if package != "node-forge":
-                renamed = changed["vulnerabilities"].pop("node-forge")
+            if package != "uuid":
+                renamed = changed["vulnerabilities"].pop("uuid")
                 renamed["name"] = package
                 changed["vulnerabilities"][package] = renamed
-                changed["vulnerabilities"]["@expo/code-signing-certificates"]["via"] = [
-                    package
-                ]
+                changed["vulnerabilities"]["xcode"]["via"] = [package]
             with self.subTest(
                 package=package, identifier=identifier, severity=severity
             ):

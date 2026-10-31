@@ -17,8 +17,8 @@ the current audit result.
 The npm exceptions apply to `mobile/` only; the root, `site/` and
 `contracts/` audits must stay completely clean. The original entries preserve the
 findings accepted on 5 October 2026, less `elliptic`, which left with the mobile
-wallet libraries. All belong to the Expo and Metro developer toolchain, whose
-SDK upgrade remains separate work. The earlier toolchain risk acceptance does
+wallet libraries, and `node-forge`, which 1.4.2 fixes. All belong to the Expo and
+Metro developer toolchain, whose SDK upgrade remains separate work. The earlier toolchain risk acceptance does
 not authorise additional advisories in that category.
 
 | Package           | Accepted advisory ID  |
@@ -29,7 +29,6 @@ not authorise additional advisories in that category.
 | `deepmerge`       | `GHSA-gcqx-w48m-w2h4` |
 | `image-size`      | `GHSA-5p2g-fcmc-qvqq` |
 | `image-size`      | `GHSA-w3rx-r6r6-pgpr` |
-| `node-forge`      | `GHSA-86w9-cpqp-85rv` |
 | `postcss`         | `GHSA-6g55-p6wh-862q` |
 | `postcss`         | `GHSA-fxqj-rqcc-2cmp` |
 | `postcss`         | `GHSA-qx2v-qp2m-jg93` |
