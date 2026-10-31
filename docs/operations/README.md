@@ -44,6 +44,32 @@ before any real use.
 
 ## Apply a release
 
+The [image publishing workflow](../../.github/workflows/images.yml) publishes Linux/amd64 backend,
+dashboard and site images after successful push CI on `main`. It does not deploy them. Each image
+has a `sha-<full commit>` tag and an `org.opencontainers.image.revision` label. Use the
+`image-<component>-<full commit>` run artifact or job summary to record the immutable
+`ghcr.io/<owner>/<repository>-<component>@sha256:<digest>` reference; a rebuild can move the tag.
+
+Before publishing frontends, set the non-secret repository variables `IMAGE_API_URL`,
+`IMAGE_MARKETING_URL` and `IMAGE_DASHBOARD_URL` to their public origins. They become bundle content,
+so never put credentials or private endpoints in them. Node and npm come from the selected source's
+exact package pins. Frontend builds use the workflow revision's production Dockerfiles with that
+source's code and server configuration; backend uses the selected source's Dockerfile.
+
+Run **Publish images** manually on `main` with a full lowercase 40-character commit SHA and select
+one component or `all` to rebuild a historical revision in `main` history. This historical build does not require
+new CI for that old commit. Inspect the build result and digest before any release. It does not
+reproduce an earlier image's bytes: base images and package repositories can change.
+
+The site image's `artifact` target contains only `/site-dist`, with its assets under
+`/site-dist/site-assets`. Extract these files for an existing static-file server; the image runs no
+server and carries no nginx/server configuration. The default site production target still serves its
+ordinary bundle through nginx.
+
+On first publication, [GHCR defaults to private visibility](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#pushing-container-images).
+A package administrator must make each intended public image public in its package settings before
+anonymous pulls. Publishing uses the repository's `GITHUB_TOKEN`; no registry secret is required.
+
 Follow [bring up an instance](#bring-up-an-instance) for the commit,
 configuration, seeds and health checks, on synthetic data and a supported local or public test
 network. A release adds:

@@ -1,7 +1,9 @@
 # Build stage. No cloud provider or architecture is assumed.
-FROM node:22.22.2-alpine AS build
+ARG NODE_VERSION=22.22.2
+FROM node:${NODE_VERSION}-alpine AS build
 
-RUN npm install -g npm@11.5.2
+ARG NPM_VERSION=11.5.2
+RUN npm install -g npm@${NPM_VERSION}
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -27,6 +29,8 @@ RUN npm run build
 
 # Static-serving stage.
 FROM nginx:stable-alpine AS production
+
+RUN rm -rf /usr/share/nginx/html/*
 
 # Copy built assets from build stage
 COPY --from=build /usr/src/app/dashboard/dist /usr/share/nginx/html
