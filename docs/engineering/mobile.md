@@ -116,7 +116,8 @@ company eligibility page yet, so there is no link to it. How you qualify offers 
 **Submit evidence**, or **Add evidence** once one of its claims is submitted, opening the web's claim
 form (`ClaimModal`): the accountant's certificate fields where they apply, the basis, one evidence
 file ([picked evidence copies](#picked-evidence-copies)) and the declaration, checked on Save with the
-shared `investorClaimChecks` and their messages. A server refusal, such as a failed malware check,
+shared `investorClaimChecks`, whose messages head the form in the
+[error summary](frontend-ux.md#validation) and sit beside their fields. A server refusal, such as a failed malware check,
 shows above the fields. The claims come from the shared `useInvestorEligibility`, and the withdrawal
 (`useInvestorWithdrawal`) and the upload carry the session epoch ([session scope](#session-scope)).
 Settings has the web's three pages for a member
@@ -259,6 +260,11 @@ without declaring it, and `assert` and `util` arrive through `expo-notifications
 check confirms that the app's own imports reach declared runtime dependencies; imports inside
 `node_modules` are resolved by Metro when the app is bundled.
 
+`expo-document-picker` loads its native module when imported, and the app imports it at start
+through `mobile/src/services/documentCopies.ts`, so a development app built before the picker was
+added fails to start. Rebuild the development app, and make release builds from a fresh prebuild
+([building from a clean checkout](mobile-releases.md#building-from-a-clean-checkout)).
+
 ## Document view copies
 
 Viewing a document downloads it into the app-owned `ledova-document-views-v1` cache directory and
@@ -280,15 +286,18 @@ share cannot block later views. Copies earlier builds wrote to the cache root ar
 
 A claim's evidence is chosen with Expo's document picker (`pickDocument` in
 `mobile/src/services/documentCopies.ts`), offering PDF, PNG and JPEG files, and the shared
-`uploadRefusal` checks it as it is chosen, as on the web. The app uploads a private copy as React
+`uploadRefusal` checks it as it is chosen, as on the web. A file the picker gives no size is
+measured from its copy, and one without a type, or with `application/octet-stream`, takes the type
+its extension names (`uploadType`) before that check. The app uploads a private copy as React
 Native's `{ uri, name, type }`, with the session epoch of the pick: on Android the picker copies the
 file into its `DocumentPicker` folder in the cache, and on iOS the app uses the copy the system
-makes in its temporary folder. The app deletes only the copies the picker returned, never a
-provider's original: when another file replaces one, when it is removed, refused or saved, when the
-form or the page closes and on every session change. A session change also sweeps the picker's
-UUID-named files from the `DocumentPicker` folder and the upload copies earlier builds left in the
-cache. An iOS copy an earlier process left, after a crash, stays in the temporary folder until the
-system clears it.
+makes in a `-Inbox` folder in its temporary folder. The app deletes only files inside its own cache
+or, on iOS, temporary folder, so never a provider's original: a picked copy when another file
+replaces it, when it is removed, refused or saved, when the form or the page closes and on every
+session change. Every session change and each app start also sweep the picker's UUID-named files
+from the `DocumentPicker` folder and, on iOS, the files in the temporary folder's `-Inbox` folders,
+where a killed app leaves its copies; a session change also removes the upload copies earlier builds
+left in the cache.
 
 Test coverage of these lifetimes is in
 [what automated checks do not establish](mobile-releases.md#what-automated-checks-do-not-establish).

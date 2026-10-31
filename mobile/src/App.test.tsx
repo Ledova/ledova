@@ -8,6 +8,7 @@ jest.mock('expo-font', () => ({ loadAsync: jest.fn().mockResolvedValue(undefined
 jest.mock('./services/notificationsService', () => ({
   notificationsService: { configure: jest.fn(), registerToken: jest.fn().mockResolvedValue(true) },
 }));
+jest.mock('./services/documentCopies', () => ({ sweepPickedCopies: jest.fn() }));
 jest.mock('./services/apiClient', () => ({
   apiClient: { get: jest.fn().mockResolvedValue({ data: { valid: false } }) },
 }));

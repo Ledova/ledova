@@ -253,8 +253,8 @@ on a physical iPhone, recording permission and reachability separately from
 
 ## What automated checks do not establish
 
-Apart from picked evidence, which the member journey removes after saving and on a session change
-with a fake picker and file system, the mobile Jest suite covers none of the screen and file
+Apart from picked evidence, whose removal after saving and on a session change the member journey
+checks with a fake picker and file system, the mobile Jest suite covers none of the screen and file
 lifetimes in [mobile](mobile.md). On an emulator or simulator the native probes exercise the
 transport and the document view copies,
 driving no system UI; only completed emulator logs establish native results. The LAN probe calls the compiled

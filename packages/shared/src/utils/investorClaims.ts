@@ -7,7 +7,7 @@ import type {
 } from '../types';
 import { addCalendarDays, addCalendarYears, isCalendarDate, utcToday } from './date';
 
-export interface InvestorClaimDraft {
+interface InvestorClaimDraft {
   category: InvestorCategory | null;
   declaredBasis: string;
   certificateIssuedAt: string;

@@ -88,6 +88,8 @@ export function VerificationScreen() {
                 <Rows>
                   {classifications.map((claim) => {
                     const state = investorClaimState(claim);
+                    const action =
+                      withdraw.isPending && withdraw.variables === claim.uuid ? 'Withdrawing…' : 'Withdraw claim';
                     return (
                       <View key={claim.uuid} style={look.record}>
                         <View style={look.top}>
@@ -100,12 +102,8 @@ export function VerificationScreen() {
                           {claim.status === 'submitted' && (
                             <Actions>
                               <Action
-                                label={
-                                  withdraw.isPending && withdraw.variables === claim.uuid
-                                    ? 'Withdrawing…'
-                                    : 'Withdraw claim'
-                                }
-                                accessibilityLabel={`Withdraw claim (${claim.categoryDisplay}, submitted ${formatDate(claim.submittedAt ?? claim.createdAt)})`}
+                                label={action}
+                                accessibilityLabel={`${action} (${claim.categoryDisplay}, submitted ${formatDate(claim.submittedAt ?? claim.createdAt)})`}
                                 disabled={withdraw.isPending}
                                 onPress={() => setWithdrawing(claim)}
                               />

@@ -438,8 +438,14 @@ it('associates a member by invitation code, switches to their company on Dashboa
       name: 'I declare that this category applies to me and that the evidence attached is genuine.',
     }),
   );
+  const append = jest.spyOn(FormData.prototype, 'append');
   await fireEvent.press(screen.getByRole('button', { name: 'Save private evidence' }));
   expect(await screen.findByText('Available to share')).toBeTruthy();
+  expect(append).toHaveBeenCalledWith('evidence_file', {
+    uri: `${PICKED}licence.pdf`,
+    name: 'licence.pdf',
+    type: 'application/pdf',
+  });
   const [, sent, options] = api.post.mock.calls.find(([url]) => url === CLAIMS.BASE)!;
   expect((sent as FormData).get('declared_basis')).toBe('Synthetic AFS licence');
   expect(options).toMatchObject({ ledovaSessionEpoch: getSessionEpoch() });

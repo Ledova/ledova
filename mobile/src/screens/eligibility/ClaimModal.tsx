@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { useRef } from 'react';
+import { Pressable, Text, View, type ScrollView } from 'react-native';
 import { FileIcon, UploadSimpleIcon, XIcon } from 'phosphor-react-native';
 import {
   CERTIFIER_BODY_LABELS,
@@ -11,6 +12,7 @@ import {
   useErrorSummary,
   type InvestorCategory,
 } from '@ledova/shared';
+import { ErrorSummary } from '../../components/ErrorSummary';
 import { Action, Actions } from '../../components/Ledger';
 import { SelectField } from '../../components/SelectField';
 import { DatePickerField } from '../../components/date-picker';
@@ -74,6 +76,7 @@ export function ClaimModal({
   }));
   const claim = useInvestorClaim({ category, onSuccess, submissionBlockedReason });
   const checks = useErrorSummary(claim.problems);
+  const scroll = useRef<ScrollView>(null);
   const evidenceError = claim.fileRefusal ?? checks.field('file').error;
   const dateError = checks.field('certificateIssuedAt').error;
   const busy = claim.isSubmitting || claim.isPicking;
@@ -89,6 +92,7 @@ export function ClaimModal({
       title={claim.spec ? `Claim: ${claim.spec.label}` : 'Claim'}
       busy={busy}
       onClose={close}
+      scrollRef={scroll}
       actions={
         <Action
           label={claim.isSubmitting ? 'Saving…' : 'Save private evidence'}
@@ -96,10 +100,12 @@ export function ClaimModal({
           disabled={!claim.available || busy}
           onPress={() => {
             if (checks.check()) void claim.handleSubmit();
+            else scroll.current?.scrollTo({ y: 0 });
           }}
         />
       }
     >
+      <ErrorSummary {...checks.summary} />
       {!!submissionBlockedReason &&
         (onRetry ? (
           <View style={look.blocked}>

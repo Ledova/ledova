@@ -994,7 +994,9 @@ This section covers how a form reports a problem: when it is submitted, and when
     except the eligibility claim's long declaration and sign-up pre-screening's four declarations,
     which keep their own layout with the same checks. The app's `CheckboxField`
     (`mobile/src/components/register/RegisterFields.tsx`), a box ticked beside its label, serves
-    the particulars request and the claim's declaration alike. Register import names each shareholder and allotment in its summary instead of linking
+    the claim's declaration. The app's `ErrorSummary` (`mobile/src/components/ErrorSummary.tsx`)
+    gives the claim form the same summary, without links, at the top of its scroll content: a
+    refused Save scrolls to it and moves the screen reader's focus there. Register import names each shareholder and allotment in its summary instead of linking
     to a field, and lists the problems current at the time. Its shareholder editor lists the problems
     with the shareholder being edited. A summary link focuses the control the field's label points
     to, or else the field's first control, including Headless UI checkboxes and radios.

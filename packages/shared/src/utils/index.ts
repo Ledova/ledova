@@ -93,12 +93,7 @@ export { ownershipSummary } from './register-ownership';
 export { hasWholeShares, wholeShares } from './share-quantities';
 export { ownershipColorIndex, ownershipView, rankOwnershipClasses, type OwnershipClass } from './memberOwnership';
 export { CERTIFICATE_STATUSES, certificateStatus, type CertificateStatus } from './certificateRecords';
-export {
-  investorClaimChecks,
-  investorClaimState,
-  investorClaimSubmission,
-  type InvestorClaimDraft,
-} from './investorClaims';
+export { investorClaimChecks, investorClaimState, investorClaimSubmission } from './investorClaims';
 export { parseTheme } from './theme';
 
 export {
