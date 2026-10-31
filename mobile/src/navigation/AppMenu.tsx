@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentType } from 'react';
-import { Animated, Easing, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CaretDownIcon,
@@ -286,10 +286,13 @@ export function AppMenu({
               <XIcon size={theme.icon.sizes.md} color={theme.colors.text.muted} />
             </TouchableOpacity>
           </View>
-          <View style={{ flex: 1, paddingHorizontal: 12, paddingVertical: theme.spacing.md, gap: theme.spacing.lg }}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: theme.spacing.md, gap: theme.spacing.lg }}
+          >
             <View style={{ gap: 4 }}>{SECTIONS.map(item)}</View>
             <View style={{ gap: 4 }}>{YOURS.map(item)}</View>
-          </View>
+          </ScrollView>
           <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.border.subtle, padding: 12, gap: 4 }}>
             {person && (
               <Text
