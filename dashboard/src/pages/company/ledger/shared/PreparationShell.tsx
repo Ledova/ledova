@@ -1,28 +1,11 @@
 import type { ReactNode } from 'react';
-import type { useUserPreferences } from '@ledova/shared';
 import { Page } from '@components/Page';
-import { LoadError, Loading } from '@components/Ledger';
+import { AccountCheck } from '@components/AccountCheck';
 
-export function PreparationPreferences({ preferences }: { preferences: ReturnType<typeof useUserPreferences> }) {
-  return preferences.isLoading ? (
-    <Loading>Loading your account…</Loading>
-  ) : (
-    <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-      Your account could not be loaded.
-    </LoadError>
-  );
-}
-
-export function PreparationShell({
-  lede,
-  preferences,
-}: {
-  lede: string;
-  preferences: ReturnType<typeof useUserPreferences>;
-}) {
+export function PreparationShell({ lede }: { lede: string }) {
   return (
     <Page narrow lede={lede}>
-      <PreparationPreferences preferences={preferences} />
+      <AccountCheck />
     </Page>
   );
 }

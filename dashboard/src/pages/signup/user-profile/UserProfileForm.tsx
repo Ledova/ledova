@@ -1,11 +1,11 @@
 import {
-  AUTH_BUTTON_CLASS,
   ERROR_BANNER_CLASS,
   AuthCard,
   AuthInput,
   authFieldBorder,
   AuthDivider,
   authFieldClass,
+  AuthSubmit,
 } from '@components/auth';
 import { Field, Label, Textarea, Description } from '@headlessui/react';
 import { UserIcon, HouseIcon, PhoneIcon, WarningIcon, CalendarIcon } from '@phosphor-icons/react';
@@ -15,6 +15,7 @@ import type { FormErrors, UserProfileFormValidation, CountryData, UserProfileFor
 import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
+import { Failure } from '@components/Ledger';
 
 interface UserProfileFormProps {
   form: UserProfileFormData;
@@ -66,9 +67,7 @@ export function UserProfileForm({
                   <WarningIcon size={ICON_MD} className="text-error-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-error-light" role="alert">
-                    {generalError}
-                  </p>
+                  <Failure>{generalError}</Failure>
                 </div>
               </div>
             </div>
@@ -192,16 +191,9 @@ export function UserProfileForm({
             )}
           </Field>
 
-          <button type="submit" disabled={isSubmitting} onClick={submit} className={AUTH_BUTTON_CLASS}>
-            {isSubmitting ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Saving…</span>
-              </div>
-            ) : (
-              'Continue'
-            )}
-          </button>
+          <AuthSubmit busy={isSubmitting} busyLabel="Saving…" onClick={submit}>
+            Continue
+          </AuthSubmit>
         </form>
       </AuthCard>
 

@@ -17,7 +17,7 @@ import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
-import { Page, PageAction, PageActions, PageLink } from '@components/Page';
+import { Page, PageActions, PageLink } from '@components/Page';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { certificatesLocation } from '@utils/paths';
@@ -38,6 +38,7 @@ import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
+import { AccountCheck } from '@components/AccountCheck';
 
 function RegisterPage({ sections, task, children }: { sections?: ReactNode; task?: LedgerTask; children: ReactNode }) {
   const { hash } = useLocation();
@@ -80,7 +81,6 @@ function RegisterPage({ sections, task, children }: { sections?: ReactNode; task
 export default function CompanyRegisterPage() {
   const location = useLocation();
   const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
   if (location.hash === '#certificates' || location.hash === '#documents')
     return <Navigate to={certificatesLocation(location)} state={location.state} replace />;
   if (owner)
@@ -89,13 +89,7 @@ export default function CompanyRegisterPage() {
     );
   return (
     <RegisterPage>
-      {preferences.isLoading ? (
-        <Loading>Loading your account…</Loading>
-      ) : (
-        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-          Your account could not be loaded.
-        </LoadError>
-      )}
+      <AccountCheck />
     </RegisterPage>
   );
 }
@@ -563,15 +557,12 @@ function OwnRegister({
             scope.registers.map((register) => (
               <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
                 <ClassRegister register={register} former={false} />
-                {held ? (
-                  <PageAction label="Class details" context={register.token.name} disabled onClick={() => undefined} />
-                ) : (
-                  <PageLink
-                    to={`${generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}?company=${scope.company.uuid}`}
-                    label="Class details"
-                    context={register.token.name}
-                  />
-                )}
+                <PageLink
+                  to={`${generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}?company=${scope.company.uuid}`}
+                  label="Class details"
+                  context={register.token.name}
+                  disabled={held}
+                />
               </Section>
             ))}
           {view === 'register' && !selectedTask && canAddClass && (

@@ -11,6 +11,7 @@ import {
   utcToday,
 } from '@ledova/shared';
 import { useAuthorityRequestForm } from './useAuthorityRequestForm';
+import { Failure } from '@components/Ledger';
 
 export function AuthorityRequestForm({
   company,
@@ -115,15 +116,14 @@ export function AuthorityRequestForm({
       </Field>
       <FileField
         label="Supporting document"
-        showUploadHint={false}
         hint="Supporting documents can also be uploaded later in Eligibility → Supporting."
         disabled={disabled || busy}
         onFile={(file) => change(() => setFile(file))}
       />
       {submission.isError && (
-        <p role="alert" className="text-sm text-error-light">
+        <Failure>
           {failureSentence(submission.error, 'The request could not be recorded. Retry with the same details.')}
-        </p>
+        </Failure>
       )}
       <FormActions>
         <PageAction label="Cancel" disabled={disabled || busy} onClick={onCancel} />

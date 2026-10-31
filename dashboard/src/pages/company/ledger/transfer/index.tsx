@@ -1,5 +1,6 @@
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
-import { PreparationNotice, PreparationPreferences } from '@pages/company/ledger/shared/PreparationShell';
+import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
+import { AccountCheck } from '@components/AccountCheck';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useTransferRegister } from './useTransferRegister';
 import { useMemo, type ReactNode } from 'react';
@@ -35,7 +36,7 @@ export default function CompanyRegisterTransferPage() {
         />
       ) : (
         <Page back={{ to: undefined }}>
-          <PreparationPreferences preferences={preferences} />
+          <AccountCheck />
         </Page>
       )}
     </PageTitle.Provider>

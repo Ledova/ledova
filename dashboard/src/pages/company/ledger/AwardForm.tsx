@@ -5,6 +5,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
 import { useAwardForm } from './useAwardForm';
+import { Failure } from '@components/Ledger';
 
 export function AwardForm({
   company,
@@ -124,7 +125,7 @@ export function AwardForm({
                   onChange={(event) => setTermsOn(event.target.value)}
                 />
               </Field>
-              <FileField {...checks.field('file')} label="Document" showUploadHint={false} onFile={setFile} />
+              <FileField {...checks.field('file')} label="Document" onFile={setFile} />
             </div>
             <Field {...checks.field('terms')} label="Terms">
               <TextArea
@@ -152,11 +153,7 @@ export function AwardForm({
           </fieldset>
         </div>
       </fieldset>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       {held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
       <FormActions>
         {cancel}

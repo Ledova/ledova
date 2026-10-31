@@ -4,32 +4,18 @@ import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { LinkRow, Outcome, Section, LoadError, Loading, Status } from '@components/Ledger';
 import { FormActions, Page, PageAction } from '@components/Page';
-import {
-  DESTINATIONS,
-  formatDate,
-  useSubmissionOwner,
-  useUserPreferences,
-  type OrderSubmissionOwner,
-} from '@ledova/shared';
+import { DESTINATIONS, formatDate, useSubmissionOwner, type OrderSubmissionOwner } from '@ledova/shared';
 import { AUTHORITY_REQUEST_TONES } from '@pages/company/shared/statusTones';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
 import { authorityRequestStatus, useAuthorityRequests } from './shared/useAuthorityRequests';
+import { AccountCheck } from '@components/AccountCheck';
 
 export default function CompanyAuthorityPage() {
   const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
   if (!owner)
     return (
       <Page narrow>
-        {preferences.isError ? (
-          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-            Your account could not be loaded.
-          </LoadError>
-        ) : (
-          <p className="text-sm text-text-muted">
-            Verify your signed-in account before opening representative authority.
-          </p>
-        )}
+        <AccountCheck />
       </Page>
     );
   return (
