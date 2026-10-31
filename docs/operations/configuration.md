@@ -323,7 +323,9 @@ out of the build context. Pass the public origins as build arguments instead:
 `dashboard/.deployment/Dockerfile.prod` takes `VITE_API_URL` and `VITE_MARKETING_URL`, and
 `site/.deployment/Dockerfile.prod` takes `VITE_LEDOVA_URL`, the dashboard origin its Register and
 Sign in links open. Each defaults to its local address, so a build without them links to
-`localhost`. Mobile Release builds require HTTPS; the hosts a Debug build may reach, including the
+`localhost`. The [publishing workflow](README.md#apply-a-release) supplies these from non-secret
+repository variables and builds the site artifact with `VITE_BASE=/site-assets/`. Mobile Release
+builds require HTTPS; the hosts a Debug build may reach, including the
 LAN address `EXPO_PUBLIC_DEV_API_HOST` selects, are in
 [mobile transport](../engineering/mobile.md#native-transport).
 
