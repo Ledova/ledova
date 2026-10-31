@@ -21,6 +21,10 @@ export default function MemberInvitationPage() {
         <p role="alert" className="text-sm text-text-primary">
           Open the invitation link from your company’s email.
         </p>
+      ) : auth.isUnavailable ? (
+        <LoadError retry={() => void auth.refetch()} busy={auth.isFetching}>
+          Your session could not be checked.
+        </LoadError>
       ) : !auth.isAuthenticated ? (
         <>
           <p className="text-sm text-text-muted">Sign in using the email address that received the invitation.</p>
@@ -84,7 +88,7 @@ export default function MemberInvitationPage() {
         {!(ready && (accepted || shown?.status === 'accepted')) && (
           <PageLink to={ROOT_PATH} label="Not now" onClick={clearMemberInvitation} />
         )}
-        {hasLink && !auth.isLoading && !auth.isAuthenticated && (
+        {hasLink && !auth.isLoading && !auth.isUnavailable && !auth.isAuthenticated && (
           <>
             <PageLink to={SIGNUP_PATH} label="Create account" />
             <PageLink to={SIGNIN_PATH} label="Sign in" primary />

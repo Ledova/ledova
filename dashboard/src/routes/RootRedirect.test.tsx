@@ -7,7 +7,7 @@ import {
   USER_PREFERENCES_QUERY_KEY,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { expect, it, vi } from 'vitest';
@@ -26,6 +26,7 @@ import { useLedgerNavigation } from '@components/LedgerNavigation';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { ownershipCompaniesKey } from '@hooks/useOwnershipCompanies';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
+import { useSignupFinished } from '@hooks/useSignupFinished';
 import { RootRedirect } from './RootRedirect';
 import { CERTIFICATES_PATH, SIGNUP_RESUMES_AT } from '@utils/paths';
 import { TestRouter } from '../testSupport/TestRouter';
@@ -70,6 +71,8 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
   let visible = true;
   let delayCompanies = false;
   let releaseCompanies: (() => void) | undefined;
+  let delayPreferences = false;
+  let releasePreferences: (() => void) | undefined;
   let companiesGuard = () => {};
   const company = companyRecord({ uuid: 'company-a', name: 'Company A' });
   const associations = [
@@ -86,7 +89,15 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
   ];
   const page = (results: unknown[]) => ({ data: { results, next: null, count: results.length } });
   api.get.mockImplementation((url: string, config) => {
-    if (url === '/api/user-preferences/') return Promise.resolve({ data: companyPreferences('investor') });
+    if (url === '/api/user-preferences/') {
+      if (delayPreferences) {
+        delayPreferences = false;
+        return new Promise((resolve) => {
+          releasePreferences = () => resolve({ data: companyPreferences('investor') });
+        });
+      }
+      return Promise.resolve({ data: companyPreferences('investor') });
+    }
     if (url === USER_ACCOUNT_ENDPOINTS.BASE)
       return Promise.resolve({ data: companyPreferences('investor').userAccount });
     if (url === '/api/v1/company-authority/appointments/') return Promise.resolve(page(visible ? [APPOINTMENT] : []));
@@ -277,6 +288,25 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     expect(screen.queryByRole('link', { name: 'Inspection copies' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
     await screen.findByRole('link', { name: 'Ledger' });
+    const framed = renderHook(() => useSignupFinished(), {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>
+          <ApiClientProvider client={api as unknown as AxiosInstance}>{children}</ApiClientProvider>
+        </QueryClientProvider>
+      ),
+    });
+    await waitFor(() => expect(framed.result.current).toBe(true));
+    delayPreferences = true;
+    const recheck = client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
+    await waitFor(() => expect(releasePreferences).toBeTypeOf('function'));
+    expect(framed.result.current).toBe(true);
+    expect(screen.getByRole('link', { name: 'Ledger' })).toBeTruthy();
+    await act(async () => {
+      releasePreferences!();
+      await recheck;
+    });
+    framed.unmount();
+    await waitFor(() => expect(client.isFetching()).toBe(0));
     fireEvent.click(screen.getByRole('link', { name: 'Unavailable company record' }));
     expect(screen.getByLabelText('Selected company').textContent).toBe('No company selected');
     expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();

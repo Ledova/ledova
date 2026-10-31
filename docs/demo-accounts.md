@@ -211,9 +211,6 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   The backend must run the branch's own code. Stop both when they are no longer needed.
 - **Still open:**
   - Mobile work stays for later.
-  - From #1445: on a tab focus after the five-minute stale time, the signed-in frame briefly
-    disappears, and sign-up and the member invitation page still read a failed session check as
-    signed out.
   - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
     decision; check GitHub before resuming.
 - The walkthrough database was rebuilt and given demo data at the owner's request.
