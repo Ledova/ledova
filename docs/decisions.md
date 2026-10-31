@@ -55,7 +55,7 @@ stay here as history and are marked where they appear.
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                                     |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201)                      |
 | [Mobile app for shareholders](#mobile-app-for-shareholders)                                                     | 26 October 2026                                | Current; delivered under #1201; tabs and no drawer superseded 31 October                                                           |
-| [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                               | 31 October 2026                                | Current; phase 1, the phone frame, delivered (#1464)                                                                               |
+| [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                               | 31 October 2026                                | Current; phase 1 delivered, phase 2 per company (#1464)                                                                            |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                                            |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                                            |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                                            |
@@ -1840,8 +1840,9 @@ leaves an accepted decision current.
 
 ## Mobile app for shareholders
 
-Its three tabs and no drawer were superseded on 31 October 2026 by the
-[web's phone frame](#mobile-app-like-the-web-at-phone-width); the rest stands.
+Its three tabs and no drawer, and its holdings across companies, were superseded on 31 October 2026
+by the [web's phone frame and per-company pages](#mobile-app-like-the-web-at-phone-width); the rest
+stands. Members do receive class totals where a company shares its ownership with members.
 
 On 26 October 2026 the owner made the mobile app a shareholder app: "make mobile shareholder-only.
 Company administration, registration and activation stay on the web". The owner then added: "My
@@ -1883,6 +1884,13 @@ the App Store rather than showing the web app inside one. Each phase is its own 
 3. **Team, Activation, representative authority and the eligibility pages.**
 4. **The Ledger and company tasks.**
 5. **Sign-up for company accounts.**
+
+**Phase 2, also decided on 31 October 2026.** After comparing the web in Chrome's phone view with the
+app page by page for the same account, the owner chose the web's per-company model for the pages a
+shareholder sees, on both: a selected company with the web's ownership overview, Certificates and
+Profile for that company, and a company switcher. The top bar shows only the Ledova logo ("I dont
+think we need to display the name of the company … keep the logo Ledova"). The owner also put
+Notices under Documents on both, and kept details changes to one company at a time, as on the web.
 
 This replaces the [shareholder app](#mobile-app-for-shareholders)'s three tabs and no drawer now,
 and its shareholder-only scope as phases 3 to 5 arrive. The app still has no links or hand-offs to

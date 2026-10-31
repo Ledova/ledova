@@ -1,11 +1,16 @@
 import { useId, useState } from 'react';
 import { CaretRightIcon } from '@phosphor-icons/react';
-import { formatShareCount, searchRows, sharePercentage } from '@ledova/shared';
+import {
+  formatShareCount,
+  rankOwnershipClasses,
+  searchRows,
+  sharePercentage,
+  type OwnershipClass,
+} from '@ledova/shared';
 import { ListSearch, Pager } from '@components/List';
 import { OwnershipRing } from './OwnershipRing';
 import { ownershipColor } from './ownershipColors';
 import { PAGE_SIZE, type ListParams } from '@hooks/useListParams';
-import type { OwnershipClass } from './ownershipView';
 
 export function OwnershipClasses({
   classes,
@@ -30,10 +35,7 @@ export function OwnershipClasses({
   const [hovered, setHovered] = useState<string | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
   const highlighted = hovered ?? focused ?? selected;
-  const ranked = [...classes].sort((left, right) => {
-    const delta = BigInt(right.issuedSupply ?? '0') - BigInt(left.issuedSupply ?? '0');
-    return delta > 0n ? 1 : delta < 0n ? -1 : left.name.localeCompare(right.name);
-  });
+  const ranked = rankOwnershipClasses(classes);
   const found = searchRows(ranked, (row) => `${row.name} ${row.symbol}`, selected ? '' : list.search);
   const page = selected
     ? Math.max(1, Math.floor(found.findIndex(({ uuid }) => uuid === selected) / PAGE_SIZE) + 1)

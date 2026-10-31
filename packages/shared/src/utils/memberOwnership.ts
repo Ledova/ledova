@@ -1,4 +1,6 @@
-import { hasWholeShares, type CompanyOwnershipSummary, type OwnMemberRecord } from '@ledova/shared';
+import type { CompanyOwnershipSummary } from '../types/domain/company-token';
+import type { OwnMemberRecord } from '../types/domain/member-access';
+import { hasWholeShares } from './share-quantities';
 
 export type OwnershipClass = Pick<
   CompanyOwnershipSummary['classes'][number],
@@ -94,4 +96,19 @@ function sharedMemberOwnership(record: OwnMemberRecord): SharedOwnership | null 
       return null;
   } else if (summary.issuedSupply !== null || summary.totalHolders !== null) return null;
   return summary;
+}
+
+export function rankOwnershipClasses<T extends { issuedSupply: string | null; name: string }>(classes: readonly T[]) {
+  return [...classes].sort((left, right) => {
+    const delta = BigInt(right.issuedSupply ?? '0') - BigInt(left.issuedSupply ?? '0');
+    return delta > 0n ? 1 : delta < 0n ? -1 : left.name.localeCompare(right.name);
+  });
+}
+
+export function ownershipColorIndex(classes: ReadonlyArray<{ uuid: string }>, uuid: string) {
+  const index = classes
+    .map((item) => item.uuid)
+    .sort()
+    .indexOf(uuid);
+  return ((Math.max(0, index) % 6) + 1) as 1 | 2 | 3 | 4 | 5 | 6;
 }

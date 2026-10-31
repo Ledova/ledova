@@ -5,6 +5,7 @@ import {
   PUBLICATION_ENDPOINTS,
   PUBLICATION_NOTICE,
   USER_PREFERENCES_QUERY_KEY,
+  type OwnMemberRecord,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -18,11 +19,9 @@ import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/t
 import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { destinationOf } from '../../components/notifications/NotificationsModal';
 import { DocumentsScreen } from '../documents/DocumentsScreen';
-import { AwardScreen } from './AwardScreen';
 import { ClassScreen } from './ClassScreen';
-import { CompanyScreen } from './CompanyScreen';
+import { DashboardScreen } from './DashboardScreen';
 import { DetailsScreen } from './DetailsScreen';
-import { HoldingsScreen } from './HoldingsScreen';
 import { InvitationScreen } from './InvitationScreen';
 import { MemberRecordsProvider } from './MemberRecordsProvider';
 import { YourDetailsScreen } from './YourDetailsScreen';
@@ -93,6 +92,31 @@ const WITHDRAWN_REQUEST = {
   status: 'withdrawn',
   createdAt: '2026-10-03T00:00:00Z',
 };
+const OWNED_RECORD = {
+  ...MEMBER_RECORD,
+  ownership: {
+    company: MEMBER_RECORD.company.uuid,
+    companyName: MEMBER_RECORD.company.name,
+    asAt: '2026-10-31T00:00:00Z',
+    complete: true,
+    issuedSupply: '40',
+    totalHolders: 3,
+    classes: [
+      {
+        uuid: MEMBER_RECORD.classes[0].uuid,
+        name: MEMBER_RECORD.classes[0].name,
+        symbol: MEMBER_RECORD.classes[0].symbol,
+        tokenType: 'ordinary',
+        issuedSupply: '40',
+        initialized: true,
+        totalHolders: 3,
+        ownShares: '10',
+        recordedAt: '2026-10-30T00:00:00Z',
+        sequence: 1,
+      },
+    ],
+  },
+};
 const SECOND_ENTRY = {
   ...MEMBER_ENTRY,
   uuid: '19191919-1919-4919-8919-191919191919',
@@ -101,7 +125,7 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, opens their company, award, details and share history from Holdings, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens details and share history, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -109,7 +133,7 @@ it('associates a member by invitation code, opens their company, award, details 
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
-  let ownRecord = MEMBER_RECORD;
+  let ownRecord: OwnMemberRecord = OWNED_RECORD;
   let associated = false;
   let refused = false;
   let particulars: Record<string, unknown>[] = [];
@@ -194,8 +218,8 @@ it('associates a member by invitation code, opens their company, award, details 
       </ApiClientProvider>
     </QueryClientProvider>
   );
-  const company = <CompanyScreen route={{ key: 'company', name: 'Company', params: { record: MEMBER_RECORD.uuid } }} />;
-  const view = await render(<HoldingsScreen />, { wrapper });
+  const dashboard = <DashboardScreen route={{ key: 'dashboard', name: 'Dashboard', params: undefined }} />;
+  const view = await render(dashboard, { wrapper });
   await fireEvent.press(await screen.findByRole('button', { name: 'Accept an invitation' }));
   expect(mockNavigate).toHaveBeenCalledWith('Invitation');
   await view.rerender(<InvitationScreen />);
@@ -206,36 +230,31 @@ it('associates a member by invitation code, opens their company, award, details 
   expect(await screen.findByText(MEMBER_RECORD.company.name)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation' }));
   expect(await screen.findByText('Invitation accepted. Your company records are available.')).toBeTruthy();
-  await view.rerender(<HoldingsScreen />);
-  const cardName = `${MEMBER_RECORD.company.name}: Ordinary 10, Award 2 of 5 vested`;
-  expect(await screen.findByRole('button', { name: cardName })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Past holdings (1)' })).toBeTruthy();
-  expect(screen.queryByRole('button', { name: new RegExp(`^${PAST_RECORD.company.name}`) })).toBeNull();
+  await view.rerender(dashboard);
+  expect(await screen.findByLabelText('Your issued shares: 0')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Switch company' }));
+  expect(screen.getByRole('button', { name: `${PAST_RECORD.company.name}, Member` })).toBeSelected();
+  await fireEvent.press(screen.getByRole('button', { name: `${MEMBER_RECORD.company.name}, Member` }));
+  expect(await screen.findByLabelText('Issued shares: 40')).toBeTruthy();
+  expect(screen.getByLabelText('Your shares: 10')).toBeTruthy();
+  expect(screen.getByLabelText('Current shareholders: 3')).toBeTruthy();
+  expect(screen.getByText('100.00%')).toBeTruthy();
+  expect(screen.getByText('You: 10')).toBeTruthy();
   await view.rerender(<InvitationScreen />);
   await fireEvent.changeText(screen.getByLabelText('Link or code from the email'), OTHER_CODE);
   expect(await screen.findByRole('button', { name: 'Accept invitation' })).toBeTruthy();
   expect(screen.queryByText('Invitation accepted. Your company records are available.')).toBeNull();
-  await view.rerender(<HoldingsScreen />);
-  await fireEvent.press(await screen.findByRole('button', { name: cardName }));
-  expect(mockNavigate).toHaveBeenCalledWith('Company', { record: MEMBER_RECORD.uuid });
-  expect(screen.getByText('1 company · 1 share class · 1 award')).toBeTruthy();
-  expect(screen.getByText('2 of 5 vested')).toBeTruthy();
+  await view.rerender(dashboard);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Explore Ordinary (ORD)' }));
+  expect(screen.getByLabelText('Your share of this class: 25.00%')).toBeTruthy();
   const record = MEMBER_RECORD.uuid;
-  const award = MEMBER_RECORD.awards[0].uuid;
   const token = MEMBER_RECORD.classes[0].uuid;
-  const awardPage = <AwardScreen route={{ key: 'award', name: 'Award', params: { record, award } }} />;
+  await fireEvent.press(screen.getByRole('button', { name: 'Certificates and history' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Class', { record, token });
   const classPage = <ClassScreen route={{ key: 'class', name: 'Class', params: { record, token } }} />;
   const details = <DetailsScreen route={{ key: 'details', name: 'Details', params: { record } }} />;
-  await view.rerender(company);
-  await screen.findByRole('header', { name: MEMBER_RECORD.company.name });
-  await fireEvent.press(screen.getByRole('button', { name: 'Employee award, 2 of 5 vested' }));
-  expect(mockNavigate).toHaveBeenCalledWith('Award', { record, award });
-  await fireEvent.press(screen.getByRole('button', { name: 'Ordinary, 10' }));
-  expect(mockNavigate).toHaveBeenCalledWith('Class', { record, token });
-  await fireEvent.press(screen.getByRole('button', { name: `Your details: ${MEMBER_RECORD.name}` }));
-  expect(mockNavigate).toHaveBeenCalledWith('Details', { record });
   ownRecord = {
-    ...MEMBER_RECORD,
+    ...OWNED_RECORD,
     awards: [
       {
         ...MEMBER_RECORD.awards[0],
@@ -271,20 +290,21 @@ it('associates a member by invitation code, opens their company, award, details 
       },
     ],
   };
-  await view.rerender(awardPage);
-  await act(async () => screen.getByTestId('award-scroll').props.refreshControl.props.onRefresh());
-  await screen.findByLabelText('Rights ended: 7');
-  expect(screen.getByLabelText('6 of 20 vested')).toBeTruthy();
-  expect(screen.getByLabelText('Issued to you: 1')).toBeTruthy();
-  expect(screen.getByLabelText('Vested, not yet issued: 2')).toBeTruthy();
-  expect(screen.getByLabelText('Still to vest: 10')).toBeTruthy();
+  await act(async () => screen.getByTestId('dashboard-scroll').props.refreshControl.props.onRefresh());
+  await screen.findByLabelText('Vested rights ended: 3 shares');
+  expect(screen.getByText('20 shares promised')).toBeTruthy();
+  expect(screen.getByLabelText('Issued from award: 1 share')).toBeTruthy();
+  expect(screen.getByLabelText('Vested, awaiting issue: 2 shares')).toBeTruthy();
+  expect(screen.getByLabelText('Unvested: 10 shares')).toBeTruthy();
+  expect(screen.getByLabelText('Unvested rights ended: 4 shares')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Show award details' }));
+  expect(screen.getByText('2 October 2026 · 8 recorded vested')).toBeTruthy();
   expect(
-    screen.getAllByLabelText(/^(Vested|Rights ended|Vesting reversed), \d/).map((row) => row.props.accessibilityLabel),
-  ).toEqual([
-    'Vesting reversed, 4 October 2026, 2, Corrects the vesting of 2 October 2026, Correct recorded quantity',
-    'Rights ended, 3 October 2026, 7, 4 unvested and 3 vested not yet issued, Company selected reduction',
-    'Vested, 2 October 2026, 8',
-  ]);
+    screen.getByText('3 October 2026 · 4 unvested and 3 vested unissued rights ended · Company selected reduction'),
+  ).toBeTruthy();
+  expect(
+    screen.getByText('4 October 2026 · 2 vesting reversed · from 8 vested 2 October 2026 · Correct recorded quantity'),
+  ).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   ownRecord = MEMBER_RECORD;
   await view.rerender(classPage);
@@ -307,7 +327,7 @@ it('associates a member by invitation code, opens their company, award, details 
   await fireEvent.press(screen.getByRole('button', { name: 'Send particulars request' }));
   await screen.findByRole('button', { name: 'Retry original member action' });
   expect(screen.getByLabelText('Requested name')).toBeDisabled();
-  await view.rerender(<HoldingsScreen />);
+  await view.rerender(dashboard);
   expect(await screen.findByRole('button', { name: 'Retry original member action' })).toBeEnabled();
   expect(screen.getByText(`Your request to ${MEMBER_RECORD.company.name} is waiting to be retried.`)).toBeTruthy();
   await view.rerender(<DetailsScreen route={{ key: 'past', name: 'Details', params: { record: PAST_RECORD.uuid } }} />);
@@ -426,7 +446,7 @@ it('lists certificates from every member association in Documents, refuses a lis
   expect(destinationOf(notice)).not.toBe(destinationOf(notice));
   const award = 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5';
   const vested = { type: 'award', event: 'vested', record: MEMBER_RECORD.uuid, award };
-  expect(destinationOf(vested)).toEqual({ screen: 'Award', params: { record: MEMBER_RECORD.uuid, award } });
+  expect(destinationOf(vested)).toEqual({ screen: 'Dashboard', params: { record: MEMBER_RECORD.uuid, award } });
   expect(destinationOf({ ...vested, award: undefined })).toBeUndefined();
 });
 

@@ -2,15 +2,17 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
 } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { RefreshControl, Text } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { useMemberRecords } from '@ledova/shared';
+import { useMemberRecords, type OwnMemberRecord } from '@ledova/shared';
 import { Action } from '../../components/Ledger';
 import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -31,6 +33,9 @@ interface MemberRecords {
   draft: MemberDraft;
   setDraft: Dispatch<SetStateAction<MemberDraft>>;
   select: (uuid: string) => void;
+  companies: OwnMemberRecord[];
+  company: OwnMemberRecord | undefined;
+  selectCompany: (companyUuid: string) => boolean;
 }
 
 const MemberRecordsContext = createContext<MemberRecords | null>(null);
@@ -39,6 +44,26 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   useEffect(() => setDraft(EMPTY_DRAFT), [read.scopeOwner]);
+  const companies = useMemo(
+    () => [...read.records].sort((left, right) => left.company.name.localeCompare(right.company.name)),
+    [read.records],
+  );
+  const key = read.owner ? `ledova.company.${read.owner.userUuid}.${read.owner.ownerAccountUuid}` : null;
+  const [chosen, setChosen] = useState<{ key: string; company: string | null } | null>(null);
+  useEffect(() => {
+    if (!key) return;
+    let live = true;
+    AsyncStorage.getItem(key).then(
+      (company) => live && setChosen({ key, company }),
+      () => live && setChosen({ key, company: null }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [key]);
+  const remembered = key && chosen?.key === key ? chosen.company : undefined;
+  const company =
+    remembered === undefined ? undefined : (companies.find((row) => row.company.uuid === remembered) ?? companies[0]);
   return (
     <MemberRecordsContext.Provider
       value={{
@@ -49,6 +74,15 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
           if (read.busy || read.retry || read.selectedUuid === uuid) return;
           setDraft(EMPTY_DRAFT);
           read.select(uuid);
+        },
+        companies,
+        company,
+        selectCompany: (companyUuid) => {
+          if (!key || read.busy || read.retry || !companies.some((row) => row.company.uuid === companyUuid))
+            return false;
+          setChosen({ key, company: companyUuid });
+          AsyncStorage.setItem(key, companyUuid).catch(() => undefined);
+          return true;
         },
       }}
     >

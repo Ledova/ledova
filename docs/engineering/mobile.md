@@ -69,23 +69,27 @@ Dark theme switch and the notifications bell. The menu (`AppMenu`) slides in fro
 web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and a footer with the
 person's name and Sign out, which asks first as Settings' Sign out does. It closes when its screen
 loses focus. Choosing Dashboard returns to it; Documents and Settings open above Dashboard, so
-Android's Back returns there as it did from the tabs. The Company, Class, Award,
-Details, Past holdings, Invitation, Your details and Profile screens open above a section with a
-back button. Dashboard (`mobile/src/screens/holdings`) shows a card per company with
-a line per share class and each award's vesting bar, the award parts matching the web's; above six
-companies it becomes a searchable list. Classes with no shares left sit under Past holdings. With no
-member records it shows No shares yet and Accept an invitation. The Invitation screen takes the
+Android's Back returns there as it did from the tabs. The Class, Details, Invitation, Your details and
+Profile screens open above a section with a back button. Dashboard
+(`mobile/src/screens/holdings/DashboardScreen.tsx`) follows the web's per-company Dashboard. The
+selected company is remembered per account under the web's key (`ledova.company.<user>.<account>`, in
+AsyncStorage), and is otherwise the first by name; **Switch company** lists the member's companies
+when there are several. Its Ownership overview comes from the shared `ownershipView`, read from the
+member record's shared ownership, or from the member's own shares when the company does not share
+its totals: your shares, issued shares, current shareholders and share classes, then each class,
+ranked by the shared `rankOwnershipClasses`, with its issued count, percentage and your holding.
+Choosing a class adds the web's trail and class card (share class, issued shares, your shares and
+your share of the class) with **Certificates and history**, and the member's awards follow with the
+web's award status and details. With no member records it shows Your companies and Accept an
+invitation. The Invitation screen takes the
 pasted invitation link or its code (the text after the last `#`, trimmed), previews the inviting
 company, the recorded shareholder, the invited email and the deadline, and accepts it through the
-member-records state, reporting acceptance only once the server does. A
-company opens the Company screen: a row per share class and per award, Documents and Your details. A class
-opens its history, newest change first, with each change's certificate status (Request, Requested
+member-records state, reporting acceptance only once the server does. A class's
+**Certificates and history** opens its history, newest change first, with each change's certificate status (Request, Requested
 or Certificate), taken from its newest open or fulfilled request. The status opens a certificate
 sheet that requests, withdraws (after a confirmation) or shares the unsigned PDF, and lists the
-change's other requests with the same actions. An award opens its page: the vested figure out of the
-promise, the award bar with issued, vested not yet issued, still to vest and any ended quantities, the
-schedule and terms, and the history of vestings, ended rights and reversals. Your
-details opens the company-recorded particulars and the particulars request. These screens share one member-records
+change's other requests with the same actions. A company in Details at each company opens its
+company-recorded particulars and the particulars request. These screens share one member-records
 state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
 original operation, after leaving the company, and the screens show a loading line rather than an
 empty one while the list rereads. Only the focused screen selects its record and class. Documents

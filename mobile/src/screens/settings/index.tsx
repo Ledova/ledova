@@ -11,7 +11,7 @@ import { CustomModal } from '../../components/modal';
 import { useAccountStyles } from '../../hooks/useAccountStyles';
 import { useSignOut } from '../../hooks/useSignOut';
 import { useUserProfile } from '../../hooks/useUserProfile';
-import { Avatar } from '../holdings/CompanyHoldings';
+import { Avatar } from '../../components/Avatar';
 import { useMemberRecordsState } from '../holdings/MemberRecordsProvider';
 import { useMemberParticulars } from '../holdings/useMemberParticulars';
 import { useSettings } from './useSettings';

@@ -9,7 +9,7 @@ import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { CertificatePill } from './CertificatePill';
-import { Avatar } from './CompanyHoldings';
+import { Avatar } from '../../components/Avatar';
 import { shortName } from './holdings';
 import { MemberNotice, useMemberRecordsState } from './MemberRecordsProvider';
 import { isWaiting, useMemberParticulars } from './useMemberParticulars';

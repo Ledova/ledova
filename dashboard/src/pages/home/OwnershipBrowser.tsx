@@ -4,6 +4,7 @@ import { BuildingsIcon } from '@phosphor-icons/react';
 import {
   DESTINATIONS,
   formatShareCount,
+  ownershipView,
   sharePercentage,
   useSubmissionOwner,
   type OrderSubmissionOwner,
@@ -20,7 +21,6 @@ import { ownershipColor } from './ownershipColors';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipMember } from './useOwnershipMember';
 import { useCompanyOwnership } from './useCompanyOwnership';
-import { ownershipView } from './ownershipView';
 import { OwnershipClasses } from './OwnershipClasses';
 import { OwnershipHolders } from './OwnershipHolders';
 import { OwnershipLoading } from './OwnershipLoading';
