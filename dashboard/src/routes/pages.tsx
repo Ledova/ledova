@@ -13,6 +13,8 @@ import {
   CompanyRegisterTransferPage,
   CompanyShareholderPage,
   CompanyTeamPage,
+  CertificatesPage,
+  CompanyDocumentsPage,
   DashboardPage,
   InvestorEligibilityPage,
   IssuerPublicationsPage,
@@ -46,6 +48,8 @@ export const PAGES: Record<DestinationKey, ReactElement> = {
   companyTeam: <CompanyTeamPage />,
   companyListing: <ListingPage />,
   companyPublications: <IssuerPublicationsPage />,
+  certificates: <CertificatesPage />,
+  companyDocuments: <CompanyDocumentsPage />,
   userProfile: <UserProfilePage />,
   settings: <SettingsPage />,
 };

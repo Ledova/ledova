@@ -12,7 +12,6 @@ import { DESTINATIONS, useSubmissionOwner } from '@ledova/shared';
 import { CompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipCompanies } from '@hooks/useOwnershipCompanies';
 import { documentView } from '@utils/destinations';
-import { CERTIFICATES_PATH, COMPANY_DOCUMENTS_PATH } from '@utils/paths';
 import { lastCompany, rememberCompany } from '@utils/lastCompany';
 import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';
 import { Confirmation } from './Modal';
@@ -114,7 +113,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
           DESTINATIONS.home.path,
           DESTINATIONS.memberRecords.path,
           DESTINATIONS.settings.path,
-          CERTIFICATES_PATH,
+          DESTINATIONS.certificates.path,
         ];
         const persistentDraft =
           !!member?.draft.open &&
@@ -175,8 +174,8 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
           DESTINATIONS.home.path,
           DESTINATIONS.memberRecords.path,
           DESTINATIONS.settings.path,
-          CERTIFICATES_PATH,
-          COMPANY_DOCUMENTS_PATH,
+          DESTINATIONS.certificates.path,
+          DESTINATIONS.companyDocuments.path,
         ].some((path) => path === location.pathname)) ||
       token ||
       entered !== null ||

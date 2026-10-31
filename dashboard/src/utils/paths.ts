@@ -1,3 +1,4 @@
+import { DESTINATIONS } from '@ledova/shared';
 import type { Location } from 'react-router-dom';
 
 export const ROOT_PATH = '/';
@@ -6,8 +7,6 @@ export const MEMBER_INVITATION_PATH = '/member-invitation';
 export const SIGNUP_PATH = '/signup';
 export const NOT_FOUND_PATH = '*';
 export const COMPANY_DASHBOARD_PATH = '/company/dashboard';
-export const CERTIFICATES_PATH = '/documents/certificates';
-export const COMPANY_DOCUMENTS_PATH = '/documents/company';
 
 export function certificatesLocation(location: Pick<Location, 'search' | 'state'>) {
   const query = new URLSearchParams(location.search);
@@ -15,7 +14,7 @@ export function certificatesLocation(location: Pick<Location, 'search' | 'state'
     query.set('company', location.state.registerCompany);
   if (!query.has('class') && typeof location.state?.registerToken === 'string')
     query.set('class', location.state.registerToken);
-  return { pathname: CERTIFICATES_PATH, search: query.size ? `?${query}` : '', hash: '' };
+  return { pathname: DESTINATIONS.certificates.path, search: query.size ? `?${query}` : '', hash: '' };
 }
 
 export const SIGNUP_PATHS = {
