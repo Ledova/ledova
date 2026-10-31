@@ -125,10 +125,10 @@ last card in one right-aligned, wrapping row, rather than the title row; keep it
 Ledger's Add share class follows this pattern for both empty and populated collections. The first
 section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
-view on the page ground: the title (Newsreader, `theme.fontSize.xxxxl`), the lede, then the actions
-as one wrapping row, since a phone's large title leaves no room beside it. A section's header is the
-web's top bar (menu button, wordmark, Dark theme and the bell), and a detail screen's holds only the
-back button. A tap on a control acts at once, even while the keyboard is up.
+view on the page ground with the web's phone sizes: the title (Newsreader, 30 points) with its one
+contextual action beside it, then the lede. Every page's header is the web's top bar (menu button,
+wordmark, Dark theme and the bell); no page has a back button. A tap on a control acts at once, even
+while the keyboard is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
 `PageAction` (`dashboard/src/components/Page.tsx`) each enforce one rule:
