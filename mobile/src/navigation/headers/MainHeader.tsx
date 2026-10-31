@@ -15,22 +15,23 @@ function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void
   return (
     <TouchableOpacity
       accessibilityRole="button"
-      accessibilityLabel="Notifications"
+      accessibilityLabel={unreadCount > 0 ? `Notifications, ${badgeText} unread` : 'Notifications'}
       onPress={onPress}
+      hitSlop={2}
       style={{
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <BellIcon size={theme.icon.sizes.lg} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
+      <BellIcon size={theme.icon.sizes.md} color={theme.colors.text.muted} weight={theme.icon.weights.regular} />
       {unreadCount > 0 && (
         <View
           style={{
             position: 'absolute',
-            top: 4,
-            right: 2,
+            top: -2,
+            right: -2,
             minWidth: 18,
             height: 18,
             borderRadius: 9,
@@ -92,8 +93,10 @@ export function TopBar({
         <View style={{ flex: 1, minWidth: 0 }}>
           <Wordmark />
         </View>
-        <AppearanceButton />
-        <NotificationsButton onPress={onNotifications} unreadCount={unreadCount} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <AppearanceButton />
+          <NotificationsButton onPress={onNotifications} unreadCount={unreadCount} />
+        </View>
       </View>
       <AppMenu
         visible={open}
