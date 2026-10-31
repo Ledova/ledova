@@ -39,10 +39,9 @@ export function SignedInNavigator() {
   const openNotifications = () => setShowNotifications(true);
   const topBar = (current: Section) => ({
     headerShown: true,
-    header: ({ navigation, route }: NativeStackHeaderProps) => (
+    header: ({ navigation }: NativeStackHeaderProps) => (
       <TopBar
         navigation={navigation as NavigationProp<Record<SectionRoute, undefined>>}
-        route={route.name}
         current={current}
         onNotifications={openNotifications}
         unreadCount={unreadCount}

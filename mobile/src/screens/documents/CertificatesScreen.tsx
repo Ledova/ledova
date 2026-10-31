@@ -16,11 +16,12 @@ import {
   type RegisterEntryKind,
   type useMemberRecords,
 } from '@ledova/shared';
-import { SelectField, TextField } from '../../components/Field';
+import { SelectField } from '../../components/SelectField';
 import { FilterPopover } from '../../components/FilterPopover';
 import { Action, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
+import { Field } from '../../components/register/RegisterFields';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
@@ -274,7 +275,7 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
                           {requestable && (
                             <Action
                               label={running === entry.uuid ? 'Requesting…' : 'Request certificate'}
-                              accessibilityLabel={`Request certificate (${item?.name ?? 'Shares'}, entry ${entry.sequence})`}
+                              accessibilityLabel={`${running === entry.uuid ? 'Requesting…' : 'Request certificate'} (${item?.name ?? 'Shares'}, entry ${entry.sequence})`}
                               disabled={held}
                               onPress={() => requestCertificate(entry)}
                             />
@@ -368,12 +369,13 @@ function FilterFields({
           onChange={(token) => setDraft((current) => ({ ...current, token }))}
         />
       )}
-      <TextField
+      <Field
         label="Shareholder"
         value={draft.search}
         maxLength={100}
-        disabled={disabled}
-        onChangeText={(search) => setDraft((current) => ({ ...current, search }))}
+        editable={!disabled}
+        autoCorrect={false}
+        onChange={(search) => setDraft((current) => ({ ...current, search }))}
       />
       <SelectField
         label="Certificate status"
@@ -387,7 +389,13 @@ function FilterFields({
           label="Clear"
           accessibilityLabel="Clear (certificate filters)"
           disabled={disabled}
-          onPress={() => onApply({ token: applied.token, search: '', status: 'all' })}
+          onPress={() =>
+            onApply({
+              token: classes.some((row) => row.uuid === applied.token) ? applied.token : null,
+              search: '',
+              status: 'all',
+            })
+          }
         />
         <Action
           label="Apply"

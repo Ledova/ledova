@@ -138,9 +138,6 @@ completed requests open on demand. Share history, certificates and certificate r
 are in web **Documents** → **Certificates**, without duplicate particulars status. On mobile,
 **Documents** and a class card's **Certificates** open the same Certificates page for the selected
 company, with the same requests and actions; the PDF is shared rather than downloaded.
-Mobile **Documents** lists the ready and
-requested certificates from every company, filtered by company, each opening its sheet to share
-or withdraw it.
 
 ### Share-event notifications
 

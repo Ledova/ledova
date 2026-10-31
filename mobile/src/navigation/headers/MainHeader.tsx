@@ -63,13 +63,11 @@ function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void
 
 export function TopBar({
   navigation,
-  route,
   current,
   onNotifications,
   unreadCount,
 }: {
   navigation: NavigationProp<Record<SectionRoute, undefined>>;
-  route: string;
   current: Section;
   onNotifications: () => void;
   unreadCount: number;
@@ -112,12 +110,11 @@ export function TopBar({
         onSelect={(section) => {
           setOpen(false);
           const target = SECTION_ROUTES[section];
-          if (target !== route)
-            navigation.reset(
-              target === 'Dashboard'
-                ? { index: 0, routes: [{ name: 'Dashboard' }] }
-                : { index: 1, routes: [{ name: 'Dashboard' }, { name: target }] },
-            );
+          navigation.reset(
+            target === 'Dashboard'
+              ? { index: 0, routes: [{ name: 'Dashboard' }] }
+              : { index: 1, routes: [{ name: 'Dashboard' }, { name: target }] },
+          );
         }}
       />
     </View>

@@ -1,7 +1,8 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { FunnelIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
+import { useDialogInsets } from './modal';
 
 const ANCHOR_GAP = 8;
 const EDGE = 16;
@@ -18,6 +19,7 @@ export function FilterPopover({
 }) {
   const theme = useAppTheme();
   const window = useWindowDimensions();
+  const insets = useDialogInsets();
   const button = useRef<View>(null);
   const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
   const styles = useThemedStyles((theme) => ({
@@ -56,7 +58,10 @@ export function FilterPopover({
         hitSlop={2}
         onPress={() =>
           button.current?.measureInWindow((x, y, width, height) =>
-            setAnchor({ top: y + height + ANCHOR_GAP, right: Math.max(EDGE, window.width - x - width) }),
+            setAnchor({
+              top: y + height + ANCHOR_GAP + (Platform.OS === 'android' ? insets.top : 0),
+              right: Math.max(EDGE, window.width - x - width),
+            }),
           )
         }
         style={[styles.button, active && styles.active]}
@@ -64,30 +69,31 @@ export function FilterPopover({
         <FunnelIcon size={theme.icon.sizes.md} color={active ? theme.colors.brand.light : theme.colors.text.primary} />
       </Pressable>
       <Modal visible={!!anchor} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Close ${label.toLowerCase()}`}
-          style={StyleSheet.absoluteFill}
-          onPress={close}
-        />
-        {anchor && (
-          <View
-            accessibilityViewIsModal
-            style={[
-              styles.panel,
-              {
-                top: anchor.top,
-                right: anchor.right,
-                width: Math.min(WIDTH, window.width - 2 * EDGE),
-                maxHeight: window.height - anchor.top - EDGE,
-              },
-            ]}
-          >
-            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-              {children(close)}
-            </ScrollView>
-          </View>
-        )}
+        <View accessibilityViewIsModal onAccessibilityEscape={close} style={StyleSheet.absoluteFill}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Close ${label.toLowerCase()}`}
+            style={StyleSheet.absoluteFill}
+            onPress={close}
+          />
+          {anchor && (
+            <View
+              style={[
+                styles.panel,
+                {
+                  top: anchor.top,
+                  right: anchor.right,
+                  width: Math.min(WIDTH, window.width - 2 * EDGE),
+                  maxHeight: window.height - anchor.top - EDGE,
+                },
+              ]}
+            >
+              <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                {children(close)}
+              </ScrollView>
+            </View>
+          )}
+        </View>
       </Modal>
     </>
   );

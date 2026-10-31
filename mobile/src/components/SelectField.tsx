@@ -1,49 +1,8 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { CaretDownIcon, CheckIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
-
-function useFieldStyles() {
-  return useThemedStyles((theme) => ({
-    field: { gap: theme.spacing.xs },
-    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
-    control: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: theme.spacing.sm,
-      paddingHorizontal: 12,
-      paddingVertical: theme.spacing.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.raised,
-    },
-    open: { borderColor: theme.colors.brand.mid },
-    disabled: { opacity: 0.5 },
-    value: {
-      flex: 1,
-      padding: 0,
-      fontFamily: theme.fontFamily.regular,
-      fontSize: 14,
-      lineHeight: 20,
-      color: theme.colors.text.primary,
-    },
-    options: {
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      overflow: 'hidden' as const,
-    },
-    option: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: theme.spacing.sm,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-    },
-    chosen: { backgroundColor: theme.colors.surface.tertiary },
-  }));
-}
+import { useCompanyStyles } from '../hooks/useCompanyStyles';
 
 export function SelectField<T extends string>({
   label,
@@ -59,12 +18,40 @@ export function SelectField<T extends string>({
   disabled?: boolean;
 }) {
   const theme = useAppTheme();
-  const styles = useFieldStyles();
+  const form = useCompanyStyles();
+  const styles = useThemedStyles((theme) => ({
+    control: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: theme.spacing.sm,
+      padding: theme.spacing.smd,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surface.raised,
+    },
+    open: { borderColor: theme.colors.brand.mid },
+    disabled: { opacity: 0.5 },
+    value: { flex: 1, fontFamily: theme.fontFamily.regular, fontSize: 16, color: theme.colors.text.primary },
+    options: {
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: theme.borderRadius.md,
+      overflow: 'hidden' as const,
+    },
+    option: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: theme.spacing.sm,
+      padding: theme.spacing.smd,
+    },
+    chosen: { backgroundColor: theme.colors.surface.tertiary },
+  }));
   const [open, setOpen] = useState(false);
   const current = options.find((option) => option.value === value)?.label ?? '';
   return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={form.group}>
+      <Text style={form.text}>{label}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${current}`}
@@ -98,41 +85,6 @@ export function SelectField<T extends string>({
           })}
         </View>
       )}
-    </View>
-  );
-}
-
-export function TextField({
-  label,
-  value,
-  onChangeText,
-  maxLength,
-  disabled = false,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  maxLength?: number;
-  disabled?: boolean;
-}) {
-  const styles = useFieldStyles();
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={[styles.control, focused && styles.open, disabled && styles.disabled]}>
-        <TextInput
-          accessibilityLabel={label}
-          value={value}
-          onChangeText={onChangeText}
-          maxLength={maxLength}
-          editable={!disabled}
-          autoCorrect={false}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={styles.value}
-        />
-      </View>
     </View>
   );
 }
