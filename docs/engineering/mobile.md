@@ -80,16 +80,18 @@ member record's shared ownership, or from the member's own shares when the compa
 its totals: your shares, issued shares, current shareholders and share classes, then each class,
 ranked by the shared `rankOwnershipClasses`, with its issued count, percentage and your holding.
 Choosing a class adds the web's trail and class card (share class, issued shares, your shares and
-your share of the class) with **Certificates and history**, and the member's awards follow with the
+your share of the class) with **Certificates**, and the member's awards follow with the
 web's award status and details. With no member records it shows Your companies and Accept an
 invitation. The Invitation screen takes the
 pasted invitation link or its code (the text after the last `#`, trimmed), previews the inviting
 company, the recorded shareholder, the invited email and the deadline, and accepts it through the
 member-records state, reporting acceptance only once the server does. A class's
-**Certificates and history** opens its history, newest change first, with each change's certificate status (Request, Requested
-or Certificate), taken from its newest open or fulfilled request. The status opens a certificate
-sheet that requests, withdraws (after a confirmation) or shares the unsigned PDF, and lists the
-change's other requests with the same actions. A company in Details at each company opens its
+**Certificates** opens the selected company's Certificates page (`mobile/src/screens/documents/CertificatesScreen.tsx`),
+the web's: the certificate records of one share class (the first, or the one chosen in Filters with
+a certificate status), newest first, each with the shareholder and change, the entry, its date and
+the certificate status from the shared `certificateStatus`, with Request certificate, Withdraw
+request (after a confirmation) and Share PDF, any earlier requests, and the company's other
+certificate requests on demand. A company in Details at each company opens its
 company-recorded particulars and the particulars request. These screens share one member-records
 state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
 original operation, after leaving the company, and the screens show a loading line rather than an
@@ -110,7 +112,7 @@ and app lock switches, Notifications (the notifications list), the dark theme, p
 the app actions and Sign out.
 A notification, tapped in that list or as a push, opens its screen: a notice opens Documents on
 Notices for every company, a ready certificate Documents on Certificates for that company, vested
-shares Dashboard on the award's company (with its class, where the overview lists it), issued shares the class, and a decided particulars change the company's details.
+shares Dashboard on the award's company (with its class, where the overview lists it), issued shares Certificates for that class, and a decided particulars change the company's details.
 Screens set their own titles inside the page; a pushed
 screen's back button names the section or screen it came from.
 

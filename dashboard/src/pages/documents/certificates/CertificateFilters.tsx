@@ -5,7 +5,8 @@ import { Field, TextInput } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { SelectField } from '@components/SelectField';
 import type { CertificateClass } from './CertificateRecords';
-import { CERTIFICATE_STATUSES, type CertificateFilterValues } from './useCompanyCertificates';
+import { CERTIFICATE_STATUSES } from '@ledova/shared';
+import type { CertificateFilterValues } from './useCompanyCertificates';
 
 export function CertificateFilters({
   classes,

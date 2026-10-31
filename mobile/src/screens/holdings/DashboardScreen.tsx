@@ -104,10 +104,12 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
     const target = companies.find((row) => row.uuid === opened);
     if (!target || !selectCompany(target.company.uuid)) return;
     const token = target.awards.find((award) => award.uuid === openedAward)?.token;
-    setChosenClass(
+    const next =
       token && ownershipView(undefined, target)?.classes.some((row) => row.uuid === token)
         ? { company: target.company.uuid, token }
-        : null,
+        : null;
+    setChosenClass((current) =>
+      current?.company === next?.company && current?.token === next?.token ? current : next,
     );
     navigation.setParams({ record: undefined, award: undefined });
   }, [opened, openedAward, companies, selectCompany, navigation]);
@@ -399,8 +401,8 @@ function ClassDetails({
       {record.classes.some(({ uuid }) => uuid === chosen.uuid) && (
         <Rows>
           <LinkRow
-            label="Certificates and history"
-            onPress={() => navigation.navigate('Class', { record: record.uuid, token: chosen.uuid })}
+            label="Certificates"
+            onPress={() => navigation.navigate('Certificates', { record: record.uuid, token: chosen.uuid })}
           />
         </Rows>
       )}

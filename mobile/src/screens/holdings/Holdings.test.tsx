@@ -18,8 +18,8 @@ import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/s
 import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/tests/fixtures/register-outputs';
 import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { destinationOf } from '../../components/notifications/NotificationsModal';
+import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { DocumentsScreen } from '../documents/DocumentsScreen';
-import { ClassScreen } from './ClassScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { DetailsScreen } from './DetailsScreen';
 import { InvitationScreen } from './InvitationScreen';
@@ -125,7 +125,7 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens details and share history, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens details and its certificates, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -253,9 +253,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByLabelText('Your share of this class: 25.00%')).toBeTruthy();
   const record = MEMBER_RECORD.uuid;
   const token = MEMBER_RECORD.classes[0].uuid;
-  await fireEvent.press(screen.getByRole('button', { name: 'Certificates and history' }));
-  expect(mockNavigate).toHaveBeenCalledWith('Class', { record, token });
-  const classPage = <ClassScreen route={{ key: 'class', name: 'Class', params: { record, token } }} />;
+  await fireEvent.press(screen.getByRole('button', { name: 'Certificates' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Certificates', { record, token });
+  const certificatesPage = (
+    <CertificatesScreen route={{ key: 'certificates', name: 'Certificates', params: { record, token } }} />
+  );
   const details = <DetailsScreen route={{ key: 'details', name: 'Details', params: { record } }} />;
   ownRecord = {
     ...OWNED_RECORD,
@@ -311,10 +313,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   ownRecord = MEMBER_RECORD;
-  await view.rerender(classPage);
-  await fireEvent.press(
-    await screen.findByRole('button', { name: /^Entry 1: Issue \+10, Not recorded, certificate Requested$/ }),
-  );
+  await view.rerender(certificatesPage);
+  expect(await screen.findByText('Withdrawn · Requested 3 October 2026')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Withdraw request, requested 2 October 2026' })).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: `Share certificate PDF ${FULFILLED_CERTIFICATE.uuid}` }));
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenCalledWith(
@@ -322,7 +323,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
       { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
     ),
   );
-  await fireEvent.press(screen.getByRole('button', { name: 'Close dialog' }));
   await view.rerender(details);
   expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
   await fireEvent.changeText(screen.getByLabelText('Requested name'), 'Requested Member Name');
@@ -345,10 +345,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(commands).toHaveLength(2);
   expect(commands[0][1]).toEqual(commands[1][1]);
   expect((await screen.findByLabelText('Requested name')).props.value).toBe('Requested Member Name');
-  await view.rerender(classPage);
-  await act(async () => screen.getByTestId('class-scroll').props.refreshControl.props.onRefresh());
-  await fireEvent.press(await screen.findByRole('button', { name: /^Entry 2:/ }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Request certificate' }));
+  await view.rerender(certificatesPage);
+  await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
+  await fireEvent.press(await screen.findByRole('button', { name: 'Request certificate, Ordinary, entry 2' }));
   await waitFor(() => expect(typeof release).toBe('function'));
   refused = true;
   await act(async () => {
@@ -357,11 +356,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
       exact: true,
     });
   });
-  await waitFor(() => expect(screen.queryByRole('button', { name: /^Entry 2:/ })).toBeNull());
-  expect(screen.queryByRole('button', { name: 'Request certificate' })).toBeNull();
-  expect(screen.queryByText('History')).toBeNull();
+  await waitFor(() => expect(screen.queryByRole('button', { name: /^Request certificate/ })).toBeNull());
+  expect(screen.queryByText('Certificate records')).toBeNull();
   await act(async () => release!());
-  expect(screen.queryByRole('button', { name: /^Entry 2:/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Request certificate/ })).toBeNull();
   expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS)).toHaveLength(1);
 });
 

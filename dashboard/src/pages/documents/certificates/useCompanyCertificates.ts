@@ -10,6 +10,8 @@ import {
   useLaterPages,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  CERTIFICATE_STATUSES,
+  type CertificateStatus,
   type MemberCertificateRequest,
 } from '@ledova/shared';
 import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
@@ -19,18 +21,6 @@ import apiClient from '@services/apiClient';
 
 type RegisterClass = NonNullable<ReturnType<typeof useRegisterClasses>['data']>[number];
 
-export const CERTIFICATE_STATUSES = [
-  ['all', 'All'],
-  ['can_prepare', 'Can prepare'],
-  ['reversed', 'Reversed'],
-  ['not_requested', 'Not requested'],
-  ['requested', 'Requested'],
-  ['withdrawn', 'Withdrawn'],
-  ['fulfilled', 'Fulfilled'],
-  ['not_applicable', 'Not applicable'],
-] as const;
-
-export type CertificateStatus = (typeof CERTIFICATE_STATUSES)[number][0];
 export type CertificateFilterValues = { search: string; status: CertificateStatus };
 
 export function useCompanyCertificates(
