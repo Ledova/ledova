@@ -369,15 +369,18 @@ default child, without an extra Overview page or duplicate navigation.
 Company eligibility (`/company/eligibility`) follows Documents for an administrator or a prepare or
 approve appointee (`canReviewEligibility`). Its sidebar label is Eligibility. A company administrator (`canManage`) also
 gets its caret, with Supporting (Company documents, `/documents/company`) beneath it.
-Settings uses the same one-level pattern: Profile, Team and Activation where permitted; a group with
-one permitted page, such as Settings with only Profile, is a plain link to it. Its default
-is Profile (`/settings#profile`), combining personal details, permitted company information, a
-linked member's Company-recorded details and one compact Account card for identity status,
-password, appearance and notifications. These sections keep their separate records, editors and authority checks. Existing
-`/user-profile`, `/company`, `/settings#account` and `/settings#company-recorded-details` links redirect
-to Profile, and `/company#documents` redirects to Company documents.
+Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
+Team and Activation where permitted. Its default is Profile (`/settings#profile`), combining personal
+details, permitted company information and a linked member's Company-recorded details. Account
+(`/settings#account`) is one compact card for identity status with Review identity check, Change
+password and Manage account, and Data and privacy (`/settings#data`) holds Export data and Delete
+account. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
+sections keep their separate records, editors and authority checks. Existing `/user-profile`,
+`/company` and `/settings#company-recorded-details` links, like any other Settings hash, redirect to
+Profile, and `/company#documents` redirects to Company documents. Activation's identity step links to
+Account.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
-Team remains available for company-invitation acceptance; Profile keeps an acceptance
+Team remains available for company-invitation acceptance; Account keeps an acceptance
 entry under Manage account before company access is granted. The sidebar has no More group or Help & Support link;
 pages without a sidebar item retain their existing audience and permission checks. Team keeps Representative
 authority as a contextual task, with its existing owner and audience checks.
@@ -406,7 +409,7 @@ page headings and collection wrappers do not repeat the context name.
 email confirmation, account type, pre-screening, user profile, financial profile, company
 registration and review. Identity verification is not a step: when `useSignupReview` reports
 `identityRequired`, company review offers **Verify your identity**, which opens the
-`IdentityVerificationModal` that Profile uses. The step map in
+`IdentityVerificationModal` that Account uses. The step map in
 `dashboard/src/routes/AppRoutes.tsx` uses the named `SIGNUP_PATHS`, and `signupRoutes` wraps each,
 with `/signup`, in `SignupRoute`, which sends a finished company account to the company dashboard
 and other finished accounts to `landingFor(role)`, lets an unfinished account or a signed-out
@@ -717,9 +720,8 @@ with its `theme-color`) only when `ledova.theme` (`THEME_STORAGE_KEY`) in browse
 earlier, removed switch is not read. The choice is written only when someone picks a theme and stays
 in that browser, not on the account, through reloads and sign-out.
 
-The dashboard's switches (Settings > Profile > Account > Dark theme, and the `ThemeToggle` icon in the
-signed-out and sign-up header and in the sidebar's account footer, which is the phone's menu) use
-`dashboard/src/hooks/useTheme.ts`. The public site's navbar has its own theme toggle
+The dashboard's theme switch, the `ThemeToggle` icon in the signed-out and sign-up header and in the
+sidebar's account footer at every width (the phone's menu), uses `dashboard/src/hooks/useTheme.ts`. The public site's navbar has its own theme toggle
 and `ledova.site.theme` preference, applied before the first paint in `site/index.html`. Only an
 exact saved `dark` value enables Dark; Paper is the default, including when storage is unavailable.
 The site neither reads nor writes the dashboard's preference, even when both share an origin.
@@ -751,7 +753,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                                                      | company   |
 | [Notices](../business/publications.md#the-notices-page)                                                      | `/publications`                                                                                                                                                              | everyone  |
 | [Verification, Your company eligibility](../business/participants.md#the-verification-page)                  | `/investor-eligibility`, `/eligibility-requests`                                                                                                                             | investing |
-| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default); aliases `/user-profile`, `/company`, `/settings#account`, `/settings#company-recorded-details`                                                | everyone  |
+| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#account`, `/settings#data`; aliases `/user-profile`, `/company`, `/settings#company-recorded-details`                              | everyone  |
 
 ### Page mechanics
 
@@ -895,12 +897,12 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 - Verification: the claim history has its own cache, and every claim page loads before a submission
   is offered, so a pending claim on a later page still prevents a second one.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
-  personal, company and account sections, keeping each editor's data and authority separate. One Account
-  card holds relevant identity status, password, appearance and notifications; Manage account contains
-  export and deletion. Payslip evidence lives with investor classification claims. Documents and Team
+  personal and company sections, keeping each editor's data and authority separate. Account's one
+  card holds relevant identity status, password and Manage account; Data and privacy holds export and
+  deletion. Payslip evidence lives with investor classification claims. Documents and Team
   stay focused pages; Activation keeps its existing company workflow. Signup and mobile
   Settings keep their own navigation.
-- Profile on web: account deletion clears cached account data after the server confirms.
+- Data and privacy on web: account deletion clears cached account data after the server confirms.
 
 Next: [frontend UX standards](frontend-ux.md), [mobile](mobile.md), [authentication](security.md#authentication-and-sessions),
 [company workflow API](backend.md#company-workflow-api) and [testing](testing.md).

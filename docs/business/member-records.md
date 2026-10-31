@@ -90,7 +90,7 @@ The email's **View invitation** link opens **Member invitation** on the web. The
 or creates an account, then returns to the invitation in the same tab. They review the company,
 shareholder and intended email before choosing **Accept invitation**; opening a link never grants
 access. Their verified email must match, and acceptance binds one current account to one member
-in that company. On mobile, **Accept an invitation** in **Settings** (Profile's Manage account), and
+in that company. On mobile, **Accept an invitation** in **Settings** → **Account** (its Manage account), and
 on Dashboard before the first company, takes the pasted **View invitation** link
 (or its code), shows the company, shareholder,
 email and deadline, and accepts with **Accept invitation**; it reports acceptance only once the

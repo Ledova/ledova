@@ -56,11 +56,17 @@ export function documentView(value: unknown): DocumentView | undefined {
 
 export const SETTINGS_VIEWS = [
   { key: 'profile', label: 'Profile', to: `${DESTINATIONS.settings.path}#profile` },
+  { key: 'account', label: 'Account', to: `${DESTINATIONS.settings.path}#account` },
+  { key: 'data', label: 'Data and privacy', to: `${DESTINATIONS.settings.path}#data` },
   { key: 'company-team', label: 'Team', to: DESTINATIONS.companyTeam.path },
   { key: 'activation', label: 'Activation', to: DESTINATIONS.companyListing.path },
 ] as const;
 
 export type SettingsView = (typeof SETTINGS_VIEWS)[number]['key'];
+
+export function settingsPage(hash: string) {
+  return SETTINGS_VIEWS.find(({ to }) => to === `${DESTINATIONS.settings.path}${hash}`);
+}
 
 export function settingsView(pathname: string, hash: string): SettingsView | undefined {
   if (pathname === DESTINATIONS.company.path) return 'profile';
@@ -72,7 +78,7 @@ export function settingsView(pathname: string, hash: string): SettingsView | und
     return 'company-team';
   if (pathname === DESTINATIONS.companyListing.path) return 'activation';
   if (pathname === DESTINATIONS.userProfile.path) return 'profile';
-  if (pathname === DESTINATIONS.settings.path && (hash === '#profile' || hash === '#account')) return 'profile';
+  if (pathname === DESTINATIONS.settings.path) return settingsPage(hash)?.key;
   return undefined;
 }
 
@@ -89,7 +95,7 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
 };
 
 function viewName(key: DestinationKey, view: string): string | undefined {
-  if (key === 'settings' && (view === 'profile' || view === 'account')) return 'Profile';
+  if (key === 'settings') return settingsPage(`#${view}`)?.label;
   const destination: Destination = DESTINATIONS[key];
   const views = destination.views;
   if (key === 'companyRegister') {

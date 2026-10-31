@@ -2,18 +2,17 @@ import { useState } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { VERIFICATION_TONES, formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
-import { Action, Fact, FormActions, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
+import { Action, Actions, Fact, FormActions, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
-import { useAppLock, useThemeChoice, useThemedStyles } from '../../contexts';
+import { useAppLock, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import type { useUserProfile } from '../../hooks/useUserProfile';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { useSettings } from './useSettings';
 
 function useAccountStyles() {
   return useThemedStyles((theme) => ({
     row: { gap: theme.spacing.smd, paddingVertical: theme.spacing.smd },
-    action: { alignSelf: 'flex-end' as const },
     identity: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
@@ -21,7 +20,6 @@ function useAccountStyles() {
       gap: theme.spacing.xs,
       paddingVertical: theme.spacing.smd,
     },
-    end: { flexDirection: 'row' as const, justifyContent: 'flex-end' as const, paddingVertical: theme.spacing.smd },
     manage: {
       gap: theme.spacing.smd,
       paddingTop: theme.spacing.md,
@@ -37,24 +35,25 @@ function ActionRow({ description, label, onPress }: { description: string; label
   const look = useAccountStyles();
   return (
     <View style={look.row}>
-      <Text style={styles.muted}>{description}</Text>
-      <View style={look.action}>
-        <Action label={label} onPress={onPress} />
-      </View>
+      <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.muted}>
+        {description}
+      </Text>
+      <Actions>
+        <Action label={label} accessibilityLabel={`${label}. ${description}`} onPress={onPress} />
+      </Actions>
     </View>
   );
 }
 
-export function AccountSettings({ profile }: { profile: ReturnType<typeof useUserProfile> }) {
+export function AccountSettings() {
   const styles = useCompanyStyles();
   const look = useAccountStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const lock = useAppLock();
-  const appearance = useThemeChoice();
-  const { userProfile } = profile;
+  const { userProfile } = useUserProfile();
   const verification = getUserVerificationStatus(userProfile);
   const settings = useSettings();
-  const [modal, setModal] = useState<'password' | 'export' | 'delete' | null>(null);
+  const [changing, setChanging] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -63,16 +62,10 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
   const [securityPending, setSecurityPending] = useState(false);
   const [securityError, setSecurityError] = useState<string | null>(null);
   const [appError, setAppError] = useState<string | null>(null);
-  const busy = settings.isChangingPassword || settings.isExporting || settings.isDeleting;
-  const open = (kind: typeof modal) => {
-    if (!busy) {
-      setError(null);
-      setModal(kind);
-    }
-  };
+  const busy = settings.isChangingPassword;
   const close = () => {
     if (busy) return;
-    setModal(null);
+    setChanging(false);
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
@@ -119,24 +112,12 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
       return;
     }
     if (await settings.changeUserPassword(currentPassword, newPassword, confirmPassword)) {
-      setModal(null);
+      setChanging(false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setShowPasswords(false);
     } else setError('Your password could not be changed. Check the details and try again.');
-  };
-  const exportData = async () => {
-    if (busy) return;
-    setError(null);
-    if (await settings.exportData()) setModal(null);
-    else setError('Your data could not be exported. Try again.');
-  };
-  const deleteAccount = async () => {
-    if (busy) return;
-    setError(null);
-    if (await settings.deleteUserAccount()) setModal(null);
-    else setError('Your account could not be deleted. Try again or contact the deployment operator.');
   };
   return (
     <>
@@ -153,13 +134,11 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
           <ActionRow
             description="Choose a new password for your account."
             label="Change password"
-            onPress={() => open('password')}
-          />
-          <SwitchRow
-            label="Dark theme"
-            description="Saved on this device."
-            checked={appearance.mode === 'dark'}
-            onChange={(dark) => appearance.setMode(dark ? 'dark' : 'paper')}
+            onPress={() => {
+              if (busy) return;
+              setError(null);
+              setChanging(true);
+            }}
           />
           <SwitchRow
             label={`${lock.biometricType} sign in`}
@@ -194,21 +173,9 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
               <Fact label="Last login">{formatDateTime(userProfile.lastLogin)}</Fact>
             </Rows>
           )}
-          <Rows>
-            <View style={look.end}>
-              <Action label="Accept an invitation" onPress={() => navigation.navigate('Invitation')} />
-            </View>
-            <ActionRow
-              description="Download a copy of your account data."
-              label="Export data"
-              onPress={() => open('export')}
-            />
-            <ActionRow
-              description="Deactivate your account and remove personal details. Some records are retained."
-              label="Delete account"
-              onPress={() => open('delete')}
-            />
-          </Rows>
+          <Actions>
+            <Action label="Accept an invitation" onPress={() => navigation.navigate('Invitation')} />
+          </Actions>
         </View>
         <FormActions>
           <Action
@@ -227,7 +194,7 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
         )}
       </Section>
       <CustomModal
-        visible={modal === 'password'}
+        visible={changing}
         title="Change password"
         busy={busy}
         onClose={close}
@@ -273,6 +240,55 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
           </Text>
         )}
       </CustomModal>
+    </>
+  );
+}
+
+export function AccountData() {
+  const styles = useCompanyStyles();
+  const settings = useSettings();
+  const [modal, setModal] = useState<'export' | 'delete' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const busy = settings.isExporting || settings.isDeleting;
+  const open = (kind: typeof modal) => {
+    if (!busy) {
+      setError(null);
+      setModal(kind);
+    }
+  };
+  const close = () => {
+    if (busy) return;
+    setModal(null);
+    setError(null);
+  };
+  const exportData = async () => {
+    if (busy) return;
+    setError(null);
+    if (await settings.exportData()) setModal(null);
+    else setError('Your data could not be exported. Try again.');
+  };
+  const deleteAccount = async () => {
+    if (busy) return;
+    setError(null);
+    if (await settings.deleteUserAccount()) setModal(null);
+    else setError('Your account could not be deleted. Try again or contact the deployment operator.');
+  };
+  return (
+    <>
+      <Section title="Your data">
+        <Rows>
+          <ActionRow
+            description="Save or share a copy of your account data."
+            label="Export data"
+            onPress={() => open('export')}
+          />
+          <ActionRow
+            description="Deactivate your account and remove personal details. Some records are retained."
+            label="Delete account"
+            onPress={() => open('delete')}
+          />
+        </Rows>
+      </Section>
       <CustomModal
         visible={modal === 'export'}
         title="Export data"

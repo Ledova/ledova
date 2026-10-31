@@ -330,10 +330,6 @@ Pending or Accepted, as a status mark.
 ### Member profile
 
 Profile shows Personal information (full name, email, phone, date of birth, address and citizenship).
-On web, one compact Account card holds password, appearance and notifications, with identity status
-and **Review identity check**. Existing company and investor verification requirements stay unchanged.
-Mobile shows the same Profile and Account card, with the identity status but no **Review identity
-check**, since the app has no identity check flow.
 Personal-details editing opens inline, with aligned Cancel and save actions.
 
 To change your full name, residential address or phone, choose **Edit personal details**, change
@@ -357,22 +353,25 @@ On web, Dashboard selects the company used across company-related pages, without
 pickers or a workspace or role selector. Company appointments and actual member links determine the
 available records and actions; choosing a company grants neither.
 
-Settings opens Profile. Team and Activation appear where company access permits, and company
+Settings opens Profile, with **Account** and **Data and privacy** beside it for everyone. Team and
+Activation appear where company access permits, and company
 documents are under **Eligibility** → **Supporting**. Profile shows a linked member's
 Company-recorded details. Team remains reachable for accepting
-a company invitation. Before company access is granted, **Settings → Profile → Manage account**
+a company invitation. Before company access is granted, **Settings → Account → Manage account**
 provides **Accept a company invitation**, opening the same guarded workflow. Member access stays
 under company [Shareholders](register.md#the-register-page).
 
-**Profile** combines Personal information and one Account card, with permitted Company details.
-Account includes
-relevant identity status, **Change password** and **Dark theme** (remembered in this browser with
-Paper as the default); the web app no longer offers transaction alerts
-([#1452](https://github.com/Ledova/ledova/issues/1452)). Each editor retains its own
+**Profile** combines Personal information with permitted Company details. Each editor retains its own
 permissions; changing personal details does not update a company's records. **Activation** retains the
 [company activation workflow](companies.md#activation-and-the-registry-check).
 
-**Manage account**, inside the Account card, keeps member-since and last-login details and these less frequent actions:
+**Account** is one compact card: relevant identity status with **Review identity check**, **Change
+password**, and **Manage account** with member-since and last-login details. Existing company and
+investor verification requirements stay unchanged. The theme is the **Dark theme** switch beside Sign
+out (remembered in this browser with Paper as the default); the web app no longer offers transaction
+alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
+
+**Data and privacy** holds the less frequent actions:
 
 - **Export data** downloads the person's account data as a JSON file
   ([account-data export](../engineering/records.md#account-data-export)).
@@ -386,12 +385,13 @@ For linked members, Profile also shows **Company-recorded details**: the person'
 held by the selected company, with a company-reviewed update request and its status. These are
 separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
 
-On mobile, Settings opens the same Profile for the selected company. Its Account card has **Dark
-theme** saved on the device, then biometric sign-in and **App lock** (biometrics after the app goes
-into the background); **Accept an invitation** opens the app's member
-[invitation](member-records.md#accepting-an-invitation), **Export data** saves or shares a private
-JSON file, and **Rate the app** and **Share with friends** end the card. **Sign out** is in the
-menu.
+On mobile, Settings has the same three pages for the selected company. Account shows the identity
+status but no **Review identity check**, since the app has no identity check flow, then biometric
+sign-in and **App lock** (biometrics after the app goes into the background); **Accept an
+invitation** opens the app's member [invitation](member-records.md#accepting-an-invitation), and
+**Rate the app** and **Share with friends** end the page. On Data and privacy, **Export data** saves
+or shares a private JSON file. **Sign out** and the **Dark theme** switch, saved on the device, are in
+the menu.
 
 Next: [company setup](companies.md) ·
 [issuing shares](issuing-shares.md) ·

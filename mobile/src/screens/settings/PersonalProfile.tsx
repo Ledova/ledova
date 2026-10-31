@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { FIELD_LIMITS, failureSentence, formatDate } from '@ledova/shared';
-import { Action, Fact, FormActions, Rows, Section, Status } from '../../components/Ledger';
+import { Action, Actions, Fact, FormActions, Rows, Section, Status } from '../../components/Ledger';
 import { Field } from '../../components/register/RegisterFields';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -38,7 +38,9 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
           <Text accessibilityRole="alert" style={styles.error}>
             Your profile could not be loaded.
           </Text>
-          <Action label="Try again" disabled={state.isFetching} onPress={() => void state.refetch()} />
+          <Actions>
+            <Action label="Try again" disabled={state.isFetching} onPress={() => void state.refetch()} />
+          </Actions>
         </View>
       ) : !userProfile ? (
         <Text style={styles.muted}>No profile data is available.</Text>

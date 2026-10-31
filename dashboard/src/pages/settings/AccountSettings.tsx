@@ -13,12 +13,11 @@ import {
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { PageAction, PageLink } from '@components/Page';
-import { Outcome, Row, Rows, Section, Status, SwitchRow, Failure } from '@components/Ledger';
-import { setTheme } from '@hooks/useTheme';
+import { Outcome, Row, Rows, Section, Status, Failure } from '@components/Ledger';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
-import type { useUserProfile } from '@hooks/useUserProfile';
+import { useUserProfile } from '@hooks/useUserProfile';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 
 function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
@@ -76,12 +75,12 @@ function PasswordInput({
   );
 }
 
-export function AccountSettings({ profile }: { profile: ReturnType<typeof useUserProfile> }) {
+export function AccountSettings() {
+  const profile = useUserProfile();
   const context = useCompanyContext();
   const [verificationOpen, setVerificationOpen] = useState(false);
   const verification = getUserVerificationStatus(profile.userProfile);
   const {
-    theme,
     modal,
     setModal,
     currentPassword,
@@ -93,9 +92,7 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
     passwordProblems,
     passwordChanged,
     setPasswordChanged,
-    deleteMutation,
     passwordMutation,
-    exportMutation,
     closePassword,
     savePassword,
   } = useSettings();
@@ -138,23 +135,17 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
               setModal('password');
             }}
           />
-          <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
-          <SwitchRow
-            label="Dark theme"
-            description="Saved in this browser."
-            checked={theme === 'dark'}
-            onChange={(dark) => setTheme(dark ? 'dark' : 'paper')}
-          />
         </div>
-        <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
-          <h3 className="text-sm font-medium text-text-primary">Manage account</h3>
-          {profile.userProfile && (
-            <Rows>
-              <Row label="Member since">{formatDate(profile.userProfile.dateJoined, 'Not available')}</Row>
-              <Row label="Last login">{formatDateTime(profile.userProfile.lastLogin)}</Row>
-            </Rows>
-          )}
-          <div className="divide-y divide-border-subtle">
+        <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
+        {(profile.userProfile || !context?.company?.canManage) && (
+          <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
+            <h3 className="text-sm font-medium text-text-primary">Manage account</h3>
+            {profile.userProfile && (
+              <Rows>
+                <Row label="Member since">{formatDate(profile.userProfile.dateJoined, 'Not available')}</Row>
+                <Row label="Last login">{formatDateTime(profile.userProfile.lastLogin)}</Row>
+              </Rows>
+            )}
             {!context?.company?.canManage && (
               <div className="flex justify-end py-3">
                 <PageLink
@@ -163,24 +154,8 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
                 />
               </div>
             )}
-            <ActionRow
-              description="Download a copy of your account data."
-              label="Export data"
-              onClick={() => {
-                exportMutation.reset();
-                setModal('export');
-              }}
-            />
-            <ActionRow
-              description="Deactivate your account and remove personal details. Some records are retained."
-              label="Delete account"
-              onClick={() => {
-                deleteMutation.reset();
-                setModal('delete');
-              }}
-            />
           </div>
-        </div>
+        )}
       </Section>
       {verificationOpen && profile.userProfile && (
         <IdentityVerificationModal
@@ -247,6 +222,34 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
           </form>
         )}
       </Modal>
+    </>
+  );
+}
+
+export function AccountData() {
+  const { modal, setModal, deleteMutation, exportMutation } = useSettings();
+  return (
+    <>
+      <Section title="Your data">
+        <div className="divide-y divide-border-subtle">
+          <ActionRow
+            description="Download a copy of your account data."
+            label="Export data"
+            onClick={() => {
+              exportMutation.reset();
+              setModal('export');
+            }}
+          />
+          <ActionRow
+            description="Deactivate your account and remove personal details. Some records are retained."
+            label="Delete account"
+            onClick={() => {
+              deleteMutation.reset();
+              setModal('delete');
+            }}
+          />
+        </div>
+      </Section>
       <Modal
         isOpen={modal === 'export'}
         onClose={() => setModal(null)}

@@ -215,11 +215,13 @@ function CertificateWorkspace({
       </PageActions>
       <Failure>{read.error}</Failure>
       {read.retry && (
-        <PageAction
-          label="Retry original member action"
-          disabled={read.busy || read.refreshing || read.readFailed || !read.owner}
-          onClick={() => void read.recover()}
-        />
+        <div className="flex justify-end">
+          <PageAction
+            label="Retry original member action"
+            disabled={read.busy || read.refreshing || read.readFailed || !read.owner}
+            onClick={() => void read.recover()}
+          />
+        </div>
       )}
       {CERTIFICATE_STATUSES.some(([value]) => value === filters.status) ? (
         children

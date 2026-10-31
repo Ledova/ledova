@@ -14,6 +14,9 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
+import { pageTitle } from '@utils/destinations';
+
+const ACCOUNT_PATH = `${DESTINATIONS.settings.path}#account`;
 
 export default function ListingPage() {
   const context = useCompanyContext();
@@ -114,12 +117,9 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
         {(!company || awaitsActivation(company)) && (
           <Section title="Your identity">
             <p className="text-sm text-text-muted">
-              Use your own profile to complete the configured identity verification before activation.
+              Use your own account to complete the configured identity verification before activation.
             </p>
-            <LinkRow
-              to={context?.companyPath(DESTINATIONS.userProfile.path) ?? DESTINATIONS.userProfile.path}
-              label={DESTINATIONS.userProfile.title}
-            />
+            <LinkRow to={context?.companyPath(ACCOUNT_PATH) ?? ACCOUNT_PATH} label={pageTitle('settings', 'account')} />
           </Section>
         )}
       </div>

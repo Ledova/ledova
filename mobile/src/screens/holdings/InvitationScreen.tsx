@@ -14,7 +14,7 @@ import {
   previewMemberInvitation,
   type UserFriendlyError,
 } from '@ledova/shared';
-import { Action, useCardStyles } from '../../components/Ledger';
+import { Action, Actions, useCardStyles } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { Field } from '../../components/register/RegisterFields';
 import { useThemedStyles } from '../../contexts';
@@ -94,7 +94,9 @@ export function InvitationScreen() {
               ? 'No invitation matches this code. Check it against the email.'
               : failureSentence(preview.error, 'Your invitation could not be checked. Check the code and try again.')}
           </Text>
-          <Action label="Try again" disabled={preview.isFetching} onPress={() => void preview.refetch()} />
+          <Actions>
+            <Action label="Try again" disabled={preview.isFetching} onPress={() => void preview.refetch()} />
+          </Actions>
         </View>
       ) : valid && !shown ? (
         <Text style={styles.muted}>Checking your invitation…</Text>
@@ -115,15 +117,17 @@ export function InvitationScreen() {
           <Text accessibilityLiveRegion="polite" style={styles.text}>
             Invitation accepted. Your company records are available.
           </Text>
-          <Action label="View my shares" primary onPress={() => navigation.popTo('Dashboard')} />
+          <Actions>
+            <Action label="View my shares" primary onPress={() => navigation.popTo('Dashboard')} />
+          </Actions>
         </View>
       ) : (
-        <View style={look.actions}>
+        <Actions>
+          <Action label="Not now" disabled={read.busy} onPress={() => navigation.goBack()} />
           {shown?.status === 'pending' && (
             <Action label="Accept invitation" primary disabled={held} onPress={() => void read.accept(code)} />
           )}
-          <Action label="Not now" disabled={read.busy} onPress={() => navigation.goBack()} />
-        </View>
+        </Actions>
       )}
     </Page>
   );

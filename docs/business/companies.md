@@ -114,7 +114,7 @@ actions at the foot.
 ## Team invitations and appointments
 
 Open the team from **Settings → Team** for the selected company. Before company access is granted,
-open **Settings → Profile → Manage account → Accept a company invitation**. Investor-only accounts
+open **Settings → Account → Manage account → Accept a company invitation**. Investor-only accounts
 can open it too: accepting an invitation or reading your appointments needs no company appointment. The web page starts with
 appointments, the selected company's team and issued invitations; **Invite a company user** and
 **Accept a company invitation** open focused inline forms. Someone with no appointments, other than
@@ -343,7 +343,7 @@ authority: initial admission, accepting an invitation, activation, company admin
 eligibility decisions, member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
 configured identity provider, from **Verify your identity** at signup review or later from
-**Settings → Profile** on web with **Review identity check**. With the requirement on and no
+**Settings → Account** on web with **Review identity check**, which Activation's identity step links to. With the requirement on and no
 provider, every company decision is refused
 ([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
 requirement is separate ([participants](participants.md#account-standing)).
@@ -356,9 +356,9 @@ and address, and whether the ownership overview is shared with members. Administ
 **Edit company**. A company gives investors its request link from Company eligibility, not an ID
 ([requesting a decision](participants.md#requesting-a-decision)).
 
-On web, select the company in Dashboard. Settings opens Profile, combining personal, permitted
-company and account sections with separate editors and permissions. Team and Activation have their
-own Settings items, and **Eligibility** → **Supporting** holds the company's supporting
+On web, select the company in Dashboard. Settings opens Profile, combining personal and permitted
+company sections with separate editors and permissions, beside Account and Data and privacy. Team and
+Activation have their own Settings items, and **Eligibility** → **Supporting** holds the company's supporting
 documents, where current access permits, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
 **Eligibility** (Company eligibility) has its own sidebar item, and **Documents** → **Published**
 opens Published to your members ([the Published page](publications.md#the-published-page)), each

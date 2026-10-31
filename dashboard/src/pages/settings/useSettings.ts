@@ -13,13 +13,11 @@ import {
 import apiClient from '@services/apiClient';
 import { SIGNIN_PATH } from '@utils/paths';
 import { saveFile } from '@utils/saveFile';
-import { useTheme } from '@hooks/useTheme';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 
 export function useSettings() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const theme = useTheme();
   const [modal, setModal] = useState<'password' | 'export' | 'delete' | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -72,7 +70,6 @@ export function useSettings() {
   }
 
   return {
-    theme,
     modal,
     setModal,
     currentPassword,

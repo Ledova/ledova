@@ -374,15 +374,16 @@ async function openTheSidebar(page: Page, role: Role) {
   const settings = aside.getByRole('link', { name: 'Settings', exact: true }).locator('../..');
   const settingsLink = settings.getByRole('link', { name: 'Settings', exact: true });
   await expect(settingsLink).toHaveAttribute('href', '/settings?company=company#profile');
-  if (role === 'investor')
-    await expect(settings.getByRole('button', { name: 'Expand Settings navigation' })).toHaveCount(0);
-  else {
-    await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
-    await expect(settings.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute(
+  await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
+  for (const [name, hash] of [
+    ['Profile', 'profile'],
+    ['Account', 'account'],
+    ['Data and privacy', 'data'],
+  ])
+    await expect(settings.getByRole('link', { name, exact: true })).toHaveAttribute(
       'href',
-      '/settings?company=company#profile',
+      `/settings?company=company#${hash}`,
     );
-  }
   await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
   for (const name of ['Documents', 'Company-recorded details'])
     await expect(settings.getByRole('link', { name, exact: true })).toHaveCount(0);
@@ -394,13 +395,9 @@ async function openTheSidebar(page: Page, role: Role) {
   await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(
     role === 'investor' ? 0 : 1,
   );
-  for (const name of ['Personal information', 'Account'])
-    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Personal information', exact: true })).toBeVisible();
   for (const name of ['Account status', 'Security', 'Preferences', 'Data and privacy', 'Supporting payslips'])
     await expect(page.getByRole('heading', { name, exact: true })).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Manage account', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Export data', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Delete account', exact: true })).toBeVisible();
   if (role === 'both') {
     await page.getByRole('button', { name: 'Edit company', exact: true }).click();
     await page.getByRole('textbox', { name: 'Trading name', exact: true }).fill('Unsent company draft');
@@ -421,6 +418,15 @@ async function openTheSidebar(page: Page, role: Role) {
   await page.goto('/settings?company=company#profile');
   await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
   aside = await visibleSidebar(page);
+  await aside.getByRole('link', { name: 'Account', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Manage account', exact: true })).toBeVisible();
+  aside = await visibleSidebar(page);
+  await aside.getByRole('link', { name: 'Data and privacy', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Data and privacy', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export data', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Delete account', exact: true })).toBeVisible();
+  aside = await visibleSidebar(page);
   await expect(aside.getByText('More', { exact: true })).toHaveCount(0);
   await expect(aside.getByRole('link', { name: 'Help & Support' })).toHaveCount(0);
   await expect(aside.getByRole('link', { name: 'Wallets', exact: true })).toHaveCount(0);
@@ -438,6 +444,7 @@ async function checkTheCutEdge(aside: ReturnType<Page['locator']>) {
   const foot = aside.locator(':scope > :last-child');
   expect(await list.evaluate((node) => node.nextElementSibling === node.parentElement?.lastElementChild)).toBe(true);
   await expect(foot).toContainText('Sign out');
+  await expect(foot.getByRole('button', { name: 'Dark theme', exact: true })).toBeVisible();
   await expect(foot).toHaveCSS('border-top-style', 'solid');
   await expect(foot).toHaveCSS('border-top-width', '1px');
   expect(Math.abs((await foot.boundingBox())!.y - bottomOf(await list.boundingBox()))).toBeLessThan(0.5);

@@ -18,7 +18,7 @@ import {
 } from '@ledova/shared';
 import { SelectField } from '../../components/SelectField';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, FormActions, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, FormActions, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { Field } from '../../components/register/RegisterFields';
@@ -58,12 +58,6 @@ function useCertificateStyles() {
       text: { ...text, color: theme.colors.text.primary },
       muted: { ...text, color: theme.colors.text.muted },
       strong: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
-      actions: {
-        flexDirection: 'row' as const,
-        flexWrap: 'wrap' as const,
-        justifyContent: 'flex-end' as const,
-        gap: theme.spacing.sm,
-      },
       request: {
         flexDirection: 'row' as const,
         flexWrap: 'wrap' as const,
@@ -198,7 +192,9 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
     >
       <MemberNotice read={read} />
       {read.readFailed ? (
-        <Action label="Try again" disabled={read.busy} onPress={() => void read.refresh()} />
+        <Actions>
+          <Action label="Try again" disabled={read.busy} onPress={() => void read.refresh()} />
+        </Actions>
       ) : !opened && !company ? (
         read.listReady ? (
           !read.error && <Text style={styles.muted}>Choose a company on Dashboard.</Text>
@@ -262,7 +258,7 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
                         )}
                       </View>
                       {(requestable || latestAction) && (
-                        <View style={look.actions}>
+                        <Actions>
                           {requestable && (
                             <Action
                               label={running === entry.uuid ? 'Requesting…' : 'Request certificate'}
@@ -272,7 +268,7 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
                             />
                           )}
                           {latestAction}
-                        </View>
+                        </Actions>
                       )}
                       {related.length > 1 && (
                         <Rows>

@@ -11,7 +11,7 @@ import { NoticesScreen } from '../screens/documents/NoticesScreen';
 import { DashboardScreen } from '../screens/holdings/DashboardScreen';
 import { InvitationScreen } from '../screens/holdings/InvitationScreen';
 import { MemberRecordsProvider } from '../screens/holdings/MemberRecordsProvider';
-import { SettingsScreen } from '../screens/settings';
+import { AccountScreen, DataPrivacyScreen, SettingsScreen } from '../screens/settings';
 import type { MenuRoute, Section } from './AppMenu';
 import { TopBar } from './headers';
 
@@ -20,6 +20,8 @@ export type SignedInStackParamList = {
   Certificates: { record?: string; token?: string; company?: string } | undefined;
   Notices: undefined;
   Settings: { record?: string } | undefined;
+  Account: undefined;
+  DataPrivacy: undefined;
   Invitation: undefined;
 };
 
@@ -58,6 +60,8 @@ export function SignedInNavigator() {
             <Stack.Screen name="Certificates" component={CertificatesScreen} options={topBar('Documents')} />
             <Stack.Screen name="Notices" component={NoticesScreen} options={topBar('Documents')} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={topBar('Settings')} />
+            <Stack.Screen name="Account" component={AccountScreen} options={topBar('Settings')} />
+            <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} options={topBar('Settings')} />
             <Stack.Screen name="Invitation" component={InvitationScreen} options={topBar('Dashboard')} />
           </Stack.Navigator>
           <NotificationsModal visible={showNotifications} onClose={closeNotifications} />
