@@ -25,7 +25,9 @@ function ActionRow({ description, label, onClick }: { description: string; label
   return (
     <div className="grid items-center gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto]">
       <p className="min-w-0 text-sm text-text-muted">{description}</p>
-      <PageAction label={label} onClick={onClick} />
+      <div className="justify-self-end">
+        <PageAction label={label} onClick={onClick} />
+      </div>
     </div>
   );
 }
@@ -119,11 +121,13 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
                 Identity check{' '}
                 <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
               </p>
-              <PageAction
-                label="Review identity check"
-                disabled={profile.isFetching}
-                onClick={() => setVerificationOpen(true)}
-              />
+              <div className="justify-self-end">
+                <PageAction
+                  label="Review identity check"
+                  disabled={profile.isFetching}
+                  onClick={() => setVerificationOpen(true)}
+                />
+              </div>
             </div>
           )}
           <ActionRow

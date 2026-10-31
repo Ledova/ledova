@@ -13,6 +13,7 @@ import { useSettings } from './useSettings';
 function useAccountStyles() {
   return useThemedStyles((theme) => ({
     row: { gap: theme.spacing.smd, paddingVertical: theme.spacing.smd },
+    action: { alignSelf: 'flex-end' as const },
     identity: {
       flexDirection: 'row' as const,
       flexWrap: 'wrap' as const,
@@ -37,7 +38,9 @@ function ActionRow({ description, label, onPress }: { description: string; label
   return (
     <View style={look.row}>
       <Text style={styles.muted}>{description}</Text>
-      <Action label={label} onPress={onPress} />
+      <View style={look.action}>
+        <Action label={label} onPress={onPress} />
+      </View>
     </View>
   );
 }
