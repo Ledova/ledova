@@ -1,18 +1,12 @@
 import { FIELD_LIMITS } from '@ledova/shared';
-import {
-  AUTH_BUTTON_CLASS,
-  ERROR_BANNER_CLASS,
-  AuthCard,
-  AuthInput,
-  AuthDivider,
-  authFieldClass,
-} from '@components/auth';
+import { ERROR_BANNER_CLASS, AuthCard, AuthInput, AuthDivider, authFieldClass, AuthSubmit } from '@components/auth';
 import { Field, Label, Description } from '@headlessui/react';
 import { KeyIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import type { FormErrors } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
+import { Failure } from '@components/Ledger';
 
 interface EmailConfirmationFormProps {
   verificationCode: string;
@@ -53,9 +47,7 @@ export function EmailConfirmationForm({
                   <WarningIcon size={ICON_MD} className="text-error-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-error-light" role="alert">
-                    {generalError}
-                  </p>
+                  <Failure>{generalError}</Failure>
                 </div>
               </div>
             </div>
@@ -98,16 +90,9 @@ export function EmailConfirmationForm({
             {token.error && <Description className="text-error-light text-sm mt-1">{token.error}</Description>}
           </Field>
 
-          <button type="submit" disabled={isLoading} className={AUTH_BUTTON_CLASS}>
-            {isLoading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Verifying…</span>
-              </div>
-            ) : (
-              'Verify'
-            )}
-          </button>
+          <AuthSubmit busy={isLoading} busyLabel="Verifying…">
+            Verify
+          </AuthSubmit>
         </form>
       </AuthCard>
 

@@ -77,7 +77,7 @@ export function FileField({
   hint,
   error,
   optional,
-  showUploadHint = true,
+  showUploadHint = false,
   onFile,
   ...props
 }: Omit<InputProps, 'id' | 'type' | 'accept' | 'onChange' | 'className'> & {

@@ -9,7 +9,7 @@ import {
   registerImportTotals,
   refusalSentences,
 } from '@ledova/shared';
-import { Row, Rows, ShowMore, Section, Status } from '@components/Ledger';
+import { Row, Rows, ShowMore, Section, Status, Failure } from '@components/Ledger';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { FormSteps } from '@components/FormSteps';
@@ -419,9 +419,7 @@ export function ImportForm({
         </div>
       )}
       {errors.map((message, index) => (
-        <p key={index} role="alert" className="text-sm text-error-light">
-          {message}
-        </p>
+        <Failure key={index}>{message}</Failure>
       ))}
       {!visible && (
         <p className="text-sm text-text-muted">

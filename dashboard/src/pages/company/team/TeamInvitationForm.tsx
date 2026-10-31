@@ -3,7 +3,7 @@ import { Field, TextInput } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { FormActions, PageAction } from '@components/Page';
-import { Outcome } from '@components/Ledger';
+import { Outcome, Failure } from '@components/Ledger';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
   type CompanyCapability,
@@ -175,11 +175,7 @@ export function TeamInvitationForm({
         <p className="text-sm text-text-muted">
           The default acceptance deadline is seven days. A chosen deadline must be within 30 days.
         </p>
-        {error && (
-          <p role="alert" className="text-sm text-error-light">
-            {error}
-          </p>
-        )}
+        <Failure>{error}</Failure>
         <FormActions>
           <PageAction label="Cancel" disabled={busy} onClick={onCancel} />
           <PageAction

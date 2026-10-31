@@ -1,5 +1,6 @@
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
-import { PreparationNotice, PreparationPreferences } from '@pages/company/ledger/shared/PreparationShell';
+import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
+import { AccountCheck } from '@components/AccountCheck';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
 import { useImportRegister, importRegisterKey } from './useImportRegister';
 import { useMemo, useState } from 'react';
@@ -52,7 +53,7 @@ export default function CompanyRegisterImportPage() {
           />
         )
       ) : (
-        <PreparationPreferences preferences={preferences} />
+        <AccountCheck />
       )}
     </Page>
   );

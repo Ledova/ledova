@@ -21,7 +21,7 @@ import {
   sharePercentage,
   shareCount,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
+import { LinkRow, Row, Rows, Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -31,6 +31,7 @@ import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointment
 import { useShareholder } from './useShareholder';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { awardPath } from '@pages/company/ledger/shared/awards';
+import { AccountCheck } from '@components/AccountCheck';
 
 const PRIVATE_NOTE =
   'Particulars, history and awards show only to someone with a current company register appointment.';
@@ -53,7 +54,6 @@ export default function CompanyShareholderPage() {
   const [params] = useSearchParams();
   const company = params.get('company') ?? '';
   const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
   if (owner)
     return (
       <OwnShareholder
@@ -66,13 +66,7 @@ export default function CompanyShareholderPage() {
     );
   return (
     <Page back={{ state: company ? { registerCompany: company } : undefined }}>
-      {preferences.isLoading ? (
-        <Loading>Loading your account…</Loading>
-      ) : (
-        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-          Your account could not be loaded.
-        </LoadError>
-      )}
+      <AccountCheck />
     </Page>
   );
 }
@@ -243,9 +237,9 @@ function OwnShareholder({
               />
             )}
             {navigationError && (
-              <p role="alert" className="text-sm text-error-light">
+              <Failure>
                 Refresh the register and your current preparation appointment before changing particulars.
-              </p>
+              </Failure>
             )}
           </Section>
           <Section title="Holdings">

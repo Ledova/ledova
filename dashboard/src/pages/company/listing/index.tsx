@@ -8,7 +8,7 @@ import {
   useCompanySelection,
 } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { ShowMore, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent } from '@components/Ledger';
+import { ShowMore, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent, Failure } from '@components/Ledger';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -124,11 +124,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
         )}
       </div>
       {action.preview && <ActivationConfirmation action={action} />}
-      {action.error && (
-        <p role="alert" className="text-sm text-error-light">
-          {action.error}
-        </p>
-      )}
+      <Failure>{action.error}</Failure>
     </Page>
   );
 }

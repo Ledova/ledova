@@ -10,7 +10,7 @@ import {
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
-import { PageAction, PageActions, PageLink } from '@components/Page';
+import { PageActions, PageLink } from '@components/Page';
 import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 
@@ -174,11 +174,12 @@ export function CompanyShareholders({
                       );
                     })}
                     <td className="px-4 py-3 text-right">
-                      {blocked ? (
-                        <PageAction label="Details" context={member.name} disabled onClick={() => undefined} />
-                      ) : (
-                        <PageLink to={shareholderPath(member.member, company)} label="Details" context={member.name} />
-                      )}
+                      <PageLink
+                        to={shareholderPath(member.member, company)}
+                        label="Details"
+                        context={member.name}
+                        disabled={blocked}
+                      />
                     </td>
                   </tr>
                 ))}

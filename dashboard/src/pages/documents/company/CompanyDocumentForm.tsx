@@ -7,6 +7,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 import { apiErrorSentence, type DocumentType } from '@ledova/shared';
 import { useCompanyDocumentUpload } from './useCompanyDocumentUpload';
 import { CompanyReadNotice, type CompanyActionRead } from '@components/CompanyState';
+import { Failure } from '@components/Ledger';
 
 export function CompanyDocumentForm({
   companyUuid,
@@ -71,13 +72,13 @@ export function CompanyDocumentForm({
           </p>
         )}
         {upload.isError && (
-          <p role="alert" className="text-sm text-error-light">
+          <Failure>
             {apiErrorSentence(
               upload.error,
               'The document could not be uploaded. Try again.',
               'The upload outcome could not be confirmed. Refresh the documents before retrying.',
             )}
-          </p>
+          </Failure>
         )}
         <SelectField
           label="Category"
@@ -86,7 +87,7 @@ export function CompanyDocumentForm({
           disabled={!available}
           onChange={(type) => onTypeChange(type as DocumentType)}
         />
-        <FileField {...checks.field('file')} label="File" showUploadHint={false} onFile={setFile} />
+        <FileField {...checks.field('file')} label="File" onFile={setFile} />
       </fieldset>
       <FormActions>
         <PageAction label="Cancel" disabled={upload.isPending} onClick={onClose} />

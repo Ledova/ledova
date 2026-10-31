@@ -2,7 +2,7 @@ import { Field, TextArea, TextInput } from '@components/Field';
 import { useEffect, useRef, useState } from 'react';
 import { FIELD_LIMITS, formatDate, failureSentence } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
-import { Outcome, Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
+import { Outcome, Row, Rows, Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { useUserProfile } from '@hooks/useUserProfile';
 
 export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUserProfile> }) {
@@ -161,9 +161,7 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
               </Field>
             </div>
             {updateError && (
-              <p role="alert" className="text-sm text-error-light">
-                {failureSentence(updateError, 'Your personal details could not be saved. Try again.')}
-              </p>
+              <Failure>{failureSentence(updateError, 'Your personal details could not be saved. Try again.')}</Failure>
             )}
             <FormActions>
               <PageAction label="Cancel" disabled={blocked} onClick={closeEdit} />

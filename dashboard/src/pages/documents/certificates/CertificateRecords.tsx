@@ -15,7 +15,7 @@ import {
   type TokenHoldersResponse,
   type useMemberRecords,
 } from '@ledova/shared';
-import { MoreToggle } from '@components/Ledger';
+import { MoreToggle, Failure } from '@components/Ledger';
 import { LoadMore, TABLE_SCROLL_CLASS, TABLE_HEADER_CLASS } from '@components/List';
 import { PageAction } from '@components/Page';
 import { ClassCertificate } from './ClassCertificate';
@@ -307,11 +307,7 @@ function MemberCertificateDownload({ read, request }: { read: Read; request: Mem
         disabled={read.busy || !!read.retry}
         onClick={() => void download()}
       />
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
     </>
   );
 }

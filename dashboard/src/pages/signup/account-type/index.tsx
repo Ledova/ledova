@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserIcon, BuildingsIcon, WarningIcon } from '@phosphor-icons/react';
 import { useSignupAccountType } from '@ledova/shared';
 import { ICON_LG, ICON_MD } from '@components/iconSizes';
+import { Failure } from '@components/Ledger';
 
 type AccountRole = 'investor' | 'company';
 
@@ -59,9 +60,7 @@ export default function SignupAccountType() {
               <WarningIcon size={ICON_MD} className="text-error-light" />
             </div>
             <div className="ml-3">
-              <p className="text-sm text-error-light" role="alert">
-                {error}
-              </p>
+              <Failure>{error}</Failure>
             </div>
           </div>
         </div>

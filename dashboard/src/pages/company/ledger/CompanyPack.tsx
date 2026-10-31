@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Field, TextInput } from '@components/Field';
 import { FIELD_LIMITS, type OrderSubmissionOwner } from '@ledova/shared';
-import { Outcome, Section, LoadError, Loading, ShowMore } from '@components/Ledger';
+import { Outcome, Section, LoadError, Loading, ShowMore, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -125,11 +125,7 @@ function PackForm({
           />
         </Field>
       </fieldset>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       <Outcome>{downloaded && 'The company pack was downloaded.'}</Outcome>
       <FormActions>
         <PageAction

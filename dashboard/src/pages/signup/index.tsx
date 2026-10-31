@@ -1,12 +1,12 @@
 import {
   AuthLayout,
-  AUTH_BUTTON_CLASS,
   ERROR_BANNER_CLASS,
   AuthHeader,
   AuthCard,
   AuthInput,
   AuthDivider,
   authFieldClass,
+  AuthSubmit,
 } from '@components/auth';
 import { SIGNIN_PATH, SIGNUP_PATHS } from '@utils/paths';
 import { Link, useNavigate } from 'react-router-dom';
@@ -18,6 +18,7 @@ import { YourAccount } from './YourAccount';
 import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
+import { Failure } from '@components/Ledger';
 
 function emailRefusal(sentence: string) {
   if (!/already registered/i.test(sentence)) return sentence;
@@ -76,9 +77,7 @@ export default function SignupUser() {
                   <WarningIcon size={ICON_MD} className="text-error-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-error-light" role="alert">
-                    {generalError}
-                  </p>
+                  <Failure>{generalError}</Failure>
                 </div>
               </div>
             </div>
@@ -184,16 +183,9 @@ export default function SignupUser() {
             {password.error && <Description className="text-error-light text-sm mt-1">{password.error}</Description>}
           </Field>
 
-          <button type="submit" disabled={isLoading} className={AUTH_BUTTON_CLASS}>
-            {isLoading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Creating account…</span>
-              </div>
-            ) : (
-              'Continue'
-            )}
-          </button>
+          <AuthSubmit busy={isLoading} busyLabel="Creating account…">
+            Continue
+          </AuthSubmit>
         </form>
       </AuthCard>
 

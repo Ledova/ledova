@@ -2,7 +2,7 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { DESTINATIONS, useCompanySelection } from '@ledova/shared';
-import { Section, LoadError } from '@components/Ledger';
+import { Section, LoadError, Failure } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { Page } from '@components/Page';
 import { CompanyReadNotice } from '@components/CompanyState';
@@ -71,11 +71,7 @@ function CompanyPublications({
                     Refreshing company publications…
                   </p>
                 )}
-                {openError && (
-                  <p role="alert" className="text-sm text-error-light">
-                    {openError}
-                  </p>
-                )}
+                <Failure>{openError}</Failure>
                 {!publications ? null : publications.length === 0 ? (
                   <p className="text-sm text-text-muted">No publications yet.</p>
                 ) : (
