@@ -385,7 +385,7 @@ For linked members, Profile also shows **Company-recorded details**: the person'
 held by the selected company, with a company-reviewed update request and its status. These are
 separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
 
-On mobile, the Account tab opens Profile and offers biometric sign-in, **App lock** (biometrics
+On mobile, Settings opens Profile and offers biometric sign-in, **App lock** (biometrics
 after the app goes into the background), **Dark theme** (saved on the device), **Rate the app**,
 **Share with friends** and **Sign out**. Its Account section holds **Change password**, **Export
 data** (a private JSON file to save or share) and **Delete account**.

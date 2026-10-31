@@ -40,8 +40,8 @@ export function CompanyScreen({ route }: { route: RouteProp<SignedInStackParamLi
                   {record.classes.map((item) => (
                     <LinkRow
                       key={item.uuid}
-                      label={`${item.name} shares`}
-                      accessibilityLabel={`${item.name} shares, ${shareQuantity(item.shares)}`}
+                      label={item.name}
+                      accessibilityLabel={`${item.name}, ${shareQuantity(item.shares)}`}
                       aside={<Text style={styles.text}>{shareQuantity(item.shares)}</Text>}
                       onPress={() => navigation.navigate('Class', { record: uuid, token: item.uuid })}
                     >
@@ -65,9 +65,7 @@ export function CompanyScreen({ route }: { route: RouteProp<SignedInStackParamLi
               <Rows>
                 <LinkRow
                   label="Documents"
-                  onPress={() =>
-                    navigation.popTo('Main', { screen: 'Documents', params: { company: record.company.uuid } })
-                  }
+                  onPress={() => navigation.popTo('Documents', { company: record.company.uuid })}
                 >
                   <Text style={styles.muted}>Certificates and notices</Text>
                 </LinkRow>

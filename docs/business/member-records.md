@@ -90,7 +90,7 @@ The email's **View invitation** link opens **Member invitation** on the web. The
 or creates an account, then returns to the invitation in the same tab. They review the company,
 shareholder and intended email before choosing **Accept invitation**; opening a link never grants
 access. Their verified email must match, and acceptance binds one current account to one member
-in that company. On mobile, **Account** → **Accept an invitation** (also on Holdings before the
+in that company. On mobile, **Settings** → **Accept an invitation** (also on Dashboard before the
 first one) takes the pasted **View invitation** link (or its code), shows the company, shareholder,
 email and deadline, and accepts with **Accept invitation**; it reports acceptance only once the
 server does.
@@ -125,7 +125,7 @@ inspection arrangements remain with the company.
 
 These charts count issued shares, not voting power or value; different classes can carry different
 rights. Class-rights disclosure and mobile presentation of the shared overview remain separate work.
-Mobile **Holdings** shows a card per company, with a line per
+Mobile **Dashboard** shows a card per company, with a line per
 share class and each award's vested quantity and bar; with more than six companies it becomes a
 searchable list, and classes no longer held sit under **Past holdings**. On mobile an award opens
 its own page with the vested quantity, the issued, vested but unissued, still-to-vest and ended
@@ -185,7 +185,7 @@ A member, including an award recipient before any shares are issued, asks the co
 their recorded name and residential address: **Settings** → **Profile** → **Company-recorded details** →
 **Request update** on web, then **Send request** (**Request a particulars change**, then
 **Send particulars request** under **Your details** on the company's page on mobile). Sending changes nothing on the register.
-On mobile, **Account** → **Details at each company** lists each company's recorded name and address
+On mobile, **Settings** → **Details at each company** lists each company's recorded name and address
 and sends one change to all of them (**Change at every company**, then **Send to** each company).
 Each company receives its own request; a company that already records the change, or where the same
 change already waits, is skipped.

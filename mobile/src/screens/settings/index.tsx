@@ -121,7 +121,7 @@ export function SettingsScreen({ onNotifications }: { onNotifications: () => voi
   };
   return (
     <>
-      <Page title="Account">
+      <Page title="Settings">
         <View style={card.card}>
           <Pressable
             accessibilityRole="button"
