@@ -27,11 +27,13 @@ export function MemberRecordsContent({ children }: { children: ReactNode }) {
       )}
       {!read.readFailed && read.error && <Failure>{read.error}</Failure>}
       {read.retry && (
-        <PageAction
-          label="Retry original member action"
-          disabled={read.busy || read.refreshing || read.readFailed || !read.owner}
-          onClick={() => void read.recover()}
-        />
+        <div className="flex justify-end">
+          <PageAction
+            label="Retry original member action"
+            disabled={read.busy || read.refreshing || read.readFailed || !read.owner}
+            onClick={() => void read.recover()}
+          />
+        </div>
       )}
       {!read.owner ? (
         <AccountCheck />
