@@ -6,8 +6,6 @@ export function AccountCheck() {
   return preferences.isLoading || preferences.isFetching ? (
     <Loading>Loading your account…</Loading>
   ) : (
-    <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-      Your account could not be loaded.
-    </LoadError>
+    <LoadError retry={() => preferences.refetch()}>Your account could not be loaded.</LoadError>
   );
 }

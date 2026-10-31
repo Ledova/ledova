@@ -20,8 +20,6 @@ export type CompanyRegistration = ApiRequest<'api_v1_companies_create'>;
 
 export type CompanyRegistrationResponse = ApiResponse<'api_v1_companies_create'>;
 
-export type CompanyActivation = ApiSchema<'CompanyActivation'>;
-
 export type CompanyActivationAttempt = ApiSchema<'CompanyActivationAttempt'>;
 
 export type CompanyActivate = ApiRequest<'api_v1_companies_activate_create'>;
