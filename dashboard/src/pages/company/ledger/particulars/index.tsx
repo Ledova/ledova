@@ -57,7 +57,7 @@ export default function CompanyRegisterParticularsPage() {
         currentOwner={boundary.get}
       />
     );
-  return <PreparationShell lede={LEDE} preferences={preferences} />;
+  return <PreparationShell lede={LEDE} />;
 }
 
 function OwnParticulars({

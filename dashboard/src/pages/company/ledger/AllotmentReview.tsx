@@ -9,7 +9,7 @@ import {
   shareCount,
   type RegisterAllotmentDecisionPreview,
 } from '@ledova/shared';
-import { ShowMore, Row, Rows, Section } from '@components/Ledger';
+import { ShowMore, Row, Rows, Section, Fact } from '@components/Ledger';
 import { AllotmentOwnership } from './AllotmentOwnership';
 
 export function AllotmentReview({
@@ -29,21 +29,16 @@ export function AllotmentReview({
           {preview.className} ({preview.classCode})
         </p>
         <dl className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <dt className="text-sm text-text-muted">Shares</dt>
-            <dd className="mt-1 text-sm font-medium tabular-nums">{shareCount(preview.shares)}</dd>
-          </div>
-          <div>
-            <dt className="text-sm text-text-muted">Consideration</dt>
-            <dd className="mt-1 text-sm font-medium tabular-nums">
-              {formatMoney(preview.consideration, preview.currency)}
-            </dd>
-          </div>
+          <Fact label="Shares" numeric>
+            {shareCount(preview.shares)}
+          </Fact>
+          <Fact label="Consideration" numeric>
+            {formatMoney(preview.consideration, preview.currency)}
+          </Fact>
           {impact && (
-            <div>
-              <dt className="text-sm text-text-muted">{COPY.UNIT_PRICE}</dt>
-              <dd className="mt-1 text-sm font-medium tabular-nums">{impact.unitPrice}</dd>
-            </div>
+            <Fact label={COPY.UNIT_PRICE} numeric>
+              {impact.unitPrice}
+            </Fact>
           )}
         </dl>
       </Section>

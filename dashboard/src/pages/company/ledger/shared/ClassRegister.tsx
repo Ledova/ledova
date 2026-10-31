@@ -11,7 +11,7 @@ import {
 import { LoadMore } from '@components/List';
 import { PAGE_SIZE } from '@hooks/useListParams';
 import { Rows, Row, Section, Status, type Tone, ShowMore } from '@components/Ledger';
-import { PageAction, PageLink } from '@components/Page';
+import { PageLink } from '@components/Page';
 import { shareholderPath } from './shareholders';
 
 const REGISTER_INITIALIZATION_TONES = new Map<boolean, Tone>([
@@ -99,19 +99,12 @@ export function FormerMembers({
           {register.formerMembers.slice(0, shown).map((former) => (
             <li key={former.uuid} className="flex flex-col gap-2 py-4">
               <p className="text-base text-text-primary">{former.name || 'Name not recorded'}</p>
-              {company && former.member && blocked && (
-                <PageAction
-                  label="Details"
-                  context={former.name || 'Name not recorded'}
-                  disabled
-                  onClick={() => undefined}
-                />
-              )}
-              {company && former.member && !blocked && (
+              {company && former.member && (
                 <PageLink
                   to={shareholderPath(former.member, company)}
                   label="Details"
                   context={former.name || 'Name not recorded'}
+                  disabled={blocked}
                 />
               )}
               <Rows>

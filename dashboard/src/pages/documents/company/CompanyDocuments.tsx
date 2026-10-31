@@ -1,6 +1,6 @@
 import { useRef, type MouseEvent } from 'react';
 import { apiErrorSentence, formatDate, type Company, type CompanyDocument } from '@ledova/shared';
-import { Section } from '@components/Ledger';
+import { Section, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { Modal } from '@components/Modal';
 import { useCompanyDocuments } from './useCompanyDocuments';
@@ -143,11 +143,7 @@ export function CompanyDocuments({
           )}
         </Section>
       )}
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       {removing && read.canAdmin && (
         <Modal
           isOpen
@@ -175,9 +171,7 @@ export function CompanyDocuments({
             Remove {removing.name} from {company.name}?
           </p>
           {remove.isError && (
-            <p role="alert" className="text-sm text-error-light">
-              {apiErrorSentence(remove.error, 'The document could not be removed. Refresh or retry.')}
-            </p>
+            <Failure>{apiErrorSentence(remove.error, 'The document could not be removed. Refresh or retry.')}</Failure>
           )}
         </Modal>
       )}

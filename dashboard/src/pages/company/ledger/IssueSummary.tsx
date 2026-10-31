@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { formatDate, shareCount } from '@ledova/shared';
+import { Fact } from '@components/Ledger';
 
 export function IssueSummary({
   name,
@@ -32,10 +33,9 @@ export function IssueSummary({
           {amount && <p className="text-text-muted">{amount}</p>}
         </dd>
       </div>
-      <div className="min-w-0 space-y-1">
-        <dt className="text-text-muted">Company issue date</dt>
-        <dd className="break-words font-medium tabular-nums">{formatDate(companyEventOn, 'Not recorded')}</dd>
-      </div>
+      <Fact label="Company issue date" numeric>
+        {formatDate(companyEventOn, 'Not recorded')}
+      </Fact>
       <div className="min-w-0 space-y-1">
         <dt className="text-text-muted">Status</dt>
         <dd className="space-y-1">{status}</dd>

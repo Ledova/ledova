@@ -6,7 +6,7 @@ import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberFields } from './MemberFields';
 import { blankMember, type PreparationDraft, type MemberDraft } from './preparation';
-import { ShowMore } from '@components/Ledger';
+import { ShowMore, Failure } from '@components/Ledger';
 
 export function BringRecords({
   draft,
@@ -235,11 +235,13 @@ export function BringRecords({
               </p>
             )}
             <FileField
+              showUploadHint
               label="Current share register"
               hint={draft.registerEvidence && 'The retained source copy will be reused unless you choose another file.'}
               onFile={(file) => update((current) => ({ ...current, registerFile: file }))}
             />
             <FileField
+              showUploadHint
               label="ASIC extract"
               hint={draft.asicEvidence && 'The retained ASIC copy and figures will be reused unless you change them.'}
               onFile={(file) => update((current) => ({ ...current, asicFile: file }))}
@@ -259,10 +261,10 @@ export function BringRecords({
                   </p>
                 )}
                 {differs && (
-                  <p role="alert" className="text-sm text-error-light">
+                  <Failure>
                     The earlier comparison differs from the current shareholders. Check the source or leave out the
                     comparison before continuing.
-                  </p>
+                  </Failure>
                 )}
                 <PageAction
                   label="Leave out ASIC comparison"

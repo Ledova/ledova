@@ -8,7 +8,6 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   showFooter?: boolean;
-  showCancelButton?: boolean;
   cancelLabel?: string;
   confirmLabel?: string;
   onCancel?: () => void;
@@ -80,7 +79,6 @@ export function Modal({
   title,
   children,
   showFooter = false,
-  showCancelButton = true,
   cancelLabel = 'Cancel',
   confirmLabel = 'Confirm',
   onCancel,
@@ -130,9 +128,7 @@ export function Modal({
 
                 {showFooter && (
                   <ModalActions>
-                    {showCancelButton && (
-                      <PageAction label={cancelLabel} onClick={onCancel ?? onClose} disabled={busy} />
-                    )}
+                    <PageAction label={cancelLabel} onClick={onCancel ?? onClose} disabled={busy} />
                     {formId ? (
                       <PageAction
                         type="submit"

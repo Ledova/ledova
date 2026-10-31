@@ -6,6 +6,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { CompanyReadNotice } from '@components/CompanyState';
 import { EDIT_FIELDS, useEditCompanyForm, type FormProps } from './useCompanyForms';
+import { Failure } from '@components/Ledger';
 
 export function EditCompanyForm(props: FormProps) {
   const { company, target, read, onClose, draft, setDraft, pendingRef, canChangeName, available, problems, save } =
@@ -47,9 +48,7 @@ export function EditCompanyForm(props: FormProps) {
           </p>
         )}
         {reading && (
-          <p role="alert" className="text-sm text-error-light">
-            {reading.generalError ?? 'The company changes were not saved. Check the fields below.'}
-          </p>
+          <Failure>{reading.generalError ?? 'The company changes were not saved. Check the fields below.'}</Failure>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           {EDIT_FIELDS.map(([key, label, maxLength]) => (

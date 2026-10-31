@@ -45,7 +45,7 @@ export default function CompanyRegisterCorrectionPage() {
         currentOwner={boundary.get}
       />
     );
-  return <PreparationShell lede={LEDE} preferences={preferences} />;
+  return <PreparationShell lede={LEDE} />;
 }
 
 function OwnCorrection({

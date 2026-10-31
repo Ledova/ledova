@@ -191,7 +191,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   the web `pageTitle` mapping used by `signedInRoutes`
   ([routes, audiences and guards](#routes-audiences-and-guards)); a page sets `PageTitle` only for a
   hash view.
-- **Errors and waiting.** A failed request reads as a `role="alert"` sentence
+- **Errors and waiting.** A failed request reads as a `role="alert"` sentence, the kit's `Failure`
   ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
   cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
   ([loading, empty and error states](frontend-ux.md#loading-empty-and-error-states)).
@@ -669,7 +669,7 @@ The web register's repeated row wrappers, stage rows and download failures use
 decisions through `dashboard/src/pages/company/ledger/DecisionTrail.tsx`. Four records (import, correction, particulars change and transfer) use
 `useRegisterTaskGuard.ts` for their existing visible-task check, while grant, allotment and award
 keep their distinct guards and wrappers. The preparation pages share `PreparationShell.tsx` for
-Back, preference fallback and read-only paragraphs, and
+the account-check page and read-only paragraphs, and
 `useRegisterPreparationOwner.ts` for the same account boundary and preferences reads. Page and form
 keys, held work, specialised refusal states and the import title remain with their pages.
 

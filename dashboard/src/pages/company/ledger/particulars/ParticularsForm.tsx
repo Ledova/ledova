@@ -5,6 +5,7 @@ import { useParticularsPreparation, type ParticularsFormProps, COPY } from './us
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { Failure } from '@components/Ledger';
 
 export function ParticularsForm({
   owner,
@@ -69,7 +70,6 @@ export function ParticularsForm({
             {...checks.field('file')}
             label={COPY.SUPPORTING_DOCUMENT}
             hint={COPY.SUPPORTING_DOCUMENT_NOTE}
-            showUploadHint={false}
             onFile={(file) => update({ file })}
           />
         </div>
@@ -82,11 +82,7 @@ export function ParticularsForm({
           />
         </Field>
       </fieldset>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       <FormActions>
         <PageAction
           type="submit"
