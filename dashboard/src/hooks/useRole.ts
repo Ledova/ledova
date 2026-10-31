@@ -11,7 +11,5 @@ export function useRole() {
     isCompany: canOpen(role, 'company'),
     isLoading: preferences.isLoading,
     isKnown: !!account,
-    isUnavailable: preferences.isError && !account,
-    retry: preferences.refetch,
   };
 }

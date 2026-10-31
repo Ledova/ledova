@@ -60,7 +60,7 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
   });
   const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
   const ownerReady = !!owner && preferences?.status === 'success' && !preferences.isInvalidated;
-  const userProfile = ownerReady && profile.isSuccess ? (profile.data.data.results[0] ?? null) : null;
+  const userProfile = ownerReady && profile.data ? (profile.data.data.results[0] ?? null) : null;
   const snapshot = JSON.stringify(userProfile);
   const sourceKey = userProfile ? JSON.stringify([...key, snapshot]) : null;
   const ownerKey = owner && preferences?.status === 'success' ? JSON.stringify(key) : null;

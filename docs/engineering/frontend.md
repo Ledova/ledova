@@ -183,7 +183,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `AUTH_QUERY_KEY` is. A key is its resource's root (kebab-case for a new root), then the owner for
   account-bound data (anything read or written for the signed-in account), then parameters. It never
   starts with another resource's root, and an invalidation names the narrowest prefix that covers
-  the change. Every company list starts with `ownCompaniesKey(owner)`, so a company rename or
+  the change. Every signed-in company list starts with `ownCompaniesKey(owner)`, so a company rename or
   activation refreshes them all.
 - **Paths and titles.** Link and navigate with `DESTINATIONS` paths, filling parameters with React
   Router's `generatePath`, or with the web-only paths in `utils/paths.ts` (the company dashboard,
@@ -313,10 +313,12 @@ entry's audience:
   recovery. A failed re-check of a confirmed
   session shows the same message, and a check paused offline or in a hidden tab still counts as
   checking. Mobile doesn't read `isUnavailable`: a failed check still returns it to Sign in.
-- The session check shows until the profile, and on an investing or company page the role, is known,
-  so no page appears on the way.
-- An unreadable profile (`AccountUnavailable`), or an unreadable role on an investing or company
-  page, shows an error with Try again rather than a guess.
+- The session check shows until the profile is known, so no page appears on the way. The role comes
+  with the user preferences the profile already needs.
+- An unreadable profile (`AccountUnavailable`) shows an error with Try again rather than a guess. Every
+  reader shares one profile read, so a failed refresh of a profile already read keeps the frame and
+  the page, with the last confirmed profile, and only the profile's own sections show the error and
+  hold their saves.
 - A profile without `isSignupCompleted` returns to `SIGNUP_RESUMES_AT`, the account-type step,
   because email verification issues a full session before sign-up finishes; later steps refill their
   forms from what was saved.
