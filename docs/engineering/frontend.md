@@ -493,8 +493,10 @@ the same account runs, the frame stays, and the web API client refuses every wri
 ([API client](#frontend-rules)). Pages whose records wait for the recheck show a loading line meanwhile,
 such as the Ledger's "Loading the register…" or "Loading your account…" on the two eligibility pages
 and member records. Work held above that line survives, such as member records' particulars draft and
-the eligibility drafts; work inside it does not: an unsaved Add person form on Shareholders,
-Certificates' unapplied filter choices and an open eligibility review are lost. A failed
+the eligibility drafts; work inside it does not: an unsaved Add person form on Shareholders and
+Certificates' unapplied filter choices are lost. The eligibility and activation hooks also close an open
+review as soon as a recheck starts, because their checks need a settled session, so the review must be
+prepared again. A failed
 check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
 the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload, extraction or identity
