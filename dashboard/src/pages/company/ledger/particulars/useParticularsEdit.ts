@@ -65,6 +65,8 @@ export function useParticularsEdit({
   const client = useQueryClient();
   const navigate = useNavigate();
   const [draft, setDraft] = useState<Draft>(() => ({ name: current.name, address: current.address, reason: '' }));
+  const [baseline, setBaseline] = useState<Particulars>(() => recorded);
+  const [conflict, setConflict] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const operation = useRef<{ signature: string; key: string } | null>(null);
@@ -81,13 +83,20 @@ export function useParticularsEdit({
     if (!mounted.current) throw createUserFriendlyError(CLOSED);
   };
   const update = (patch: Partial<Draft>) => {
-    setError('');
+    if (!conflict) setError('');
     setDraft((previous) => ({ ...previous, ...patch }));
+  };
+  const reload = () => {
+    operation.current = null;
+    setError('');
+    setConflict(false);
+    setBaseline(recorded);
+    setDraft((previous) => ({ ...previous, name: current.name, address: current.address }));
   };
   const problems = problemsOf(draft);
 
   const submit = async () => {
-    if (pending.current || busy || blocked || hasProblems(problems)) return;
+    if (pending.current || busy || blocked || conflict || hasProblems(problems)) return;
     pending.current = true;
     setBusy(true);
     setError('');
@@ -98,7 +107,7 @@ export function useParticularsEdit({
         name: draft.name.trim(),
         residentialAddress: draft.address.trim(),
         reason: draft.reason.trim(),
-        expected: { name: recorded.name, residentialAddress: recorded.address },
+        expected: { name: baseline.name, residentialAddress: baseline.address },
       };
       const signature = JSON.stringify(request);
       if (operation.current?.signature !== signature) operation.current = { signature, key: crypto.randomUUID() };
@@ -137,7 +146,10 @@ export function useParticularsEdit({
       try {
         check();
         setError(apiErrorSentence(failure, FAILED, FAILED));
-        if (failureStatus(failure) === 409) onConflict();
+        if (failureStatus(failure) === 409) {
+          setConflict(true);
+          onConflict();
+        }
         if (failureStatus(failure) === 404) onMissing();
       } catch {
         return;
@@ -148,5 +160,5 @@ export function useParticularsEdit({
     }
   };
 
-  return { draft, busy, error, update, problems, submit } as const;
+  return { draft, busy, error, conflict, update, reload, problems, submit } as const;
 }

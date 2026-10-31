@@ -8,7 +8,7 @@ import { useErrorSummary } from '@hooks/useErrorSummary';
 import { Failure } from '@components/Ledger';
 
 export function ParticularsForm(props: ParticularsFormProps) {
-  const { draft, busy, error, update, problems, submit } = useParticularsEdit(props);
+  const { draft, busy, error, conflict, update, reload, problems, submit } = useParticularsEdit(props);
   const checks = useErrorSummary(problems);
 
   return (
@@ -48,13 +48,14 @@ export function ParticularsForm(props: ParticularsFormProps) {
       </fieldset>
       <Failure>{error}</Failure>
       <FormActions>
+        {conflict && <PageAction label={COPY.RELOAD} onClick={reload} />}
         <PageAction
           type="submit"
           primary
           label={COPY.SUBMIT}
           busy={busy}
           busyLabel="Saving change…"
-          disabled={props.blocked}
+          disabled={props.blocked || conflict}
         />
       </FormActions>
     </form>

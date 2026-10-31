@@ -28,6 +28,7 @@ export const REGISTER_PARTICULARS_COPY = {
   REASON: 'Reason',
   REASON_NOTE: 'Kept with the change in the register history.',
   SUBMIT: 'Save change',
+  RELOAD: 'Load current particulars',
   DOWNLOAD: 'Download the supporting document',
   RECEIPT_FAILED:
     'The change could not be confirmed. Check the particulars changes under Corrections before changing them again.',
