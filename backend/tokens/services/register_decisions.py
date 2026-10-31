@@ -45,7 +45,6 @@ class DecisionFamily:
     noun: str = ""
     before_command: Callable = _nothing_to_check
     command: Callable | None = None
-    rejected: Callable | None = None
 
     @property
     def subject(self):
@@ -212,6 +211,4 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
             family.apply(proposal, current_actor, decision)
         elif kind == RegisterDecisionKind.REJECT:
             _reject(proposal, current_actor, decision)
-            if family.rejected:
-                family.rejected(proposal)
         return proposal

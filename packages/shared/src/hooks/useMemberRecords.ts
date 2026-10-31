@@ -3,9 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   acceptMemberInvitation,
   createMemberCertificateRequest,
-  createMemberParticularsRequest,
   getMemberCertificateRequests,
-  getMemberParticularsRequests,
   getOwnMemberEntries,
   getOwnMemberRecord,
   getOwnMemberRecords,
@@ -21,14 +19,6 @@ import { useApiClient } from './useApiClient';
 
 type Command =
   | { kind: 'accept'; code: string; userAccount: string; confirmation: true }
-  | {
-      kind: 'particulars';
-      operationId: string;
-      association: string;
-      name: string;
-      residentialAddress: string;
-      confirmation: true;
-    }
   | { kind: 'certificate'; operationId: string; association: string; token: string; entry: string }
   | { kind: 'withdraw'; uuid: string; idempotencyKey: string };
 
@@ -146,36 +136,20 @@ export function useMemberRecords(
     queryKey: requestsKey,
     enabled: enabled && !!selected && detail.isSuccess && !detail.isFetching && list.isSuccess && !list.isFetching,
     queryFn: async () => {
-      const [particulars, certificates] = await Promise.all([
-        readEveryPage(async (page) => {
-          guardRecord();
-          const response = await getMemberParticularsRequests(
-            api,
-            { association: selected, page },
-            config(guardRecord),
-          );
-          guardRecord();
-          return response;
-        }),
-        readEveryPage(async (page) => {
-          guardRecord();
-          const response = await getMemberCertificateRequests(
-            api,
-            { association: selected, page },
-            config(guardRecord),
-          );
-          guardRecord();
-          return response;
-        }),
-      ]);
+      const certificates = await readEveryPage(async (page) => {
+        guardRecord();
+        const response = await getMemberCertificateRequests(api, { association: selected, page }, config(guardRecord));
+        guardRecord();
+        return response;
+      });
       const record = client.getQueryData<OwnMemberRecord>(detailKey)!;
       if (
-        [...particulars, ...certificates].some(
+        certificates.some(
           (row) => row.association !== selected || row.company !== record.company.uuid || row.member !== record.member,
         )
       )
         throw new Error('The requests do not belong to your selected member record.');
-      return { particulars, certificates };
+      return { certificates };
     },
   });
   const entries = useQuery({
@@ -283,28 +257,6 @@ export function useMemberRecords(
         check();
         if (data.userAccount !== owner!.ownerAccountUuid || !data.current || !data.member || !data.company)
           throw new Error('The accepted member association could not be confirmed. Retry the same invitation.');
-      } else if (command.kind === 'particulars') {
-        const { data } = await createMemberParticularsRequest(
-          api,
-          {
-            operationId: command.operationId,
-            association: command.association,
-            name: command.name,
-            residentialAddress: command.residentialAddress,
-            confirmation: true,
-          },
-          config(check),
-        );
-        check();
-        if (
-          data.uuid !== command.operationId ||
-          data.association !== selected ||
-          data.company !== record?.company.uuid ||
-          data.member !== record.member ||
-          data.name !== command.name ||
-          data.residentialAddress !== command.residentialAddress
-        )
-          throw new Error('The particulars request could not be confirmed. Retry the unchanged request.');
       } else if (command.kind === 'certificate') {
         const { data } = await createMemberCertificateRequest(
           api,
@@ -416,15 +368,6 @@ export function useMemberRecords(
     },
     accept: (code: string) =>
       owner && execute({ kind: 'accept', code, userAccount: owner.ownerAccountUuid, confirmation: true }),
-    requestParticulars: (name: string, residentialAddress: string) =>
-      execute({
-        kind: 'particulars',
-        operationId: newKey(),
-        association: selected,
-        name,
-        residentialAddress,
-        confirmation: true,
-      }),
     requestCertificate: (entry: string) =>
       execute({ kind: 'certificate', operationId: newKey(), association: selected, token, entry }),
     withdraw: (uuid: string) => execute({ kind: 'withdraw', uuid, idempotencyKey: newKey() }),

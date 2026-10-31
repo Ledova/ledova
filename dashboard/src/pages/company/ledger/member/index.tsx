@@ -187,14 +187,9 @@ function OwnShareholder({
       : recorded?.name || former[0]?.row.name || REGISTER_PARTICULARS_COPY.UNNAMED_MEMBER;
     const current = access.access?.associations.find((row) => row.member === member && row.current);
     const invited = access.access?.invitations.find((row) => row.member === member && row.status === 'pending');
-    const waiting = [
-      ...(access.requests?.particulars ?? [])
-        .filter((row) => row.member === member && row.status === 'submitted')
-        .map((row) => ({ uuid: row.uuid, text: 'They asked the company to update their particulars.' })),
-      ...(access.requests?.certificates ?? [])
-        .filter((row) => row.member === member && row.status === 'requested')
-        .map((row) => ({ uuid: row.uuid, text: 'They asked the company for a certificate.' })),
-    ];
+    const waiting = (access.requests?.certificates ?? []).filter(
+      (row) => row.member === member && row.status === 'requested',
+    );
     const issueClass = [...holdings.map(({ register }) => register), ...registers].find(
       (register) => register.initialized && register.token.status === 'draft',
     )?.token.uuid;
@@ -365,7 +360,7 @@ function OwnShareholder({
             <Section title="Requests from them">
               {waiting.map((row) => (
                 <p key={row.uuid} className="text-sm text-text-primary">
-                  {row.text}
+                  They asked the company for a certificate.
                 </p>
               ))}
               <PageLink

@@ -355,8 +355,8 @@ available records and actions; choosing a company grants neither.
 
 Settings opens Profile, with **Account** and **Data and privacy** beside it for everyone. Team and
 Activation appear where company access permits, and company
-documents are under **Eligibility** → **Supporting**. Profile shows a linked member's
-Company-recorded details. Team remains reachable for accepting
+documents are under **Eligibility** → **Supporting**. Profile shows a linked member how the
+selected company records them. Team remains reachable for accepting
 a company invitation. Before company access is granted, **Settings → Account → Manage account**
 provides **Accept a company invitation**, opening the same guarded workflow. Member access stays
 under company [Shareholders](register.md#the-register-page).
@@ -381,9 +381,10 @@ alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
   their name as each company received it. The confirmation says so, and the browser's copy of the
   account's data is cleared once the server confirms.
 
-For linked members, Profile also shows **Company-recorded details**: the person's name and residential address
-held by the selected company, with a company-reviewed update request and its status. These are
-separate from personal Profile edits ([member requests](member-records.md#particulars-requests)).
+For linked members, Profile also shows how the selected company records them: the name and
+residential address its register holds, read-only, with **Wrong? Contact the company.** It is
+separate from personal Profile edits; the member asks the company directly to correct it
+([what a member can read](member-records.md#what-a-member-can-read)).
 
 On mobile, Settings has the same three pages for the selected company. Account shows the identity
 status but no **Review identity check**, since the app has no identity check flow, then biometric

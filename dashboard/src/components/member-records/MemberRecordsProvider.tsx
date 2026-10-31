@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { DESTINATIONS, useMemberRecords } from '@ledova/shared';
-import { MemberWorkspaceContext, type MemberDraft } from './useMemberWorkspace';
-
-const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open: false };
+import { MemberWorkspaceContext } from './useMemberWorkspace';
 
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const { pathname, hash } = useLocation();
@@ -41,28 +39,17 @@ function MemberState({
   const requested = new URLSearchParams(location.search).get('company');
   const requestedClass =
     location.pathname === DESTINATIONS.certificates.path ? new URLSearchParams(location.search).get('class') : null;
-  const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [token, setToken] = useState('');
   const selectionOwner = useRef<typeof read.owner>(null);
   const initialHistory = useRef('');
-  const particularsRequest = useRef('');
   const held = read.busy || read.refreshing || read.readFailed || !read.owner || !!read.retry;
   useEffect(() => {
-    if (read.retry?.kind === 'particulars') particularsRequest.current = read.retry.operationId;
-    if (!held && read.requests?.particulars.some((request) => request.uuid === particularsRequest.current)) {
-      particularsRequest.current = '';
-      setDraft(EMPTY_DRAFT);
-    }
-  }, [read.retry, read.requests, held]);
-  useEffect(() => {
-    if (!active || draft.open || !read.owner || !read.listReady || read.busy || read.refreshing || read.retry) return;
+    if (!active || !read.owner || !read.listReady || read.busy || read.refreshing || read.retry) return;
     const wanted = requested ? (read.records.find(({ company }) => company.uuid === requested)?.uuid ?? '') : '';
     if (selectionOwner.current !== read.owner || read.selectedUuid !== wanted) {
       selectionOwner.current = read.owner;
       initialHistory.current = '';
-      particularsRequest.current = '';
       setToken('');
-      setDraft(EMPTY_DRAFT);
       read.select(wanted);
     }
   }, [
@@ -76,7 +63,6 @@ function MemberState({
     read.select,
     requested,
     active,
-    draft.open,
   ]);
   useEffect(() => {
     if (!certificates) {
@@ -99,8 +85,6 @@ function MemberState({
       value={{
         read,
         held,
-        draft,
-        setDraft,
         token,
         selectToken: (uuid) => {
           if (held) return;

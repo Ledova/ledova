@@ -19,12 +19,14 @@ company-run register with imports, corrections, openings and wallet links,
 non-paid grants and transfers, company-authorised chain actions, employee
 awards with recorded vesting, fully paid external allotments, members' own
 Profile particulars, member-specific invitations and own records,
-company-reviewed particulars requests, unsigned certificates and core packs. The
+unsigned certificates and core packs. The
 [implementation index](plans/company-managed-registers/README.md) lists each
 increment with its guide and pull request. Since
 [#1452](https://github.com/Ledova/ledova/issues/1452) the openings from the chain, wallet links and
 chain actions run through the API only: the web app has no wallets or on-chain features
-([decision](decisions.md#wallets-removed-from-the-web-app)).
+([decision](decisions.md#wallets-removed-from-the-web-app)). Members' particulars requests were
+removed on 31 October 2026; members tell the company directly
+([decision](decisions.md#member-particulars-requests-removed)).
 
 The development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
 closed 11 October) now uses fresh PostgreSQL migrations, minimum test suites

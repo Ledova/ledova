@@ -54,21 +54,6 @@ class MemberAssociationRevocation(BaseModel):
         ]
 
 
-class MemberParticularsRequest(BaseModel):
-    association = models.ForeignKey(MemberAssociation, on_delete=models.PROTECT, related_name="particulars_requests")
-    company = models.ForeignKey(
-        "companies.Company", on_delete=models.PROTECT, related_name="member_particulars_requests"
-    )
-    member = models.UUIDField()
-    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
-    source_snapshot = models.JSONField()
-    name = models.CharField(max_length=255)
-    residential_address = models.CharField(max_length=1000)
-
-    class Meta:
-        ordering = ["-created_at", "-uuid"]
-
-
 class MemberCertificateRequest(BaseModel):
     association = models.ForeignKey(MemberAssociation, on_delete=models.PROTECT, related_name="certificate_requests")
     company = models.ForeignKey(

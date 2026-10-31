@@ -67,7 +67,6 @@ class RegisterParticularsChangeSerializer(RegisterDecidedSerializer):
             "uuid",
             "company",
             "member",
-            "member_request",
             "name",
             "residential_address",
             "as_at",

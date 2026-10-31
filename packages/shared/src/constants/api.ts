@@ -91,9 +91,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   MEMBER_RECORDS: '/api/v1/tokens/member-records/',
   MEMBER_RECORD: (uuid: string) => `/api/v1/tokens/member-records/${uuid}/` as const,
   MEMBER_ENTRIES: (uuid: string) => `/api/v1/tokens/member-records/${uuid}/entries/` as const,
-  MEMBER_PARTICULARS_REQUESTS: '/api/v1/tokens/member-particulars-requests/',
-  MEMBER_PARTICULARS_REQUEST_PREPARE: (uuid: string) =>
-    `/api/v1/tokens/member-particulars-requests/${uuid}/prepare/` as const,
   MEMBER_CERTIFICATE_REQUESTS: '/api/v1/tokens/member-certificate-requests/',
   MEMBER_CERTIFICATE_REQUEST_WITHDRAW: (uuid: string) =>
     `/api/v1/tokens/member-certificate-requests/${uuid}/withdraw/` as const,

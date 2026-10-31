@@ -1,4 +1,4 @@
-import { Field, TextArea, TextInput, FileField } from '@components/Field';
+import { Field, TextArea, TextInput } from '@components/Field';
 import { useEffect, useRef, useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
@@ -7,9 +7,7 @@ import {
   formatDateTime,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
-  utcToday,
   MEMBER_INVITATION_STATUS_LABELS,
-  MEMBER_PARTICULARS_STATUS_LABELS,
   MEMBER_CERTIFICATE_STATUS_LABELS,
   searchRows,
 } from '@ledova/shared';
@@ -21,8 +19,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useListParams } from '@hooks/useListParams';
 import { FilterPopover } from '@components/FilterPopover';
-import { SelectField } from '@components/SelectField';
-import { INVITATION_FIELDS, PARTICULARS_FIELDS, useCompanyMemberRequests } from './useCompanyMemberRequests';
+import { INVITATION_FIELDS, useCompanyMemberRequests } from './useCompanyMemberRequests';
 
 export function CompanyMemberAccess({
   view,
@@ -57,22 +54,14 @@ export function CompanyMemberAccess({
     setInvitation,
     reason,
     setReason,
-    request,
-    setRequest,
     certificateInstruction,
     setCertificateInstruction,
-    asAt,
-    setAsAt,
-    selectFile,
-    uploading,
-    uploadError,
     held,
     problems,
     refresh,
-    prepare,
   } = useCompanyMemberRequests({ company, owner, guard, registers, sourceReady, inviteMember });
   const checks = useErrorSummary(problems);
-  const filters = useListParams(['request_type']);
+  const filters = useListParams();
   const [heldView, setHeldView] = useState(view);
   if (!held && heldView !== view) {
     setHeldView(view);
@@ -102,9 +91,6 @@ export function CompanyMemberAccess({
   const certificateHeading = useRef<HTMLHeadingElement>(null);
   const certificateOpeners = useRef(new Map<string, HTMLButtonElement>());
   const certificateReturnFocus = useRef('');
-  const requestHeading = useRef<HTMLHeadingElement>(null);
-  const requestOpeners = useRef(new Map<string, HTMLButtonElement>());
-  const requestReturnFocus = useRef('');
   const invite = useRef<HTMLHeadingElement>(null);
   const inviteAction = useRef<HTMLDivElement>(null);
   const restoreInviteFocus = useRef(false);
@@ -124,7 +110,6 @@ export function CompanyMemberAccess({
   }, [inviting, view]);
   const invitations = access.access?.invitations ?? [];
   const associations = access.access?.associations ?? [];
-  const particulars = access.requests?.particulars ?? [];
   const certificates = access.requests?.certificates ?? [];
   const certificateTarget = access.certificateTarget;
   const editCertificate = access.editCertificate;
@@ -156,40 +141,14 @@ export function CompanyMemberAccess({
     setCertificateRequest('');
     checks.reset();
   };
-  const hasRequests = particulars.length + certificates.length > 0;
-  const selectedRequest = particulars.find((item) => item.uuid === request && item.status === 'submitted');
-  const requestOpen = !!selectedRequest && !!access.prepare;
-  useEffect(() => {
-    if (view !== 'requests' || certificateOpen) return;
-    if (requestOpen) {
-      requestHeading.current?.focus();
-      requestHeading.current?.scrollIntoView?.({ block: 'start' });
-    } else if (!request && requestReturnFocus.current) {
-      const opener = requestOpeners.current.get(requestReturnFocus.current);
-      if (opener) {
-        opener.focus();
-        requestReturnFocus.current = '';
-      }
-    }
-  }, [requestOpen, request, view, certificateOpen]);
-  const memberRequests = [
-    ...particulars.map((record) => ({ kind: 'particulars' as const, record })),
-    ...certificates.map((record) => ({ kind: 'certificate' as const, record })),
-  ];
-  const requestType = ['particulars', 'certificate'].includes(filters.filters.request_type)
-    ? filters.filters.request_type
-    : '';
-  const filtersHeld = held || requestOpen || certificateOpen || !access.requests;
+  const hasRequests = certificates.length > 0;
+  const filtersHeld = held || certificateOpen || !access.requests;
   useEffect(() => {
     if (filtersHeld && filters.typed !== filters.search) filters.type(filters.search);
   }, [filtersHeld, filters.typed, filters.search, filters.type]);
   const matches = filtersHeld
-    ? memberRequests
-    : searchRows(
-        memberRequests,
-        (item) => (item.kind === 'particulars' ? item.record.name : memberName(item.record.member)),
-        filters.search,
-      ).filter((item) => !requestType || item.kind === requestType);
+    ? certificates
+    : searchRows(certificates, (record) => memberName(record.member), filters.search);
   const deadline = (item: (typeof invitations)[number]) =>
     item.status === 'pending' || item.status === 'expired' ? (
       <>
@@ -197,13 +156,13 @@ export function CompanyMemberAccess({
         <span className="whitespace-nowrap">{formatDateTime(item.acceptanceDeadline)}</span>
       </>
     ) : null;
-  const matchingRequests = new Set(matches.map((item) => `${item.kind}/${item.record.uuid}`));
+  const matchingRequests = new Set(matches.map((record) => record.uuid));
   return (
     <>
       <div className="space-y-4">
         <ErrorSummary {...checks.summary} />
         {access.readFailed && (
-          <LoadError retry={() => track('refresh', refresh())} busy={running === 'refresh' || access.busy || uploading}>
+          <LoadError retry={() => track('refresh', refresh())} busy={running === 'refresh' || access.busy}>
             Member access or members&apos; requests could not be loaded.
           </LoadError>
         )}
@@ -364,7 +323,6 @@ export function CompanyMemberAccess({
                             disabled={held}
                             onClick={() => {
                               checks.reset();
-                              setRequest('');
                               setReason('');
                               setRevokeMember(association.uuid);
                             }}
@@ -560,38 +518,21 @@ export function CompanyMemberAccess({
           <Section title="Requests">
             {visible && view === 'requests' && !certificateOpen && (
               <PageActions>
-                <FilterPopover active={!!filters.search || !!requestType} resetKey={certificateContext}>
-                  {(close) => (
-                    <>
-                      <Field label="Person">
-                        <TextInput
-                          type="search"
-                          maxLength={100}
-                          autoComplete="off"
-                          data-1p-ignore
-                          disabled={filtersHeld}
-                          value={filters.typed}
-                          onChange={(event) => {
-                            if (!filtersHeld) filters.type(event.target.value);
-                          }}
-                        />
-                      </Field>
-                      <SelectField
-                        label="Request type"
-                        options={[
-                          { value: '', label: 'All requests' },
-                          { value: 'particulars', label: 'Details update' },
-                          { value: 'certificate', label: 'Certificate' },
-                        ]}
-                        value={requestType}
+                <FilterPopover active={!!filters.search} resetKey={certificateContext}>
+                  {() => (
+                    <Field label="Person">
+                      <TextInput
+                        type="search"
+                        maxLength={100}
+                        autoComplete="off"
+                        data-1p-ignore
                         disabled={filtersHeld}
-                        onChange={(value) => {
-                          if (filtersHeld) return;
-                          close();
-                          filters.setFilter('request_type', value);
+                        value={filters.typed}
+                        onChange={(event) => {
+                          if (!filtersHeld) filters.type(event.target.value);
                         }}
                       />
-                    </>
+                    </Field>
                   )}
                 </FilterPopover>
               </PageActions>
@@ -617,37 +558,23 @@ export function CompanyMemberAccess({
                 <span className="sr-only">Action</span>
               </div>
             )}
-            <ul aria-label="Member requests" className={requestOpen ? '' : 'divide-y divide-border-subtle'}>
-              {memberRequests.map((item) => {
-                const record = item.record;
-                const shareClass =
-                  item.kind === 'certificate'
-                    ? registers.find((register) => register.token.uuid === item.record.token)?.token
-                    : undefined;
+            <ul aria-label="Member requests" className="divide-y divide-border-subtle">
+              {certificates.map((record) => {
+                const shareClass = registers.find((register) => register.token.uuid === record.token)?.token;
                 return (
                   <li
-                    key={`${item.kind}/${record.uuid}`}
-                    hidden={
-                      !matchingRequests.has(`${item.kind}/${record.uuid}`) ||
-                      (!!selectedRequest &&
-                        !!access.prepare &&
-                        (item.kind !== 'particulars' || item.record.uuid !== selectedRequest.uuid))
-                    }
+                    key={record.uuid}
+                    hidden={!matchingRequests.has(record.uuid)}
                     className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_10rem_12rem_10rem] xl:gap-6"
                   >
-                    <span className="min-w-0 break-words font-medium">
-                      {item.kind === 'particulars' ? item.record.name : memberName(item.record.member)}
-                    </span>
+                    <span className="min-w-0 break-words font-medium">{memberName(record.member)}</span>
                     <span className="col-span-2 min-w-0 break-words text-text-muted xl:col-span-1">
                       <span className="sr-only">Request: </span>
-                      {item.kind === 'particulars' ? 'Details update' : 'Unsigned certificate'}
+                      Unsigned certificate
                       {shareClass && (
                         <span className="block">
                           {shareClass.name} · {shareClass.symbol}
                         </span>
-                      )}
-                      {item.kind === 'particulars' && (
-                        <span className="block whitespace-pre-line">{item.record.residentialAddress}</span>
                       )}
                     </span>
                     <span className="col-span-2 tabular-nums text-text-muted xl:col-span-1">
@@ -655,127 +582,38 @@ export function CompanyMemberAccess({
                       {formatDate(record.createdAt)}
                     </span>
                     <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted xl:col-auto xl:row-auto">
-                      {item.kind === 'particulars'
-                        ? MEMBER_PARTICULARS_STATUS_LABELS[item.record.status]
-                        : MEMBER_CERTIFICATE_STATUS_LABELS[item.record.status]}
-                      {item.kind === 'certificate' && item.record.fulfilment && (
-                        <span className="hidden xl:block">Created {formatDate(item.record.fulfilment.createdAt)}</span>
+                      {MEMBER_CERTIFICATE_STATUS_LABELS[record.status]}
+                      {record.fulfilment && (
+                        <span className="hidden xl:block">Created {formatDate(record.fulfilment.createdAt)}</span>
                       )}
                     </span>
-                    {item.kind === 'certificate' && item.record.fulfilment && (
+                    {record.fulfilment && (
                       <span className="col-span-2 text-text-muted xl:hidden">
-                        Created {formatDate(item.record.fulfilment.createdAt)}
+                        Created {formatDate(record.fulfilment.createdAt)}
                       </span>
                     )}
-                    {item.kind === 'particulars'
-                      ? item.record.status === 'submitted' &&
-                        access.prepare &&
-                        selectedRequest?.uuid !== item.record.uuid && (
-                          <div className="col-span-2 flex items-start justify-end xl:col-span-1">
-                            <PageAction
-                              ref={(element) => {
-                                if (element) requestOpeners.current.set(item.record.uuid, element);
-                                else requestOpeners.current.delete(item.record.uuid);
-                              }}
-                              label="Prepare update"
-                              context={item.record.name}
-                              disabled={held}
-                              onClick={() => {
-                                checks.reset();
-                                setRevokeMember('');
-                                setReason('');
-                                requestReturnFocus.current = item.record.uuid;
-                                setRequest(item.record.uuid);
-                              }}
-                            />
-                          </div>
-                        )
-                      : item.record.status === 'requested' && (
-                          <div className="col-span-2 flex items-start justify-end xl:col-span-1">
-                            <PageAction
-                              ref={(element) => {
-                                if (element) certificateOpeners.current.set(item.record.uuid, element);
-                                else certificateOpeners.current.delete(item.record.uuid);
-                              }}
-                              label="Prepare certificate"
-                              context={memberName(item.record.member)}
-                              disabled={held}
-                              onClick={() => {
-                                checks.reset();
-                                certificateReturnFocus.current = item.record.uuid;
-                                setCertificateRequest(item.record.uuid);
-                              }}
-                            />
-                          </div>
-                        )}
+                    {record.status === 'requested' && (
+                      <div className="col-span-2 flex items-start justify-end xl:col-span-1">
+                        <PageAction
+                          ref={(element) => {
+                            if (element) certificateOpeners.current.set(record.uuid, element);
+                            else certificateOpeners.current.delete(record.uuid);
+                          }}
+                          label="Prepare certificate"
+                          context={memberName(record.member)}
+                          disabled={held}
+                          onClick={() => {
+                            checks.reset();
+                            certificateReturnFocus.current = record.uuid;
+                            setCertificateRequest(record.uuid);
+                          }}
+                        />
+                      </div>
+                    )}
                   </li>
                 );
               })}
             </ul>
-            {access.prepare && (
-              <form
-                noValidate
-                hidden={!selectedRequest}
-                className="space-y-4 border-t border-border-subtle pt-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (selectedRequest && !held && checks.check(PARTICULARS_FIELDS)) track('particulars', prepare());
-                }}
-              >
-                <h3 ref={requestHeading} tabIndex={-1} className="scroll-mt-6 text-base font-medium focus:outline-none">
-                  Prepare {selectedRequest?.name}&apos;s particulars update
-                </h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FileField
-                    {...checks.field('file')}
-                    label="Company supporting document"
-                    disabled={held}
-                    onFile={selectFile}
-                  />
-                  <Field {...checks.field('asAt')} label="As-at date (UTC)">
-                    <TextInput
-                      type="date"
-                      max={utcToday()}
-                      value={asAt}
-                      disabled={held}
-                      onChange={(event) => setAsAt(event.target.value)}
-                    />
-                  </Field>
-                </div>
-                {selectedRequest && (
-                  <Field {...checks.field('reason')} label="Company action reason">
-                    <TextArea
-                      maxLength={FIELD_LIMITS.REASON}
-                      value={reason}
-                      disabled={held}
-                      onChange={(event) => setReason(event.target.value)}
-                    />
-                  </Field>
-                )}
-                <p className="text-sm text-text-muted">
-                  This records the company instruction. Review and approve it separately in Ledger, Corrections.
-                </p>
-                <Failure>{uploadError}</Failure>
-                <FormActions>
-                  <PageAction
-                    label="Cancel"
-                    disabled={held}
-                    onClick={() => {
-                      checks.reset();
-                      setRequest('');
-                    }}
-                  />
-                  <PageAction
-                    label="Record company particulars instruction"
-                    type="submit"
-                    primary
-                    busy={running === 'particulars'}
-                    busyLabel="Recording instruction…"
-                    disabled={held}
-                  />
-                </FormActions>
-              </form>
-            )}
           </Section>
         </div>
       </div>

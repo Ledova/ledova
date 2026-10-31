@@ -106,16 +106,12 @@ Awards remain in a separate card below the ownership panel. Member awards show t
 nonzero lifecycle quantities, with the full breakdown and terms under **Show award details**. Issued
 award shares are already included in the holding. The Dashboard contains the overview and read-only
 awards; requests, documents and record-management actions stay on their focused pages.
-Profile shows **Company-recorded details** as one card, after Personal information, for a member of
-the selected company. **Current details** and **Update requests** form equal desktop groups separated by a hairline,
-with aligned name and address rows; they stack on smaller screens without nested cards. Addresses show
-in full with their original line breaks, without changing stored text. Each request's status and date use a labelled
-row aligned with the name and address values. **Request update** sits in the shared
-right-aligned footer. That action opens one focused inline form with **Cancel** and
-**Send request** together; a successful submission closes the form and clears sharing consent.
-Technical references and completed requests open on demand. Keep these company records distinct
-from personal Profile edits.
-Share history and certificate tracking belong in Documents, without duplicate particulars status.
+Profile shows one read-only card, after Personal information, for a member of the selected company,
+titled with the company's name (**How Example Pty Ltd records you**) so it never reads as a second
+profile. It holds aligned Name and Residential address rows, with addresses in full and their
+original line breaks, and the line **Wrong? Contact the company.** It has no action: the member asks
+the company directly. Keep these company records distinct from personal Profile edits.
+Share history and certificate tracking belong in Documents.
 Section spacing is scoped to
 the frame; sign-up keeps its own presentation.
 
@@ -188,9 +184,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   switch named by its label, disabled while saving; a refusal keeps the saved value and shows an alert
   in the card. The theme switch is the icon beside Sign out on web and in the app, not a row. A choice
   saved with a form stays a checkbox.
-- `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event;
-  `Choice` (mobile) is an outlined choice marked selected. Each status family has its own
-  tone map; shared resolution-result tones live in `dashboard/src/components/statusTones.ts`.
+- `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event. Each
+  status family has its own tone map; shared resolution-result tones live in
+  `dashboard/src/components/statusTones.ts`.
 
 On workflow collections, show the saved records first, with class context once where needed.
 The sidebar footer identifies the current company. Keep each recipient, status and key facts
@@ -286,30 +282,25 @@ don't expand; earlier requests for the same entry are listed beneath the row, ea
 its own line.
 Company-only rows show certificate eligibility; request status comes only from an actual readable
 request. Older or other-class requests sit behind **Show other certificate requests (N)** with their
-own actions. Preparing a company PDF never marks a member request fulfilled. Particulars requests stay
-in Profile's Company-recorded details.
+own actions. Preparing a company PDF never marks a member request fulfilled.
 
 The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
 Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order,
 with compact rows aligned under Person, Linked or Invited, and Status. People retains current and
 revoked access records; invitations remain separate records. **Member requests** uses one **Requests**
-card, with Person, Request, Requested and Status columns. Identify each request as a details update
-or an unsigned certificate, with the certificate's share class when available. Keep all retained
+card for members' certificate requests, with Person, Request, Requested and Status columns. Identify
+each request as an unsigned certificate, with its share class when available. Keep all retained
 statuses in the list. The page heading's top-right actions hold the Filters icon; its panel searches the person's
-name and selects All requests, Details update or Certificate. Name search applies after 300 ms;
-type selection applies immediately and closes the panel. Match the complete permitted request
-arrays, with a simple no-match state. Keep request rows and active workflows mounted: filters only
+name, applied after 300 ms. Match the complete permitted request array, with a simple no-match
+state. Keep request rows and active workflows mounted: filters only
 hide other rows and cannot hide a held preparation or its recovery. Both views use the standard
 workspace width and Ledger's aligned change-row pattern;
 headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
 or class context and genuine dates in the row, without repeating the page title inside a card.
 A current person's Member access row ends with **Revoke access**, which opens the reason form beneath the
 row; its confirmation says what revocation does. A pending or expired invitation shows its acceptance deadline. Member requests rows don't expand: each
-shows the requested address of a details update and the creation date of a fulfilled certificate,
-with **Prepare update** or **Prepare certificate** at the row's end when the request can be prepared.
-Preparing a details update focuses its form heading and keeps the selected row and form together,
-with other rows mounted but hidden; Cancel restores the list and opener focus.
-Use only the form's top rule between the selected request and its form, suppressing the list divider.
+shows the creation date of a fulfilled certificate, with **Prepare certificate** at the row's end
+when the request can be prepared.
 Requests, access and invitation records show no internal references, fingerprints or file sizes; these
 remain in the audit records. A certificate request does not supply a share quantity;
 do not substitute the member's current holding. Keep unavailable reads and their retries distinct
@@ -321,8 +312,8 @@ out of visible fields: the email link opens one focused Member invitation page, 
 signup in the same tab. Show company, shareholder, intended email and expiry before an explicit
 Accept invitation action; opening the link must never accept it. The company sees acceptance status
 and an honest sending result, with a retry on failure; provider acceptance is not inbox delivery.
-Show an action reason only for a selected revocation or particulars update, and certificate
-instruction fields only with an actual request. Preserve drafts, current authority, failed-read
+Show an action reason only for a selected revocation, and certificate instruction fields only with
+an actual request. Preserve drafts, current authority, failed-read
 retries and original-action recovery; there is no routine refresh control.
 Selecting a certificate request replaces the collection with focused **Prepare certificate** and
 **Review certificate** views, keeping its controllers mounted. Group the member, exact class,
@@ -441,8 +432,8 @@ one-level group for **Profile** (the default), **Account** and **Data and privac
 **Team** and **Activation** where permitted, without an extra overview page. A group with only one
 permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
 there. Profile always holds personal information. Company documents, Team, Activation and
-Company details follow current company access; Profile's Company-recorded details follows an actual
-member association. Personal edits never change company-recorded particulars.
+Company details follow current company access; Profile's company-recorded name and address follow an
+actual member association. Personal edits never change company-recorded particulars.
 Use one compact Account card for relevant identity status, password and Manage account (member since
 and last login); keep export and deletion on Data and privacy, with their existing confirmations. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Payslip evidence
@@ -540,7 +531,7 @@ request, on pages and in dialogs, including:
 - previews and preparations;
 - identity verification;
 - establishing an appointment;
-- member, particulars and certificate requests;
+- member and certificate requests;
 - register setup's review step (editing the records, loading and confirming the decision).
 
 Read on entry and after relevant actions under the [freshness standard](frontend.md#automatic-data-freshness),
@@ -793,8 +784,8 @@ server:
   its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
   scope without repeating it in a header summary or badge. Certificates keeps labelled
   draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;
-  Apply and Clear close the panel and return focus to its button. Shareholders' class filter,
-  Member requests' type and company eligibility's Outcome apply
+  Apply and Clear close the panel and return focus to its button. Shareholders' class filter
+  and company eligibility's Outcome apply
   immediately, closing the panel on selection. Member requests' person search stays inside its panel
   and uses the existing 300 ms timing, without an Apply action. Escape and an outside click dismiss
   it, and all controls remain keyboard

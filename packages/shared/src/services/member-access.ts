@@ -16,13 +16,9 @@ import type {
   MemberInvitationCreate,
   MemberInvitationEmailed,
   MemberInvitationPreview,
-  MemberParticularsRequest,
-  MemberParticularsRequestCreate,
-  MemberParticularsRequestPrepare,
   OwnMemberEntries,
   OwnMemberRecord,
   PaginatedResponse,
-  RegisterParticularsChange,
 } from '../types';
 
 function validOwnAwards(record: OwnMemberRecord) {
@@ -67,22 +63,6 @@ export const revokeMemberAssociation = (
   data: MemberAssociationRevoke,
   config: AxiosRequestConfig = {},
 ) => api.post<MemberAssociation>(URLS.MEMBER_ASSOCIATION_REVOKE(uuid), data, config);
-export const getMemberParticularsRequests = (
-  api: AxiosInstance,
-  params: { association?: string; company?: string; page: number },
-  config: AxiosRequestConfig = {},
-) => api.get<PaginatedResponse<MemberParticularsRequest>>(URLS.MEMBER_PARTICULARS_REQUESTS, { ...config, params });
-export const createMemberParticularsRequest = (
-  api: AxiosInstance,
-  data: MemberParticularsRequestCreate,
-  config: AxiosRequestConfig = {},
-) => api.post<MemberParticularsRequest>(URLS.MEMBER_PARTICULARS_REQUESTS, data, config);
-export const prepareMemberParticularsRequest = (
-  api: AxiosInstance,
-  uuid: string,
-  data: MemberParticularsRequestPrepare,
-  config: AxiosRequestConfig = {},
-) => api.post<RegisterParticularsChange>(URLS.MEMBER_PARTICULARS_REQUEST_PREPARE(uuid), data, config);
 export const getMemberCertificateRequests = (
   api: AxiosInstance,
   params: { association?: string; company?: string; page: number },

@@ -1,13 +1,9 @@
-import { createContext, useContext, type Dispatch, type SetStateAction } from 'react';
+import { createContext, useContext } from 'react';
 import type { useMemberRecords } from '@ledova/shared';
-
-export type MemberDraft = { name: string; address: string; confirmed: boolean; open: boolean };
 
 export type MemberWorkspace = {
   read: ReturnType<typeof useMemberRecords>;
   held: boolean;
-  draft: MemberDraft;
-  setDraft: Dispatch<SetStateAction<MemberDraft>>;
   token: string;
   selectToken: (uuid: string) => void;
 };

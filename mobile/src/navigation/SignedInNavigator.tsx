@@ -19,7 +19,7 @@ export type SignedInStackParamList = {
   Dashboard: { record?: string; award?: string } | undefined;
   Certificates: { record?: string; token?: string; company?: string } | undefined;
   Notices: undefined;
-  Settings: { record?: string } | undefined;
+  Settings: undefined;
   Account: undefined;
   DataPrivacy: undefined;
   Invitation: undefined;

@@ -313,7 +313,6 @@ def section(company):
             command={
                 "member": _related(record, record.member),
                 "as_at": record.as_at,
-                "member_request": record.member_request_id,
             },
         )
         for record in _records(RegisterParticularsChange, company)

@@ -385,11 +385,10 @@ async function openTheSidebar(page: Page, role: Role) {
       `/settings?company=company#${hash}`,
     );
   await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
-  for (const name of ['Documents', 'Company-recorded details'])
-    await expect(settings.getByRole('link', { name, exact: true })).toHaveCount(0);
+  await expect(settings.getByRole('link', { name: 'Documents', exact: true })).toHaveCount(0);
   await settingsLink.click();
   await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Company-recorded details', exact: true })).toHaveCount(
+  await expect(page.getByRole('heading', { name: `How ${LONG_NAME} records you`, exact: true })).toHaveCount(
     role === 'company' ? 0 : 1,
   );
   await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(

@@ -74,10 +74,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const allowed = (uuid: string | null) =>
     !!owner && boundary.get() === owner && !held && (!uuid || directory.companies.some((row) => row.uuid === uuid));
   const isDirty = useCallback(
-    (memberDraft = true) =>
-      [...document.querySelectorAll(memberDraft ? 'main form' : 'main form:not([data-member-draft])')].some((form) =>
-        dirtyForms.current.has(form as HTMLFormElement),
-      ),
+    () => [...document.querySelectorAll('main form')].some((form) => dirtyForms.current.has(form as HTMLFormElement)),
     [],
   );
   const blocker = useBlocker(
@@ -109,48 +106,24 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
           (documentView(hash) || hash === ledger.state?.task)
         )
           return false;
-        const memberPages = [
-          DESTINATIONS.home.path,
-          DESTINATIONS.memberRecords.path,
-          DESTINATIONS.settings.path,
-          DESTINATIONS.certificates.path,
-        ];
-        const persistentDraft =
-          !!member?.draft.open &&
-          !changingCompany &&
-          memberPages.some((path) => path === currentLocation.pathname) &&
-          memberPages.some((path) => path === nextLocation.pathname);
         const changingPage =
           currentLocation.pathname !== nextLocation.pathname || currentLocation.hash !== nextLocation.hash;
         const blocked =
-          held ||
-          (changingCompany && !!member?.draft.open) ||
-          ((changingCompany || internal || (historyAction === 'POP' && changingPage)) && isDirty(!persistentDraft));
+          held || ((changingCompany || internal || (historyAction === 'POP' && changingPage)) && isDirty());
         if (blocked) setBlockedAt({ owner, location: currentLocation.key });
         return blocked;
       },
-      [
-        owner,
-        boundary,
-        companyUuid,
-        directory.companies,
-        member?.draft.open,
-        held,
-        ledgerHeld,
-        memberHeld,
-        ledger.state,
-        isDirty,
-      ],
+      [owner, boundary, companyUuid, directory.companies, held, ledgerHeld, memberHeld, ledger.state, isDirty],
     ),
   );
   useBeforeUnload(
     useCallback(
       (event) => {
-        if (!owner || boundary.get() !== owner || (!held && !member?.draft.open && !isDirty())) return;
+        if (!owner || boundary.get() !== owner || (!held && !isDirty())) return;
         event.preventDefault();
         event.returnValue = '';
       },
-      [owner, boundary, held, member?.draft.open, isDirty],
+      [owner, boundary, held, isDirty],
     ),
   );
   useEffect(() => {
@@ -256,7 +229,6 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
             location.key === blockedAt.location
           ) {
             dirtyForms.current = new WeakSet();
-            member?.setDraft({ name: '', address: '', confirmed: false, open: false });
             setBlockedAt(null);
             blocker.proceed();
           }
