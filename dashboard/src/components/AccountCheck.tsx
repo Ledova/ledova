@@ -3,7 +3,7 @@ import { LoadError, Loading } from './Ledger';
 
 export function AccountCheck() {
   const preferences = useUserPreferences();
-  return preferences.isLoading ? (
+  return preferences.isLoading || preferences.isFetching ? (
     <Loading>Loading your account…</Loading>
   ) : (
     <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>

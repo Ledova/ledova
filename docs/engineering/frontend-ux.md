@@ -858,7 +858,8 @@ to this account." Try again is described by that sentence, so a screen reader sa
 retries, and it stays disabled while the read runs again. Shared copy passes through unchanged,
 such as Notices' "What has been published to you could not be loaded." A page that waits for the
 signed-in account shows `AccountCheck` (`dashboard/src/components/AccountCheck.tsx`): "Loading your
-account…" while preferences load, then "Your account could not be loaded." with Try again.
+account…" while preferences load or refresh, then "Your account could not be loaded." with Try
+again.
 
 A failed read shows this block, not an empty state. The notification bell, profile documents and
 classification claims, which used to show an empty state, now show the failure. A failed refresh
