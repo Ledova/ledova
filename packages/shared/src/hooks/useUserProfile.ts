@@ -63,8 +63,7 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });
   const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
-  const ownerReady =
-    !!owner && preferences?.status === 'success' && preferences.fetchStatus === 'idle' && !preferences.isInvalidated;
+  const ownerReady = !!owner && preferences?.status === 'success' && !preferences.isInvalidated;
   const userProfile = ownerReady && profile.isSuccess ? (profile.data.data.results[0] ?? null) : null;
   const snapshot = JSON.stringify(userProfile);
   const sourceKey = userProfile ? JSON.stringify([...key, snapshot]) : null;

@@ -6,15 +6,17 @@ import { canOpen, landingFor, useAuth } from '@ledova/shared';
 import { useRole } from '@hooks/useRole';
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import { useUserProfile } from '@hooks/useUserProfile';
-import { AccountUnavailable } from './AccountUnavailable';
+import { AccountUnavailable, SessionUnavailable } from './AccountUnavailable';
 
 export function SignupRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isUnavailable, isLoading, refetch } = useAuth();
   const { userProfile, isLoading: isProfileLoading, refreshProfile } = useUserProfile();
   const { role, isLoading: isRoleLoading } = useRole();
   const finished = useSignupFinished();
 
   if (isLoading || isProfileLoading || (finished && isRoleLoading)) return null;
+
+  if (isUnavailable) return <SessionUnavailable onRetry={() => void refetch()} />;
 
   if (finished)
     return (

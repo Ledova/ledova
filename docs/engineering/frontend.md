@@ -60,7 +60,7 @@ frame share, and `packages/shared` holds what both clients share.
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                  |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `auth/`, and single components several areas show (`AwardStatus.tsx`) |
 | `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                               |
-| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                                                                                      |
+| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`), the query client it reads the session from (`queryClient.ts`) and the device stores built from the shared store factories                                                                                                       |
 | `utils/`              | Browser and pure helpers used by more than one area or the frame (`siteUrl.ts`, `saveFile.ts`, the session resets) and the web-only paths (`paths.ts`)                                                                                                                                                                             |
 | `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                            |
 | `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                      |
@@ -170,8 +170,12 @@ The [principles](README.md#principles) apply; in particular, do not add:
   ([session scope](mobile.md#session-scope)).
 - **API client.** Shared services take the axios instance first. Shared hooks read it with
   `useApiClient()` and never take it as an argument; dashboard hooks import the `apiClient`
-  singleton, which `main.tsx` also gives `ApiClientProvider`. Every endpoint a client calls has its
-  function in `packages/shared/src/services`;
+  singleton, which `main.tsx` also gives `ApiClientProvider`. While a signed-in session is being
+  rechecked (authentication or user preferences fetching, failed or invalidated), the web client
+  refuses every request other than a read with "Your session is being checked. Try again in a
+  moment.", except the session's own calls: signing in, signing out, signing up, email verification
+  and token refresh (`dashboard/src/services/apiClient.ts`, reading `services/queryClient.ts`).
+  Every endpoint a client calls has its function in `packages/shared/src/services`;
   [the API type drift gate](gates.md#the-api-type-drift-gate) accounts for each operation, not for
   where it is called.
 - **Query keys.** The module that owns a query exports its key or key factory, and every other
@@ -303,8 +307,10 @@ entry's audience:
 - A session check that fails is not a sign-out. `/auth/verify` answers `valid: false` to anyone
   signed out; that answer, or a 401, means signed out. `useAuth`
   (`packages/shared/src/hooks/useAuth.ts`) retries any other failure once, then reports
-  `isUnavailable`, and this guard and `RootRedirect` show `SessionUnavailable` ("We could not
-  check your session") with Try again, keeping the address. A failed re-check of a confirmed
+  `isUnavailable`, and this guard, `RootRedirect` and the sign-up guard show `SessionUnavailable`
+  ("We could not check your session") with Try again, keeping the address; the member invitation
+  page says its session could not be checked, with Try again, and the sign-in form is its own
+  recovery. A failed re-check of a confirmed
   session shows the same message, and a check paused offline or in a hidden tab still counts as
   checking. Mobile doesn't read `isUnavailable`: a failed check still returns it to Sign in.
 - The session check shows until the profile, and on an investing or company page the role, is known,
@@ -474,8 +480,11 @@ decision review or original-request recovery is open.
 
 Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
-so user preferences still recheck the signed-in identity on focus and reconnect; unconfirmed identity
-continues to withhold private content, including after an account changes in another tab. Keep bounded status checks for a submitted upload, extraction or identity
+so user preferences still recheck the signed-in identity on focus and reconnect. While a recheck of
+the same account runs, the frame, the page and its drafts stay, and the web API client refuses every
+write until it finishes ([API client](#frontend-rules)); a failed check or a changed account withholds
+private content, including after an account changes in another tab. Mobile clears its cache whenever
+the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload, extraction or identity
 verification, stopping when the operation finishes or its view closes. A status read must never
 repeat a write, upload or share issue.
 

@@ -46,7 +46,8 @@ export function useOwnershipCompanies() {
   const { owner, boundary } = useSubmissionOwner();
   const preferences = useUserPreferences();
   const client = useQueryClient();
-  const ready = !!owner && !!preferences.preferences && !preferences.isError && !preferences.isFetching;
+  const known = !!owner && !!preferences.preferences && !preferences.isError;
+  const ready = known && !preferences.isFetching;
   const guard = () => {
     const current = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
     if (!owner || boundary.get() !== owner || current?.status !== 'success' || current.fetchStatus !== 'idle')
@@ -93,8 +94,7 @@ export function useOwnershipCompanies() {
     },
     ...timing,
   });
-  const isRefreshing =
-    preferences.isFetching || companyRows.isFetching || appointments.isFetching || memberRows.isFetching;
+  const isRefreshing = companyRows.isFetching || appointments.isFetching || memberRows.isFetching;
   const hasError =
     preferences.isError ||
     companyRows.isError ||
@@ -102,7 +102,7 @@ export function useOwnershipCompanies() {
     memberRows.isError ||
     (memberRows.isSuccess && !confirmedMemberRows(memberRows.data));
   const confirmed =
-    ready && !isRefreshing && !hasError && companyRows.isSuccess && appointments.isSuccess && memberRows.isSuccess;
+    known && !isRefreshing && !hasError && companyRows.isSuccess && appointments.isSuccess && memberRows.isSuccess;
   const companies = new Map<string, OwnershipCompany>();
   const members: OwnMemberRecord[] = confirmed ? memberRows.data : [];
   if (confirmed) {

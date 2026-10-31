@@ -1,5 +1,13 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
-import { AUTH_ENDPOINTS, createUserFriendlyError, describeFailure, hasServiceErrorDetail } from '@ledova/shared';
+import {
+  AUTH_ENDPOINTS,
+  AUTH_QUERY_KEY,
+  USER_PREFERENCES_QUERY_KEY,
+  createUserFriendlyError,
+  describeFailure,
+  hasServiceErrorDetail,
+} from '@ledova/shared';
+import { queryClient } from './queryClient';
 
 export type { UserFriendlyError } from '@ledova/shared';
 
@@ -20,7 +28,26 @@ const isCsrfFailure = (error: AxiosError) => {
   return error.response?.status === 403 && typeof detail === 'string' && detail.startsWith('CSRF Failed');
 };
 
+const SESSION_CALLS: string[] = [
+  AUTH_ENDPOINTS.SIGNIN,
+  AUTH_ENDPOINTS.SIGNOUT,
+  AUTH_ENDPOINTS.SIGNUP,
+  AUTH_ENDPOINTS.EMAIL_VERIFICATION,
+  AUTH_ENDPOINTS.RESEND_VERIFICATION,
+  AUTH_ENDPOINTS.TOKEN_REFRESH,
+];
+
+const sessionSettled = () => {
+  if (!queryClient.getQueryData<{ data: { valid: boolean } }>(AUTH_QUERY_KEY)?.data.valid) return true;
+  return [AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY].every((queryKey) => {
+    const state = queryClient.getQueryState(queryKey);
+    return state?.status === 'success' && state.fetchStatus === 'idle' && !state.isInvalidated;
+  });
+};
+
 apiClient.interceptors.request.use((config) => {
+  if (config.method !== 'get' && !SESSION_CALLS.includes(config.url ?? '') && !sessionSettled())
+    throw createUserFriendlyError('Your session is being checked. Try again in a moment.');
   config.ledovaSubmissionGuard?.();
   return config;
 });
