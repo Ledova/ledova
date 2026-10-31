@@ -91,6 +91,7 @@ export {
 export { isPreparedRegisterTransfer } from './register-transfers';
 export { ownershipSummary } from './register-ownership';
 export { hasWholeShares, wholeShares } from './share-quantities';
+export { ownershipColorIndex, ownershipView, rankOwnershipClasses, type OwnershipClass } from './memberOwnership';
 export { parseTheme } from './theme';
 
 export {

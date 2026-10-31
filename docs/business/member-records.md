@@ -124,12 +124,9 @@ withhold complete company totals and the company ring. The company's legal regis
 inspection arrangements remain with the company.
 
 These charts count issued shares, not voting power or value; different classes can carry different
-rights. Class-rights disclosure and mobile presentation of the shared overview remain separate work.
-Mobile **Dashboard** shows a card per company, with a line per
-share class and each award's vested quantity and bar; with more than six companies it becomes a
-searchable list, and classes no longer held sit under **Past holdings**. On mobile an award opens
-its own page with the vested quantity, the issued, vested but unissued, still-to-vest and ended
-parts, the schedule and terms, and the award's history. The web and mobile both keep employee awards
+rights. Class-rights disclosure remains separate work. Mobile **Dashboard** shows the same overview
+for the selected company, with the class card and the member's awards; **Switch company** chooses
+among the member's companies. The web and mobile both keep employee awards
 separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
@@ -138,8 +135,8 @@ breakdown and terms under **Show award details**. This read-only overview is the
 company. It groups **Current details** and **Update requests**, separate from the personal information. Pending requests show the requested
 particulars, status and date together;
 completed requests open on demand. Share history, certificates and certificate requests
-are in web **Documents** → **Certificates**, without duplicate particulars status. On mobile, each share class's page,
-opened from the company's page, shows its history; a change's certificate status opens a sheet to
+are in web **Documents** → **Certificates**, without duplicate particulars status. On mobile, each share class's
+**Certificates and history**, opened from its class card on Dashboard, shows its history; a change's certificate status opens a sheet to
 request, withdraw or share it, with that change's other requests and their actions, and requests
 for changes not in the history are listed below it. Mobile **Documents** lists the ready and
 requested certificates from every company, filtered by company, each opening its sheet to share
@@ -184,7 +181,7 @@ original request
 A member, including an award recipient before any shares are issued, asks the company to change
 their recorded name and residential address: **Settings** → **Profile** → **Company-recorded details** →
 **Request update** on web, then **Send request** (**Request a particulars change**, then
-**Send particulars request** under **Your details** on the company's page on mobile). Sending changes nothing on the register.
+**Send particulars request** for a company in **Settings** → **Details at each company** on mobile). Sending changes nothing on the register.
 On mobile, **Settings** → **Details at each company** lists each company's recorded name and address
 and sends one change to all of them (**Change at every company**, then **Send to** each company).
 Each company receives its own request; a company that already records the change, or where the same

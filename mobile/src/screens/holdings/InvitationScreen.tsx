@@ -22,7 +22,7 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { Avatar } from './CompanyHoldings';
+import { Avatar } from '../../components/Avatar';
 import { MemberNotice, useMemberRecordsState } from './MemberRecordsProvider';
 
 function codeOf(value: string) {
