@@ -341,8 +341,8 @@ Class details and Ledger preparations use `dashboard/src/pages/company/ledger/sh
 to add the resolved record's company to an address that has none. A conflicting explicit company
 withholds that record and its form.
 
-The sidebar (`dashboard/src/components/Sidebar.tsx`) names shared destinations by `DESTINATIONS` key
-and web-only destinations by their address. Ledger's label opens its overview; a separate caret
+The sidebar (`dashboard/src/components/Sidebar.tsx`) names every destination by its `DESTINATIONS`
+key. Ledger's label opens its overview; a separate caret
 expands Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`),
 marking the active child and opening the group on Ledger routes. The web replaces an incoming
 `#history` with `#corrections` without dropping company/class context; shared task names retain

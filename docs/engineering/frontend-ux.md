@@ -456,9 +456,9 @@ in page headers or a Company administration link card.
 
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
 including Ledger, its views (Shareholders, Employee share scheme, Documents) and tasks
-(Issue shares, Transfer shares, History, Corrections), Set up your ledger and Home's Documents
-view. The web's neutral Certificates address is declared in `dashboard/src/utils/paths.ts`;
-old Dashboard and Ledger certificate links redirect there with their company and class. The web exposes
+(Issue shares, Transfer shares, History, Corrections), Set up your ledger, Home's Documents
+view, Certificates and Company documents. Old Dashboard and Ledger certificate links redirect to
+Certificates with their company and class. The web exposes
 only Issue shares, Transfer shares and Corrections,
 replacing an incoming `#history` with `#corrections` while retaining company/class context. The web sidebar,
 page titles and parent links use `pageTitle`
