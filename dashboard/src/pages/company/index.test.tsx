@@ -21,7 +21,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Link, useLocation } from 'react-router-dom';
 import { CompanyProfile } from '@pages/settings/CompanyProfile';
 import CompanyDocumentsPage from '@pages/documents/company';
-
 import CompanyTeamPage from './team';
 import CompanyEligibilityPage from './eligibility';
 import { APPOINTMENT, companyPreferences, companyRecord, renderCompanyPage } from '../../testSupport/company';

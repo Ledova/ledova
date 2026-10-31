@@ -32,7 +32,6 @@ import { AWARD_REQUEST, REGISTER, awardFrom } from '../../testSupport/company';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF, OUTPUT_APPOINTMENT, OUTPUT_PREVIEW } from '../../testSupport/company';
 import MemberRecordsPage from './index';
 import CertificatesPage from '../documents/certificates';
-
 import MemberInvitationPage from '../member-invitation';
 import { CompanyMemberAccess } from '../company/ledger/CompanyMemberAccess';
 import { Page } from '@components/Page';

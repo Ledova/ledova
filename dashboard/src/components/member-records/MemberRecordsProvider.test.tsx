@@ -24,7 +24,6 @@ import { Link, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import MemberRecordsPage from '@pages/home';
 import CertificatesPage from '@pages/documents/certificates';
-
 import { choose, MEMBER_ENTRY, MEMBER_RECORD } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));

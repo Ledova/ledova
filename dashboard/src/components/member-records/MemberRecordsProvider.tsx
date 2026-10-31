@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { DESTINATIONS, useMemberRecords } from '@ledova/shared';
-
 import { MemberWorkspaceContext, type MemberDraft } from './useMemberWorkspace';
 
 const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open: false };

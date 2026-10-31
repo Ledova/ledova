@@ -12,7 +12,6 @@ import { DESTINATIONS, useSubmissionOwner } from '@ledova/shared';
 import { CompanyContext } from '@hooks/useCompanyContext';
 import { useOwnershipCompanies } from '@hooks/useOwnershipCompanies';
 import { documentView } from '@utils/destinations';
-
 import { lastCompany, rememberCompany } from '@utils/lastCompany';
 import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';
 import { Confirmation } from './Modal';

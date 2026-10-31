@@ -18,7 +18,6 @@ import { CompanyPack } from './CompanyPack';
 import CertificatesPage from '../../documents/certificates';
 import { CompanyContext, type CompanyContextValue } from '@hooks/useCompanyContext';
 import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
-
 import { registerKey } from '@hooks/useRegisterAccess';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
