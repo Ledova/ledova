@@ -112,7 +112,9 @@ and app lock switches, Notifications (the notifications list), the dark theme, p
 the app actions and Sign out.
 A notification, tapped in that list or as a push, opens its screen: a notice opens Documents on
 Notices for every company, a ready certificate Documents on Certificates for that company, vested
-shares Dashboard on the award's company (with its class, where the overview lists it), issued shares Certificates for that class, and a decided particulars change the company's details.
+shares Dashboard on the award's company (with its class, where the overview lists it), issued
+shares Certificates for that class (which says so when that company no longer records you), and a
+decided particulars change the company's details.
 Screens set their own titles inside the page; a pushed
 screen's back button names the section or screen it came from.
 

@@ -125,7 +125,7 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens details and its certificates, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens details and its certificates but none from another company for an ended association, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -323,6 +323,13 @@ it('associates a member by invitation code, switches to their company on Dashboa
       { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
     ),
   );
+  await view.rerender(
+    <CertificatesScreen
+      route={{ key: 'ended', name: 'Certificates', params: { record: 'ended-association', token } }}
+    />,
+  );
+  expect(await screen.findByText('This company no longer records you as a member.')).toBeTruthy();
+  expect(screen.queryByText('Certificate records')).toBeNull();
   await view.rerender(details);
   expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
   await fireEvent.changeText(screen.getByLabelText('Requested name'), 'Requested Member Name');

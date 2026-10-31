@@ -66,27 +66,26 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
   const look = useCertificateStyles();
   const theme = useAppTheme();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
-  const { company, companies, selectCompany } = useMemberRecordsState();
+  const { company, selectCompany } = useMemberRecordsState();
   const opened = route.params?.record;
   const openedToken = route.params?.token;
   const [filters, setFilters] = useState<Filters>({ token: openedToken ?? null, status: 'all' });
   const [choosing, setChoosing] = useState(false);
   const [withdrawing, setWithdrawing] = useState<MemberCertificateRequest | null>(null);
   const [otherShown, setOtherShown] = useState(false);
+  const { read, record, selected, focused } = useCompanyRecord(opened ?? company?.uuid ?? '');
   useEffect(() => {
-    if (!opened) return;
-    const target = companies.find((row) => row.uuid === opened);
-    if (!target || !selectCompany(target.company.uuid)) return;
+    if (!opened || !record || !selectCompany(record.company.uuid)) return;
     setFilters((current) =>
       current.token === (openedToken ?? null) && current.status === 'all'
         ? current
         : { token: openedToken ?? null, status: 'all' },
     );
     navigation.setParams({ record: undefined, token: undefined });
-  }, [opened, openedToken, companies, selectCompany, navigation]);
-  const { read, selected, focused } = useCompanyRecord(company?.uuid ?? '');
+  }, [opened, openedToken, record, selectCompany, navigation]);
   const refresh = useMemberRefresh(read, 'certificates-refresh');
-  const classes = (selected ?? company)?.classes ?? [];
+  const shown = selected ?? record;
+  const classes = shown?.classes ?? [];
   const token = classes.some((row) => row.uuid === filters.token) ? filters.token! : classes[0]?.uuid;
   const item = classes.find((row) => row.uuid === token);
   const { selectToken, selectedToken } = read;
@@ -109,9 +108,8 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const listed = new Set(entries.map((entry) => entry.uuid));
   const others = loaded ? requests.filter((request) => request.token !== token || !listed.has(request.entry)) : [];
-  const record = selected ?? company;
   const className = (request: MemberCertificateRequest) =>
-    record?.classes.find((row) => row.uuid === request.token)?.name ?? 'Share certificate';
+    shown?.classes.find((row) => row.uuid === request.token)?.name ?? 'Share certificate';
   const actions = (request: MemberCertificateRequest) =>
     request.status === 'requested' ? (
       <Action
@@ -152,14 +150,14 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
       refreshControl={refresh}
     >
       <MemberNotice read={read} />
-      {!company ? (
+      {!opened && !company ? (
         read.listReady && !read.error ? (
           <Text style={styles.muted}>Choose a company on Dashboard.</Text>
         ) : (
           <Text style={styles.muted}>Loading certificate records…</Text>
         )
       ) : (
-        <RecordGate read={read} record={company} ready={!!selected}>
+        <RecordGate read={read} record={record} ready={!!selected}>
           <Section title="Certificate records">
             {!loaded ? (
               read.readFailed ? null : (
@@ -249,7 +247,7 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
       )}
       <FiltersSheet
         visible={choosing}
-        record={record}
+        record={shown}
         applied={{ token: token ?? null, status: filters.status }}
         onApply={(next) => {
           setFilters(next);
