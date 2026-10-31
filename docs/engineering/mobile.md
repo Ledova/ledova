@@ -63,15 +63,18 @@ its error, and a failed sign-in check returns to Sign in. Sign-up's first step s
 the individual role, then pre-screening, personal details, financial profile and review follow; the
 dashboard's routes and guards do not apply.
 
-The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Its sections,
-Dashboard, Documents and Settings, show the web's top bar (`TopBar`): the menu button, the logo, the
-Dark theme switch and the notifications bell. The menu (`AppMenu`) slides in from the left like the
+The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Every page shows
+the web's top bar (`TopBar`), never a back button: the menu button, the logo, the Dark theme switch
+and the notifications bell. The menu (`AppMenu`) slides in from the left like the
 web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and a footer with the
 person's name, the selected company as on the web, and Sign out, which asks first as Settings' Sign
 out does. It closes when its screen
-loses focus. Choosing Dashboard returns to it; Documents and Settings open above Dashboard, so
-Android's Back returns there as it did from the tabs. The Class, Details, Invitation, Your details and
-Profile screens open above a section with a back button. Dashboard
+loses focus, and it marks the section the page belongs to: Documents for Certificates and Notices,
+Settings for Profile, Details and Your details, Dashboard for Invitation. Choosing Dashboard returns
+to it. Documents opens Certificates, as a member's Documents does on the web, and Settings opens
+above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
+(`Section`) use the web's phone sizes: 16-point margins and gaps, a 30-point title, and cards with
+16-point padding and corners under a 20-point title. Dashboard
 (`mobile/src/screens/holdings/DashboardScreen.tsx`) follows the web's per-company Dashboard. The
 selected company is remembered per account under the web's key (`ledova.company.<user>.<account>`, in
 AsyncStorage), and is otherwise the first by name; **Switch company** lists the member's companies
@@ -85,21 +88,21 @@ web's award status and details. With no member records it shows Your companies a
 invitation. The Invitation screen takes the
 pasted invitation link or its code (the text after the last `#`, trimmed), previews the inviting
 company, the recorded shareholder, the invited email and the deadline, and accepts it through the
-member-records state, reporting acceptance only once the server does. A class's
-**Certificates** opens the selected company's Certificates page (`mobile/src/screens/documents/CertificatesScreen.tsx`),
-the web's: the certificate records of one share class (the first, or the one chosen in Filters with
-a certificate status), newest first, each with the shareholder and change, the entry, its date and
-the certificate status from the shared `certificateStatus`, with Request certificate, Withdraw
-request (after a confirmation) and Share PDF, any earlier requests, and the company's other
-certificate requests on demand. A company in Details at each company opens its
+member-records state, reporting acceptance only once the server does. Documents, and a class's
+**Certificates**, open the selected company's Certificates page
+(`mobile/src/screens/documents/CertificatesScreen.tsx`), the web's: the certificate records of one share class, newest first. Filters opens the web's panel
+under its button (`FilterPopover`): Share class, Shareholder and Certificate status, then Clear and
+Apply. Each record shows the shareholder and change, the entry, its date (and ledger date) and the
+certificate status from the shared `certificateStatus`, with Request certificate, Withdraw request
+(after the web's confirmation) and Share PDF, then any earlier requests. The company's other
+certificate requests, including those the filters hide, open on demand. A class the member is not
+recorded in says so, and a failed read offers Try again. A company in Details at each company opens its
 company-recorded particulars and the particulars request. These screens share one member-records
 state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
 original operation, after leaving the company, and the screens show a loading line rather than an
-empty one while the list rereads. Only the focused screen selects its record and class. Documents
-(`mobile/src/screens/documents`) lists the ready and requested certificates from every company,
-each read for that member association alone, and the notices, with a chip per company to filter
-both. A certificate opens its sheet to
-share or withdraw it through the same member-records state. Settings
+empty one while the list rereads. Only the focused screen selects its record and class. Notices
+(`NoticesScreen`) is the web's Notices page: every company's notices, each opened or voted on as on
+the web. Settings
 opens Profile from its profile card, Your details from Details at each company (with the number of
 changes waiting) and Invitation from Accept an invitation. Your details lists each company's
 recorded name and address, marking those where a change waits, and sends one particulars change to
@@ -110,13 +113,12 @@ or skipped, and the summary counts the companies where the change waits or is re
 server's records and requests. Settings holds the sign-in
 and app lock switches, Notifications (the notifications list), the dark theme, password and data,
 the app actions and Sign out.
-A notification, tapped in that list or as a push, opens its screen: a notice opens Documents on
-Notices for every company, a ready certificate Documents on Certificates for that company, vested
+A notification, tapped in that list or as a push, opens its screen: a notice opens Notices, a
+ready certificate Certificates for that company, vested
 shares Dashboard on the award's company (with its class, where the overview lists it), issued
 shares Certificates for that class (which says so when that company no longer records you), and a
 decided particulars change the company's details.
-Screens set their own titles inside the page; a pushed
-screen's back button names the section or screen it came from.
+Screens set their own titles inside the page.
 
 ## Theme and appearance
 

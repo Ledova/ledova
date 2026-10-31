@@ -2,9 +2,9 @@ import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
-  PUBLICATION_ENDPOINTS,
   PUBLICATION_NOTICE,
   USER_PREFERENCES_QUERY_KEY,
+  formatDateTime,
   type OwnMemberRecord,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,7 +19,6 @@ import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/t
 import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { destinationOf } from '../../components/notifications/NotificationsModal';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
-import { DocumentsScreen } from '../documents/DocumentsScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { DetailsScreen } from './DetailsScreen';
 import { InvitationScreen } from './InvitationScreen';
@@ -125,7 +124,7 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens details and its certificates but none from another company for an ended association, keeps one exact request recoverable across screens and refuses cached records and a late action after current read loss', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens details and its certificates but none from another company for an ended association, keeps one exact request recoverable across screens, refuses cached records and a late action after current read loss and routes each notification to its page', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -314,9 +313,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   ownRecord = MEMBER_RECORD;
   await view.rerender(certificatesPage);
-  expect(await screen.findByText('Withdrawn · Requested 3 October 2026')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Withdraw request, requested 2 October 2026' })).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: `Share certificate PDF ${FULFILLED_CERTIFICATE.uuid}` }));
+  expect(await screen.findByText('Withdrawn')).toBeTruthy();
+  expect(screen.getByText('Requested 3 October 2026')).toBeTruthy();
+  expect(
+    screen.getByRole('button', { name: `Withdraw request (requested ${formatDateTime(OPEN_REQUEST.createdAt)})` }),
+  ).toBeTruthy();
+  await fireEvent.press(
+    screen.getByRole('button', {
+      name: `Share PDF (unsigned certificate requested ${formatDateTime(FULFILLED_CERTIFICATE.createdAt)})`,
+    }),
+  );
   await waitFor(() =>
     expect(Sharing.shareAsync).toHaveBeenCalledWith(
       `${cache}ledova-document-views-v1/member-certificate-${FULFILLED_CERTIFICATE.uuid}.pdf`,
@@ -330,6 +336,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   expect(await screen.findByText('This company no longer records you as a member.')).toBeTruthy();
   expect(screen.queryByText('Certificate records')).toBeNull();
+  await view.rerender(
+    <CertificatesScreen
+      route={{ key: 'ready', name: 'Certificates', params: { company: MEMBER_RECORD.company.uuid } }}
+    />,
+  );
+  expect(await screen.findByText('Certificate records')).toBeTruthy();
   await view.rerender(details);
   expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
   await fireEvent.changeText(screen.getByLabelText('Requested name'), 'Requested Member Name');
@@ -354,7 +366,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect((await screen.findByLabelText('Requested name')).props.value).toBe('Requested Member Name');
   await view.rerender(certificatesPage);
   await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
-  await fireEvent.press(await screen.findByRole('button', { name: 'Request certificate, Ordinary, entry 2' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 2)' }));
   await waitFor(() => expect(typeof release).toBe('function'));
   refused = true;
   await act(async () => {
@@ -368,91 +380,14 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await act(async () => release!());
   expect(screen.queryByRole('button', { name: /^Request certificate/ })).toBeNull();
   expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS)).toHaveLength(1);
-});
-
-it('lists certificates from every member association in Documents, refuses a list holding another association and shares one through its own record', async () => {
-  const SECOND = {
-    ...MEMBER_RECORD,
-    uuid: 'e1e1e1e1-e1e1-4e1e-8e1e-e1e1e1e1e1e1',
-    member: 'e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2',
-    company: { uuid: 'e3e3e3e3-e3e3-4e3e-8e3e-e3e3e3e3e3e3', name: 'Second Holding Company Pty Ltd', acn: '111222333' },
-    classes: [{ ...MEMBER_RECORD.classes[0], uuid: 'e4e4e4e4-e4e4-4e4e-8e4e-e4e4e4e4e4e4', name: 'Preference' }],
-    awards: [],
-  };
-  const FOREIGN = {
-    ...FULFILLED_CERTIFICATE,
-    uuid: 'e5e5e5e5-e5e5-4e5e-8e5e-e5e5e5e5e5e5',
-    association: 'e6e6e6e6-e6e6-4e6e-8e6e-e6e6e6e6e6e6',
-    company: SECOND.company.uuid,
-    member: SECOND.member,
-    token: SECOND.classes[0].uuid,
-  };
-  const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
-  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
-  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
-  jest.mocked(Sharing.shareAsync).mockClear();
-  api.get.mockReset().mockImplementation(async (url, config) => {
-    const association = (config as { params?: { association?: string } } | undefined)?.params?.association;
-    if (url === '/api/user-preferences/') return { data: preferences };
-    if (
-      url === URLS.MEMBER_ASSOCIATIONS ||
-      url === PUBLICATION_ENDPOINTS.BASE ||
-      url === URLS.MEMBER_PARTICULARS_REQUESTS
-    )
-      return page([]);
-    if (url === URLS.MEMBER_RECORDS) return page([MEMBER_RECORD, SECOND]);
-    if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
-    if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
-      return { data: { entries: [{ ...MEMBER_ENTRY, companyEventOn: null }] } };
-    if (url === URLS.MEMBER_CERTIFICATE_REQUESTS)
-      return page(
-        association === MEMBER_RECORD.uuid
-          ? [FULFILLED_CERTIFICATE]
-          : association === SECOND.uuid
-            ? [FOREIGN]
-            : [FULFILLED_CERTIFICATE, FOREIGN],
-      );
-    if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid))
-      return { data: MEMBER_PDF.buffer, headers: { 'content-type': 'application/pdf' } };
-    throw new Error(`Unexpected GET ${url}`);
-  });
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={client}>
-      <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <MemberRecordsProvider>{children}</MemberRecordsProvider>
-      </ApiClientProvider>
-    </QueryClientProvider>
-  );
-  const view = await render(<DocumentsScreen route={{ key: 'documents', name: 'Documents', params: undefined }} />, {
-    wrapper,
-  });
-  const own = `${MEMBER_RECORD.company.name}: Ordinary · 10, Issue · Not recorded, Ready`;
-  expect(await screen.findByRole('button', { name: own })).toBeTruthy();
-  expect(
-    await screen.findByText('Some certificates could not be loaded. Refresh before relying on this list.'),
-  ).toBeTruthy();
-  expect(screen.queryByRole('button', { name: new RegExp(`^${SECOND.company.name}:`) })).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: SECOND.company.name }));
-  expect(screen.queryByRole('button', { name: own })).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: 'All' }));
-  await fireEvent.press(screen.getByRole('button', { name: own }));
-  await fireEvent.press(
-    await screen.findByRole('button', { name: `Share certificate PDF ${FULFILLED_CERTIFICATE.uuid}` }),
-  );
-  await waitFor(() =>
-    expect(Sharing.shareAsync).toHaveBeenCalledWith(
-      `${cache}ledova-document-views-v1/member-certificate-${FULFILLED_CERTIFICATE.uuid}.pdf`,
-      { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
-    ),
-  );
-  await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
-  await fireEvent.press(screen.getByRole('button', { name: SECOND.company.name }));
-  await view.rerender(<DocumentsScreen route={{ key: 'documents', name: 'Documents', params: { show: 'notices' } }} />);
-  expect(await screen.findByText('No notices yet.')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'All', selected: true })).toBeTruthy();
   const notice = { type: PUBLICATION_NOTICE };
-  expect(destinationOf(notice)).toEqual({ screen: 'Documents', params: { show: 'notices' } });
+  expect(destinationOf(notice)).toEqual({ screen: 'Notices' });
   expect(destinationOf(notice)).not.toBe(destinationOf(notice));
+  const company = MEMBER_RECORD.company.uuid;
+  expect(destinationOf({ type: 'certificate', event: 'ready', company })).toEqual({
+    screen: 'Certificates',
+    params: { company },
+  });
   const award = 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5';
   const vested = { type: 'award', event: 'vested', record: MEMBER_RECORD.uuid, award };
   expect(destinationOf(vested)).toEqual({

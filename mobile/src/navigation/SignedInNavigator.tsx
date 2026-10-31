@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, type NativeStackHeaderProps } from '@react-navigation/native-stack';
 import type { NavigationProp } from '@react-navigation/native';
 import { useNotifications } from '@ledova/shared';
 import { NotificationsModal, useFollowPush } from '../components/notifications';
 import { useAppTheme } from '../contexts';
 import { CertificatesScreen } from '../screens/documents/CertificatesScreen';
-import { DocumentsScreen } from '../screens/documents/DocumentsScreen';
+import { NoticesScreen } from '../screens/documents/NoticesScreen';
 import { DetailsScreen } from '../screens/holdings/DetailsScreen';
 import { DashboardScreen } from '../screens/holdings/DashboardScreen';
 import { InvitationScreen } from '../screens/holdings/InvitationScreen';
@@ -14,14 +14,14 @@ import { MemberRecordsProvider } from '../screens/holdings/MemberRecordsProvider
 import { YourDetailsScreen } from '../screens/holdings/YourDetailsScreen';
 import { SettingsScreen } from '../screens/settings';
 import { UserProfileScreen } from '../screens/user-profile';
-import type { Section } from './AppMenu';
-import { getMainHeaderStyle, TopBar } from './headers';
+import type { Section, SectionRoute } from './AppMenu';
+import { TopBar } from './headers';
 
 export type SignedInStackParamList = {
   Dashboard: { record?: string; award?: string } | undefined;
-  Documents: { company?: string; show?: 'certificates' | 'notices' } | undefined;
+  Certificates: { record?: string; token?: string; company?: string } | undefined;
+  Notices: undefined;
   Settings: undefined;
-  Certificates: { record?: string; token?: string } | undefined;
   Details: { record: string };
   Invitation: undefined;
   YourDetails: undefined;
@@ -37,12 +37,13 @@ export function SignedInNavigator() {
   const closeNotifications = useCallback(() => setShowNotifications(false), []);
   useFollowPush(closeNotifications);
   const openNotifications = () => setShowNotifications(true);
-  const section = (name: Section) => ({
+  const topBar = (current: Section) => ({
     headerShown: true,
-    header: ({ navigation }: { navigation: unknown }) => (
+    header: ({ navigation, route }: NativeStackHeaderProps) => (
       <TopBar
-        navigation={navigation as NavigationProp<Record<Section, undefined>>}
-        current={name}
+        navigation={navigation as NavigationProp<Record<SectionRoute, undefined>>}
+        route={route.name}
+        current={current}
         onNotifications={openNotifications}
         unreadCount={unreadCount}
       />
@@ -53,21 +54,18 @@ export function SignedInNavigator() {
       <View style={{ flex: 1 }}>
         <Stack.Navigator
           initialRouteName="Dashboard"
-          screenOptions={{
-            contentStyle: { backgroundColor: theme.colors.surface.base },
-            ...getMainHeaderStyle(theme),
-          }}
+          screenOptions={{ contentStyle: { backgroundColor: theme.colors.surface.base } }}
         >
-          <Stack.Screen name="Dashboard" component={DashboardScreen} options={section('Dashboard')} />
-          <Stack.Screen name="Documents" component={DocumentsScreen} options={section('Documents')} />
-          <Stack.Screen name="Settings" options={section('Settings')}>
+          <Stack.Screen name="Dashboard" component={DashboardScreen} options={topBar('Dashboard')} />
+          <Stack.Screen name="Certificates" component={CertificatesScreen} options={topBar('Documents')} />
+          <Stack.Screen name="Notices" component={NoticesScreen} options={topBar('Documents')} />
+          <Stack.Screen name="Settings" options={topBar('Settings')}>
             {() => <SettingsScreen onNotifications={openNotifications} />}
           </Stack.Screen>
-          <Stack.Screen name="Certificates" component={CertificatesScreen} options={{ title: '' }} />
-          <Stack.Screen name="Details" component={DetailsScreen} options={{ title: '' }} />
-          <Stack.Screen name="Invitation" component={InvitationScreen} options={{ title: '' }} />
-          <Stack.Screen name="YourDetails" component={YourDetailsScreen} options={{ title: '' }} />
-          <Stack.Screen name="Profile" component={UserProfileScreen} options={{ title: '' }} />
+          <Stack.Screen name="Details" component={DetailsScreen} options={topBar('Settings')} />
+          <Stack.Screen name="Invitation" component={InvitationScreen} options={topBar('Dashboard')} />
+          <Stack.Screen name="YourDetails" component={YourDetailsScreen} options={topBar('Settings')} />
+          <Stack.Screen name="Profile" component={UserProfileScreen} options={topBar('Settings')} />
         </Stack.Navigator>
         <NotificationsModal visible={showNotifications} onClose={closeNotifications} />
       </View>

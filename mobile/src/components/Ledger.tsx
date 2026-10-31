@@ -8,14 +8,20 @@ const CARET_SIZE = 16;
 export function useCardStyles() {
   return useThemedStyles((theme) => ({
     card: {
-      gap: theme.spacing.smd,
+      gap: theme.spacing.md,
       padding: theme.spacing.md,
       borderWidth: 1,
       borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.lg,
+      borderRadius: theme.borderRadius.xl,
       backgroundColor: theme.colors.surface.raised,
     },
-    title: { fontFamily: theme.fontFamily.display, fontSize: 25, color: theme.colors.text.primary },
+    title: {
+      fontFamily: theme.fontFamily.display,
+      fontSize: theme.fontSize.xl,
+      lineHeight: 28,
+      letterSpacing: -0.2,
+      color: theme.colors.text.primary,
+    },
   }));
 }
 

@@ -1,13 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BellIcon } from 'phosphor-react-native';
-import { Header } from '@react-navigation/elements';
 import type { NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../contexts';
-import { AppMenu, AppearanceButton, MenuButton, Wordmark, type Section } from '../AppMenu';
-
-type ThemeParam = ReturnType<typeof useAppTheme>;
+import {
+  AppMenu,
+  AppearanceButton,
+  MenuButton,
+  SECTION_ROUTES,
+  Wordmark,
+  type Section,
+  type SectionRoute,
+} from '../AppMenu';
 
 function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void; unreadCount?: number }) {
   const theme = useAppTheme();
@@ -58,11 +63,13 @@ function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void
 
 export function TopBar({
   navigation,
+  route,
   current,
   onNotifications,
   unreadCount,
 }: {
-  navigation: NavigationProp<Record<Section, undefined>>;
+  navigation: NavigationProp<Record<SectionRoute, undefined>>;
+  route: string;
   current: Section;
   onNotifications: () => void;
   unreadCount: number;
@@ -104,42 +111,15 @@ export function TopBar({
         onClose={() => setOpen(false)}
         onSelect={(section) => {
           setOpen(false);
-          if (section !== current)
+          const target = SECTION_ROUTES[section];
+          if (target !== route)
             navigation.reset(
-              section === 'Dashboard'
+              target === 'Dashboard'
                 ? { index: 0, routes: [{ name: 'Dashboard' }] }
-                : { index: 1, routes: [{ name: 'Dashboard' }, { name: section }] },
+                : { index: 1, routes: [{ name: 'Dashboard' }, { name: target }] },
             );
         }}
       />
     </View>
   );
 }
-
-export function getMainHeaderStyle(theme: ThemeParam) {
-  return {
-    headerShown: true,
-    header: ({
-      options,
-      back,
-    }: {
-      options: Record<string, unknown>;
-      back?: { title: string | undefined; href: string | undefined };
-    }) => (
-      <Header
-        title=""
-        headerStyle={{ backgroundColor: theme.colors.surface.base }}
-        headerTintColor={theme.colors.text.primary}
-        headerShadowVisible={false}
-        headerLeft={options.headerLeft as HeaderLeftType}
-        headerRight={options.headerRight as HeaderRightType}
-        headerLeftContainerStyle={options.headerLeftContainerStyle as Record<string, unknown>}
-        headerRightContainerStyle={options.headerRightContainerStyle as Record<string, unknown>}
-        back={back}
-      />
-    ),
-  };
-}
-
-type HeaderLeftType = ((props: { canGoBack?: boolean }) => React.ReactNode) | undefined;
-type HeaderRightType = ((props: { canGoBack: boolean }) => React.ReactNode) | undefined;

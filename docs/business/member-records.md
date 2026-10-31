@@ -136,8 +136,8 @@ company. It groups **Current details** and **Update requests**, separate from th
 particulars, status and date together;
 completed requests open on demand. Share history, certificates and certificate requests
 are in web **Documents** → **Certificates**, without duplicate particulars status. On mobile,
-**Certificates**, opened from a class card on Dashboard, shows the same certificate records for the
-selected company, with the same requests and actions; the PDF is shared rather than downloaded.
+**Documents** and a class card's **Certificates** open the same Certificates page for the selected
+company, with the same requests and actions; the PDF is shared rather than downloaded.
 Mobile **Documents** lists the ready and
 requested certificates from every company, filtered by company, each opening its sheet to share
 or withdraw it.
@@ -202,8 +202,7 @@ A revoked association or a changed source record blocks a new change or its appl
 ### Certificate requests
 
 A member can request a certificate for an uncorrected issue or transfer that gave them shares
-(**Request certificate** in web **Documents** → **Certificates** and in the mobile certificate sheet, **Request a new
-certificate** there once one is ready), and withdraw it (**Withdraw request**) until the company
+(**Request certificate** in **Documents** → **Certificates**), and withdraw it (**Withdraw request**) until the company
 [fulfils it](#fulfilling-a-members-certificate-request).
 It reads **fulfilled** only once a real file exists, which the member downloads or shares
 (**Download PDF** on web, **Share PDF** on mobile) through their

@@ -24,11 +24,9 @@ export function destinationOf(value: unknown): Destination | undefined {
   const { record, company, award, token } = data;
   switch (data.type) {
     case PUBLICATION_NOTICE:
-      return { screen: 'Documents', params: { show: 'notices' } };
+      return { screen: 'Notices' };
     case 'certificate':
-      return typeof company === 'string'
-        ? { screen: 'Documents', params: { company, show: 'certificates' } }
-        : undefined;
+      return typeof company === 'string' ? { screen: 'Certificates', params: { company } } : undefined;
     case 'award':
       return typeof record === 'string' && typeof award === 'string'
         ? { screen: 'Dashboard', params: { record, award }, pop: true }

@@ -1,5 +1,10 @@
 import * as Crypto from 'expo-crypto';
-import { getMemberCertificateFileBytes, type MemberCertificateRequest, type useMemberRecords } from '@ledova/shared';
+import {
+  formatDateTime,
+  getMemberCertificateFileBytes,
+  type MemberCertificateRequest,
+  type useMemberRecords,
+} from '@ledova/shared';
 import { RegisterCopy } from '../../components/register/RegisterCopy';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -17,7 +22,7 @@ export function CertificateCopy({
   return (
     <RegisterCopy
       label="Share PDF"
-      accessibilityLabel={`Share certificate PDF ${request.uuid}`}
+      accessibilityLabel={`Share PDF (unsigned certificate requested ${formatDateTime(request.createdAt)})`}
       filename={`member-certificate-${request.uuid}`}
       epoch={orderSubmissionSession.getEpoch()}
       guard={guard}
