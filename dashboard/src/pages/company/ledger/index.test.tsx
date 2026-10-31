@@ -159,7 +159,6 @@ function show(
   route?: { entry?: string; path?: string },
 ) {
   prepareCompanyClient(client, role);
-  client.setQueryData(['userAccount'], { data: { role } });
   return renderCompanyPage(
     client,
     <>

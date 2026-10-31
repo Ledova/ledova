@@ -5,7 +5,7 @@ import { activateCompany } from '../services/companies';
 import type { Company, CompanyActivate, CompanyActivationAttempt } from '../types';
 import { createUserFriendlyError, failureStatus, failureSentence } from '../utils/errors';
 import { isUuid } from '../utils/validation';
-import type { useCompanySelection } from './useCompanySelection';
+import { ownCompaniesKey, type useCompanySelection } from './useCompanySelection';
 import { useApiClient } from './useApiClient';
 import { OWN_APPOINTMENTS_QUERY_KEY } from './useCompanyEligibilityRecords';
 
@@ -167,7 +167,7 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
       setPreview(null);
       await Promise.all([
         client.invalidateQueries({ queryKey: read.companyKey }),
-        client.invalidateQueries({ queryKey: read.companiesKey }),
+        client.invalidateQueries({ queryKey: ownCompaniesKey(read.owner) }),
         client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }),
       ]);
     } catch (failure) {
