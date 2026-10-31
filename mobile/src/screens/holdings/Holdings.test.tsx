@@ -2,6 +2,7 @@ import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
+  INVESTOR_CLASSIFICATION_ENDPOINTS as CLAIMS,
   PUBLICATION_NOTICE,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
@@ -11,15 +12,18 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Crypto from 'expo-crypto';
+import { getDocumentAsync } from 'expo-document-picker';
+import { File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import type { AxiosInstance } from 'axios';
 import { apiClient } from '../../services/apiClient';
-import { getSessionEpoch } from '../../services/sessionScope';
+import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/tests/fixtures/register-outputs';
 import { cache, resetFiles } from '../../testSupport/documentFiles';
 import { destinationOf } from '../../components/notifications/NotificationsModal';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
+import { VerificationScreen } from '../eligibility/VerificationScreen';
 import { SettingsScreen } from '../settings';
 import { DashboardScreen } from './DashboardScreen';
 import { InvitationScreen } from './InvitationScreen';
@@ -51,6 +55,7 @@ jest.mock('expo-crypto', () => ({
   ),
 }));
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
+jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => {}) }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 const api = { get: jest.mocked(apiClient.get), post: jest.mocked(apiClient.post) };
@@ -133,8 +138,26 @@ const SECOND_ENTRY = {
   kind: 'TRANSFER',
   delta: '5',
 };
+const CLAIM = {
+  uuid: '1a1a1a1a-1a1a-41a1-81a1-1a1a1a1a1a1a',
+  category: 'professional_investor',
+  categoryDisplay: 'Professional investor',
+  status: 'submitted',
+  statusDisplay: 'Submitted',
+  isExpired: false,
+  submittedAt: '2026-10-31T00:00:00Z',
+  reviewedAt: null,
+  expiresAt: null,
+  rejectionReason: '',
+  createdAt: '2026-10-31T00:00:00Z',
+};
+const PICKED = 'file:///private/tmp/org.example.ledova-Inbox/';
+const picked = (name: string, mimeType: string) => async () => {
+  new File(`${PICKED}${name}`).write(new Uint8Array([37, 80, 68, 70]));
+  return { canceled: false as const, assets: [{ uri: `${PICKED}${name}`, name, mimeType, size: 4, lastModified: 0 }] };
+};
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens its certificates but none from another company for an ended association, shows how the company records them on Profile, keeps an interrupted certificate request recoverable across screens, refuses cached records and a late action after current read loss and routes each notification to its page', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens its certificates but none from another company for an ended association, shows how the company records them on Profile, keeps an interrupted certificate request recoverable across screens, refuses cached records and a late action after current read loss, routes each notification to its page, and saves an eligibility claim only with accepted evidence in the session that picked it, whose copy is removed after saving and on a session change', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -146,8 +169,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let associated = false;
   let refused = false;
   let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE, OPEN_REQUEST, WITHDRAWN_REQUEST];
+  let claims: Record<string, unknown>[] = [];
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') return { data: preferences };
+    if (url === CLAIMS.BASE) return page(claims);
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
@@ -164,6 +189,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
   });
   api.post.mockReset().mockImplementation(async (url, value) => {
     const body = value as Record<string, string>;
+    if (url === CLAIMS.BASE) {
+      claims = [CLAIM];
+      return { data: CLAIM };
+    }
     if (url === URLS.MEMBER_INVITATION_PREVIEW) {
       const other = body.code === OTHER_CODE;
       return {
@@ -390,4 +419,34 @@ it('associates a member by invitation code, switches to their company on Dashboa
     pop: true,
   });
   expect(destinationOf({ ...vested, award: undefined })).toBeUndefined();
+  await view.rerender(<VerificationScreen />);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Submit evidence (Professional investor)' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Save private evidence' }));
+  expect(screen.getByText('Choose the evidence file.')).toBeTruthy();
+  jest
+    .mocked(getDocumentAsync)
+    .mockImplementationOnce(picked('notes.txt', 'text/plain'))
+    .mockImplementation(picked('licence.pdf', 'application/pdf'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Choose evidence file' }));
+  expect(await screen.findByText('Choose a PDF, PNG or JPEG of up to 10 MB.')).toBeTruthy();
+  expect(new File(`${PICKED}notes.txt`).info().exists).toBe(false);
+  await fireEvent.press(screen.getByRole('button', { name: 'Choose evidence file' }));
+  expect(await screen.findByText('licence.pdf')).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText('Basis for the claim'), 'Synthetic AFS licence');
+  await fireEvent.press(
+    screen.getByRole('checkbox', {
+      name: 'I declare that this category applies to me and that the evidence attached is genuine.',
+    }),
+  );
+  await fireEvent.press(screen.getByRole('button', { name: 'Save private evidence' }));
+  expect(await screen.findByText('Available to share')).toBeTruthy();
+  const [, sent, options] = api.post.mock.calls.find(([url]) => url === CLAIMS.BASE)!;
+  expect((sent as FormData).get('declared_basis')).toBe('Synthetic AFS licence');
+  expect(options).toMatchObject({ ledovaSessionEpoch: getSessionEpoch() });
+  expect(new File(`${PICKED}licence.pdf`).info().exists).toBe(false);
+  await fireEvent.press(screen.getByRole('button', { name: 'Add evidence (Professional investor)' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Choose evidence file' }));
+  expect(await screen.findByText('licence.pdf')).toBeTruthy();
+  await act(async () => invalidateSessionScope());
+  expect(new File(`${PICKED}licence.pdf`).info().exists).toBe(false);
 });

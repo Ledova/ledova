@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useInvestorClassifications, INVESTOR_CLASSIFICATIONS_QUERY_KEY } from '@ledova/shared';
+import { INVESTOR_CLASSIFICATIONS_QUERY_KEY, useInvestorClassifications } from './useInvestorClassifications';
 
 export function useInvestorEligibility() {
   const queryClient = useQueryClient();

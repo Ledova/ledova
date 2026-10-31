@@ -31,6 +31,8 @@ export {
   investorClassificationsKey,
   useInvestorClassifications,
 } from './useInvestorClassifications';
+export { useInvestorEligibility } from './useInvestorEligibility';
+export { useInvestorWithdrawal } from './useInvestorWithdrawal';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { SIGNUP_RESTART_FIELDS, useSignupRestart } from './useSignupRestart';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';

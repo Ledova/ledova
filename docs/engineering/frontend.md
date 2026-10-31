@@ -83,7 +83,8 @@ Mobile maps onto the same layers, direction and placement, with `navigation/` fo
 `screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
 ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072). Shared native UI
 and cross-area reads live outside screen internals ([mobile architecture](mobile.md#architecture)).
-Profile, operator and publication-list reads live once in `packages/shared`; client adapters retain
+Profile, operator, publication-list and investor classification reads live once in
+`packages/shared`, with the classification claim's checks and withdrawal; client adapters retain
 their current session, cache, labels and result policies. `site/src` is a separate flat app (one
 file per page in `pages/`, `components/`, `styles.ts`) that cannot import the shared
 package; only the file-naming rules apply to it.

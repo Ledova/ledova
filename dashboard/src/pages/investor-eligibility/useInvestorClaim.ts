@@ -1,16 +1,15 @@
 import { useCallback, useRef, useState } from 'react';
 import {
-  addCalendarDays,
-  addCalendarYears,
-  isCalendarDate,
+  investorClaimChecks,
+  investorClaimSubmission,
   submitInvestorClassification,
+  type CertifierBody,
   type InvestorCategory,
   failureSentence,
   uploadRefusal,
-  utcToday,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
+import { hasProblems } from '@hooks/useErrorSummary';
 import { CATEGORIES } from './constants';
 
 export function useInvestorClaim({
@@ -27,15 +26,13 @@ export function useInvestorClaim({
   const [declaredBasis, setDeclaredBasis] = useState('');
   const [certificateIssuedAt, setCertificateIssuedAt] = useState('');
   const [certifierName, setCertifierName] = useState('');
-  const [certifierBody, setCertifierBody] = useState('');
+  const [certifierBody, setCertifierBody] = useState<CertifierBody | ''>('');
   const [certifierMembershipNumber, setCertifierMembershipNumber] = useState('');
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const needsCertifier = category === 'accountant_certificate';
 
   const spec = CATEGORIES.find((item) => item.category === category);
 
@@ -66,46 +63,24 @@ export function useInvestorClaim({
     [chooseFile],
   );
 
-  const today = utcToday();
-  const earliestCertificate = addCalendarYears(addCalendarDays(today, 1), -2);
-  const available = !submissionBlockedReason && !!category;
-  const problems: Problems<
-    | 'certificateIssuedAt'
-    | 'certifierBody'
-    | 'certifierName'
-    | 'certifierMembershipNumber'
-    | 'declaredBasis'
-    | 'file'
-    | 'declaration'
-  > = {
-    certificateIssuedAt:
-      needsCertifier &&
-      (!isCalendarDate(certificateIssuedAt) ||
-        certificateIssuedAt < earliestCertificate ||
-        certificateIssuedAt > today) &&
-      'Enter a certificate date within the last two years, no later than today (UTC).',
-    certifierBody: needsCertifier && !certifierBody && 'Choose the professional body.',
-    certifierName: needsCertifier && !certifierName.trim() && 'Give the accountant’s name.',
-    certifierMembershipNumber: needsCertifier && !certifierMembershipNumber.trim() && 'Give the membership number.',
-    declaredBasis: !declaredBasis.trim() && 'Give the basis for the claim.',
-    file: !file && 'Choose the evidence file.',
-    declaration: !declarationAccepted && 'Accept the declaration.',
+  const draft = {
+    category,
+    declaredBasis,
+    certificateIssuedAt,
+    certifierName,
+    certifierBody,
+    certifierMembershipNumber,
+    declarationAccepted,
   };
+  const { needsCertifier, today, earliestCertificate, problems } = investorClaimChecks(draft, !!file);
+  const available = !submissionBlockedReason && !!category;
 
   const handleSubmit = async () => {
     if (!available || hasProblems(problems) || !file || !category) return;
     setIsSubmitting(true);
     setError(null);
     try {
-      await submitInvestorClassification(apiClient, {
-        category,
-        declaredBasis: declaredBasis.trim(),
-        file,
-        certificateIssuedAt: needsCertifier ? certificateIssuedAt : undefined,
-        certifierName: needsCertifier ? certifierName.trim() : undefined,
-        certifierBody: needsCertifier ? (certifierBody as 'ca_anz' | 'cpa_australia' | 'ipa') : undefined,
-        certifierMembershipNumber: needsCertifier ? certifierMembershipNumber.trim() : undefined,
-      });
+      await submitInvestorClassification(apiClient, investorClaimSubmission({ ...draft, category }, file));
       reset();
       onSuccess();
     } catch (caught) {

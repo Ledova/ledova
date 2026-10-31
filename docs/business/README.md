@@ -216,8 +216,9 @@ confirmed, and a confirmed one is not yet final ([chain](../engineering/chain.md
 ## The app at a glance
 
 The web dashboard reaches the records and workflows described here. The mobile app is for
-shareholders and holds only their own records, notices and account
-([decision](../decisions.md#mobile-app-for-shareholders)). Account audience retains its existing route checks;
+shareholders and holds their own records, notices and account, with an investing account's
+Verification ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
+retains its existing route checks;
 company actions follow the person's current appointments, and
 the server decides what each person may read. Every page withholds stale records and their actions
 after a failed read, keeps an open draft without submitting it until a read succeeds, and closes
@@ -280,7 +281,9 @@ The mobile app has the web's phone frame: a top bar with the menu and the notifi
 slide-out menu with the Dark theme switch. It opens on **Dashboard**, the selected company's ownership
 overview, as on the web; **Switch company** changes the company. **Documents** holds that company's Certificates and the [notices](publications.md#the-notices-page) from every company, as the web shows a member, and **Settings** opens
 the web's Profile for that company, with Account (accepting an invitation and the app's own settings)
-and Data and privacy beneath it ([Profile and Settings](participants.md#profile-and-settings)).
+and Data and privacy beneath it ([Profile and Settings](participants.md#profile-and-settings)). An
+investing account's **Eligibility** opens the web's [Verification](participants.md#the-verification-page),
+without Supporting payslips yet.
 Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).
 
 Each page is described in the domain document for its process below;

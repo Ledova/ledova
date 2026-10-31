@@ -310,13 +310,18 @@ risk assessment, transaction and any company decision stay as they are.
 
 ## The Verification page
 
-Verification (investing accounts; on web, **Eligibility** in the menu, or **Your eligibility** beside
-a company's own Eligibility item) has two sections, followed by Supporting payslips:
+Verification (investing accounts; **Eligibility** in the menu on web and in the app, or on web
+**Your eligibility** beside a company's own Eligibility item) has two sections, followed on web by
+Supporting payslips:
 
-- Your claims: a link to Your company eligibility, then each source's status and dates, with
+- Your claims: on web a link to Your company eligibility, then each source's status and dates, with
   **Withdraw claim** while it is submitted. A submitted source shows Available to share; one
   verified under the retired staff review shows Historical verification.
 - How you qualify: the two categories, with **Submit evidence** or **Add evidence**.
+
+The app's Verification has both sections but no Supporting payslips yet, and no link to Your company
+eligibility, which the app does not have yet. Its claim form takes the evidence file from the phone's
+document picker, with the same file rule as on the web.
 
 Your company eligibility holds your requests with their outcome history and **Prepare request
 withdrawal**. Company eligibility, for company

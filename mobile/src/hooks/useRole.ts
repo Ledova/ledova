@@ -12,5 +12,6 @@ export function useRole() {
     isInvestor: canOpen(role, 'investing'),
     isCompany: canOpen(role, 'company'),
     isLoading,
+    isKnown: !!userAccount,
   };
 }
