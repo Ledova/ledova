@@ -31,7 +31,7 @@ the replaced cases or the approval, and independent review checks them
 | Backend, PostgreSQL | 28              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
 | Dashboard unit      | 19              | 20      | Main pages, sign-in, core flows                                                                                                |
 | Playwright smoke    | 7               | 9       | Core browser journeys and route wiring                                                                                         |
-| Mobile Jest         | 5               | 10      | App start, sign-in, signup completion, member records and a recoverable particulars request                                    |
+| Mobile Jest         | 5               | 10      | App start, sign-in, signup completion, member records and a recoverable certificate request                                    |
 | Shared package      | 9               | 10      | Essential shared behaviour                                                                                                     |
 | Contracts           | 14              | 20      | Who can mint, pause and transfer                                                                                               |
 
@@ -95,7 +95,7 @@ admission without an ABR lookup, activation with one and later checked company d
 the identity, versioned acknowledgement and company authority checks in that path; resuming signup
 uses current administrator authority and a retained current Terms receipt without rewriting
 historical permissions or declarations.
-Member invitations, own records and company-reviewed requests have one core journey, and the
+Member invitations, own records and certificate requests have one core journey, and the
 tenant controls include foreign invitation and revoked association refusals. One output case covers
 real company and member PDFs, pack provenance and file integrity; a request creates no output until
 company fulfilment retains the actual recipient-only file. Two mirror cases cover complete copied

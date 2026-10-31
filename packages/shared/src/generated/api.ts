@@ -1679,54 +1679,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/tokens/member-particulars-requests/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_member_particulars_requests_list'];
-    put?: never;
-    post: ApiOperations['api_v1_tokens_member_particulars_requests_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/member-particulars-requests/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_member_particulars_requests_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/member-particulars-requests/{uuid}/prepare/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_tokens_member_particulars_requests_prepare_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/tokens/member-records/': {
     parameters: {
       query?: never;
@@ -5401,33 +5353,6 @@ export interface ApiComponents {
       issuedSupply: string | null;
       totalHolders: number | null;
     };
-    MemberParticularsRequest: {
-      association: string;
-      change: string | null;
-      company: string;
-      createdAt: string;
-      member: string;
-      name: string;
-      requestedBy: number;
-      residentialAddress: string;
-      status: ApiComponents['schemas']['MemberParticularsRequestStatusEnum'];
-      uuid: string;
-    };
-    MemberParticularsRequestCreateRequest: {
-      association: string;
-      confirmation: boolean;
-      name: string;
-      operationId: string;
-      residentialAddress: string;
-    };
-    MemberParticularsRequestPrepareRequest: {
-      appointment: string;
-      asAt: string;
-      operationId: string;
-      reason: string;
-      supportingEvidence: string;
-    };
-    MemberParticularsRequestStatusEnum: 'submitted' | 'prepared' | 'approved' | 'applied' | 'rejected';
     MemberRecord: {
       awards: ApiComponents['schemas']['MemberRecordAward'][];
       classes: ApiComponents['schemas']['MemberRecordClass'][];
@@ -5835,12 +5760,6 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['MemberInvitation'][];
-    };
-    PaginatedMemberParticularsRequestList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['MemberParticularsRequest'][];
     };
     PaginatedMemberRecordList: {
       count: number;
@@ -7493,7 +7412,6 @@ export interface ApiComponents {
       evidenceFingerprint: string;
       evidenceSnapshot: unknown;
       member: string;
-      memberRequest: string | null;
       name: string;
       preparedByName: string | null;
       preparingAppointment: string;
@@ -11814,121 +11732,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['MemberInvitationEmail'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_member_particulars_requests_list: {
-    parameters: {
-      query?: {
-        association?: string;
-        company?: string;
-        member?: string;
-        ordering?: string;
-        page?: number;
-        page_size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedMemberParticularsRequestList'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_member_particulars_requests_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['MemberParticularsRequestCreateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberParticularsRequestCreateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['MemberParticularsRequestCreateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['MemberParticularsRequest'];
-        };
-      };
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['MemberParticularsRequest'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_member_particulars_requests_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['MemberParticularsRequest'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_member_particulars_requests_prepare_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['MemberParticularsRequestPrepareRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['MemberParticularsRequestPrepareRequest'];
-        'multipart/form-data': ApiComponents['schemas']['MemberParticularsRequestPrepareRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterParticularsChange'];
-        };
-      };
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterParticularsChange'];
         };
       };
     };

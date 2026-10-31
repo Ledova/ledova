@@ -57,15 +57,3 @@ def shares_issued(proposal):
         f"{proposal.company.name} · {proposal.token.name}",
         {"type": "holding", "event": "issued", "token": str(proposal.token_id)},
     )
-
-
-def details_decided(change):
-    if change.member_request_id is None:
-        return
-    applied = change.status == "applied"
-    _tell(
-        _current(pk=change.member_request.association_id),
-        "Details changed" if applied else "Details change declined",
-        f"{change.company.name} {'accepted' if applied else 'declined'} your change",
-        {"type": "particulars", "event": change.status},
-    )

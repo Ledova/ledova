@@ -19,7 +19,6 @@ from .member_access import (
     MemberCertificateRequest,
     MemberCertificateWithdrawal,
     MemberInvitation,
-    MemberParticularsRequest,
 )
 from .member_certificate import MemberCertificateFulfilment
 from .mint_request import MintRequest, MintRequestStatus
@@ -116,7 +115,6 @@ __all__ = [
     "MemberInvitation",
     "MemberAssociation",
     "MemberAssociationRevocation",
-    "MemberParticularsRequest",
     "MemberCertificateRequest",
     "MemberCertificateWithdrawal",
     "ApprovalSubmissionOutcome",

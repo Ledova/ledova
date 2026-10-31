@@ -68,13 +68,11 @@ async function openCompanySwitch() {
 }
 
 async function chooseMemberCompany(name: string) {
-  const settings = !!screen.queryByRole('heading', { name: 'Company-recorded details' });
+  const settings = !!screen.queryByRole('heading', { name: /records you$/ });
   const documents = !!screen.queryByRole('heading', { name: 'Certificates', level: 1 });
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await openCompanySwitch();
   await choose('Your companies', name);
-  if (screen.queryByRole('dialog', { name: 'Leave this page?' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Leave page' }));
   if (settings) fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
   if (documents) fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
 }
@@ -95,7 +93,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-it('updates ownership and member workflows after invalidation without idle refreshes or losing drafts or revoked-record guards', async () => {
+it('updates ownership and member workflows after invalidation without idle refreshes or losing revoked-record guards', async () => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   let currentPreferences = preferences;
@@ -147,8 +145,7 @@ it('updates ownership and member workflows after invalidation without idle refre
     }
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
     if (url === URLS.MEMBER_ENTRIES(otherRecord.uuid)) return { data: { entries: [{ ...MEMBER_ENTRY, delta: '25' }] } };
-    if (url === URLS.MEMBER_PARTICULARS_REQUESTS || url === URLS.MEMBER_CERTIFICATE_REQUESTS)
-      return { data: { results: [], next: null, count: 0 } };
+    if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return { data: { results: [], next: null, count: 0 } };
     throw new Error(`Unexpected request: ${url}`);
   });
   const view = render(
@@ -206,7 +203,6 @@ it('updates ownership and member workflows after invalidation without idle refre
   expect(screen.queryByRole('button', { name: 'Refresh member records' })).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Share history' })).toBeNull();
   expect(screen.queryByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` })).toBeNull();
   expect(screen.queryByText('Recent changes · Ordinary')).toBeNull();
@@ -313,48 +309,19 @@ it('updates ownership and member workflows after invalidation without idle refre
   await refreshRead();
   await ownShares('10');
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
-  expect(screen.getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
-  fireEvent.click(screen.getByText('Request update'));
-  fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), { target: { value: 'Retained draft' } });
-  fireEvent.change(screen.getByRole('textbox', { name: 'Requested residential address' }), {
-    target: { value: 'Retained draft address' },
-  });
-  fireEvent.click(screen.getByRole('checkbox', { name: /Share these requested particulars/ }));
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  expect(screen.queryByRole('textbox', { name: 'Requested name' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Request update' }));
-  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
-  fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
-  await ownShares('10');
-  expect(screen.queryByRole('textbox', { name: 'Requested name' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request update' })).toBeNull();
-  fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
-  await certificateRequest();
-  expect(screen.queryByRole('heading', { name: 'Update requests' })).toBeNull();
-  fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  expect(((await screen.findByRole('textbox', { name: 'Requested name' })) as HTMLInputElement).value).toBe(
-    'Retained draft',
-  );
+  const recorded = (
+    await screen.findByRole('heading', { name: `How ${MEMBER_RECORD.company.name} records you` })
+  ).closest('section')!;
+  expect(await within(recorded).findByText(MEMBER_RECORD.name)).toBeTruthy();
+  expect(within(recorded).getByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
+  expect(within(recorded).queryByRole('button')).toBeNull();
   await act(async () => {
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
   });
   await refreshRead();
-  await waitFor(() =>
-    expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft'),
-  );
-  expect((screen.getByRole('textbox', { name: 'Requested residential address' }) as HTMLTextAreaElement).value).toBe(
-    'Retained draft address',
-  );
-  expect(
-    (screen.getByRole('checkbox', { name: /Share these requested particulars/ }) as HTMLInputElement).checked,
-  ).toBe(true);
+  expect(await screen.findByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
   expect(api.get.mock.calls.some(([url]) => url === URLS.HOLDERS(MEMBER_RECORD.classes[0].uuid))).toBe(false);
   expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
-  await act(async () => {
-    await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
-  });
-  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('Retained draft');
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   expect(await screen.findByRole('heading', { name: 'Certificates', level: 1 })).toBeTruthy();
   expect(screen.queryByText('Your issued shares')).toBeNull();
@@ -390,34 +357,11 @@ it('updates ownership and member workflows after invalidation without idle refre
   await refreshRead();
   expect((await openCompanySwitch()).disabled).toBe(false);
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  expect(((await screen.findByRole('textbox', { name: 'Requested name' })) as HTMLInputElement).value).toBe(
-    'Retained draft',
-  );
-  fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
-  await openCompanySwitch();
-  await choose('Your companies', otherRecord.company.name);
-  const leaveReview = await screen.findByRole('dialog', { name: 'Leave this page?' });
-  fireEvent.click(within(leaveReview).getByRole('button', { name: 'Cancel' }));
-  fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  expect(((await screen.findByRole('textbox', { name: 'Requested name' })) as HTMLInputElement).value).toBe(
-    'Retained draft',
-  );
+  expect(await screen.findByRole('heading', { name: `How ${MEMBER_RECORD.company.name} records you` })).toBeTruthy();
   await chooseMemberCompany(otherRecord.company.name);
-  await waitFor(() => expect(screen.getByRole('button', { name: 'Request update' })).toBeTruthy());
-  fireEvent.click(screen.getByRole('button', { name: 'Request update' }));
-  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
-  expect((screen.getByRole('textbox', { name: 'Requested residential address' }) as HTMLTextAreaElement).value).toBe(
-    '',
-  );
-  expect(
-    (screen.getByRole('checkbox', { name: /Share these requested particulars/ }) as HTMLInputElement).checked,
-  ).toBe(false);
-  fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), {
-    target: { value: 'Second company draft' },
-  });
+  expect(await screen.findByRole('heading', { name: `How ${otherRecord.company.name} records you` })).toBeTruthy();
   await chooseMemberCompany(MEMBER_RECORD.company.name);
-  fireEvent.click(await screen.findByRole('button', { name: 'Request update' }));
-  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
+  expect(await screen.findByRole('heading', { name: `How ${MEMBER_RECORD.company.name} records you` })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   await chooseMemberCompany(otherRecord.company.name);
   await screen.findByText('No eligible certificate records in the loaded entries.');
@@ -441,10 +385,8 @@ it('updates ownership and member workflows after invalidation without idle refre
   expect(screen.queryByRole('alert')).toBeNull();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Request update' }));
-  fireEvent.change(screen.getByRole('textbox', { name: 'Requested name' }), {
-    target: { value: 'Private previous-account draft' },
-  });
+  expect(await screen.findByRole('heading', { name: `How ${otherRecord.company.name} records you` })).toBeTruthy();
+  expect(await screen.findByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
   includeOther = false;
   currentPreferences = {
     userProfile: 'profile-two',
@@ -452,7 +394,6 @@ it('updates ownership and member workflows after invalidation without idle refre
   };
   await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: currentPreferences }));
   await screen.findByRole('heading', { name: 'Get access to your shares' });
-  expect(screen.queryByRole('textbox', { name: 'Requested name' })).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
   detailRefused = false;
   currentPreferences = preferences;
@@ -463,14 +404,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await ownShares('10');
   fireEvent.click(screen.getByRole('link', { name: 'Test Settings navigation' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Request update' }));
-  expect((screen.getByRole('textbox', { name: 'Requested name' }) as HTMLInputElement).value).toBe('');
-  expect((screen.getByRole('textbox', { name: 'Requested residential address' }) as HTMLTextAreaElement).value).toBe(
-    '',
-  );
-  expect(
-    (screen.getByRole('checkbox', { name: /Share these requested particulars/ }) as HTMLInputElement).checked,
-  ).toBe(false);
+  expect(await screen.findByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   view.unmount();
   const beforeUnmounted = api.get.mock.calls.length;

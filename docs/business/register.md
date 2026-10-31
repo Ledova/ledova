@@ -341,9 +341,9 @@ On a class on chain the next reconciliation reports member and supply difference
 
 ### Changing a member's particulars
 
-The company keeps members' names and residential addresses current; members edit their own profile
-and ask for changes separately ([member profile](participants.md#member-profile),
-[member requests](member-records.md#member-requests)).
+The company keeps members' names and residential addresses current. A member whose recorded name or
+address is wrong tells the company directly; editing their own profile does not change the register
+([member profile](participants.md#member-profile)).
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
    Recipient details on their award's page, and choose Change particulars.
@@ -614,7 +614,7 @@ Details opens the shareholder's page. On narrow screens each shareholder is one 
 classes they hold, and the row opens their page. Former shareholders follows, holding each class's
 Former-member history 25 at a time, with Details for a former member the register names.
 Shareholders' sidebar submenus open Employee scheme for employee awards, Member access for invitations and access, and Member requests
-for particulars and certificate requests ([member records](member-records.md)). While register work is unfinished,
+for certificate requests ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
 The Employee share scheme view, Employee scheme under Shareholders, shows one class's

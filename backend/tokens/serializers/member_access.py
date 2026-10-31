@@ -8,7 +8,6 @@ from tokens.models import (
     MemberCertificateFulfilment,
     MemberCertificateRequest,
     MemberInvitation,
-    MemberParticularsRequest,
 )
 from tokens.serializers.ownership import (
     CompanyOwnershipSummarySerializer,
@@ -116,54 +115,6 @@ class MemberAssociationRevokeSerializer(StrictTeamSerializer):
     appointment = serializers.UUIDField()
     idempotency_key = serializers.UUIDField()
     reason = serializers.CharField(max_length=1000)
-
-
-class MemberParticularsRequestCreateSerializer(StrictTeamSerializer):
-    operation_id = serializers.UUIDField()
-    association = serializers.UUIDField()
-    name = serializers.CharField(max_length=255)
-    residential_address = serializers.CharField(max_length=1000)
-    confirmation = serializers.BooleanField()
-
-
-class MemberParticularsRequestPrepareSerializer(StrictTeamSerializer):
-    operation_id = serializers.UUIDField()
-    appointment = serializers.UUIDField()
-    supporting_evidence = serializers.UUIDField()
-    as_at = serializers.DateField()
-    reason = serializers.CharField(max_length=1000)
-
-
-class MemberParticularsRequestSerializer(serializers.ModelSerializer):
-    status = serializers.SerializerMethodField()
-    change = serializers.UUIDField(source="change.uuid", read_only=True, allow_null=True, default=None)
-
-    class Meta:
-        model = MemberParticularsRequest
-        fields = [
-            "uuid",
-            "association",
-            "company",
-            "member",
-            "requested_by",
-            "name",
-            "residential_address",
-            "status",
-            "change",
-            "created_at",
-        ]
-        read_only_fields = fields
-
-    @extend_schema_field(serializers.ChoiceField(choices=["submitted", "prepared", "approved", "applied", "rejected"]))
-    def get_status(self, obj):
-        change = getattr(obj, "change", None)
-        if change is None:
-            return "submitted"
-        if change.status != "submitted":
-            return change.status
-        from django.utils import timezone
-
-        return "approved" if _query("tokens_register_particulars_approved", change.pk, timezone.now()) else "prepared"
 
 
 class MemberCertificateRequestCreateSerializer(StrictTeamSerializer):

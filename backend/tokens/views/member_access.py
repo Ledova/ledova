@@ -13,22 +13,18 @@ from tokens.models import (
     MemberAssociation,
     MemberCertificateRequest,
     MemberInvitation,
-    MemberParticularsRequest,
 )
 from tokens.serializers import member_access as schema
 from tokens.serializers.register_certificate import (
     MemberCertificateFulfilmentCreateSerializer,
     MemberCertificateFulfilmentPreviewSerializer,
 )
-from tokens.serializers.register_particulars import RegisterParticularsChangeSerializer
 from tokens.services import member_access as service
 from tokens.services.member_certificates import (
     fulfil_member_certificate,
     member_certificate_bytes,
     preview_member_certificate,
 )
-from tokens.services.register_particulars import PARTICULARS
-from tokens.views.register_proposal import with_decisions
 
 FILTERS = [
     OpenApiParameter("company", OpenApiTypes.UUID),
@@ -49,7 +45,6 @@ class MemberAccessViewSet(AuthenticatedReadOnlyViewSet):
             "preview",
             "revoke",
             "entries",
-            "prepare",
             "withdraw",
             "fulfilment_preview",
             "fulfil",
@@ -198,45 +193,6 @@ class MemberRecordViewSet(MemberAccessViewSet):
 
         token = serializers.UUIDField().run_validation(request.query_params.get("token"))
         return Response(schema.MemberRecordEntriesSerializer(service.own_entries(self.get_object(), token)).data)
-
-
-@extend_schema_view(list=extend_schema(parameters=FILTERS))
-class MemberParticularsRequestViewSet(MemberAccessViewSet):
-    scoped_model = MemberParticularsRequest
-    queryset = MemberParticularsRequest.objects.none()
-    serializer_class = schema.MemberParticularsRequestSerializer
-    operator_actions_because = (
-        "Members submit immutable proposed particulars through their own current association; they cannot edit "
-        "the register. Current exact-company personal register readers see the company queue. Preparation hands "
-        "the attributable source into the existing evidence-backed company decision and application command."
-    )
-
-    def narrow(self, queryset):
-        return service.request_readable(queryset.select_related("change"), self.request.user)
-
-    @extend_schema(
-        request=schema.MemberParticularsRequestCreateSerializer,
-        responses={201: schema.MemberParticularsRequestSerializer, 200: schema.MemberParticularsRequestSerializer},
-    )
-    def create(self, request):
-        source, created = service.request_particulars(
-            actor=request.user, **self.body(schema.MemberParticularsRequestCreateSerializer)
-        )
-        return Response(schema.MemberParticularsRequestSerializer(source).data, status=201 if created else 200)
-
-    @extend_schema(
-        request=schema.MemberParticularsRequestPrepareSerializer,
-        responses={201: RegisterParticularsChangeSerializer, 200: RegisterParticularsChangeSerializer},
-    )
-    @action(detail=True, methods=["post"])
-    def prepare(self, request, uuid=None):
-        change, created = service.prepare_requested_particulars(
-            actor=request.user, request_id=uuid, **self.body(schema.MemberParticularsRequestPrepareSerializer)
-        )
-        current = with_decisions(
-            service.requested_particulars_change(request.user, change.pk), PARTICULARS.approved_function
-        ).get()
-        return Response(RegisterParticularsChangeSerializer(current).data, status=201 if created else 200)
 
 
 @extend_schema_view(list=extend_schema(parameters=FILTERS))

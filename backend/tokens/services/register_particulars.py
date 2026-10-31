@@ -12,8 +12,6 @@ from shared.db import use_operator
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
-    MemberAssociation,
-    MemberParticularsRequest,
     RegisterAward,
     RegisterEvidence,
     RegisterEvidenceKind,
@@ -25,7 +23,6 @@ from tokens.models import (
     RegisterPosition,
 )
 from tokens.services.former_holders import member_left_on, retention_cutoff
-from tokens.services.member_events import details_decided
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_evidence import (
@@ -76,24 +73,13 @@ def _beyond_retention(member_id):
 
 
 def prepare_particulars_change(
-    *,
-    actor,
-    operation_id,
-    appointment,
-    member,
-    supporting_evidence,
-    name,
-    residential_address,
-    as_at,
-    reason,
-    member_request=None,
+    *, actor, operation_id, appointment, member, supporting_evidence, name, residential_address, as_at, reason
 ):
     try:
         operation_id, appointment, member, supporting_evidence = (
             UUID(str(value)) for value in (operation_id, appointment, member, supporting_evidence)
         )
         as_at = date.fromisoformat(str(as_at))
-        member_request = UUID(str(member_request)) if member_request is not None else None
     except (ValueError, TypeError, AttributeError):
         raise ValidationError("Particulars change references must be UUIDs and its date an ISO date.") from None
     if as_at > timezone.localdate():
@@ -129,29 +115,10 @@ def prepare_particulars_change(
                     "as_at": as_at,
                     "preparing_appointment_id": source.pk,
                     "submitted_by_id": current_actor.pk,
-                    "member_request_id": member_request,
                 }
                 if any(getattr(existing, key) != value for key, value in expected.items()):
                     raise RegisterChangeConflict()
                 return existing, False
-            if member_request is not None:
-                from tokens.services.member_access import _query
-
-                request = MemberParticularsRequest.objects.select_for_update().filter(pk=member_request).first()
-                if request is None or request.company_id != company.pk or request.member != subject.pk:
-                    raise NotFound("Member particulars request not found.")
-                MemberAssociation.objects.select_for_update().get(pk=request.association_id)
-                if (
-                    request.name != values["name"]
-                    or request.residential_address != values["residential_address"]
-                    or not _query("tokens_member_association_current", request.association_id, request.requested_by_id)
-                    or request.source_snapshot != _query("tokens_register_particulars_snapshot", subject.pk)
-                ):
-                    raise ValidationError(
-                        "The member request no longer matches the current association or recorded particulars."
-                    )
-                if RegisterParticularsChange.objects.filter(member_request=request).exists():
-                    raise RegisterChangeConflict()
             held = RegisterMemberParticulars.objects.filter(member=subject).first()
             if held is not None and held.as_at > as_at:
                 raise ValidationError(
@@ -170,7 +137,6 @@ def prepare_particulars_change(
                 uuid=operation_id,
                 company=company,
                 member=subject,
-                member_request_id=member_request,
                 as_at=as_at,
                 supporting_evidence=copy,
                 evidence_fingerprint=copy.sha256,
@@ -193,20 +159,6 @@ def prepare_particulars_change(
 
 def _effect_requirements(change):
     unmet = []
-    if change.member_request_id is not None:
-        from django.db import connections
-
-        from shared.db import current_alias
-
-        with connections[current_alias()].cursor() as cursor:
-            cursor.execute(
-                "SELECT tokens_member_requested_change_ready(proposal, true) "
-                "FROM tokens_registerparticularschange proposal WHERE uuid=%s",
-                [change.pk],
-            )
-            ready = cursor.fetchone()[0]
-        if not ready:
-            unmet.append("member_request_no_longer_current")
     try:
         matching_bytes(change.file, change.evidence_snapshot["file_size"], change.evidence_fingerprint)
     except ValidationError:
@@ -245,9 +197,6 @@ def _details(change):
 
 
 def _lock(change):
-    if change.member_request_id is not None:
-        request = MemberParticularsRequest.objects.select_for_update().get(pk=change.member_request_id)
-        MemberAssociation.objects.select_for_update().get(pk=request.association_id)
     list(
         RegisterMemberParticulars.objects.select_for_update()
         .filter(member_id=change.member_id)
@@ -276,7 +225,6 @@ def _apply(change, actor, decision):
     change.reviewed_by = actor
     change.reviewed_at = decision.decided_at
     change.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
-    details_decided(change)
 
 
 PARTICULARS = DecisionFamily(
@@ -290,7 +238,6 @@ PARTICULARS = DecisionFamily(
     lock=_lock,
     apply=_apply,
     noun="change",
-    rejected=details_decided,
 )
 
 
