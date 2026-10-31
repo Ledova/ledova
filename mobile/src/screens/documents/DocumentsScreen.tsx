@@ -11,7 +11,8 @@ import type { SignedInStackParamList } from '../../navigation/SignedInNavigator'
 import { CertificatePill } from '../holdings/CertificatePill';
 import { CertificateSheet, entryDate, entryKind } from '../holdings/CertificateSheet';
 import { Avatar } from '../../components/Avatar';
-import { shareQuantity, shortName } from '../holdings/holdings';
+import { shortName } from '../../components/companyName';
+import { shareQuantity } from '../holdings/holdings';
 import { MemberNotice, useCompanyRecord, useMemberRecordsState } from '../holdings/MemberRecordsProvider';
 import { NoticeList } from '../publications';
 import { usePublications } from '../publications/usePublications';

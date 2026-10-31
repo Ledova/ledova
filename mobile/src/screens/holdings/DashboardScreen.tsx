@@ -21,7 +21,7 @@ import type { SignedInStackParamList } from '../../navigation/SignedInNavigator'
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { AwardStatus } from './AwardStatus';
 import { CompanyPicker } from './CompanyPicker';
-import { MemberNotice, useCompanyRecord, useMemberRecordsState, useMemberRefresh } from './MemberRecordsProvider';
+import { MemberNotice, useMemberRecordsState, useMemberRefresh } from './MemberRecordsProvider';
 
 type Read = ReturnType<typeof useMemberRecords>;
 type Ownership = NonNullable<ReturnType<typeof ownershipView>>;
@@ -104,7 +104,11 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
     const target = companies.find((row) => row.uuid === opened);
     if (!target || !selectCompany(target.company.uuid)) return;
     const token = target.awards.find((award) => award.uuid === openedAward)?.token;
-    if (token) setChosenClass({ company: target.company.uuid, token });
+    setChosenClass(
+      token && ownershipView(undefined, target)?.classes.some((row) => row.uuid === token)
+        ? { company: target.company.uuid, token }
+        : null,
+    );
     navigation.setParams({ record: undefined, award: undefined });
   }, [opened, openedAward, companies, selectCompany, navigation]);
   const chosen = chosenClass && chosenClass.company === company?.company.uuid ? chosenClass.token : null;
@@ -143,6 +147,8 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
             <Action label="Accept an invitation" primary onPress={() => navigation.navigate('Invitation')} />
           </Section>
         )
+      ) : read.readFailed ? (
+        <Action label="Try again" disabled={read.busy} onPress={() => void read.refresh()} />
       ) : (
         <CompanyOwnership
           key={company.uuid}
@@ -156,7 +162,9 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
         companies={companies}
         current={company?.company.uuid}
         onChoose={(uuid) => {
-          if (selectCompany(uuid)) setPicking(false);
+          if (!selectCompany(uuid)) return;
+          setPicking(false);
+          setChosenClass(null);
         }}
         onClose={() => setPicking(false)}
       />
@@ -175,9 +183,7 @@ function CompanyOwnership({
 }) {
   const styles = useCompanyStyles();
   const look = useDashboardStyles();
-  const { record, selected } = useCompanyRecord(company.uuid);
-  const source = selected ?? record ?? company;
-  const view = useMemo(() => ownershipView(undefined, source), [source]);
+  const view = useMemo(() => ownershipView(undefined, company), [company]);
   const chosenClass = view?.classes.find((row) => row.uuid === chosen);
   return (
     <>
@@ -188,7 +194,9 @@ function CompanyOwnership({
           </Pressable>
           {chosenClass && (
             <>
-              <Text style={look.trailLink}>/</Text>
+              <Text accessibilityElementsHidden importantForAccessibility="no" style={look.trailLink}>
+                /
+              </Text>
               <Text style={look.trailHere}>{chosenClass.symbol}</Text>
             </>
           )}
@@ -201,7 +209,7 @@ function CompanyOwnership({
             <Metrics view={view} />
             <OwnershipClasses view={view} chosen={chosen} onChoose={onChoose} />
           </Section>
-          {chosen && <ClassDetails view={view} record={source} chosen={chosenClass} />}
+          {chosen && <ClassDetails view={view} record={company} chosen={chosenClass} />}
         </>
       ) : (
         <Section title="Ownership overview">
@@ -210,7 +218,7 @@ function CompanyOwnership({
           </Text>
         </Section>
       )}
-      <MemberAwards record={source} token={chosen} />
+      <MemberAwards record={company} token={chosen} />
     </>
   );
 }
@@ -290,7 +298,20 @@ function OwnershipClasses({
           <Pressable
             key={row.uuid}
             accessibilityRole="button"
-            accessibilityLabel={`Explore ${row.name} (${row.symbol})`}
+            accessibilityLabel={[
+              `Explore ${row.name} (${row.symbol})`,
+              row.issuedSupply === null
+                ? 'Not recorded'
+                : `${formatShareCount(row.issuedSupply)} ${personalOnly ? 'held by you' : 'issued shares'}`,
+              shown && row.issuedSupply !== null
+                ? `${sharePercentage(row.issuedSupply, total)} ${personalOnly ? 'of your shares in this company' : 'of company issued shares'}`
+                : null,
+              !personalOnly && row.ownShares !== null && BigInt(row.ownShares) > 0n
+                ? `You: ${formatShareCount(row.ownShares)}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(', ')}
             accessibilityState={{ selected: row.uuid === chosen }}
             onPress={() => onChoose(row.uuid)}
             style={[look.classRow, row.uuid === chosen && look.classSelected]}
@@ -406,7 +427,7 @@ function MemberAwards({ record, token }: { record: OwnMemberRecord; token: strin
           };
           return (
             <View key={award.uuid} style={look.award}>
-              <Text style={look.awardTitle}>
+              <Text accessibilityRole="header" style={look.awardTitle}>
                 {record.classes.find(({ uuid }) => uuid === award.token)?.name ?? 'Employee award'} ·{' '}
                 {formatDate(award.termsOn)}
               </Text>

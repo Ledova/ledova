@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -53,10 +54,9 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!key) return;
     let live = true;
-    AsyncStorage.getItem(key).then(
-      (company) => live && setChosen({ key, company }),
-      () => live && setChosen({ key, company: null }),
-    );
+    const keep = (company: string | null) =>
+      live && setChosen((current) => (current?.key === key ? current : { key, company }));
+    AsyncStorage.getItem(key).then(keep, () => keep(null));
     return () => {
       live = false;
     };
@@ -64,6 +64,17 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const remembered = key && chosen?.key === key ? chosen.company : undefined;
   const company =
     remembered === undefined ? undefined : (companies.find((row) => row.company.uuid === remembered) ?? companies[0]);
+  const busy = read.busy || !!read.retry;
+  const selectCompany = useCallback(
+    (companyUuid: string) => {
+      if (!key || busy || !companies.some((row) => row.company.uuid === companyUuid)) return false;
+      if (remembered === companyUuid) return true;
+      setChosen({ key, company: companyUuid });
+      AsyncStorage.setItem(key, companyUuid).catch(() => undefined);
+      return true;
+    },
+    [key, busy, companies, remembered],
+  );
   return (
     <MemberRecordsContext.Provider
       value={{
@@ -77,13 +88,7 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
         },
         companies,
         company,
-        selectCompany: (companyUuid) => {
-          if (!key || read.busy || read.retry || !companies.some((row) => row.company.uuid === companyUuid))
-            return false;
-          setChosen({ key, company: companyUuid });
-          AsyncStorage.setItem(key, companyUuid).catch(() => undefined);
-          return true;
-        },
+        selectCompany,
       }}
     >
       {children}

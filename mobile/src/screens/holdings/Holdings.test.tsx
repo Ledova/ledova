@@ -245,7 +245,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByRole('button', { name: 'Accept invitation' })).toBeTruthy();
   expect(screen.queryByText('Invitation accepted. Your company records are available.')).toBeNull();
   await view.rerender(dashboard);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Explore Ordinary (ORD)' }));
+  await fireEvent.press(
+    await screen.findByRole('button', {
+      name: 'Explore Ordinary (ORD), 40 issued shares, 100.00% of company issued shares, You: 10',
+    }),
+  );
   expect(screen.getByLabelText('Your share of this class: 25.00%')).toBeTruthy();
   const record = MEMBER_RECORD.uuid;
   const token = MEMBER_RECORD.classes[0].uuid;
@@ -446,7 +450,11 @@ it('lists certificates from every member association in Documents, refuses a lis
   expect(destinationOf(notice)).not.toBe(destinationOf(notice));
   const award = 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5';
   const vested = { type: 'award', event: 'vested', record: MEMBER_RECORD.uuid, award };
-  expect(destinationOf(vested)).toEqual({ screen: 'Dashboard', params: { record: MEMBER_RECORD.uuid, award } });
+  expect(destinationOf(vested)).toEqual({
+    screen: 'Dashboard',
+    params: { record: MEMBER_RECORD.uuid, award },
+    pop: true,
+  });
   expect(destinationOf({ ...vested, award: undefined })).toBeUndefined();
 });
 

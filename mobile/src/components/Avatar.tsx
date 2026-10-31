@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 import { useThemedStyles } from '../contexts';
-import { initials } from '../screens/holdings/holdings';
+import { initials } from './companyName';
 
 export function Avatar({ name }: { name: string }) {
   const styles = useThemedStyles((theme) => ({

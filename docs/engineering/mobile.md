@@ -67,7 +67,8 @@ The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame.
 Dashboard, Documents and Settings, show the web's top bar (`TopBar`): the menu button, the logo, the
 Dark theme switch and the notifications bell. The menu (`AppMenu`) slides in from the left like the
 web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and a footer with the
-person's name and Sign out, which asks first as Settings' Sign out does. It closes when its screen
+person's name, the selected company as on the web, and Sign out, which asks first as Settings' Sign
+out does. It closes when its screen
 loses focus. Choosing Dashboard returns to it; Documents and Settings open above Dashboard, so
 Android's Back returns there as it did from the tabs. The Class, Details, Invitation, Your details and
 Profile screens open above a section with a back button. Dashboard
@@ -95,7 +96,7 @@ original operation, after leaving the company, and the screens show a loading li
 empty one while the list rereads. Only the focused screen selects its record and class. Documents
 (`mobile/src/screens/documents`) lists the ready and requested certificates from every company,
 each read for that member association alone, and the notices, with a chip per company to filter
-both; a company's Documents row opens it filtered to that company. A certificate opens its sheet to
+both. A certificate opens its sheet to
 share or withdraw it through the same member-records state. Settings
 opens Profile from its profile card, Your details from Details at each company (with the number of
 changes waiting) and Invitation from Accept an invitation. Your details lists each company's
@@ -109,7 +110,7 @@ and app lock switches, Notifications (the notifications list), the dark theme, p
 the app actions and Sign out.
 A notification, tapped in that list or as a push, opens its screen: a notice opens Documents on
 Notices for every company, a ready certificate Documents on Certificates for that company, vested
-shares the award, issued shares the class, and a decided particulars change the company's details.
+shares Dashboard on the award's company (with its class, where the overview lists it), issued shares the class, and a decided particulars change the company's details.
 Screens set their own titles inside the page; a pushed
 screen's back button names the section or screen it came from.
 

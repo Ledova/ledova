@@ -17,6 +17,7 @@ import { SignOutModal } from '../components/auth/SignOutModal';
 import { LogoMark } from '../components/LogoMark';
 import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { useMemberRecordsState } from '../screens/holdings/MemberRecordsProvider';
 
 export type Section = 'Dashboard' | 'Documents' | 'Settings';
 
@@ -100,6 +101,7 @@ export function AppMenu({
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
   const { userProfile } = useUserProfile();
+  const { company } = useMemberRecordsState();
   const { signOut, signingOut } = useSignOut();
   const [progress] = useState(() => new Animated.Value(0));
   const [shown, setShown] = useState(visible);
@@ -223,6 +225,19 @@ export function AppMenu({
                 }}
               >
                 {person}
+              </Text>
+            )}
+            {company && (
+              <Text
+                numberOfLines={1}
+                style={{
+                  paddingHorizontal: 12,
+                  fontFamily: theme.fontFamily.regular,
+                  fontSize: theme.fontSize.xs,
+                  color: theme.colors.text.muted,
+                }}
+              >
+                {company.company.name}
               </Text>
             )}
             <TouchableOpacity
