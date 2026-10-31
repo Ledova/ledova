@@ -20,7 +20,7 @@ import { NotificationBell } from './NotificationBell';
 import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { CERTIFICATES_PATH, COMPANY_DOCUMENTS_PATH, certificatesLocation } from '@utils/paths';
+import { certificatesLocation } from '@utils/paths';
 import {
   destinationAt,
   pageTitle,
@@ -54,7 +54,7 @@ const COMPANY: NavItem[] = [
   { destination: 'home', icon: HouseIcon },
   { destination: 'companyRegister', icon: BookOpenIcon },
   { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
-  { destination: 'companyRegister', view: 'certificates', icon: FilesIcon },
+  { destination: 'certificates', icon: FilesIcon },
 ];
 
 const ELIGIBILITY = {
@@ -70,7 +70,7 @@ const INVESTOR_ELIGIBILITY: NavItem = {
 
 const PERSONAL: NavItem[] = [
   { destination: 'home', icon: HouseIcon },
-  { destination: 'home', view: 'documents', icon: FilesIcon },
+  { destination: 'certificates', icon: FilesIcon },
 ];
 
 const YOURS: NavItem[] = [{ destination: 'settings', icon: GearIcon }];
@@ -85,11 +85,6 @@ const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, LedgerTask>> = {
 };
 
 function itemPath(item: NavItem) {
-  if (
-    (item.destination === 'companyRegister' && item.view === 'certificates') ||
-    (item.destination === 'home' && item.view === 'documents')
-  )
-    return CERTIFICATES_PATH;
   const path = DESTINATIONS[item.destination].path;
   return `${path}${item.view ? `#${item.view}` : ''}`;
 }
@@ -118,7 +113,7 @@ function ledgerContext(
   const token =
     location.pathname === path
       ? state?.token
-      : location.pathname === CERTIFICATES_PATH
+      : location.pathname === DESTINATIONS.certificates.path
         ? (new URLSearchParams(location.search).get('class') ?? location.state?.registerToken)
         : classParams?.uuid;
   return company || token ? { registerCompany: company, registerToken: token } : undefined;
@@ -373,7 +368,7 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
   const selected =
-    location.pathname === CERTIFICATES_PATH
+    location.pathname === DESTINATIONS.certificates.path
       ? 'certificates'
       : location.pathname === DESTINATIONS.companyPublications.path
         ? 'publications'
@@ -421,7 +416,7 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
 
 function EligibilityGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
   const location = useLocation();
-  const supporting = location.pathname === COMPANY_DOCUMENTS_PATH;
+  const supporting = location.pathname === DESTINATIONS.companyDocuments.path;
   return (
     <NavGroup
       icon={ShieldCheckIcon}
@@ -436,7 +431,7 @@ function EligibilityGroup({ active, onNavigate }: { active: boolean; onNavigate?
           key: 'supporting',
           label: 'Supporting',
           title: 'Company documents',
-          to: COMPANY_DOCUMENTS_PATH,
+          to: DESTINATIONS.companyDocuments.path,
           current: supporting,
         },
       ]}
@@ -517,21 +512,19 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         Object.prototype.hasOwnProperty.call(SHAREHOLDER_VIEWS, place.view ?? '')
           ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'shareholders')
           : undefined) ??
-        (place.destination === 'companyRegister' && documentView(place.view)
-          ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'certificates')
-          : undefined) ??
-        (place.destination === 'home' && place.view === 'documents'
-          ? allItems.find((item) => item.destination === 'companyRegister' && item.view === 'certificates')
+        ((place.destination === 'companyRegister' && documentView(place.view)) ||
+        (place.destination === 'home' && place.view === 'documents')
+          ? allItems.find((item) => item.destination === 'certificates')
           : undefined) ??
         allItems.find((item) => item.destination === place.destination && !item.view),
     )
     .find(Boolean);
   const activePath =
-    location.pathname === COMPANY_DOCUMENTS_PATH ||
+    location.pathname === DESTINATIONS.companyDocuments.path ||
     (location.pathname === DESTINATIONS.company.path && location.hash === '#documents')
       ? itemPath(ELIGIBILITY)
-      : [CERTIFICATES_PATH, DESTINATIONS.companyPublications.path].includes(location.pathname)
-        ? CERTIFICATES_PATH
+      : location.pathname === DESTINATIONS.companyPublications.path
+        ? DESTINATIONS.certificates.path
         : activeItem && itemPath(activeItem);
 
   return (
@@ -554,8 +547,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                     active={itemPath(item) === activePath}
                     onNavigate={onNavigate}
                   />
-                ) : (item.destination === 'companyRegister' && item.view === 'certificates') ||
-                  (item.destination === 'home' && item.view === 'documents') ? (
+                ) : item.destination === 'certificates' ? (
                   <DocumentsGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
                 ) : item.destination === 'companyEligibility' && context?.company?.canManage ? (
                   <EligibilityGroup

@@ -12,6 +12,7 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   AUTH_QUERY_KEY,
   eligibilityRecordsKey,
+  DESTINATIONS,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
@@ -20,7 +21,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Link, useLocation } from 'react-router-dom';
 import { CompanyProfile } from '@pages/settings/CompanyProfile';
 import CompanyDocumentsPage from '@pages/documents/company';
-import { COMPANY_DOCUMENTS_PATH } from '@utils/paths';
 import CompanyTeamPage from './team';
 import CompanyEligibilityPage from './eligibility';
 import { APPOINTMENT, companyPreferences, companyRecord, renderCompanyPage } from '../../testSupport/company';
@@ -35,14 +35,14 @@ let client: QueryClient;
 let company: Company;
 let failed: string | null;
 function CompanyView() {
-  return useLocation().pathname === COMPANY_DOCUMENTS_PATH ? <CompanyDocumentsPage /> : <CompanyProfile />;
+  return useLocation().pathname === DESTINATIONS.companyDocuments.path ? <CompanyDocumentsPage /> : <CompanyProfile />;
 }
 function show() {
   return renderCompanyPage(
     client,
     <>
       <CompanyView />
-      <Link to={COMPANY_DOCUMENTS_PATH}>Open company documents</Link>
+      <Link to={DESTINATIONS.companyDocuments.path}>Open company documents</Link>
     </>,
     'Profile',
     { entry: '/settings', path: '*' },

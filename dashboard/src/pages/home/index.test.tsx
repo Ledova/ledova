@@ -18,6 +18,7 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   type TokenHoldersResponse,
   type OwnMemberRecord,
+  DESTINATIONS,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -31,7 +32,6 @@ import { AWARD_REQUEST, REGISTER, awardFrom } from '../../testSupport/company';
 import { FULFILLED_CERTIFICATE, MEMBER_PDF, OUTPUT_APPOINTMENT, OUTPUT_PREVIEW } from '../../testSupport/company';
 import MemberRecordsPage from './index';
 import CertificatesPage from '../documents/certificates';
-import { CERTIFICATES_PATH } from '@utils/paths';
 import MemberInvitationPage from '../member-invitation';
 import { CompanyMemberAccess } from '../company/ledger/CompanyMemberAccess';
 import { Page } from '@components/Page';
@@ -499,7 +499,7 @@ it('invites and associates a walletless member, recovers one exact request and r
           <MemberPageLinks />
           <Routes>
             <Route path="/home" element={<MemberRecordsPage />} />
-            <Route path={CERTIFICATES_PATH} element={<CertificatesPage />} />
+            <Route path={DESTINATIONS.certificates.path} element={<CertificatesPage />} />
             <Route path="/settings" element={<CompanyRecordedDetails />} />
           </Routes>
         </CompanyContextProvider>
