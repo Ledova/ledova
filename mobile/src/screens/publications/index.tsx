@@ -1,7 +1,7 @@
 import { ActivityIndicator, Text, View } from 'react-native';
 import { PUBLICATION_COPY, PUBLICATION_KIND_LABELS, formatDate, formatShareCount } from '@ledova/shared';
 import type { Publication } from '@ledova/shared';
-import { Action, Row, Section, useCardStyles } from '../../components/Ledger';
+import { Action, Row, Section } from '../../components/Ledger';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Distribution } from './Distribution';
 import { Resolution } from './Resolution';
@@ -15,7 +15,6 @@ export function NoticeList({
   publications: Publication[];
 }) {
   const theme = useAppTheme();
-  const card = useCardStyles();
   const styles = useThemedStyles((theme) => ({
     message: { fontFamily: theme.fontFamily.regular, fontSize: 15, lineHeight: 23, color: theme.colors.text.muted },
     kind: {
@@ -34,6 +33,13 @@ export function NoticeList({
       color: theme.colors.status.error.text,
     },
     help: { fontFamily: theme.fontFamily.regular, fontSize: 13, lineHeight: 20, color: theme.colors.text.muted },
+    empty: {
+      paddingVertical: 12,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.text.muted,
+    },
     state: { gap: 14, paddingVertical: 12 },
   }));
   const {
@@ -111,9 +117,9 @@ export function NoticeList({
       ) : (
         <>
           {publications.length === 0 && !hasMore && !moreFailed ? (
-            <View style={card.card}>
-              <Text style={styles.message}>{PUBLICATION_COPY.EMPTY}</Text>
-            </View>
+            <Section title="Your notices">
+              <Text style={styles.empty}>{PUBLICATION_COPY.EMPTY}</Text>
+            </Section>
           ) : (
             publications.map(renderRow)
           )}

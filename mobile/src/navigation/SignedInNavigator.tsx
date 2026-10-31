@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { createNativeStackNavigator, type NativeStackHeaderProps } from '@react-navigation/native-stack';
 import type { NavigationProp } from '@react-navigation/native';
 import { useNotifications } from '@ledova/shared';
-import { InSignedInFrame } from '../components/InSignedInFrame';
+import { InSignedInFrame, type FrameOptions } from '../components/InSignedInFrame';
 import { NotificationsModal, useFollowPush } from '../components/notifications';
 import { useAppTheme } from '../contexts';
 import { CertificatesScreen } from '../screens/documents/CertificatesScreen';
@@ -15,7 +15,7 @@ import { MemberRecordsProvider } from '../screens/holdings/MemberRecordsProvider
 import { YourDetailsScreen } from '../screens/holdings/YourDetailsScreen';
 import { SettingsScreen } from '../screens/settings';
 import { UserProfileScreen } from '../screens/user-profile';
-import type { Section, SectionRoute } from './AppMenu';
+import type { MenuRoute, Section } from './AppMenu';
 import { TopBar } from './headers';
 
 export type SignedInStackParamList = {
@@ -40,11 +40,12 @@ export function SignedInNavigator() {
   const openNotifications = () => setShowNotifications(true);
   const topBar = (current: Section) => ({
     headerShown: true,
-    header: ({ navigation, options }: NativeStackHeaderProps) => (
+    header: ({ navigation, route, options }: NativeStackHeaderProps) => (
       <TopBar
-        navigation={navigation as NavigationProp<Record<SectionRoute, undefined>>}
+        navigation={navigation as NavigationProp<Record<MenuRoute, undefined>>}
+        route={route.name}
         title={options.title}
-        action={options.headerRight?.({ canGoBack: false })}
+        action={(options as FrameOptions).action}
         current={current}
         onNotifications={openNotifications}
         unreadCount={unreadCount}

@@ -66,17 +66,19 @@ dashboard's routes and guards do not apply.
 The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Every page shows
 the web's phone top bar (`TopBar`), never a back button: the menu button, the page's title, its
 action (such as Switch company or Filters) and the notifications bell. Inside the frame `Page` sets
-the title and action as the screen's `title` and `headerRight` options and starts with its lede.
+the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
+its lede.
 The menu (`AppMenu`) slides in from the left like the
 web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and a footer with the
 person's name, the selected company as on the web, and Sign out, which asks first as Settings' Sign
 out does, beside the Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Documents for Certificates and Notices,
 Settings for Profile, Details and Your details, Dashboard for Invitation. Choosing Dashboard returns
-to it. Documents opens Certificates, as a member's Documents does on the web, and Settings opens
+to it. Documents opens Certificates, and like the web's group its caret shows Certificates and
+Notices beneath it, open while one of them is shown. Settings opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
-(`Section`) use the web's phone sizes: 16-point margins and gaps, a 30-point title, and cards with
-16-point padding and corners under a 20-point title. Dashboard
+(`Section`) use the web's phone sizes: 16-point margins and gaps, and cards with 16-point padding and
+corners under a 20-point title; the page's own title is the top bar's. Dashboard
 (`mobile/src/screens/holdings/DashboardScreen.tsx`) follows the web's per-company Dashboard. The
 selected company is remembered per account under the web's key (`ledova.company.<user>.<account>`, in
 AsyncStorage), and is otherwise the first by name; **Switch company** lists the member's companies
@@ -103,8 +105,8 @@ company-recorded particulars and the particulars request. These screens share on
 state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
 original operation, after leaving the company, and the screens show a loading line rather than an
 empty one while the list rereads. Only the focused screen selects its record and class. Notices
-(`NoticesScreen`) is the web's Notices page: every company's notices, each opened or voted on as on
-the web. Settings
+(`NoticesScreen`), under Documents, is the web's Notices page: every company's notices, each opened
+or voted on as on the web. Settings
 opens Profile from its profile card, Your details from Details at each company (with the number of
 changes waiting) and Invitation from Accept an invitation. Your details lists each company's
 recorded name and address, marking those where a change waits, and sends one particulars change to

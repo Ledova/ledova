@@ -372,9 +372,11 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
       ? 'certificates'
       : location.pathname === DESTINATIONS.companyPublications.path
         ? 'publications'
-        : location.pathname === path
-          ? documentView(location.hash.slice(1))
-          : undefined;
+        : location.pathname === DESTINATIONS.publications.path
+          ? 'notices'
+          : location.pathname === path
+            ? documentView(location.hash.slice(1))
+            : undefined;
   const context = ledgerContext(location, state, companyContext?.companyUuid);
   const certificateTarget = certificatesLocation({ search: '', state: context });
   const certificatePath = `${certificateTarget.pathname}${certificateTarget.search}`;
@@ -395,6 +397,14 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
       title: pageTitle('companyPublications'),
       to: DESTINATIONS.companyPublications.path,
       current: selected === 'publications',
+      blocked: certificatesBlocked,
+    });
+  if (companyContext?.company?.memberUuids.length)
+    items.push({
+      key: 'notices',
+      label: pageTitle('publications'),
+      to: DESTINATIONS.publications.path,
+      current: selected === 'notices',
       blocked: certificatesBlocked,
     });
   const single = items.length === 1;
@@ -523,7 +533,8 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     location.pathname === DESTINATIONS.companyDocuments.path ||
     (location.pathname === DESTINATIONS.company.path && location.hash === '#documents')
       ? itemPath(ELIGIBILITY)
-      : location.pathname === DESTINATIONS.companyPublications.path
+      : location.pathname === DESTINATIONS.companyPublications.path ||
+          location.pathname === DESTINATIONS.publications.path
         ? DESTINATIONS.certificates.path
         : activeItem && itemPath(activeItem);
 
