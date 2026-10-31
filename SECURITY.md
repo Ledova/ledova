@@ -17,8 +17,8 @@ the current audit result.
 The npm exceptions apply to `mobile/` only; the root, `site/` and
 `contracts/` audits must stay completely clean. The original entries preserve the
 findings accepted on 5 October 2026, less `elliptic`, which left with the mobile
-wallet libraries. All belong to the Expo and Metro developer toolchain, whose
-SDK upgrade remains separate work. The earlier toolchain risk acceptance does
+wallet libraries, and `node-forge`, which 1.4.2 fixes. All belong to the Expo and
+Metro developer toolchain, whose SDK upgrade remains separate work. The earlier toolchain risk acceptance does
 not authorise additional advisories in that category.
 
 | Package           | Accepted advisory ID  |
@@ -29,7 +29,7 @@ not authorise additional advisories in that category.
 | `deepmerge`       | `GHSA-gcqx-w48m-w2h4` |
 | `image-size`      | `GHSA-5p2g-fcmc-qvqq` |
 | `image-size`      | `GHSA-w3rx-r6r6-pgpr` |
-| `node-forge`      | `GHSA-86w9-cpqp-85rv` |
+| `minimatch`       | `GHSA-g3hv-75wg-m249` |
 | `postcss`         | `GHSA-6g55-p6wh-862q` |
 | `postcss`         | `GHSA-fxqj-rqcc-2cmp` |
 | `postcss`         | `GHSA-qx2v-qp2m-jg93` |
@@ -42,6 +42,16 @@ and native-build toolchain; malicious project or plugin configuration remains a
 risk. No patched upstream release is available. Reconsider this exception when a
 fixed release or Expo SDK upgrade is available, and before a store-distributed
 build. It does not apply to the web, backend or another advisory.
+
+The owner separately accepted the mobile-only `minimatch` / `GHSA-g3hv-75wg-m249`
+pair on 31 October 2026. The vulnerable `minimatch` 3.1.5 comes through `glob` 7
+in React Native 0.81's build tooling (codegen, Metro, Jest instrumentation and a
+Chromium launcher's cleanup), which matches patterns from project files only.
+`minimatch` 3 exports a different module API from the patched 11.0.1, so no
+override can apply it, and the 9.x copies come from Expo's own packages, which
+still require `^9`. Reconsider this exception with the React Native and Expo
+SDK upgrade, and before a store-distributed build. It does not apply to the web,
+backend or another advisory.
 
 The backend exception is the exact pair `pytest` / `PYSEC-2026-1845`.
 `bitcoin-message-tool` declares `pytest` as a runtime dependency, but the

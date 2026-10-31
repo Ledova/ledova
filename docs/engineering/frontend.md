@@ -35,7 +35,8 @@ v4), `mobile/` the Expo React Native app ([mobile](mobile.md)), and `site/` the 
 root npm workspace link (`node_modules/@ledova/shared` to `packages/shared`), and Vite and `tsc -b`
 follow the symlink, so the sources are transformed and type-checked as application code. Mobile
 resolves it through Metro ([shared package resolution](mobile.md#shared-package-resolution)). The
-site cannot import it, because its Docker context is `site/`.
+site cannot import it, because its Docker context is `site/`. The package declares
+`"sideEffects": false`, so the dashboard's bundler drops shared code no page imports.
 
 Clients import the package as `@ledova/shared`, never by a deep path; inside a workspace package,
 imports are relative and never use the package's own name (`make check-self-imports` refuses that).
@@ -54,12 +55,12 @@ frame share, and `packages/shared` holds what both clients share.
 
 | `dashboard/src/`      | Owns                                                                                                                                                                                                                                                                                                                               |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                                                                    |
-| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                                                                                                                     |
+| `main.tsx`, `App.tsx` | `main.tsx` mounts the providers (`QueryClientProvider`, `ApiClientProvider` with the `apiClient` singleton, `RouterProvider` from `createBrowserRouter`, whose `LoadFailure` error page offers Try again), fonts and stylesheets; `App.tsx` keeps the member-record provider around `Layout` and the route table                   |
+| `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes, each page loaded on demand from `lazyPages.ts` under one `Suspense` with `RouteLoading`) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                            |
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                  |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `auth/`, and single components several areas show (`AwardStatus.tsx`) |
 | `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                               |
-| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`) and the device stores built from the shared store factories                                                                                                                                                                      |
+| `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`), the query client it reads the session from (`queryClient.ts`) and the device stores built from the shared store factories                                                                                                       |
 | `utils/`              | Browser and pure helpers used by more than one area or the frame (`siteUrl.ts`, `saveFile.ts`, the session resets) and the web-only paths (`paths.ts`)                                                                                                                                                                             |
 | `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                            |
 | `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                      |
@@ -168,8 +169,12 @@ The [principles](README.md#principles) apply; in particular, do not add:
   ([session scope](mobile.md#session-scope)).
 - **API client.** Shared services take the axios instance first. Shared hooks read it with
   `useApiClient()` and never take it as an argument; dashboard hooks import the `apiClient`
-  singleton, which `main.tsx` also gives `ApiClientProvider`. Every endpoint a client calls has its
-  function in `packages/shared/src/services`;
+  singleton, which `main.tsx` also gives `ApiClientProvider`. While a signed-in session is being
+  rechecked (authentication or user preferences fetching, failed or invalidated), the web client
+  refuses every request other than a read with "Your session is being checked. Try again in a
+  moment.", except the session's own calls: signing in, signing out, signing up, email verification
+  and token refresh (`dashboard/src/services/apiClient.ts`, reading `services/queryClient.ts`).
+  Every endpoint a client calls has its function in `packages/shared/src/services`;
   [the API type drift gate](gates.md#the-api-type-drift-gate) accounts for each operation, not for
   where it is called.
 - **Query keys.** The module that owns a query exports its key or key factory, and every other
@@ -239,8 +244,9 @@ test placement remain review checks. Moves remove the corresponding debt in the 
    address, title and audience.
 2. Create its folder by the [naming rule](#frontend-rules) with an `index.tsx` that default-exports
    the page rendered in `Page`.
-3. Add it to `PAGES` (`dashboard/src/routes/pages.tsx`); TypeScript refuses the table until both
-   exist, and `signedInRoutes` adds the title and `ProtectedRoute`.
+3. Declare it in `dashboard/src/routes/lazyPages.ts`, so it loads on demand, and add it to `PAGES`
+   (`dashboard/src/routes/pages.tsx`); TypeScript refuses the table until both exist, and
+   `signedInRoutes` adds the title and `ProtectedRoute`.
 4. Read and write through a `use<Thing>.ts` beside the entry over shared services. A new endpoint
    gets its service and contract types in `packages/shared` first; add a shared hook when mobile
    needs the same logic.
@@ -262,8 +268,15 @@ folder under `pages/signup/`, added to `SIGNUP_STEPS` and to the step map in `ro
 their address, title and audience. The whole dashboard route table is in
 `dashboard/src/routes/AppRoutes.tsx`, using `signedInRoutes` from `PAGES`
 (`dashboard/src/routes/pages.tsx`), a map keyed by that table, so
-TypeScript refuses an entry without a page or a page without an entry. Each route, detail pages
-included, gets the entry's title through `PageTitle`. The web-only `pageTitle` mapping
+TypeScript refuses an entry without a page or a page without an entry. Every page is a
+`React.lazy` import in `dashboard/src/routes/lazyPages.ts`, so the browser downloads only the
+pages it opens. The routes share one `Suspense` whose fallback, `RouteLoading`, shows a spinner
+without a heading on a first load. Every signed-in route, the Certificates, Company documents and
+company dashboard routes included, renders through `signedInPage`, so a navigation between them keeps
+the same guard and the current page until the next one is ready, and focus then moves to its heading.
+An error while rendering a page, such as an old file that no longer downloads after a release, shows
+`LoadFailure` with Try again, which reloads. Each route, detail pages included, gets the entry's title through
+`PageTitle`. The web-only `pageTitle` mapping
 (`dashboard/src/utils/destinations.ts`) titles `home` Dashboard; the other titles, Ledger and its
 tasks included, are the shared ones. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
 `companyRegisterImport` render the same page. Outside the table sit the
@@ -291,8 +304,10 @@ entry's audience:
 - A session check that fails is not a sign-out. `/auth/verify` answers `valid: false` to anyone
   signed out; that answer, or a 401, means signed out. `useAuth`
   (`packages/shared/src/hooks/useAuth.ts`) retries any other failure once, then reports
-  `isUnavailable`, and this guard and `RootRedirect` show `SessionUnavailable` ("We could not
-  check your session") with Try again, keeping the address. A failed re-check of a confirmed
+  `isUnavailable`, and this guard, `RootRedirect` and the sign-up guard show `SessionUnavailable`
+  ("We could not check your session") with Try again, keeping the address; the member invitation
+  page says its session could not be checked, with Try again, and the sign-in form is its own
+  recovery. A failed re-check of a confirmed
   session shows the same message, and a check paused offline or in a hidden tab still counts as
   checking. Mobile doesn't read `isUnavailable`: a failed check still returns it to Sign in.
 - The session check shows until the profile, and on an investing or company page the role, is known,
@@ -462,8 +477,11 @@ decision review or original-request recovery is open.
 
 Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
-so user preferences still recheck the signed-in identity on focus and reconnect; unconfirmed identity
-continues to withhold private content, including after an account changes in another tab. Keep bounded status checks for a submitted upload, extraction or identity
+so user preferences still recheck the signed-in identity on focus and reconnect. While a recheck of
+the same account runs, the frame, the page and its drafts stay, and the web API client refuses every
+write until it finishes ([API client](#frontend-rules)); a failed check or a changed account withholds
+private content, including after an account changes in another tab. Mobile clears its cache whenever
+the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload, extraction or identity
 verification, stopping when the operation finishes or its view closes. A status read must never
 repeat a write, upload or share issue.
 
