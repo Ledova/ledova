@@ -102,9 +102,9 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
   useEffect(() => {
     if (!opened) return;
     const target = companies.find((row) => row.uuid === opened);
-    if (!target) return;
+    if (!target || !selectCompany(target.company.uuid)) return;
     const token = target.awards.find((award) => award.uuid === openedAward)?.token;
-    if (selectCompany(target.company.uuid) && token) setChosenClass({ company: target.company.uuid, token });
+    if (token) setChosenClass({ company: target.company.uuid, token });
     navigation.setParams({ record: undefined, award: undefined });
   }, [opened, openedAward, companies, selectCompany, navigation]);
   const chosen = chosenClass && chosenClass.company === company?.company.uuid ? chosenClass.token : null;
