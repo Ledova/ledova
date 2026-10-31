@@ -169,9 +169,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   each shows its facts and status, with its permitted action right-aligned at the row's end. On wide
   screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's
-  facts, still at the right edge. Every page and card action follows the same edge on web and in the app,
-  including Profile's account rows and Verification's claim and evidence rows, so buttons never
-  alternate between the left and the right. Representative authority requests are `LinkRow`s that open
+  facts, still at the right edge. Profile's account rows and Verification's claim and evidence rows follow
+  the same edge on web and in the app, so their buttons never alternate between the left and the right. Representative authority requests are `LinkRow`s that open
   each request's own page.
 - Optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished input
   survives. The sidebar's group caret is a separate navigation button. Substantial record reviews
