@@ -35,7 +35,7 @@ const YOURS: { name: Section; label: string; icon: ComponentType<IconProps> }[] 
 
 const MENU_WIDTH = 208;
 
-export function Wordmark() {
+function Wordmark() {
   const theme = useAppTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -72,7 +72,7 @@ export function MenuButton({ expanded, onPress }: { expanded: boolean; onPress: 
   );
 }
 
-export function AppearanceButton() {
+function AppearanceButton() {
   const theme = useAppTheme();
   const { mode, setMode } = useThemeChoice();
   const dark = mode === 'dark';
@@ -244,30 +244,34 @@ export function AppMenu({
                 {company.company.name}
               </Text>
             )}
-            <TouchableOpacity
-              accessibilityRole="button"
-              disabled={signingOut}
-              onPress={() => setConfirming(true)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.smd,
-                paddingHorizontal: theme.spacing.smd,
-                paddingVertical: 10,
-                opacity: signingOut ? 0.5 : 1,
-              }}
-            >
-              <SignOutIcon size={theme.icon.sizes.md} color={theme.colors.text.secondary} />
-              <Text
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                disabled={signingOut}
+                onPress={() => setConfirming(true)}
                 style={{
-                  fontFamily: theme.fontFamily.medium,
-                  fontSize: theme.fontSize.sm,
-                  color: theme.colors.text.secondary,
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.smd,
+                  paddingHorizontal: theme.spacing.smd,
+                  paddingVertical: 10,
+                  opacity: signingOut ? 0.5 : 1,
                 }}
               >
-                {signingOut ? 'Signing out…' : 'Sign out'}
-              </Text>
-            </TouchableOpacity>
+                <SignOutIcon size={theme.icon.sizes.md} color={theme.colors.text.secondary} />
+                <Text
+                  style={{
+                    fontFamily: theme.fontFamily.medium,
+                    fontSize: theme.fontSize.sm,
+                    color: theme.colors.text.secondary,
+                  }}
+                >
+                  {signingOut ? 'Signing out…' : 'Sign out'}
+                </Text>
+              </TouchableOpacity>
+              <AppearanceButton />
+            </View>
           </View>
         </Animated.View>
         <SignOutModal

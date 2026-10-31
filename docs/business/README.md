@@ -276,8 +276,8 @@ shareholders' identities or private records. Mobile retains its own-records view
 requests are in Documents → Certificates on the web and on mobile
 ([member records](member-records.md)).
 
-The mobile app has the web's phone frame: a top bar with the menu, the Dark theme switch and the
-notifications bell, and a slide-out menu. It opens on **Dashboard**, the selected company's ownership
+The mobile app has the web's phone frame: a top bar with the menu and the notifications bell, and a
+slide-out menu with the Dark theme switch. It opens on **Dashboard**, the selected company's ownership
 overview, as on the web; **Switch company** changes the company. **Documents** opens that company's Certificates, [notices](publications.md#the-notices-page) from every company open from their notifications, and **Settings** holds
 Profile, accepting an invitation and the app's settings ([Profile and Settings](participants.md#profile-and-settings)).
 Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).

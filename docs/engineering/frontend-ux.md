@@ -125,10 +125,10 @@ last card in one right-aligned, wrapping row, rather than the title row; keep it
 Ledger's Add share class follows this pattern for both empty and populated collections. The first
 section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
-view on the page ground with the web's phone sizes: the title (Newsreader, 30 points) with its one
-contextual action beside it, then the lede. Every page's header is the web's top bar (menu button,
-wordmark, Dark theme and the bell); no page has a back button. A tap on a control acts at once, even
-while the keyboard is up.
+view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
+the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
+action and the bell; no page has a back button. A tap on a control acts at once, even while the
+keyboard is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
 `PageAction` (`dashboard/src/components/Page.tsx`) each enforce one rule:
@@ -405,8 +405,10 @@ content", which moves focus to the page's heading.
 The Dashboard selects company context; there is no workspace or role selector. Keep the selected
 company below the person's name in the sidebar footer and preserve its context in task links. Both
 names use small text (`text-xs`), retain stored capitalization and stay on one truncated line with
-the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar holds the menu button,
-the wordmark, Dark theme and the bell; it names no company. The navigation scrolls between the fixed
+the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar holds the menu
+button, the page's title and its actions, then the bell (`PhoneBar`); the page keeps its `h1` for
+screen readers and starts with its lede. The bar names no company. Dark theme sits beside Sign out in
+the sidebar's footer at every width. The navigation scrolls between the fixed
 brand header and footer.
 Do not repeat the current company name as a passive heading, subtitle or card label in signed-in
 content. Keep it where it identifies a functional company picker, a company Profile field, a record

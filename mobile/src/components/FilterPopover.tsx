@@ -28,11 +28,8 @@ export function FilterPopover({
       height: 40,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
+      borderRadius: 20,
     },
-    active: { borderColor: theme.colors.brand.mid },
     panel: {
       position: 'absolute' as const,
       borderWidth: 1,
@@ -64,7 +61,7 @@ export function FilterPopover({
             }),
           )
         }
-        style={[styles.button, active && styles.active]}
+        style={styles.button}
       >
         <FunnelIcon size={theme.icon.sizes.md} color={active ? theme.colors.brand.light : theme.colors.text.primary} />
       </Pressable>

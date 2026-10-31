@@ -4,11 +4,15 @@ import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/re
 import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { NotificationBell } from './NotificationBell';
 import { Sidebar } from './Sidebar';
-import { Logo } from './Logo';
-import { ThemeToggle } from './ThemeToggle';
 import { ICON_MD } from './iconSizes';
 
-export function MobileHeader() {
+export function MobileHeader({
+  title,
+  actionsRef,
+}: {
+  title: string | null;
+  actionsRef: (element: HTMLDivElement | null) => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const place = `${location.pathname}${location.hash}`;
@@ -34,13 +38,17 @@ export function MobileHeader() {
         >
           <ListIcon size={ICON_MD} />
         </button>
-        <div className="min-w-0 flex-1">
-          <Logo />
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <ThemeToggle />
-          <NotificationBell align="end" />
-        </div>
+        <p
+          aria-hidden="true"
+          className="min-w-0 flex-1 truncate font-display text-xl tracking-[-0.01em] text-text-primary"
+        >
+          {title}
+        </p>
+        <div
+          ref={actionsRef}
+          className="flex shrink-0 items-center gap-1 empty:hidden [&_button]:rounded-full [&_button]:border-transparent"
+        />
+        <NotificationBell align="end" />
       </div>
 
       <Transition show={isOpen} as={Fragment}>

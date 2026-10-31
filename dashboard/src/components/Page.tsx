@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, type To } from 'react-router-dom';
 import { PageActionsTarget, PageBack, PageTitle, type PageBackLink } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
+import { PhoneBar } from './PhoneBar';
 
 interface PageProps {
   actions?: ReactNode;
@@ -22,6 +23,9 @@ export function Page({ actions, back, documentTitle, lede, loading = false, narr
   const ledeId = useId();
   const [actionsTarget, setActionsTarget] = useState<HTMLDivElement | null>(null);
   const tabTitle = documentTitle ?? title;
+  const bar = useContext(PhoneBar);
+  const inBar = inFrame && bar.phone;
+  const { setTitle } = bar;
   useEffect(() => {
     if (!tabTitle) return;
     document.title = `${tabTitle} · Ledova`;
@@ -29,32 +33,47 @@ export function Page({ actions, back, documentTitle, lede, loading = false, narr
       document.title = 'Ledova';
     };
   }, [tabTitle]);
+  useEffect(() => {
+    if (!inBar || !title) return;
+    setTitle(title);
+    return () => setTitle(null);
+  }, [inBar, title, setTitle]);
+  const heading = (className: string) => (
+    <h1 tabIndex={-1} aria-describedby={lede ? ledeId : undefined} className={className}>
+      {title}
+    </h1>
+  );
+  const ledeText = lede && (
+    <p id={ledeId} className="max-w-prose break-words text-sm text-text-muted">
+      {lede}
+    </p>
+  );
+  const backLink = link.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />;
 
   return (
-    <PageActionsTarget.Provider value={actionsTarget}>
+    <PageActionsTarget.Provider value={inBar ? bar.actions : actionsTarget}>
       <div
-        className={`${inFrame ? 'ml-0' : 'mx-auto'} ${narrow ? 'max-w-4xl' : inFrame ? 'max-w-7xl' : 'max-w-6xl'} flex w-full min-w-0 flex-col gap-4 px-4 pb-16 sm:gap-5 sm:px-6 md:gap-6 lg:px-8`}
+        className={`${inFrame ? 'ml-0' : 'mx-auto'} ${narrow ? 'max-w-4xl' : inFrame ? 'max-w-7xl' : 'max-w-6xl'} ${inBar ? 'pt-4' : ''} flex w-full min-w-0 flex-col gap-4 px-4 pb-16 sm:gap-5 sm:px-6 md:gap-6 lg:px-8`}
       >
-        <header>
-          <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
-            <h1
-              tabIndex={-1}
-              aria-describedby={lede ? ledeId : undefined}
-              className="font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none"
-            >
-              {title}
-            </h1>
-            <div ref={setActionsTarget} className="flex flex-wrap items-center gap-2 empty:hidden">
-              {link.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />}
-              {actions}
+        {inBar ? (
+          <>
+            {heading('sr-only')}
+            {backLink}
+            {ledeText}
+            {bar.actions && actions && createPortal(actions, bar.actions)}
+          </>
+        ) : (
+          <header>
+            <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
+              {heading('font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none')}
+              <div ref={setActionsTarget} className="flex flex-wrap items-center gap-2 empty:hidden">
+                {backLink}
+                {actions}
+              </div>
             </div>
-          </div>
-          {lede && (
-            <p id={ledeId} className="max-w-prose break-words text-sm text-text-muted">
-              {lede}
-            </p>
-          )}
-        </header>
+            {ledeText}
+          </header>
+        )}
         {loading ? (
           <div role="status" aria-label="Loading" className="flex items-center justify-center py-20">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-subtle border-t-brand" />

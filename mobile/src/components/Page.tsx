@@ -1,6 +1,8 @@
-import type { ReactNode, Ref } from 'react';
+import { useContext, useLayoutEffect, type ReactNode, type Ref } from 'react';
 import { ScrollView, Text, View, type ScrollViewProps } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useThemedStyles } from '../contexts';
+import { InSignedInFrame } from './InSignedInFrame';
 
 type PageProps = Pick<ScrollViewProps, 'testID' | 'refreshControl' | 'showsVerticalScrollIndicator'> & {
   ref?: Ref<ScrollView>;
@@ -11,6 +13,11 @@ type PageProps = Pick<ScrollViewProps, 'testID' | 'refreshControl' | 'showsVerti
 };
 
 export function Page({ ref, title, titleAction, lede, children, ...scroll }: PageProps) {
+  const inFrame = useContext(InSignedInFrame);
+  const navigation = useNavigation();
+  useLayoutEffect(() => {
+    if (inFrame) navigation.setOptions({ title, headerRight: titleAction ? () => titleAction : undefined });
+  });
   const styles = useThemedStyles((theme) => ({
     page: { flex: 1, backgroundColor: theme.colors.surface.base },
     content: {
@@ -18,6 +25,7 @@ export function Page({ ref, title, titleAction, lede, children, ...scroll }: Pag
       paddingBottom: theme.spacing.xxxl,
       gap: theme.spacing.md,
     },
+    framed: { paddingTop: theme.spacing.md },
     titleRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -35,23 +43,28 @@ export function Page({ ref, title, titleAction, lede, children, ...scroll }: Pag
     },
     lede: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.muted },
   }));
+  const ledeText = !!lede && <Text style={styles.lede}>{lede}</Text>;
   return (
     <ScrollView
       ref={ref}
       style={styles.page}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, inFrame && styles.framed]}
       keyboardShouldPersistTaps="handled"
       {...scroll}
     >
-      <View>
-        <View style={styles.titleRow}>
-          <Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
-          {titleAction}
+      {inFrame ? (
+        ledeText
+      ) : (
+        <View>
+          <View style={styles.titleRow}>
+            <Text accessibilityRole="header" style={styles.title}>
+              {title}
+            </Text>
+            {titleAction}
+          </View>
+          {ledeText}
         </View>
-        {!!lede && <Text style={styles.lede}>{lede}</Text>}
-      </View>
+      )}
       {children}
     </ScrollView>
   );

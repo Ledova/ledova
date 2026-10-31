@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { MobileHeader } from './MobileHeader';
@@ -7,6 +7,7 @@ import { useSignupFinished } from '@hooks/useSignupFinished';
 import { useAuth } from '@ledova/shared';
 import { AuthLayoutAction } from './auth';
 import { InSignedInFrame } from './InSignedInFrame';
+import { PhoneBar } from './PhoneBar';
 import { SignOutButton } from './SignOutButton';
 import { LedgerNavigationProvider } from './LedgerNavigationProvider';
 import { CompanyContextProvider } from './CompanyContextProvider';
@@ -40,9 +41,27 @@ function useHeadingFocus() {
   }, [place, navigation]);
 }
 
+const PHONE = '(max-width: 1023.98px)';
+
+function usePhoneWidth() {
+  const [phone, setPhone] = useState(() => window.matchMedia(PHONE).matches);
+  useEffect(() => {
+    const query = window.matchMedia(PHONE);
+    const change = () => setPhone(query.matches);
+    query.addEventListener('change', change);
+    change();
+    return () => query.removeEventListener('change', change);
+  }, []);
+  return phone;
+}
+
 export default function Layout({ children }: LayoutProps) {
   const framed = useSignupFinished();
   const { isAuthenticated } = useAuth();
+  const phone = usePhoneWidth();
+  const [barTitle, setBarTitle] = useState<string | null>(null);
+  const [barActions, setBarActions] = useState<HTMLDivElement | null>(null);
+  const bar = useMemo(() => ({ phone, actions: barActions, setTitle: setBarTitle }), [phone, barActions]);
   useHeadingFocus();
 
   if (!framed) {
@@ -58,33 +77,35 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <InSignedInFrame.Provider value>
-      <LedgerNavigationProvider>
-        <CompanyContextProvider>
-          <div className="min-h-screen bg-surface-base text-text-primary">
-            <a
-              href="#main"
-              onClick={(event) => {
-                event.preventDefault();
-                document.querySelector<HTMLElement>('#main h1')?.focus();
-              }}
-              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface-raised focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-text-primary"
-            >
-              Skip to main content
-            </a>
-            <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">
-              <Sidebar withNotifications />
-            </div>
+      <PhoneBar.Provider value={bar}>
+        <LedgerNavigationProvider>
+          <CompanyContextProvider>
+            <div className="min-h-screen bg-surface-base text-text-primary">
+              <a
+                href="#main"
+                onClick={(event) => {
+                  event.preventDefault();
+                  document.querySelector<HTMLElement>('#main h1')?.focus();
+                }}
+                className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface-raised focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-text-primary"
+              >
+                Skip to main content
+              </a>
+              <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">
+                <Sidebar withNotifications />
+              </div>
 
-            <div className="fixed inset-x-0 top-0 z-40 lg:hidden">
-              <MobileHeader />
-            </div>
+              <div className="fixed inset-x-0 top-0 z-40 lg:hidden">
+                <MobileHeader title={barTitle} actionsRef={setBarActions} />
+              </div>
 
-            <main id="main" className="pt-14 lg:ml-52 lg:pt-0">
-              {children}
-            </main>
-          </div>
-        </CompanyContextProvider>
-      </LedgerNavigationProvider>
+              <main id="main" className="pt-14 lg:ml-52 lg:pt-0">
+                {children}
+              </main>
+            </div>
+          </CompanyContextProvider>
+        </LedgerNavigationProvider>
+      </PhoneBar.Provider>
     </InSignedInFrame.Provider>
   );
 }
