@@ -64,8 +64,6 @@ export const DESTINATIONS = {
 
 export type DestinationKey = keyof typeof DESTINATIONS;
 
-export type LedgerTask = keyof typeof DESTINATIONS.companyRegister.tasks;
-
 export interface DestinationParent {
   destination: DestinationKey;
   view?: string;

@@ -158,8 +158,9 @@ The [principles](README.md#principles) apply; in particular, do not add:
 
 - **Data access.** Components render and call actions. Each query and mutation, with its key,
   owner guard and invalidation, lives in a `use<Thing>.ts` hook, and only `main.tsx`, hooks and
-  `services/` import `apiClient`. A hook that shapes its result names the fields `isLoading`,
-  `hasError`, `isRefreshing` and `retry` (`dashboard/src/hooks/useOwnershipCompanies.ts`).
+  `services/` import `apiClient`. A thin read hook may return its query as it is; a hook that shapes
+  its result names the fields `isLoading`, `hasError`, `isRefreshing` and `retry`
+  (`dashboard/src/hooks/useOwnershipCompanies.ts`).
 - **Account boundary.** Work bound to the signed-in account takes its owner from
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
@@ -202,7 +203,9 @@ The [principles](README.md#principles) apply; in particular, do not add:
   folder, and the not-found page is `pages/not-found/`. Page folders and `components/` groups are
   kebab-case (`eligibility-requests/`, `member-records/`). A file is named after its main export, or after what
   small siblings share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a
-  hook without JSX, `<Thing>Provider.tsx` for a provider, `PascalCase.ts` for a React context,
+  hook without JSX (`use<Thing>.tsx` for the two Ledger issue hooks, `useInvestorIssues` and
+  `useNonPaidIssues`, which return the rendered parts their class page interleaves),
+  `<Thing>Provider.tsx` for a provider, `PascalCase.ts` for a React context,
   camelCase `.ts` for a module without React. Components and hooks are function declarations. A page
   entry default-exports its page and nothing else; other exports are named, and only when another
   file imports them.

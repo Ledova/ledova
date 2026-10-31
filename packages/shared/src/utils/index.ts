@@ -30,7 +30,6 @@ export {
   formatPhoneNumber,
   isUuid,
 } from './validation';
-export { hasActiveFilters } from './filters';
 export { formatPhoneForDisplay, formatPhoneWithCountryCode, cleanPhoneNumber } from './phoneFormatting';
 export { formatSourceOfFunds, sourceOfFundsChoices, formatIntendedUse } from './formatting-labels';
 export { validateUserProfileField } from './user-validation';
