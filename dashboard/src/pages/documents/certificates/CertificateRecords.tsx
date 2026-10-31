@@ -1,6 +1,8 @@
 import { useCallback, useId, useState } from 'react';
 import {
+  CERTIFICATE_STATUSES,
   MEMBER_CERTIFICATE_STATUS_LABELS,
+  certificateStatus,
   REGISTER_CORRECTION_COPY,
   formatDate,
   formatDateTime,
@@ -20,7 +22,7 @@ import { LoadMore, TABLE_SCROLL_CLASS, TABLE_HEADER_CLASS } from '@components/Li
 import { PageAction } from '@components/Page';
 import { ClassCertificate } from './ClassCertificate';
 import { useMemberCertificateDownload } from './useMemberCertificateDownload';
-import { CERTIFICATE_STATUSES, type CertificateFilterValues, type CertificateStatus } from './useCompanyCertificates';
+import type { CertificateFilterValues } from './useCompanyCertificates';
 
 export type CertificateClass = Pick<OwnMemberRecord['classes'][number], 'uuid' | 'name' | 'symbol'>;
 type Read = ReturnType<typeof useMemberRecords>;
@@ -81,15 +83,7 @@ export function CertificateRecords({
   const requests = [...(record ? (read.requests?.certificates ?? []) : [])].sort(
     (a, b) => b.createdAt.localeCompare(a.createdAt) || b.uuid.localeCompare(a.uuid),
   );
-  const statusOf = (row: CertificateRecord): CertificateStatus => {
-    const entry = row.company ?? row.own!;
-    const latest = requests.find((request) => request.entry === row.uuid && request.token === selectedClass?.uuid);
-    if (latest) return latest.status;
-    if (entry.correctedBy) return 'reversed';
-    if (row.own && ['issue', 'transfer'].includes(row.own.kind.toLowerCase()) && BigInt(row.own.delta) > 0n)
-      return 'not_requested';
-    return row.company ? 'can_prepare' : 'not_applicable';
-  };
+  const statusOf = (row: CertificateRecord) => certificateStatus(row, requests, selectedClass?.uuid);
   const extras = searchRows(
     ownEntries.filter((entry) => !company || !['issue', 'transfer'].includes(entry.kind.toLowerCase())),
     () => record?.name ?? '',

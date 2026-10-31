@@ -1,1 +1,1 @@
-export { TopBar, getMainHeaderStyle } from './MainHeader';
+export { TopBar } from './MainHeader';

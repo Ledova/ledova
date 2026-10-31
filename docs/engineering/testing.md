@@ -31,7 +31,7 @@ the replaced cases or the approval, and independent review checks them
 | Backend, PostgreSQL | 28              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
 | Dashboard unit      | 19              | 20      | Main pages, sign-in, core flows                                                                                                |
 | Playwright smoke    | 7               | 9       | Core browser journeys and route wiring                                                                                         |
-| Mobile Jest         | 7               | 10      | App start, sign-in, signup completion, member records, documents across member associations, particulars sent to every company |
+| Mobile Jest         | 6               | 10      | App start, sign-in, signup completion, member records, particulars sent to every company                                       |
 | Shared package      | 9               | 10      | Essential shared behaviour                                                                                                     |
 | Contracts           | 14              | 20      | Who can mint, pause and transfer                                                                                               |
 

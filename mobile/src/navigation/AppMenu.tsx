@@ -21,6 +21,10 @@ import { useMemberRecordsState } from '../screens/holdings/MemberRecordsProvider
 
 export type Section = 'Dashboard' | 'Documents' | 'Settings';
 
+export const SECTION_ROUTES = { Dashboard: 'Dashboard', Documents: 'Certificates', Settings: 'Settings' } as const;
+
+export type SectionRoute = (typeof SECTION_ROUTES)[Section];
+
 const SECTIONS: { name: Section; label: string; icon: ComponentType<IconProps> }[] = [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon },
   { name: 'Documents', label: 'Documents', icon: FilesIcon },

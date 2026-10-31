@@ -135,6 +135,7 @@ export function CustomModal({
       maxWidth: 520,
       maxHeight: '100%' as const,
       gap: theme.spacing.md,
+      borderRadius: theme.borderRadius.lg,
       shadowColor: theme.colors.utility.black,
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.2,

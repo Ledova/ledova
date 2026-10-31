@@ -8,7 +8,7 @@ import { Field } from '../../components/register/RegisterFields';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
-import { CertificatePill } from './CertificatePill';
+import { WaitingPill } from './WaitingPill';
 import { Avatar } from '../../components/Avatar';
 import { shortName } from '../../components/companyName';
 import { MemberNotice, useMemberRecordsState } from './MemberRecordsProvider';
@@ -164,7 +164,7 @@ export function YourDetailsScreen() {
                         {record.name} · {record.residentialAddress}
                       </Text>
                     </View>
-                    {waiting && <CertificatePill certificate="requested" label="Waiting" />}
+                    {waiting && <WaitingPill />}
                     <CaretRightIcon size={16} color={theme.colors.text.muted} />
                   </Pressable>
                 );

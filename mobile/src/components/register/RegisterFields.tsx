@@ -35,6 +35,7 @@ export function Field({
       <TextInput
         clearButtonMode={clearable ? 'while-editing' : undefined}
         accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityState={{ disabled: !editable }}
         style={styles.input}
         value={value}
         editable={editable}
