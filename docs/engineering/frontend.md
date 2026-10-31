@@ -271,8 +271,8 @@ their address, title and audience. The whole dashboard route table is in
 TypeScript refuses an entry without a page or a page without an entry. Every page is a
 `React.lazy` import in `dashboard/src/routes/lazyPages.ts`, so the browser downloads only the
 pages it opens. The routes share one `Suspense` whose fallback, `RouteLoading`, shows a spinner
-without a heading on a first load. Every signed-in route, the Certificates, Company documents and
-company dashboard routes included, renders through `signedInPage`, so a navigation between them keeps
+without a heading on a first load. Every signed-in route, the company dashboard route included,
+renders through `signedInPage`, so a navigation between them keeps
 the same guard and the current page until the next one is ready, and focus then moves to its heading.
 An error while rendering a page, such as an old file that no longer downloads after a release, shows
 `LoadFailure` with Try again, which reloads. Each route, detail pages included, gets the entry's title through
@@ -281,7 +281,7 @@ An error while rendering a page, such as an old file that no longer downloads af
 tasks included, are the shared ones. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
 `companyRegisterImport` render the same page. Outside the table sit the
 [sign-up steps](#sign-up-routes) and `/company/dashboard` (`COMPANY_DASHBOARD_PATH` in
-`dashboard/src/utils/paths.ts`, routed in `dashboard/src/routes/AppRoutes.tsx` under `ProtectedRoute`
+`dashboard/src/utils/paths.ts`, routed in `dashboard/src/routes/AppRoutes.tsx` through `signedInPage`
 with audience `everyone` and title Dashboard).
 
 `canOpen(role, audience)` lets an investor open `everyone` and `investing` pages, a company

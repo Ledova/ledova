@@ -15,6 +15,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   ownMemberRecordsKey,
   USER_PREFERENCES_QUERY_KEY,
+  DESTINATIONS,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -23,7 +24,7 @@ import { Link, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import MemberRecordsPage from '@pages/home';
 import CertificatesPage from '@pages/documents/certificates';
-import { CERTIFICATES_PATH } from '@utils/paths';
+
 import { choose, MEMBER_ENTRY, MEMBER_RECORD } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
@@ -35,7 +36,7 @@ function MemberNavigation() {
   const context = useCompanyContext();
   return (
     <>
-      <Link to={context!.companyPath(CERTIFICATES_PATH)}>Test Documents navigation</Link>
+      <Link to={context!.companyPath(DESTINATIONS.certificates.path)}>Test Documents navigation</Link>
       <Link
         to={context!.companyPath('/home')}
         onClick={(event) => {
@@ -162,7 +163,7 @@ it('updates ownership and member workflows after invalidation without idle refre
                   <MemberNavigation />
                   <Routes>
                     <Route path="/home" element={<MemberRecordsPage />} />
-                    <Route path={CERTIFICATES_PATH} element={<CertificatesPage />} />
+                    <Route path={DESTINATIONS.certificates.path} element={<CertificatesPage />} />
                     <Route path="/settings" element={<CompanyRecordedDetails />} />
                   </Routes>
                 </PageTitle.Provider>

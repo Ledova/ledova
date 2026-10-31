@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { COMPANY_ENDPOINTS, COMPANY_TOKEN_ENDPOINTS, USER_PREFERENCES_QUERY_KEY } from '@ledova/shared';
+import { COMPANY_ENDPOINTS, COMPANY_TOKEN_ENDPOINTS, USER_PREFERENCES_QUERY_KEY, DESTINATIONS } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
@@ -18,7 +18,7 @@ import { CompanyPack } from './CompanyPack';
 import CertificatesPage from '../../documents/certificates';
 import { CompanyContext, type CompanyContextValue } from '@hooks/useCompanyContext';
 import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
-import { CERTIFICATES_PATH } from '@utils/paths';
+
 import { registerKey } from '@hooks/useRegisterAccess';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -273,8 +273,8 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     </MemberRecordsProvider>,
     'Certificates',
     {
-      path: CERTIFICATES_PATH,
-      entry: `${CERTIFICATES_PATH}?company=${company.uuid}&class=${OUTPUT_REGISTER.token.uuid}`,
+      path: DESTINATIONS.certificates.path,
+      entry: `${DESTINATIONS.certificates.path}?company=${company.uuid}&class=${OUTPUT_REGISTER.token.uuid}`,
     },
   );
   let records = await screen.findByRole('list', { name: 'Certificate records' });
