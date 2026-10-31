@@ -104,13 +104,11 @@ certificate requests, including those the filters hide, open on demand. A class 
 recorded in says so, and a failed read offers Try again. Notices
 (`NoticesScreen`), under Documents, is the web's Notices page: every company's notices, each opened
 or voted on as on the web. Settings has the web's three pages for a member
-(`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, keeps the web's two cards and
-the route's `record` parameter. Personal information shows the
-person's details, each label above its value, and **Edit personal details** opens their form in the
-card. Company-recorded details shows the selected company's recorded name and residential address,
-its classes under **Show ledger details**, and the member's update requests with their status;
-**Request update** opens the web's particulars request in the card, which closes once the company has
-the request. Account (`Account`) shows the identity check status from the profile (the app has no
+(`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, keeps the web's two cards.
+Personal information shows the person's details, each label above its value, and **Edit personal
+details** opens their form in the card. The web's read-only card, titled with the company's name
+(**How Example Pty Ltd records you**), shows the selected company's recorded name and residential
+address with **Wrong? Contact the company.** Account (`Account`) shows the identity check status from the profile (the app has no
 identity check flow, so there is no **Review identity check**) and Change password, then the app's
 biometric sign-in and App lock switches; Manage account adds member since and last login and
 **Accept an invitation** (the member Invitation page), and Rate the app and Share with friends end the
@@ -118,14 +116,12 @@ card. Data and privacy (`DataPrivacy`) has Export data, which saves or shares th
 account. Each of these rows' actions carries the row's description, so a screen reader hears it once,
 with the action. The theme is the menu's switch. The member pages share one member-records state
 (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
-original operation, after leaving the page, an unsent particulars draft stays for the same company,
-and the pages show a loading line rather than an empty one while the list rereads. Only the focused
-page selects its record and class.
+original operation, after leaving the page, and the pages show a loading line rather than an
+empty one while the list rereads. Only the focused page selects its record and class.
 A notification, tapped in that list or as a push, opens its screen: a notice opens Notices, a
 ready certificate Certificates for that company, vested
-shares Dashboard on the award's company (with its class, where the overview lists it), issued
-shares Certificates for that class and a decided particulars change Profile for that company, each
-saying so when that company no longer records you.
+shares Dashboard on the award's company (with its class, where the overview lists it) and issued
+shares Certificates for that class, each saying so when that company no longer records you.
 Screens set their own titles inside the page.
 
 ## Theme and appearance

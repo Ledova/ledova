@@ -34,7 +34,8 @@ stay here as history and are marked where they appear.
 | [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                         | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md)                                       |
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                           | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
-| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165                                                                                   |
+| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October                                          |
+| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; certificate requests and the company's own particulars change stay                                                        |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                                            |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                                                                                            |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                                                                                            |
@@ -986,6 +987,8 @@ The member can view permitted records and submit particulars or certificate
 requests. Company review remains separate from member confirmation, and
 certificate fulfilment follows the supported #871 outputs. This selects the
 first linking flow; the implementation index records delivery separately.
+Particulars requests were removed on 31 October 2026
+([decision](#member-particulars-requests-removed)).
 
 On 24 October 2026 the owner replaced web users' manual code sharing and entry with an emailed
 invitation link under [#1165](https://github.com/Ledova/ledova/issues/1165). The company sends it to
@@ -994,6 +997,28 @@ Tokens remain internal, verified-email and company/member binding stay mandatory
 grants no access. The company sees acceptance status and an honest send result; provider acceptance
 does not establish inbox delivery. Retry uses the original invitation and can send another copy of
 the same email. Mobile's existing code flow remains deferred to its later pass.
+
+### Member particulars requests removed
+
+**Owner decision, 31 October 2026**, given in the session. On members' requests to update their
+recorded particulars, the owner wrote: "Ledova should not act as an intermediary between parties or
+manage requests to update company records", and "I'd prefer that we challenge the need for this
+functionality rather than preserve it simply because it already exists".
+
+The owner accepted the recommendation to remove the member particulars request workflow entirely,
+on the web, the app and the backend: the member's **Request update** and **Update requests**, the
+company's **Details update** requests under **Shareholders** → **Member requests** and preparing a
+particulars change from one, the notifications about decided requests, the app's draft and retry
+handling for the request, and the backend's request records and API. Members tell the company
+directly. Profile keeps a small read-only view of how the selected company's register records the
+member, their name and residential address, with a short line to contact the company, titled so it
+does not read as a second profile. Certificate requests stay. The company's own particulars change,
+prepared, approved and applied with a supporting document, is unchanged by this decision and is to
+be simplified separately.
+
+The legal basis: under s169 of the Corporations Act 2001, a register of members must hold each
+member's name and address. No law requires a member request workflow, a supporting document or an
+approval step for the member to tell the company about a change.
 
 ## Minimum tests and fresh migrations
 

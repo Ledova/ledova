@@ -36,12 +36,9 @@ from tokens.models import (
     MemberCertificateRequest,
     MemberCertificateWithdrawal,
     MemberInvitation,
-    MemberParticularsRequest,
     RegisterAward,
     RegisterEntry,
     RegisterMemberCessation,
-    RegisterMemberParticulars,
-    RegisterParticularsChange,
     RegisterPosition,
 )
 from tokens.services.former_holders import retention_cutoff
@@ -347,58 +344,6 @@ def revoke_association(*, actor, association_id, appointment, idempotency_key, r
         except IntegrityError:
             raise RegisterChangeConflict() from None
         return subject
-
-
-def request_particulars(*, actor, operation_id, association, name, residential_address, confirmation):
-    subject = _own(association, actor)
-    with register_command(actor, subject.company_id, "member_particulars_request") as (company, current, _, _):
-        _require_requester(current)
-        subject = _own(subject.pk, current, lock=True)
-        values = {
-            "association_id": subject.pk,
-            "company_id": company.pk,
-            "member": subject.member,
-            "requested_by_id": current.pk,
-            "name": name.strip(),
-            "residential_address": residential_address.strip(),
-        }
-        existing = MemberParticularsRequest.objects.filter(pk=operation_id).first()
-        if existing:
-            _same(existing, values)
-            return existing, False
-        if confirmation is not True:
-            raise ValidationError("Confirm the proposed company-recorded particulars.")
-        if not RegisterMemberParticulars.objects.filter(member_id=subject.member, member__company=company).exists():
-            raise ValidationError("The company no longer retains particulars for this member.")
-        snapshot = _query("tokens_register_particulars_snapshot", subject.member)
-        if snapshot["name"] == values["name"] and snapshot["residential_address"] == values["residential_address"]:
-            raise ValidationError("These particulars already match the company record.")
-        try:
-            return MemberParticularsRequest.objects.create(uuid=operation_id, source_snapshot=snapshot, **values), True
-        except IntegrityError:
-            raise RegisterChangeConflict() from None
-
-
-def prepare_requested_particulars(*, actor, request_id, operation_id, appointment, supporting_evidence, as_at, reason):
-    from tokens.services.register_particulars import prepare_particulars_change
-
-    request = get_object_or_404(company_readable(MemberParticularsRequest.objects.all(), actor), pk=request_id)
-    return prepare_particulars_change(
-        actor=actor,
-        operation_id=operation_id,
-        appointment=appointment,
-        member=request.member,
-        name=request.name,
-        residential_address=request.residential_address,
-        supporting_evidence=supporting_evidence,
-        as_at=as_at,
-        reason=reason,
-        member_request=request.pk,
-    )
-
-
-def requested_particulars_change(actor, change):
-    return RegisterParticularsChange.objects.register_readable_by(actor).filter(pk=change)
 
 
 def request_certificate(*, actor, operation_id, association, entry):

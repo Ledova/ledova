@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import {
   sendMemberInvitationEmail,
   getMemberInvitations,
   getMemberAssociations,
-  getMemberParticularsRequests,
   getMemberCertificateRequests,
   revokeMemberAssociation,
-  prepareMemberParticularsRequest,
   getMemberCertificateFulfilmentPreview,
   fulfilMemberCertificateRequest,
 } from '../services/member-access';
-import { appointmentForRegisterStep, hasCurrentRegisterReadAuthority } from '../utils/register-commands';
+import { hasCurrentRegisterReadAuthority } from '../utils/register-commands';
 import { isCurrentEligibilityAppointment } from './useCompanyEligibilityRecords';
 import { failureStatus, failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
@@ -31,19 +29,13 @@ import { useApiClient } from './useApiClient';
 type Command =
   | { kind: 'invite'; payload: MemberInvitationCreate }
   | { kind: 'fulfil'; uuid: string; payload: MemberCertificateFulfilmentCreate }
-  | { kind: 'revoke'; uuid: string; payload: { appointment: string; idempotencyKey: string; reason: string } }
-  | {
-      kind: 'prepare';
-      uuid: string;
-      payload: { operationId: string; appointment: string; supportingEvidence: string; asAt: string; reason: string };
-    };
+  | { kind: 'revoke'; uuid: string; payload: { appointment: string; idempotencyKey: string; reason: string } };
 
 export function useCompanyMemberAccess(
   company: string,
   newKey: () => string,
   session?: OrderSubmissionSession,
   sourceReady = true,
-  particularsQueryKey?: QueryKey,
 ) {
   const api = useApiClient();
   const client = useQueryClient();
@@ -126,28 +118,19 @@ export function useCompanyMemberAccess(
     preferences.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(rows, company);
   const admin = adminAppointment(rows);
-  const prepare = appointmentForRegisterStep(rows, company, 'prepare');
   const queue = useQuery({
     queryKey: queueKey,
     enabled: readable,
     queryFn: async () => {
-      const [particulars, certificates] = await Promise.all([
-        readEveryPage(async (page) => {
-          guardRead();
-          const response = await getMemberParticularsRequests(api, { company, page }, config(guardRead));
-          guardRead();
-          return response;
-        }),
-        readEveryPage(async (page) => {
-          guardRead();
-          const response = await getMemberCertificateRequests(api, { company, page }, config(guardRead));
-          guardRead();
-          return response;
-        }),
-      ]);
-      if ([...particulars, ...certificates].some((row) => row.company !== company))
+      const certificates = await readEveryPage(async (page) => {
+        guardRead();
+        const response = await getMemberCertificateRequests(api, { company, page }, config(guardRead));
+        guardRead();
+        return response;
+      });
+      if (certificates.some((row) => row.company !== company))
         throw new Error('The member requests belong to another company.');
-      return { particulars, certificates };
+      return { certificates };
     },
   });
   const guardQueue = () => {
@@ -206,16 +189,14 @@ export function useCompanyMemberAccess(
     setBusy(true);
     setError(null);
     try {
-      const check = command.kind === 'prepare' || command.kind === 'fulfil' ? guardQueue : guardAccess;
+      const check = command.kind === 'fulfil' ? guardQueue : guardAccess;
       check();
       const appointment =
-        command.kind === 'prepare'
-          ? appointmentForRegisterStep(currentAppointments(), company, 'prepare')
-          : command.kind === 'fulfil'
-            ? currentAppointments().find(
-                (row) => row.uuid === command.payload.appointment && hasCurrentRegisterReadAuthority([row], company),
-              )
-            : adminAppointment(currentAppointments());
+        command.kind === 'fulfil'
+          ? currentAppointments().find(
+              (row) => row.uuid === command.payload.appointment && hasCurrentRegisterReadAuthority([row], company),
+            )
+          : adminAppointment(currentAppointments());
       if (appointment?.uuid !== command.payload.appointment)
         throw new Error('Your exact company appointment changed. Refresh before continuing.');
       setRetry(command);
@@ -239,7 +220,7 @@ export function useCompanyMemberAccess(
         check();
         if (data.uuid !== command.uuid || data.company !== company || data.current)
           throw new Error('The association revocation could not be confirmed.');
-      } else if (command.kind === 'fulfil') {
+      } else {
         const original = client
           .getQueryData<{ certificates: MemberCertificateRequest[] }>(queueKey)
           ?.certificates.find((row) => row.uuid === command.uuid);
@@ -267,30 +248,6 @@ export function useCompanyMemberAccess(
           throw new Error('The certificate fulfilment does not match the original request. Retry the original action.');
         setCertificateTarget(null);
         setNotice('The unsigned recipient certificate is recorded. The member can download their own PDF.');
-      } else {
-        const original = client
-          .getQueryData<{ particulars: { uuid: string; member: string; name: string; residentialAddress: string }[] }>(
-            queueKey,
-          )
-          ?.particulars.find((row) => row.uuid === command.uuid);
-        if (!original) throw new Error('The original member request is unavailable.');
-        const { data } = await prepareMemberParticularsRequest(api, command.uuid, command.payload, config(check));
-        check();
-        if (
-          data.uuid !== command.payload.operationId ||
-          data.company !== company ||
-          data.memberRequest !== command.uuid ||
-          data.member !== original.member ||
-          data.name !== original.name ||
-          data.residentialAddress !== original.residentialAddress ||
-          data.supportingEvidence !== command.payload.supportingEvidence ||
-          data.preparingAppointment !== command.payload.appointment
-        )
-          throw new Error('The company instruction does not match the member request.');
-        if (particularsQueryKey) await client.invalidateQueries({ queryKey: particularsQueryKey });
-        setNotice(
-          'Company particulars instruction recorded. Approval and application remain separate in Register particulars changes.',
-        );
       }
       setRetry(null);
       await refresh();
@@ -369,7 +326,6 @@ export function useCompanyMemberAccess(
     fulfilCertificate: () => certificateTarget && execute(certificateTarget.command),
     admin: accessReady ? admin : undefined,
     canAdminister: readable && !!admin,
-    prepare: queueReady ? prepare : undefined,
     requests: queueReady ? queue.data : null,
     access: accessReady ? access.data : null,
     busy,
@@ -385,11 +341,7 @@ export function useCompanyMemberAccess(
         if (live.current && boundary.get() === owner)
           setError(failureSentence(failure, 'The member access could not be refreshed.'));
       }),
-    guardPrepare: () => {
-      guardQueue();
-      if (!appointmentForRegisterStep(currentAppointments(), company, 'prepare'))
-        throw new Error('Current preparation authority is required.');
-    },
+    guardAdmin,
     invite: (member: string, intendedEmail: string) =>
       admin &&
       execute({
@@ -399,13 +351,6 @@ export function useCompanyMemberAccess(
     revoke: (uuid: string, reason: string) =>
       admin &&
       execute({ kind: 'revoke', uuid, payload: { appointment: admin.uuid, idempotencyKey: newKey(), reason } }),
-    prepareRequest: (uuid: string, supportingEvidence: string, asAt: string, reason: string) =>
-      prepare &&
-      execute({
-        kind: 'prepare',
-        uuid,
-        payload: { operationId: newKey(), appointment: prepare.uuid, supportingEvidence, asAt, reason },
-      }),
     recover: () => retry && execute(retry),
   };
 }

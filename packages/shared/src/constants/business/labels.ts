@@ -2,7 +2,6 @@ import type {
   CompanyEligibilityRequest,
   MemberCertificateRequest,
   MemberInvitation,
-  MemberParticularsRequest,
   OwnCompanyAppointment,
 } from '../../types';
 
@@ -21,14 +20,6 @@ export const MEMBER_INVITATION_STATUS_LABELS: Record<MemberInvitation['status'],
   unavailable: 'No longer available',
   accepted: 'Accepted',
   revoked: 'Revoked',
-};
-
-export const MEMBER_PARTICULARS_STATUS_LABELS: Record<MemberParticularsRequest['status'], string> = {
-  submitted: 'Submitted',
-  prepared: 'Prepared by the company',
-  approved: 'Approved',
-  applied: 'Applied',
-  rejected: 'Rejected',
 };
 
 export const MEMBER_CERTIFICATE_STATUS_LABELS: Record<MemberCertificateRequest['status'], string> = {

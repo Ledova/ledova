@@ -123,29 +123,6 @@ END;
 $$;
 CREATE TRIGGER tokens_member_revocation_identity BEFORE INSERT OR UPDATE OR DELETE ON tokens_memberassociationrevocation
     FOR EACH ROW EXECUTE FUNCTION tokens_guard_member_revocation();
-CREATE FUNCTION tokens_guard_member_particulars_request() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
-DECLARE principal bigint; subject tokens_memberassociation;
-BEGIN
-    IF TG_OP <> 'INSERT' THEN RAISE EXCEPTION 'Retain immutable member-proposed particulars' USING ERRCODE = '23514'; END IF;
-    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
-    PERFORM 1 FROM companies_company WHERE uuid = NEW.company_id FOR UPDATE;
-    SELECT * INTO subject FROM tokens_memberassociation WHERE uuid = NEW.association_id FOR UPDATE;
-    IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL OR NEW.requested_by_id IS DISTINCT FROM principal
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'member_particulars_request'
-        OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text
-        OR NOT tokens_member_association_current(NEW.association_id, principal)
-        OR NEW.company_id IS DISTINCT FROM subject.company_id OR NEW.member IS DISTINCT FROM subject.member
-        OR NEW.source_snapshot IS DISTINCT FROM tokens_register_particulars_snapshot(NEW.member)
-        OR NEW.source_snapshot IS NULL OR NEW.name !~ '[^[:space:]]' OR NEW.residential_address !~ '[^[:space:]]'
-        OR (NEW.name = NEW.source_snapshot->>'name' AND NEW.residential_address = NEW.source_snapshot->>'residential_address')
-    THEN RAISE EXCEPTION 'Particulars requests need confirmed own association and exact retained current particulars'
-        USING ERRCODE = '23514'; END IF;
-    RETURN NEW;
-END;
-$$;
-CREATE TRIGGER tokens_member_particulars_request_identity BEFORE INSERT OR UPDATE OR DELETE ON tokens_memberparticularsrequest
-    FOR EACH ROW EXECUTE FUNCTION tokens_guard_member_particulars_request();
 CREATE FUNCTION tokens_guard_member_certificate_request() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; subject tokens_memberassociation;
@@ -205,9 +182,6 @@ BEGIN
         SELECT * INTO subject FROM tokens_memberassociation WHERE uuid = NEW.association_id;
         valid := NOT subject.current AND tokens_register_appointment_current(NEW.appointment_id, subject.company_id,
             NEW.revoked_by_id, 'admin', clock_timestamp());
-    WHEN 'tokens_memberparticularsrequest' THEN
-        valid := tokens_member_association_current(NEW.association_id, NEW.requested_by_id)
-            AND NEW.source_snapshot = tokens_register_particulars_snapshot(NEW.member);
     WHEN 'tokens_membercertificaterequest' THEN
         valid := tokens_member_association_current(NEW.association_id, NEW.requested_by_id)
             AND tokens_member_certificate_entry(NEW.association_id, NEW.entry_id);
@@ -225,90 +199,7 @@ CREATE CONSTRAINT TRIGGER tokens_member_association_commit AFTER INSERT OR UPDAT
     DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_member_source();
 CREATE CONSTRAINT TRIGGER tokens_member_revocation_commit AFTER INSERT ON tokens_memberassociationrevocation
     DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_member_source();
-CREATE CONSTRAINT TRIGGER tokens_member_particulars_request_commit AFTER INSERT ON tokens_memberparticularsrequest
-    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_member_source();
 CREATE CONSTRAINT TRIGGER tokens_member_certificate_request_commit AFTER INSERT ON tokens_membercertificaterequest
     DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_member_source();
 CREATE CONSTRAINT TRIGGER tokens_member_certificate_withdrawal_commit AFTER INSERT ON tokens_membercertificatewithdrawal
     DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_member_source();
-CREATE FUNCTION tokens_member_requested_change_ready(proposal tokens_registerparticularschange, before_effect boolean) RETURNS boolean
-LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
-    SELECT proposal.member_request_id IS NULL OR EXISTS (SELECT 1 FROM tokens_memberparticularsrequest source
-        WHERE source.uuid = proposal.member_request_id AND source.company_id = proposal.company_id AND source.member = proposal.member_id
-            AND source.name = proposal.name AND source.residential_address = proposal.residential_address
-            AND tokens_member_association_current(source.association_id, source.requested_by_id)
-            AND (NOT before_effect OR source.source_snapshot = tokens_register_particulars_snapshot(source.member)));
-$$;
-CREATE FUNCTION tokens_guard_member_requested_change() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
-BEGIN
-    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
-    IF NEW.member_request_id IS NULL THEN RETURN NEW; END IF;
-    PERFORM 1 FROM tokens_memberassociation association JOIN tokens_memberparticularsrequest source ON source.association_id = association.uuid
-        WHERE source.uuid = NEW.member_request_id FOR UPDATE OF association;
-    IF (TG_OP = 'INSERT' AND NOT tokens_member_requested_change_ready(NEW, true))
-        OR (TG_OP = 'UPDATE' AND NEW.member_request_id IS DISTINCT FROM OLD.member_request_id)
-        OR (NEW.status = 'applied' AND NOT tokens_member_requested_change_ready(NEW, false))
-    THEN RAISE EXCEPTION 'A member-requested change must preserve the exact attributable request and current association'
-        USING ERRCODE = '23514'; END IF;
-    RETURN NEW;
-END;
-$$;
-CREATE TRIGGER tokens_member_requested_change_source BEFORE INSERT OR UPDATE ON tokens_registerparticularschange
-    FOR EACH ROW EXECUTE FUNCTION tokens_guard_member_requested_change();
-CREATE FUNCTION tokens_guard_member_requested_decision() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
-DECLARE proposal tokens_registerparticularschange;
-BEGIN
-    SELECT * INTO proposal FROM tokens_registerparticularschange WHERE uuid = NEW.register_particulars_change_id;
-    IF proposal.member_request_id IS NULL OR NEW.kind = 'reject' THEN RETURN NEW; END IF;
-    PERFORM 1 FROM tokens_memberassociation association JOIN tokens_memberparticularsrequest source ON source.association_id = association.uuid
-        WHERE source.uuid = proposal.member_request_id FOR UPDATE OF association;
-    IF NOT tokens_member_requested_change_ready(proposal, true) THEN
-        RAISE EXCEPTION 'Member-requested approval or application needs the unchanged current source' USING ERRCODE = '23514';
-    END IF;
-    RETURN NEW;
-END;
-$$;
-CREATE TRIGGER tokens_member_requested_decision_source BEFORE INSERT ON tokens_registerparticularschangedecision
-    FOR EACH ROW EXECUTE FUNCTION tokens_guard_member_requested_decision();
-CREATE FUNCTION tokens_check_member_requested_decision() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
-DECLARE proposal tokens_registerparticularschange;
-BEGIN
-    SELECT * INTO proposal FROM tokens_registerparticularschange WHERE uuid = NEW.register_particulars_change_id;
-    IF proposal.member_request_id IS NULL THEN RETURN NULL; END IF;
-    IF NOT tokens_register_appointment_current(NEW.appointment_id, proposal.company_id, NEW.decided_by_id,
-        CASE NEW.kind WHEN 'apply' THEN 'apply' ELSE 'approve' END, clock_timestamp())
-        OR (NEW.kind <> 'reject' AND NOT tokens_member_requested_change_ready(proposal, NEW.kind = 'approve'))
-        OR (NEW.kind = 'apply' AND NOT tokens_register_particulars_approved(proposal.uuid, clock_timestamp()))
-    THEN RAISE EXCEPTION 'Member-requested decisions must retain exact current source and personal company authority at commit'
-        USING ERRCODE = '23514'; END IF;
-    RETURN NULL;
-END;
-$$;
-CREATE CONSTRAINT TRIGGER tokens_member_requested_decision_commit AFTER INSERT ON tokens_registerparticularschangedecision
-    DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_member_requested_decision();
-CREATE OR REPLACE FUNCTION public.tokens_register_particulars_decision_digest(change_uuid uuid, decision_kind text, actor bigint, appointment_uuid uuid, decision_reason text)
- RETURNS text LANGUAGE sql STABLE SET search_path TO 'pg_catalog', 'public', 'pg_temp' AS $$
-    SELECT encode(sha256(convert_to((jsonb_build_object('version', '1', 'change', change_uuid::text,
-        'kind', decision_kind, 'actor', actor, 'appointment', appointment_uuid::text, 'reason', decision_reason,
-        'particulars', CASE WHEN decision_kind = 'apply' THEN (SELECT jsonb_build_object('name', held.name,
-            'residential_address', held.residential_address, 'as_at', held.as_at,
-            'source_import', held.source_import_id, 'source_change', held.source_change_id)
-            || CASE WHEN held.source_allotment_id IS NULL THEN '{}'::jsonb
-                ELSE jsonb_build_object('source_allotment', held.source_allotment_id) END
-            FROM tokens_registermemberparticulars held WHERE held.member_id = proposal.member_id) END)
-        || CASE WHEN proposal.member_request_id IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('member_request',
-            (SELECT to_jsonb(source) FROM tokens_memberparticularsrequest source WHERE source.uuid = proposal.member_request_id)) END
-        )::text, 'UTF8')), 'hex') FROM tokens_registerparticularschange proposal WHERE proposal.uuid = change_uuid;
-$$;
-CREATE OR REPLACE FUNCTION public.tokens_register_particulars_approved(change_uuid uuid, at_time timestamp with time zone)
- RETURNS boolean LANGUAGE sql STABLE SET search_path TO 'pg_catalog', 'public', 'pg_temp' AS $$
-    SELECT EXISTS (SELECT 1 FROM tokens_registerparticularschangedecision decision
-        JOIN tokens_registerparticularschange proposal ON proposal.uuid = decision.register_particulars_change_id
-        WHERE decision.register_particulars_change_id = change_uuid AND decision.kind = 'approve'
-            AND tokens_register_appointment_current(decision.appointment_id, proposal.company_id,
-                decision.decided_by_id, 'approve', at_time)
-            AND tokens_member_requested_change_ready(proposal, proposal.status <> 'applied'));
-$$;

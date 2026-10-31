@@ -268,10 +268,7 @@ POLICIES = {
     "tokens_registergrant": (f"award_id IS NULL AND {_company('company_id', VISIBLE_COMPANIES)}", "false"),
     "tokens_registertransfer": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registermembercessation": (_company("company_id", VISIBLE_COMPANIES), "false"),
-    "tokens_registerparticularschange": (
-        f"member_request_id IS NULL AND {_company("company_id", VISIBLE_COMPANIES)}",
-        "false",
-    ),
+    "tokens_registerparticularschange": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_importedformermember": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
     "shareholders_publication": (
         f"{_company('company_id', VISIBLE_COMPANIES)} OR {ADDRESSED_TO_ME}",
@@ -468,8 +465,6 @@ OPERATOR_ONLY = {
     "bounded own or company projections.",
     "tokens_memberassociationrevocation": "Append-only exact company administration ending member access "
     "without deleting attribution.",
-    "tokens_memberparticularsrequest": "Confirmed own proposed particulars handed to the existing company "
-    "decision flow with immutable provenance.",
     "tokens_membercertificaterequest": "Own genuine receiving-effect certificate requests with truthful "
     "recorded status and current company queues.",
     "tokens_membercertificatewithdrawal": "Append-only own requester withdrawals without invented "

@@ -104,12 +104,13 @@ An accepted member reads their own company-recorded particulars, share-class bal
 that changed their holding, and their employee-award terms, original vesting, endings and referenced reversals with net vested,
 issued, ended and remaining quantities; no wallet or company approval is needed. Other members' identities,
 private company decisions, financial documents and other members' parts of an entry are never shown. An
-award is an entitlement, not a holding. Editing the personal Profile does not change the register;
-only a [particulars request](#particulars-requests) can.
+award is an entitlement, not a holding. Editing the personal Profile does not change the register: a
+member whose recorded name or address is wrong tells the company directly, and the company records
+its own [particulars change](register.md#changing-a-members-particulars).
 
 The web **Dashboard** is one Ownership browser for all of the person's company relationships.
-[Choose the company on Dashboard](README.md#the-app-at-a-glance); Documents and Company-recorded
-details use that selection. The overview brings the person's own shares and permitted company
+[Choose the company on Dashboard](README.md#the-app-at-a-glance); Documents and Profile use that
+selection. The overview brings the person's own shares and permitted company
 information together, without switching workspaces or profiles. Company and class selections stay
 in the address, with a breadcrumb and browser Back/Forward. Shares and percentages from unrelated companies are never combined.
 
@@ -132,21 +133,20 @@ separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
 breakdown and terms under **Show award details**. This read-only overview is the whole web Dashboard.
-**Settings** → **Profile** shows a **Company-recorded details** card for a member of the selected
-company, on web and mobile. It groups **Current details** and **Update requests**, separate from the personal information. Pending requests show the requested
-particulars, status and date together;
-completed requests open on demand. Share history, certificates and certificate requests
-are in web **Documents** → **Certificates**, without duplicate particulars status. On mobile,
+**Settings** → **Profile** shows a member of the selected company how that company's register
+records them, on web and mobile: a read-only card headed with the company's name, such as **How
+Example Pty Ltd records you**, with the recorded name and residential address and **Wrong? Contact
+the company.** It is not a second profile, takes no edits and sends no request. Share history,
+certificates and certificate requests are in web **Documents** → **Certificates**. On mobile,
 **Documents** and a class card's **Certificates** open the same Certificates page for the selected
 company, with the same requests and actions; the PDF is shared rather than downloaded.
 
 ### Share-event notifications
 
 A member with a current association receives an ordinary notification when a certificate they
-requested is ready, when shares vest under their award, when the company applies a grant or
-allotment that issues shares to them (an award's shares included), and when the company applies or
-declines their particulars change. Each one names the company (and the class, for a certificate or
-an issue) but no quantities, because notifications can show on a locked screen; on mobile it opens
+requested is ready, when shares vest under their award, and when the company applies a grant or
+allotment that issues shares to them (an award's shares included). Each one names the company (and
+the class, for a certificate or an issue) but no quantities, because notifications can show on a locked screen; on mobile it opens
 the matching screen. Nothing is sent for a revoked association, for changes recorded before the member
 accepted an invitation, for transfers, or for shares recorded from the chain.
 
@@ -159,9 +159,9 @@ stops the person's own-record access, file access and new requests, though they 
 status of requests they made.
 
 The web sidebar separates **Member access** from **Member requests** under Shareholders. Member access
-shows **People** and **Invitations**; Member requests is one list identifying each request's type, date
-and status. Its Filters icon searches by person name or selects details updates or certificates
-across the complete permitted request list, including retained statuses. Filtering changes no request
+shows **People** and **Invitations**; Member requests is one list of members' certificate requests,
+each with its share class, date and status. Its Filters icon searches by person name across the
+complete permitted request list, including retained statuses. Filtering changes no request
 and leaves active preparation and recovery available. The rows keep names and relevant details together;
 internal references stay in the audit records.
 Task fields open only when needed;
@@ -174,26 +174,11 @@ original request
 
 ## Member requests
 
-### Particulars requests
-
-A member, including an award recipient before any shares are issued, asks the selected company to
-change their recorded name and residential address, one company at a time: **Settings** →
-**Profile** → **Company-recorded details** → **Request update**, then **Send request**, on web and
-mobile. Sending changes nothing on the register.
-The form closes after successful submission and the request appears under **Update requests**.
-Cancel closes an unfinished form without sending it; its draft stays in memory for the same signed-in
-account and company, including navigation through Dashboard and Documents.
-
-The company sees it as **Details update** under **Shareholders** → **Member requests** on web
-(a current personal appointment is needed). Its row and preparation form show the requested particulars
-and company actions; internal request, member and instruction references remain in the audit records.
-A preparer adds evidence, a reason and an as-at date
-and records it as an ordinary
-[particulars change](register.md#changing-a-members-particulars). The request keeps the exact
-particulars asked for, and its status follows the change: prepared, approved, applied or rejected.
-A revoked association or a changed source record blocks a new change or its application.
-
-### Certificate requests
+Members ask the company only for their own certificates through Ledova. A change to their recorded
+name or residential address is not a request here: the member tells the company directly, and the
+company records it as its own
+[particulars change](register.md#changing-a-members-particulars)
+([decision](../decisions.md#member-particulars-requests-removed)).
 
 A member can request a certificate for an uncorrected issue or transfer that gave them shares
 (**Request certificate** in **Documents** → **Certificates**), and withdraw it (**Withdraw request**) until the company

@@ -19,7 +19,6 @@ from tokens.models import (
     ImportedFormerMember,
     MemberAssociation,
     MemberInvitation,
-    MemberParticularsRequest,
     RegisterEntry,
     RegisterEntryKind,
     RegisterEvidence,
@@ -310,7 +309,6 @@ def _correction_requirements(proposal):
     if (
         MemberInvitation.objects.filter(company_id=token.company_id).exists()
         or MemberAssociation.objects.filter(company_id=token.company_id).exists()
-        or MemberParticularsRequest.objects.filter(company_id=token.company_id).exists()
         or RegisterParticularsChange.objects.filter(member__company_id=token.company_id).exists()
     ):
         unmet.append("mirror_correction_member_activity")

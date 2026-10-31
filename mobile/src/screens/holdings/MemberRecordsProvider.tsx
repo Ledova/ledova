@@ -1,15 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { RefreshControl, Text } from 'react-native';
@@ -20,21 +9,10 @@ import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 
-export interface MemberDraft {
-  name: string;
-  address: string;
-  confirmed: boolean;
-  open: boolean;
-}
-
-const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open: false };
-
 type Read = ReturnType<typeof useMemberRecords>;
 
 interface MemberRecords {
   read: Read;
-  draft: MemberDraft;
-  setDraft: Dispatch<SetStateAction<MemberDraft>>;
   select: (uuid: string) => void;
   companies: OwnMemberRecord[];
   company: OwnMemberRecord | undefined;
@@ -45,17 +23,7 @@ const MemberRecordsContext = createContext<MemberRecords | null>(null);
 
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
-  const [draft, setDraft] = useState(EMPTY_DRAFT);
-  useEffect(() => setDraft(EMPTY_DRAFT), [read.scopeOwner]);
   const busy = read.busy || !!read.retry;
-  const sent = useRef('');
-  useEffect(() => {
-    if (read.retry?.kind === 'particulars') sent.current = read.retry.operationId;
-    if (!busy && read.requests?.particulars.some((request) => request.uuid === sent.current)) {
-      sent.current = '';
-      setDraft(EMPTY_DRAFT);
-    }
-  }, [read.retry, read.requests, busy]);
   const companies = useMemo(
     () => [...read.records].sort((left, right) => left.company.name.localeCompare(right.company.name)),
     [read.records],
@@ -89,11 +57,8 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
     <MemberRecordsContext.Provider
       value={{
         read,
-        draft,
-        setDraft,
         select: (uuid) => {
           if (read.busy || read.retry || read.selectedUuid === uuid) return;
-          setDraft(EMPTY_DRAFT);
           read.select(uuid);
         },
         companies,

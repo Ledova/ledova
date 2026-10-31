@@ -10,7 +10,6 @@ MEMBER_TABLES = (
     "tokens_memberinvitation",
     "tokens_memberassociation",
     "tokens_memberassociationrevocation",
-    "tokens_memberparticularsrequest",
     "tokens_membercertificaterequest",
     "tokens_membercertificatewithdrawal",
 )

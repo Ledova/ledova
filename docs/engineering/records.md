@@ -107,9 +107,9 @@ requires its changes to equal `tokens_mirror_changes`, the signed difference bet
 snapshot and the positive holdings, its date to be the snapshot's `as_at`, a current approval and
 apply decision, and `tokens_mirror_correction_ready`: the base sequence and head unchanged, no entry
 other than the opening and mirror corrections, and no applied deployment, issuance request past
-approval, applied register instruction, member invitation, association, particulars request or
-particulars change. On an imported, non-tokenised register, `tokens_record_member_cessations` writes
-a `RegisterMemberCessation` when a walletless member with recorded particulars falls to zero, and
+approval, applied register instruction, member invitation, association or particulars change. On an
+imported, non-tokenised register, `tokens_record_member_cessations` writes a
+`RegisterMemberCessation` when a walletless member with recorded particulars falls to zero, and
 marks its return when a later entry restores a holding.
 
 `verify_register` replays a register on the operator connection: contiguous sequences, each
@@ -320,9 +320,7 @@ requirement codes:
   `tokens_mirror_correction_ready` refuses).
 - **Particulars change** (`register-particulars-changes/`): for application, the member's current
   particulars, date and source. `member_left_retention` (no shares held for the retention period),
-  `newer_particulars_exist` (particulars with a later as-at date),
-  `member_request_no_longer_current` (the request it came from lost its current association or
-  source).
+  `newer_particulars_exist` (particulars with a later as-at date).
 - **Grant** (`register-grants/`): the register row, the class's supply and chain fields, the
   recipient's particulars and the supplied company event date; for an award, the award, its vesting events and its
   applied grants. The register-state codes are `imported_non_tokenised_register_required` (no
@@ -436,8 +434,7 @@ What a change does: [changing a member's
 particulars](../business/register.md#changing-a-members-particulars). Preparation trims the fields
 and refuses an empty name, address or reason. Application records the name, address and date as the
 member's particulars with the change as their source; the database writes particulars only while
-applying the import or change that names them. A change prepared from a member's request carries
-`member_request`, a nullable column, so earlier changes keep their digests.
+applying the import or change that names them.
 
 ### Reconciliation acknowledgements API
 
@@ -630,15 +627,15 @@ Invitations and associations are listed to current personal `admin` appointees; 
 returns only the caller's own associations, with a `ceasedOn` only within retention, and their entry
 deltas. Certificate fulfilment is under [output routes](#output-routes).
 
-Fresh migrations install the association and the append-only invitation, revocation, request and
-withdrawal records with RLS forced and no application-role grants. Their guards require current
-company administration and one exact recorded member and recipient for an invitation; the exact
-invited recipient, current source and an owned account for acceptance; exact current company
-revocation to end an association; a confirmed own association and the exact retained current
-particulars for a particulars request; and a genuine uncorrected receiving ISSUE or TRANSFER of the
+Fresh migrations install the association and the append-only invitation, revocation, certificate
+request and withdrawal records with RLS forced and no application-role grants. Their guards require
+current company administration and one exact recorded member and recipient for an invitation; the
+exact invited recipient, current source and an owned account for acceptance; exact current company
+revocation to end an association; and a genuine uncorrected receiving ISSUE or TRANSFER of the
 associated member for a certificate request. Constraint triggers recheck identity and authority at
-commit. A particulars change prepared from a request must keep the attributable request and current
-association through approval and application.
+commit. `tokens/0003_remove_member_particulars_requests` drops the members' particulars requests,
+their guards and the change's `member_request` link from existing databases
+([decision](../decisions.md#member-particulars-requests-removed)).
 
 ### Retained register instructions API
 

@@ -42,7 +42,6 @@ from tokens.models import (
     MemberCertificateRequest,
     MemberCertificateWithdrawal,
     MemberInvitation,
-    MemberParticularsRequest,
     RegisterAgreement,
     RegisterAllotment,
     RegisterAllotmentDecision,
@@ -53,7 +52,6 @@ from tokens.models import (
     RegisterContribution,
     RegisterEvidenceKind,
     RegisterGrant,
-    RegisterParticularsChange,
     RegisterPosition,
     ShareToken,
 )
@@ -481,30 +479,6 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(false_certificate.status_code, 400, false_certificate.content)
-        no_confirmation = self.client.post(
-            "/api/v1/tokens/member-particulars-requests/",
-            {
-                "operation_id": str(uuid4()),
-                "association": association_id,
-                "name": "Proposed",
-                "residential_address": "Proposed address",
-                "confirmation": False,
-            },
-            format="json",
-        )
-        self.assertEqual(no_confirmation.status_code, 400, no_confirmation.content)
-        pending_request = self.client.post(
-            "/api/v1/tokens/member-particulars-requests/",
-            {
-                "operation_id": str(uuid4()),
-                "association": association_id,
-                "name": "Proposed Member",
-                "residential_address": "Proposed address",
-                "confirmation": True,
-            },
-            format="json",
-        )
-        self.assertEqual(pending_request.status_code, 201, pending_request.content)
         with use_operator(), self.assertRaises(IntegrityError), atomic():
             MemberAssociation.objects.filter(pk=association_id).update(member=uuid4())
         set_principal(self.foreign.pk, APP_ALIAS)
@@ -512,7 +486,6 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             MemberInvitation,
             MemberAssociation,
             MemberAssociationRevocation,
-            MemberParticularsRequest,
             MemberCertificateRequest,
             MemberCertificateWithdrawal,
             MemberCertificateFulfilment,
@@ -595,39 +568,7 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
                 model.objects.using(APP_ALIAS).count()
             self.assertEqual(owner_read.exception.__cause__.sqlstate, "42501")
         reset_principal(APP_ALIAS)
-        supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
-        prepared_request = self.client.post(
-            f"/api/v1/tokens/member-particulars-requests/{pending_request.json()['uuid']}/prepare/",
-            {
-                "operation_id": str(uuid4()),
-                "appointment": str(self.appointment.pk),
-                "supporting_evidence": str(supporting.pk),
-                "as_at": timezone.now().date().isoformat(),
-                "reason": "Company review of proposed particulars",
-            },
-            format="json",
-        )
-        self.assertEqual(prepared_request.status_code, 201, prepared_request.content)
-        change_id = prepared_request.json()["uuid"]
-        self.decision("/api/v1/tokens/register-particulars-changes/", change_id, "approve")
-        set_principal(self.owner.pk, APP_ALIAS)
-        self.assertEqual(RegisterParticularsChange.objects.using(APP_ALIAS).filter(pk=change_id).count(), 0)
-        reset_principal(APP_ALIAS)
         self.assertEqual(self.client.get(f"/api/v1/tokens/member-records/{association_id}/").status_code, 404)
-        revoked_association = self.client.post(
-            f"/api/v1/tokens/member-associations/{association_id}/revoke/",
-            {"appointment": str(self.appointment.pk), "idempotency_key": str(uuid4()), "reason": "End member access"},
-            format="json",
-        )
-        self.assertEqual(revoked_association.status_code, 200, revoked_association.content)
-        lapsed = self.client.post(
-            f"/api/v1/tokens/register-particulars-changes/{change_id}/decision-preview/",
-            {"appointment": str(self.appointment.pk), "kind": "apply"},
-            format="json",
-        )
-        self.assertEqual(lapsed.status_code, 200, lapsed.content)
-        self.assertFalse(lapsed.json()["canDecide"])
-        self.assertIn("member_request_no_longer_current", lapsed.json()["unmetRequirements"])
         revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
         for suffix in ("", "file/", "agreement-file/", "receipt-file/"):
             self.assertEqual(self.client.get(f"{capital_detail}{suffix}").status_code, 404)

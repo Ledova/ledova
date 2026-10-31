@@ -341,9 +341,9 @@ On a class on chain the next reconciliation reports member and supply difference
 
 ### Changing a member's particulars
 
-The company keeps members' names and residential addresses current; members edit their own profile
-and ask for changes separately ([member profile](participants.md#member-profile),
-[member requests](member-records.md#member-requests)).
+The company keeps members' names and residential addresses current. A member whose recorded name or
+address is wrong tells the company directly; editing their own profile does not change the register
+([member profile](participants.md#member-profile)).
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
    Recipient details on their award's page, and choose Change particulars.

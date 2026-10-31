@@ -5,7 +5,6 @@ from tokens.views.member_access import (
     MemberAssociationViewSet,
     MemberCertificateRequestViewSet,
     MemberInvitationViewSet,
-    MemberParticularsRequestViewSet,
     MemberRecordViewSet,
 )
 from tokens.views.register_allotment import RegisterAllotmentViewSet
@@ -40,7 +39,6 @@ router = DefaultRouter()
 router.register(r"member-invitations", MemberInvitationViewSet, basename="member-invitations")
 router.register(r"member-associations", MemberAssociationViewSet, basename="member-associations")
 router.register(r"member-records", MemberRecordViewSet, basename="member-records")
-router.register(r"member-particulars-requests", MemberParticularsRequestViewSet, basename="member-particulars-requests")
 router.register(r"member-certificate-requests", MemberCertificateRequestViewSet, basename="member-certificate-requests")
 router.register(r"register-people", RegisterPersonViewSet, basename="register-people")
 router.register(r"register-pause-changes", RegisterPauseChangeViewSet, basename="register-pause-changes")

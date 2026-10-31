@@ -990,7 +990,6 @@ it('reads every class page and groups exact holdings by member identity with sea
     if (
       url === COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARDS ||
       url.endsWith('/register/entries/') ||
-      url.includes('member-particulars-requests') ||
       url.includes('member-certificate-requests')
     )
       return empty;
@@ -2011,7 +2010,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       uuid: 'retained-particulars-change',
       company: company.uuid,
       member: proposal!.members[0].member,
-      memberRequest: null,
       name: 'Example Shareholder',
       residentialAddress: '2 Example Street, Sydney NSW 2000',
       asAt: '2026-10-22',

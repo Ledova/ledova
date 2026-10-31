@@ -119,7 +119,6 @@ AS $function$
             AND NOT EXISTS (SELECT 1 FROM tokens_registerinstruction instruction WHERE instruction.token_id = token.uuid AND instruction.status = 'applied')
             AND NOT EXISTS (SELECT 1 FROM tokens_memberinvitation invitation WHERE invitation.company_id = token.company_id)
             AND NOT EXISTS (SELECT 1 FROM tokens_memberassociation association WHERE association.company_id = token.company_id)
-            AND NOT EXISTS (SELECT 1 FROM tokens_memberparticularsrequest request WHERE request.company_id = token.company_id)
             AND NOT EXISTS (SELECT 1 FROM tokens_registerparticularschange change JOIN tokens_registermember member ON member.uuid = change.member_id WHERE member.company_id = token.company_id));
 $function$;
 

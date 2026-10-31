@@ -234,7 +234,6 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     if (url === COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
     if (url === COMPANY_TOKEN_ENDPOINTS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
       return { data: { entries: [MEMBER_ENTRY] } };
-    if (url === COMPANY_TOKEN_ENDPOINTS.MEMBER_PARTICULARS_REQUESTS) return page([]);
     if (url === COMPANY_TOKEN_ENDPOINTS.MEMBER_CERTIFICATE_REQUESTS) return page([FULFILLED_CERTIFICATE]);
     throw new Error(`Unexpected certificate read ${url}`);
   });

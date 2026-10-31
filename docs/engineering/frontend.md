@@ -371,7 +371,7 @@ approve appointee (`canReviewEligibility`). Its sidebar label is Eligibility. A 
 gets its caret, with Supporting (Company documents, `/documents/company`) beneath it.
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
 Team and Activation where permitted. Its default is Profile (`/settings#profile`), combining personal
-details, permitted company information and a linked member's Company-recorded details. Account
+details, permitted company information and how the selected company records a linked member. Account
 (`/settings#account`) is one compact card for identity status with Review identity check, Change
 password and Manage account, and Data and privacy (`/settings#data`) holds Export data and Delete
 account. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
@@ -480,10 +480,10 @@ Signed-in web pages do not poll while idle or refetch because of window focus, v
 reconnection. Web query defaults enforce that page-data policy. Another person's changes appear on a later
 entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
 content stable until a relevant read is needed, without mounting another workflow's reads behind
-an overview. Certificates re-reads the member list on entry; Profile's Company-recorded details reads only the
+an overview. Certificates re-reads the member list on entry; Profile's company-recorded card reads only the
 selected record and its requests, using the member list the company directory already holds, so opening Profile
-never empties the company context. Both read only while open, retaining
-unfinished drafts and original-request recovery across navigation.
+never empties the company context. Both read only while open, retaining original-request recovery across
+navigation.
 
 `dashboard/src/hooks/useEntryReads.ts` and
 `dashboard/src/pages/company/ledger/useIssueEntryRead.ts` retain ordered entry reads:
@@ -496,8 +496,8 @@ so user preferences still recheck the signed-in identity on focus and reconnect.
 the same account runs, the frame stays, and the web API client refuses every write until it finishes
 ([API client](#frontend-rules)). Pages whose records wait for the recheck show a loading line meanwhile,
 such as the Ledger's "Loading the register…" or "Loading your account…" on the two eligibility pages
-and member records. Work held above that line survives, such as member records' particulars draft and
-the eligibility drafts; work inside it does not: an unsaved Add person form on Shareholders and
+and member records. Work held above that line survives, such as the eligibility drafts; work inside
+it does not: an unsaved Add person form on Shareholders and
 Certificates' unapplied filter choices are lost. The eligibility and activation hooks also close an open
 review as soon as a recheck starts, because their checks need a settled session, so the review must be
 prepared again. A failed
@@ -797,13 +797,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   eligibility. Preparation opens a focused main-page form. The existing
   preparation, request, withdrawal and recipient-download controllers retain their separate guards;
   preparing a company PDF does not fulfil a member request.
-- Certificates and Profile's Company-recorded details share an owner-bound member-records controller.
-  Profile groups current particulars and update-request records in one card, side by side on
-  desktop and stacked on smaller screens, with one shared action footer. Request update opens a
-  focused inline form; successful submission closes it and clears consent, while pending requests
-  keep the requested particulars and status visible together. The controller retains an unfinished
-  particulars draft in memory across navigation within the same account and company, without browser
-  storage. Choosing a class on Certificates reads that class's own entries. Active web reads follow
+- Certificates and Profile's company-recorded card share an owner-bound member-records controller.
+  Profile shows the selected company's recorded name and residential address read-only, with no
+  action. Choosing a class on Certificates reads that class's own entries. Active web reads follow
   [automatic data freshness](#automatic-data-freshness); they never replay a member action.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,

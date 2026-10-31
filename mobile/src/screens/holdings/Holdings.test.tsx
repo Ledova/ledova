@@ -134,7 +134,7 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens its certificates but none from another company for an ended association, requests a particulars update on Profile and keeps that exact request recoverable across screens, refuses cached records and a late action after current read loss and routes each notification to its page', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens its certificates but none from another company for an ended association, shows how the company records them on Profile, keeps an interrupted certificate request recoverable across screens, refuses cached records and a late action after current read loss and routes each notification to its page', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -145,7 +145,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let ownRecord: OwnMemberRecord = OWNED_RECORD;
   let associated = false;
   let refused = false;
-  let particulars: Record<string, unknown>[] = [];
   let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE, OPEN_REQUEST, WITHDRAWN_REQUEST];
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') return { data: preferences };
@@ -158,7 +157,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: ownRecord };
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
       return { data: { entries: [{ ...MEMBER_ENTRY, companyEventOn: null }, SECOND_ENTRY] } };
-    if (url === URLS.MEMBER_PARTICULARS_REQUESTS) return page(particulars);
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
     if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid))
       return { data: MEMBER_PDF.buffer, headers: { 'content-type': 'application/pdf' } };
@@ -191,20 +189,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
         },
       };
     }
-    if (url === URLS.MEMBER_PARTICULARS_REQUESTS) {
-      const request = {
-        ...body,
-        uuid: body.operationId,
-        company: MEMBER_RECORD.company.uuid,
-        member: MEMBER_RECORD.member,
-        status: 'submitted',
-        change: null,
-      };
-      particulars = [request];
-      if (api.post.mock.calls.filter(([target]) => target === url).length === 1)
-        throw new Error('Synthetic interrupted request receipt');
-      return { data: request };
-    }
     if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) {
       const request = {
         ...body,
@@ -215,6 +199,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
         status: 'requested',
       };
       certificates = [request];
+      if (api.post.mock.calls.filter(([target]) => target === url).length === 1)
+        throw new Error('Synthetic interrupted request receipt');
       return new Promise((resolve) => {
         release = () => resolve({ data: request });
       });
@@ -268,7 +254,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const certificatesPage = (
     <CertificatesScreen route={{ key: 'certificates', name: 'Certificates', params: { record, token } }} />
   );
-  const profile = <SettingsScreen route={{ key: 'settings', name: 'Settings', params: { record } }} />;
+  const profile = <SettingsScreen />;
   ownRecord = {
     ...OWNED_RECORD,
     awards: [
@@ -354,38 +340,28 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   expect(await screen.findByText('Certificate records')).toBeTruthy();
   await view.rerender(profile);
-  expect(await screen.findByText(MEMBER_RECORD.name)).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Request update' }));
-  await fireEvent.changeText(screen.getByLabelText('Requested name'), 'Requested Member Name');
-  await fireEvent.changeText(screen.getByLabelText('Requested residential address'), 'Requested synthetic address');
-  await fireEvent.press(
-    screen.getByRole('checkbox', { name: 'Share these requested particulars with this company for review.' }),
-  );
-  await fireEvent.press(screen.getByRole('button', { name: 'Send request' }));
+  expect(await screen.findByLabelText(`Name: ${MEMBER_RECORD.name}`)).toBeTruthy();
+  expect(screen.getByText(`How ${MEMBER_RECORD.company.name} records you`)).toBeTruthy();
+  expect(screen.getByLabelText(`Residential address: ${MEMBER_RECORD.residentialAddress}`)).toBeTruthy();
+  expect(screen.getByText('Wrong? Contact the company.')).toBeTruthy();
+  await view.rerender(certificatesPage);
+  await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
+  await fireEvent.press(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 2)' }));
   await screen.findByRole('button', { name: 'Retry original member action' });
-  expect(screen.getByLabelText('Requested name')).toBeDisabled();
   await view.rerender(dashboard);
   expect(await screen.findByRole('button', { name: 'Retry original member action' })).toBeEnabled();
   expect(screen.getByText(`Your request to ${MEMBER_RECORD.company.name} is waiting to be retried.`)).toBeTruthy();
   await view.rerender(
-    <SettingsScreen route={{ key: 'past', name: 'Settings', params: { record: PAST_RECORD.uuid } }} />,
+    <CertificatesScreen route={{ key: 'past', name: 'Certificates', params: { record: PAST_RECORD.uuid } }} />,
   );
   expect(screen.getByText('Retry or finish your pending request before opening this company.')).toBeTruthy();
-  expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
-  await view.rerender(profile);
-  expect(screen.getByLabelText('Requested name')).toBeDisabled();
+  expect(screen.queryByText('Certificate records')).toBeNull();
+  await view.rerender(certificatesPage);
   await fireEvent.press(screen.getByRole('button', { name: 'Retry original member action' }));
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull());
-  const commands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_PARTICULARS_REQUESTS);
+  await waitFor(() => expect(typeof release).toBe('function'));
+  const commands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS);
   expect(commands).toHaveLength(2);
   expect(commands[0][1]).toEqual(commands[1][1]);
-  expect(await screen.findByText('Submitted')).toBeTruthy();
-  expect(screen.getByLabelText('Name: Requested Member Name')).toBeTruthy();
-  expect(screen.queryByLabelText('Requested name')).toBeNull();
-  await view.rerender(certificatesPage);
-  await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
-  await fireEvent.press(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 2)' }));
-  await waitFor(() => expect(typeof release).toBe('function'));
   refused = true;
   await act(async () => {
     await client.refetchQueries({
@@ -397,7 +373,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByText('Certificate records')).toBeNull();
   await act(async () => release!());
   expect(screen.queryByRole('button', { name: /^Request certificate/ })).toBeNull();
-  expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS)).toHaveLength(1);
+  expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS)).toHaveLength(2);
   const notice = { type: PUBLICATION_NOTICE };
   expect(destinationOf(notice)).toEqual({ screen: 'Notices' });
   expect(destinationOf(notice)).not.toBe(destinationOf(notice));
@@ -414,8 +390,4 @@ it('associates a member by invitation code, switches to their company on Dashboa
     pop: true,
   });
   expect(destinationOf({ ...vested, award: undefined })).toBeUndefined();
-  expect(destinationOf({ type: 'particulars', event: 'applied', record })).toEqual({
-    screen: 'Settings',
-    params: { record },
-  });
 });

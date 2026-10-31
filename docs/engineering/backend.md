@@ -198,6 +198,9 @@ secondary-market decision from at least one company (`secondary_company_ids`).
 - Never edit an applied migration. A testnet migration known to be unapplied may be removed.
 - A schema change that changes the live RLS catalogue needs its policy-install migration too
   ([policy catalogue](security.md#policy-catalogue)).
+- A change to the guard SQL needs a forward migration that replaces each changed function from the
+  current source and drops removed triggers and functions, so an existing database ends as a fresh
+  one does; `tokens/0003_remove_member_particulars_requests` is the example.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.
@@ -287,7 +290,7 @@ never infers success from a lost response.
 | Grants, awards and allotments       | `/api/v1/tokens/register-grants/`, `register-awards/`, `register-award-vestings/`, `register-allotments/`                                                                                                              | [Grants](../business/issuing-shares.md#grants-to-walletless-members), [awards](../business/issuing-shares.md#employee-awards-and-vesting), [allotments](../business/issuing-shares.md#external-investor-allotments)                                                                 |
 | Transfers and retained instructions | `/api/v1/tokens/register-transfers/`, `register-instructions/`                                                                                                                                                         | [Transfers](../business/register.md#non-paid-transfers-between-members)                                                                                                                                                                                                             |
 | Share-class chain decisions         | `/api/v1/tokens/register-deployments/`, `register-issues/`, `register-capital-increases/`, `register-pause-changes/`                                                                                                   | [Deployments](../business/issuing-shares.md#deploying-an-empty-class), [issues](../business/issuing-shares.md#non-paid-chain-grants), [capital](../business/issuing-shares.md#raising-the-authorised-shares), [pauses](../business/issuing-shares.md#pausing-and-unpausing-a-class) |
-| Member access                       | `/api/v1/tokens/member-invitations/`, `member-associations/`, `member-records/`, `member-particulars-requests/`, `member-certificate-requests/`                                                                        | [Member access](../business/member-records.md#member-access)                                                                                                                                                                                                                        |
+| Member access                       | `/api/v1/tokens/member-invitations/`, `member-associations/`, `member-records/`, `member-certificate-requests/`                                                                                                        | [Member access](../business/member-records.md#member-access)                                                                                                                                                                                                                        |
 | Register outputs                    | `/api/v1/tokens/{uuid}/register/` (`certificate/`, `inspection-copy/`), `/api/v1/companies/{uuid}/pack/`                                                                                                               | [Outputs](../business/member-records.md#outputs-at-a-glance)                                                                                                                                                                                                                        |
 
 Owning apps are in [backend apps](#backend-apps). Register routes and family requirement codes
@@ -589,14 +592,14 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | `certificate`      | `tokens/services/member_events.py`, when a member's certificate request is fulfilled               | Nothing        |
 | `award`            | `tokens/services/member_events.py`, when shares vest under a member's award                        | Nothing        |
 | `holding`          | `tokens/services/member_events.py`, when a grant or allotment issues shares to a member            | Nothing        |
-| `particulars`      | `tokens/services/member_events.py`, when a member's particulars change is applied or declined      | Nothing        |
 
-A notice of any other kind, including identity notices sent before they carried a type, stays
-where it is. The four member kinds go only to the member's current association and name the
-company, with the class for certificate and holding notices, but no quantities. Each carries
-`record` (the association), with `company` for a certificate, `award` for a vesting and `token` for
-an issue. The mobile app opens publication notices and these four kinds, from its inbox or a tapped
-push ([mobile](mobile.md)). Push registration and its settings
+A notice of any other kind, including identity notices sent before they carried a type and
+`particulars` notices sent before members' particulars requests were removed, stays where it is.
+The three member kinds go only to the member's current association and name the company, with the
+class for certificate and holding notices, but no quantities. Each carries `record` (the
+association), with `company` for a certificate, `award` for a vesting and `token` for an issue. The
+mobile app opens publication notices and these three kinds, from its inbox or a tapped push
+([mobile](mobile.md)). Push registration and its settings
 are in [configuration](../operations/configuration.md#push-notifications).
 
 Next: [security model](security.md), [records engine](records.md), [testing](testing.md) and
