@@ -3,7 +3,7 @@ import {
   appointmentForRegisterStep,
   canAdministerCompany,
   canOpen,
-  COMPANIES_QUERY_KEY,
+  ownCompaniesKey,
   OWN_APPOINTMENTS_QUERY_KEY,
   DESTINATIONS,
   getCompanies,
@@ -29,7 +29,7 @@ export function useSettingsNavigation() {
     passive: true,
   });
   const companies = useQuery({
-    queryKey: [...COMPANIES_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid, 'settings-navigation'],
+    queryKey: [...ownCompaniesKey(owner), 'settings-navigation'],
     enabled: !!owner && companyAudience,
     staleTime: CACHE_TIMING.SHORT_STALE_TIME,
     gcTime: CACHE_TIMING.MEDIUM_GC_TIME,

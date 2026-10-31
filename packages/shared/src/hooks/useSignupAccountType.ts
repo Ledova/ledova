@@ -11,7 +11,7 @@ import { useApiClient } from './useApiClient';
 
 type SignupRole = Exclude<AccountRole, 'both'>;
 
-export const USER_ACCOUNT_QUERY_KEY = ['userAccount'] as const;
+const USER_ACCOUNT_QUERY_KEY = ['userAccount'] as const;
 
 export function useSignupAccountType() {
   const apiClient = useApiClient();

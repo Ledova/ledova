@@ -75,7 +75,6 @@ it('preserves original preparation and combined approval recovery through refres
     });
   };
   api.get.mockReset().mockImplementation(async (url, config?: { params?: { token?: string } }) => {
-    if (url === '/api/user-accounts/') return { data: { uuid: 'account-one', role: 'company' } };
     if (url === '/api/user-profiles/' || url === '/api/v1/companies/') return { data: { results: [], next: null } };
     if (url === '/api/user-preferences/') {
       return { data: companyPreferences() };

@@ -8,7 +8,7 @@ import {
   withdrawCompanyAuthorityRequest,
   type CompanyAuthorityRequest,
   type OrderSubmissionOwner,
-  COMPANIES_QUERY_KEY,
+  ownCompaniesKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
@@ -19,10 +19,6 @@ import { useLocation } from 'react-router-dom';
 
 export function authorityRequestsKey(owner: OrderSubmissionOwner) {
   return ['company-authority-requests', owner.userUuid, owner.ownerAccountUuid];
-}
-
-export function authorityCompaniesKey(owner: OrderSubmissionOwner) {
-  return [...COMPANIES_QUERY_KEY, 'authority', owner.userUuid, owner.ownerAccountUuid];
 }
 
 export function authorityRequestStatus(request: CompanyAuthorityRequest) {
@@ -50,7 +46,7 @@ export function useAuthorityRequests({
   const client = useQueryClient();
   const historyKey = authorityRequestsKey(owner);
   const companies = useQuery({
-    queryKey: authorityCompaniesKey(owner),
+    queryKey: [...ownCompaniesKey(owner), 'authority'],
     enabled: readCompanies,
     queryFn: () =>
       readEveryPage(async (page) => {

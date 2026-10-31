@@ -115,7 +115,6 @@ async function serveASignedInAccount(page: Page, role: Role) {
     if (path === '/api/v1/company-authority/appointments/') reads.appointments += 1;
     if (path === '/api/v1/companies/') reads.companies += 1;
     if (path === '/api/auth/verify/') return answer({ valid: true });
-    if (path === '/api/user-accounts/') return answer({ uuid: 'account', role });
     if (path === '/api/user-preferences/')
       return answer({ userProfile: 'profile', userAccount: { uuid: 'account', role }, transactionAlerts: false });
     if (path === '/api/user-profiles/')

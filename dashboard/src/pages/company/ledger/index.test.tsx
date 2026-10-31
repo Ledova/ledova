@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
 import { TestRouter } from '../../../testSupport/TestRouter';
-import { CERTIFICATES_PATH } from '@utils/paths';
 
 import {
   COMPANY_TOKEN_ENDPOINTS,
@@ -159,7 +158,6 @@ function show(
   route?: { entry?: string; path?: string },
 ) {
   prepareCompanyClient(client, role);
-  client.setQueryData(['userAccount'], { data: { role } });
   return renderCompanyPage(
     client,
     <>
@@ -2035,7 +2033,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     },
   ];
   function RegisterDestination() {
-    return useLocation().pathname === CERTIFICATES_PATH ? <h1>Certificates destination</h1> : <CompanyRegisterPage />;
+    return useLocation().pathname === DESTINATIONS.certificates.path ? (
+      <h1>Certificates destination</h1>
+    ) : (
+      <CompanyRegisterPage />
+    );
   }
   const decisionAppointment = appointment;
   appointment = { ...appointment, capabilities: ['read_register'] };
@@ -2141,7 +2143,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
   expect(await screen.findByRole('heading', { name: 'Certificates destination' })).toBeTruthy();
   expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!)).toMatchObject({
-    pathname: CERTIFICATES_PATH,
+    pathname: DESTINATIONS.certificates.path,
     search: `?company=${company.uuid}&class=${token.uuid}`,
     hash: '',
     state: { registerCompany: company.uuid, registerToken: token.uuid },

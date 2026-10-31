@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { DESTINATIONS, useMemberRecords } from '@ledova/shared';
-import { CERTIFICATES_PATH } from '@utils/paths';
 import { MemberWorkspaceContext, type MemberDraft } from './useMemberWorkspace';
 
 const EMPTY_DRAFT: MemberDraft = { name: '', address: '', confirmed: false, open: false };
 
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const { pathname, hash } = useLocation();
-  const certificates = pathname === CERTIFICATES_PATH;
+  const certificates = pathname === DESTINATIONS.certificates.path;
   const active = certificates || (pathname === DESTINATIONS.settings.path && hash === '#profile');
   const read = useMemberRecords(() => crypto.randomUUID(), undefined, {
     coordinatedRefresh: true,
@@ -41,7 +40,7 @@ function MemberState({
   const location = useLocation();
   const requested = new URLSearchParams(location.search).get('company');
   const requestedClass =
-    location.pathname === CERTIFICATES_PATH ? new URLSearchParams(location.search).get('class') : null;
+    location.pathname === DESTINATIONS.certificates.path ? new URLSearchParams(location.search).get('class') : null;
   const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [token, setToken] = useState('');
   const selectionOwner = useRef<typeof read.owner>(null);

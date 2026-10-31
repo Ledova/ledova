@@ -55,8 +55,7 @@ function SignedInOwnership({
     directory.owner?.userUuid === owner.userUuid &&
     directory.owner?.ownerAccountUuid === owner.ownerAccountUuid &&
     !directory.hasError &&
-    !directory.isLoading &&
-    !directory.isRefreshing;
+    !directory.isLoading;
   const guard = useMemo(
     () => () => {
       if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen your dashboard.');

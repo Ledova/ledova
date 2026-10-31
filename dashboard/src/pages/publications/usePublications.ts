@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   failureStatus,
   PUBLICATION_COPY,
-  apiErrorSentence,
+  failureSentence,
   castBallot,
   openPublication,
   publicationFilename,
@@ -55,7 +55,7 @@ export function usePublications() {
     castingUuid: casting.isPending ? casting.variables?.uuid : undefined,
     castError:
       casting.isError && casting.variables
-        ? { uuid: casting.variables.uuid, message: apiErrorSentence(casting.error, PUBLICATION_COPY.BALLOT_FAILED) }
+        ? { uuid: casting.variables.uuid, message: failureSentence(casting.error, PUBLICATION_COPY.BALLOT_FAILED) }
         : undefined,
   };
 }

@@ -11,29 +11,11 @@ import { AccountUnavailable, SessionUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT, SIGNIN_PATH } from '@utils/paths';
 import { dropRequestLink, keepRequestLink } from '@utils/requestLink';
 
-function RoleUnavailable({ onRetry }: { onRetry: () => void }) {
-  return (
-    <Page>
-      <div role="alert" className="flex flex-col items-center gap-3 py-20 text-center">
-        <p className="text-sm text-text-primary">Your account could not be checked, so this page cannot open yet.</p>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="font-semibold text-brand-light transition-colors hover:text-brand-subtle"
-        >
-          Try again
-        </button>
-      </div>
-    </Page>
-  );
-}
-
 export function ProtectedRoute({ audience, children }: { audience: Audience; children: ReactNode }) {
   const { isAuthenticated, isUnavailable: sessionUnavailable, isLoading, isFetching, refetch } = useAuth();
-  const { role, isKnown, isUnavailable, retry } = useRole();
+  const { role } = useRole();
   const { userProfile, isLoading: isProfileLoading, refreshProfile } = useUserProfile();
-  const needsRole = isAuthenticated && audience !== 'everyone';
-  const waitingForAccount = isAuthenticated && (isProfileLoading || (needsRole && !isKnown && !isUnavailable));
+  const waitingForAccount = isAuthenticated && isProfileLoading;
   const inFrame = useContext(InSignedInFrame);
   const location = useLocation();
 
@@ -51,8 +33,6 @@ export function ProtectedRoute({ audience, children }: { audience: Audience; chi
   if (!userProfile) return <AccountUnavailable onRetry={refreshProfile} />;
 
   if (!userProfile.isSignupCompleted) return <Navigate to={SIGNUP_RESUMES_AT} replace />;
-
-  if (needsRole && !isKnown) return <RoleUnavailable onRetry={() => void retry()} />;
 
   if (!canOpen(role, audience)) {
     dropRequestLink(location.pathname);

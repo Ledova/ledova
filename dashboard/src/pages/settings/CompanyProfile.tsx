@@ -2,7 +2,7 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { type Company, useCompanySelection } from '@ledova/shared';
+import { type Company, ownCompaniesKey, useCompanySelection } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
@@ -27,7 +27,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: data.companyKey, exact: true }),
-      queryClient.invalidateQueries({ queryKey: data.companiesKey, exact: true }),
+      queryClient.invalidateQueries({ queryKey: ownCompaniesKey(data.owner) }),
       queryClient.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
       queryClient.invalidateQueries({ queryKey: ['member-records'] }),
     ]);

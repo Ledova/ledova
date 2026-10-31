@@ -6,8 +6,6 @@ import { signedInPage, signedInRoutes } from './signedInRoutes';
 import { signupRoutes } from './signupRoutes';
 import {
   COMPANY_DASHBOARD_PATH,
-  CERTIFICATES_PATH,
-  COMPANY_DOCUMENTS_PATH,
   ROOT_PATH,
   SIGNIN_PATH,
   SIGNUP_PATHS,
@@ -17,8 +15,6 @@ import {
 import { PublicOnlyRoute } from './PublicOnlyRoute';
 import { RouteLoading } from './RouteLoading';
 import {
-  CertificatesPage,
-  CompanyDocumentsPage,
   DashboardPage,
   MemberInvitationPage,
   NotFoundPage,
@@ -64,11 +60,6 @@ export function AppRoutes() {
         {SIGNUP_ROUTES}
 
         {SIGNED_IN_ROUTES}
-        <Route path={CERTIFICATES_PATH} element={signedInPage(<CertificatesPage />, 'Certificates', 'everyone')} />
-        <Route
-          path={COMPANY_DOCUMENTS_PATH}
-          element={signedInPage(<CompanyDocumentsPage />, 'Company documents', 'everyone')}
-        />
         <Route path={COMPANY_DASHBOARD_PATH} element={signedInPage(<DashboardPage />, 'Dashboard', 'everyone')} />
 
         <Route path={NOT_FOUND_PATH} element={<NotFoundPage />} />

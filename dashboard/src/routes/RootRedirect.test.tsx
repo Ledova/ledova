@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
 
-import {
-  ApiClientProvider,
-  COMPANY_ENDPOINTS,
-  USER_ACCOUNT_ENDPOINTS,
-  USER_PREFERENCES_QUERY_KEY,
-} from '@ledova/shared';
+import { ApiClientProvider, COMPANY_ENDPOINTS, USER_PREFERENCES_QUERY_KEY, DESTINATIONS } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
@@ -28,7 +23,7 @@ import { ownershipCompaniesKey } from '@hooks/useOwnershipCompanies';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import { RootRedirect } from './RootRedirect';
-import { CERTIFICATES_PATH, SIGNUP_RESUMES_AT } from '@utils/paths';
+import { SIGNUP_RESUMES_AT } from '@utils/paths';
 import { TestRouter } from '../testSupport/TestRouter';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
@@ -98,8 +93,6 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
       }
       return Promise.resolve({ data: companyPreferences('investor') });
     }
-    if (url === USER_ACCOUNT_ENDPOINTS.BASE)
-      return Promise.resolve({ data: companyPreferences('investor').userAccount });
     if (url === '/api/v1/company-authority/appointments/') return Promise.resolve(page(visible ? [APPOINTMENT] : []));
     if (url === '/api/user-profiles/')
       return Promise.resolve(
@@ -170,7 +163,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
                     }
                   />
                   <Route
-                    path={CERTIFICATES_PATH}
+                    path={DESTINATIONS.certificates.path}
                     element={
                       <>
                         <Sidebar />
