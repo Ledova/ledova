@@ -102,6 +102,7 @@ export function AccountSettings({ profile }: { profile: ReturnType<typeof useUse
     ? readApiError(passwordMutation.error, {
         fallback: 'Your password could not be changed. Try again.',
         displayedFields: ['currentPassword', 'newPassword', 'newPasswordConfirm'],
+        unanswered: 'Your password could not be changed. Try again.',
       })
     : null;
   const passwordField = (key: keyof typeof passwordProblems) => {

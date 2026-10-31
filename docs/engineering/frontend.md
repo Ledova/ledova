@@ -36,7 +36,7 @@ root npm workspace link (`node_modules/@ledova/shared` to `packages/shared`), an
 follow the symlink, so the sources are transformed and type-checked as application code. Mobile
 resolves it through Metro ([shared package resolution](mobile.md#shared-package-resolution)). The
 site cannot import it, because its Docker context is `site/`. The package declares
-`"sideEffects": false`, so the dashboard's bundler drops shared code no page imports.
+`"sideEffects": false`, so the dashboard's bundler drops shared code no module imports.
 
 Clients import the package as `@ledova/shared`, never by a deep path; inside a workspace package,
 imports are relative and never use the package's own name (`make check-self-imports` refuses that).
@@ -171,9 +171,10 @@ The [principles](README.md#principles) apply; in particular, do not add:
   `useApiClient()` and never take it as an argument; dashboard hooks import the `apiClient`
   singleton, which `main.tsx` also gives `ApiClientProvider`. While a signed-in session is being
   rechecked (authentication or user preferences fetching, failed or invalidated), the web client
-  refuses every request other than a read with "Your session is being checked. Try again in a
+  refuses every request other than a GET with "Your session is being checked. Try again in a
   moment.", except the session's own calls: signing in, signing out, signing up, email verification
-  and token refresh (`dashboard/src/services/apiClient.ts`, reading `services/queryClient.ts`).
+  and its resend, and token refresh (`dashboard/src/services/apiClient.ts`, reading
+  `services/queryClient.ts`).
   Every endpoint a client calls has its function in `packages/shared/src/services`;
   [the API type drift gate](gates.md#the-api-type-drift-gate) accounts for each operation, not for
   where it is called.
@@ -281,9 +282,10 @@ An error while rendering a page, such as an old file that no longer downloads af
 (`dashboard/src/utils/destinations.ts`) titles `home` Dashboard; the other titles, Ledger and its
 tasks included, are the shared ones. `/member-records` is an alias of `/home`, and `companyRegisterSetup` and
 `companyRegisterImport` render the same page. Outside the table sit the
-[sign-up steps](#sign-up-routes) and `/company/dashboard` (`COMPANY_DASHBOARD_PATH` in
-`dashboard/src/utils/paths.ts`, routed in `dashboard/src/routes/AppRoutes.tsx` under `ProtectedRoute`
-with audience `everyone` and title Dashboard).
+[sign-up steps](#sign-up-routes) and three signed-in routes in `dashboard/src/routes/AppRoutes.tsx`,
+each through `signedInPage` with audience `everyone`: Certificates and Company documents
+(`CERTIFICATES_PATH` and `COMPANY_DOCUMENTS_PATH`), and `/company/dashboard`
+(`COMPANY_DASHBOARD_PATH`, titled Dashboard), all in `dashboard/src/utils/paths.ts`.
 
 `canOpen(role, audience)` lets an investor open `everyone` and `investing` pages, a company
 `everyone` and `company` pages, and a dual-role account all; a role outside the API's list opens
