@@ -36,10 +36,6 @@ export const REGISTER_IMPORT_COPY = {
   TITLE: 'Register mirror',
   EMPTY: 'Bring in the company’s existing records for this share class.',
   PREPARE: 'Bring records',
-  CORRECT: 'Correct opening records',
-  MIRROR_NOTE:
-    'Ledova mirrors the company’s existing share register. The company keeps its legal register, historical records, ' +
-    'lawful access arrangements and filings as before.',
   PROVIDED_BY_COMPANY: 'Provided by the company',
   STAFF_VERIFIED: 'Verified by Ledova staff before imports were company-run',
   READ_ONLY_NOTE:
@@ -70,8 +66,6 @@ export const REGISTER_IMPORT_COPY = {
     `Company records: ${total} shares held by ${count} ${count === 1 ? 'member' : 'members'}`,
   DOWNLOAD_REGISTER: 'Download the register document',
   DOWNLOAD_ASIC: 'Download the ASIC extract',
-  SOURCE_CONFIRMATION: 'These records mirror the company’s existing legal register.',
-  UNKNOWN_ALLOTMENTS: 'Allotment particulars were not recorded in this earlier snapshot.',
   DECISION_RECEIPT_FAILED: 'The decision could not be confirmed. Refresh before retrying.',
   PREPARATION_RECEIPT_FAILED:
     'The prepared import could not be confirmed. Check the imports on Register before preparing again.',

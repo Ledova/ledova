@@ -44,9 +44,11 @@ fixed release or Expo SDK upgrade is available, and before a store-distributed
 build. It does not apply to the web, backend or another advisory.
 
 The owner separately accepted the mobile-only `minimatch` / `GHSA-g3hv-75wg-m249`
-pair on 31 October 2026. The vulnerable `minimatch` 3.1.5 comes through `glob` 7
-in React Native 0.81's build tooling (codegen, Metro, Jest instrumentation and a
-Chromium launcher's cleanup), which matches patterns from project files only.
+pair on 31 October 2026. The vulnerable `minimatch` 3.1.5 comes with mobile's
+development tooling: directly from ESLint and its React plugin, and through
+`glob` 7 from React Native 0.81 and its codegen, Jest and its coverage
+instrumentation, and a Chromium launcher's cleanup. These match patterns from
+project files only.
 `minimatch` 3 exports a different module API from the patched 11.0.1, so no
 override can apply it, and the 9.x copies come from Expo's own packages, which
 still require `^9`. Reconsider this exception with the React Native and Expo

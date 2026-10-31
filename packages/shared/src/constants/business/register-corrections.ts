@@ -24,7 +24,6 @@ export const REGISTER_CORRECTION_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_CORRECTION_COPY = {
   TITLE: 'Corrections',
-  ENTRIES_TITLE: 'Register entries',
   PREPARE: 'Correct this entry',
   PROVIDED_BY_COMPANY: 'Provided by the company',
   STAFF_VERIFIED: 'Verified by Ledova staff before corrections were company-run',

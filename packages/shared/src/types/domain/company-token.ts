@@ -17,7 +17,5 @@ export type RegisterInspectionPreview = ApiResponse<'api_v1_tokens_register_insp
 export type RegisterInspectionCopies = ApiResponse<'api_v1_tokens_register_inspection_copies_retrieve'>;
 export type RegisterInspectionRequest = ApiRequest<'api_v1_tokens_register_inspection_copy_create'>;
 
-export type FormerMember = ApiSchema<'FormerMember'>;
-
 export type RegisterCertificatePreview = ApiResponse<'api_v1_tokens_register_certificate_retrieve'>;
 export type RegisterCertificateRequest = ApiRequest<'api_v1_tokens_register_certificate_create'>;
