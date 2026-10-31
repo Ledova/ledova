@@ -49,7 +49,6 @@ when starting or resuming work, including after context compaction.
 The owner has authorised implementation, routine cleanup, and the repository's
 review-and-merge workflow without repeated permission requests. Live deployment,
 live database migrations, signer activation and real-funds use require the
-owner's explicit direction under CONTRIBUTING.md. The already-authorised
-ledova.io rebuild and release completed under #979; its permission and the
-instruction to do no further backup work are recorded in the
-[11 October release decision](docs/decisions.md#ledovaio-rebuild-and-release-authorisation).
+owner's explicit direction under CONTRIBUTING.md.
+
+ledova.io is run from the private `Ledova/infra` repository.
