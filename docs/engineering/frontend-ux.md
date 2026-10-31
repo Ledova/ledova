@@ -531,7 +531,7 @@ request, on pages and in dialogs, including:
 - previews and preparations;
 - identity verification;
 - establishing an appointment;
-- member, particulars and certificate requests;
+- member and certificate requests;
 - register setup's review step (editing the records, loading and confirming the decision).
 
 Read on entry and after relevant actions under the [freshness standard](frontend.md#automatic-data-freshness),
@@ -784,8 +784,8 @@ server:
   its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
   scope without repeating it in a header summary or badge. Certificates keeps labelled
   draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;
-  Apply and Clear close the panel and return focus to its button. Shareholders' class filter,
-  Member requests' type and company eligibility's Outcome apply
+  Apply and Clear close the panel and return focus to its button. Shareholders' class filter
+  and company eligibility's Outcome apply
   immediately, closing the panel on selection. Member requests' person search stays inside its panel
   and uses the existing 300 ms timing, without an Apply action. Escape and an outside click dismiss
   it, and all controls remain keyboard

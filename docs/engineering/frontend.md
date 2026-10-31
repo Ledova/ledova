@@ -525,7 +525,7 @@ Every list follows these rules:
   (`dashboard/src/components/FilterPopover.tsx`); pages retain their data and field state. Certificates
   keeps Apply/Clear drafts until a session recheck replaces its list, while Shareholders' class and company eligibility's outcome
   retain immediate selection. Member requests uses debounced person
-  search and immediate request-type selection inside its panel. Shareholders keeps Search people inside
+  search inside its panel. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts.
   Every filter icon sits in the page heading's top-right actions, without a separate row or
   card-specific placement, apart from Dashboard's class details card
@@ -813,8 +813,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   decisions mounted, merely hidden, so changing view, task or class (the Share class selector)
   keeps an unfinished request with its class, payload and retry key. People and member controllers
   also stay mounted across the three Shareholders views. Member requests keeps the full permitted
-  particulars and certificate request arrays for selected requests and
-  recovery. Member requests stores `q` and `request_type` in the URL; `searchRows` matches every
+  certificate request array for selected requests and
+  recovery. Member requests stores `q` in the URL; `searchRows` matches every
   name word, ignoring case and accents, before unmatched rows are hidden. Held work disables its
   controls and bypasses filtering for the active workflow, without changing any request's status.
   Controllers

@@ -614,7 +614,7 @@ Details opens the shareholder's page. On narrow screens each shareholder is one 
 classes they hold, and the row opens their page. Former shareholders follows, holding each class's
 Former-member history 25 at a time, with Details for a former member the register names.
 Shareholders' sidebar submenus open Employee scheme for employee awards, Member access for invitations and access, and Member requests
-for particulars and certificate requests ([member records](member-records.md)). While register work is unfinished,
+for certificate requests ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
 The Employee share scheme view, Employee scheme under Shareholders, shows one class's

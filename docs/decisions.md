@@ -35,7 +35,7 @@ stay here as history and are marked where they appear.
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                           | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October                                          |
-| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; certificate requests and the company's own particulars change stay                                                        |
+| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; #1476; certificate requests and the company's own particulars change stay                                                 |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                                            |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                                                                                            |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                                                                                            |
@@ -1000,7 +1000,8 @@ the same email. Mobile's existing code flow remains deferred to its later pass.
 
 ### Member particulars requests removed
 
-**Owner decision, 31 October 2026**, given in the session. On members' requests to update their
+**Owner decision, 31 October 2026**, given in the session and tracked in
+[#1476](https://github.com/Ledova/ledova/issues/1476). On members' requests to update their
 recorded particulars, the owner wrote: "Ledova should not act as an intermediary between parties or
 manage requests to update company records", and "I'd prefer that we challenge the need for this
 functionality rather than preserve it simply because it already exists".
@@ -1495,7 +1496,7 @@ also asked about Company-recorded details: "this page … does not seems to be o
 wonder if we can just merge into Profile". Company documents now sit under Documents at
 `/documents/company`, and the old address redirects there. Profile shows the selected company's
 recorded details for a linked member, with its update request, and the separate Settings item is
-gone.
+gone. The update request was later removed ([decision](#member-particulars-requests-removed)).
 
 On 29 October 2026 the owner settled the pages that had no in-app link or only the notification
 bell ([#1416](https://github.com/Ledova/ledova/issues/1416)): "Start #1416 with your defaults:
