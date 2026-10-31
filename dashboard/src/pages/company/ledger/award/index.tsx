@@ -29,11 +29,11 @@ import { awardsKey, useRegisterAward } from '@pages/company/ledger/shared/useReg
 import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 import { AwardRecord } from './AwardRecord';
+import { AccountCheck } from '@components/AccountCheck';
 
 export default function CompanyRegisterAwardPage() {
   const { uuid: token = '', award = '' } = useParams();
   const { owner, boundary } = useSubmissionOwner();
-  const preferences = useUserPreferences();
   if (owner)
     return (
       <OwnAward
@@ -46,13 +46,7 @@ export default function CompanyRegisterAwardPage() {
     );
   return (
     <Page>
-      {preferences.isLoading ? (
-        <Loading>Loading your account…</Loading>
-      ) : (
-        <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-          Your account could not be loaded.
-        </LoadError>
-      )}
+      <AccountCheck />
     </Page>
   );
 }

@@ -1,11 +1,4 @@
-import {
-  AUTH_BUTTON_CLASS,
-  ERROR_BANNER_CLASS,
-  AuthCard,
-  AuthInput,
-  authFieldClass,
-  AuthDivider,
-} from '@components/auth';
+import { ERROR_BANNER_CLASS, AuthCard, AuthInput, authFieldClass, AuthDivider, AuthSubmit } from '@components/auth';
 import React from 'react';
 import {
   FIELD_LIMITS,
@@ -21,6 +14,7 @@ import { Field, Label, Description } from '@headlessui/react';
 import { WarningIcon } from '@phosphor-icons/react';
 import RadioGroupField from './RadioGroupField';
 import CheckboxGroupField from './CheckboxGroupField';
+import { Failure } from '@components/Ledger';
 
 interface FinancialProfileFormProps {
   form: FinancialProfileFormState;
@@ -73,9 +67,7 @@ export function FinancialProfileForm({
                   <WarningIcon size={ICON_MD} className="text-error-light" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-error-light" role="alert">
-                    {generalError}
-                  </p>
+                  <Failure>{generalError}</Failure>
                 </div>
               </div>
             </div>
@@ -155,16 +147,9 @@ export function FinancialProfileForm({
             )}
           </Field>
 
-          <button type="submit" disabled={isSubmitting} onClick={submit} className={AUTH_BUTTON_CLASS}>
-            {isSubmitting ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                <span>Saving…</span>
-              </div>
-            ) : (
-              'Continue'
-            )}
-          </button>
+          <AuthSubmit busy={isSubmitting} busyLabel="Saving…" onClick={submit}>
+            Continue
+          </AuthSubmit>
         </form>
       </AuthCard>
 

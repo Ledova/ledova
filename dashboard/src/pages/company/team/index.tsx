@@ -1,6 +1,6 @@
 import { SelectField } from '@components/SelectField';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
-import { Section, LoadError, Loading } from '@components/Ledger';
+import { Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { Modal } from '@components/Modal';
 import { FormActions, Page, PageAction, PageLink } from '@components/Page';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
@@ -20,6 +20,7 @@ import { AcceptInvitationForm } from './AcceptInvitationForm';
 import { AppointmentRecord } from './AppointmentRecord';
 import { TeamInvitationForm } from './TeamInvitationForm';
 import { useCompanyTeam } from './useCompanyTeam';
+import { AccountCheck } from '@components/AccountCheck';
 
 export default function CompanyTeamPage() {
   const { owner, boundary } = useSubmissionOwner();
@@ -27,13 +28,7 @@ export default function CompanyTeamPage() {
   if (!owner || preferences.isError)
     return (
       <Page>
-        {preferences.isError ? (
-          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-            Your account could not be loaded.
-          </LoadError>
-        ) : (
-          <p className="text-sm text-text-muted">Your signed-in account must be checked before opening company team.</p>
-        )}
+        <AccountCheck />
       </Page>
     );
   return <OwnTeam key={`${owner.userUuid}/${owner.ownerAccountUuid}`} owner={owner} currentOwner={boundary.get} />;
@@ -328,11 +323,7 @@ function OwnTeam({
           </Section>
         </div>
       </div>
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       <Modal
         isOpen={!!confirmation}
         onClose={close}

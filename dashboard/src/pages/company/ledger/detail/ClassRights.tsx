@@ -9,7 +9,7 @@ import {
 } from '@ledova/shared';
 import { Field, FileField, TextArea, TextInput } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
-import { ShowMore, LoadError, Loading, Outcome, Row, Rows, Section } from '@components/Ledger';
+import { ShowMore, LoadError, Loading, Outcome, Row, Rows, Section, Failure } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -163,6 +163,7 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
               <p className="break-words text-sm text-text-primary">{document.snapshot?.name ?? document.file?.name}</p>
             ) : (
               <FileField
+                showUploadHint
                 label="File"
                 onFile={(file) =>
                   rights.setEditor({
@@ -186,15 +187,11 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
         ))}
       </fieldset>
       {rights.stale && !rights.pending && (
-        <p role="alert" className="text-sm text-error-light">
+        <Failure>
           The class rights or your administrator access changed. Close this form and reopen the current details.
-        </p>
+        </Failure>
       )}
-      {rights.error && (
-        <p id={id} role="alert" className="text-sm text-error-light">
-          {rights.error}
-        </p>
-      )}
+      <Failure id={id}>{rights.error}</Failure>
       <FormActions>
         <PageAction label="Cancel" onClick={rights.close} disabled={rights.busy || rights.pending} />
         <PageAction
@@ -253,11 +250,7 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
             />
           )}
           <Outcome>{rights.outcome}</Outcome>
-          {!rights.editor && rights.error && (
-            <p role="alert" className="text-sm text-error-light">
-              {rights.error}
-            </p>
-          )}
+          {!rights.editor && rights.error && <Failure>{rights.error}</Failure>}
           {!rights.editor && rights.count > 1 && (
             <ShowMore show={`Show previous versions (${rights.count - 1})`} hide="Hide previous versions">
               <ul className="divide-y divide-border-subtle">

@@ -4,7 +4,7 @@ import { useTransferPreparation, type TransferFormProps } from './useTransferPre
 import { FIELD_LIMITS, REGISTER_TRANSFER_COPY as COPY, type Person, formatDate, shareCount } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { FormSteps } from '@components/FormSteps';
-import { Row, Rows } from '@components/Ledger';
+import { Row, Rows, Failure } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
@@ -110,7 +110,6 @@ export function TransferForm({
     <FileField
       {...checks.field(`${kind}Document`)}
       label={label}
-      showUploadHint={false}
       onFile={(file) => {
         setOperation(null);
         setFiles((current) => ({ ...current, [kind]: file ?? undefined }));
@@ -241,11 +240,7 @@ export function TransferForm({
           documents.
         </p>
       )}
-      {error && (
-        <p role="alert" className="text-sm text-error-light">
-          {error}
-        </p>
-      )}
+      <Failure>{error}</Failure>
       <FormActions>
         {stepIndex > 0 && (
           <PageAction

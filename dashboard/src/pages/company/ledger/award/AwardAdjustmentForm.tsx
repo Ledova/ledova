@@ -4,6 +4,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
 import { useAwardAdjustmentForm } from './useAwardAdjustmentForm';
+import { Failure } from '@components/Ledger';
 
 export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentForm>[0] & { onCancel: () => void }) {
   const form = useAwardAdjustmentForm(props);
@@ -77,13 +78,9 @@ export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentF
             onChange={(event) => form.setReason(event.target.value)}
           />
         </Field>
-        <FileField {...checks.field('file')} label={COPY.ADJUSTMENT_DOCUMENT} onFile={form.setFile} />
+        <FileField showUploadHint {...checks.field('file')} label={COPY.ADJUSTMENT_DOCUMENT} onFile={form.setFile} />
       </fieldset>
-      {form.error && (
-        <p role="alert" className="text-sm text-error-light">
-          {form.error}
-        </p>
-      )}
+      <Failure>{form.error}</Failure>
       {form.held && <p className="text-sm text-text-muted">{COPY.RECOVERY_NOTE}</p>}
       <FormActions>
         {cancel}

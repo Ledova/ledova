@@ -152,6 +152,23 @@ export function Rows({ children }: { children: ReactNode }) {
   return <dl className="divide-y divide-border-subtle">{children}</dl>;
 }
 
+export function Fact({
+  label,
+  numeric = false,
+  children,
+}: {
+  label: ReactNode;
+  numeric?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 space-y-1">
+      <dt className="text-sm text-text-muted">{label}</dt>
+      <dd className={`break-words text-sm font-medium${numeric ? ' tabular-nums' : ''}`}>{children}</dd>
+    </div>
+  );
+}
+
 export function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid min-w-0 gap-1 py-3 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-6">
@@ -191,6 +208,15 @@ export function Outcome({ children }: { children?: ReactNode }) {
           <span>{children}</span>
         </>
       ) : null}
+    </p>
+  );
+}
+
+export function Failure({ id, children }: { id?: string; children?: ReactNode }) {
+  if (!children) return null;
+  return (
+    <p id={id} role="alert" className="text-sm text-error-light">
+      {children}
     </p>
   );
 }
