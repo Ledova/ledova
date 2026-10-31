@@ -57,8 +57,9 @@ always opens at sign-in: a stored session is never resumed without a typed or bi
 sign-in clears the query cache on focus) and `SignupCompletionGate`. The gate returns an unfinished
 account to sign-up, or, for a company account, to a notice that the app is for shareholders with
 only Sign out; once the app has opened, it stays mounted while the account and profile reread, so a
-pull to refresh keeps the screen and any unfinished work. A failed refresh keeps them too while a
-confirmed profile exists; without one, a failed read shows the gate's error. Sign-up's first step sets
+pull to refresh keeps the screen and any unfinished work. A failed profile refresh keeps them too
+while a confirmed profile exists. Without one, or when the preferences recheck fails, the gate shows
+its error, and a failed sign-in check returns to Sign in. Sign-up's first step sets
 the individual role, then pre-screening, personal details, financial profile and review follow; the
 dashboard's routes and guards do not apply.
 

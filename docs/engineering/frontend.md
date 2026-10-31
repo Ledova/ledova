@@ -160,10 +160,10 @@ The [principles](README.md#principles) apply; in particular, do not add:
   owner guard and invalidation, lives in a `use<Thing>.ts` hook, and only `main.tsx`, hooks and
   `services/` import `apiClient`. A thin read hook may return its query as it is; a hook that shapes
   its result names the fields `isLoading`, `hasError`, `isRefreshing` and `retry`
-  (`dashboard/src/hooks/useOwnershipCompanies.ts`). Four older hooks still use other names:
+  (`dashboard/src/hooks/useOwnershipCompanies.ts`). Older hooks still use other names, such as
   `useSettingsNavigation` (`isError`, `isFetching`), the dashboard's `useUserProfile` (`isError`,
-  `isFetching`, `refreshProfile`), `useRegisterEntries` (`isPending`, `isFetching`) and
-  `usePublications` (`listFailed`).
+  `isFetching`, `refreshProfile`), `useRegisterEntries` (`isPending`, `isFetching`),
+  `usePublications` (`listFailed`) and `useIdentityVerification` (`isLoadingStatus`).
 - **Account boundary.** Work bound to the signed-in account takes its owner from
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
@@ -489,11 +489,12 @@ decision review or original-request recovery is open.
 Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
 so user preferences still recheck the signed-in identity on focus and reconnect. While a recheck of
-the same account runs, the frame and every page's drafts stay, and the web API client refuses every
-write until it finishes ([API client](#frontend-rules)). Pages whose records wait for the recheck show
-a loading line meanwhile, such as the Ledger's "Loading the register…" or "Loading your account…" on
-the two eligibility pages and member records. Certificates is the exception: its "Loading certificate
-records…" replaces the Filters popover, so a search typed but not yet applied is lost. A failed
+the same account runs, the frame stays, and the web API client refuses every write until it finishes
+([API client](#frontend-rules)). Pages whose records wait for the recheck show a loading line meanwhile,
+such as the Ledger's "Loading the register…" or "Loading your account…" on the two eligibility pages
+and member records. Work held above that line survives, such as member records' particulars draft and
+the eligibility drafts; work inside it does not: an unsaved Add person form on Shareholders,
+Certificates' unapplied filter choices and an open eligibility review are lost. A failed
 check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
 the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload, extraction or identity
