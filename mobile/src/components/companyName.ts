@@ -1,4 +1,4 @@
-export function shortName(name: string) {
+function shortName(name: string) {
   return (
     name
       .replace(/\b(pty|ltd|limited|proprietary)\b\.?/gi, '')

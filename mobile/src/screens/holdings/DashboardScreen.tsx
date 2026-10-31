@@ -13,7 +13,7 @@ import {
   type OwnMemberRecord,
   type useMemberRecords,
 } from '@ledova/shared';
-import { Action, LinkRow, Rows, Section } from '../../components/Ledger';
+import { Action, Fact, LinkRow, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -68,7 +68,6 @@ function useDashboardStyles() {
     small: { fontFamily: theme.fontFamily.regular, fontSize: 12, color: theme.colors.text.muted },
     figures: { alignItems: 'flex-end' as const },
     figure: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.primary },
-    fact: { gap: 2, paddingVertical: 10 },
     award: { gap: theme.spacing.smd, paddingVertical: theme.spacing.smd },
     awardTitle: { fontFamily: theme.fontFamily.medium, fontSize: 14, color: theme.colors.text.primary },
     toggle: { paddingVertical: 6, fontFamily: theme.fontFamily.medium, fontSize: 14, color: theme.colors.brand.light },
@@ -343,17 +342,6 @@ function OwnershipClasses({
           : 'Share counts show composition, not voting power or value.'}
       </Text>
     </>
-  );
-}
-
-function Fact({ label, children }: { label: string; children: string }) {
-  const look = useDashboardStyles();
-  const styles = useCompanyStyles();
-  return (
-    <View accessible accessibilityLabel={`${label}: ${children}`} style={look.fact}>
-      <Text style={styles.muted}>{label}</Text>
-      <Text style={styles.text}>{children}</Text>
-    </View>
   );
 }
 

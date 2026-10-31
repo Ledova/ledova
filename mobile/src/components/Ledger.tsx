@@ -100,6 +100,47 @@ export function Row({
   );
 }
 
+export function Fact({ label, children }: { label: string; children: string | ReactElement }) {
+  const styles = useThemedStyles((theme) => ({
+    fact: { gap: theme.spacing.xs, paddingVertical: theme.spacing.smd },
+    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.muted },
+    value: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
+  }));
+  const text = typeof children === 'string';
+  return (
+    <View accessible={text} accessibilityLabel={text ? `${label}: ${children}` : undefined} style={styles.fact}>
+      <Text style={styles.label}>{label}</Text>
+      {text ? <Text style={styles.value}>{children}</Text> : children}
+    </View>
+  );
+}
+
+export type Tone = 'waiting' | 'done' | 'closed';
+
+export function Status({ tone, muted = false, children }: { tone: Tone; muted?: boolean; children: string }) {
+  const styles = useThemedStyles((theme) => ({
+    status: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.sm },
+    mark: { width: 8, height: 8, borderRadius: 4 },
+    waiting: { borderWidth: 1, borderColor: theme.colors.text.muted },
+    done: { backgroundColor: theme.colors.brand.mid },
+    closed: { backgroundColor: theme.colors.text.muted },
+    label: {
+      flexShrink: 1,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.text.primary,
+    },
+    muted: { color: theme.colors.text.muted },
+  }));
+  return (
+    <View style={styles.status}>
+      <View style={[styles.mark, styles[tone]]} />
+      <Text style={[styles.label, muted && styles.muted]}>{children}</Text>
+    </View>
+  );
+}
+
 export function LinkRow({
   label,
   onPress,
@@ -230,6 +271,21 @@ export function Action({
       <Text style={styles.label}>{label}</Text>
     </Pressable>
   );
+}
+
+export function FormActions({ children }: { children: ReactNode }) {
+  const styles = useThemedStyles((theme) => ({
+    actions: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      justifyContent: 'flex-end' as const,
+      gap: theme.spacing.sm,
+      paddingTop: theme.spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border.subtle,
+    },
+  }));
+  return <View style={styles.actions}>{children}</View>;
 }
 
 export function Choice({

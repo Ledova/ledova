@@ -36,7 +36,7 @@ export function destinationOf(value: unknown): Destination | undefined {
         ? { screen: 'Certificates', params: { record, token } }
         : undefined;
     case 'particulars':
-      return typeof record === 'string' ? { screen: 'Details', params: { record } } : undefined;
+      return typeof record === 'string' ? { screen: 'Settings', params: { record } } : undefined;
     default:
       return undefined;
   }

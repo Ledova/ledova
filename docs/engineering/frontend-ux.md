@@ -143,8 +143,10 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   lede keep a readable width (`max-w-prose`).
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
-  mobile right-aligns them. Breakdowns of figures (company ownership, a class's totals on the web,
-  register setup's summary) and an award's chart legend keep their own layout, without tinted tiles.
+  mobile's `Row` right-aligns them, and its `Fact` puts the label above the value, as the web's rows
+  do on a phone (Dashboard's class card and Profile). Breakdowns of figures (company ownership, a
+  class's totals on the web, register setup's summary) and an award's chart legend keep their own
+  layout, without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such
   as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid
@@ -181,7 +183,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `SwitchRow`: a setting that takes effect at once (Dark theme), as an On/Off pill or native switch (`role="switch"`,
   `aria-checked` the saved value), disabled while saving; a refusal keeps the saved value and shows
   an alert in the card. A choice saved with a form stays a checkbox.
-- `Status` (web) is words after a small mark, read as words only; `Timeline` (web) dates each event;
+- `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event;
   `Choice` (mobile) is an outlined choice marked selected. Each status family has its own
   tone map; shared resolution-result tones live in `dashboard/src/components/statusTones.ts`.
 
@@ -512,6 +514,7 @@ confirmation) or pressed, and comes in four forms:
 - **A submit button** (`type="submit"`) ends every page form, inside `FormActions`: a rule, then one
   right-aligned row with any plain actions first and the primary submit last. The form's own submit
   handler does the work, so Enter in a field submits the form unless the submit button is disabled.
+  Mobile's `FormActions` draws the same rule and row.
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
   the title row's way back, Add share class, a shareholder's Details, Issue shares to them. While a
   held Ledger action blocks leaving, `disabled` shows it as a disabled action instead.
@@ -586,8 +589,8 @@ rather than its identifier. It reports:
 Identity verification shows its result in its own dialog, sign-in and sign-up keep their boxed
 outcomes, and `CopyButton` (a company's request link) confirms a copy with Copied beside the button.
 When it hides the value, a failed copy shows it to copy by hand.
-Ledger's other forms don't use `Outcome`. Mobile reports a changed password, some failures
-and a few warnings in native alerts.
+Ledger's other forms don't use `Outcome`. Mobile reports saved personal details as the web does, and
+a changed password, some failures and a few warnings in native alerts.
 
 ## Copy
 

@@ -70,10 +70,10 @@ the title and action as the screen's `title` and `action` options (`FrameOptions
 its lede.
 The menu (`AppMenu`) slides in from the left like the
 web's phone drawer, 208 points wide: Dashboard and Documents, then Settings, and a footer with the
-person's name, the selected company as on the web, and Sign out, which asks first as Settings' Sign
-out does, beside the Dark theme switch. It closes when its screen
+person's name, the selected company as on the web, and Sign out, which asks first, beside the Dark
+theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Documents for Certificates and Notices,
-Settings for Profile, Details and Your details, Dashboard for Invitation. Choosing Dashboard returns
+Settings for Profile, Dashboard for Invitation. Choosing Dashboard returns
 to it. Documents opens Certificates, and like the web's group its caret shows Certificates and
 Notices beneath it, open while one of them is shown. Settings opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
@@ -100,28 +100,28 @@ Apply. Each record shows the shareholder and change, the entry, its date (and le
 certificate status from the shared `certificateStatus`, with Request certificate, Withdraw request
 (after the web's confirmation) and Share PDF, then any earlier requests. The company's other
 certificate requests, including those the filters hide, open on demand. A class the member is not
-recorded in says so, and a failed read offers Try again. A company in Details at each company opens its
-company-recorded particulars and the particulars request. These screens share one member-records
-state (`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
-original operation, after leaving the company, and the screens show a loading line rather than an
-empty one while the list rereads. Only the focused screen selects its record and class. Notices
+recorded in says so, and a failed read offers Try again. Notices
 (`NoticesScreen`), under Documents, is the web's Notices page: every company's notices, each opened
-or voted on as on the web. Settings
-opens Profile from its profile card, Your details from Details at each company (with the number of
-changes waiting) and Invitation from Accept an invitation. Your details lists each company's
-recorded name and address, marking those where a change waits, and sends one particulars change to
-every company in turn through the same member-records state. It skips a company that already
-records the change or where the same change already waits, checking that company's own requests
-again just before sending. A send that is refused or not confirmed stops the run until it is retried
-or skipped, and the summary counts the companies where the change waits or is recorded, from the
-server's records and requests. Settings holds the sign-in
-and app lock switches, Notifications (the notifications list), the dark theme, password and data,
-the app actions and Sign out.
+or voted on as on the web. Settings opens the web's Profile page for a member
+(`mobile/src/screens/settings/index.tsx`), with its three cards. Personal information shows the
+person's details, each label above its value, and **Edit personal details** opens their form in the
+card. Company-recorded details shows the selected company's recorded name and residential address,
+its classes under **Show ledger details**, and the member's update requests with their status;
+**Request update** opens the web's particulars request in the card, which closes once the company has
+the request. Account shows the identity check status from the profile (the app has no identity
+check flow, so there is no **Review identity check**), Change password and Dark theme, then the
+app's biometric sign-in and App lock switches; Manage account adds member since and last login,
+**Accept an invitation** (the member Invitation page), Export data and Delete account, and Rate the
+app and Share with friends end the card. These pages share one member-records state
+(`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
+original operation, after leaving the page, an unsent particulars draft stays for the same company,
+and the pages show a loading line rather than an empty one while the list rereads. Only the focused
+page selects its record and class.
 A notification, tapped in that list or as a push, opens its screen: a notice opens Notices, a
 ready certificate Certificates for that company, vested
 shares Dashboard on the award's company (with its class, where the overview lists it), issued
-shares Certificates for that class (which says so when that company no longer records you), and a
-decided particulars change the company's details.
+shares Certificates for that class and a decided particulars change Profile for that company, each
+saying so when that company no longer records you.
 Screens set their own titles inside the page.
 
 ## Theme and appearance
