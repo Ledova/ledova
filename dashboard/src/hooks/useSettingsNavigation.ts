@@ -46,7 +46,7 @@ export function useSettingsNavigation() {
         return result;
       }),
   });
-  const current = !!owner && !!preferences.preferences && !preferences.isError && !preferences.isFetching;
+  const current = !!owner && !!preferences.preferences && !preferences.isError;
   const own = current && appointments.isSuccess && !appointments.isFetching ? appointments.data : [];
   const companyRows = current && companyAudience && companies.isSuccess && !companies.isFetching ? companies.data : [];
   const canActivate = own.some(
@@ -63,7 +63,6 @@ export function useSettingsNavigation() {
     isLoading:
       !owner ||
       preferences.isLoading ||
-      preferences.isFetching ||
       appointments.isPending ||
       appointments.isFetching ||
       (companyAudience && (companies.isPending || companies.isFetching)),
