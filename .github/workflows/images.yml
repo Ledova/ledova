@@ -1,0 +1,171 @@
+name: Publish images
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full 40-character main-history commit to rebuild
+        required: true
+        type: string
+      component:
+        description: Component to rebuild
+        required: true
+        type: choice
+        default: all
+        options: [all, backend, dashboard, site]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images-${{ inputs.revision || github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  source:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      revision: ${{ steps.source.outputs.revision }}
+      image: ${{ steps.source.outputs.image }}
+      components: ${{ steps.source.outputs.components }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require an exact commit in main history
+        id: source
+        env:
+          REVISION: ${{ inputs.revision || github.event.workflow_run.head_sha }}
+          COMPONENT: ${{ inputs.component || 'all' }}
+        run: |
+          [[ "$REVISION" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse --verify "$REVISION^{commit}")" = "$REVISION"
+          git merge-base --is-ancestor "$REVISION" origin/main
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+          image="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          case "$COMPONENT" in
+            all) echo 'components=["backend","dashboard","site"]' >> "$GITHUB_OUTPUT" ;;
+            backend|dashboard|site) echo "components=[\"$COMPONENT\"]" >> "$GITHUB_OUTPUT" ;;
+            *) exit 1 ;;
+          esac
+      - name: Require public build origins
+        env:
+          IMAGE_API_URL: ${{ vars.IMAGE_API_URL }}
+          IMAGE_MARKETING_URL: ${{ vars.IMAGE_MARKETING_URL }}
+          IMAGE_DASHBOARD_URL: ${{ vars.IMAGE_DASHBOARD_URL }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlsplit
+
+          for key in ('IMAGE_API_URL', 'IMAGE_MARKETING_URL', 'IMAGE_DASHBOARD_URL'):
+              value = os.environ[key]
+              origin = urlsplit(value)
+              origin.port
+              if (origin.scheme not in ('http', 'https') or not origin.hostname or origin.username or origin.password
+                      or origin.path not in ('', '/') or origin.query or origin.fragment or any(c.isspace() for c in value)):
+                  raise SystemExit('Configure the required public IMAGE_*_URL repository variables')
+          PY
+
+  publish:
+    needs: source
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJSON(needs.source.outputs.components) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: recipe
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.source.outputs.revision }}
+          path: source
+          persist-credentials: false
+      - name: Read the source frontend toolchain
+        if: matrix.component != 'backend'
+        id: frontend
+        env:
+          COMPONENT: ${{ matrix.component }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+
+          package = Path('source/site/package.json' if os.environ['COMPONENT'] == 'site' else 'source/package.json')
+          metadata = json.loads(package.read_text())
+          node = metadata['engines']['node']
+          manager = metadata['packageManager']
+          if not re.fullmatch(r'\d+\.\d+\.\d+', node) or not re.fullmatch(r'npm@\d+\.\d+\.\d+', manager):
+              raise SystemExit('Source must pin exact Node and npm versions')
+          npm = manager[4:]
+          with Path(os.environ['GITHUB_OUTPUT']).open('a') as output:
+              output.write(f'node={node}\nnpm={npm}\n')
+          PY
+      - uses: docker/setup-buildx-action@v4
+      - name: Build the exact source revision without registry credentials
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.component == 'dashboard' && 'source' || format('source/{0}', matrix.component) }}
+          file: ${{ matrix.component == 'backend' && 'source/backend/Dockerfile' || format('recipe/{0}/.deployment/Dockerfile.prod', matrix.component) }}
+          target: ${{ matrix.component == 'site' && 'artifact' || matrix.component == 'dashboard' && 'production' || '' }}
+          platforms: linux/amd64
+          load: true
+          tags: ${{ needs.source.outputs.image }}-${{ matrix.component }}:sha-${{ needs.source.outputs.revision }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.source.outputs.revision }}
+            org.opencontainers.image.url=${{ matrix.component == 'dashboard' && vars.IMAGE_DASHBOARD_URL || matrix.component == 'site' && vars.IMAGE_MARKETING_URL || vars.IMAGE_API_URL }}
+          build-args: |
+            NODE_VERSION=${{ steps.frontend.outputs.node }}
+            NPM_VERSION=${{ steps.frontend.outputs.npm }}
+            VITE_API_URL=${{ vars.IMAGE_API_URL }}
+            VITE_MARKETING_URL=${{ vars.IMAGE_MARKETING_URL }}
+            VITE_LEDOVA_URL=${{ vars.IMAGE_DASHBOARD_URL }}
+            VITE_BASE=/site-assets/
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Record the immutable image reference
+        env:
+          IMAGE: ${{ needs.source.outputs.image }}-${{ matrix.component }}
+          REVISION: ${{ needs.source.outputs.revision }}
+          COMPONENT: ${{ matrix.component }}
+        run: |
+          docker push "$IMAGE:sha-$REVISION"
+          DIGEST=$(docker buildx imagetools inspect "$IMAGE:sha-$REVISION" --format '{{json .Manifest}}' | jq -r '.digest')
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          jq -n --arg component "$COMPONENT" --arg revision "$REVISION" \
+            --arg image "$IMAGE@$DIGEST" \
+            '{version: 1, images: {($component): {source_ref: $revision, image: $image}}}' > image.json
+          echo "\`$IMAGE@$DIGEST\` (source \`$REVISION\`)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: image-${{ matrix.component }}-${{ needs.source.outputs.revision }}
+          path: image.json
+          retention-days: 90

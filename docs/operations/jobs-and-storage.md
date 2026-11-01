@@ -2,9 +2,9 @@
 
 [Operations](README.md) · [Documentation](../README.md)
 
-How to run the background worker, what it runs and when, how long job records are kept, and how to
-operate private file storage, malware scanning and upload limits. It is for whoever runs an
-instance. All clock times are UTC. The storage and retention variables are listed under
+How the local background worker runs, its schedule, job retention, private file storage,
+malware scanning and upload limits. All clock times are UTC. The storage and retention variables are
+listed under
 [configuration](configuration.md#storage-uploads-and-retention).
 
 - [Running a worker](#running-a-worker)
@@ -16,7 +16,7 @@ instance. All clock times are UTC. The storage and retention variables are liste
 
 ## Running a worker
 
-Procrastinate runs on PostgreSQL. Start a worker with
+Procrastinate runs on PostgreSQL. For local development, start a worker with
 `python manage.py procrastinate worker --queues=default,builtin`, which is what the Compose `worker`
 service runs and `make worker` runs from `backend/`. `ledova_backend/worker_entrypoint.py` is an
 alternative entrypoint that also serves a health endpoint on `PORT` (default 8080) for platforms
@@ -75,8 +75,8 @@ before the next run.
 ## Private storage
 
 Local evidence lives under `PRIVATE_MEDIA_ROOT`, also with `DEBUG=false` (the `private_media_data`
-volume in Compose); cloud evidence uses private S3 or GCS objects. Private storage is backed up and
-restored with the database. How files are served and who may read them is in
+volume in Compose); cloud evidence uses private S3 or GCS objects. Files and their database references
+must remain consistent. How files are served and who may read them is in
 [private files](../engineering/security.md#private-files), and when they are deleted in
 [deletion and retention](../engineering/security.md#deletion-and-retention).
 
@@ -103,30 +103,6 @@ exists, and leaves alone, and reports, a pair whose bytes differ. `--check` repo
 and exits non-zero when it finds a stray or a conflict. With a `STORAGE_BACKEND` other than `local`
 it does nothing.
 
-### Checking stored MIME types
-
-Before exporting records from an older database, check the stored MIME values against the
-allowlist in `backend/shared/uploads.py`: PDF, PNG and JPEG. The three original upload tables are
-checked by:
-
-```sql
-SELECT 'documents' AS source, mime_type, COUNT(*) AS rows
-FROM documents GROUP BY mime_type
-UNION ALL
-SELECT 'companies_companydocument', mime_type, COUNT(*)
-FROM companies_companydocument GROUP BY mime_type
-UNION ALL
-SELECT 'users_investorclassification', evidence_mime_type, COUNT(*)
-FROM users_investorclassification GROUP BY evidence_mime_type
-ORDER BY source, rows DESC;
-```
-
-Authority request documents, register evidence, publications and publication events carry their
-own `mime_type` or `evidence_mime_type` columns and need the same check. A blank value is allowed
-on documents and classification evidence, not on company documents, and is served as
-`application/octet-stream`. A value outside the allowlist stays an attachment; normalise it
-explicitly rather than weakening the serving rules.
-
 ## Malware scanning
 
 Uploads need Redis and a running ClamAV daemon with current signatures. Compose runs
@@ -139,15 +115,14 @@ Freshclam updates the dedicated `clamav_data` volume. The checked-in `backend/.d
 rejects over-budget and encrypted content, caps scan time at 5 seconds and refuses to start with
 signatures older than seven days. A new volume is filled from the image's own signatures, which can
 already be older than that, so local Compose runs one Freshclam update before starting the daemon;
-offline, it starts without one. Monitor health and Freshclam update failures: startup freshness is
-not a continuous freshness guarantee. No CI job runs a real daemon, so scanner health must be
-watched on the instance.
+offline, it starts without one. Startup freshness is not a continuous freshness guarantee. No CI job
+runs a real daemon or establishes scanner health.
 
 ClamAV's [INSTREAM protocol](https://docs.clamav.net/manual/Usage/ClamdProtocol.html) has no
-authentication or transport encryption. Keep it on a trusted private network reachable only by the
-application services, and follow the
-[official Docker guidance](https://docs.clamav.net/manual/Installing/Docker.html) for signature
-storage and resource provisioning. Verdicts and failure handling are in
+authentication or transport encryption, so the daemon must be private to the application services.
+Hosted scanner and proxy configuration is maintained in private
+[Ledova/infra](https://github.com/Ledova/infra/blob/main/docs/deployment.md#scanner-and-proxy-controls).
+Verdicts and failure handling are in
 [upload validation](../engineering/security.md#upload-validation).
 
 ## Upload limits
@@ -185,12 +160,9 @@ is a fault to investigate.
 
 The hourly quotas live in Redis ([quota charging](../engineering/security.md#upload-validation)).
 
-WSGI cannot interrupt a blocked socket read, so configure the HTTP server or proxy body timeout.
-Configure proxy or server body, connection and concurrency limits for both entrypoints, since
-unauthenticated clients and many users can each consume a bounded request, and keep the proxy's cap
-at least the configured request limit if clients should receive the API's error body. Changing the
-file limits also means aligning `StreamMaxLength`, `MaxFileSize` and the other scan limits in
-`backend/.deployment/clamd.conf`; the stricter bound wins.
+WSGI cannot interrupt a blocked socket read, and application limits alone do not bound aggregate
+traffic from unauthenticated clients or many users. Scanner limits in
+`backend/.deployment/clamd.conf` also constrain uploads; the stricter bound wins.
 
 Next: [recovery](recovery.md), [configuration](configuration.md)
 or [private files](../engineering/security.md#private-files).

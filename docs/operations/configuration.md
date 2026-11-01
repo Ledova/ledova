@@ -2,9 +2,9 @@
 
 [Operations](README.md) · [Documentation](../README.md)
 
-Every environment variable a Ledova instance reads, the PostgreSQL roles it needs and each
-provider's operating notes, for whoever configures an instance. Use only synthetic data and keep
-credentials server-side.
+Software environment variables, PostgreSQL roles, provider inputs and local development settings.
+Use only synthetic data and keep credentials server-side. Hosted configuration and release
+procedures belong in private [Ledova/infra](https://github.com/Ledova/infra).
 
 - [Environment files](#environment-files)
 - [Django core and Redis](#django-core-and-redis)
@@ -108,16 +108,16 @@ in [tenancy](../engineering/security.md#roles-and-principal).
 
 `shared/0002_database_guards` creates `ledova_app` and `ledova_operator` when they are absent, with
 `LOGIN` and no password, grants them what they need and installs the helpers and a policy on every
-tenant table. Apply it as a superuser, which `ALTER ROLE ... BYPASSRLS` requires; otherwise the
-roles lack the attributes the policies assume and `check_rls_roles` refuses them.
+tenant table. The migration requires superuser privileges for `ALTER ROLE ... BYPASSRLS`;
+`check_rls_roles` refuses roles without the attributes the policies assume.
 
-- Provision the roles' credentials out of band; the migration never sets a password. Local work
-  uses `POSTGRES_HOST_AUTH_METHOD=trust`, which `docker-compose.yml` sets on the `postgres` service.
+- The migration never sets role passwords. Local development uses
+  `POSTGRES_HOST_AUTH_METHOD=trust`, which `docker-compose.yml` sets on the `postgres` service.
 - `initdb` reads `POSTGRES_HOST_AUTH_METHOD` on the first start only. A cluster initialised
   without it authenticates `scram-sha-256` for anything but loopback, and the Compose bridge is not
   loopback, so the passwordless roles are refused there even when a loopback connection succeeds.
-  On an existing volume, give the roles the password the settings send (both fall back to
-  `POSTGRES_PASSWORD`) instead of recreating the database; `manage.py check_rls_roles` prints these
+  On an existing local development volume, give the roles the password the settings send (both
+  fall back to `POSTGRES_PASSWORD`) instead of recreating the database; `manage.py check_rls_roles` prints these
   statements when a connection is refused:
 
   ```sql
@@ -323,7 +323,9 @@ out of the build context. Pass the public origins as build arguments instead:
 `dashboard/.deployment/Dockerfile.prod` takes `VITE_API_URL` and `VITE_MARKETING_URL`, and
 `site/.deployment/Dockerfile.prod` takes `VITE_LEDOVA_URL`, the dashboard origin its Register and
 Sign in links open. Each defaults to its local address, so a build without them links to
-`localhost`. Mobile Release builds require HTTPS; the hosts a Debug build may reach, including the
+`localhost`. The [publishing workflow](../engineering/README.md#image-publication) supplies these from non-secret
+repository variables and builds the site artifact with `VITE_BASE=/site-assets/`. Mobile Release
+builds require HTTPS; the hosts a Debug build may reach, including the
 LAN address `EXPO_PUBLIC_DEV_API_HOST` selects, are in
 [mobile transport](../engineering/mobile.md#native-transport).
 
@@ -341,7 +343,7 @@ only a checklist of the names; nothing creates or loads `.env` in `contracts/`.
 | `BASE_SEPOLIA_RPC_URL`                                                                                                                                              | the `baseSepolia` network URL (default `https://sepolia.base.org`)                                                             |
 | `ETHERSCAN_API_KEY`, `REPORT_GAS`                                                                                                                                   | contract verification and gas reporting (`REPORT_GAS=1`)                                                                       |
 | `FACTORY_ADDRESS`, `STABLECOIN_ADDRESS`, `SHARE_TOKEN_ADDRESS`, `RELAYER_ADDRESS`, `TOKEN_NAME`, `TOKEN_SYMBOL`, `COMPANY_ACN`, `AUTHORIZED_SHARES`, `INITIAL_MINT` | inputs to the individual deploy scripts ([a chain of your own](chains.md#a-chain-of-your-own))                                 |
-| `FRESH_SIGNER_*`                                                                                                                                                    | the fresh-signer manifest of a [fresh-start redeploy](chains.md#fresh-start-redeploy)                                          |
+| `FRESH_SIGNER_*`                                                                                                                                                    | the fresh-signer manifest of a [fresh signer admission](../engineering/chain.md#fresh-base-sepolia-admission)                                          |
 
 ## Process variables
 
@@ -352,4 +354,4 @@ only a checklist of the names; nothing creates or loads `.env` in `contracts/`.
 | `CHAIN_TEST_PORT`      | `make chain-test` and `make contracts-deploy-local`                                        | `8545`                        |
 
 Next: [chains and keys](chains.md), [jobs and storage](jobs-and-storage.md) or
-[bring up an instance](README.md#bring-up-an-instance).
+[local setup](../getting-started.md).

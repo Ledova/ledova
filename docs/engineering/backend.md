@@ -218,7 +218,7 @@ baseline was regenerated when offerings were removed
 history found only the removed tables, columns, functions and policy terms. No old-chain rewind,
 equivalence, adoption or per-migration upgrade test is required
 ([backend verification](testing.md#backend-verification)). A database on an older initial graph,
-including one migrated before #1421, needs a [fresh rebuild](../operations/README.md#rebuild-a-database);
+including one migrated before #1421, needs a [fresh rebuild](../decisions.md#minimum-tests-and-fresh-migrations);
 there is no adoption path.
 
 The mirror guards keep the exact company, name and address of a selected award-only recipient in

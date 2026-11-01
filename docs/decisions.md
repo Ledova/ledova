@@ -642,7 +642,7 @@ on 22 September in
   row for each entry and company that only the operator connection writes.
 
 [Contracts and issuance](engineering/chain.md#contracts) owns
-the mechanism and [chain setup](operations/chains.md#fresh-start-redeploy) the
+the mechanism and [chain setup](https://github.com/Ledova/ledova/blob/9ac01a29d0358337c04f834fa460fee874e8663c/docs/operations/chains.md#fresh-start-redeploy) the
 redeploy.
 
 ## Shareholder publications
@@ -950,7 +950,7 @@ stablecoin-send exemption in this backend PR, keeping receiving_wallet_chain." I
 classification keeps the accountant's certificate and professional investor categories, and one
 kind of company decision remains. Removing the offerings app regenerated the fresh initial
 migrations, so a database migrated before this change, ledova.io included, needs a
-[fresh rebuild](operations/README.md#rebuild-a-database) before it runs this code; that rebuild is
+[fresh rebuild](engineering/backend.md#migrations) before it runs this code; that rebuild is
 the owner's call.
 
 ### Wallets removed from the web app
@@ -1080,7 +1080,7 @@ adoption. Package-owned migrations stay with their dependencies. Held product
 work, including #867, rebases onto the fresh migrations after this work lands.
 
 At this initial checkpoint, ledova.io was left untouched and every part of its
-[backup/export/rebuild/re-seed plan](operations/README.md#rebuild-a-database)
+[backup/export/rebuild/re-seed plan](https://github.com/Ledova/ledova/blob/9ac01a29d0358337c04f834fa460fee874e8663c/docs/operations/README.md#rebuild-a-database)
 needed owner approval. The later [backup permission](#binding-caps-and-backup-authorisation)
 and [release direction](#ledovaio-rebuild-and-release-authorisation) supersede
 those restrictions for the completed operation.
@@ -1177,7 +1177,7 @@ At this checkpoint, live selective-record export, stopping writers, rebuild,
 migrations, re-seeding, configuration and release still required the owner's
 go-ahead, supplied in the [later direction below](#ledovaio-rebuild-and-release-authorisation). Signer activation
 and real-funds use remain separate decisions.
-The [short rebuild plan](operations/README.md#rebuild-a-database) preserves
+The [short rebuild plan](https://github.com/Ledova/ledova/blob/9ac01a29d0358337c04f834fa460fee874e8663c/docs/operations/README.md#rebuild-a-database) preserves
 the original database/storage and matching release/configuration for recovery.
 A firm downtime estimate needed the actual database/storage inventory and sizes,
 owner-confirmed record mappings and a measured safe isolated rehearsal; none was
@@ -1195,7 +1195,7 @@ no repeat permission request. Signer activation and real-funds use remain
 separate decisions.
 
 The authorised operation completed under [#979](https://github.com/Ledova/ledova/issues/979).
-Its [operational record](operations/README.md#ledovaio)
+Its [operational record](https://github.com/Ledova/infra/blob/70fdf2457150930de862477eb00692a84e52e4aa/docs/operations/evidence/ledova-io-rebuild-2026-10-11.md)
 owns the release, retained setup, checks and limits. Existing protected backups
 and private evidence were retained. The backups and working files on the host
 were deleted in the [30 October rebuild](#ledovaio-rebuild-of-30-october-2026),
@@ -1214,7 +1214,7 @@ to be on `main`, and chose to delete the old ledova.io data and backups as well:
 the old databases and volumes, the host's backups, including the 11 October
 rebuild's folder, and the new backup with its off-host copy. Earlier evidence
 folders outside the repository were kept. The
-[operational record](operations/README.md#ledovaio) owns the
+[operational record](https://github.com/Ledova/infra/blob/70fdf2457150930de862477eb00692a84e52e4aa/docs/operations/evidence/ledova-io-rebuild-2026-10-30.md) owns the
 release and its checks. Signer activation and real-funds use remain separate
 decisions.
 
@@ -2100,8 +2100,7 @@ portfolio preference, because paper is the only look and no client read the
 portfolio; and routes offer only the methods in use, which
 [#832](https://github.com/Ledova/ledova/pull/832) carried out by removing the
 33 operations no client called, taking the schema from 191 operations to 158.
-The [upgrade notes](operations/README.md#rebuild-a-database) record the key and preference
-removals. The theme reason is superseded by the
+The theme reason is superseded by the
 [14 October theme decision](#paper-and-dark-themes), which keeps a theme choice
 on each device rather than on the account.
 

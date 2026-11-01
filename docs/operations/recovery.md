@@ -117,7 +117,9 @@ can and cannot reconstruct.
 
 ## Private files, notifications and providers
 
-Back up and restore [private storage](jobs-and-storage.md#private-storage) with the database.
+Private files and their database references must remain consistent; hosted rebuild procedures are
+maintained in private
+[Ledova/infra](https://github.com/Ledova/infra/blob/main/docs/deployment.md#fresh-database-rebuilds).
 `python manage.py reconcile_private_media --check` reports stray local uploads
 ([repairing stray uploads](jobs-and-storage.md#repairing-stray-uploads)).
 
@@ -125,7 +127,7 @@ Notification senders only defer a job, so the in-app inbox stays empty until a w
 queue ([notifications](../engineering/backend.md#notifications)). Check the provider's
 [configuration](configuration.md) before retrying a review or an extraction. A 200 from
 `GET /health/` proves nothing beyond the process
-([bring up an instance](README.md#bring-up-an-instance)).
+([hosted instance checks](https://github.com/Ledova/infra/blob/main/docs/deployment.md#hosted-instance-checks)).
 
 ## Verifying stored records
 

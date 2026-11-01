@@ -3,7 +3,7 @@
 [Engineering](README.md) · [Documentation](../README.md)
 
 How to build the native apps, run the manual native probes, complete the physical-device checks and
-produce an iOS distribution build. The architecture these checks exercise is in [mobile](mobile.md).
+understand the iOS distribution configuration. The architecture these checks exercise is in [mobile](mobile.md).
 
 - [Toolchain and generated projects](#toolchain-and-generated-projects)
 - [Building from a clean checkout](#building-from-a-clean-checkout)
@@ -13,13 +13,13 @@ produce an iOS distribution build. The architecture these checks exercise is in 
 - [Native probes](#native-probes)
 - [What automated checks do not establish](#what-automated-checks-do-not-establish)
 - [Pre-release device checks](#pre-release-device-checks)
-- [iOS distribution builds](#ios-distribution-builds)
+- [iOS distribution configuration](#ios-distribution-configuration)
 
 ## Toolchain and generated projects
 
 The app uses the versions `mobile/package-lock.json` resolves, currently Expo SDK 54 on React Native
 0.81. Native projects are generated from `mobile/app.json` and the config plugins in
-`mobile/plugins/` (with `mobile/app.config.js` for [iOS distribution](#ios-distribution-builds));
+`mobile/plugins/` (with `mobile/app.config.js` for [iOS distribution configuration](#ios-distribution-configuration));
 `android/` and `ios/` are not committed.
 
 [mobile-native.yml](../../.github/workflows/mobile-native.yml) pins the toolchain, selecting
@@ -320,86 +320,16 @@ Push delivery needs the Expo project ID and a device build
 ([push notifications](../operations/configuration.md#push-notifications)); supported emulators and
 simulators can also exercise it.
 
-## iOS distribution builds
+## iOS distribution configuration
 
-An ordinary native CI run produces a simulator app, not an App Store archive. A signed device build
-needs a dedicated clean checkout, never one serving an active development session (prebuild replaces
-generated files), and the pinned Node and npm dependencies.
+`mobile/app.config.js` preserves the development configuration when `LEDOVA_IOS_RELEASE` is
+absent. Its release branch requires `LEDOVA_IOS_RELEASE=1` and `EXPO_NO_DOTENV=1`. It validates
+`LEDOVA_IOS_BUNDLE_ID`, `LEDOVA_APPLE_TEAM_ID`, `LEDOVA_APP_VERSION` and
+`LEDOVA_IOS_BUILD_NUMBER`, requires HTTPS API and marketing URLs without credentials, queries or
+fragments, and refuses development API hosts and native probe variables. Native CI produces a
+simulator app.
 
-### Release environment
+Signing, archive/export and upload procedures are maintained in the private
+[Ledova infrastructure guide](https://github.com/Ledova/infra/blob/main/docs/mobile-distribution.md).
 
-Keep store identifiers, signing material, exports, logs, provisioning profiles and keys outside the
-repository, and set these in a private environment before every prebuild, bundle, archive or export
-command:
-
-| Variable                    | Required value                               |
-| --------------------------- | -------------------------------------------- |
-| `LEDOVA_IOS_RELEASE`        | `1`                                          |
-| `EXPO_NO_DOTENV`            | `1`, so a development `.env` is not loaded   |
-| `LEDOVA_IOS_BUNDLE_ID`      | Existing registered app bundle ID            |
-| `LEDOVA_APPLE_TEAM_ID`      | Owning Apple team's ten-character ID         |
-| `LEDOVA_APP_VERSION`        | Store version in `major.minor.patch` form    |
-| `LEDOVA_IOS_BUILD_NUMBER`   | Unused positive integer, at most four digits |
-| `EXPO_PUBLIC_API_URL`       | Reachable HTTPS API base URL                 |
-| `EXPO_PUBLIC_MARKETING_URL` | Public HTTPS website base URL                |
-
-Unset `EXPO_PUBLIC_DEV_API_HOST` and every `EXPO_PUBLIC_NATIVE_PROBE_*` variable, and set
-`EXPO_PUBLIC_APP_STORE_URL` for the shipped experience
-([client variables](../operations/configuration.md#clients)). The release config
-(`mobile/app.config.js`) refuses a missing or malformed identity, the development placeholder, HTTP
-endpoints, URL credentials, a query or fragment (even empty), whitespace or backslashes in a URL, a
-development API host and native probe flags; without `LEDOVA_IOS_RELEASE` the development config is
-unchanged. Check the latest App Store Connect upload before choosing a build number (Apple reserves
-no unused local number), keep the bundle ID when continuing an app (even after a store name change),
-and align the store version with the binary before App Review.
-
-### Generate and archive
-
-Use an Xcode release App Store Connect accepts: since 28 April 2026
-[Apple requires the iOS 26 SDK or later](https://developer.apple.com/news/?id=ueeok6yw),
-independently of the app's minimum iOS version and the simulator CI toolchain. The
-[generated-project fixes](#generated-project-fixes) meet Xcode 27's deployment-target and iOS 27's
-scene life-cycle requirements. Before uploading, launch the same commit on iOS 27 (a Release build
-on an iOS 27 simulator opened to sign-in, or the archive on an iOS 27 device); an earlier iOS does
-not enforce the scene life cycle.
-
-After installing the locked dependencies
-([building from a clean checkout](#building-from-a-clean-checkout)), run from `mobile/` with the
-release environment set:
-
-```bash
-npx expo config --type public
-npx expo prebuild --clean --no-install --platform ios
-node scripts/check-native-projects.mjs . ios
-cd ios
-pod install
-cd ..
-xcodebuild -workspace ios/Ledova.xcworkspace -scheme Ledova \
-  -configuration Release -destination 'generic/platform=iOS' \
-  -archivePath "$LEDOVA_RELEASE_OUTPUT/Ledova.xcarchive" \
-  -derivedDataPath "$LEDOVA_RELEASE_OUTPUT/DerivedData" archive
-```
-
-Set `LEDOVA_RELEASE_OUTPUT` to a new absolute directory outside the checkout, and inspect the
-resolved bundle ID, team and version before archiving. Signing needs a valid identity and profile
-for this app and team, and the commands use only what is installed; with Xcode signed in to an
-account that can manage them, `-allowProvisioningUpdates` on the archive and export commands lets
-xcodebuild create or refresh the profile (check the developer account for what it created). Never
-reuse expired or other-team profiles, or revoke certificates for a local setup issue without
-checking their other users. Inspect the archive's Info.plist, signature and embedded provisioning
-profile, then validate and export for App Store Connect in Xcode Organiser with the owning team's
-distribution signing; a development-signed archive is not a distribution IPA.
-
-### Testing and submission
-
-Test the device build with synthetic data on the configured test network, record the source commit,
-build, phone and results under the
-[physical acceptance checklist](https://github.com/Ledova/ledova/issues/624), then upload the
-validated archive for internal TestFlight testing (not App Review submission or public release). The
-backend must be reachable by the intended testers and Apple's reviewers, by planned access rather
-than disabled access controls. Account recovery, email, privacy disclosures, permissions and
-encryption declarations need release-specific validation under the same checklist; a successful
-archive establishes none of these or store approval.
-
-Next: [mobile](mobile.md), [testing](testing.md) and
-[Apple's distribution guide](https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases).
+Next: [mobile](mobile.md) and [testing](testing.md).

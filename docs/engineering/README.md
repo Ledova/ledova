@@ -4,8 +4,9 @@
 
 How Ledova's software is built: the parts of the system, the principles every change follows, and
 where each area's structure and conventions are written. It is for engineers; the business rules
-the software enforces are in [business processes](../business/README.md), and running an
-instance is in [operations](../operations/README.md).
+the software enforces are in [business processes](../business/README.md). Product settings and
+application administration are in [operations](../operations/README.md); all deployment procedures
+belong in private [Ledova/infra](https://github.com/Ledova/infra).
 
 ## System overview
 
@@ -122,8 +123,9 @@ How selectors, policies and database guards enforce these boundaries is in the
   is recorded and why, in plain language and the app's own labels, with no code identifiers.
   Engineering documents state mechanism, structure, conventions, invariants, code locations,
   API contracts and formats, and link to the business section that owns a rule instead of
-  restating it. Operations documents are procedures for running an instance; a staff procedure
-  that performs a business workflow belongs in its business document.
+  restating it. Operations documents describe software settings, local services and application
+  administration. Hosting and deployment procedures belong only in private `Ledova/infra`;
+  a staff procedure that performs a business workflow belongs in its business document.
 - Current behaviour belongs in [the product description](../product.md) and the business and
   engineering documents, planned outcomes in the
   [accepted register plan](../plans/company-managed-registers/plan.md) and the GitHub
@@ -136,6 +138,35 @@ How selectors, policies and database guards enforce these boundaries is in the
   [documentation gate](gates.md#the-documentation-gate) states what is checked mechanically and how
   documentation is reviewed; update it when moving its canonical inventories.
 
+## Image publication
+
+The [image publishing workflow](../../.github/workflows/images.yml) publishes Linux/amd64 backend,
+dashboard and site images after successful push CI on `main`. It does not deploy them. Each image
+has a `sha-<full commit>` tag and an `org.opencontainers.image.revision` label. Use the
+`image-<component>-<full commit>` run artifact or job summary to record the immutable
+`ghcr.io/<owner>/<repository>-<component>@sha256:<digest>` reference; a rebuild can move the tag.
+
+Before publishing frontends, set the non-secret repository variables `IMAGE_API_URL`,
+`IMAGE_MARKETING_URL` and `IMAGE_DASHBOARD_URL` to their public origins. They become bundle content,
+so never put credentials or private endpoints in them. Node and npm come from the selected source's
+exact package pins. Frontend builds use the workflow revision's production Dockerfiles with that
+source's code and server configuration; backend uses the selected source's Dockerfile.
+
+Run **Publish images** manually on `main` with a full lowercase 40-character commit SHA and select
+one component or `all` to rebuild a historical revision in `main` history. This historical build does not require
+new CI for that old commit. Inspect the build result and digest before any release. It does not
+reproduce an earlier image's bytes: base images and package repositories can change.
+
+The site image's `artifact` target contains only `/site-dist`, with its assets under
+`/site-dist/site-assets`; it runs no server and carries no nginx/server configuration. The default
+site production target serves its ordinary bundle through nginx.
+
+On first publication, [GHCR defaults to private visibility](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#pushing-container-images).
+A package administrator must make each intended public image public in its package settings before
+anonymous pulls. Publishing uses the repository's `GITHUB_TOKEN`; no registry secret is required.
+
+Hosting and release procedures belong in private [Ledova/infra](https://github.com/Ledova/infra).
+
 ## Area map
 
 | Area         | Document                                                                            | Covers                                                                                                                                                                                                      |
@@ -144,7 +175,7 @@ How selectors, policies and database guards enforce these boundaries is in the
 | Security     | [Security model](security.md)                                                       | Sessions, tenancy and row-level security, private files, deletion and retention, upload validation                                                                                                          |
 | Records      | [Register and records engine](records.md)                                           | Register ledger and event chain, register commands, exports and output formats, the company pack format, publication storage and verification, account-data export                                          |
 | Frontend     | [Frontend](frontend.md) · [Frontend UX standards](frontend-ux.md)                   | Dashboard, shared package and public site: layout, layers and rules, adding a page, routing, design tokens and themes, the pages table; signed-in page conventions and the standard way to make each choice |
-| Mobile       | [Mobile](mobile.md) · [Mobile releases](mobile-releases.md)                         | Mobile architecture in the frontend layers, native transport, secrets and lifetimes; native builds, iOS distribution, probes and device checks                                                              |
+| Mobile       | [Mobile](mobile.md) · [Mobile releases](mobile-releases.md)                         | Mobile architecture in the frontend layers, native transport, secrets and lifetimes; native builds, iOS distribution configuration, probes and device checks                                                              |
 | Chain        | [Contracts and chain](chain.md)                                                     | Contracts, deployment, issuance, outgoing signing, wallets, assets and valuation                                                                                                                            |
 | Protocols    | [Wallet protocols](wallet-protocols.md) · [Trading protocols](trading-protocols.md) | The exact transfer, evidence, reconciliation, order and settlement protocols listed below                                                                                                                   |
 | Verification | [Testing](testing.md) · [Gates](gates.md)                                           | Minimum-test policy, commands, CI and preflight; every mechanical check                                                                                                                                     |

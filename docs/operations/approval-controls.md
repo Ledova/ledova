@@ -10,7 +10,7 @@ sides of every movement, made a revoked or expired classification reach the
 chain, and put classification liveness in front of listing and acceptance. The
 page records which merged pull request supplied each required behaviour, what
 the bypass review asked and answered, what the
-[fresh-start redeploy](chains.md#fresh-start-redeploy) rehearsal found and the
+[fresh-start redeploy](https://github.com/Ledova/ledova/blob/9ac01a29d0358337c04f834fa460fee874e8663c/docs/operations/chains.md#fresh-start-redeploy) rehearsal found and the
 authorised Base Sepolia run. The staff actors and commands in this evidence are
 history: company appointees now authorise wallet approvals through the
 [company wallet workflow](../business/participants.md#wallet-nominations-and-company-wallet-approvals),
@@ -104,7 +104,7 @@ linked historical pull requests.
 
 ## The fresh-start redeploy rehearsal
 
-The [fresh-start redeploy](chains.md#fresh-start-redeploy) was rehearsed on a
+The [fresh-start redeploy](https://github.com/Ledova/ledova/blob/9ac01a29d0358337c04f834fa460fee874e8663c/docs/operations/chains.md#fresh-start-redeploy) was rehearsed on a
 local Hardhat node on 23 September 2026, against `598327e7`. The record below
 is what ran and what it answered, with the steps as numbered on 23 September;
 the runbook's current numbering differs.
@@ -139,7 +139,7 @@ the other way.
 
 The isolation fixture approved the control wallet only in company A. Adding a
 separate approval in B legitimately changes B's answer to `True`; it does not
-make A's approval apply to B. The current runbook requires those explicit
+make A's approval apply to B. The recorded procedure requires those explicit
 fixtures and refuses missing classes or a shared registry. The sweep's
 historical counters above report an unattributed change, not a successful
 removal or an on-chain confirmation.
