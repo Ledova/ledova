@@ -66,6 +66,7 @@ it("keeps an edit's baseline after a conflict until the editor loads the current
   const name = screen.getByLabelText(REGISTER_PARTICULARS_COPY.NAME) as HTMLInputElement;
   const address = screen.getByLabelText(REGISTER_PARTICULARS_COPY.RESIDENTIAL_ADDRESS) as HTMLTextAreaElement;
   fireEvent.change(name, { target: { value: 'My New Name' } });
+  view.rerender(tree(theirs));
   api.post.mockRejectedValueOnce({ response: { status: 409, data: { detail: 'This member changed.' } } });
   fireEvent.click(screen.getByRole('button', { name: REGISTER_PARTICULARS_COPY.SUBMIT }));
   const reload = await screen.findByRole('button', { name: REGISTER_PARTICULARS_COPY.RELOAD });
@@ -79,6 +80,7 @@ it("keeps an edit's baseline after a conflict until the editor loads the current
   expect(api.post).toHaveBeenCalledTimes(1);
   expect(address.value).toBe('1 Old Street');
   fireEvent.click(reload);
+  expect(document.activeElement).toBe(name);
   expect(name.value).toBe('Old Name');
   expect(address.value).toBe('2 Their Street');
   expect(screen.queryByRole('button', { name: REGISTER_PARTICULARS_COPY.RELOAD })).toBeNull();
