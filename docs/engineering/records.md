@@ -449,8 +449,10 @@ date, or null.
 from the current ones. It fills `previous_particulars` from `tokens_register_particulars_snapshot`
 and refuses every update and delete. `tokens_guard_register_member_particulars` writes a change's
 particulars only for that operation and principal while its `previous_particulars` still equals the
-member's current snapshot, so a change applies once and never over particulars its editor did not
-read. At commit, `tokens_check_register_particulars_edit` requires those particulars and the
+member's current snapshot, so a change applies once and only over the particulars it recorded as
+replaced. The service's `expected` check under the company lock refuses an edit made over
+particulars the editor did not read, and the form keeps its draft's baseline until the editor
+loads the current particulars after a conflict. At commit, `tokens_check_register_particulars_edit` requires those particulars and the
 editor's authority to be current. Changes prepared before the one-step edit keep their supporting
 copies, decisions and stages; `tokens_guard_register_particulars_decision` refuses every new or
 changed decision, so one never applied stays `submitted`.
