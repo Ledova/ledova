@@ -253,18 +253,19 @@ on a physical iPhone, recording permission and reachability separately from
 
 ## What automated checks do not establish
 
-Apart from picked evidence, whose removal after saving and on a session change the member journey
-checks with a fake picker and file system, the mobile Jest suite covers none of the screen and file
-lifetimes in [mobile](mobile.md). On an emulator or simulator the native probes exercise the
+The member journey checks, with a fake picker and file system, that picked evidence and payslips are
+removed after saving and on a session change, and that a payslip's status checks stop on a session
+change. Beyond that, the mobile Jest suite covers none of the screen and file lifetimes in
+[mobile](mobile.md). On an emulator or simulator the native probes exercise the
 transport and the document view copies,
 driving no system UI; only completed emulator logs establish native results. The LAN probe calls the compiled
 handler directly, establishing neither React Native dispatcher selection (the Release app probe
 exercises it) nor local-network permission, which the
 [simulator does not implement](https://developer.apple.com/documentation/technotes/tn3179-understanding-local-network-privacy).
 
-OS prompt presentation, the system document picker with each platform's copy and the evidence's
-multipart upload, device settings and OEM behaviour, global lock-overlay and input stacking, and low
-storage remain device work under [#13](https://github.com/Ledova/ledova/issues/13). A
+OS prompt presentation, the system document picker with each platform's copy and the multipart
+uploads of evidence and payslips, device settings and OEM behaviour, global lock-overlay and input
+stacking, and low storage remain device work under [#13](https://github.com/Ledova/ledova/issues/13). A
 simulator also does not establish physical biometric enrolment or change,
 hardware-backed key properties, OEM backup or transfer, store distribution or behaviour on every
 supported OS.

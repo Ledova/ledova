@@ -171,8 +171,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   Invitation page's and empty Dashboard's actions. Load more and the app's voting choices keep their place.
   Representative authority requests are `LinkRow`s that open each request's own page.
 - Optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished input
-  survives. The sidebar's group caret is a separate navigation button. Substantial record reviews
-  use the main page; brief confirmations can use dialogs.
+  survives; the app's kit has the same `ShowMore`, a text toggle with its expanded state, used for
+  a payslip's **Show extraction details**. The sidebar's group caret is a separate navigation
+  button. Substantial record reviews use the main page; brief confirmations can use dialogs.
 - `Popover`: compact secondary controls, such as filters and notifications, may open an anchored
   panel without moving page content. Filters use `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`), which shares Headless UI's `Popover`,

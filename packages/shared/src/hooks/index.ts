@@ -32,6 +32,14 @@ export {
 } from './useInvestorClassifications';
 export { useInvestorEligibility } from './useInvestorEligibility';
 export { useInvestorWithdrawal } from './useInvestorWithdrawal';
+export {
+  useAttachDocument,
+  useDeleteDocument,
+  useDocument,
+  useDocuments,
+  useRefreshDocuments,
+  useUploadDocument,
+} from './useDocuments';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { SIGNUP_RESTART_FIELDS, useSignupRestart } from './useSignupRestart';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
