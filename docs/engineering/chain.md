@@ -171,15 +171,24 @@ or be disabled without fallback, since old binaries skip this guard and the stan
 deployment scripts send outside it. Provider absence, terminal history or today's key and chain
 establish no historical authorisation and release no nonce; app-role handoff and each adapter's
 durable transaction boundary still need proof; after signed activity, rollback cannot restore legacy
-sending with that key. Admission and the [legacy inventory](../operations/chains.md#legacy-inventory)
+sending with that key. Admission and the [legacy inventory](https://github.com/Ledova/infra/blob/main/docs/deployment.md#legacy-signer-inventory)
 give no global nonce guarantee and resolve no old business operation.
+
+`inventory_outgoing_history` never signs, contacts a provider, changes a journal or status, or
+reserves or releases a nonce. Its optional recorded capture commits private evidence and append-only
+cutover holds atomically; an unchanged capture id replays the original batch, while changed source
+needs a new id. Later captures never rewrite an observation or clear a hold. Reports always say
+`cutover_authorized: false`. Raw payloads and source snapshots are operator-only, application
+connections and enclosing transactions are refused, and PostgreSQL denies UPDATE or DELETE on the
+inventory tables. An inventory capture never authorises activation or proves that offline or
+old-binary key use has stopped.
 
 ### Fresh Base Sepolia admission
 
 `bootstrap_fresh_signer --manifest PATH` (`backend/blockchain/services/fresh_signer.py`) admits the
 operator key on Base Sepolia from the five transactions that deployed the core contracts, reading
 the chain without signing; when to run it is in
-[fresh signer admission](../operations/chains.md#fresh-signer-admission).
+[fresh signer admission](https://github.com/Ledova/infra/blob/main/docs/deployment.md#public-testnet-environments).
 
 The version-1 JSON manifest has exactly `version` (integer `1`), `chain_id` (integer `84532`),
 `operator_address`, `environment_id` and `authorization_reference` (nonempty, at most 200 and 500

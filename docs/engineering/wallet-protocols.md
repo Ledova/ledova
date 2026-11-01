@@ -132,7 +132,7 @@ survive terminal states, with no replacement or release policy.
 Fresh migrations install the journal and input-reservation guards and unique transaction and signer
 identity constraints. Journal backups hold broadcastable signed bytes, so restrict them and preserve
 them with their evidence through a
-[database rebuild](../operations/README.md#rebuild-a-database).
+[database rebuild](https://github.com/Ledova/infra/blob/main/docs/deployment.md#fresh-database-rebuilds).
 
 ## Wallet chain observations
 
