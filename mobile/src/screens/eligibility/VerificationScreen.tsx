@@ -5,6 +5,8 @@ import {
   failureSentence,
   formatDate,
   investorClaimState,
+  useDocuments,
+  useRefreshDocuments,
   useInvestorEligibility,
   useInvestorWithdrawal,
   type InvestorCategory,
@@ -17,6 +19,7 @@ import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ClaimModal } from './ClaimModal';
+import { DocumentsPanel } from './DocumentsPanel';
 
 export function VerificationScreen() {
   const theme = useAppTheme();
@@ -34,6 +37,8 @@ export function VerificationScreen() {
   const [claimCategory, setClaimCategory] = useState<InvestorCategory | null>(null);
   const withdraw = useInvestorWithdrawal(refresh, orderSubmissionSession);
   const [withdrawing, setWithdrawing] = useState<InvestorClassification | null>(null);
+  const documents = useDocuments(orderSubmissionSession);
+  const refreshDocuments = useRefreshDocuments();
   const [pulled, setPulled] = useState(false);
 
   const submittedCategories = new Set(
@@ -55,7 +60,7 @@ export function VerificationScreen() {
             refreshing={pulled}
             onRefresh={() => {
               setPulled(true);
-              void retry().finally(() => setPulled(false));
+              void Promise.all([retry(), refreshDocuments()]).finally(() => setPulled(false));
             }}
             tintColor={theme.colors.interactive.active}
           />
@@ -158,6 +163,9 @@ export function VerificationScreen() {
             </Section>
           </>
         )}
+        <Section title="Supporting payslips">
+          <DocumentsPanel documents={documents} />
+        </Section>
       </Page>
       {withdrawing && (
         <CustomModal

@@ -285,7 +285,7 @@ overview, as on the web; **Switch company** changes the company. **Documents** h
 the web's Profile for that company, with Account (accepting an invitation and the app's own settings)
 and Data and privacy beneath it ([Profile and Settings](participants.md#profile-and-settings)). An
 investing account's **Eligibility** opens the web's [Verification](participants.md#the-verification-page),
-without Supporting payslips yet.
+with Supporting payslips.
 Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).
 
 Each page is described in the domain document for its process below;

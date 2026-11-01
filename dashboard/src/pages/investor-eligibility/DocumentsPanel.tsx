@@ -5,83 +5,41 @@ import { Confirmation } from '@components/Modal';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import {
+  DOCUMENT_TYPE_LABELS,
   FIELD_LIMITS,
-  formatCryptoBalance,
-  formatMoney,
-  shortReference,
   apiErrorSentence,
+  attachedClaimLabel,
+  documentClaimOptions,
+  extractionState,
   formatDate,
+  payslipDetails,
+  useAttachDocument,
+  useDeleteDocument,
+  useDocument,
+  useDocuments,
   useInvestorClassifications,
+  useUploadDocument,
   type InvestorClassification,
   type Document,
-  type UserDocumentType,
-  type ExtractionStatus,
 } from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
-import { useAttachDocument, useDeleteDocument, useDocument, useDocuments, useUploadDocument } from './useDocuments';
 import { LoadError, Loading, Row, Rows, ShowMore, Status, Failure } from '@components/Ledger';
 
-const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
-  payslip: 'Payslip',
-  bank_statement: 'Bank statement',
-  tax_return: 'Tax return',
-  other: 'Other',
-};
-
-const claimLabel = (claim: InvestorClassification) => `${claim.categoryDisplay} · ${formatDate(claim.createdAt)}`;
-
-const documentMoney = (raw: string | null) =>
-  raw && /^-?\d+(\.\d+)?$/.test(raw) ? formatMoney(formatCryptoBalance(raw, '', 2).trimEnd(), 'AUD') : raw || '—';
-
-function ExtractionState({ status }: { status: ExtractionStatus | undefined }) {
-  if (!status || status === 'pending') return <Status tone="waiting">Queued</Status>;
-  if (status === 'running') return <Status tone="moving">Extracting…</Status>;
-  if (status === 'succeeded') return <Status tone="done">Extracted</Status>;
-  return <Status tone="closed">Failed</Status>;
-}
-
-function PayslipResult({ data, durationMs }: { data: object; durationMs: number | null }) {
-  const text = (name: string): string | null => {
-    const value: unknown = Reflect.get(data, name);
-    return typeof value === 'string' ? value : null;
-  };
-  const warnings: unknown = Reflect.get(data, 'extractionWarnings');
-  const confidence: unknown = Reflect.get(data, 'confidence');
-  const readableWarnings = Array.isArray(warnings)
-    ? warnings.filter((value): value is string => typeof value === 'string')
-    : [];
-  const fields: { label: string; value: string }[] = [
-    { label: 'Employee', value: text('employeeName') ?? '—' },
-    { label: 'Employer', value: text('employerName') ?? '—' },
-    { label: 'ABN', value: text('abn') ?? '—' },
-    {
-      label: 'Pay period',
-      value: `${formatDate(text('periodStart'), '—')} → ${formatDate(text('periodEnd'), '—')}`,
-    },
-    { label: 'Gross pay', value: documentMoney(text('grossPay')) },
-    { label: 'Net pay', value: documentMoney(text('netPay')) },
-    { label: 'Tax withheld', value: documentMoney(text('taxWithheld')) },
-    { label: 'Superannuation', value: documentMoney(text('superannuation')) },
-    { label: 'YTD gross', value: documentMoney(text('ytdGross')) },
-    { label: 'YTD tax', value: documentMoney(text('ytdTax')) },
-  ];
-
+function PayslipResult({ extraction }: { extraction: Document['latestExtraction'] }) {
+  const details = payslipDetails(extraction);
+  if (!details) return null;
   return (
     <>
       <ShowMore show="Show extraction details" hide="Hide extraction details">
         <Rows>
-          {fields.map((field) => (
+          {details.fields.map((field) => (
             <Row key={field.label} label={field.label}>
               {field.value}
             </Row>
           ))}
-          <Row label="Confidence">
-            {typeof confidence === 'number' ? `${(confidence * 100).toFixed(0)}%` : 'Unknown'}
-          </Row>
-          {durationMs != null && <Row label="Extraction time">{(durationMs / 1000).toFixed(1)}s</Row>}
         </Rows>
       </ShowMore>
-      {readableWarnings.length > 0 && <p className="text-sm text-warning-light">{readableWarnings.join(' · ')}</p>}
+      {details.warnings.length > 0 && <p className="text-sm text-warning-light">{details.warnings.join(' · ')}</p>}
     </>
   );
 }
@@ -106,12 +64,7 @@ function ClaimSelector({
       id={id}
       error={error}
       label="Classification claim"
-      options={[
-        { value: '', label: 'Keep unattached' },
-        ...claims
-          .filter((claim) => claim.status === 'submitted')
-          .map((claim) => ({ value: claim.uuid, label: claimLabel(claim), reference: shortReference(claim.uuid) })),
-      ]}
+      options={documentClaimOptions(claims)}
       value={value}
       disabled={disabled}
       onChange={onChange}
@@ -123,14 +76,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
   const liveQuery = useDocument(initialDoc.uuid);
   const doc = liveQuery.data ?? initialDoc;
   const extraction = doc.latestExtraction;
-  const attached = claims.find((claim) => claim.uuid === doc.classification);
-  const attachedLabel = attached
-    ? claims.some((claim) => claim.uuid !== attached.uuid && claimLabel(claim) === claimLabel(attached))
-      ? `${claimLabel(attached)} · ${shortReference(attached.uuid)}`
-      : claimLabel(attached)
-    : doc.classification
-      ? shortReference(doc.classification)
-      : undefined;
+  const state = extractionState(extraction?.status);
   const del = useDeleteDocument();
   const attach = useAttachDocument();
   const [classification, setClassification] = useState('');
@@ -149,11 +95,11 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
             {DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatDate(doc.createdAt, '—')}
           </p>
         </div>
-        <ExtractionState status={extraction?.status} />
+        <Status tone={state.tone}>{state.label}</Status>
       </div>
       {doc.classification ? (
         <Rows>
-          <Row label="Classification claim">{attachedLabel}</Row>
+          <Row label="Classification claim">{attachedClaimLabel(doc.classification, claims)}</Row>
           <Row label="Retained">
             {doc.retentionUntil ? `Until ${formatDate(doc.retentionUntil, '—')}` : 'With the claim'}
           </Row>
@@ -210,12 +156,7 @@ function DocumentCard({ initialDoc, claims }: { initialDoc: Document; claims: In
           {doc.originalFilename} is deleted. This can&apos;t be undone.
         </Confirmation>
       )}
-      {extraction?.status === 'succeeded' &&
-        extraction.parsedJson !== null &&
-        typeof extraction.parsedJson === 'object' &&
-        !Array.isArray(extraction.parsedJson) && (
-          <PayslipResult data={extraction.parsedJson} durationMs={extraction.durationMs} />
-        )}
+      <PayslipResult extraction={extraction} />
       {extraction?.status === 'failed' && extraction.error && <Failure>{extraction.error}</Failure>}
     </li>
   );

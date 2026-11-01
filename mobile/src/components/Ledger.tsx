@@ -1,4 +1,4 @@
-import { Children, Fragment, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { Children, Fragment, isValidElement, useState, type ReactElement, type ReactNode } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { CaretRightIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
@@ -112,6 +112,30 @@ export function Fact({ label, children }: { label: string; children: string | Re
       <Text style={styles.label}>{label}</Text>
       {text ? <Text style={styles.value}>{children}</Text> : children}
     </View>
+  );
+}
+
+export function ShowMore({ show, hide, children }: { show: string; hide: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const styles = useThemedStyles((theme) => ({
+    toggle: { alignSelf: 'flex-start' as const },
+    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.brand.light },
+    content: { gap: theme.spacing.smd },
+    hidden: { display: 'none' as const },
+  }));
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        hitSlop={12}
+        onPress={() => setOpen((shown) => !shown)}
+        style={styles.toggle}
+      >
+        <Text style={styles.label}>{open ? hide : show}</Text>
+      </Pressable>
+      <View style={[styles.content, !open && styles.hidden]}>{children}</View>
+    </>
   );
 }
 

@@ -4,6 +4,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   INVESTOR_CLASSIFICATION_ENDPOINTS as CLAIMS,
   PUBLICATION_NOTICE,
+  USER_DOCUMENT_ENDPOINTS as DOCUMENTS,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
   formatDateTime,
@@ -64,6 +65,7 @@ const client = new QueryClient({
 });
 let release: (() => void) | undefined;
 afterEach(async () => {
+  jest.useRealTimers();
   await act(async () => release?.());
   release = undefined;
   await cleanup();
@@ -151,13 +153,22 @@ const CLAIM = {
   rejectionReason: '',
   createdAt: '2026-10-31T00:00:00Z',
 };
+const PAYSLIP = {
+  uuid: '1b1b1b1b-1b1b-41b1-81b1-1b1b1b1b1b1b',
+  documentType: 'payslip',
+  originalFilename: 'november.pdf',
+  classification: null,
+  retentionUntil: '2026-12-01T00:00:00Z',
+  createdAt: '2026-11-01T00:00:00Z',
+  latestExtraction: { status: 'running' },
+};
 const PICKED = 'file:///private/tmp/org.example.ledova-Inbox/';
 const picked = (name: string, mimeType: string) => async () => {
   new File(`${PICKED}${name}`).write(new Uint8Array([37, 80, 68, 70]));
   return { canceled: false as const, assets: [{ uri: `${PICKED}${name}`, name, mimeType, size: 4, lastModified: 0 }] };
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens its certificates but none from another company for an ended association, shows how the company records them on Profile, keeps an interrupted certificate request recoverable across screens, refuses cached records and a late action after current read loss, routes each notification to its page, and saves an eligibility claim only with accepted evidence in the session that picked it, whose copy is removed after saving and on a session change', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens its certificates but none from another company for an ended association, shows how the company records them on Profile, keeps an interrupted certificate request recoverable across screens, refuses cached records and a late action after current read loss, routes each notification to its page, saves an eligibility claim only with accepted evidence in the session that picked it, whose copy is removed after saving and on a session change, and uploads a payslip only in the session that picked it, removing its copy, then stops checking its extraction after a session change', async () => {
   let keys = 0;
   jest
     .mocked(Crypto.randomUUID)
@@ -170,9 +181,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let refused = false;
   let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE, OPEN_REQUEST, WITHDRAWN_REQUEST];
   let claims: Record<string, unknown>[] = [];
+  let documents: Record<string, unknown>[] = [];
   api.get.mockReset().mockImplementation(async (url) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === CLAIMS.BASE) return page(claims);
+    if (url === DOCUMENTS.BASE) return page(documents);
+    if (url === DOCUMENTS.DETAIL(PAYSLIP.uuid)) return { data: PAYSLIP };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
@@ -187,11 +201,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return { data: MEMBER_PDF.buffer, headers: { 'content-type': 'application/pdf' } };
     throw new Error(`Unexpected GET ${url}`);
   });
-  api.post.mockReset().mockImplementation(async (url, value) => {
+  api.post.mockReset().mockImplementation(async (url, value, options) => {
     const body = value as Record<string, string>;
     if (url === CLAIMS.BASE) {
       claims = [CLAIM];
       return { data: CLAIM };
+    }
+    if (url === DOCUMENTS.BASE) {
+      if (options?.ledovaSessionEpoch !== getSessionEpoch()) throw new Error('The saved session changed.');
+      documents = [PAYSLIP];
+      return { data: PAYSLIP };
     }
     if (url === URLS.MEMBER_INVITATION_PREVIEW) {
       const other = body.code === OTHER_CODE;
@@ -450,9 +469,42 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect((sent as FormData).get('declared_basis')).toBe('Synthetic AFS licence');
   expect(options).toMatchObject({ ledovaSessionEpoch: getSessionEpoch() });
   expect(new File(`${PICKED}licence.pdf`).info().exists).toBe(false);
+  const pickedIn = getSessionEpoch();
+  jest
+    .mocked(getDocumentAsync)
+    .mockImplementationOnce(picked('october.pdf', 'application/pdf'))
+    .mockImplementationOnce(picked('november.pdf', 'application/pdf'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Upload a payslip' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'File' }));
+  expect(await screen.findByText('october.pdf')).toBeTruthy();
+  await act(async () => invalidateSessionScope());
+  expect(new File(`${PICKED}october.pdf`).info().exists).toBe(false);
+  await fireEvent.press(screen.getByRole('button', { name: 'Upload and extract' }));
+  expect(await screen.findByText('The payslip could not be uploaded.')).toBeTruthy();
+  expect(api.post.mock.calls.find(([url]) => url === DOCUMENTS.BASE)?.[2]).toMatchObject({
+    ledovaSessionEpoch: pickedIn,
+  });
+  await fireEvent.press(screen.getByRole('button', { name: 'File' }));
+  expect(await screen.findByText('november.pdf')).toBeTruthy();
+  jest.useFakeTimers();
+  await fireEvent.press(screen.getByRole('button', { name: 'Upload and extract' }));
+  expect(await screen.findByText('Extracting…')).toBeTruthy();
+  expect(append).toHaveBeenCalledWith('file', {
+    uri: `${PICKED}november.pdf`,
+    name: 'november.pdf',
+    type: 'application/pdf',
+  });
+  expect(new File(`${PICKED}november.pdf`).info().exists).toBe(false);
+  const polls = () => api.get.mock.calls.filter(([url]) => url === DOCUMENTS.DETAIL(PAYSLIP.uuid)).length;
+  const polled = polls();
+  await act(async () => jest.advanceTimersByTimeAsync(3000));
+  expect(polls()).toBeGreaterThan(polled);
   await fireEvent.press(screen.getByRole('button', { name: 'Add evidence (Professional investor)' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Choose evidence file' }));
   expect(await screen.findByText('licence.pdf')).toBeTruthy();
   await act(async () => invalidateSessionScope());
   expect(new File(`${PICKED}licence.pdf`).info().exists).toBe(false);
+  const ended = polls();
+  await act(async () => jest.advanceTimersByTimeAsync(9000));
+  expect(polls()).toBe(ended);
 });
