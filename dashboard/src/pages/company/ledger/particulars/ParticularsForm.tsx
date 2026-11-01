@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Field, TextArea, TextInput } from '@components/Field';
 import { FIELD_LIMITS } from '@ledova/shared';
 import { useParticularsEdit, type ParticularsFormProps, COPY } from './useParticularsEdit';
@@ -10,6 +11,10 @@ import { Failure } from '@components/Ledger';
 export function ParticularsForm(props: ParticularsFormProps) {
   const { draft, busy, error, conflict, update, reload, problems, submit } = useParticularsEdit(props);
   const checks = useErrorSummary(problems);
+  const reloadAction = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (conflict) reloadAction.current?.focus();
+  }, [conflict]);
 
   return (
     <form
@@ -48,7 +53,7 @@ export function ParticularsForm(props: ParticularsFormProps) {
       </fieldset>
       <Failure>{error}</Failure>
       <FormActions>
-        {conflict && <PageAction label={COPY.RELOAD} onClick={reload} />}
+        {conflict && <PageAction ref={reloadAction} label={COPY.RELOAD} onClick={reload} />}
         <PageAction
           type="submit"
           primary
