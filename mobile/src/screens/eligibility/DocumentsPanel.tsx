@@ -206,7 +206,7 @@ function UploadCard({ claims }: { claims: InvestorClassification[] }) {
   const [note, setNote] = useState('');
   const [classification, setClassification] = useState('');
   const picked = usePickedDocument();
-  const upload = useUploadDocument();
+  const upload = useUploadDocument(orderSubmissionSession);
   const busy = upload.isPending || picked.isPicking;
   const clear = () => {
     picked.remove();

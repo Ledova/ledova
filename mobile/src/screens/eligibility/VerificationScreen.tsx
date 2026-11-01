@@ -6,6 +6,7 @@ import {
   formatDate,
   investorClaimState,
   useDocuments,
+  useRefreshDocuments,
   useInvestorEligibility,
   useInvestorWithdrawal,
   type InvestorCategory,
@@ -37,6 +38,7 @@ export function VerificationScreen() {
   const withdraw = useInvestorWithdrawal(refresh, orderSubmissionSession);
   const [withdrawing, setWithdrawing] = useState<InvestorClassification | null>(null);
   const documents = useDocuments(orderSubmissionSession);
+  const refreshDocuments = useRefreshDocuments();
   const [pulled, setPulled] = useState(false);
 
   const submittedCategories = new Set(
@@ -58,7 +60,7 @@ export function VerificationScreen() {
             refreshing={pulled}
             onRefresh={() => {
               setPulled(true);
-              void Promise.all([retry(), documents.refetch()]).finally(() => setPulled(false));
+              void Promise.all([retry(), refreshDocuments()]).finally(() => setPulled(false));
             }}
             tintColor={theme.colors.interactive.active}
           />
