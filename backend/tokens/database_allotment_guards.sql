@@ -506,17 +506,15 @@ BEGIN
     END IF;
     SELECT * INTO proposal FROM tokens_registerparticularschange WHERE uuid = NEW.source_change_id;
     IF principal IS NULL OR proposal.uuid IS NULL
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_particulars_apply'
+        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_particulars_edit'
         OR current_setting('app.company_id', true) IS DISTINCT FROM proposal.company_id::text
-        OR proposal.status <> 'submitted'
+        OR proposal.status <> 'applied' OR proposal.reviewed_by_id IS DISTINCT FROM principal
         OR NEW.member_id IS DISTINCT FROM proposal.member_id OR NEW.name IS DISTINCT FROM proposal.name
         OR NEW.residential_address IS DISTINCT FROM proposal.residential_address
         OR NEW.as_at IS DISTINCT FROM proposal.as_at
-        OR NOT EXISTS (SELECT 1 FROM tokens_registerparticularschangedecision decision
-            WHERE decision.register_particulars_change_id = proposal.uuid AND decision.kind = 'apply'
-                AND decision.decided_by_id = principal)
+        OR proposal.previous_particulars IS DISTINCT FROM tokens_register_particulars_snapshot(NEW.member_id)
     THEN
-        RAISE EXCEPTION 'Particulars from a change come only from the company''s application of that change'
+        RAISE EXCEPTION 'Particulars from an edit come only from the company''s edit of the current particulars'
             USING ERRCODE = '23514';
     END IF;
     RETURN NEW;

@@ -154,10 +154,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_PARTICULARS_CHANGES: '/api/v1/tokens/register-particulars-changes/',
   REGISTER_PARTICULARS_CHANGE_FILE: (uuid: string) =>
     `/api/v1/tokens/register-particulars-changes/${uuid}/file/` as const,
-  REGISTER_PARTICULARS_CHANGE_PREVIEW: (uuid: string) =>
-    `/api/v1/tokens/register-particulars-changes/${uuid}/decision-preview/` as const,
-  REGISTER_PARTICULARS_CHANGE_DECIDE: (uuid: string) =>
-    `/api/v1/tokens/register-particulars-changes/${uuid}/decide/` as const,
 } as const;
 
 export const USER_DOCUMENT_ENDPOINTS = {

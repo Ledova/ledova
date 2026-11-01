@@ -90,9 +90,7 @@ export {
 } from './register-corrections';
 export {
   getRegisterParticularsChanges,
-  prepareRegisterParticularsChange,
-  previewRegisterParticularsChangeDecision,
-  decideRegisterParticularsChange,
+  editRegisterParticulars,
   downloadRegisterParticularsChangeFile,
 } from './register-particulars';
 export {

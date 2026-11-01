@@ -8,7 +8,7 @@ import { useParams } from 'react-router-dom';
 import {
   HOLDER_TYPE_LABELS,
   REGISTER_PARTICULARS_COPY,
-  appointmentForRegisterStep,
+  appointmentForParticularsEdit,
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
@@ -23,15 +23,15 @@ import { ParticularsForm } from './ParticularsForm';
 
 const COPY = REGISTER_PARTICULARS_COPY;
 const LEDE =
-  "Prepare a change to a member's name and residential address on the register. The supporting document is " +
-  'provided by the company.';
+  "Change a member's name and residential address on the register. The change is recorded at once, dated today " +
+  "(UTC), and kept in the register's history.";
 
-type Preparing = { uuid: string; name: string; classes: string[]; appointment: OwnCompanyAppointment };
+type Editing = { uuid: string; name: string; classes: string[]; appointment: OwnCompanyAppointment };
 
-function preparingCompanies(classes: CompanyShareTokenListItem[], appointments: OwnCompanyAppointment[]) {
-  const companies = new Map<string, Preparing>();
+function editingCompanies(classes: CompanyShareTokenListItem[], appointments: OwnCompanyAppointment[]) {
+  const companies = new Map<string, Editing>();
   for (const item of classes) {
-    const appointment = appointmentForRegisterStep(appointments, item.companyUuid, 'prepare');
+    const appointment = appointmentForParticularsEdit(appointments, item.companyUuid);
     if (!appointment) continue;
     const company = companies.get(item.companyUuid) ?? {
       uuid: item.companyUuid,
@@ -72,10 +72,10 @@ function OwnParticulars({
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
-  const preparing = classes.data && appointments.data ? preparingCompanies(classes.data, appointments.data) : [];
-  const { registers, people } = useParticularsRegisters(owner, preparing, guard);
-  const found = preparing.flatMap<{
-    company: Preparing;
+  const editing = classes.data && appointments.data ? editingCompanies(classes.data, appointments.data) : [];
+  const { registers, people } = useParticularsRegisters(owner, editing, guard);
+  const found = editing.flatMap<{
+    company: Editing;
     name: string | null;
     label: string;
     read: { isError: boolean; refetch: () => unknown };
@@ -134,8 +134,8 @@ function OwnParticulars({
         <Loading>Loading the register…</Loading>
       );
   else if (!companyMatches) content = <PreparationNotice />;
-  else if (preparing.length === 0)
-    content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.READ_ONLY_NOTE}</PreparationNotice>;
+  else if (editing.length === 0)
+    content = <PreparationNotice className="py-3 text-sm text-text-muted">{COPY.AUTHORITY_NOTE}</PreparationNotice>;
   else if (!found)
     content = reads.some((read) => read.isPending) ? (
       <Loading>Loading the register…</Loading>
@@ -182,9 +182,11 @@ function OwnParticulars({
               member={member}
               appointment={found.company.appointment}
               current={{ name: recorded?.name || found.name || '', address: recorded?.residentialAddress ?? '' }}
+              recorded={{ name: recorded?.name ?? '', address: recorded?.residentialAddress ?? '' }}
               blocked={stale}
               onConflict={() => {
                 void found.read.refetch();
+                void found.particulars.refetch();
                 void appointments.refetch();
               }}
               onMissing={() => void appointments.refetch()}

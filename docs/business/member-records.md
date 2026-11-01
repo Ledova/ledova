@@ -136,7 +136,8 @@ breakdown and terms under **Show award details**. This read-only overview is the
 **Settings** → **Profile** shows a member of the selected company how that company's register
 records them, on web and mobile: a read-only card headed with the company's name, such as **How
 Example Pty Ltd records you**, with the recorded name and residential address and **Wrong? Contact
-the company.** It is not a second profile, takes no edits and sends no request. Share history,
+the company.** It is not a second profile, takes no edits and sends no request. When the company
+changes those particulars the member gets no notice; the card shows the current ones. Share history,
 certificates and certificate requests are in web **Documents** → **Certificates**. On mobile,
 **Documents** and a class card's **Certificates** open the same Certificates page for the selected
 company, with the same requests and actions; the PDF is shared rather than downloaded.
@@ -148,7 +149,8 @@ requested is ready, when shares vest under their award, and when the company app
 allotment that issues shares to them (an award's shares included). Each one names the company (and
 the class, for a certificate or an issue) but no quantities, because notifications can show on a locked screen; on mobile it opens
 the matching screen. Nothing is sent for a revoked association, for changes recorded before the member
-accepted an invitation, for transfers, or for shares recorded from the chain.
+accepted an invitation, for transfers, for a change to their particulars, or for shares recorded
+from the chain.
 
 ### Revoking member access
 

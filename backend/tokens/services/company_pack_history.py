@@ -190,6 +190,7 @@ def particulars_changes(records) -> list:
             "residential_address": change.residential_address,
             "as_at": change.as_at,
             "reason": change.reason,
+            "previous_particulars": change.previous_particulars,
             "evidence": _evidence(change),
             "provided_by": _provided_by(change),
             "decisions": _decisions(change),

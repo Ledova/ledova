@@ -59,6 +59,7 @@ export {
 } from './distributions';
 export { readIdentityVerification } from './identity-verification';
 export {
+  appointmentForParticularsEdit,
   appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,
   isRegisterDecisionReceipt,
@@ -76,7 +77,7 @@ export {
   isPreparedRegisterCorrection,
   isRegisterCorrectionDecisionReceipt,
 } from './register-corrections';
-export { isPreparedRegisterParticularsChange } from './register-particulars';
+export { isRegisterParticularsEditReceipt } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
 export {
   hasValidRegisterAwardTotals,
