@@ -2,8 +2,9 @@
 
 [Operations](README.md) · [Documentation](../README.md)
 
-How to run the local chain or a public testnet, align contract ownership with the backend's signer,
-and stand up a fresh public-testnet environment, for operators and engineers running an instance.
+How the local development chain, contract ownership and finality settings work.
+Public-testnet environment procedures are maintained in private
+[Ledova/infra](https://github.com/Ledova/infra/blob/main/docs/deployment.md#public-testnet-environments).
 Holding the operator key decides nothing for a company
 ([company authority](../engineering/README.md#company-authority-boundaries)), and admitting a signer
 for a public network needs the owner's explicit direction
@@ -136,229 +137,15 @@ as `BLOCKCHAIN_OPERATOR_KEY` and `LOCAL_CHAIN_FINALITY_DEPTH=1`, then run
 `python manage.py admit_local_signer` from `backend/`. Hardhat's node keeps nothing after it stops,
 so a database that has used it needs a new one with the next node.
 
-Base Sepolia (chain id 84532) is the supported public testnet:
-`npm --prefix contracts run deploy:testnet` (or `make contracts-deploy-testnet`), with
-`DEPLOYER_PRIVATE_KEY` and `BASE_SEPOLIA_RPC_URL` exported in that shell. The deployer must be the
-backend's operator key ([key management](#key-management)).
-
-The package carries three more npm scripts that neither `deploy:local:core` nor `deploy:testnet`
-runs. `deploy:local:sample-share` (`contracts/scripts/deploy.ts`, local chains only) deploys a factory and a
-`DEMO` share class with three whitelisted test accounts and an initial mint.
-`deploy:testnet:stablecoin` and `deploy:testnet:atomicswap` deploy `AUDY` and `AtomicSwap` on their
-own on Base Sepolia, the latter approving `STABLECOIN_ADDRESS`, `SHARE_TOKEN_ADDRESS` and
-`RELAYER_ADDRESS` when they are set. `contracts/scripts/deploy-share-token.ts` has no npm script:
-`npx hardhat run scripts/deploy-share-token.ts --network localhost` (or `baseSepolia`) from
-`contracts/` creates one share class on an existing `FACTORY_ADDRESS` from the
-[deploy-script inputs](configuration.md#contracts).
+`deploy:local:sample-share` (`contracts/scripts/deploy.ts`, local chains only) deploys a factory and a
+`DEMO` share class with three whitelisted test accounts and an initial mint. The individual local
+scripts read the [deploy-script inputs](configuration.md#contracts).
 
 `make chain-test` is the optional manual smoke: it compiles the contracts, starts its own Hardhat
 node on `CHAIN_TEST_PORT` with synthetic accounts, runs one contract smoke and stops the node
 ([backend verification](../engineering/testing.md#backend-verification)). The port defaults to
 8545 and an occupied port is refused, so while the stack is up use another:
 `make chain-test CHAIN_TEST_PORT=8546`.
-
-## Fresh-start redeploy
-
-This procedure stands up a fresh public-testnet environment on the per-company contracts: new
-contracts and a new, empty database, with nothing carried over and no register re-anchored, as
-[the owner decided](../decisions.md#company-scoped-approvals) when every contract's bytecode
-changed. The [approval controls](approval-controls.md#base-sepolia) record its local rehearsal,
-what each check answered, and the authorised Base Sepolia run of 25 September 2026.
-
-Steps 6 and 7 sign, so the owner must explicitly authorise
-[signer admission](#fresh-signer-admission) for the fresh environment. The fresh migrations do not
-check whether stored classes belong to a retired factory; step 8 does.
-
-1. Stop the backend, workers and every other producer using the new operator key. Prepare a new
-   key for this fresh, isolated environment only, and preserve existing database volumes and
-   historical evidence separately.
-2. Export `DEPLOYER_PRIVATE_KEY` (the backend operator key) and `BASE_SEPOLIA_RPC_URL`, and supply
-   all the fresh-bootstrap metadata together, only after establishing the facts it attests:
-
-   ```text
-   FRESH_SIGNER_MANIFEST_PATH=/ABSOLUTE/PRIVATE/PATH/fresh-signer.json
-   FRESH_SIGNER_ENVIRONMENT_ID=UNIQUE_FRESH_ENVIRONMENT
-   FRESH_SIGNER_AUTHORIZATION_REFERENCE=OWNER_AUTHORIZATION_REFERENCE
-   FRESH_SIGNER_ATTEST_FRESH_KEY=true
-   FRESH_SIGNER_ATTEST_ISOLATED_ENVIRONMENT=true
-   FRESH_SIGNER_ATTEST_PRODUCERS_STOPPED=true
-   ```
-
-   Run `npm --prefix contracts run deploy:testnet`. Fresh mode refuses any chain other than 84532,
-   a nonzero latest or pending sender nonce, a manifest path that is not absolute, or an existing
-   manifest or companion `.journal.json`. It records each transaction hash before waiting for its
-   receipt, writes the manifest after the five sends complete, and writes the addresses to
-   `.deployed-contracts.env`. Keep the manifest, the journal and the compiled `artifacts`
-   directory in `contracts/`, including `.dbg.json` and build-info files, with the deployment evidence. A partial
-   journal means the deployment is incomplete: retain and investigate it, and never rerun the
-   deployment or erase history to make the verifier accept the signer. Without fresh metadata, an
-   ordinary deployment runs and produces no admission evidence.
-
-3. Configure a separate, newly created empty database. From `backend/`, run
-   `python manage.py migrate`, `python manage.py check_rls_roles` and
-   `python manage.py check_rls_catalogue` against it, carrying no old rows into it
-   ([row-level security roles](configuration.md#row-level-security-roles) covers a cluster that
-   refuses the passwordless roles).
-4. Configure `BLOCKCHAIN_CHAIN_ID=84532`, the authorised provider, the fresh
-   `BLOCKCHAIN_OPERATOR_KEY` and the three `.deployed-contracts.env` addresses in the local `.env` file in `backend/`.
-   Wait for all five transactions to be canonical and finalized, then run from `backend/`, with the
-   retained Hardhat artifacts and manifest accessible:
-
-   ```bash
-   python manage.py bootstrap_fresh_signer --manifest /ABSOLUTE/PRIVATE/PATH/fresh-signer.json
-   ```
-
-   Success prints the immutable bootstrap UUID, the manifest digest and `unchanged: false`; an
-   exact replay prints `unchanged: true`. A verification failure leaves admission closed and
-   creates no bootstrap record: resolve the reported problem while retaining the original manifest.
-
-5. After admission, start the backend and workers and recreate companies and users through the
-   browser, with only `createsuperuser` and admin wallet verification outside it. Since
-   [#1452](https://github.com/Ledova/ledova/issues/1452) the web app has no chain or wallet pages,
-   so steps 6 and 7 go through the API.
-6. Deploy each share class. A company's first class creates its registry; its later classes share
-   it.
-7. Approve wallets only through the
-   [company wallet workflow](../business/participants.md#wallet-nominations-and-company-wallet-approvals):
-   a company appointee prepares, approves and applies a finite-expiry ADD for a wallet the
-   participant nominated after proving possession of it. Staff APIs, admin overrides and a blank expiry
-   are no substitute.
-8. Verify, from `backend/`; the expected answer follows each command. The chain and database
-   probes are read-only.
-
-   ```bash
-   python manage.py shell -c "from integrations.base_chain import get_base_chain_client; print(get_base_chain_client().assert_expected_chain())"
-   ```
-
-   Prints the chain id, and raises `BaseChainConnectionError` when the node disagrees with
-   `BLOCKCHAIN_CHAIN_ID`.
-
-   ```bash
-   python manage.py shell -c "
-   from shared.db import use_operator
-   from tokens.models import ShareToken
-   from whitelist.services.whitelist import registry_for, token_registry
-   with use_operator():
-       tokens = list(ShareToken.objects.on_chain().select_related('company'))
-   if not tokens:
-       raise SystemExit('No deployed share classes: the binding check has no fixtures.')
-   for token in tokens:
-       matches = token_registry(token.contract_address).lower() == registry_for(token.company)
-       print(token.pk, token.symbol, matches)
-       if not matches:
-           raise SystemExit('The token registry does not match its company registry.')
-   "
-   ```
-
-   One line per class, every one `True`: the token's own registry is the one the factory holds for
-   its company's ACN.
-
-   For isolation, prepare two companies with deployed classes and a control wallet approved only
-   for company A, and put their class UUIDs and the wallet address in the command. Missing classes,
-   one company or a shared registry fail the check.
-
-   ```bash
-   python manage.py shell -c "
-   from shared.db import use_operator
-   from tokens.models import ShareToken
-   from whitelist.services.whitelist import is_whitelisted, token_registry
-   with use_operator():
-       classes = ShareToken.objects.on_chain().select_related('company')
-       company_a = classes.get(pk='COMPANY_A_CLASS_UUID')
-       company_b = classes.get(pk='COMPANY_B_CLASS_UUID')
-   if company_a.company_id == company_b.company_id:
-       raise SystemExit('Choose classes belonging to two different companies.')
-   registry_a = token_registry(company_a.contract_address).lower()
-   registry_b = token_registry(company_b.contract_address).lower()
-   if registry_a == registry_b:
-       raise SystemExit('The two companies must have distinct registries.')
-   wallet = 'WALLET_APPROVED_ONLY_FOR_COMPANY_A'
-   observed = (is_whitelisted(company_a.contract_address, wallet), is_whitelisted(company_b.contract_address, wallet))
-   print(company_a.pk, registry_a, company_b.pk, registry_b, wallet, observed)
-   if observed != (True, False):
-       raise SystemExit('The A-only control wallet must be approved in A and refused in B.')
-   "
-   ```
-
-   Prints the two class UUIDs, their registries, the wallet and `(True, False)`. A separate valid
-   approval in B would legitimately make B return `True`: that wallet no longer satisfies the
-   A-only fixture. RPC failures must be resolved, not read as a refusal.
-
-   The next command runs the normal refresh sweep immediately. It can sign and broadcast
-   attributable approval changes, so run it only as part of the authorised exercise with signer
-   admission ready. The query after it reads the surviving approval rows.
-
-   ```bash
-   python manage.py shell -c "
-   from shared.db import use_operator
-   from whitelist.services import refresh
-   with use_operator():
-       print(refresh.sweep())
-   "
-   python manage.py shell -c "
-   from shared.db import use_operator
-   from whitelist.models import WhitelistApproval
-   with use_operator():
-       for approval in WhitelistApproval.objects.select_related('entry__wallet', 'company'):
-           print(approval.pk, approval.company.acn, approval.entry.wallet_address, approval.status, approval.expires_at)
-   "
-   ```
-
-   The sweep also runs every five minutes; `unattributed` and `errors` need investigation
-   ([refreshing an approval](../engineering/chain.md#refreshing-an-approval)). Deleted-wallet
-   approvals can disappear from this query while their removal jobs still run
-   ([whitelist changes](recovery.md#whitelist-changes)), so absence is not success.
-
-   ```bash
-   python manage.py shell -c "
-   from django.conf import settings
-   from shared.db import use_operator
-   from tokens.models import TokenDeployment
-   with use_operator():
-       print([str(d.pk) for d in TokenDeployment.objects.exclude(contract_address='') if d.intent['to'] != settings.SHARE_TOKEN_FACTORY_ADDRESS.lower()])
-   "
-   ```
-
-   Prints `[]`: no share class carries a deployment made by another factory.
-
-### Fresh signer admission
-
-`bootstrap_fresh_signer` reads the chain and commits local admission; it never signs or sends a
-transaction. Run it only in the owner's explicitly authorised fresh environment, before application
-processes, workers, companies, legacy source rows or outgoing records exist, with a deploying key
-that was unused before the five core deployment sends, is exclusive to this environment and is the
-configured backend operator key. It cannot prove that another process or offline key holder has
-stopped, so keep every producer stopped throughout verification and commit, as the stopped-producer
-attestation records. The manifest format, what it refuses and every check it makes are in
-[fresh Base Sepolia admission](../engineering/chain.md#fresh-base-sepolia-admission).
-
-### Legacy inventory
-
-`inventory_outgoing_history` reads whatever legacy operator signing history a database holds. It
-never signs, contacts a provider, reserves or releases a nonce, or edits a journal or status, and
-it refuses an application connection or an enclosing transaction. Run it from `backend/` on the
-operator connection:
-
-```bash
-python manage.py inventory_outgoing_history
-OUTGOING_CAPTURE_ID=$(python -c 'import uuid; print(uuid.uuid4())')
-python manage.py inventory_outgoing_history --record --capture-id "$OUTGOING_CAPTURE_ID"
-```
-
-The first command only reports. `--record` commits a private capture, its evidence rows and
-append-only cutover holds together under an advisory lock. Re-entering the same capture id with
-unchanged source returns the original batch; changed source needs a new id, and a later capture can
-add variants and holds but never rewrites an earlier observation or clears its holds. Reports carry
-counts and fixed reason codes (`missing_chain_provenance`, `missing_signer_authorization`,
-`missing_raw_payload`) and always say `cutover_authorized: false`. Raw payloads and source
-snapshots are operator-only, and PostgreSQL refuses even operator UPDATE or DELETE on the three
-inventory tables.
-
-The bootstrap refuses while any evidence row, any hold beyond the two permanent coverage
-limitations, or any legacy source row exists; empty captures can keep those limitations. A
-[rebuilt database](README.md#rebuild-a-database) carries no legacy signer history, so the
-inventory is the emptiness check, not a cutover path: offline or old-binary key use is not
-observable in these tables, and no capture authorises activation.
 
 ## Reaching the node from Compose
 

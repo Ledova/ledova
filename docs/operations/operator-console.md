@@ -3,8 +3,9 @@
 [Operations](README.md) · [Documentation](../README.md)
 
 How platform staff configure the operator record, read the operator console and the market pages,
-seed reference data and work the review queues that remain staff work. It is for platform staff
-and whoever runs an instance.
+seed local reference data and work the review queues that remain staff work. It is for platform
+staff and engineers. Hosted installation and releases belong in private
+[Ledova/infra](https://github.com/Ledova/infra).
 
 The operator record is a singleton for the platform operator organisation and its technical
 configuration; staff accounts are people working within their granted permissions. Neither makes an
@@ -76,8 +77,8 @@ the database only.
 
 ## Seeding reference data
 
-From `backend/`, the Compose `migrate` service runs the following; run them once when starting
-outside Docker too:
+For local development, the Compose `migrate` service runs the following from `backend/`;
+local host-based development uses the same sequence:
 
 ```sh
 python manage.py migrate --noinput

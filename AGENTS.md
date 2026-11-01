@@ -51,4 +51,6 @@ review-and-merge workflow without repeated permission requests. Live deployment,
 live database migrations, signer activation and real-funds use require the
 owner's explicit direction under CONTRIBUTING.md.
 
-ledova.io is run from the private `Ledova/infra` repository.
+Hosting and deployment procedures are maintained only in the private `Ledova/infra` repository.
+This repository keeps product code, local development, builds, image publication and software
+reference documentation.

@@ -12,7 +12,7 @@ Start with the question you need answered. Each entry page leads to focused docu
 | Understand how the software is built         | [Engineering](engineering/README.md)                                                                                                   |
 | Run it locally                               | [Getting started](getting-started.md)                                                                                                  |
 | Sign in to the demo, locally or on ledova.io | [Demo accounts and handover](demo-accounts.md)                                                                                         |
-| Configure or operate an instance             | [Operations](operations/README.md)                                                                                                     |
+| Understand product settings and administration | [Operations](operations/README.md)                                                                                                     |
 | Change or test the code                      | [Contributing](../CONTRIBUTING.md) · [Testing and review](engineering/testing.md)                                                      |
 | Understand the route to lawful launch        | [Regulatory pathway](regulatory-pathway.md)                                                                                            |
 | Understand future work                       | [Roadmap](roadmap.md) · [Planned offerings](business/offerings.md) · [Accepted register plan](plans/company-managed-registers/plan.md) |
@@ -22,6 +22,8 @@ Start with the question you need answered. Each entry page leads to focused docu
 The documentation has three working areas. [Business processes](business/README.md) explain who does what,
 the rules and the steps, by domain. [Engineering](engineering/README.md) explains how each part of the software
 is built (backend, web clients, mobile, contracts and chain) and the principles they share.
-[Operations](operations/README.md) holds the procedures for running an instance. For a failing check, start at
+[Operations](operations/README.md) describes software settings, local services and application
+administration. All deployment procedures are maintained in private
+[Ledova/infra](https://github.com/Ledova/infra). For a failing check, start at
 the [gate inventory](engineering/gates.md); for a local environment problem, use
 [troubleshooting](getting-started.md#troubleshooting).
