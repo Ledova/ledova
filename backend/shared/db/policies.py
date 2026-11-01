@@ -546,9 +546,9 @@ OPERATOR_ONLY = {
     "tokens_registeropeningdecision": "Append-only company approvals, applications and rejections of register "
     "openings, each bound to the deciding appointment and written by the bounded register command on the operator "
     "connection. Register readers see them through the opening on the operator connection.",
-    "tokens_registerparticularschangedecision": "Append-only company approvals, applications and rejections of "
-    "member particulars changes, each bound to the deciding appointment and written by the bounded register command "
-    "on the operator connection. Register readers see them through the change on the operator connection.",
+    "tokens_registerparticularschangedecision": "Retained company approvals, applications and rejections of "
+    "member particulars changes from before the one-step edit, each bound to the deciding appointment. The database "
+    "refuses every new or changed row. Register readers see them through the change on the operator connection.",
     "tokens_registerwalletlinkdecision": "Append-only company approvals, applications and rejections of member "
     "wallet links, each bound to the deciding appointment and written by the bounded register command on the "
     "operator connection. Register readers see them through the link on the operator connection.",

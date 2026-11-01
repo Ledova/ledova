@@ -17417,6 +17417,15 @@
             "readOnly": true,
             "type": "string"
           },
+          "previousParticulars": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RegisterParticularsHeld"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
           "providedBy": {
             "readOnly": true,
             "type": "string"
@@ -17463,6 +17472,7 @@
           "supportingEvidence": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -17484,6 +17494,7 @@
           "name",
           "preparedByName",
           "preparingAppointment",
+          "previousParticulars",
           "providedBy",
           "reason",
           "rejectionReason",
@@ -17504,9 +17515,8 @@
             "format": "uuid",
             "type": "string"
           },
-          "asAt": {
-            "format": "date",
-            "type": "string"
+          "expected": {
+            "$ref": "#/components/schemas/RegisterParticularsExpectedRequest"
           },
           "member": {
             "format": "uuid",
@@ -17522,65 +17532,23 @@
             "type": "string"
           },
           "reason": {
+            "default": "",
             "maxLength": 1000,
-            "minLength": 1,
             "type": "string"
           },
           "residentialAddress": {
             "maxLength": 1000,
             "minLength": 1,
             "type": "string"
-          },
-          "supportingEvidence": {
-            "format": "uuid",
-            "type": "string"
           }
         },
         "required": [
           "appointment",
-          "asAt",
+          "expected",
           "member",
           "name",
           "operationId",
-          "reason",
-          "residentialAddress",
-          "supportingEvidence"
-        ],
-        "type": "object"
-      },
-      "RegisterParticularsChangeDecideRequest": {
-        "properties": {
-          "appointment": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "confirmation": {
-            "type": "boolean"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
-          },
-          "previewDigest": {
-            "minLength": 1,
-            "pattern": "^[0-9a-f]{64}$",
-            "type": "string"
-          },
-          "reason": {
-            "default": "",
-            "maxLength": 1000,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "confirmation",
-          "idempotencyKey",
-          "kind",
-          "previewDigest"
+          "residentialAddress"
         ],
         "type": "object"
       },
@@ -17646,73 +17614,20 @@
         ],
         "type": "object"
       },
-      "RegisterParticularsChangeDecisionPreview": {
+      "RegisterParticularsExpectedRequest": {
         "properties": {
-          "asAt": {
-            "format": "date",
-            "type": "string"
-          },
-          "canDecide": {
-            "type": "boolean"
-          },
-          "current": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RegisterParticularsHeld"
-              }
-            ],
-            "nullable": true
-          },
-          "member": {
-            "format": "uuid",
-            "type": "string"
-          },
           "name": {
-            "type": "string"
-          },
-          "previewDigest": {
+            "maxLength": 255,
             "type": "string"
           },
           "residentialAddress": {
-            "type": "string"
-          },
-          "unmetRequirements": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "asAt",
-          "canDecide",
-          "current",
-          "member",
-          "name",
-          "previewDigest",
-          "residentialAddress",
-          "unmetRequirements"
-        ],
-        "type": "object"
-      },
-      "RegisterParticularsChangeDecisionRequestRequest": {
-        "properties": {
-          "appointment": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
-          },
-          "reason": {
-            "default": "",
             "maxLength": 1000,
             "type": "string"
           }
         },
         "required": [
-          "appointment",
-          "kind"
+          "name",
+          "residentialAddress"
         ],
         "type": "object"
       },
@@ -17727,54 +17642,12 @@
           },
           "residentialAddress": {
             "type": "string"
-          },
-          "sourceAllotment": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "sourceAward": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "sourceChange": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "sourceGrant": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "sourceImport": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "sourceRegistration": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "sourceTransfer": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
           }
         },
         "required": [
           "asAt",
           "name",
-          "residentialAddress",
-          "sourceAllotment",
-          "sourceAward",
-          "sourceChange",
-          "sourceGrant",
-          "sourceImport",
-          "sourceRegistration",
-          "sourceTransfer"
+          "residentialAddress"
         ],
         "type": "object"
       },
@@ -34843,130 +34716,6 @@
           },
           {
             "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/register-particulars-changes/{uuid}/decide/": {
-      "post": {
-        "operationId": "api_v1_tokens_register_particulars_changes_decide_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterParticularsChangeDecideRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterParticularsChangeDecideRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterParticularsChangeDecideRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterParticularsChange"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/register-particulars-changes/{uuid}/decision-preview/": {
-      "post": {
-        "operationId": "api_v1_tokens_register_particulars_changes_decision_preview_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterParticularsChangeDecisionRequestRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterParticularsChangeDecisionRequestRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterParticularsChangeDecisionRequestRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterParticularsChangeDecisionPreview"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
           }
         ],
         "tags": [

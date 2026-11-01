@@ -274,8 +274,9 @@ different file conflicts. The upload is checked like every upload and kept priva
 the uploader's current preparing appointment, a PDF, PNG or JPEG, and that path. Its `kind` is
 `share_register` or `asic_extract` (an import's optional copies), `authority` (the director
 resolution or court order behind an opening, correction, wallet link, grant, transfer, allotment or
-chain family) or `supporting` (a particulars change, grant terms and acceptance, a transfer
-instrument, an award agreement, a vesting event, an allotment's agreement and receipt). The
+chain family) or `supporting` (grant terms and acceptance, a transfer instrument, an award
+agreement, a vesting event, an allotment's agreement and receipt; particulars changes made before
+the one-step edit keep theirs). The
 `class_rights` kind is a class-wide supporting file and requires a current personal administration
 appointment instead of preparing authority.
 
@@ -292,7 +293,9 @@ Each family prepares with `POST` under its `operation_id`, lists and details the
 companies whose register the caller may read, serves each retained copy as an authenticated
 attachment and takes the shared decision routes (what admin shows of them is in [who runs
 what](../business/register.md#who-runs-what)); the subject of the shared `<subject>_decided` code is
-`correction`, `opening`, `link`, `import`, `change`, `grant`, `transfer` or `allotment`. Beyond the
+`correction`, `opening`, `link`, `import`, `grant`, `transfer` or `allotment`. A particulars change
+is a one-step edit with no decision routes ([particulars changes API](#particulars-changes-api)).
+Beyond the
 shared bindings, each preview digest binds the state named below, and each family adds its own
 requirement codes:
 
@@ -318,9 +321,6 @@ requirement codes:
   import is no longer the latest applied one), and `mirror_correction_activity` and
   `mirror_correction_member_activity` (class or company activity that
   `tokens_mirror_correction_ready` refuses).
-- **Particulars change** (`register-particulars-changes/`): for application, the member's current
-  particulars, date and source. `member_left_retention` (no shares held for the retention period),
-  `newer_particulars_exist` (particulars with a later as-at date).
 - **Grant** (`register-grants/`): the register row, the class's supply and chain fields, the
   recipient's particulars and the supplied company event date; for an award, the award, its vesting events and its
   applied grants. The register-state codes are `imported_non_tokenised_register_required` (no
@@ -431,10 +431,29 @@ opening correction keeps the previous snapshot, decisions and opening entry, add
 ### Particulars changes API
 
 What a change does: [changing a member's
-particulars](../business/register.md#changing-a-members-particulars). Preparation trims the fields
-and refuses an empty name, address or reason. Application records the name, address and date as the
-member's particulars with the change as their source; the database writes particulars only while
-applying the import or change that names them.
+particulars](../business/register.md#changing-a-members-particulars). `POST
+register-particulars-changes/` is the whole change. Under its `operation_id` it names the
+`appointment`, the `member`, the new `name` and `residential_address`, an optional `reason`, and
+`expected`: the name and address the editor read, as empty strings when none are recorded. It trims
+the fields and needs the caller's current appointment holding `admin`, or `prepare`, `approve` and
+`apply` (otherwise not found). Under the company lock it answers 409 `register_change_conflict` when
+the recorded name or address no longer equals `expected`, and 400 when it changes neither, or for a
+member past the retention period. It records one `applied` change dated today (UTC), with the caller as
+`submitted_by` and `reviewed_by`, and makes it the source of the member's particulars in the same
+transaction. A retry under the same `operation_id` answers 200 with the original record; the same id
+with any difference answers 409. `previous_particulars` reads the replaced name, address and as-at
+date, or null.
+
+`tokens_guard_register_particulars_change` accepts only that insert, under the
+`register_particulars_edit` operation, with no evidence, today's date and particulars that differ
+from the current ones. It fills `previous_particulars` from `tokens_register_particulars_snapshot`
+and refuses every update and delete. `tokens_guard_register_member_particulars` writes a change's
+particulars only for that operation and principal while its `previous_particulars` still equals the
+member's current snapshot, so a change applies once and never over particulars its editor did not
+read. At commit, `tokens_check_register_particulars_edit` requires those particulars and the
+editor's authority to be current. Changes prepared before the one-step edit keep their supporting
+copies, decisions and stages; `tokens_guard_register_particulars_decision` refuses every new or
+changed decision, so one never applied stays `submitted`.
 
 ### Reconciliation acknowledgements API
 
@@ -989,7 +1008,9 @@ carries it: on the operator connection no policy narrows a read, so those joins 
 tenancy guard. An opening, import, correction or wallet link carries `provided_by` (`company`, or
 `staff_verified` for one made before the family was company-run). A company-run record's `evidence`
 names no company document: its copy is of the company's own upload, and its `document_type` is the
-upload's kind. `approvals.json`'s `listed` is computed at the as-at time as the registry would, so
+upload's kind. A particulars change carries `previous_particulars`, the database's snapshot of the
+member's particulars it replaced (null where none were recorded, and for a change made before the
+one-step edit, whose `evidence` names its supporting copy instead). `approvals.json`'s `listed` is computed at the as-at time as the registry would, so
 an active approval past its expiry is not listed, and `contracts.json` takes its registry addresses
 from it. `retain_until` is `FORMER_MEMBER_RETENTION_MONTHS` (84) after the member ceased
 ([s169(3)](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)).

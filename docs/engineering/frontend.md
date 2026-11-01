@@ -635,8 +635,8 @@ commands' client layer went with their pages under
 
 - a service for each list, preview, decision, preparation and document download;
 - a check of each prepared proposal against every field of its request
-  (`isPreparedRegisterImport`, `isPreparedRegisterParticularsChange` and siblings for corrections,
-  grants, transfers and allotments);
+  (`isPreparedRegisterImport` and siblings for corrections, grants, transfers and allotments), and
+  of a particulars change against its one-step edit (`isRegisterParticularsEditReceipt`);
 - the decision families for `useRegisterDecision` (`REGISTER_*_DECISIONS` in
   `packages/shared/src/hooks/useRegisterDecision.ts`) with the generic receipt check;
 - copy with a sentence for every requirement a decision can leave unmet.
@@ -650,9 +650,12 @@ stay unchanged.
 
 The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
 `/company/ledger/setup`; import, correction and transfer under `/company/ledger/:uuid/`
-(`import`, `correct/:entry`, `transfer`); and particulars changes at
+(`import`, `correct/:entry`, `transfer`); and the particulars change at
 `/company/ledger/members/:member/particulars`. Setup is the import page without a class in its
-address: it chooses or creates a share class, then prepares the mirror import.
+address: it chooses or creates a share class, then prepares the mirror import. The particulars
+change is one step: it sends the name and address the page read as `expected` and, once applied,
+lands on its record under Corrections. `appointmentForParticularsEdit` chooses its appointment: one
+holding `admin`, or `prepare`, `approve` and `apply`.
 Non-paid and employee-award grants are prepared inline in Issue shares.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
@@ -673,7 +676,7 @@ neither set nor limit the current holding; new paid/unpaid blanks normalize to z
 ([form conventions](frontend-ux.md#forms)).
 
 Every decision uses the preview-first `useRegisterDecision`, in a dialog or the web's main-page
-issue, transfer and particulars reviews. It previews the exact decision, its unmet requirements in
+issue and transfer reviews. It previews the exact decision, its unmet requirements in
 words and its register effect, takes a rejection reason
 ([how a company decision works](../business/README.md#how-a-company-decision-works)), and confirms
 with a retry key reused only for the same preview while the step's appointment is still the one
@@ -685,7 +688,8 @@ saying so with its confirmation disabled. Form inputs are described with each pr
 
 The web register's repeated row wrappers, stage rows and download failures use
 `dashboard/src/pages/company/ledger/shared/RecordShell.tsx`, and the Ledger's records show their
-decisions through `dashboard/src/pages/company/ledger/DecisionTrail.tsx`. Four records (import, correction, particulars change and transfer) use
+decisions through `dashboard/src/pages/company/ledger/DecisionTrail.tsx`; a particulars change shows its
+before and after instead, and an earlier one its retained decisions. Four records (import, correction, particulars change and transfer) use
 `useRegisterTaskGuard.ts` for their existing visible-task check, while grant, allotment and award
 keep their distinct guards and wrappers. The preparation pages share `PreparationShell.tsx` for
 the account-check page and read-only paragraphs, and
@@ -876,7 +880,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   renders the person only while the account, classes and holders are current; particulars, history
   and awards also need `hasCurrentRegisterReadAuthority` on settled appointments and their own settled
   read. Documents reads the person's retained attachments across classes; class details reads the
-  same links for its class. **Change particulars** and adding documents recheck current preparation
+  same links for its class. **Change particulars** rechecks a current appointment that can change
+  particulars (`appointmentForParticularsEdit`), adding documents rechecks current preparation
   authority, and attachment downloads require current register-read authority. While register work
   is held, Shareholders' Details links are disabled.
 - Register reads: the web reads the person's appointments through Team's account-bound cache and

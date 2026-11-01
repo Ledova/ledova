@@ -23,11 +23,14 @@ class RegisterParticularsChange(BaseModel):
     name = models.CharField(max_length=255)
     residential_address = models.TextField()
     as_at = models.DateField()
-    reason = models.CharField(max_length=1000)
-    supporting_evidence = models.ForeignKey("tokens.RegisterEvidence", on_delete=models.PROTECT, related_name="+")
+    reason = models.CharField(max_length=1000, blank=True)
+    supporting_evidence = models.ForeignKey(
+        "tokens.RegisterEvidence", on_delete=models.PROTECT, related_name="+", null=True
+    )
     evidence_fingerprint = models.CharField(max_length=64)
     evidence_snapshot = models.JSONField()
     file = models.FileField(upload_to=particulars_evidence_path, storage=private_storage, max_length=255)
+    previous_particulars = models.JSONField(null=True, editable=False)
     preparing_appointment = models.ForeignKey(
         "companies.CompanyAppointment", on_delete=models.PROTECT, related_name="+"
     )

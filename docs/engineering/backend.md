@@ -199,8 +199,10 @@ secondary-market decision from at least one company (`secondary_company_ids`).
 - A schema change that changes the live RLS catalogue needs its policy-install migration too
   ([policy catalogue](security.md#policy-catalogue)).
 - A change to the guard SQL needs a forward migration that replaces each changed function from the
-  current source and drops removed triggers and functions, so an existing database ends as a fresh
-  one does; `tokens/0003_remove_member_particulars_requests` is the example.
+  current source, substituting the role placeholders as the installer does, and drops removed
+  triggers and functions, so an existing database ends as a fresh one does;
+  `tokens/0004_one_step_particulars_edit` is the example. A function an earlier migration replays
+  from current source keeps its name and must still work against that migration's schema.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.

@@ -128,8 +128,7 @@ are enforced.
 2. Approve or reject. A person with approve (or administration) reads a preview of the exact
    change and what it still lacks, and approves it or rejects it. The preview shows the people,
    terms, documents and dates, each affected holding and the issued (for an issue, also the
-   authorised) shares before and after; a particulars change is shown beside the current
-   particulars with their date and source. A rejection needs a written reason of at most 1,000
+   authorised) shares before and after. A rejection needs a written reason of at most 1,000
    characters; an approval takes none. Approval alone changes nothing.
 3. Apply. A person with apply (or administration) applies the approved change. Only this step
    records the effect, and it records the effect, the decision and any change to holdings together.
@@ -160,6 +159,9 @@ These company actions are taken in one step rather than prepared, approved and a
   ([register](register.md#acknowledging-a-discrepancy));
 - recording employee awards and vesting events, with administration or prepare
   ([issuing shares](issuing-shares.md#employee-awards-and-vesting));
+- changing a member's recorded name and residential address, with administration or one
+  appointment holding prepare, approve and apply
+  ([register](register.md#changing-a-members-particulars));
 - member invitations and revocations of member access, with administration
   ([member records](member-records.md#member-access)).
 

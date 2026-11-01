@@ -110,10 +110,6 @@ function OwnRegister({
   }, []);
   const [personHeld, setPersonHeld] = useState(false);
   const [documentTask, setDocumentTask] = useState<string | null>(null);
-  const [particularsReviewCompany, setParticularsReviewCompany] = useState<string | null>(null);
-  const particularsReviewChanged = useCallback((company: string, open: boolean) => {
-    setParticularsReviewCompany((current) => (open ? company : current === company ? null : current));
-  }, []);
   const documentEditing = useCallback((task: string, open: boolean) => {
     setDocumentTask((current) => (open ? task : current === task ? null : current));
   }, []);
@@ -186,7 +182,6 @@ function OwnRegister({
       : company && registers.data
         ? { company, registers: registers.data }
         : null;
-  const reviewingParticulars = !!scope && particularsReviewCompany === scope.company.uuid;
   const appointments = useOwnAppointments(owner, guard, { enabled: !!scope });
   const readable =
     preferences?.status === 'success' &&
@@ -243,10 +238,6 @@ function OwnRegister({
   );
   const correctionHeld = useCallback(
     (token: string, uuid: string, held: boolean) => classHeld(`corrections/${token}/${uuid}`, held),
-    [classHeld],
-  );
-  const companyCorrectionHeld = useCallback(
-    (uuid: string, held: boolean) => classHeld(`corrections/company/${uuid}`, held),
     [classHeld],
   );
   const registerCompany =
@@ -412,8 +403,6 @@ function OwnRegister({
                 company={scope.company.uuid}
                 registers={scope.registers}
                 visible={view === 'register' && selectedTask === 'corrections' && sourceReady}
-                onHeldChange={companyCorrectionHeld}
-                onReviewChange={particularsReviewChanged}
               />
             </div>
             <div hidden={documents !== 'company-pack'}>
@@ -433,7 +422,6 @@ function OwnRegister({
     >
       {scope &&
         ((view === 'register' && selectedTask) || view === 'awards' || documents === 'inspection-copies') &&
-        !reviewingParticulars &&
         sourceReady &&
         scope.registers.length > 1 && (
           <PageActions>
@@ -575,7 +563,6 @@ function OwnRegister({
             </div>
           )}
           {((view === 'register' && selectedTask) || documents === 'inspection-copies') &&
-            !reviewingParticulars &&
             sourceReady &&
             selectedClass && (
               <p className="text-sm text-text-muted">
@@ -585,7 +572,7 @@ function OwnRegister({
         </>
       )}
       {scope && (
-        <ul hidden={includeEmptyCompanies || reviewingParticulars} className="flex flex-col gap-6">
+        <ul hidden={includeEmptyCompanies} className="flex flex-col gap-6">
           {scope.registers.map((register) => (
             <li
               key={register.token.uuid}

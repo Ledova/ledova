@@ -26,7 +26,8 @@ increment with its guide and pull request. Since
 chain actions run through the API only: the web app has no wallets or on-chain features
 ([decision](decisions.md#wallets-removed-from-the-web-app)). Members' particulars requests were
 removed on 31 October 2026; members tell the company directly
-([decision](decisions.md#member-particulars-requests-removed)).
+([decision](decisions.md#member-particulars-requests-removed)), and since 1 November the company
+changes a member's particulars in one step ([decision](decisions.md#one-step-particulars-edit)).
 
 The development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
 closed 11 October) now uses fresh PostgreSQL migrations, minimum test suites
