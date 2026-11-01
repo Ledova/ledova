@@ -311,7 +311,7 @@ risk assessment, transaction and any company decision stay as they are.
 ## The Verification page
 
 Verification (investing accounts; **Eligibility** in the menu on web and in the app, or on web
-**Your eligibility** beside a company's own Eligibility item) has two sections, followed on web by
+**Your eligibility** beside a company's own Eligibility item) has two sections, followed by
 Supporting payslips:
 
 - Your claims: on web a link to Your company eligibility, then each source's status and dates, with
@@ -319,9 +319,9 @@ Supporting payslips:
   verified under the retired staff review shows Historical verification.
 - How you qualify: the two categories, with **Submit evidence** or **Add evidence**.
 
-The app's Verification has both sections but no Supporting payslips yet, and no link to Your company
-eligibility, which the app does not have yet. Its claim form takes the evidence file from the phone's
-document picker, with the same file rule as on the web.
+The app's Verification has no link to Your company eligibility, which the app does not have yet. Its
+claim form and payslip upload take the file from the phone's document picker, with the same file rule
+as on the web.
 
 Your company eligibility holds your requests with their outcome history and **Prepare request
 withdrawal**. Company eligibility, for company
@@ -346,9 +346,9 @@ company changes only through its own evidenced workflow
 ([particulars](register.md#changing-a-members-particulars);
 [member access](member-records.md#member-access)).
 
-On web, Supporting payslips belongs to Verification alongside classification claims, with inline
-upload and extraction details on demand. Payslips are private to the person and permitted platform
-staff; companies cannot see them. A payslip can be attached to a submitted claim, and an unattached
+On web and in the app, Supporting payslips belongs to Verification alongside classification claims,
+with inline upload and extraction details on demand. Payslips are private to the person and
+permitted platform staff; companies cannot see them. A payslip can be attached to a submitted claim, and an unattached
 one is removed under the retention policy ([retention clocks](../engineering/security.md#retention-clocks)). Uploading or reading a
 payslip never establishes eligibility.
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   CATEGORIES,
   failureSentence,
@@ -6,12 +6,11 @@ import {
   investorClaimChecks,
   investorClaimSubmission,
   submitInvestorClassification,
-  uploadRefusal,
   type CertifierBody,
   type InvestorCategory,
 } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { discardDocument, pickDocument, type PickedDocument } from '../../services/documentCopies';
+import { usePickedDocument } from './usePickedDocument';
 
 export function useInvestorClaim({
   category,
@@ -22,9 +21,8 @@ export function useInvestorClaim({
   onSuccess: () => void;
   submissionBlockedReason: string | null;
 }) {
-  const [file, setFile] = useState<PickedDocument | null>(null);
-  const [fileRefusal, setFileRefusal] = useState<string | null>(null);
-  const [isPicking, setIsPicking] = useState(false);
+  const picked = usePickedDocument();
+  const file = picked.file;
   const [declaredBasis, setDeclaredBasis] = useState('');
   const [certificateIssuedAt, setCertificateIssuedAt] = useState('');
   const [certifierName, setCertifierName] = useState('');
@@ -33,46 +31,11 @@ export function useInvestorClaim({
   const [declarationAccepted, setDeclarationAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const kept = useRef<PickedDocument | null>(null);
-  useEffect(
-    () => () => {
-      if (kept.current) discardDocument(kept.current.uri);
-    },
-    [],
-  );
 
   const spec = CATEGORIES.find((item) => item.category === category);
 
-  const keep = (next: PickedDocument | null) => {
-    if (kept.current && kept.current.uri !== next?.uri) discardDocument(kept.current.uri);
-    kept.current = next;
-    setFile(next);
-  };
-
-  const chooseFile = async () => {
-    if (isPicking) return;
-    setIsPicking(true);
-    try {
-      const candidate = await pickDocument();
-      if (!candidate) return;
-      const refusal = uploadRefusal(candidate);
-      if (refusal) discardDocument(candidate.uri);
-      setFileRefusal(refusal);
-      keep(refusal ? null : candidate);
-    } catch {
-      setFileRefusal('The file could not be opened. Choose it again.');
-    } finally {
-      setIsPicking(false);
-    }
-  };
-
-  const removeFile = () => {
-    setFileRefusal(null);
-    keep(null);
-  };
-
   const reset = () => {
-    removeFile();
+    picked.remove();
     setDeclaredBasis('');
     setCertificateIssuedAt('');
     setCertifierName('');
@@ -115,10 +78,10 @@ export function useInvestorClaim({
 
   return {
     file,
-    chooseFile,
-    removeFile,
-    fileRefusal,
-    isPicking,
+    chooseFile: picked.choose,
+    removeFile: picked.remove,
+    fileRefusal: picked.refusal,
+    isPicking: picked.isPicking,
     declaredBasis,
     setDeclaredBasis,
     certificateIssuedAt,
