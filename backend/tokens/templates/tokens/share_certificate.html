@@ -6,6 +6,8 @@
 <p>Member: {{ name }}</p>
 <p>Residential address: {{ residential_address|linebreaksbr }}</p>
 <p>Shares: {{ shares }}, {% if balance %}the balance the member holds after the transfer in entry {{ entry.sequence }}{% elif entry.kind == "issue" %}issued to the member by entry {{ entry.sequence }}{% else %}transferred to the member by entry {{ entry.sequence }}{% endif %}</p>
+<p>Amount paid on these shares: {{ amount_paid|default:"Not recorded" }}</p>
+<p>Amount unpaid on these shares: {{ amount_unpaid|default:"Not recorded" }}</p>
 <p>Holding in the class after entry {{ entry.sequence }}: {{ holding }}</p>
 <p>Register entry: {{ entry.sequence }}</p>
 <p>Recorded at: {{ entry.created_at|date:"c" }}</p>

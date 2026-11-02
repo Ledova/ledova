@@ -372,7 +372,7 @@ def _identity_sources(token, member_ids):
     return particulars, wallets, identities, stamps
 
 
-def _external_amounts_paid(register, imported_at, imported):
+def _fully_paid_issues(register) -> dict:
     sources = {}
     for proposal in RegisterAllotment.objects.filter(
         token_id=register.token_id, company_id=register.company_id, status="applied"
@@ -389,6 +389,11 @@ def _external_amounts_paid(register, imported_at, imported):
             and proposal.contribution.amount == proposal.consideration
         ):
             sources[entry.pk] = proposal
+    return sources
+
+
+def _external_amounts_paid(register, imported_at, imported):
+    sources = _fully_paid_issues(register)
     if not sources:
         return {}
     amounts = {
@@ -722,12 +727,20 @@ def _holdings_after(entry, members) -> dict:
     return held
 
 
+def _certificate_amounts(entry) -> dict:
+    allotment = _fully_paid_issues(entry.register).get(entry.pk)
+    if allotment is None:
+        return {"amount_paid": None, "amount_unpaid": None}
+    return {"amount_paid": f"{allotment.consideration:.2f}", "amount_unpaid": f"{ZERO:.2f}"}
+
+
 def _certificate_pages(token, entry) -> list[dict]:
     moved = {UUID(change["member"]): int(change["shares"]) for change in entry.changes}
     held = _holdings_after(entry, moved)
     parties = [(member, shares, False) for member, shares in moved.items() if shares > 0]
     parties += [(member, held[member], True) for member, shares in moved.items() if shares < 0 and held[member]]
     particulars, wallets, identities, stamps = _identity_sources(token, [member for member, _, _ in parties])
+    amounts = _certificate_amounts(entry)
     pages = []
     for index, (member, shares, balance) in enumerate(parties, 1):
         number = f"{entry.sequence}-{index}"
@@ -751,6 +764,7 @@ def _certificate_pages(token, entry) -> list[dict]:
                 "shares": shares,
                 "holding": held[member],
                 "balance": balance,
+                **amounts,
             }
         )
     return pages

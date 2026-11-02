@@ -397,20 +397,20 @@ instruction's reference and the recipient, marked late when prepared more than
 seven days after the request. Ledova keeps its SHA-256 and the request details,
 not the file; the company decides whether a request is proper and hands the copy
 over. See [inspection copies](../business/member-records.md#inspection-copies).
-Staff also prepare certificates, on the company's written instruction, for an
-issue or transfer entry: an unsigned PDF with a page for the member the entry
-moved shares to and a balance certificate for a transferor who still holds
-shares, which the company executes. Ledova keeps its SHA-256 and the entry's
-number, not the file. See [certificates](../business/member-records.md#certificates).
-Staff also prepare the figures for the company's notices of share issues and of
+Company register readers prepare certificates for an issue or transfer entry:
+an unsigned PDF with a page for the member the entry moved shares to and a
+balance certificate for a transferor who still holds shares, which the company
+executes. Each page states the amount paid and the amount unpaid on its shares
+(s1070C) where the register records them for exactly those shares, and Not
+recorded otherwise. Ledova keeps its SHA-256 and the entry's number, not the
+file. See [certificates](../business/member-records.md#certificates).
+Staff prepare the figures for the company's notices of share issues and of
 changes to its members and share structure, on its written instruction: the
 issues, transfers and corrections entered from a chosen day, the class at the
 register head and each changed member's holding, with amount paid only where it
 is established. Ledova keeps their SHA-256 and the period, not the file, and the
 company lodges the notices. See
 [notice figures](../business/member-records.md#notice-figures).
-[#871](https://github.com/Ledova/ledova/issues/871) moves certificates and
-notice figures to company appointments.
 A list in admin shows staff which certificates and notice figures are still due
 and when, from the register and those records; it records nothing, and does not
 know what the company lodged or delivered. See
