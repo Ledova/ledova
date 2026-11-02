@@ -22,7 +22,8 @@ stay here as history and are marked where they appear.
 | [ABR company lookup at activation](#abr-company-lookup-at-activation)                                           | 19 October 2026                                | Current; #1148                                                                                                                     |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                                                                                    |
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                                      |
-| [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current; offering parts removed under #1421                                                                                        |
+| [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Eligibility superseded 2 November (#1491); offering parts removed under #1421                                                      |
+| [Verification limited to ID checks](#verification-limited-to-id-checks)                                         | 2 November 2026                                | Current; #1491; supersedes classification, eligibility and payslips; ABR check and company documents follow                        |
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                                                                                            |
 | [Register CSV download removed](#register-csv-download-removed)                                                 | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                                                                                            |
@@ -32,7 +33,7 @@ stay here as history and are marked where they appear.
 | [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                                                                                            |
 | [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October; web wallet and chain controls removed 31 October                   |
 | [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                                           |
-| [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                         | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md)                                       |
+| [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                         | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md); eligibility removed 2 November       |
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                           | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
@@ -60,7 +61,7 @@ stay here as history and are marked where they appear.
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                                     |
 | [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201)                      |
 | [Mobile app for shareholders](#mobile-app-for-shareholders)                                                     | 26 October 2026                                | Current; delivered under #1201; tabs, no drawer and the removal of investor eligibility superseded 31 October                      |
-| [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                               | 31 October 2026                                | Current; phase 1 delivered, phase 2 per company, investor eligibility brought forward (#1464)                                      |
+| [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                               | 31 October 2026                                | Current; phase 1 delivered, phase 2 per company; eligibility brought forward (#1464), removed 2 November                           |
 | [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                                            |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                                            |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                                            |
@@ -411,9 +412,14 @@ outside its scope. The issue records each delivered increment.
 
 ## Eligibility and ownership records
 
+_Its eligibility parts were superseded on 2 November 2026 by
+[verification limited to ID checks](#verification-limited-to-id-checks): classification claims,
+payslips and company eligibility decisions were removed. The amount-paid rule and the
+`issuer_kyc_required` switch below stand._
+
 Under the 3 October decision, company
 [activation](business/companies.md#activation-and-the-registry-check) and
-[company eligibility decisions](business/participants.md#company-eligibility-decisions)
+company eligibility decisions
 replaced staff company activation and classification review on 6 October 2026
 (#863). The scope, privacy and expiry requirements below remain; a reusable
 identity fact is not approval for every company.
@@ -432,7 +438,7 @@ and did not widen the secondary market, until both were removed on 29 October
 who lacks market eligibility
 cannot see the market for shares they own. Revisit that trade-off before live
 operation with real participants.
-[Eligibility](engineering/backend.md#eligibility-decisions) owns enforcement details.
+[Current participants](engineering/backend.md#current-participants) owns today's enforcement.
 
 Anyone eligible to see an offering in the directory can open the documents
 attached to its approved offerings, whether upcoming, open or closed (owner
@@ -454,7 +460,7 @@ The register leaves amount paid blank when it cannot be established exactly;
 zero would assert an amount that is not known. Classification evidence has a
 fixed retention horizon, independent of account deletion. The legal basis and
 uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
-[the register](engineering/records.md#holdings-and-identity-resolution) and [file retention](engineering/security.md#classification-evidence-and-payslips).
+[the register](engineering/records.md#holdings-and-identity-resolution) and [file retention](engineering/security.md#retention-clocks).
 
 The owner chose on 21 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810)
@@ -465,6 +471,46 @@ checked wherever an appointment is exercised: admission, invitation acceptance,
 activation, eligibility decisions and each register command;
 [the representative identity requirement](business/companies.md#representative-identity-requirement)
 states where it applies.
+
+### Verification limited to ID checks
+
+**Owner decision, 2 November 2026**, given in the session while reviewing the investor's
+Verification page and tracked in [#1491](https://github.com/Ledova/ledova/issues/1491): "We dont
+need all these verifications, Ledova is not a regulated body to enforce companies to be who they
+are. The verification we will require is ID verification. Please meke sure remove everything that
+is not ID verification, including the documents".
+
+Personal ID verification stays: the identity check on Account, the identity requirement for company
+appointments when the operator requires it, and the PEP screening inside the identity check. Of the
+options offered, the owner chose all three steps, as recommended, each its own pull request:
+
+1. **Remove investor eligibility:** investors' classification claims (the s708(8)(c) qualified
+   accountant's certificate and s708(11) professional investor) and their evidence uploads,
+   Supporting payslips and their AI extraction, and company eligibility requests, decisions,
+   withdrawals and revocations, on the web, in the app and in the backend. The app's planned "Your
+   company eligibility" step (E3 on [#1464](https://github.com/Ledova/ledova/issues/1464)) is
+   cancelled. The API-only wallet nominations, company wallet approvals and trading drop their
+   eligibility condition; the company's own approvals and every other guard stay.
+2. **Remove the ABR company check:** activation stops looking the company up in the ABR and then
+   needs only the administrator's declaration and their ID check, when configured. The ABR
+   configuration and the staff registry controls go.
+3. **Remove company documents and staff verification:** the company's supporting documents and
+   platform staff's verification of them. For the two API-only chain flows that relied on a
+   staff-verified company document, retained issue instructions and settled-transfer instructions,
+   the owner chose "Company's own evidence": they take the company's own uploaded evidence, as
+   register commands already do.
+
+The migrations delete the removed records and their uploaded files ("including the documents").
+The local walkthrough database is migrated only on the owner's word, with a copy kept, and ledova.io
+needs the owner's direction before any live migration. Step 1 was built alongside the removal of
+shareholder publications ([#1489](https://github.com/Ledova/ledova/issues/1489)); steps 2 and 3
+follow one after the other, because both change the companies area.
+
+For classification, eligibility and payslips this supersedes the
+[eligibility and ownership records](#eligibility-and-ownership-records), the eligibility that
+[offerings deferred](#offerings-deferred-from-the-first-release) kept, the sidebar's Company
+eligibility group ([compact sidebar](#ownership-dashboard-and-compact-sidebar)) and the app's
+[eligibility brought forward](#mobile-app-like-the-web-at-phone-width). Their history stays.
 
 ## The stored register
 
@@ -987,7 +1033,9 @@ classification keeps the accountant's certificate and professional investor cate
 kind of company decision remains. Removing the offerings app regenerated the fresh initial
 migrations, so a database migrated before this change, ledova.io included, needs a
 [fresh rebuild](engineering/backend.md#migrations) before it runs this code; that rebuild is
-the owner's call.
+the owner's call. _Investor classification and company eligibility were removed on 2 November 2026
+([verification limited to ID checks](#verification-limited-to-id-checks)); the wallet approvals
+stay without them._
 
 ### Wallets removed from the web app
 
@@ -1633,7 +1681,10 @@ Company eligibility and asked for a view. Claude recommended keeping it under Do
 holds the company's own records and offer documents rather than eligibility decisions, and the owner
 chose: "Move Supporting under Company eligibility." Supporting is now Company eligibility's child for
 a company administrator. The group's caret leaves too little room for the full name on one line, so
-the sidebar labels it Eligibility, with Company eligibility as its title.
+the sidebar labels it Eligibility, with Company eligibility as its title. _The group went with
+company eligibility on 2 November 2026 ([verification limited to ID checks](#verification-limited-to-id-checks)):
+company administrators open Company documents from its own top-level sidebar item, labelled Company files
+to fit on one line, until step 3 of #1491 removes it._
 
 ### Dashboard, Settings and Register for a new company
 
@@ -1978,14 +2029,17 @@ request takes the company from that link or from their own companies, with the p
 it. Asked how companies should know who is asking, the owner chose "Share it, with consent": the
 investor's profile name joins the summary they agree to share (summary version 2), the company's
 request list leads with it, requests already sent keep their summary, and a later name change
-leaves an accepted decision current.
+leaves an accepted decision current. _The request link, the eligibility pages and their requests
+went with investor eligibility on 2 November 2026
+([verification limited to ID checks](#verification-limited-to-id-checks))._
 
 ## Mobile app for shareholders
 
 Its three tabs and no drawer, its holdings across companies and its removal of the investor's
 eligibility pages were superseded on 31 October 2026 by the
 [web's phone frame, per-company pages and eligibility brought forward](#mobile-app-like-the-web-at-phone-width);
-the rest stands. Members do receive class totals where a company shares its ownership with members.
+the rest stands. Investor eligibility then left the web and the app on 2 November 2026
+([verification limited to ID checks](#verification-limited-to-id-checks)). Members do receive class totals where a company shares its ownership with members.
 
 On 26 October 2026 the owner made the mobile app a shareholder app: "make mobile shareholder-only.
 Company administration, registration and activation stay on the web". The owner then added: "My
@@ -2060,7 +2114,9 @@ deletion). The Dark theme row goes, since the theme switch sits beside Sign out.
 mobile version show an option in the menu eligibility which it seems we dont have in the mobile
 native ?", then answered "Yes, bring it forward". So the investor's eligibility pages, Verification
 and Your company eligibility, come to the app ahead of phase 3 (#1464). The company's own
-Eligibility pages stay in phase 3.
+Eligibility pages stay in phase 3. _Superseded on 2 November 2026: investor eligibility was removed
+from the web and the app, the app's Verification went, and the planned Your company eligibility step
+(E3) is cancelled ([verification limited to ID checks](#verification-limited-to-id-checks))._
 
 This replaces the [shareholder app](#mobile-app-for-shareholders)'s three tabs and no drawer now,
 and its shareholder-only scope as the investor's eligibility pages and phases 3 to 5 arrive. The app

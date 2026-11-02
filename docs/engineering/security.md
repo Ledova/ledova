@@ -42,9 +42,9 @@ files, retains and purges them, and validates uploads. For engineers; the settin
 
 One database serves one deployment, and PostgreSQL row-level security (RLS) enforces tenant
 isolation. Customer requests and principal-bearing jobs select authority at their boundary; product
-selectors keep narrower company, account and eligibility rules where database read scopes are
-wider. RLS visibility does not decide investor eligibility: market selectors apply the
-[eligibility consumers](backend.md#eligibility-decisions). The roles below are PostgreSQL
+selectors keep narrower company and account rules where database read scopes are wider. RLS
+visibility does not decide who sees a company's market: market selectors apply the
+[current-participant rules](backend.md#current-participants). The roles below are PostgreSQL
 connection roles, not job titles.
 
 ### Roles and principal
@@ -196,24 +196,21 @@ Uploaded evidence is private in every storage mode and on every instance. File
 ownership and the retention clock decide who can read or remove it; no upload is served by
 `/media/`, including in debug mode, and a public media URL never substitutes for an authenticated
 route. A company appointment reaches only that company's documents and tasks, never participants'
-private identity, classification or financial evidence.
+private identity or financial evidence.
 
 ### Storage
 
 Private `FileField`s declare `storage=private_storage` and `max_length=255`.
 `PrivateMediaStorage.base_url` is null, so `.url` raises. Discovery follows the storage declaration
 and alias for each adapter ([where files live](../operations/jobs-and-storage.md#private-storage)).
-Stored keys end in a fresh UUID and extension, embedding no email or original filename; company,
-account and classification UUIDs in prefixes are pseudonymous.
+Stored keys end in a fresh UUID and extension, embedding no email or original filename; company
+UUIDs in prefixes are pseudonymous.
 
 | Upload                           | Storage prefix and lifecycle                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Representative authority request | `companies/<uuid>/authority-requests/`; retained with the immutable request; uncommitted-copy orphans are swept                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Company register decision        | `companies/<uuid>/register-evidence/` for the company's upload and a per-kind prefix for the decision's own copy: `register-openings/`, `register-imports/`, `register-corrections/`, `register-links/`, `register-particulars/`, `register-grants/`, `register-transfers/`, `register-capital-increases/`, `register-pause-changes/`, `register-instructions/`, `register-awards/`, `register-award-vestings/` and `register-allotments/`; both are retained with their rows; interrupted-copy orphans are swept |
 | Company document                 | `companies/<uuid>/documents/<type>/`; swept after becoming an orphan                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Unattached payslip               | `documents/`; ordinary deletion and orphan cleanup                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| Classification evidence          | `users/`; retained by the classification clock                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| Attached payslip                 | `users/supporting-documents/`; retained with its claim                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 ### Serving
 
@@ -222,8 +219,7 @@ rows return the same 404; anonymous requests return 401. Staff read company file
 (`admin_file_path`, [admin row actions](backend.md#admin-row-actions)) rather than widening
 customer ownership selectors; refused staff receive 403, matching the change page.
 
-The company document serializer returns the authenticated route as `file_url`; a personal
-document and classification evidence are read only through admin. The dashboard opens a file by
+The company document serializer returns the authenticated route as `file_url`. The dashboard opens a file by
 top-level navigation with its session cookie; mobile fetches with its bearer client
 ([document view copies](mobile.md#document-view-copies)).
 
@@ -235,17 +231,12 @@ directives through the admin's `never_cache`.
 
 ### Read audit
 
-Only permitted document-operations staff read attached payslips and extraction history, never
-company owners or company-role accounts. Every operations page, file,
-extraction and changelist read records `DocumentRead`, and an audit write failure refuses delivery.
-Audit rows survive content purge and have no admin mutation path.
-
 Company documents carry no read audit, for the owner, staff in admin or an investor opening an
 offering's documents: they are offer information, not personal records.
 
 A [company pack](records.md#documents-and-evidence-copies) carries only files stored under
-`companies/`: the company's documents and its register evidence copies. No file under `users/` or
-`documents/` leaves in a pack.
+`companies/`: the company's documents and its register evidence copies. Nothing else leaves in a
+pack.
 
 ## Deletion and retention
 
@@ -258,8 +249,10 @@ in [jobs](../operations/jobs-and-storage.md#schedule).
 Ordinary private-file deletion runs on commit, so a rollback cannot restore a row whose bytes
 are gone. The nightly orphan sweep
 (`sweep_private_uploads`) removes files that interrupted writes left without rows, walking only
-`companies/` and `documents/` and requiring 24 hours without a change to protect the interval
-between file write and row commit. It never deletes a file under `companies/<uuid>/publications/`
+`companies/`, `documents/` and `users/` and requiring 24 hours without a change to protect the
+interval between file write and row commit. No current model stores files under `documents/` or
+`users/`; the sweep there removes any file of the removed investor evidence and payslips that its
+migration's deletion missed. It never deletes a file under `companies/<uuid>/publications/`
 (`RETAINED_STORAGE_PATHS` in [storage.py](../../backend/shared/storage.py)), where shareholder
 publications kept their documents and payment evidence: no model references them since publications
 were [removed](../decisions.md#shareholder-publications-removed), and a database whose removal
@@ -268,33 +261,14 @@ classified as retained, with a reason.
 
 ### Retention clocks
 
-| Record                                                                 | Clock                                                                                                                                                                                         | Purge                                                                                                                  |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Classification evidence                                                | `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` from `reviewed_at` for a rejected, revoked or withdrawn claim and from `expires_at` for a verified one; `0` keeps it indefinitely and purges nothing | `purge_classification_evidence` deletes the bytes, preserving status and content-free metadata                         |
-| Attached payslip                                                       | The claim's clock                                                                                                                                                                             | `purge_document_evidence` removes the file, extraction output, filenames and notes, keeping claim links and read audit |
-| Unattached payslip                                                     | `UNATTACHED_DOCUMENT_RETENTION_DAYS` from upload; `0` keeps it indefinitely                                                                                                                   | `purge_document_evidence`                                                                                              |
-| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days                                                                                                                                           | `purge_former_members_past_the_clock`, below                                                                           |
-| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                                                                                                                                                           | None, below                                                                                                            |
+| Record                                                                 | Clock                                               | Purge                                        |
+| ---------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------- |
+| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below |
+| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | None, below                                  |
 
-The classification-evidence and payslip purges remove due private files and derived extraction
-payloads only after fresh database checks under the source and document locks; a caller-supplied
-future batch time or retention setting cannot authorise early deletion. `shared/0002_database_guards`
-(through `users/database_guards.py`) copies `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` and
-`UNATTACHED_DOCUMENT_RETENTION_DAYS` into the users database guards, refusing a negative or
-non-integer value. Payslip attachment, both evidence purges, eligibility requests, decisions and
-evaluations, and approval refreshes refuse to run (`ImproperlyConfigured`) when the settings differ
-from the installed values, so changing either clock needs a new migration that re-runs
-`users.database_guards.install`. The certificate time zone (`TIME_ZONE`, fixed at UTC) is copied
-and checked the same way.
-
-2,557 days is seven years including two leap days. The classification reading is
-unadvised ([legal position 3](../legal/positions.md#3-the-evidence-retention-period)), and neither
-classification setting changes an eligibility decision. Serving and purge share one clock: read
-paths refuse evidence as soon as it passes, and the purge deletes the bytes later.
-
-`FORMER_MEMBER_RETENTION_DAYS` behaves the opposite way: `retention_cutoff` raises
-`ImproperlyConfigured` below 2,557 days, so the floor cannot be configured away and `0` is not a
-valid value. It implements the accepted, unadvised seven-year assumption for s169(3)
+2,557 days is seven years including two leap days. `FORMER_MEMBER_RETENTION_DAYS` has a floor:
+`retention_cutoff` raises `ImproperlyConfigured` below 2,557 days, so the floor cannot be
+configured away and `0` is not a valid value. It implements the accepted, unadvised seven-year assumption for s169(3)
 ([legal position 1](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)).
 The daily purge removes, once past the cutoff:
 
@@ -317,16 +291,6 @@ rows; only copies left by a rolled-back or interrupted preparation fall under th
 Documents uploaded after an authority request belong to the company document record and do not
 alter the request. Production retention is decided before any real data, and account and company deletion still respect the
 protected register relations.
-
-### Classification evidence and payslips
-
-Classification evidence outlives account deletion: a submitted claim is withdrawn rather than
-hard-deleted, admin deletion is refused and its account link is protected.
-
-Supporting payslips attach once to an accessible, submitted classification, copying the bytes to
-retained storage and deleting the old copy only on commit; attaching neither verifies the claim nor
-changes eligibility. Cascades cannot delete an attached row that still holds content, and
-storage failures during a purge leave a retryable reference.
 
 ## Upload validation
 
@@ -362,9 +326,6 @@ below 1 fails every upload instead of lifting a limit. The limits contain work; 
 a security sandbox or an aggregate concurrency limit
 ([upload limits](../operations/jobs-and-storage.md#upload-limits)).
 
-Extraction rereads and rescans the stored bytes, renders the first page in a resource-limited
-child (which shares the service's OS identity and is not a security sandbox) and sends a bounded
-PNG to the configured local model. Failure preserves the original and records a failed extraction.
 These controls do not retroactively certify legacy files.
 
 Next: [backend](backend.md), [testing](testing.md),

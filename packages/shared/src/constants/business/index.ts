@@ -14,6 +14,5 @@ export * from './company-activation';
 
 export * from './register-allotments';
 
-export * from './investor-eligibility';
 export * from './field-limits';
 export * from './labels';

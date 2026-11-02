@@ -93,24 +93,9 @@ export {
   editRegisterParticulars,
   downloadRegisterParticularsChangeFile,
 } from './register-particulars';
-export {
-  getInvestorClassifications,
-  submitInvestorClassification,
-  deleteInvestorClassification,
-} from './investorClassifications';
 export { getOperator } from './operator';
-export * from './company-eligibility';
 
 export * from './register-allotments';
 
 export * from './member-access';
 export * from './register-people';
-
-export {
-  listDocuments,
-  getDocument,
-  uploadDocument,
-  deleteDocument,
-  attachDocument,
-  type UploadDocumentInput,
-} from './documents';

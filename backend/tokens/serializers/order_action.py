@@ -208,7 +208,7 @@ ORDER_ACTION_RESPONSES = {
                 {"type": "object", "additionalProperties": {}},
             ]
         },
-        description="Recorded eligibility refusal or ordinary signature refusal.",
+        description="Recorded refusal of a participant who is not current, or ordinary signature refusal.",
     ),
     404: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Unknown or currently inaccessible action/order."),
     409: OpenApiResponse(

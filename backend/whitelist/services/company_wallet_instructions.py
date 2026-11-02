@@ -19,14 +19,7 @@ from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterDecisionKind
 from tokens.services.register_authority import register_appointment
 from tokens.services.register_decisions import DecisionFamily, _scalar, decide, preview
-from users.models import (
-    CompanyEligibilityDecision,
-    CompanyEligibilityRequest,
-    InvestorClassification,
-    UserAccount,
-    UserProfile,
-)
-from users.services.company_eligibility import _digest
+from users.models import UserAccount, UserProfile
 from wallets.models import Wallet, WalletPossessionProof
 from whitelist.exceptions import (
     WhitelistChangeConflict,
@@ -43,7 +36,11 @@ from whitelist.models import (
     WhitelistEntry,
 )
 from whitelist.services.changes import _intent, lock_target
-from whitelist.services.wallet_nominations import _stamp, nomination_requirements
+from whitelist.services.wallet_nominations import (
+    _digest,
+    _stamp,
+    nomination_requirements,
+)
 from whitelist.services.whitelist import open_approval, registry_for, resolve_entry
 
 
@@ -95,12 +92,6 @@ def _lock_context(company, actor_ids, associations, appointments):
         ):
             raise WhitelistSigningHold(["wallet_source_changed"])
         WalletPossessionProof.objects.select_for_update().filter(pk=associations["proof"]).first()
-        request = CompanyEligibilityRequest.objects.filter(pk=associations["request"]).first()
-        if request is not None:
-            InvestorClassification.objects.select_for_update().filter(pk=request.source_id).first()
-            list(request.source.supporting_documents.select_for_update().order_by("uuid"))
-            CompanyEligibilityRequest.objects.select_for_update().get(pk=request.pk)
-            CompanyEligibilityDecision.objects.select_for_update().filter(pk=associations["decision"]).first()
     return operator, wallet
 
 
@@ -146,13 +137,15 @@ def _source_terms(company, nomination, target_change, expires_at, registry):
     if nomination is not None:
         captured = nomination.snapshot
         address = captured["address"]
-        source = {key: captured[key] for key in ("request", "decision", "proof_completed_at", "eligibility_expires_at")}
-        source |= {"nomination": str(nomination.pk), "target_change": None}
+        source = {
+            "nomination": str(nomination.pk),
+            "proof_completed_at": captured["proof_completed_at"],
+            "target_change": None,
+        }
         associations = captured
     else:
         address = target_change.address
-        source = dict.fromkeys(("nomination", "request", "decision", "proof_completed_at", "eligibility_expires_at"))
-        source["target_change"] = str(target_change.pk)
+        source = {"nomination": None, "proof_completed_at": None, "target_change": str(target_change.pk)}
         associations = None
     action = "add" if nomination else "remove"
     intent = _intent(action, address, registry, expires_at)
@@ -184,9 +177,7 @@ def _state(proposal):
         unmet.append("whitelist_target_changed")
     target = proposal.snapshot["target"]
     if proposal.nomination_id:
-        nomination = CompanyWalletNomination.objects.select_related("company", "request__user_account").get(
-            pk=proposal.nomination_id
-        )
+        nomination = CompanyWalletNomination.objects.select_related("company").get(pk=proposal.nomination_id)
         if nomination.company_id != proposal.company_id or nomination.snapshot != _associations(proposal):
             unmet.append("wallet_source_changed")
         unmet.extend(nomination_requirements(nomination))
@@ -194,8 +185,6 @@ def _state(proposal):
             unmet.append("expiry_required")
         elif proposal.expires_at <= timezone.now():
             unmet.append("expiry_lapsed")
-        elif proposal.expires_at > nomination.decision.expires_at:
-            unmet.append("expiry_exceeds_eligibility")
     else:
         retained = WhitelistChange.objects.filter(
             pk=proposal.target_change_id,

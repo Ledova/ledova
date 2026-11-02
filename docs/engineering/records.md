@@ -473,7 +473,7 @@ conflict. At commit, `tokens_check_register_particulars_edit` requires those par
 editor's authority, or the member's association, to be current. Changes prepared before the one-step
 edit keep their supporting copies, decisions and stages; `tokens_guard_register_particulars_decision`
 refuses every new or changed decision, so one never applied stays `submitted`.
-`tokens/0006_register_follows_profile` adds `member_association`, lets `preparing_appointment` be
+`tokens/0007_register_follows_profile` adds `member_association`, lets `preparing_appointment` be
 empty and adds the one-source constraint. It replays by name the five functions this changes: the
 three guards `0004` also replays, `tokens_validate_mirror_import` and `users_guard_provider_identity`.
 It then brings each existing current association's register up to the member's profile once, with
@@ -1117,8 +1117,7 @@ bound to the session current when the export was requested and hands it to the s
 The document is `AccountExportData` in the schema: `exportedAt`, `user`, `profile`,
 `financialProfile`, `account`, `wallets`, `transactions` (every transaction of the account's
 wallets) and `portfolios`; a section with no row is `null`, or an empty list. Not in it:
-classification claims and their evidence, uploaded documents, per-asset holdings, orders,
-notifications, the transaction-alerts switch and register particulars.
+per-asset holdings, orders, notifications, the transaction-alerts switch and register particulars.
 
 ### Transaction evidence fields
 

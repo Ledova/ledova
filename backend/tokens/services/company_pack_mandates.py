@@ -209,14 +209,9 @@ def _wallet_change(record):
 
 
 def _nomination(record):
-    _related(record, record.request)
-    if record.decision.request_id != record.request_id:
-        _refuse(record)
     return {
         "uuid": record.pk,
         "company": record.company_id,
-        "request": record.request_id,
-        "decision": record.decision_id,
         "submitted_by": _name(record.submitted_by),
         "submitted_at": record.submitted_at,
         "sharing_accepted": record.sharing_accepted,
@@ -224,7 +219,6 @@ def _nomination(record):
         "address": record.snapshot.get("address"),
         "chain": record.snapshot.get("chain"),
         "proof_completed_at": record.snapshot.get("proof_completed_at"),
-        "eligibility_expires_at": record.snapshot.get("eligibility_expires_at"),
     }
 
 
@@ -459,7 +453,7 @@ def section(company):
     nominations = [
         _nomination(record)
         for record in CompanyWalletNomination.objects.filter(company=company)
-        .select_related("submitted_by__userprofile", "request", "decision")
+        .select_related("submitted_by__userprofile")
         .order_by("submitted_at", "uuid")
     ]
     awards = [

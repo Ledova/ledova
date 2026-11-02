@@ -14,7 +14,7 @@ sets the order below. Reuse these issues rather than creating a parallel backlog
 
 The company-managed register foundation is delivered under
 [#860](https://github.com/Ledova/ledova/issues/860): one registry product,
-company authority and activation, company eligibility decisions, the
+company authority and activation, the
 company-run register with imports, corrections, openings and wallet links,
 non-paid grants and transfers, company-authorised chain actions, employee
 awards with recorded vesting, fully paid external allotments, members' own
@@ -35,7 +35,10 @@ Members' certificate requests were removed on 2 November 2026: the company prepa
 delivers its certificates, and Ledova keeps each one's fingerprint
 ([decision](decisions.md#member-certificate-requests-removed)). Shareholder publications went the
 same day: the company gives notices to its members and pays dividends itself, and Ledova keeps the
-register ([decision](decisions.md#shareholder-publications-removed)).
+register ([decision](decisions.md#shareholder-publications-removed)). Investor eligibility was removed the
+same day: classification claims, Supporting payslips and company eligibility decisions are gone, and
+the only verification of a person is the identity check
+([decision](decisions.md#verification-limited-to-id-checks)).
 
 The development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
 closed 11 October) now uses fresh PostgreSQL migrations, minimum test suites
@@ -81,6 +84,12 @@ records the joined web/company and iOS/member flow without routine platform-staf
 actions. Genuine physical-device and live human release checks remain under
 [#624](https://github.com/Ledova/ledova/issues/624); the controlled browser and
 simulator observation does not establish them.
+
+### Verification limited to ID checks
+
+Steps 2 and 3 of [#1491](https://github.com/Ledova/ledova/issues/1491) follow the removal of investor
+eligibility: activation stops looking the company up in the ABR, and then company documents and
+their staff verification go ([decision](decisions.md#verification-limited-to-id-checks)).
 
 ### Deferred
 

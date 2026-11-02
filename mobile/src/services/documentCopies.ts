@@ -1,25 +1,14 @@
 import { Platform } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
-import { uploadType } from '@ledova/shared';
-import { assertSessionEpoch, getSessionEpoch, subscribeSession } from './sessionScope';
+import { assertSessionEpoch, subscribeSession } from './sessionScope';
 
 const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
-const picked = new Set<string>();
 let viewing: number | undefined;
 
 interface DocumentView {
   name: string;
   type: string;
   bytes: Uint8Array;
-}
-
-export interface PickedDocument {
-  uri: string;
-  name: string;
-  type: string;
-  size: number;
-  epoch: number;
 }
 
 function temporaryDirectory(): Directory {
@@ -67,22 +56,17 @@ function sweepViewCopies(): void {
   sweep(viewDirectory());
 }
 
-export function sweepPickedCopies(): void {
+export function sweepEarlierUploadCopies(): void {
   sweep(new Directory(Paths.cache, 'DocumentPicker'), (name) => PICKER_NAME.test(name));
+  sweep(new Directory(Paths.cache, 'ledova-upload-copies-v1'));
   if (Platform.OS !== 'ios') return;
   for (const entry of entries(temporaryDirectory())) {
     if (entry instanceof Directory && entry.name.endsWith('-Inbox')) sweep(entry);
   }
 }
 
-export function discardDocument(uri: string): void {
-  if (picked.delete(uri)) removeCopy(new File(uri));
-}
-
 subscribeSession(() => {
-  [...picked].forEach(discardDocument);
-  sweepPickedCopies();
-  sweep(new Directory(Paths.cache, 'ledova-upload-copies-v1'));
+  sweepEarlierUploadCopies();
   sweepViewCopies();
 });
 
@@ -99,12 +83,6 @@ async function writeViewCopy(
   return { uri: copy.uri, type };
 }
 
-const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': '.pdf',
-  'image/png': '.png',
-  'image/jpeg': '.jpg',
-};
-
 export async function shareDocumentCopy(
   sessionEpoch: number,
   download: () => Promise<DocumentView>,
@@ -118,28 +96,4 @@ export async function shareDocumentCopy(
   });
   assertSessionEpoch(sessionEpoch);
   await share(copy.uri, copy.type);
-}
-
-export async function pickDocument(): Promise<PickedDocument | null> {
-  const epoch = getSessionEpoch();
-  const result = await DocumentPicker.getDocumentAsync({
-    type: Object.keys(EXTENSION_BY_MIME_TYPE),
-    copyToCacheDirectory: Platform.OS === 'android',
-    multiple: false,
-  });
-  const asset = result.assets?.[0];
-  if (result.canceled || !asset) return null;
-  picked.add(asset.uri);
-  if (epoch !== getSessionEpoch()) {
-    discardDocument(asset.uri);
-    return null;
-  }
-  const declared = asset.mimeType !== 'application/octet-stream' && asset.mimeType;
-  return {
-    uri: asset.uri,
-    name: asset.name,
-    type: declared || uploadType(asset.name) || '',
-    size: asset.size ?? new File(asset.uri).info().size ?? 0,
-    epoch,
-  };
 }

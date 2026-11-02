@@ -139,10 +139,9 @@ def apply_order_modification(
     order.last_modified_at = timezone.now()
     order.current_signature = signature
     order.last_modification_action = action
-    order.last_modification_eligibility_decision = admission.decision
     order.rest_or_hold()
     order.save()
-    order.refresh_from_db(fields=["last_modified_at", "last_modification_eligibility_decision"])
+    order.refresh_from_db(fields=["last_modified_at"])
 
     OrderModificationLog.objects.bulk_create(
         OrderModificationLog(

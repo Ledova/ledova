@@ -28,9 +28,10 @@ The rules are in
 [who may trade and who sees orders](../business/trading.md#who-may-trade-and-who-sees-orders).
 Order creation, modification and swap signing call `TradingAdmission.require_current`
 (`backend/tokens/services/trading_admission.py`) for the account that signed, beside the wallet,
-registry and balance checks; without a current
-[eligibility decision](../business/participants.md#company-eligibility-decisions) from the class's
-company it refuses with `investor_not_eligible`, which create and modify record as terminal. Market
+registry and balance checks; when that account is not a
+[current participant](../business/participants.md#account-standing) it refuses with
+`investor_not_eligible`, which create and modify record as terminal. No company eligibility decision
+is involved since [#1491](https://github.com/Ledova/ledova/issues/1491). Market
 quotes aggregate open or partially filled orders that pass the signed admission and current-authority
 checks foreign matching uses, so unjournaled, stale-domain, unverified-wallet and inactive-owner
 orders advertise nothing; quotes use the same uniquely configured, active settlement asset and live
@@ -103,13 +104,13 @@ over accepting an order while silently skipping a busy counterparty.
 These record a terminal refusal, with creation and matching rolled back to their savepoint while
 spend and refusal commit together; the database accepts only these five codes:
 
-| Cause                                                                                                                                                                                | Code                            | Scope                                               |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- | --------------------------------------------------- |
-| A negative whitelist result                                                                                                                                                          | `not_whitelisted`               | The submission                                      |
-| Insufficient seller share or buyer payment balance                                                                                                                                   | `insufficient_balance`          | The submission                                      |
-| No current eligibility decision from the class's company, including one that lapses or is revoked before commit; the detail carries the reasons (usually `no_live_company_decision`) | `investor_not_eligible`         | Token-wide                                          |
-| A share token whose recorded deployment names a chain other than the domain about to be signed, or whose deployment row cannot be read                                               | `settlement_chain_disagreement` | Token-wide: matching refuses at the first candidate |
-| Every compatible fill fails the [amount check](#payment-units)                                                                                                                       | `invalid_settlement_amount`     | Earlier failing candidates are skipped              |
+| Cause                                                                                                                                               | Code                            | Scope                                               |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | --------------------------------------------------- |
+| A negative whitelist result                                                                                                                         | `not_whitelisted`               | The submission                                      |
+| Insufficient seller share or buyer payment balance                                                                                                  | `insufficient_balance`          | The submission                                      |
+| The account that signed is not a current participant, including one whose standing or identity lapses before commit; the detail carries the reasons | `investor_not_eligible`         | Token-wide                                          |
+| A share token whose recorded deployment names a chain other than the domain about to be signed, or whose deployment row cannot be read              | `settlement_chain_disagreement` | Token-wide: matching refuses at the first candidate |
+| Every compatible fill fails the [amount check](#payment-units)                                                                                      | `invalid_settlement_amount`     | Earlier failing candidates are skipped              |
 
 The UUID stays refused even if the counter-order or deployment later changes; a corrected intent
 uses a new UUID, and a separate deliberate order undergoes the ordinary checks. Provider,
@@ -144,7 +145,7 @@ checks. The response separates immutable `intent`, `review`, `result` and `refus
 A stored business refusal returns the complete snapshot with `status: refused` and a
 `refusal.httpStatus`. The database allows exactly `order_cancellation_failed` (400) for a cancel, and
 `order_modification_failed` (400), `order_modification_conflict` (409) and `investor_not_eligible`
-(403) for a modify; an applied modify records the eligibility decision it was admitted under.
+(403) for a modify.
 `action_intent_conflict`, `action_context_conflict` and provider, preflight, validation and
 infrastructure errors are not terminal and leave the reminder unresolved: recover before retrying.
 Terminal replay repeats no order change or event; events have no outbox, so database recovery does

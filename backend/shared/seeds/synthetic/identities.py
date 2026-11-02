@@ -89,23 +89,6 @@ OCCUPATIONS = (
 
 HIGH_RISK_OCCUPATIONS = ("Real estate agent", "Precious metals dealer", "Money services operator")
 
-EMPLOYERS = (
-    "Harbourline Engineering Pty Ltd",
-    "Southgate Health Services Pty Ltd",
-    "Meridian Data Works Pty Ltd",
-    "Coastal Rail Maintenance Pty Ltd",
-    "Banksia Legal Partners Pty Ltd",
-    "Redgum Mining Services Pty Ltd",
-)
-
-CERTIFIERS = (
-    ("Morgan Hale", "ca_anz"),
-    ("Priya Natarajan", "cpa_australia"),
-    ("Connor Blake", "ipa"),
-    ("Hannah Weiss", "ca_anz"),
-    ("Tomasz Wrona", "cpa_australia"),
-)
-
 WALLET_NAMES = ("Main", "Savings", "Trading", "MetaMask", "Rabby", "Coinbase Wallet", "Everyday")
 HARDWARE_NAMES = ("Keystone", "Cold storage", "Keystone vault")
 BITCOIN_NAMES = ("Sparrow", "Bitcoin savings", "BlueWallet")

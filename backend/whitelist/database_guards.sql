@@ -313,15 +313,11 @@ AS $function$
             AND instruction.expires_at > clock_timestamp() AND instruction.expires_at = date_trunc('second', instruction.expires_at)
             AND (instruction.snapshot->'target'->>'expires_at')::timestamptz = instruction.expires_at
             AND EXISTS (SELECT 1 FROM whitelist_companywalletnomination nomination
-                JOIN users_companyeligibilitydecision decision ON decision.uuid = nomination.decision_id
                 WHERE nomination.uuid = instruction.nomination_id AND nomination.company_id = instruction.company_id
                     AND instruction.snapshot->'associations' = nomination.snapshot
                     AND instruction.snapshot->'target'->>'address' = nomination.snapshot->>'address'
-                    AND instruction.expires_at <= decision.expires_at
                     AND instruction.snapshot->'source' = jsonb_build_object('nomination', nomination.uuid,
-                        'request', nomination.request_id, 'decision', nomination.decision_id,
-                        'proof_completed_at', nomination.snapshot->'proof_completed_at',
-                        'eligibility_expires_at', nomination.snapshot->'eligibility_expires_at', 'target_change', NULL)
+                        'proof_completed_at', nomination.snapshot->'proof_completed_at', 'target_change', NULL)
                     AND whitelist_wallet_nomination_current(nomination))
             AND instruction.intent->>'data' = '0xe0468dcd' || repeat('0',24)
                 || substring(instruction.snapshot->'target'->>'address' from 3)
@@ -335,8 +331,8 @@ AS $function$
                 AND original.chain_id::text = instruction.snapshot->'target'->>'chain_id'
                 AND original.registry_address = instruction.snapshot->'target'->>'registry_address'
                 AND original.address = instruction.snapshot->'target'->>'address')
-            AND instruction.snapshot->'source' = jsonb_build_object('nomination', NULL, 'request', NULL, 'decision', NULL,
-                'proof_completed_at', NULL, 'eligibility_expires_at', NULL, 'target_change', instruction.target_change_id)
+            AND instruction.snapshot->'source' = jsonb_build_object('nomination', NULL,
+                'proof_completed_at', NULL, 'target_change', instruction.target_change_id)
             AND instruction.intent->>'data' = '0xe0468dcd' || repeat('0',24)
                 || substring(instruction.snapshot->'target'->>'address' from 3) || repeat('0',64)
         ELSE false END);
@@ -359,47 +355,14 @@ AS $function$
                 'apply', GREATEST(at_time,clock_timestamp())));
 $function$;
 
-CREATE OR REPLACE FUNCTION public.whitelist_eligibility_invalidation_cause(bound_decision_id uuid, bound_cause text, bound_invalidation_id uuid)
+CREATE OR REPLACE FUNCTION public.whitelist_eligibility_invalidation_cause(bound_cause text, bound_invalidation_id uuid)
  RETURNS jsonb
  LANGUAGE sql
  SET search_path TO 'pg_catalog', 'public'
 AS $function$
-    SELECT CASE WHEN bound_invalidation_id IS NOT NULL THEN (
-        SELECT jsonb_build_object('actor', event.initiated_by_id::text, 'at', event.invalidated_at,
-            'account', event.user_account_id::text, 'wallet', event.wallet_id::text, 'address', event.address, 'targets', event.facts->'targets', 'chain_id', event.chain_id)
-        FROM whitelist_whitelisteligibilityinvalidation event WHERE event.uuid = bound_invalidation_id AND event.cause = bound_cause)
-    ELSE (SELECT CASE bound_cause
-        WHEN 'source_withdrawal' THEN CASE WHEN source.status = 'withdrawn' AND source.withdrawn_by_id IS NOT NULL
-            AND source.reviewed_at IS NOT NULL THEN jsonb_build_object('actor', source.withdrawn_by_id::text,
-                'at', source.reviewed_at, 'account', proposal.user_account_id::text) END
-        WHEN 'request_withdrawal' THEN (SELECT jsonb_build_object('actor', withdrawal.withdrawn_by_id::text,
-            'at', withdrawal.withdrawn_at, 'account', proposal.user_account_id::text)
-            FROM users_companyeligibilityrequestwithdrawal withdrawal WHERE withdrawal.request_id = proposal.uuid)
-        WHEN 'company_revocation' THEN (SELECT jsonb_build_object('actor', revoked.revoked_by_id::text,
-            'at', revoked.revoked_at, 'account', proposal.user_account_id::text)
-            FROM users_companyeligibilityrevocation revoked WHERE revoked.decision_id = decision.uuid)
-        WHEN 'expiry' THEN CASE WHEN LEAST(decision.expires_at, source.expires_at,
-            CASE WHEN source.category = 'accountant_certificate'
-                THEN users_company_eligibility_certificate_expiry(source.certificate_issued_at) END) <= clock_timestamp()
-            THEN jsonb_build_object('actor', NULL, 'at', LEAST(decision.expires_at, source.expires_at,
-                CASE WHEN source.category = 'accountant_certificate'
-                    THEN users_company_eligibility_certificate_expiry(source.certificate_issued_at) END),
-                'account', proposal.user_account_id::text) END
-        WHEN 'evidence_purge' THEN CASE WHEN users_classification_evidence_retention_days() > 0
-            AND CASE source.status WHEN 'verified' THEN source.expires_at WHEN 'rejected' THEN source.reviewed_at
-                WHEN 'revoked' THEN source.reviewed_at WHEN 'withdrawn' THEN source.reviewed_at END
-                + make_interval(secs => 86400.0 * users_classification_evidence_retention_days()) <= clock_timestamp()
-            AND (COALESCE(source.evidence_file, '') = '' OR EXISTS (
-                SELECT 1 FROM documents WHERE classification_id = source.uuid AND purged_at IS NOT NULL AND file = ''))
-            THEN jsonb_build_object('actor', NULL, 'at', CASE WHEN COALESCE(source.evidence_file, '') = ''
-                THEN source.updated_at ELSE (SELECT min(purged_at) FROM documents WHERE classification_id = source.uuid
-                    AND purged_at IS NOT NULL AND file = '') END,
-                'account', proposal.user_account_id::text) END
-        END FROM users_companyeligibilitydecision decision
-        JOIN users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id
-        JOIN users_investorclassification source ON source.uuid = proposal.source_id
-        WHERE decision.uuid = bound_decision_id AND decision.outcome = 'accepted'
-            AND proposal.category IN ('accountant_certificate', 'professional_investor')) END;
+    SELECT jsonb_build_object('actor', event.initiated_by_id::text, 'at', event.invalidated_at,
+        'account', event.user_account_id::text, 'wallet', event.wallet_id::text, 'address', event.address, 'targets', event.facts->'targets', 'chain_id', event.chain_id)
+    FROM whitelist_whitelisteligibilityinvalidation event WHERE event.uuid = bound_invalidation_id AND event.cause = bound_cause;
 $function$;
 
 CREATE OR REPLACE FUNCTION public.whitelist_eligibility_invalidation_facts(bound_account_id uuid, bound_wallet_id uuid, bound_chain_id bigint)
@@ -622,28 +585,25 @@ DECLARE
     retained_cause jsonb;
 BEGIN
     IF TG_OP = 'UPDATE' THEN
-        IF ROW(NEW.eligibility_decision_id, NEW.eligibility_invalidation_id, NEW.invalidation_cause, NEW.invalidated_at)
-            IS DISTINCT FROM ROW(OLD.eligibility_decision_id, OLD.eligibility_invalidation_id,
-                OLD.invalidation_cause, OLD.invalidated_at)
+        IF ROW(NEW.eligibility_invalidation_id, NEW.invalidation_cause, NEW.invalidated_at)
+            IS DISTINCT FROM ROW(OLD.eligibility_invalidation_id, OLD.invalidation_cause, OLD.invalidated_at)
         THEN RAISE EXCEPTION 'Whitelist invalidation provenance is immutable' USING ERRCODE = '23514'; END IF;
         RETURN NEW;
     END IF;
     IF NEW.authority <> 'refresh' THEN
-        IF NEW.initiated_by_id IS NULL OR NEW.eligibility_decision_id IS NOT NULL
+        IF NEW.initiated_by_id IS NULL
             OR NEW.eligibility_invalidation_id IS NOT NULL OR NEW.invalidation_cause <> '' OR NEW.invalidated_at IS NOT NULL
-        THEN RAISE EXCEPTION 'Technical commands do not borrow eligibility invalidation provenance'
+        THEN RAISE EXCEPTION 'Technical commands do not borrow invalidation provenance'
             USING ERRCODE = '23514'; END IF;
         RETURN NEW;
     END IF;
     command := NULLIF(current_setting('app.whitelist_invalidation', true), '')::jsonb;
-    retained_cause := whitelist_eligibility_invalidation_cause(
-        NEW.eligibility_decision_id, NEW.invalidation_cause, NEW.eligibility_invalidation_id);
+    retained_cause := whitelist_eligibility_invalidation_cause(NEW.invalidation_cause, NEW.eligibility_invalidation_id);
     IF current_user <> __OPERATOR__ OR command IS NULL OR retained_cause IS NULL
         OR NEW.action <> 'remove' OR NEW.expires_at IS NOT NULL
         OR NEW.chain_id::text IS DISTINCT FROM command->>'chain_id'
         OR NEW.company_id::text IS DISTINCT FROM command->>'company'
         OR NEW.address IS DISTINCT FROM command->>'address' OR NEW.registry_address IS DISTINCT FROM command->>'registry'
-        OR NEW.eligibility_decision_id::text IS DISTINCT FROM command->>'decision'
         OR NEW.eligibility_invalidation_id::text IS DISTINCT FROM command->>'invalidation'
         OR NEW.invalidation_cause IS DISTINCT FROM command->>'cause'
         OR NEW.initiated_by_id::text IS DISTINCT FROM retained_cause->>'actor'
@@ -651,14 +611,10 @@ BEGIN
         OR NEW.invalidated_at IS DISTINCT FROM (retained_cause->>'at')::timestamptz
         OR NEW.requested_wallet_id IS NOT NULL OR retained_cause->>'account' IS DISTINCT FROM command->>'account'
     THEN RAISE EXCEPTION 'Only the exact retained cause can admit a REMOVE' USING ERRCODE = '23514'; END IF;
-    IF NEW.invalidation_cause <> 'wallet_removal' AND EXISTS (
-        SELECT 1 FROM users_companyeligibilitydecision decision
-        JOIN users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id
-        WHERE proposal.company_id = NEW.company_id AND proposal.user_account_id = (command->>'account')::uuid
-            AND users_company_eligibility_decision_facts_current(
-                decision.uuid, proposal.user_account_id, NEW.company_id, clock_timestamp()))
-    THEN RAISE EXCEPTION 'Another live general company decision prevents removal' USING ERRCODE = '23514'; END IF;
-    IF NEW.eligibility_invalidation_id IS NOT NULL AND NOT EXISTS (
+    IF NEW.invalidation_cause <> 'wallet_removal'
+        AND users_participant_current((command->>'account')::uuid, NEW.company_id)
+    THEN RAISE EXCEPTION 'A current participant keeps the company approval' USING ERRCODE = '23514'; END IF;
+    IF NOT EXISTS (
         SELECT 1 FROM jsonb_array_elements(retained_cause->'targets') target
         WHERE target->>'company' = NEW.company_id::text AND target->>'registry' = NEW.registry_address
             AND target->>'address' = NEW.address AND target->>'wallet' = command->>'wallet')
@@ -692,7 +648,7 @@ BEGIN
     IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL
         OR current_setting('app.wallet_nomination_operation', true) IS DISTINCT FROM 'submit'
         OR NEW.submitted_by_id IS DISTINCT FROM principal OR NOT whitelist_wallet_nomination_current(NEW)
-    THEN RAISE EXCEPTION 'Nominate only the participant owned wallet with genuine current proof and exact GENERAL eligibility' USING ERRCODE = '23514'; END IF;
+    THEN RAISE EXCEPTION 'Nominate only the current participant owned wallet with genuine current proof' USING ERRCODE = '23514'; END IF;
     NEW.submitted_at := clock_timestamp(); NEW.created_at := NEW.submitted_at; NEW.updated_at := NEW.submitted_at;
     RETURN NEW;
 END;
@@ -724,28 +680,24 @@ DECLARE
     issuer_id uuid;
     account_id uuid;
     bound_wallet_id uuid;
-    decision_id uuid;
     event_id uuid;
     retained_cause jsonb;
     account_ids uuid[];
     profile_ids uuid[];
     actor_ids bigint[];
-    source_ids uuid[];
-    proposal_ids uuid[];
-    decision_ids uuid[];
     captured_binding jsonb;
     lock_id bigint;
 BEGIN
     IF current_user <> __OPERATOR__ OR jsonb_typeof(command) IS DISTINCT FROM 'object'
-        OR (SELECT count(*) FROM jsonb_object_keys(command)) <> 12
+        OR (SELECT count(*) FROM jsonb_object_keys(command)) <> 11
         OR command->'version' IS DISTINCT FROM '1'::jsonb OR command->>'operation' IS DISTINCT FROM 'remove'
         OR NOT (command ?& ARRAY['version', 'operation', 'company', 'account', 'wallet', 'address', 'registry',
-            'decision', 'invalidation', 'cause', 'actor', 'chain_id']) OR NULLIF(current_setting('app.user_id', true), '') IS NOT NULL
+            'invalidation', 'cause', 'actor', 'chain_id']) OR NULLIF(current_setting('app.user_id', true), '') IS NOT NULL
     THEN RAISE EXCEPTION 'Bind the exact automatic REMOVE entry' USING ERRCODE = '23514'; END IF;
     IF command->>'version' IS DISTINCT FROM '1' OR EXISTS (
-        SELECT 1 FROM unnest(ARRAY['company', 'account', 'address', 'registry', 'cause', 'operation']) key
+        SELECT 1 FROM unnest(ARRAY['company', 'account', 'address', 'registry', 'cause', 'operation', 'invalidation']) key
         WHERE jsonb_typeof(command->key) IS DISTINCT FROM 'string') OR EXISTS (
-        SELECT 1 FROM unnest(ARRAY['wallet', 'decision', 'invalidation', 'actor']) key
+        SELECT 1 FROM unnest(ARRAY['wallet', 'actor']) key
         WHERE jsonb_typeof(command->key) NOT IN ('null', 'string'))
         OR (command->>'actor' IS NOT NULL AND command->>'actor' !~ '^[1-9][0-9]*$')
     THEN RAISE EXCEPTION 'Retain complete typed REMOVE command facts' USING ERRCODE = '23514'; END IF;
@@ -755,7 +707,6 @@ BEGIN
     issuer_id := (command->>'company')::uuid;
     account_id := (command->>'account')::uuid;
     bound_wallet_id := (command->>'wallet')::uuid;
-    decision_id := (command->>'decision')::uuid;
     event_id := (command->>'invalidation')::uuid;
     IF issuer_id IS NULL OR account_id IS NULL OR NOT COALESCE(command->>'address' ~ '^0x[0-9a-f]{40}$', false)
         OR NOT COALESCE(command->>'registry' ~ '^0x[0-9a-f]{40}$', false)
@@ -769,10 +720,10 @@ BEGIN
     IF EXISTS (SELECT 1 FROM wallets wallet WHERE wallet.uuid = bound_wallet_id AND (wallet.user_account_id <> account_id
         OR lower(wallet.address) IS DISTINCT FROM command->>'address' OR wallet.chain <> 'base'))
     THEN RAISE EXCEPTION 'The captured wallet changed account or address' USING ERRCODE = '23514'; END IF;
-    retained_cause := whitelist_eligibility_invalidation_cause(decision_id, command->>'cause', event_id);
+    retained_cause := whitelist_eligibility_invalidation_cause(command->>'cause', event_id);
     IF retained_cause IS NULL OR retained_cause->>'account' IS DISTINCT FROM account_id::text
         OR retained_cause->>'actor' IS DISTINCT FROM command->>'actor'
-        OR (event_id IS NOT NULL AND retained_cause->>'chain_id' IS DISTINCT FROM command->>'chain_id')
+        OR retained_cause->>'chain_id' IS DISTINCT FROM command->>'chain_id'
         OR (command->>'cause' = 'wallet_removal' AND (retained_cause->>'wallet' IS DISTINCT FROM bound_wallet_id::text
             OR retained_cause->>'address' IS DISTINCT FROM command->>'address'))
     THEN RAISE EXCEPTION 'Retain the original attributable invalidation' USING ERRCODE = '23514'; END IF;
@@ -793,25 +744,7 @@ BEGIN
     IF (SELECT array_agg(DISTINCT profile.user_id ORDER BY profile.user_id) FROM users_userprofile profile WHERE profile.uuid = ANY(profile_ids))
         IS DISTINCT FROM actor_ids THEN RAISE EXCEPTION 'The captured human changed' USING ERRCODE = '23514'; END IF;
     PERFORM 1 FROM operators_operator configuration WHERE configuration.id = 1 FOR NO KEY UPDATE;
-    IF NOT FOUND THEN RAISE EXCEPTION 'Company eligibility configuration is missing' USING ERRCODE = '55000'; END IF;
-    SELECT array_agg(DISTINCT proposal.source_id ORDER BY proposal.source_id),
-        array_agg(proposal.uuid ORDER BY proposal.uuid), array_agg(decision.uuid ORDER BY decision.uuid)
-        INTO source_ids, proposal_ids, decision_ids FROM users_companyeligibilityrequest proposal
-        JOIN users_companyeligibilitydecision decision ON decision.request_id = proposal.uuid
-        WHERE proposal.company_id = issuer_id AND proposal.user_account_id = account_id
-            AND proposal.category IN ('accountant_certificate', 'professional_investor') AND decision.outcome = 'accepted';
-    IF decision_id IS NOT NULL AND NOT COALESCE(decision_id = ANY(decision_ids), false)
-    THEN RAISE EXCEPTION 'The cause decision belongs to another context' USING ERRCODE = '23514'; END IF;
-    PERFORM 1 FROM users_investorclassification source WHERE source.uuid = ANY(source_ids) ORDER BY source.uuid FOR NO KEY UPDATE;
-    IF EXISTS (SELECT 1 FROM users_investorclassification source WHERE source.uuid = ANY(source_ids) AND source.user_account_id <> account_id)
-    THEN RAISE EXCEPTION 'Retain the captured source account' USING ERRCODE = '23514'; END IF;
-    PERFORM 1 FROM documents document WHERE document.classification_id = ANY(source_ids) ORDER BY document.uuid FOR NO KEY UPDATE;
-    PERFORM 1 FROM users_companyeligibilityrequest proposal WHERE proposal.uuid = ANY(proposal_ids) ORDER BY proposal.uuid FOR NO KEY UPDATE;
-    PERFORM 1 FROM users_companyeligibilitydecision decision WHERE decision.uuid = ANY(decision_ids) ORDER BY decision.uuid FOR NO KEY UPDATE;
-    PERFORM 1 FROM users_companyeligibilityrequestwithdrawal withdrawal WHERE withdrawal.request_id = ANY(proposal_ids)
-        ORDER BY withdrawal.uuid FOR NO KEY UPDATE;
-    PERFORM 1 FROM users_companyeligibilityrevocation revoked WHERE revoked.decision_id = ANY(decision_ids)
-        ORDER BY revoked.uuid FOR NO KEY UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Operator configuration is missing' USING ERRCODE = '55000'; END IF;
     PERFORM 1 FROM whitelist_whitelisteligibilityinvalidation event WHERE event.uuid = event_id FOR NO KEY UPDATE;
     PERFORM 1 FROM whitelist_whitelistchange mutation WHERE mutation.chain_id = (command->>'chain_id')::bigint
         AND mutation.registry_address = command->>'registry' AND mutation.address = command->>'address'
@@ -832,27 +765,20 @@ CREATE OR REPLACE FUNCTION public.whitelist_wallet_nomination_current(nomination
  SET search_path TO 'pg_catalog', 'public'
 AS $function$
     SELECT COALESCE((SELECT nomination.sharing_accepted
-        AND nomination.company_id = request.company_id AND nomination.request_id = decision.request_id
-        AND nomination.decision_id = decision.uuid AND nomination.proof_id = proof.uuid
-        AND nomination.wallet_id = proof.wallet_id AND request.user_account_id = proof.account_id
+        AND nomination.proof_id = proof.uuid AND nomination.wallet_id = proof.wallet_id
         AND nomination.submitted_by_id = proof.verified_by_id
-        AND nomination.snapshot->>'company' = nomination.company_id::text
-        AND nomination.snapshot->>'request' = request.uuid::text AND nomination.snapshot->>'decision' = decision.uuid::text
-        AND nomination.snapshot->>'wallet' = proof.wallet_id::text AND nomination.snapshot->>'proof' = proof.uuid::text
-        AND nomination.snapshot->>'account' = proof.account_id::text AND nomination.snapshot->>'profile' = proof.profile_id::text
-        AND nomination.snapshot->>'participant' = proof.verified_by_id::text AND nomination.snapshot->>'address' = lower(proof.address)
-        AND nomination.snapshot->>'chain' = 'base' AND proof.chain = 'base'
+        AND nomination.snapshot = jsonb_build_object('company', nomination.company_id::text,
+            'wallet', proof.wallet_id::text, 'address', lower(proof.address), 'chain', 'base',
+            'proof', proof.uuid::text, 'proof_completed_at', nomination.snapshot->'proof_completed_at',
+            'account', proof.account_id::text, 'profile', proof.profile_id::text,
+            'participant', proof.verified_by_id, 'proof_digest', proof.digest)
+        AND proof.chain = 'base'
         AND (nomination.snapshot->>'proof_completed_at')::timestamptz = proof.completed_at
-        AND (nomination.snapshot->>'eligibility_expires_at')::timestamptz = decision.expires_at
-        AND nomination.snapshot->>'proof_digest' = proof.digest AND nomination.snapshot->>'request_digest' = request.digest
-        AND nomination.snapshot->>'decision_digest' = decision.digest
         AND nomination.digest = nomination.preview_digest
         AND nomination.digest = encode(sha256(convert_to(nomination.snapshot::text, 'UTF8')), 'hex')
         AND wallets_possession_proof_current(proof.uuid)
-        AND users_company_eligibility_decision_facts_current(decision.uuid, request.user_account_id, nomination.company_id,
-            clock_timestamp())
-        FROM users_companyeligibilityrequest request JOIN users_companyeligibilitydecision decision ON decision.uuid = nomination.decision_id
-        JOIN wallets_walletpossessionproof proof ON proof.uuid = nomination.proof_id WHERE request.uuid = nomination.request_id), false);
+        AND users_participant_current(proof.account_id, nomination.company_id)
+        FROM wallets_walletpossessionproof proof WHERE proof.uuid = nomination.proof_id), false);
 $function$;
 
 CREATE TRIGGER whitelist_company_signature BEFORE INSERT ON blockchain_signedattempt FOR EACH ROW EXECUTE FUNCTION whitelist_check_company_signature();

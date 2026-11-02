@@ -134,8 +134,7 @@ issued.
 A company appointee can pause a deployed class, which stops every movement of its shares on chain,
 or unpause it, through the API: the preparation gives the requested state with a reason, an
 authority reference and the authority document, and is then approved and applied. Pausing needs no
-eligibility decision, nomination, payment or issue, and changes neither the cap nor the issued
-shares.
+nomination, payment or issue, and changes neither the cap nor the issued shares.
 
 Approval or admitted work does not mean transfers have stopped or resumed: the API reports the
 requested state and its outcome apart from the class's current state. If the class is already in the
@@ -371,8 +370,8 @@ allotments, calls, outstanding amounts, collection, payment providers and refund
 A chain grant mints outright non-paid shares on a deployed class whose register was opened from the
 chain; a class opened by an import cannot use it. It needs, separately:
 
-- the participant's own nomination of the receiving wallet, with proof that they control it;
-- a current general [eligibility decision](participants.md#what-a-decision-opens) from this company;
+- the participant's own nomination of the receiving wallet, with proof that they control it, while
+  they remain a [current participant](participants.md#account-standing);
 - a time-limited [company approval](participants.md#wallet-nominations-and-company-wallet-approvals)
   of that wallet, applied on chain;
 - a [wallet link](register.md#linking-wallets-to-members) from that wallet to the member, made
@@ -479,4 +478,4 @@ represent the existing shares without a second Issue entry or more issued shares
 mapped holding against final chain evidence before claiming a mirror.
 
 Next: [register of members](register.md), [member records and register outputs](member-records.md),
-[participants and eligibility](participants.md) and [planned offerings](offerings.md).
+[investors and members](participants.md) and [planned offerings](offerings.md).

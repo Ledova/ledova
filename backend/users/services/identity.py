@@ -17,6 +17,7 @@ from integrations.kyc.constants import (
     REVIEW_RED,
     REVIEW_YELLOW,
 )
+from operators.models import Operator
 from shared.db import atomic, principal_of, use_operator
 from shared.models.country import Country
 from shared.tasks.queue import defer
@@ -173,9 +174,7 @@ def update_status_from_normalized(user_profile: UserProfile, normalized: Normali
             user_profile.verified_at = None
 
         if was_verified and not user_profile.is_id_verified and user_account is not None:
-            from users.services.company_eligibility import _configuration
-
-            if _configuration().investor_kyc_required:
+            if Operator.configured().investor_kyc_required:
                 enqueue_for_account(
                     user_account.pk,
                     actor,
@@ -217,7 +216,6 @@ def _process_verified_customer(user_profile, pep_data: Dict[str, Any], user_acco
         ACCOUNT_STATUS_PENDING,
         ACCOUNT_STATUS_REJECTED,
     )
-    from users.services.company_eligibility import _configuration
 
     pep_type = pep_data.get("pep_type", "none")
 
@@ -227,7 +225,7 @@ def _process_verified_customer(user_profile, pep_data: Dict[str, Any], user_acco
 
     allowed_statuses = (
         (ACCOUNT_STATUS_ACTIVE,)
-        if _configuration().investor_kyc_required
+        if Operator.configured().investor_kyc_required
         else (ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_PENDING)
     )
 

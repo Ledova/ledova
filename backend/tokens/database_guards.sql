@@ -2552,7 +2552,6 @@ BEGIN
     SELECT * INTO submission FROM public.tokens_ordersubmission WHERE uuid = NEW.creation_submission_id;
     SELECT * INTO challenge FROM public.signing_challenges WHERE uuid = submission.executed_challenge_id;
     IF submission.status IS DISTINCT FROM 'created' OR submission.order_id IS DISTINCT FROM NEW.uuid
-        OR submission.eligibility_decision_id IS DISTINCT FROM NEW.eligibility_decision_id
         OR ROW(submission.owner_account_id, submission.wallet_id, submission.token_id, submission.wallet_address,
             submission.order_type, submission.quantity, submission.min_quantity, submission.price_per_share)
         IS DISTINCT FROM ROW(NEW.owner_account_id, NEW.wallet_id, NEW.token_id, NEW.wallet_address,
@@ -2584,10 +2583,8 @@ BEGIN
         NEW.quantity, NEW.min_quantity, NEW.price_per_share);
     IF action.status IS DISTINCT FROM 'applied' OR action.purpose IS DISTINCT FROM 'modify'
         OR ROW(action.order_id, action.owner_account_id, action.wallet_id, action.token_id,
-            action.eligibility_decision_id, action.eligibility_admitted_at,
             action.new_quantity, action.new_min_quantity, action.new_price_per_share)
         IS DISTINCT FROM ROW(NEW.uuid, NEW.owner_account_id, NEW.wallet_id, NEW.token_id,
-            NEW.last_modification_eligibility_decision_id, NEW.last_modified_at,
             NEW.quantity, NEW.min_quantity, NEW.price_per_share)
         OR action.initiated_by_id IS DISTINCT FROM action.executed_by_id
         OR action.result IS DISTINCT FROM jsonb_build_object('kind', 'modify',
@@ -4991,23 +4988,8 @@ DECLARE
     command jsonb;
     target public.tokens_transferorder;
 BEGIN
-    IF current_user = __MIGRATE__ THEN
-        IF (TG_OP = 'INSERT' AND (NEW.eligibility_decision_id IS NOT NULL OR NEW.eligibility_admitted_at IS NOT NULL))
-            OR (TG_OP = 'UPDATE' AND ROW(NEW.eligibility_decision_id, NEW.eligibility_admitted_at)
-                IS DISTINCT FROM ROW(OLD.eligibility_decision_id, OLD.eligibility_admitted_at))
-        THEN RAISE EXCEPTION 'Maintenance cannot manufacture action admission' USING ERRCODE = '23514'; END IF;
-        RETURN NEW;
-    END IF;
-    IF TG_OP = 'UPDATE' AND OLD.status <> 'pending' THEN
-        IF ROW(NEW.eligibility_decision_id, NEW.eligibility_admitted_at)
-            IS DISTINCT FROM ROW(OLD.eligibility_decision_id, OLD.eligibility_admitted_at)
-        THEN RAISE EXCEPTION 'Retain terminal action admission evidence' USING ERRCODE = '23514'; END IF;
-        RETURN NEW;
-    END IF;
-    IF TG_OP = 'INSERT' OR NEW.status <> 'applied' OR NEW.purpose <> 'modify' THEN
-        IF NEW.eligibility_decision_id IS NOT NULL OR NEW.eligibility_admitted_at IS NOT NULL THEN
-            RAISE EXCEPTION 'Only an applied modification retains its actual event admission' USING ERRCODE = '23514';
-        END IF;
+    IF current_user = __MIGRATE__ OR TG_OP = 'INSERT' OR OLD.status <> 'pending'
+        OR NEW.status <> 'applied' OR NEW.purpose <> 'modify' THEN
         RETURN NEW;
     END IF;
     command := public.tokens_trading_command();
@@ -5019,13 +5001,10 @@ BEGIN
         OR NEW.initiated_by_id IS DISTINCT FROM NEW.executed_by_id
         OR NEW.executed_challenge_id IS DISTINCT FROM (command->>'challenge_uuid')::uuid
         OR target.last_modification_action_id IS DISTINCT FROM NEW.uuid
-        OR target.last_modification_eligibility_decision_id IS DISTINCT FROM (command->>'decision_uuid')::uuid
-        OR NEW.eligibility_decision_id IS DISTINCT FROM target.last_modification_eligibility_decision_id
         OR target.last_modified_at IS NULL
         OR NEW.result->>'modification_count' IS DISTINCT FROM target.modification_count::text
         OR NOT public.tokens_trading_binding(command)
-    THEN RAISE EXCEPTION 'Resolve the exact admitted modification event decision' USING ERRCODE = '23514'; END IF;
-    NEW.eligibility_admitted_at := target.last_modified_at;
+    THEN RAISE EXCEPTION 'Resolve the exact admitted modification event' USING ERRCODE = '23514'; END IF;
     RETURN NEW;
 END;
 $function$;
@@ -5049,9 +5028,8 @@ BEGIN
         IF EXISTS (SELECT 1 FROM public.signing_challenges issued
             JOIN public.tokens_orderactionsubmission linked ON linked.uuid = issued.action_id
             JOIN public.tokens_transferorder retained_order ON retained_order.uuid = linked.order_id
-            WHERE issued.uuid = OLD.challenge_id AND (linked.eligibility_decision_id IS NOT NULL
-                OR (retained_order.last_modification_action_id = linked.uuid
-                    AND retained_order.last_modification_eligibility_decision_id IS NOT NULL)))
+            WHERE issued.uuid = OLD.challenge_id AND ((linked.status = 'applied' AND linked.purpose = 'modify')
+                OR retained_order.last_modification_action_id = linked.uuid))
             OR (TG_OP = 'UPDATE' AND ROW(NEW.order_id, NEW.challenge_id) IS DISTINCT FROM ROW(OLD.order_id, OLD.challenge_id))
         THEN RAISE EXCEPTION 'Retain completed modification logs and their association' USING ERRCODE = '23514'; END IF;
         IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
@@ -5062,9 +5040,7 @@ BEGIN
     SELECT * INTO target FROM public.tokens_transferorder WHERE uuid = NEW.order_id;
     SELECT * INTO challenge FROM public.signing_challenges WHERE uuid = NEW.challenge_id;
     IF command->>'operation' IS DISTINCT FROM 'modify_order' OR action.status IS DISTINCT FROM 'pending'
-        OR action.eligibility_decision_id IS NOT NULL OR action.eligibility_admitted_at IS NOT NULL
         OR action.order_id IS DISTINCT FROM NEW.order_id OR target.last_modification_action_id IS DISTINCT FROM action.uuid
-        OR target.last_modification_eligibility_decision_id IS DISTINCT FROM (command->>'decision_uuid')::uuid
         OR target.last_modified_at IS NULL OR challenge.uuid IS DISTINCT FROM (command->>'challenge_uuid')::uuid
         OR challenge.action_id IS DISTINCT FROM action.uuid OR challenge.consumed_at IS NULL
         OR NEW.signature IS DISTINCT FROM target.current_signature
@@ -5089,30 +5065,27 @@ DECLARE
     checked_at timestamptz;
 BEGIN
     IF current_user = __MIGRATE__ THEN
-        IF (TG_OP = 'INSERT' AND (NEW.eligibility_decision_id IS NOT NULL OR NEW.creation_submission_id IS NOT NULL
-            OR NEW.last_modification_action_id IS NOT NULL OR NEW.last_modification_eligibility_decision_id IS NOT NULL))
-            OR (TG_OP = 'UPDATE' AND ROW(NEW.eligibility_decision_id, NEW.creation_submission_id,
-                NEW.last_modification_action_id, NEW.last_modification_eligibility_decision_id)
-                IS DISTINCT FROM ROW(OLD.eligibility_decision_id, OLD.creation_submission_id,
-                OLD.last_modification_action_id, OLD.last_modification_eligibility_decision_id))
+        IF (TG_OP = 'INSERT' AND (NEW.creation_submission_id IS NOT NULL OR NEW.last_modification_action_id IS NOT NULL))
+            OR (TG_OP = 'UPDATE' AND ROW(NEW.creation_submission_id, NEW.last_modification_action_id)
+                IS DISTINCT FROM ROW(OLD.creation_submission_id, OLD.last_modification_action_id))
         THEN RAISE EXCEPTION 'Maintenance cannot manufacture trading admission' USING ERRCODE = '23514'; END IF;
-        IF TG_OP = 'INSERT' OR (OLD.eligibility_decision_id IS NULL AND OLD.last_modification_eligibility_decision_id IS NULL)
+        IF TG_OP = 'INSERT' OR (OLD.creation_submission_id IS NULL AND OLD.last_modification_action_id IS NULL)
         THEN RETURN NEW; END IF;
     END IF;
     IF TG_OP = 'UPDATE' AND ROW(NEW.uuid, NEW.token_id, NEW.owner_account_id, NEW.wallet_id, NEW.wallet_address,
-        NEW.order_type, NEW.created_at, NEW.creation_submission_id, NEW.eligibility_decision_id)
+        NEW.order_type, NEW.created_at, NEW.creation_submission_id)
         IS DISTINCT FROM ROW(OLD.uuid, OLD.token_id, OLD.owner_account_id, OLD.wallet_id, OLD.wallet_address,
-        OLD.order_type, OLD.created_at, OLD.creation_submission_id, OLD.eligibility_decision_id)
+        OLD.order_type, OLD.created_at, OLD.creation_submission_id)
     THEN RAISE EXCEPTION 'Retain immutable trading birth evidence' USING ERRCODE = '23514'; END IF;
     IF TG_OP = 'UPDATE' AND NEW.payment_asset_id IS DISTINCT FROM OLD.payment_asset_id
         AND NOT (current_user = __MIGRATE__ AND NEW.payment_asset_id IS NULL)
     THEN RAISE EXCEPTION 'Retain the original trading payment asset' USING ERRCODE = '23514'; END IF;
     IF TG_OP = 'UPDATE' AND ROW(NEW.quantity, NEW.min_quantity, NEW.price_per_share, NEW.current_signature,
         NEW.modification_count, NEW.last_modified_at, NEW.original_quantity, NEW.original_price,
-        NEW.last_modification_action_id, NEW.last_modification_eligibility_decision_id)
+        NEW.last_modification_action_id)
         IS NOT DISTINCT FROM ROW(OLD.quantity, OLD.min_quantity, OLD.price_per_share, OLD.current_signature,
         OLD.modification_count, OLD.last_modified_at, OLD.original_quantity, OLD.original_price,
-        OLD.last_modification_action_id, OLD.last_modification_eligibility_decision_id)
+        OLD.last_modification_action_id)
     THEN RETURN NEW; END IF;
     command := public.tokens_trading_command();
     IF ROW(NEW.uuid, NEW.token_id, NEW.owner_account_id, NEW.wallet_id)
@@ -5130,16 +5103,13 @@ BEGIN
     IF TG_OP = 'INSERT' THEN
         SELECT * INTO submission FROM public.tokens_ordersubmission WHERE uuid = (command->>'submission_uuid')::uuid;
         IF command->>'operation' IS DISTINCT FROM 'create_order' OR submission.status IS DISTINCT FROM 'pending'
-            OR submission.eligibility_decision_id IS NOT NULL
             OR NEW.creation_submission_id IS DISTINCT FROM submission.uuid
-            OR NEW.eligibility_decision_id IS DISTINCT FROM (command->>'decision_uuid')::uuid
             OR ROW(NEW.wallet_address, NEW.order_type, NEW.quantity, NEW.min_quantity, NEW.price_per_share)
                 IS DISTINCT FROM ROW(submission.wallet_address, submission.order_type, submission.quantity,
                     submission.min_quantity, submission.price_per_share)
             OR NEW.filled_quantity <> 0 OR NEW.modification_count <> 0 OR NEW.status <> 'open'
             OR NEW.original_quantity IS NOT NULL OR NEW.original_price IS NOT NULL OR NEW.last_modified_at IS NOT NULL
             OR NEW.current_signature <> '' OR NEW.last_modification_action_id IS NOT NULL
-            OR NEW.last_modification_eligibility_decision_id IS NOT NULL
             OR challenge.purpose <> 'order_create' OR challenge.submission_id IS DISTINCT FROM submission.uuid
             OR challenge.chain_id IS DISTINCT FROM submission.chain_id
             OR lower(challenge.verifying_contract) IS DISTINCT FROM lower(submission.verifying_contract)
@@ -5164,9 +5134,8 @@ BEGIN
     ELSE
         SELECT * INTO action FROM public.tokens_orderactionsubmission WHERE uuid = (command->>'action_uuid')::uuid;
         IF command->>'operation' IS DISTINCT FROM 'modify_order' OR action.status IS DISTINCT FROM 'pending'
-            OR action.purpose IS DISTINCT FROM 'modify' OR action.eligibility_decision_id IS NOT NULL
+            OR action.purpose IS DISTINCT FROM 'modify'
             OR NEW.last_modification_action_id IS DISTINCT FROM action.uuid
-            OR NEW.last_modification_eligibility_decision_id IS DISTINCT FROM (command->>'decision_uuid')::uuid
             OR action.order_id IS DISTINCT FROM NEW.uuid
             OR ROW(NEW.quantity, NEW.min_quantity, NEW.price_per_share)
                 IS DISTINCT FROM ROW(action.new_quantity, action.new_min_quantity, action.new_price_per_share)
@@ -5201,28 +5170,7 @@ DECLARE
     command jsonb;
     target public.tokens_transferorder;
 BEGIN
-    IF current_user = __MIGRATE__ THEN
-        IF (TG_OP = 'INSERT' AND NEW.eligibility_decision_id IS NOT NULL)
-            OR (TG_OP = 'UPDATE' AND NEW.eligibility_decision_id IS DISTINCT FROM OLD.eligibility_decision_id)
-        THEN RAISE EXCEPTION 'Maintenance cannot manufacture order admission' USING ERRCODE = '23514'; END IF;
-        RETURN NEW;
-    END IF;
-    IF TG_OP = 'INSERT' THEN
-        IF NEW.eligibility_decision_id IS NOT NULL THEN
-            RAISE EXCEPTION 'Pending submissions have no admitted basis' USING ERRCODE = '23514';
-        END IF;
-        RETURN NEW;
-    END IF;
-    IF OLD.status <> 'pending' THEN
-        IF NEW.eligibility_decision_id IS DISTINCT FROM OLD.eligibility_decision_id THEN
-            RAISE EXCEPTION 'Retain terminal order admission evidence' USING ERRCODE = '23514';
-        END IF;
-        RETURN NEW;
-    END IF;
-    IF NEW.status <> 'created' THEN
-        IF NEW.eligibility_decision_id IS NOT NULL THEN
-            RAISE EXCEPTION 'Only genuine created submissions retain admission' USING ERRCODE = '23514';
-        END IF;
+    IF current_user = __MIGRATE__ OR TG_OP = 'INSERT' OR OLD.status <> 'pending' OR NEW.status <> 'created' THEN
         RETURN NEW;
     END IF;
     command := public.tokens_trading_command();
@@ -5231,9 +5179,7 @@ BEGIN
         OR NEW.uuid IS DISTINCT FROM (command->>'submission_uuid')::uuid
         OR NEW.order_id IS DISTINCT FROM (command->>'target_uuid')::uuid
         OR NEW.initiated_by_id IS DISTINCT FROM (command->>'actor_id')::bigint
-        OR NEW.eligibility_decision_id IS DISTINCT FROM (command->>'decision_uuid')::uuid
         OR target.creation_submission_id IS DISTINCT FROM NEW.uuid
-        OR target.eligibility_decision_id IS DISTINCT FROM NEW.eligibility_decision_id
         OR NEW.executed_challenge_id IS DISTINCT FROM (command->>'challenge_uuid')::uuid
         OR NOT public.tokens_trading_binding(command)
     THEN RAISE EXCEPTION 'Resolve the actual admitted order birth' USING ERRCODE = '23514'; END IF;
@@ -5252,39 +5198,20 @@ DECLARE
     seller boolean;
     checked_at timestamptz;
 BEGIN
-    IF current_user = __MIGRATE__ THEN
-        IF (TG_OP = 'INSERT' AND (NEW.seller_eligibility_decision_id IS NOT NULL OR NEW.buyer_eligibility_decision_id IS NOT NULL
-            OR NEW.seller_eligibility_admitted_at IS NOT NULL OR NEW.buyer_eligibility_admitted_at IS NOT NULL))
-            OR (TG_OP = 'UPDATE' AND ROW(NEW.seller_eligibility_decision_id, NEW.buyer_eligibility_decision_id,
-                NEW.seller_eligibility_admitted_at, NEW.buyer_eligibility_admitted_at)
-                IS DISTINCT FROM ROW(OLD.seller_eligibility_decision_id, OLD.buyer_eligibility_decision_id,
-                OLD.seller_eligibility_admitted_at, OLD.buyer_eligibility_admitted_at))
-        THEN RAISE EXCEPTION 'Maintenance cannot manufacture party admission' USING ERRCODE = '23514'; END IF;
-        IF TG_OP = 'INSERT' OR (OLD.seller_eligibility_decision_id IS NULL AND OLD.buyer_eligibility_decision_id IS NULL)
-        THEN RETURN NEW; END IF;
-    END IF;
+    IF current_user = __MIGRATE__
+        AND (TG_OP = 'INSERT' OR (OLD.seller_signature = '' AND OLD.buyer_signature = ''))
+    THEN RETURN NEW; END IF;
     IF TG_OP = 'INSERT' THEN
-        IF NEW.seller_signature <> '' OR NEW.buyer_signature <> '' OR NEW.seller_eligibility_decision_id IS NOT NULL
-            OR NEW.buyer_eligibility_decision_id IS NOT NULL OR NEW.seller_eligibility_admitted_at IS NOT NULL
-            OR NEW.buyer_eligibility_admitted_at IS NOT NULL
-        THEN RAISE EXCEPTION 'New swaps start without party signatures or admission' USING ERRCODE = '23514'; END IF;
+        IF NEW.seller_signature <> '' OR NEW.buyer_signature <> ''
+        THEN RAISE EXCEPTION 'New swaps start without party signatures' USING ERRCODE = '23514'; END IF;
         RETURN NEW;
     END IF;
-    IF ROW(NEW.seller_signature, NEW.buyer_signature, NEW.seller_eligibility_decision_id, NEW.buyer_eligibility_decision_id,
-            NEW.seller_eligibility_admitted_at, NEW.buyer_eligibility_admitted_at)
-        IS NOT DISTINCT FROM ROW(OLD.seller_signature, OLD.buyer_signature, OLD.seller_eligibility_decision_id,
-            OLD.buyer_eligibility_decision_id, OLD.seller_eligibility_admitted_at, OLD.buyer_eligibility_admitted_at)
+    IF ROW(NEW.seller_signature, NEW.buyer_signature) IS NOT DISTINCT FROM ROW(OLD.seller_signature, OLD.buyer_signature)
     THEN RETURN NEW; END IF;
     seller := OLD.seller_signature = '' AND NEW.seller_signature <> '';
-    IF (seller AND (OLD.buyer_signature IS DISTINCT FROM NEW.buyer_signature
-        OR ROW(NEW.buyer_eligibility_decision_id, NEW.buyer_eligibility_admitted_at)
-            IS DISTINCT FROM ROW(OLD.buyer_eligibility_decision_id, OLD.buyer_eligibility_admitted_at)
-        OR OLD.seller_eligibility_decision_id IS NOT NULL OR OLD.seller_eligibility_admitted_at IS NOT NULL))
+    IF (seller AND OLD.buyer_signature IS DISTINCT FROM NEW.buyer_signature)
         OR (NOT seller AND (OLD.buyer_signature <> '' OR NEW.buyer_signature = ''
-            OR OLD.seller_signature IS DISTINCT FROM NEW.seller_signature
-            OR ROW(NEW.seller_eligibility_decision_id, NEW.seller_eligibility_admitted_at)
-                IS DISTINCT FROM ROW(OLD.seller_eligibility_decision_id, OLD.seller_eligibility_admitted_at)
-            OR OLD.buyer_eligibility_decision_id IS NOT NULL OR OLD.buyer_eligibility_admitted_at IS NOT NULL))
+            OR OLD.seller_signature IS DISTINCT FROM NEW.seller_signature))
     THEN RAISE EXCEPTION 'Retain party signatures and admit only one genuine first signature' USING ERRCODE = '23514'; END IF;
     command := public.tokens_trading_command();
     SELECT * INTO target FROM public.tokens_transferorder WHERE uuid = CASE WHEN seller THEN NEW.sell_order_id ELSE NEW.buy_order_id END;
@@ -5299,8 +5226,6 @@ BEGIN
         OR NOT EXISTS (SELECT 1 FROM public.wallets WHERE uuid = target.wallet_id
             AND lower(address) = lower(target.wallet_address))
         OR (CASE WHEN seller THEN NEW.seller_signature ELSE NEW.buyer_signature END) IS DISTINCT FROM command->>'signature'
-        OR (CASE WHEN seller THEN NEW.seller_eligibility_decision_id ELSE NEW.buyer_eligibility_decision_id END)
-            IS DISTINCT FROM (command->>'decision_uuid')::uuid
         OR OLD.status NOT IN ('created', CASE WHEN seller THEN 'buyer_signed' ELSE 'seller_signed' END)
         OR OLD.transaction_id IS NOT NULL OR NEW.transaction_id IS NOT NULL OR OLD.tx_hash <> '' OR NEW.tx_hash <> ''
         OR ROW(NEW.settlement_protocol_version, NEW.settlement_context, NEW.settlement_digest, NEW.expires_at,
@@ -5316,8 +5241,6 @@ BEGIN
     checked_at := clock_timestamp();
     IF checked_at >= NEW.expires_at THEN RAISE EXCEPTION 'The swap signature deadline passed' USING ERRCODE = '23514'; END IF;
     PERFORM public.tokens_trading_current(command, checked_at);
-    IF seller THEN NEW.seller_eligibility_admitted_at := checked_at;
-    ELSE NEW.buyer_eligibility_admitted_at := checked_at; END IF;
     RETURN NEW;
 END;
 $function$;
@@ -5408,30 +5331,13 @@ CREATE OR REPLACE FUNCTION public.tokens_lock_trading_admission(command jsonb)
 AS $function$
 DECLARE
     actual jsonb;
-    target public.tokens_transferorder;
     action public.tokens_orderactionsubmission;
     submission public.tokens_ordersubmission;
     swap public.tokens_swaporder;
-    event_decision public.users_companyeligibilitydecision;
-    event_request public.users_companyeligibilityrequest;
 BEGIN
     actual := public.tokens_trading_command();
     IF command IS DISTINCT FROM actual THEN
         RAISE EXCEPTION 'Use the installed exact trading command' USING ERRCODE = '23514';
-    END IF;
-    IF command->>'operation' = 'modify_order' THEN
-        SELECT * INTO target FROM public.tokens_transferorder WHERE uuid = (command->>'target_uuid')::uuid;
-        IF target.last_modification_action_id = (command->>'action_uuid')::uuid
-            AND target.last_modification_eligibility_decision_id IS NOT NULL THEN
-            SELECT * INTO event_decision FROM public.users_companyeligibilitydecision
-                WHERE uuid = target.last_modification_eligibility_decision_id;
-            SELECT * INTO event_request FROM public.users_companyeligibilityrequest WHERE uuid = event_decision.request_id;
-            IF ROW(target.last_modification_eligibility_decision_id, event_request.uuid, event_request.source_id,
-                    event_request.digest, event_decision.digest)
-                IS DISTINCT FROM ROW((command->>'decision_uuid')::uuid, (command->>'request_uuid')::uuid,
-                    (command->>'source_uuid')::uuid, command->>'request_digest', command->>'decision_digest')
-            THEN RAISE EXCEPTION 'Retain the actual modification event decision' USING ERRCODE = '23514'; END IF;
-        END IF;
     END IF;
     PERFORM 1 FROM public.tokens_sharetoken WHERE uuid = (command->>'token_uuid')::uuid FOR NO KEY UPDATE;
     IF NOT EXISTS (SELECT 1 FROM public.tokens_sharetoken WHERE uuid = (command->>'token_uuid')::uuid
@@ -5470,15 +5376,8 @@ BEGIN
     THEN RAISE EXCEPTION 'The trading profile changed holder' USING ERRCODE = '23514'; END IF;
     PERFORM 1 FROM public.operators_operator WHERE id = 1 FOR SHARE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Trading configuration is missing' USING ERRCODE = '55000'; END IF;
-    PERFORM 1 FROM public.users_investorclassification WHERE uuid = (command->>'source_uuid')::uuid FOR NO KEY UPDATE;
-    IF NOT EXISTS (SELECT 1 FROM public.users_investorclassification WHERE uuid = (command->>'source_uuid')::uuid
-        AND user_account_id = (command->>'owner_account_uuid')::uuid)
-    THEN RAISE EXCEPTION 'The trading source changed account' USING ERRCODE = '23514'; END IF;
-    PERFORM 1 FROM public.documents WHERE classification_id = (command->>'source_uuid')::uuid ORDER BY uuid FOR NO KEY UPDATE;
-    PERFORM 1 FROM public.users_companyeligibilityrequest WHERE uuid = (command->>'request_uuid')::uuid FOR NO KEY UPDATE;
-    PERFORM 1 FROM public.users_companyeligibilitydecision WHERE uuid = (command->>'decision_uuid')::uuid FOR NO KEY UPDATE;
     IF NOT public.tokens_trading_binding(command) THEN
-        RAISE EXCEPTION 'The exact trading decision changed context' USING ERRCODE = '23514';
+        RAISE EXCEPTION 'The exact trading participant changed context' USING ERRCODE = '23514';
     END IF;
     IF command->>'operation' = 'create_order' THEN
         PERFORM 1 FROM public.signing_challenges WHERE uuid = (command->>'challenge_uuid')::uuid FOR UPDATE;
@@ -6172,7 +6071,7 @@ AS $function$
         AND wallet_source.nomination_id = nomination.uuid AND wallet_source.change_id = approval.uuid
         AND ((proposal.snapshot->'wallet') - 'expires_at') = jsonb_build_object('nomination', nomination.uuid, 'approval', approval.uuid,
             'address', approval.address, 'registry_address', approval.registry_address, 'chain_id', approval.chain_id,
-            'proof_completed_at', nomination.snapshot->>'proof_completed_at', 'eligibility_expires_at', nomination.snapshot->>'eligibility_expires_at')
+            'proof_completed_at', nomination.snapshot->>'proof_completed_at')
         AND EXISTS (SELECT 1 FROM whitelist_whitelistapproval listed JOIN whitelist_whitelistentry entry ON entry.uuid = listed.entry_id
             WHERE listed.company_id = company.uuid AND entry.wallet_id = nomination.wallet_id
                 AND listed.registry_address = approval.registry_address AND listed.status = 'active' AND listed.expires_at = approval.expires_at)
@@ -6887,18 +6786,9 @@ AS $function$
         AND account.user_profile_id = profile.uuid AND profile.uuid = (command->>'profile_uuid')::uuid
         AND profile.user_id = (command->>'actor_id')::bigint
         AND wallet.chain IN ('ethereum', 'base') AND wallet.verification_status = 'VERIFIED'
-        AND proposal.uuid = (command->>'request_uuid')::uuid
-        AND proposal.source_id = (command->>'source_uuid')::uuid
-        AND proposal.user_account_id = account.uuid AND proposal.company_id = token.company_id
-        AND proposal.submitted_by_id = profile.user_id
-        AND proposal.digest = command->>'request_digest'
-        AND decision.uuid = (command->>'decision_uuid')::uuid AND decision.request_id = proposal.uuid
-        AND decision.digest = command->>'decision_digest' AND decision.request_digest = proposal.digest
         FROM public.tokens_sharetoken token JOIN public.wallets wallet ON wallet.uuid = (command->>'wallet_uuid')::uuid
         JOIN public.customer_accounts_account account ON account.uuid = wallet.user_account_id
         JOIN public.users_userprofile profile ON profile.uuid = account.user_profile_id
-        JOIN public.users_companyeligibilityrequest proposal ON proposal.uuid = (command->>'request_uuid')::uuid
-        JOIN public.users_companyeligibilitydecision decision ON decision.uuid = (command->>'decision_uuid')::uuid
         WHERE token.uuid = (command->>'token_uuid')::uuid), false);
 $function$;
 
@@ -6926,8 +6816,7 @@ BEGIN
         OR command->>'operation' NOT IN ('create_order', 'modify_order', 'first_signature')
     THEN RAISE EXCEPTION 'Bind the exact trading command' USING ERRCODE = '23514'; END IF;
     keys := ARRAY['version', 'operation', 'actor_id', 'company_uuid', 'token_uuid', 'owner_account_uuid',
-        'wallet_uuid', 'profile_uuid', 'source_uuid', 'request_uuid', 'decision_uuid', 'request_digest',
-        'decision_digest', 'target_uuid'];
+        'wallet_uuid', 'profile_uuid', 'target_uuid'];
     IF command->>'operation' = 'create_order' THEN
         keys := keys || ARRAY['submission_uuid', 'submission_id', 'challenge_uuid', 'payment_asset_uuid'];
     ELSIF command->>'operation' = 'modify_order' THEN
@@ -6953,13 +6842,11 @@ BEGIN
     END IF;
     IF (command->>'actor_id')::numeric > 9223372036854775807
         OR command->>'actor_id' IS DISTINCT FROM NULLIF(current_setting('app.user_id', true), '')
-        OR command->>'request_digest' !~ '^[0-9a-f]{64}$'
-        OR command->>'decision_digest' !~ '^[0-9a-f]{64}$'
         OR (command->>'operation' = 'first_signature' AND (
             command->>'participant' NOT IN ('seller', 'buyer')
             OR command->>'settlement_digest' !~ '^0x[0-9a-f]{64}$'
             OR command->>'signature' !~ '^0x[0-9a-fA-F]{130}$'))
-    THEN RAISE EXCEPTION 'Bind the actual participant and decision digests' USING ERRCODE = '23514'; END IF;
+    THEN RAISE EXCEPTION 'Bind the actual participant' USING ERRCODE = '23514'; END IF;
     RETURN command;
 END;
 $function$;
@@ -6971,12 +6858,11 @@ CREATE OR REPLACE FUNCTION public.tokens_trading_current(command jsonb, checked_
 AS $function$
 BEGIN
     IF NOT public.tokens_trading_binding(command) THEN
-        RAISE EXCEPTION 'Bind the actual trading decision' USING ERRCODE = '23514';
+        RAISE EXCEPTION 'Bind the actual trading participant' USING ERRCODE = '23514';
     END IF;
-    IF NOT public.users_company_eligibility_decision_current((command->>'decision_uuid')::uuid,
-        (command->>'owner_account_uuid')::uuid, (command->>'company_uuid')::uuid, checked_at)
-    THEN RAISE EXCEPTION 'The trading decision is no longer current' USING ERRCODE = '23514',
-        CONSTRAINT = 'tokens_trading_eligibility_current'; END IF;
+    IF NOT public.users_participant_current((command->>'owner_account_uuid')::uuid, (command->>'company_uuid')::uuid)
+    THEN RAISE EXCEPTION 'The trading participant is no longer current' USING ERRCODE = '23514',
+        CONSTRAINT = 'tokens_trading_participant_current'; END IF;
 END;
 $function$;
 

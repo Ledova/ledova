@@ -3,7 +3,6 @@ import type { DestinationKey } from '@ledova/shared';
 import {
   CompanyAuthorityPage,
   CompanyAuthorityRequestPage,
-  CompanyEligibilityPage,
   CompanyPage,
   CompanyRegisterAwardPage,
   CompanyRegisterCorrectionPage,
@@ -16,9 +15,7 @@ import {
   CertificatesPage,
   CompanyDocumentsPage,
   DashboardPage,
-  InvestorEligibilityPage,
   ListingPage,
-  ParticipantEligibilityPage,
   SettingsPage,
   ShareClassPage,
   UserProfilePage,
@@ -27,9 +24,6 @@ import {
 export const PAGES: Record<DestinationKey, ReactElement> = {
   home: <DashboardPage />,
   memberRecords: <DashboardPage />,
-  investorEligibility: <InvestorEligibilityPage />,
-  eligibilityRequests: <ParticipantEligibilityPage />,
-  companyEligibility: <CompanyEligibilityPage />,
   companyClass: <ShareClassPage />,
   companyRegister: <CompanyRegisterPage />,
   companyRegisterSetup: <CompanyRegisterImportPage />,

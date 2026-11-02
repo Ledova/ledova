@@ -15,7 +15,6 @@ VISIBLE_COMPANIES = "app_visible_company_ids"
 MANAGEABLE_COMPANIES = "app_manageable_company_ids"
 ADMINISTRABLE_COMPANIES = "app_company_administration_ids"
 DISCOVERABLE_COMPANIES = "app_company_discovery_ids"
-ELIGIBILITY_COMPANIES = "app_company_eligibility_ids"
 
 
 def on_the_market(prefix: str = "") -> str:
@@ -58,20 +57,6 @@ HELPERS = {
                     AND (NOT COALESCE((SELECT issuer_kyc_required FROM operators_operator WHERE id = 1), false)
                         OR profile.is_id_verified)))
     """,
-    ELIGIBILITY_COMPANIES: f"""
-        SELECT DISTINCT appointment.company_id FROM companies_companyappointment appointment
-        JOIN authentication_customuser actor ON actor.id = appointment.appointee_id
-        JOIN users_userprofile profile ON profile.uuid = appointment.appointee_profile_id
-        JOIN operators_operator configuration ON configuration.id = 1
-        WHERE actor.id = {PRINCIPAL} AND actor.is_active AND actor.is_email_verified
-            AND profile.user_id = actor.id
-            AND (appointment.capabilities @> '["prepare"]'::jsonb
-                OR appointment.capabilities @> '["approve"]'::jsonb)
-            AND (appointment.expires_at IS NULL OR appointment.expires_at > clock_timestamp())
-            AND (NOT configuration.issuer_kyc_required OR profile.is_id_verified)
-            AND NOT EXISTS (SELECT 1 FROM companies_companyappointmentrevocation revoked
-                WHERE revoked.appointment_id = appointment.uuid)
-    """,
 }
 
 IDENTICAL_TODAY = (VISIBLE_COMPANIES, MANAGEABLE_COMPANIES)
@@ -83,7 +68,6 @@ BYPASSES_THE_POLICIES = (
     DISCOVERABLE_COMPANIES,
     VISIBLE_COMPANIES,
     MANAGEABLE_COMPANIES,
-    ELIGIBILITY_COMPANIES,
 )
 
 OWNS_THE_ACCOUNT = f"user_profile_id IN (SELECT {PRINCIPAL_PROFILES}())"
@@ -114,10 +98,6 @@ THROUGH_ITS_WALLET = (
     "EXISTS (SELECT 1 FROM wallets held WHERE held.uuid = holdings.wallet_id "
     f"AND held.user_account_id IN (SELECT {PRINCIPAL_ACCOUNTS}()))"
 )
-THROUGH_ITS_DOCUMENT = (
-    "EXISTS (SELECT 1 FROM documents carrying WHERE carrying.uuid = document_extractions.document_id "
-    f"AND carrying.uploaded_by_id = {PRINCIPAL})"
-)
 THROUGH_THE_ORDER_IT_MODIFIED = (
     "EXISTS (SELECT 1 FROM tokens_transferorder modified "
     "WHERE modified.uuid = tokens_ordermodificationlog.order_id "
@@ -138,31 +118,11 @@ A_PARTY_TO_THE_SWAP = (
 
 
 POLICIES = {
-    "users_companyeligibilityrequest": (
-        f"{_owned('user_account_id')} OR {_company('company_id', ELIGIBILITY_COMPANIES)}",
-        "false",
-    ),
-    "users_companyeligibilitydecision": (
-        "EXISTS (SELECT 1 FROM users_companyeligibilityrequest request "
-        "WHERE request.uuid = users_companyeligibilitydecision.request_id)",
-        "false",
-    ),
-    "users_companyeligibilityrequestwithdrawal": (
-        "EXISTS (SELECT 1 FROM users_companyeligibilityrequest request "
-        "WHERE request.uuid = users_companyeligibilityrequestwithdrawal.request_id)",
-        "false",
-    ),
-    "users_companyeligibilityrevocation": (
-        "EXISTS (SELECT 1 FROM users_companyeligibilitydecision decision "
-        "WHERE decision.uuid = users_companyeligibilityrevocation.decision_id)",
-        "false",
-    ),
     "companies_company": (
         f"uuid IN (SELECT {ADMINISTRABLE_COMPANIES}()) OR uuid IN (SELECT {DISCOVERABLE_COMPANIES}())",
         "false",
     ),
     "users_userprofile": (f"user_id = {PRINCIPAL}", f"user_id = {PRINCIPAL}"),
-    "documents": (f"uploaded_by_id = {PRINCIPAL}", f"uploaded_by_id = {PRINCIPAL}"),
     "users_device_token": (f"user_id = {PRINCIPAL}", f"user_id = {PRINCIPAL}"),
     "notifications": (f"user_id = {PRINCIPAL}", f"user_id = {PRINCIPAL}"),
     "users_financialprofile": (
@@ -182,7 +142,6 @@ POLICIES = {
     "wallets_walletchainwatch": (_owned("user_account_id"), "false"),
     "wallets_walletchainobservation": (_owned("user_account_id"), "false"),
     "portfolios": (_owned("user_account_id"), _owned("user_account_id")),
-    "users_investorclassification": (_owned("user_account_id"), _owned("user_account_id")),
     "tokens_transferorder": (
         f"{_owned('owner_account_id')} AND {OWNERSHIP_BOUND}",
         f"{_owned('owner_account_id')} AND {OWNERSHIP_BOUND}",
@@ -191,7 +150,6 @@ POLICIES = {
     "tokens_swaporder": (A_PARTY_TO_THE_SWAP, "false"),
     "compliance_customerriskassessment": (_owned("user_account_id"), _owned("user_account_id")),
     "holdings": (THROUGH_ITS_WALLET, THROUGH_ITS_WALLET),
-    "document_extractions": (THROUGH_ITS_DOCUMENT, THROUGH_ITS_DOCUMENT),
     "tokens_ordermodificationlog": (THROUGH_THE_ORDER_IT_MODIFIED, THROUGH_THE_ORDER_IT_MODIFIED),
     "tokens_shareissuance": (THROUGH_ITS_TOKEN, "false"),
     "tokens_orderactionsubmission": (_owned("owner_account_id"), _owned("owner_account_id")),
@@ -279,14 +237,6 @@ DERIVED_FROM_A_MUTABLE_ATTRIBUTE = {
 }
 
 READS_WIDER_THAN_OWNERSHIP = {
-    "Exact company eligibility preparation": (
-        "users/services/company_eligibility.py company_eligibility_requests and _request_context; "
-        "shared/db/policies.py app_company_eligibility_ids",
-        "The exact known active issuer resolves without a company directory. The operator "
-        "validates only the actual participant's source and exact command. Current personal prepare or approve "
-        "appointments admit deliberately shared records through a UUID-only definer and immutable parent joins; "
-        "no source, identity, financial file or private document policy is expanded.",
-    ),
     "Public company discovery": (
         "shared/db/policies.py companies_company read policy through app_company_discovery_ids",
         "The fixed-search-path definer returns only company UUIDs for a non-null principal and the existing "
@@ -303,7 +253,7 @@ READS_WIDER_THAN_OWNERSHIP = {
         "tokens/services/market_data_service.py market_summaries; "
         "tokens/services/trading_order_service.py get_order_book",
         "The operator publishes only price summaries, the last trade's public amounts and aggregated "
-        "order-book levels for tokens already admitted under issuer ownership or investor eligibility. "
+        "order-book levels for tokens already admitted under issuer ownership or a live company wallet approval. "
         "Lists resolve their page under the app role before one operator query bounded to those UUIDs. "
         "No order, wallet or counterparty identity is returned, and their RLS policies remain unchanged.",
     ),
@@ -437,7 +387,7 @@ OPERATOR_ONLY = {
     "wallets_walletpossessionproof": "Private append-only successful wallet signature proofs. Only the actual "
     "owned verification producer writes them; bounded own nominations consume exact current associations.",
     "whitelist_companywalletnomination": "Immutable explicit one-wallet participant sharing sources. Own "
-    "request reads and exact-company register reads expose only their respective bounded projections.",
+    "nomination reads and exact-company register reads expose only their respective bounded projections.",
     "whitelist_companywalletinstruction": "Private immutable company wallet instructions and original target "
     "associations, served through current exact-company register authority and checked before new signatures.",
     "whitelist_companywalletinstructiondecision": "Append-only personal company wallet instruction decisions "
@@ -504,16 +454,13 @@ OPERATOR_ONLY = {
     "tokens_swapapprovalsubmission": "Immutable participant-signed approval bytes, their nonce and hash, and the "
     "receipt written once. The route records it through a bounded operator transaction before any send and the "
     "sweep replays it; the participant's own connection never reads a signed broadcast capability.",
-    "whitelist_whitelistchange": "Company-instructed and eligibility-invalidation whitelist commands, whose terms "
+    "whitelist_whitelistchange": "Company-instructed and automatic invalidation whitelist commands, whose terms "
     "are fixed at insert and whose status only moves forward, with their outgoing-operation associations. Company "
     "register readers see their own targets on the operator connection; public membership reads never read this "
     "recovery journal.",
     "whitelist_whitelisteligibilityinvalidation": "Retained account, identity and wallet invalidation facts and "
     "actual human or automatic attribution, written in the original bounded operator transaction. Only the "
     "invalidation worker reads these private cause records.",
-    "documents_documentread": "Append-only administrative document read records, written on the operator "
-    "connection and visible only to permitted platform reviewers. They contain UUIDs and reader IDs, not "
-    "file names, extraction values or file contents, and outlive document content purges.",
     "tokens_registerexport": "Immutable records of who prepared an inspection copy, a certificate, notice figures or a "
     "company pack from a share class's register; register CSV exports made before that download was removed remain "
     "as retained records. Each records in produced_through whether the company's pages or platform admin produced "
@@ -557,7 +504,7 @@ NOT_TENANCY = {
     "assets_asset": "A global catalogue shared by every tenant; product filters select supported assets.",
     "feature_flags": "Global kill switches; enabled() selects the active flags for every tenant.",
     "whitelist_whitelistentry": "A wallet's whitelist identity. Company wallet instructions, staff sync and the "
-    "admin write it and wallet deletion removes it, all on the operator connection, where eligibility invalidation "
+    "admin write it and wallet deletion removes it, all on the operator connection, where whitelist invalidation "
     "and the register identity and output paths read it. Who may act is authorisation enforced in code rather "
     "than tenancy. On the app connection it is read only beneath whitelist_whitelistapproval in "
     "wallets/services/holdings.py approved_share_assets.",

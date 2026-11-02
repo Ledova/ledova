@@ -159,9 +159,11 @@ and 31337: every backend service would fail at startup, and `migrate` at its fir
 
 A node started on the host is not the backend container's `localhost`: point `BLOCKCHAIN_RPC_URL`
 at a host address reachable from the Compose network, or run the node inside that network and use
-its service or container name. Host firewall rules can block `host.docker.internal`, as
-[document extraction](configuration.md#document-extraction) explains. Restart the
-backend and worker after changing their environment.
+its service or container name. A host firewall that drops bridge-to-host traffic, as `ufw` does by
+default on Arch and Ubuntu, makes `host.docker.internal` and the bridge gateway time out with no
+route error; prefer the node inside the Compose network, or open the bridge to the node's port
+(for example `ufw allow in on docker0 to any port 8545`). Restart the backend and worker after
+changing their environment.
 
 Next: [jobs and storage](jobs-and-storage.md),
 [recovery](recovery.md) or

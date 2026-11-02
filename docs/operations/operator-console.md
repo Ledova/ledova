@@ -22,11 +22,11 @@ installation redirects to the admin index. `GET /api/operator/` also creates the
 page does; other staff get the admin's refusal and nothing is created. Adding the row by hand also
 needs the add permission, and the row cannot be deleted.
 
-| Admin section | Fields                                                                       |
-| ------------- | ---------------------------------------------------------------------------- |
-| Identity      | `name`, `legal_name`, `abn`, `contact_email`, `website`                      |
-| Settlement    | `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
-| Eligibility   | `investor_kyc_required` (default on), `issuer_kyc_required` (default off)    |
+| Admin section   | Fields                                                                       |
+| --------------- | ---------------------------------------------------------------------------- |
+| Identity        | `name`, `legal_name`, `abn`, `contact_email`, `website`                      |
+| Settlement      | `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
+| Identity checks | `investor_kyc_required` (default on), `issuer_kyc_required` (default off)    |
 
 The model normalises the ABN. Ledova holds no payment instructions or receiving wallet:
 integrated AUD payments are deferred
@@ -51,8 +51,7 @@ The configuration health strip checks the operator's identity fields, `SHARE_TOK
 and the settlement deployments. An empty settlement asset set is reported; a fresh install starts
 that way.
 
-The worklists count company applications waiting, investor classifications awaiting verification,
-pending whitelist approvals, whitelist entries needing [holder standing review](#holder-standing-review),
+The worklists count company applications waiting, pending whitelist approvals, whitelist entries needing [holder standing review](#holder-standing-review),
 share issuance and capital increase requests needing attention, share classes stuck deploying, and
 two register identity queues. Each opens the matching admin list and reads the database without
 contacting RPC providers.
@@ -109,23 +108,15 @@ unavailable until repaired; a missing or unavailable deployment is not a zero ba
 The business tasks staff still perform, with their procedures, are listed under
 [who does what](../business/README.md#who-does-what).
 
-The Document operations group is created empty. Assign only the active platform staff who need
-evidence review: it grants view permissions on documents, extractions and investor
-classifications, not classification approval or editing. Company owners and accounts with company
-roles cannot use cross-customer document review even with document permissions.
-[Read audit](../engineering/security.md#read-audit) explains the review permissions and audit
-writes. Attached payslips supplement human review; extraction never verifies a claim.
-
 ### Holder standing review
 
 The console's Whitelist entries needing holder standing review counts investor accounts with an
 inactive login, or a rejected, suspended or terminated investment standing, that still hold a live
 or uncertain company approval, each once, from the last observation and without reading the chain;
-the approval inline keeps the last observed company status and expiry. A removed or expired
-approval stays listed while a live company decision remains and standing is not refused, so inspect
-the company and current eligibility before acting; the worklist authorises nothing.
+the approval inline keeps the last observed company status and expiry. Inspect the account and
+the company's approvals before acting; the worklist authorises nothing.
 Self-deletion disables login and keeps evidence without terminating the account or revoking an
-approval: review the account and decisions, record the staff decision, then use the attributed
+approval: review the account and its approvals, record the staff decision, then use the attributed
 refresh or the company's removal. Treasury and company-only accounts are outside this queue.
 
 Next: [recovery](recovery.md), [configuration](configuration.md)

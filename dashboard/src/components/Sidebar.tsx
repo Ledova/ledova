@@ -12,7 +12,6 @@ import {
 } from '@phosphor-icons/react';
 import { DESTINATIONS, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
-import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { Logo } from './Logo';
@@ -57,16 +56,7 @@ const COMPANY: NavItem[] = [
   { destination: 'certificates', icon: FilesIcon },
 ];
 
-const ELIGIBILITY = {
-  destination: 'companyEligibility',
-  icon: ShieldCheckIcon,
-  label: 'Eligibility',
-} satisfies NavItem;
-const INVESTOR_ELIGIBILITY: NavItem = {
-  destination: 'investorEligibility',
-  icon: ShieldCheckIcon,
-  label: 'Eligibility',
-};
+const COMPANY_DOCUMENTS: NavItem = { destination: 'companyDocuments', icon: ShieldCheckIcon, label: 'Company files' };
 
 const PERSONAL: NavItem[] = [
   { destination: 'home', icon: HouseIcon },
@@ -402,31 +392,6 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
   );
 }
 
-function EligibilityGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
-  const location = useLocation();
-  const supporting = location.pathname === DESTINATIONS.companyDocuments.path;
-  return (
-    <NavGroup
-      icon={ShieldCheckIcon}
-      label={ELIGIBILITY.label}
-      title={pageTitle('companyEligibility')}
-      to={DESTINATIONS.companyEligibility.path}
-      active={active}
-      current={active && !supporting}
-      onNavigate={onNavigate}
-      items={[
-        {
-          key: 'supporting',
-          label: 'Supporting',
-          title: 'Company documents',
-          to: DESTINATIONS.companyDocuments.path,
-          current: supporting,
-        },
-      ]}
-    />
-  );
-}
-
 function SettingsGroup({
   active,
   navigation,
@@ -475,20 +440,15 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
           ...COMPANY.filter((item) => item.destination === 'home'),
           ...(context?.company?.memberUuids.length ? [PERSONAL[1]!] : []),
         ]),
-    ...(context?.company?.canReviewEligibility ? [ELIGIBILITY] : []),
+    ...(context?.company?.canManage ? [COMPANY_DOCUMENTS] : []),
   ];
-  const role = useRole();
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
-  const investorEligibility =
-    companyTasks && companyItems.includes(ELIGIBILITY)
-      ? { ...INVESTOR_ELIGIBILITY, label: 'Your eligibility' }
-      : INVESTOR_ELIGIBILITY;
 
   const groups: NavSection[] = [
     ...(companyTasks ? [{ id: 'company', items: companyItems }] : []),
     ...(!companyTasks ? [{ id: 'shares', items: PERSONAL }] : []),
-    { id: 'yours', items: role.isKnown && role.isInvestor ? [investorEligibility, ...YOURS] : YOURS },
+    { id: 'yours', items: YOURS },
   ];
   const allItems = groups.flatMap((group) => group.items);
   const activeItem = placesAt(location.pathname, location.hash)
@@ -509,7 +469,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const activePath =
     location.pathname === DESTINATIONS.companyDocuments.path ||
     (location.pathname === DESTINATIONS.company.path && location.hash === '#documents')
-      ? itemPath(ELIGIBILITY)
+      ? itemPath(COMPANY_DOCUMENTS)
       : activeItem && itemPath(activeItem);
 
   return (
@@ -534,12 +494,6 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                   />
                 ) : item.destination === 'certificates' ? (
                   <DocumentsGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
-                ) : item.destination === 'companyEligibility' && context?.company?.canManage ? (
-                  <EligibilityGroup
-                    key={itemPath(item)}
-                    active={itemPath(item) === activePath}
-                    onNavigate={onNavigate}
-                  />
                 ) : item.destination === 'settings' ? (
                   <SettingsGroup
                     key={itemPath(item)}

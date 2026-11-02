@@ -1,4 +1,3 @@
-from pathlib import Path
 from uuid import uuid4
 
 import django.db.models.deletion
@@ -10,14 +9,12 @@ from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.database_mirror_guards import _function
 from users import database_guards as users_guards
 
-USERS_SQL = Path(users_guards.__file__).with_suffix(".sql").read_text()
-
 REPLACED = (
     (database_guards.SQL, "tokens_guard_register_particulars_change"),
     (database_guards.SQL, "tokens_check_register_particulars_edit"),
     (database_guards.ALLOTMENT_SQL, "tokens_guard_register_member_particulars"),
     (database_mirror_guards.SQL, "tokens_validate_mirror_import"),
-    (USERS_SQL, "users_guard_provider_identity"),
+    (users_guards.SQL, "users_guard_provider_identity"),
 )
 
 LINKED = """
@@ -100,7 +97,8 @@ def follow_linked_profiles(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("tokens", "0005_remove_member_certificate_requests"),
+        ("tokens", "0006_remove_trading_eligibility"),
+        ("users", "0003_remove_investor_eligibility"),
     ]
 
     operations = [
