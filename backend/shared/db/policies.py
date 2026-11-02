@@ -353,7 +353,8 @@ OPERATOR_ONLY = {
     "tokens_registerallotment": "Exact fully paid external allotments, served through current exact-company "
     "register appointments and the staff company pack. Applying one records its shares in the register and, for a "
     "new member, copies its name and address into the member's particulars; of the rows themselves, only the "
-    "consideration, as each member's amount paid, and the event date reach the wider register outputs.",
+    "consideration, as each member's amount paid and as the amount paid on its issue's certificate and notice row, "
+    "and the event date reach the wider register outputs.",
     "tokens_registerallotmentdecision": "Append-only attributable company allotment decisions "
     "reached through their private parent.",
     "tokens_registeraward": "Immutable private company employee awards, carrying the recipient's name and address "

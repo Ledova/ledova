@@ -890,9 +890,9 @@ Unknown company dates read `not recorded`; their retained ledger dates remain th
 not an inferred legal-event date. The report does not reconstruct missing history.
 
 An issue row's amount paid is the consideration of the fully paid external allotment that recorded
-it, when `_fully_paid_issues` returns its entry, as on its certificate; any other issue row reads
-the literal `not recorded`. A member's amount paid is the register's own and reads `not recorded`
-where not established exactly ([what the figures
+it, when `_fully_paid_issues` returns its entry, even after a correction reverses it; any other
+issue row reads the literal `not recorded`. A member's amount paid is the register's own and reads
+`not recorded` where not established exactly ([what the figures
 contain](../business/member-records.md#what-the-figures-contain)).
 
 ### Outputs due computation

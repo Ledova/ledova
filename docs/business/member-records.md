@@ -298,13 +298,13 @@ register entry date, company event date and actual recorded timestamp; an unknow
 not inferred from the entry date.
 
 The opening is never listed. An issue row gives an [external
-allotment](issuing-shares.md#external-investor-allotments)'s consideration as its amount paid, as
-its certificate does, and any other issue row reads `not recorded`. Amount paid reads `not recorded`
-where Ledova cannot establish it exactly, as for shares received by transfer, and never reads zero
-for an unknown amount; the class total reads `not recorded` unless every current member's amount is
-established. A transfer or correction carries no amount paid. Names and addresses are those the
-register gives when the figures are prepared, and an unidentified or ambiguous member is printed as
-the register prints them, not refused. A period with no entries lists none.
+allotment](issuing-shares.md#external-investor-allotments)'s consideration as its amount paid, and
+any other issue row reads `not recorded`. Amount paid reads `not recorded` where Ledova cannot
+establish it exactly, as for shares received by transfer, and never reads zero for an unknown
+amount; the class total reads `not recorded` unless every current member's amount is established. A
+transfer or correction carries no amount paid. Names and addresses are those the register gives when
+the figures are prepared, and an unidentified or ambiguous member is printed as the register prints
+them, not refused. A period with no entries lists none.
 
 ### Preparing notice figures
 
