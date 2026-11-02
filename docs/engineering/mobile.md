@@ -138,8 +138,8 @@ shows the identity check status from the profile (the app has no identity check 
 **Review**), **Change** for the password, and the app's biometric sign-in and App lock switches, with
 **Biometric security is not available on this device.** beneath them only where that applies; Account
 details shows member since and last login; and Company invitation's **Accept invitation** opens the
-member Invitation page. Its rows follow the web's: the label on the left, and its status, one action or switch
-on the right. Data and privacy (`DataPrivacy`) has Export data, which saves or shares the file, and
+member Invitation page. Its rows follow the web's: the label on the left, and its status, one action
+or switch on the right. Data and privacy (`DataPrivacy`) has Export data, which saves or shares the file, and
 Delete account; each of its rows' actions carries the row's description, so a screen reader hears it
 once, with the action. The theme is the menu's switch. The member pages share one member-records state
 (`MemberRecordsProvider`), so an invitation acceptance whose outcome is uncertain stays recoverable,

@@ -415,6 +415,7 @@ async function openTheSidebar(page: Page, role: Role) {
   await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
   for (const name of ['Security', 'Account details'])
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Review (identity check)' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Accept invitation', exact: true })).toHaveCount(
     role === 'investor' ? 1 : 0,
   );

@@ -128,7 +128,7 @@ export function AccountSettings() {
             <SettingRow
               label="Identity check"
               action={
-                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-sm text-text-muted">
                   <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
                   <PageAction
                     label="Review"
