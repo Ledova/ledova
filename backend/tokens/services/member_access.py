@@ -22,7 +22,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 
 from authentication.email import normalize_email
 from companies.constants import TEAM_INVITATION_DEFAULT_DAYS, TEAM_INVITATION_MAX_DAYS
-from companies.models import REGISTER_READERS, CompanyAppointment, CompanyCapability
+from companies.models import CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation
 from companies.services.authority_requests import _require_requester
 from integrations.sendgrid_email import sendgrid_client
@@ -67,20 +67,17 @@ def _identity(company, member):
     return identity
 
 
-def _appointment_companies(actor, capability=None):
+def company_administered(queryset, actor):
     if not actor.is_authenticated:
-        return CompanyAppointment.objects.none().values("company_id")
-    return (
+        return queryset.none()
+    administered = (
         CompanyAppointment.objects.current_of(
             actor, at=timezone.now(), identity_required=Operator.get().issuer_kyc_required
         )
-        .holding_any([capability] if capability else REGISTER_READERS)
+        .holding_any([CompanyCapability.ADMIN])
         .values("company_id")
     )
-
-
-def company_readable(queryset, actor, *, admin=False):
-    return queryset.filter(company_id__in=_appointment_companies(actor, CompanyCapability.ADMIN if admin else None))
+    return queryset.filter(company_id__in=administered)
 
 
 def own_associations(queryset, actor):
@@ -295,7 +292,7 @@ def accept_invitation(*, actor, code, user_account, confirmation):
 
 
 def revoke_association(*, actor, association_id, appointment, idempotency_key, reason):
-    subject = get_object_or_404(company_readable(MemberAssociation.objects.all(), actor, admin=True), pk=association_id)
+    subject = get_object_or_404(company_administered(MemberAssociation.objects.all(), actor), pk=association_id)
     with register_command(actor, subject.company_id, "member_association_revoke") as (
         company,
         current,

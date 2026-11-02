@@ -61,7 +61,7 @@ class MemberInvitationViewSet(MemberAccessViewSet):
     )
 
     def narrow(self, queryset):
-        return service.company_readable(queryset.select_related("association"), self.request.user, admin=True)
+        return service.company_administered(queryset.select_related("association"), self.request.user)
 
     @extend_schema(
         request=schema.MemberInvitationCreateSerializer,
@@ -119,7 +119,7 @@ class MemberAssociationViewSet(MemberAccessViewSet):
     )
 
     def narrow(self, queryset):
-        return service.company_readable(queryset, self.request.user, admin=True)
+        return service.company_administered(queryset, self.request.user)
 
     @extend_schema(request=schema.MemberAssociationRevokeSerializer, responses=schema.MemberAssociationSerializer)
     @action(detail=True, methods=["post"])

@@ -527,6 +527,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(await within(certificatesCard).findByText('+10 ORD shares')).toBeTruthy();
   const certificateRow = within(certificatesCard).getByText(MEMBER_RECORD.name).closest('li')!;
   expect(within(certificateRow).getByText('Not recorded')).toBeTruthy();
+  expect(within(certificateRow).queryByText(/Certificate:|Can prepare|None due|Not applicable/)).toBeNull();
   expect(within(certificatesCard).queryByRole('button')).toBeNull();
   expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull();
   expect(screen.queryByRole('heading', { name: 'Share history' })).toBeNull();
