@@ -150,6 +150,7 @@ def update_status_from_normalized(user_profile: UserProfile, normalized: Normali
         user_account = (
             UserAccount.objects.select_for_update(no_key=True).filter(user_profile_id=user_profile.pk).first()
         )
+        get_user_model().objects.select_for_update(no_key=True).filter(pk=user_profile.user_id).first()
         user_profile.refresh_from_db(from_queryset=UserProfile.objects.select_for_update())
         previous_result = user_profile.review_result
         user_profile.verification_status = normalized.verification_status
