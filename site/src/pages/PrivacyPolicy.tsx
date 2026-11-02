@@ -112,10 +112,12 @@ export function PrivacyPolicy() {
           <Section title="Your choices">
             <p>
               In Settings you can change your name, phone number and address, export your data and delete your account.
-              Deleting your account removes your name, date of birth, phone number and address from your profile.
-              Everything else may stay until the next reset. That includes your citizenship, financial profile, wallets
-              and verification records, the records companies keep about you, documents you uploaded, and invitations
-              that hold your email address. To change anything else, or to ask what we hold about you, email {CONTACT}.
+              If your account is linked to a company&apos;s register, changing your name or address in Settings also
+              updates that register, and the company sees the change and its date. Deleting your account removes your
+              name, date of birth, phone number and address from your profile. Everything else may stay until the next
+              reset. That includes your citizenship, financial profile, wallets and verification records, the records
+              companies keep about you, documents you uploaded, and invitations that hold your email address. To change
+              anything else, or to ask what we hold about you, email {CONTACT}.
             </p>
           </Section>
           <Section title="Running Ledova yourself">
