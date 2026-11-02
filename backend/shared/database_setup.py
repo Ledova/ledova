@@ -103,27 +103,6 @@ $$;
 """
 
 
-def seed_operations_group(apps, schema_editor):
-    using = schema_editor.connection.alias
-    group, _ = apps.get_model("auth", "Group").objects.using(using).get_or_create(name="Document operations")
-    for label, model in (
-        ("documents", "document"),
-        ("documents", "documentextraction"),
-        ("users", "investorclassification"),
-    ):
-        content_type, _ = (
-            apps.get_model("contenttypes", "ContentType")
-            .objects.using(using)
-            .get_or_create(app_label=label, model=model)
-        )
-        permission, _ = (
-            apps.get_model("auth", "Permission")
-            .objects.using(using)
-            .get_or_create(content_type=content_type, codename=f"view_{model}", defaults={"name": f"Can view {model}"})
-        )
-        group.permissions.through.objects.using(using).get_or_create(group_id=group.pk, permission_id=permission.pk)
-
-
 def seed_reference_rows(apps, schema_editor):
     alias = schema_editor.connection.alias
     asset, _ = (
@@ -153,7 +132,6 @@ def seed_reference_rows(apps, schema_editor):
             "platform": "all",
         },
     )
-    seed_operations_group(apps, schema_editor)
 
 
 def install(apps, schema_editor):

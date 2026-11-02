@@ -27,7 +27,7 @@ modules re-exported by `settings/__init__.py`.
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `operators`      | The single `Operator` configuration row, `GET /api/operator/` (that configuration, read by signed-in clients), and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view`                                                                              |
 | `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes                                                                                                                                                                                                                                     |
-| `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens, notifications, classification sources, and company eligibility requests and decisions                                                                                     |
+| `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens and notifications                                                                                                                                                          |
 | `companies`      | `Company`, its activation, `CompanyDocument`, representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                                      |
 | `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, member access and register outputs, and the trading models |
 | `shareholders`   | No models since shareholder publications were [removed](../decisions.md#shareholder-publications-removed); the app keeps the migrations that created and dropped them ([migrations](#migrations))                                                                                                           |
@@ -37,8 +37,8 @@ modules re-exported by `settings/__init__.py`.
 | `portfolios`     | `Portfolio` and its owner-scoped routes                                                                                                                                                                                                                                                                     |
 | `blockchain`     | `BlockchainTransaction` and transaction monitoring; the durable outgoing-signing foundation (`SigningAccount`, `OutgoingOperation`, `SignedAttempt`) and its immutable history inventory (`OutgoingHistoryCapture`, `OutgoingHistoryEvidence`, `OutgoingCutoverHold`)                                       |
 | `compliance`     | Monitoring rules, alerts, procedure templates, risk assessments                                                                                                                                                                                                                                             |
-| `documents`      | Uploaded documents and their extraction records                                                                                                                                                                                                                                                             |
-| `integrations`   | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, ABR company registry, LLM document extraction, SendGrid, Expo push, Transak                                                                                                                                                                   |
+| `documents`      | Nothing: since investor eligibility was removed it stays installed only for its migrations ([migrations](#migrations))                                                                                                                                                                                      |
+| `integrations`   | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, ABR company registry, SendGrid, Expo push, Transak                                                                                                                                                                                            |
 | `feature_flags`  | `FeatureFlag` and the trading middleware                                                                                                                                                                                                                                                                    |
 | `shared`         | Base model, country lookup, health-check middleware, PostgreSQL connection and principal helpers, the policy catalogue and database setup, private storage and upload validation, the task catalogue, seeds and the backend test suite                                                                      |
 
@@ -54,15 +54,15 @@ are partial. Add a layer only when a second caller needs the same logic.
 `users/` is the reference app. Where a rule and a file disagree, the rule wins and the file is
 the backlog. [The layer gate](gates.md#the-layer-gate) enforces the table.
 
-| Layer          | Owns                                                                                                                                                                                                                       | Never contains                                                                                        | Reference                                    |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `models/`      | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O                                           | `users/models/investor_classification.py`    |
-| `querysets/`   | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()`                                                                  | Saves, side effects, calls into services                                                              | `users/querysets/investor_classification.py` |
-| `services/`    | Orchestration across models, external I/O (chain, KYC, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun      | HTTP objects, serializers, `Response`                                                                 | `users/services/investor_classification.py`  |
-| `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors                                                                                                              | Business rules, locking, queries beyond FK scoping                                                    | `users/serializers/user_profile.py`          |
-| `views/`       | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response`                                                                                                          | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `users/views/investor_classification.py`     |
-| `tasks/`       | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict                                                                                                                                       | Orchestration, state machines                                                                         | `users/tasks/retention.py`                   |
-| `admin/`       | Registration, list/search/filter, operator actions that call the same model transition or service the API calls                                                                                                            | A second implementation of a workflow, HTML badge builders                                            | `users/admin/investor_classification.py`     |
+| Layer          | Owns                                                                                                                                                                                                                       | Never contains                                                                                        | Reference                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `models/`      | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O                                           | `users/models/notification.py`      |
+| `querysets/`   | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()`                                                                  | Saves, side effects, calls into services                                                              | `users/querysets/notification.py`   |
+| `services/`    | Orchestration across models, external I/O (chain, KYC, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun      | HTTP objects, serializers, `Response`                                                                 | `users/services/preferences.py`     |
+| `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors                                                                                                              | Business rules, locking, queries beyond FK scoping                                                    | `users/serializers/user_profile.py` |
+| `views/`       | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response`                                                                                                          | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `users/views/notification.py`       |
+| `tasks/`       | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict                                                                                                                                       | Orchestration, state machines                                                                         | `users/tasks/notifications.py`      |
+| `admin/`       | Registration, list/search/filter, operator actions that call the same model transition or service the API calls                                                                                                            | A second implementation of a workflow, HTML badge builders                                            | `users/admin/notification.py`       |
 
 One exception to plain-function services: the chain clients under `integrations/` stay classes
 because they hold a connection. A class whose methods are all `staticmethod` is a module spelled
@@ -186,9 +186,7 @@ These route groups have no bundled client and are kept deliberately:
   [31 October decision](../decisions.md#wallets-removed-from-the-web-app) keeps them, with their
   records, so the features can return.
 
-`GET /api/operator/` is not one of them: signed-in clients read it, and its
-`payment_instructions` are null except for platform staff and holders of a current
-secondary-market decision from at least one company (`secondary_company_ids`).
+`GET /api/operator/` is not one of them: signed-in clients read the operator configuration from it.
 
 ## Migrations
 
@@ -219,6 +217,21 @@ secondary-market decision from at least one company (`secondary_company_ids`).
   `shared/0002_database_guards` depends on `shareholders/0001_initial`, so `shareholders` keeps its
   migrations and the two path functions that migration names, in `shareholders/models/event.py`
   and `shareholders/models/publication.py`.
+- Removing investor eligibility ([#1491](https://github.com/Ledova/ledova/issues/1491)) kept the
+  minimal source the applied migrations still import. The `documents` app stays installed with only
+  its migrations, because `shared/0002_database_guards` depends on `documents/0001_initial`, and
+  `documents/0002_remove_documents` deletes its tables and files. `documents/models/document.py`
+  keeps only `document_upload_path`, which `documents/0001_initial` names, and
+  `users/models/investor_classification.py` keeps only `investor_evidence_path`, which
+  `users/0001_initial` names. `users/database_shared_name_guards.py` keeps an `install` that does
+  nothing, because `users/0002_eligibility_participant_name` runs it and the functions it replayed
+  are gone. The same migrations delete the queued jobs that have not started for the removed tasks
+  (`extract_document` and the two evidence purges) and for whitelist refreshes that name an
+  eligibility decision, and drop the empty `decision_id` argument from the other queued refreshes,
+  so a worker never picks up a job it cannot run. `documents/0002_remove_documents`,
+  `tokens/0006_remove_trading_eligibility` and `whitelist/0002_remove_wallet_eligibility` depend on
+  `shareholders/0002_remove_publications`, so a database whose publications removal refuses stops
+  before any eligibility record or file is deleted.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.
@@ -263,8 +276,8 @@ recording and decision timestamps. Retained unknown dates are not backfilled; th
 [register mechanism](records.md#company-event-dates) owns the exact chronology, digest, projection
 and output rules.
 
-Register decisions, share-class chain decisions, company wallet instructions and company
-eligibility decisions follow four steps; who may take each is in
+Register decisions, share-class chain decisions and company wallet instructions follow four
+steps; who may take each is in
 [how a company decision works](../business/README.md#how-a-company-decision-works). Employee
 awards, vesting events and member-access commands prepare under a retry key and take no decision;
 activation, authority requests and team commands take a retry key and, where needed, an exact
@@ -302,7 +315,6 @@ never infers success from a lost response.
 | Team invitations and appointments   | `/api/v1/company-authority/invitations/`, `/appointments/`                                                                                                                                                             | [Team](../business/companies.md#team-invitations-and-appointments)                                                                                                                                                                                                                  |
 | Company details and documents       | `/api/v1/companies/`, `/api/v1/companies/{uuid}/documents/`                                                                                                                                                            | [Company information](../business/companies.md#company-information-and-documents)                                                                                                                                                                                                   |
 | Activation                          | `/api/v1/companies/{uuid}/activate/`                                                                                                                                                                                   | [Activation](../business/companies.md#activation-and-the-registry-check)                                                                                                                                                                                                            |
-| Eligibility                         | `/api/v1/company-eligibility/requests/`, `/api/v1/companies/{uuid}/eligibility-requests/`                                                                                                                              | [Eligibility](../business/participants.md#company-eligibility-decisions)                                                                                                                                                                                                            |
 | Wallet nominations and instructions | `/api/v1/whitelist/wallet-nominations/`, `company-wallet-nominations/`, `company-wallet-instructions/`, `company-wallet-targets/`                                                                                      | [Wallet approvals](../business/participants.md#wallet-nominations-and-company-wallet-approvals)                                                                                                                                                                                     |
 | Register evidence and setup         | `/api/v1/tokens/register-evidence/`, `register-member-documents/`, `register-openings/`, `register-links/`, `register-imports/`, `register-corrections/`, `register-particulars-changes/`, `register-reconciliations/` | [Register](../business/register.md)                                                                                                                                                                                                                                                 |
 | Grants, awards and allotments       | `/api/v1/tokens/register-grants/`, `register-awards/`, `register-award-vestings/`, `register-allotments/`                                                                                                              | [Grants](../business/issuing-shares.md#grants-to-walletless-members), [awards](../business/issuing-shares.md#employee-awards-and-vesting), [allotments](../business/issuing-shares.md#external-investor-allotments)                                                                 |
@@ -420,20 +432,22 @@ Legacy-owner appointments return null declaration fields. Capabilities are six i
 `admin`, `prepare`, `approve`, `apply`, `finance` and `read_register`
 ([company capabilities](../business/README.md#company-capabilities)).
 
-### Eligibility decisions
+### Current participants
 
-The eligibility routes reject unrecognised input fields; creation answers 201 and an exact replay 200.
-`users/services/company_eligibility.py` records requests and decisions, and
-`users/services/company_eligibility_consumption.py` consumes them: `company_eligibility(account,
-company)` evaluates the current decision, standing and evidence at the time of the action. Orders,
-order changes and swap signatures retain the decision they used and recheck evidence, standing and
-expiry after lock waits.
+Wallet nominations, company wallet instructions, non-paid chain grants, orders, order changes and
+swap signatures check the participant at the time of each action, in the service and again in the
+database guards after lock waits: an active login with a verified email, an investor or both
+account, standing Active (or Pending Verification while the operator does not require the investor
+identity check), a verified identity when it does, and an active company
+([rules](../business/participants.md#account-standing)). Since
+[#1491](https://github.com/Ledova/ledova/issues/1491) no classification source, document or company
+eligibility decision is involved, and orders, submissions and swaps no longer record one. A company
+reading a nomination, a wallet instruction or an issue to a nominated wallet sees any participant
+lapse as `participant_not_current`; only the participant's own nomination preview names the reason.
 
-`secondary_company_ids(user)` in [the eligibility service](../../backend/users/services/eligibility.py)
-bounds the market to the companies whose decisions are current. Inaccessible list and detail
-querysets give empty lists or 404, never a 403 that confirms a hidden row
-([rules](../business/participants.md#company-eligibility-decisions);
-[evidence purges](security.md#retention-clocks)).
+The market list and the trading events stream are bounded to the companies where one of the
+caller's current investing accounts has a wallet with a live company wallet approval. Inaccessible
+list and detail querysets give empty lists or 404, never a 403 that confirms a hidden row.
 
 ## Company identifiers
 
@@ -611,8 +625,9 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | `award`            | `tokens/services/member_events.py`, when shares vest under a member's award                        | Nothing        |
 | `holding`          | `tokens/services/member_events.py`, when a grant or allotment issues shares to a member            | Nothing        |
 
-A notice of any other kind, including identity notices sent before they carried a type and
-`particulars` notices sent before members' particulars requests were removed, stays where it is.
+A notice of any other kind, including identity notices sent before they carried a type,
+`particulars` notices sent before members' particulars requests were removed and eligibility
+notices sent before investor eligibility was removed, stays in the inbox and opens nothing.
 The two member kinds go only to the member's current association and name the company, with the
 class for holding notices, but no quantities. Each carries `record` (the association), with `award`
 for a vesting and `token` for an issue. The mobile app opens these two kinds, from its inbox or a

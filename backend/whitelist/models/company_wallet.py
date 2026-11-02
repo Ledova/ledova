@@ -12,12 +12,6 @@ from whitelist.querysets.nomination import CompanyWalletNominationQuerySet
 class CompanyWalletNomination(BaseModel):
     objects = CompanyWalletNominationQuerySet.as_manager()
     company = models.ForeignKey("companies.Company", on_delete=models.PROTECT, related_name="wallet_nominations")
-    request = models.ForeignKey(
-        "users.CompanyEligibilityRequest", on_delete=models.PROTECT, related_name="wallet_nominations"
-    )
-    decision = models.ForeignKey(
-        "users.CompanyEligibilityDecision", on_delete=models.PROTECT, related_name="wallet_nominations"
-    )
     proof = models.ForeignKey("wallets.WalletPossessionProof", on_delete=models.PROTECT, related_name="+")
     wallet_id = models.UUIDField(editable=False)
     submitted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")

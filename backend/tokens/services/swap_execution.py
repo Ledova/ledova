@@ -54,8 +54,8 @@ from tokens.services.settlement_context import (
 from tokens.services.share_token_service import SHARE_ASSET_CHAIN
 from tokens.services.trading_admission import (
     clear_admission,
-    eligibility_guard_refusal,
     participant_context,
+    participant_guard_refusal,
     prepare_admission,
 )
 from tokens.services.trading_locks import lock_orders, swap_terms
@@ -268,13 +268,13 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
             try:
                 with atomic():
                     if is_seller:
-                        swap.add_seller_signature(signature, eligibility_decision=admission.decision)
+                        swap.add_seller_signature(signature)
                     else:
-                        swap.add_buyer_signature(signature, eligibility_decision=admission.decision)
+                        swap.add_buyer_signature(signature)
             except IntegrityError as exc:
-                if not eligibility_guard_refusal(exc):
+                if not participant_guard_refusal(exc):
                     raise
-                raise InvestorNotEligibleException(("no_live_company_decision",)) from exc
+                raise InvestorNotEligibleException(("participant_not_current",)) from exc
             publish_trading_event("swap_signed", str(swap.share_token_id))
         clear_admission()
         if not swap.is_ready:

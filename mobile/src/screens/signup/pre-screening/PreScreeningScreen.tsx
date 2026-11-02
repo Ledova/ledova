@@ -343,8 +343,7 @@ export function PreScreeningScreen() {
                 <View style={styles.checkboxTextContainer}>
                   <Text style={styles.checkboxLabel}>I understand share offerings here are wholesale only</Text>
                   <Text style={styles.checkboxHelper}>
-                    Offers are made without a disclosure document to wholesale and sophisticated investors. You will
-                    need to evidence that status before you can subscribe.
+                    Offers are made without a disclosure document to wholesale and sophisticated investors.
                   </Text>
                 </View>
               </TouchableOpacity>

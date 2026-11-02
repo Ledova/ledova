@@ -70,13 +70,13 @@ flowchart LR
 
 - **Alex Demo:** company administrator for three companies, and a member of Purpose Demo.
   This is the mixed-role example: one account, with independent company and personal access. At
-  Purpose Demo his appointment also prepares and approves, so he decides eligibility requests there;
-  at Banksia and Harbour he is an administrator only.
+  Purpose Demo his appointment also holds prepare and approve; at Banksia and Harbour he is an
+  administrator only.
 - **Taylor Demo:** shareholder/member in three companies; no company administration.
 - **Casey Demo:** employee shareholder/member in Purpose Demo only, with an award and issued shares.
 - **Quinn Investor Demo:** investor/member in Purpose Demo, for personal holdings and certificates;
   no company administration.
-- Taylor, Casey and Quinn are active, identity-verified investors with eligibility claims.
+- Taylor, Casey and Quinn are active, identity-verified investors.
 - **Jordan Ellis:** a second Purpose Demo officer, added on 29 October 2026 to re-appoint Alex with
   prepare and approve.
 
@@ -123,9 +123,11 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 - **Purpose Demo:**
   - Eligibility requests, each sharing the investor's name: Quinn's and Taylor's accepted, one of
     Casey's refused and two pending, the newer one sent with a later certificate after the refusal.
+    `users/0003_remove_investor_eligibility` deletes them, with the investors' claims and evidence
+    ([decision](decisions.md#verification-limited-to-id-checks)).
   - Certificate requests from Quinn and Casey, which `tokens/0005_remove_member_certificate_requests`
     deletes ([decision](decisions.md#member-certificate-requests-removed)).
-  - A constitution, a shareholders agreement and financial statements under Supporting.
+  - A constitution, a shareholders agreement and financial statements under Company files.
   - An inspection copy and a company pack.
 - **Banksia:**
   - An allotment to a fund and a transfer to a family trust.
@@ -134,7 +136,7 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
     2,000.
   - An inspection copy and a company pack.
 - **Harbour:** an allotment, a transfer and an employee award with its first tranche issued.
-- Taylor's request to Banksia was withdrawn.
+- Taylor's eligibility request to Banksia was withdrawn; the same migration deletes it.
 - Inspection copies and packs prepared before #1429 have no record of where they were produced, so
   they stay unlisted.
 - Published stays empty without a chain.

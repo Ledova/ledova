@@ -8,7 +8,6 @@ import {
   revokeMemberAssociation,
 } from '../services/member-access';
 import { hasCurrentRegisterReadAuthority } from '../utils/register-commands';
-import { isCurrentEligibilityAppointment } from './useCompanyEligibilityRecords';
 import { failureStatus, failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
@@ -20,6 +19,15 @@ import { useApiClient } from './useApiClient';
 type Command =
   | { kind: 'invite'; payload: MemberInvitationCreate }
   | { kind: 'revoke'; uuid: string; payload: { appointment: string; idempotencyKey: string; reason: string } };
+
+function isCurrentAppointment(appointment: OwnCompanyAppointment) {
+  return (
+    appointment.status === 'active' &&
+    appointment.isEffective &&
+    !appointment.revokedAt &&
+    (appointment.expiresAt === null || Date.parse(appointment.expiresAt) > Date.now())
+  );
+}
 
 export function useCompanyMemberAccess(
   company: string,
@@ -90,9 +98,7 @@ export function useCompanyMemberAccess(
       throw new Error('A current company register appointment is required.');
   };
   const adminAppointment = (rows: OwnCompanyAppointment[]) =>
-    rows.find(
-      (row) => row.company === company && isCurrentEligibilityAppointment(row) && row.capabilities.includes('admin'),
-    );
+    rows.find((row) => row.company === company && isCurrentAppointment(row) && row.capabilities.includes('admin'));
   const rows = appointments.isSuccess && appointments.fetchStatus === 'idle' ? appointments.data : [];
   const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
   const readable =

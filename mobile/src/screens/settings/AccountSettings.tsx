@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { VERIFICATION_TONES, formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
-import { Action, Actions, Fact, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
+import { Action, Fact, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useAppLock, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -12,7 +12,6 @@ import { useSettings } from './useSettings';
 
 function useAccountStyles() {
   return useThemedStyles((theme) => ({
-    row: { gap: theme.spacing.smd, paddingVertical: theme.spacing.smd },
     setting: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -22,21 +21,6 @@ function useAccountStyles() {
     text: { flex: 1, gap: theme.spacing.xs },
     label: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
   }));
-}
-
-function ActionRow({ description, label, onPress }: { description: string; label: string; onPress: () => void }) {
-  const styles = useCompanyStyles();
-  const look = useAccountStyles();
-  return (
-    <View style={look.row}>
-      <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.muted}>
-        {description}
-      </Text>
-      <Actions>
-        <Action label={label} accessibilityLabel={`${label}. ${description}`} onPress={onPress} />
-      </Actions>
-    </View>
-  );
 }
 
 function SettingRow({
@@ -286,15 +270,19 @@ export function AccountData() {
     <>
       <Section title="Your data">
         <Rows>
-          <ActionRow
-            description="Save or share a copy of your account data."
+          <SettingRow
             label="Export data"
-            onPress={() => open('export')}
+            detail={<Text style={styles.muted}>Save or share a copy of your account data.</Text>}
+            action={<Action label="Export" accessibilityLabel="Export data" onPress={() => open('export')} />}
           />
-          <ActionRow
-            description="Deactivate your account and remove personal details. Some records are retained."
+          <SettingRow
             label="Delete account"
-            onPress={() => open('delete')}
+            detail={
+              <Text style={styles.muted}>
+                Deactivates your account and removes personal details. Some records are retained.
+              </Text>
+            }
+            action={<Action label="Delete" accessibilityLabel="Delete account" onPress={() => open('delete')} />}
           />
         </Rows>
       </Section>
@@ -339,7 +327,7 @@ export function AccountData() {
         <Text style={styles.text}>
           This deactivates your account and removes your name, date of birth, phone number and address from your
           profile. Your country of citizenship, financial profile, wallets, verification records and share register
-          entries are kept, and so are the eligibility requests you sent, with your name as each company received it.
+          entries are kept.
         </Text>
         {error && (
           <Text accessibilityRole="alert" style={styles.error}>

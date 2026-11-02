@@ -1,3 +1,4 @@
+from datetime import timedelta
 from uuid import uuid4
 
 from django.utils import timezone
@@ -9,7 +10,7 @@ from shared.db import use_operator
 from shared.seeds.synthetic import keys
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.market.keyring import KeyRing
-from users.services.company_eligibility_consumption import company_eligibility
+from users.services.participants import participant_requirements
 from wallets.services.verification import (
     complete_wallet_verification,
     start_wallet_verification,
@@ -26,6 +27,7 @@ from whitelist.services.wallet_nominations import (
     preview_wallet_nomination,
 )
 
+APPROVAL_DAYS = 90
 NOT_CONFIRMED = "The approval of {address} for {company} ended {status}."
 TREASURY_UNSUPPORTED = (
     "The issuance plan includes an employee share trust address with no held signing key. "
@@ -48,9 +50,9 @@ def approve_participant_wallet(company, wallet, keyring):
     key = keyring.key(wallet.address)
     participant = wallet.user_account.user_profile.user
     with use_operator(), _requester_principal(participant.pk):
-        eligibility = company_eligibility(wallet.user_account, company)
-    if not eligibility.is_eligible or eligibility.decision.expires_at is None:
-        raise ChainStepFailed("A current finite GENERAL company eligibility decision is required for wallet approval.")
+        unmet = participant_requirements(wallet.user_account, company)
+    if unmet:
+        raise ChainStepFailed(f"The wallet holder is not a current participant: {', '.join(unmet)}.")
     with use_operator(), _requester_principal(company.owner_id):
         appointment = (
             CompanyAppointment.objects.current_for(
@@ -68,11 +70,11 @@ def approve_participant_wallet(company, wallet, keyring):
     with use_operator(), _requester_principal(participant.pk):
         challenge = start_wallet_verification(participant, wallet.pk).verification_challenge
     complete_wallet_verification(participant, wallet.pk, keys.sign("base", key, challenge))
-    preview = preview_wallet_nomination(actor=participant, request=eligibility.decision.request_id, wallet=wallet.pk)
+    preview = preview_wallet_nomination(actor=participant, company=company.pk, wallet=wallet.pk)
     nomination, _ = nominate_wallet(
         actor=participant,
         operation_id=uuid4(),
-        request=eligibility.decision.request_id,
+        company=company.pk,
         wallet=wallet.pk,
         preview_digest=preview["preview_digest"],
         sharing_accepted=True,
@@ -84,7 +86,7 @@ def approve_participant_wallet(company, wallet, keyring):
         company=company.pk,
         action="add",
         nomination=nomination.pk,
-        expires_at=eligibility.decision.expires_at.replace(microsecond=0),
+        expires_at=(timezone.now() + timedelta(days=APPROVAL_DAYS)).replace(microsecond=0),
     )
     for kind in ("approve", "apply"):
         _, preview = preview_wallet_instruction_decision(

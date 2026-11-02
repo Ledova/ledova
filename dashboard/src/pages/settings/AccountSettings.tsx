@@ -20,17 +20,6 @@ import { IdentityVerificationModal } from '@components/IdentityVerificationModal
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 
-function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
-  return (
-    <div className="grid items-center gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-      <p className="min-w-0 text-sm text-text-muted">{description}</p>
-      <div className="justify-self-end">
-        <PageAction label={label} onClick={onClick} />
-      </div>
-    </div>
-  );
-}
-
 function SettingRow({ label, detail, action }: { label?: string; detail?: ReactNode; action: ReactNode }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3">
@@ -252,21 +241,33 @@ export function AccountData() {
     <>
       <Section title="Your data">
         <div className="divide-y divide-border-subtle">
-          <ActionRow
-            description="Download a copy of your account data."
+          <SettingRow
             label="Export data"
-            onClick={() => {
-              exportMutation.reset();
-              setModal('export');
-            }}
+            detail="Download a copy of your account data."
+            action={
+              <PageAction
+                label="Export"
+                context="account data"
+                onClick={() => {
+                  exportMutation.reset();
+                  setModal('export');
+                }}
+              />
+            }
           />
-          <ActionRow
-            description="Deactivate your account and remove personal details. Some records are retained."
+          <SettingRow
             label="Delete account"
-            onClick={() => {
-              deleteMutation.reset();
-              setModal('delete');
-            }}
+            detail="Deactivates your account and removes personal details. Some records are retained."
+            action={
+              <PageAction
+                label="Delete"
+                context="account"
+                onClick={() => {
+                  deleteMutation.reset();
+                  setModal('delete');
+                }}
+              />
+            }
           />
         </div>
       </Section>
@@ -304,7 +305,7 @@ export function AccountData() {
         <p className="text-sm text-text-muted">
           This deactivates your account and removes your name, date of birth, phone number and address from your
           profile. Your country of citizenship, financial profile, wallets, verification records and share register
-          entries are kept, and so are the eligibility requests you sent, with your name as each company received it.
+          entries are kept.
         </p>
         {deleteMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">

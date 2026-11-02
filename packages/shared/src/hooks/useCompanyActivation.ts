@@ -7,7 +7,8 @@ import { createUserFriendlyError, failureStatus, failureSentence } from '../util
 import { isUuid } from '../utils/validation';
 import { ownCompaniesKey, type useCompanySelection } from './useCompanySelection';
 import { useApiClient } from './useApiClient';
-import { OWN_APPOINTMENTS_QUERY_KEY } from './useCompanyEligibilityRecords';
+
+export const OWN_APPOINTMENTS_QUERY_KEY = ['company-appointments'] as const;
 
 type Selection = ReturnType<typeof useCompanySelection>;
 type Preview = {

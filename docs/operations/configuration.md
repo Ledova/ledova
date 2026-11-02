@@ -17,7 +17,6 @@ procedures belong in private [Ledova/infra](https://github.com/Ledova/infra).
 - [Identity verification providers](#identity-verification-providers)
 - [Email](#email)
 - [On-ramp](#on-ramp)
-- [Document extraction](#document-extraction)
 - [Company registry lookup](#company-registry-lookup)
 - [Push notifications](#push-notifications)
 - [Clients](#clients)
@@ -167,8 +166,6 @@ Malformed and non-finite values are refused at settings import.
 | `AWS_STORAGE_BUCKET_NAME`                | none             | Yes when `STORAGE_BACKEND=s3`                                                                                                                                                          |
 | `AWS_S3_REGION_NAME`                     | `ap-southeast-2` | No                                                                                                                                                                                     |
 | `GS_BUCKET_NAME`                         | none             | Yes when `STORAGE_BACKEND=gcs`                                                                                                                                                         |
-| `CLASSIFICATION_EVIDENCE_RETENTION_DAYS` | `2557`           | No; `0` retains indefinitely and purges nothing; changing it needs a new guard migration ([retention clocks](../engineering/security.md#retention-clocks))                             |
-| `UNATTACHED_DOCUMENT_RETENTION_DAYS`     | `30`             | No; lifetime of an unattached payslip from upload; `0` retains indefinitely; changing it needs a new guard migration ([retention clocks](../engineering/security.md#retention-clocks)) |
 | `FORMER_MEMBER_RETENTION_DAYS`           | `2557`           | No; a value below 2557, including `0`, raises `ImproperlyConfigured` and refuses the fold and the purge                                                                                |
 
 Private storage, scanning and the sixteen `UPLOAD_*` limits are in
@@ -257,33 +254,6 @@ share-payment provider
 | `TRANSAK_API_KEY`, `TRANSAK_API_SECRET`, `TRANSAK_API_URL`, `TRANSAK_API_GATEWAY_URL` | empty       | Yes to enable the widget |
 | `TRANSAK_REFERRER_DOMAIN`                                                             | `localhost` | No                       |
 | `TRANSAK_THEME_COLOR`                                                                 | `6366f1`    | No                       |
-
-## Document extraction
-
-| Variable          | Default                                | Required                           |
-| ----------------- | -------------------------------------- | ---------------------------------- |
-| `LLM_BASE_URL`    | `http://host.docker.internal:11434/v1` | No                                 |
-| `LLM_MODEL`       | `qwen2.5vl:7b`                         | No                                 |
-| `LLM_EXTRA_HOSTS` | empty                                  | No; comma-separated bare hostnames |
-
-The default is a service on the host. A host firewall that drops bridge-to-host traffic, as `ufw`
-does by default on Arch and Ubuntu, makes `host.docker.internal` and the bridge gateway time out
-from the worker with no route error; a chain node on the host fails the same way. Prefer running
-the service inside the Compose network and naming it in the variable; otherwise open the bridge to
-the host port (`ufw allow in on docker0 to any port 11434`).
-
-The base URL may name only `localhost`, `127.0.0.1`, `::1`, `host.docker.internal` or a hostname in
-`LLM_EXTRA_HOSTS`: `LLM_EXTRA_HOSTS=ollama` with `LLM_BASE_URL=http://ollama:11434/v1` points
-extraction at a sibling container. Entries are compared with the URL's host only, with no wildcard;
-name only hosts you control. Operator diagnostics name `LLM_BASE_URL` and `LLM_MODEL`, never their
-values, and the member API never sends the stored diagnostic; the operator reads it in the
-extraction admin.
-
-The extraction task retries connection failures, timeouts, rate limits and upstream server errors,
-up to three attempts thirty seconds apart, one upstream request each; invalid requests, model or
-configuration errors and invalid output stop after one attempt. Every attempt stays in the
-extraction history. After correcting a terminal failure, or after a storage or rendering failure,
-re-run the failed attempt from the extraction admin.
 
 ## Company registry lookup
 

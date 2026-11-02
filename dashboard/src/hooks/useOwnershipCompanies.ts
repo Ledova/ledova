@@ -3,7 +3,6 @@ import {
   CACHE_TIMING,
   OWN_APPOINTMENTS_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
-  appointmentForRegisterStep,
   canAdministerCompany,
   getCompanies,
   getOwnMemberRecords,
@@ -25,7 +24,6 @@ export interface OwnershipCompany {
   memberUuids: string[];
   canReadRegister: boolean;
   canManage: boolean;
-  canReviewEligibility: boolean;
   isOwner: boolean;
   status?: string;
 }
@@ -112,10 +110,6 @@ export function useOwnershipCompanies() {
         memberUuids: [],
         canReadRegister: company.isOwner === true || hasCurrentRegisterReadAuthority(appointments.data, company.uuid),
         canManage: canAdministerCompany(company),
-        canReviewEligibility:
-          canAdministerCompany(company) ||
-          !!appointmentForRegisterStep(appointments.data, company.uuid, 'prepare') ||
-          !!appointmentForRegisterStep(appointments.data, company.uuid, 'approve'),
         isOwner: company.isOwner === true,
         status: company.status,
       });
@@ -129,9 +123,6 @@ export function useOwnershipCompanies() {
           memberUuids: [],
           canReadRegister: hasCurrentRegisterReadAuthority(appointments.data, appointment.company),
           canManage: appointment.capabilities.includes('admin'),
-          canReviewEligibility:
-            !!appointmentForRegisterStep(appointments.data, appointment.company, 'prepare') ||
-            !!appointmentForRegisterStep(appointments.data, appointment.company, 'approve'),
           isOwner: false,
           status: appointment.companyStatus,
         });
@@ -143,7 +134,6 @@ export function useOwnershipCompanies() {
         memberUuids: [],
         canReadRegister: false,
         canManage: false,
-        canReviewEligibility: false,
         isOwner: false,
       };
       company.memberUuids.push(member.uuid);

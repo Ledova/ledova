@@ -1,4 +1,4 @@
-from users.services import eligibility, identity, lifecycle
+from users.services import identity, lifecycle
 from users.services.accounts import account_of
 from users.services.device_tokens import register_device_token, unregister_device_token
 from users.services.notifications import NotificationService
@@ -11,7 +11,6 @@ __all__ = [
     "account_of",
     "identity",
     "NotificationService",
-    "eligibility",
     "ensure_defaults",
     "lifecycle",
     "upsert_user_preferences",
