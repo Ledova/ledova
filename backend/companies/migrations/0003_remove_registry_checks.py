@@ -78,6 +78,7 @@ class Migration(migrations.Migration):
         ("companies", "0002_initial"),
         ("contenttypes", "0002_remove_content_type_name"),
         ("shared", "0002_database_guards"),
+        ("shareholders", "0002_remove_publications"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

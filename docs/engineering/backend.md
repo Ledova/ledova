@@ -404,8 +404,9 @@ declaration, never private identity snapshots.
 
 `POST .../activate/` binds the exact `lifecycle_revision` and declaration version `2026-10-04` and
 answers 200 with the company and the receipt. The same key with the exact request returns the
-retained receipt. Reusing the key with any change, or a new key for a stale revision or a company
-that is no longer awaiting activation, answers 409 `company_activation_conflict`.
+retained receipt. A declaration version other than `2026-10-04` answers 400 first. Reusing the key
+with any other change, or a new key for a stale revision or a company that is no longer awaiting
+activation, answers 409 `company_activation_conflict`.
 
 The guards in [activation_guards.sql](../../backend/companies/activation_guards.sql) refuse a
 receipt that is not inserted by its own administrator's `activation` command on the operator
