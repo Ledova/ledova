@@ -82,8 +82,9 @@ locks. Share-class creation instead selects a current personal administrator or 
 rechecks that authority inside the locked register command (`backend/tokens/services/creation.py`).
 
 App writes to Company, CompanyDocument, authority requests, appointments, invitations and
-legacy-owner sources are denied; the actor-bound services in `companies/services/`
-(`administration.py`, `editing.py`, `documents.py`, `authority_requests.py`, `team.py`) carry the
+legacy-owner sources are denied, and the app role has no grants on activation receipts; the
+actor-bound services in `companies/services/` (`administration.py`, `editing.py`, `documents.py`,
+`authority_requests.py`, `team.py`, `activation.py`) carry the
 caller's principal, lock the company before the live account, profile, identity requirement and
 appointments, and check the clock after the wait. Policies scope authority requests to their
 requester, appointments to their appointee and invitations to their inviter; team reads go
@@ -91,7 +92,8 @@ through the administration check and exclude private identity, financial and aut
 Triggers attached in `companies/database_guards.sql`, with functions there and in
 `companies/authority_guards.sql`, refuse any update or deletion of authority requests, withdrawals,
 appointments, invitations, revocations and legacy-owner sources, and check admission, withdrawal,
-acceptance and revocation.
+acceptance and revocation; those in `companies/activation_guards.sql` do the same for activation
+receipts and check activation.
 
 ### Policy catalogue
 

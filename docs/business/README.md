@@ -29,8 +29,8 @@ company, Ledova mirrors the ownership records the company supplies
   ([staff verification](companies.md#staff-verification-of-a-company-document)), Ledova staff
   verify none of them.
 - The company is responsible for its information, its ASIC filings and its legal obligations, as
-  the Terms a representative accepts at signup say. The registry lookup checks a company's
-  identifiers and name; it does not establish a representative's mandate.
+  the Terms a representative accepts at signup say. Ledova checks neither a company's identifiers
+  and name against a business register nor a representative's mandate.
 - Ledova changes a company's administrators only through its existing administrators or at the
   direction of a court or regulator, and no staff tool appoints one. Recovering your own account is
   a separate matter.
@@ -77,8 +77,8 @@ Platform staff still perform these tasks, each described where linked:
   [retained issues](register.md#retained-issue-instructions));
 - verify the company documents those instructions rely on
   ([staff verification](companies.md#staff-verification-of-a-company-document));
-- issue a compliance warning, suspend, delist or reinstate a company, and retry its registry check
-  ([staff registry controls](companies.md#staff-registry-controls));
+- issue a compliance warning, suspend, delist or reinstate a company
+  ([staff company controls](companies.md#staff-company-controls));
 - review compliance alerts from identity screening and transaction monitoring
   ([participants](participants.md#transaction-monitoring)), and accounts that still hold a company
   wallet approval after losing their standing
@@ -253,8 +253,8 @@ Failed reads offer retry, an edited form asks before a company change discards i
 blocks context changes.
 
 The footer identifies the selected company. Until setup is complete, a personal
-administrator also sees **Getting started**: **Verify and activate your
-company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your ledger**
+administrator also sees **Getting started**: **Activate your
+company** ([activation](companies.md#activation)) and **Set up your ledger**
 ([register setup](register.md#bringing-in-existing-records)). Completed tasks disappear; once both
 are complete, the whole card disappears. Register setup completes once the register of the company
 shown is opened, not when a class is merely created, and it does not wait for activation. Someone

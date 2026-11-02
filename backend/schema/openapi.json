@@ -1709,20 +1709,20 @@
       },
       "CompanyActivated": {
         "properties": {
-          "attempt": {
-            "$ref": "#/components/schemas/CompanyActivationAttempt"
-          },
           "company": {
             "$ref": "#/components/schemas/CompanyDetail"
           },
           "message": {
             "type": "string"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/CompanyActivationReceipt"
           }
         },
         "required": [
-          "attempt",
           "company",
-          "message"
+          "message",
+          "receipt"
         ],
         "type": "object"
       },
@@ -1741,15 +1741,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "latestAttempt": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyActivationAttempt"
-              }
-            ],
-            "nullable": true,
-            "readOnly": true
-          },
           "lifecycleRevision": {
             "readOnly": true,
             "type": "integer"
@@ -1759,27 +1750,19 @@
           "appointment",
           "declarationText",
           "declarationVersion",
-          "latestAttempt",
           "lifecycleRevision"
         ],
         "type": "object"
       },
-      "CompanyActivationAttempt": {
+      "CompanyActivationReceipt": {
         "properties": {
-          "appliedAt": {
+          "activatedAt": {
             "format": "date-time",
-            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
           "appointment": {
             "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "completedAt": {
-            "format": "date-time",
-            "nullable": true,
             "readOnly": true,
             "type": "string"
           },
@@ -1800,23 +1783,6 @@
             "readOnly": true,
             "type": "integer"
           },
-          "reason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "startedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyActivationAttemptStatusEnum"
-              }
-            ],
-            "readOnly": true
-          },
           "uuid": {
             "format": "uuid",
             "readOnly": true,
@@ -1824,28 +1790,15 @@
           }
         },
         "required": [
-          "appliedAt",
+          "activatedAt",
           "appointment",
-          "completedAt",
           "declarationText",
           "declarationVersion",
           "idempotencyKey",
           "lifecycleRevision",
-          "reason",
-          "startedAt",
-          "status",
           "uuid"
         ],
         "type": "object"
-      },
-      "CompanyActivationAttemptStatusEnum": {
-        "description": "* `pending` - pending\n* `passed` - passed\n* `failed` - failed",
-        "enum": [
-          "pending",
-          "passed",
-          "failed"
-        ],
-        "type": "string"
       },
       "CompanyAdministrativeAccess": {
         "properties": {

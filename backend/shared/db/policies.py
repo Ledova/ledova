@@ -157,7 +157,6 @@ POLICIES = {
         _company("company_id", ADMINISTRABLE_COMPANIES),
         "false",
     ),
-    "companies_companyregistrycheck": ("false", "false"),
     "companies_companyauthorityrequest": (f"requester_id = {PRINCIPAL}", "false"),
     "companies_companyappointment": (f"appointee_id = {PRINCIPAL}", "false"),
     "companies_companyteaminvitation": (f"inviter_id = {PRINCIPAL}", "false"),
@@ -340,6 +339,11 @@ OPERATOR_ONLY = {
     "appointment and appointee. The bounded acceptance command writes them on the operator connection, and own "
     "appointment serialization reads only that appointee's exact receipt on that connection. The app role has "
     "no grants and forced row-level security admits no direct rows.",
+    "companies_companyactivation": "Immutable company activation receipts, one per company, each binding the "
+    "activating administrator, their current personal appointment, the exact declaration and their identity "
+    "status. companies/services/activation.py activate_company writes them and returns the actor's own receipt on "
+    "the operator connection, where staff company recovery and the admin read them too. The app role has no grants "
+    "and forced row-level security admits no direct rows.",
     "tokens_memberinvitation": "Immutable intended-recipient company member invitations issued by current "
     "ADMIN appointments.",
     "tokens_memberassociation": "Exact signed-in user/account member associations served only through "

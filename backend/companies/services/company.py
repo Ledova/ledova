@@ -4,19 +4,11 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
-from companies.exceptions import (
-    OfficeholderAttestationRequiredException,
-    RegistryVerificationRequiredException,
-)
+from companies.exceptions import OfficeholderAttestationRequiredException
 from companies.identity import officeholder_declaration
-from companies.models import (
-    Company,
-    CompanyStatus,
-    RegistryCheckPurpose,
-)
+from companies.models import Company, CompanyStatus
 from companies.services.administration import company_operation, lock_company_actor
 from companies.services.editing import EDITABLE_FIELDS
-from companies.services.registry import begin_registry_check, perform_registry_check
 from companies.validators import (
     ABN_DOES_NOT_CARRY_ACN,
     abn_carries_acn,
@@ -95,37 +87,6 @@ ACTIVE_METHODS = {
 }
 
 
-def _registry_transition(company, method, actor, declaration):
-    with company_operation(actor, company.pk, "admin_workflow"), atomic(durable=True):
-        current, actor, _profile, _operator = lock_company_actor(actor, company.pk)
-        _require_workflow_actor(actor)
-        if method == "retry_registry":
-            current._require_status(
-                [CompanyStatus.ACTIVE, CompanyStatus.WARNING, CompanyStatus.SUSPENDED],
-                CompanyStatus.ACTIVE,
-            )
-            purpose = RegistryCheckPurpose.RETRY
-        else:
-            allowed = [state for state, transition in ACTIVE_METHODS.items() if method == transition]
-            current._require_status(allowed, CompanyStatus.ACTIVE)
-            if declaration:
-                _attest_officeholder(current, actor, declaration)
-            if not current.has_initial_activation_provenance:
-                current._require_attestation()
-            purpose = RegistryCheckPurpose.ACTIVATION
-        check = begin_registry_check(current, purpose, actor)
-    check = perform_registry_check(check)
-    if purpose != RegistryCheckPurpose.ACTIVATION:
-        return Company.objects.get(pk=company.pk)
-    with company_operation(actor, company.pk, "admin_workflow"), atomic(durable=True):
-        current, actor, _profile, _operator = lock_company_actor(actor, company.pk)
-        _require_workflow_actor(actor)
-        if current.registry_check_id != check.pk:
-            raise RegistryVerificationRequiredException()
-        getattr(current, method)()
-    return current
-
-
 def _require_workflow_actor(actor):
     if not actor.is_active or not actor.is_staff:
         raise PermissionDenied("A current active staff account is required for technical company recovery.")
@@ -136,13 +97,15 @@ def _require_workflow_actor(actor):
 def transition_company(company: Company, method: str, *, actor=None, declaration=None, **kwargs) -> Company:
     if actor is None:
         raise PermissionDenied("An authenticated company actor is required.")
-    registry_methods = {"retry_registry", *ACTIVE_METHODS.values()}
-    if method not in registry_methods | {"issue_warning", "suspend", "delist"}:
+    if method not in {*ACTIVE_METHODS.values(), "issue_warning", "suspend", "delist"}:
         raise PermissionDenied("Company activation is instructed by a current personal company administrator.")
-    if method in registry_methods:
-        return _registry_transition(company, method, actor, declaration)
     with company_operation(actor, company.pk, "admin_workflow"), atomic():
         current, actor, _profile, _operator = lock_company_actor(actor, company.pk)
         _require_workflow_actor(actor)
+        if declaration and method in ACTIVE_METHODS.values():
+            current._require_status(
+                [state for state, transition in ACTIVE_METHODS.items() if method == transition], CompanyStatus.ACTIVE
+            )
+            _attest_officeholder(current, actor, declaration)
         getattr(current, method)(**kwargs)
     return current

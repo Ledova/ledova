@@ -2,14 +2,6 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 
-class RegistryVerificationRequiredException(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = (
-        "A current matching ABR check must pass before this company can become active. Retry the registry check."
-    )
-    default_code = "registry_verification_required"
-
-
 class IssuerIdentityVerificationRequiredException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "Your identity must be verified before you can exercise this company appointment."

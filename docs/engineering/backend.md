@@ -28,7 +28,7 @@ modules re-exported by `settings/__init__.py`.
 | `operators`      | The single `Operator` configuration row, `GET /api/operator/` (that configuration, read by signed-in clients), and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view`                                                                              |
 | `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes                                                                                                                                                                                                                                     |
 | `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens and notifications                                                                                                                                                          |
-| `companies`      | `Company`, its activation, `CompanyDocument`, representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                                      |
+| `companies`      | `Company`, its activation receipt (`CompanyActivation`), `CompanyDocument`, representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                        |
 | `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, member access and register outputs, and the trading models |
 | `shareholders`   | No models since shareholder publications were [removed](../decisions.md#shareholder-publications-removed); the app keeps the migrations that created and dropped them ([migrations](#migrations))                                                                                                           |
 | `whitelist`      | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands, wallet nominations and company wallet instructions, and the sync from each company's registry                                                                                                                     |
@@ -38,7 +38,7 @@ modules re-exported by `settings/__init__.py`.
 | `blockchain`     | `BlockchainTransaction` and transaction monitoring; the durable outgoing-signing foundation (`SigningAccount`, `OutgoingOperation`, `SignedAttempt`) and its immutable history inventory (`OutgoingHistoryCapture`, `OutgoingHistoryEvidence`, `OutgoingCutoverHold`)                                       |
 | `compliance`     | Monitoring rules, alerts, procedure templates, risk assessments                                                                                                                                                                                                                                             |
 | `documents`      | Nothing: since investor eligibility was removed it stays installed only for its migrations ([migrations](#migrations))                                                                                                                                                                                      |
-| `integrations`   | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, ABR company registry, SendGrid, Expo push, Transak                                                                                                                                                                                            |
+| `integrations`   | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, SendGrid, Expo push, Transak                                                                                                                                                                                                                  |
 | `feature_flags`  | `FeatureFlag` and the trading middleware                                                                                                                                                                                                                                                                    |
 | `shared`         | Base model, country lookup, health-check middleware, PostgreSQL connection and principal helpers, the policy catalogue and database setup, private storage and upload validation, the task catalogue, seeds and the backend test suite                                                                      |
 
@@ -240,6 +240,15 @@ These route groups have no bundled client and are kept deliberately:
   `tokens/0006_remove_trading_eligibility` and `whitelist/0002_remove_wallet_eligibility` depend on
   `shareholders/0002_remove_publications`, so a database whose publications removal refuses stops
   before any eligibility record or file is deleted.
+- Removing the ABR company check ([#1491](https://github.com/Ledova/ledova/issues/1491)) kept no
+  source for old migrations: none imports the registry-check model, its services or the ABR client.
+  `companies/0003_remove_registry_checks` copies each applied activation into the new
+  `CompanyActivation` table before it drops the registry-check table with its records, triggers and
+  functions and the company and appointment registry columns, then replays the changed company
+  guards from current source. The lookup ran inside the request, so there were no queued jobs to
+  delete. `companies/activation_guards.py` installs the receipt guards: `shared/0002_database_guards`
+  runs it too but skips it while the table does not exist yet, so on a fresh database, as on an
+  existing one, `companies/0003` installs them.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.
@@ -322,7 +331,7 @@ never infers success from a lost response.
 | Authority requests                  | `/api/v1/company-authority/requests/`                                                                                                                                                                                  | [Authority](../business/companies.md)                                                                                                                                                                                                                                               |
 | Team invitations and appointments   | `/api/v1/company-authority/invitations/`, `/appointments/`                                                                                                                                                             | [Team](../business/companies.md#team-invitations-and-appointments)                                                                                                                                                                                                                  |
 | Company details and documents       | `/api/v1/companies/`, `/api/v1/companies/{uuid}/documents/`                                                                                                                                                            | [Company information](../business/companies.md#company-information-and-documents)                                                                                                                                                                                                   |
-| Activation                          | `/api/v1/companies/{uuid}/activate/`                                                                                                                                                                                   | [Activation](../business/companies.md#activation-and-the-registry-check)                                                                                                                                                                                                            |
+| Activation                          | `/api/v1/companies/{uuid}/activate/`                                                                                                                                                                                   | [Activation](../business/companies.md#activation)                                                                                                                                                                                                                                   |
 | Wallet nominations and instructions | `/api/v1/whitelist/wallet-nominations/`, `company-wallet-nominations/`, `company-wallet-instructions/`, `company-wallet-targets/`                                                                                      | [Wallet approvals](../business/participants.md#wallet-nominations-and-company-wallet-approvals)                                                                                                                                                                                     |
 | Register evidence and setup         | `/api/v1/tokens/register-evidence/`, `register-member-documents/`, `register-openings/`, `register-links/`, `register-imports/`, `register-corrections/`, `register-particulars-changes/`, `register-reconciliations/` | [Register](../business/register.md)                                                                                                                                                                                                                                                 |
 | Grants, awards and allotments       | `/api/v1/tokens/register-grants/`, `register-awards/`, `register-award-vestings/`, `register-allotments/`                                                                                                              | [Grants](../business/issuing-shares.md#grants-to-walletless-members), [awards](../business/issuing-shares.md#employee-awards-and-vesting), [allotments](../business/issuing-shares.md#external-investor-allotments)                                                                 |
@@ -381,30 +390,33 @@ Each family adds its own effect requirements.
 
 ### Activation
 
-`companies/services/activation.py:activate_company` records a distinct attempt and calls
-`companies/services/registry.py:perform_registry_check`, which uses
-`integrations/abr/client.py:lookup_company`. `CompanyDetail.activation` is null except for a
-current personal administrator, who receives the appointment, company revision, exact declaration
-and their own latest attempt for that appointment, never private identity snapshots or another
-representative's attempts. With `issuer_kyc_required` on, an administrator who is not
-identity-verified gets 400 `issuer_identity_verification_required` before any attempt or provider
-request, and readiness is redacted.
+`companies/services/activation.py:activate_company` locks the company, actor, profile, settings and
+appointments, rechecks the caller's current personal `admin` appointment and, with
+`issuer_kyc_required` on, refuses an administrator who is not identity-verified with 400
+`issuer_identity_verification_required` before recording anything. In the same transaction it
+records the immutable `CompanyActivation` receipt (actor, appointment, retry key, company revision,
+declaration version and text, the operator's identity requirement and a snapshot of the actor's
+identity status) and moves the company to `ACTIVE` with the receipt's `activated_at`, taken from the
+database clock. No business register is consulted
+([decision](../decisions.md#abr-company-check-removed)). `CompanyDetail.activation` is null except
+for a current personal administrator, who receives the appointment, company revision and exact
+declaration, never private identity snapshots.
 
-`POST .../activate/` binds the exact `lifecycle_revision` and declaration version `2026-10-04`. A
-pending or failed attempt answers 200 with the retained attempt. Stale or changed requests answer
-409 `company_activation_conflict`; the same key with the exact request returns the attempt without
-another provider call. A passed but unapplied attempt can resume its final effect after a transient
-commit failure, subject to every current check.
+`POST .../activate/` binds the exact `lifecycle_revision` and declaration version `2026-10-04` and
+answers 200 with the company and the receipt. The same key with the exact request returns the
+retained receipt. A declaration version other than `2026-10-04` answers 400 first. Reusing the key
+with any other change, or a new key for a stale revision or a company that is no longer awaiting
+activation, answers 409 `company_activation_conflict`.
 
-The service locks the company, actor, profile and settings, validates the appointment and records
-the attempt before releasing the transaction; ABR runs outside SQL locks and transactions. The
-final transaction locks and rechecks those inputs and the attempt, and commits the `ACTIVE`
-transition with the immutable `applied_at` receipt. Database guards refuse forged provider
-decisions, raw application-role effects and orphan applied receipts; the receipt identity must
-match the exact company snapshot, and receipt and projection times come from the database clock.
-Staff warning recovery and reinstatement stay in `companies/services/company.py:_registry_transition`
-([rule](../business/companies.md#staff-registry-controls)). Lookup limits are in
-[company registry lookup](../operations/configuration.md#company-registry-lookup).
+The guards in [activation_guards.sql](../../backend/companies/activation_guards.sql) refuse a
+receipt that is not inserted by its own administrator's `activation` command on the operator
+connection, for a company still awaiting activation at its current revision, through a current
+appointment with the exact declaration and identity snapshot, and refuse every later change or
+deletion; a deferred trigger refuses a receipt whose company did not become active with it. The
+company guard admits the `activation` transition only with that company's receipt. The app role has
+no grants on the receipts. Staff warning recovery and reinstatement stay in
+`companies/services/company.py:transition_company`
+([rule](../business/companies.md#staff-company-controls)).
 
 ### Authority requests and team
 
@@ -419,10 +431,8 @@ MIME type and terms with the retained digest and current identities without resc
 validates any file and rechecks draft ownership.
 
 `admit/` reruns the [admission checks](../business/companies.md#company-signup) on the live
-requester and draft without an ABR lookup, which a new company first meets at activation, and
-creates one immutable initial appointment per company; a refused check creates none, and a
-repeated admission returns the retained outcome. A new initial appointment records no registry
-check; earlier appointments keep the authority-purpose check they were admitted with.
+requester and draft and creates one immutable initial appointment per company; a refused check
+creates none, and a repeated admission returns the retained outcome.
 Admission and `withdraw/` share the request lock, so whichever commits first excludes the other; a
 repeated `revoke/` returns its original outcome.
 

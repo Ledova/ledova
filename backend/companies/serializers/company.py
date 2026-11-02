@@ -83,16 +83,12 @@ class CompanyListSerializer(_CompanyAdministrativeSerializer):
         read_only_fields = fields
 
 
-class CompanyActivationAttemptSerializer(serializers.Serializer):
+class CompanyActivationReceiptSerializer(serializers.Serializer):
     uuid = serializers.UUIDField(read_only=True)
     idempotency_key = serializers.UUIDField(read_only=True)
-    appointment = serializers.UUIDField(source="initiating_appointment_id", read_only=True)
+    appointment = serializers.UUIDField(source="appointment_id", read_only=True)
     lifecycle_revision = serializers.IntegerField(read_only=True)
-    status = serializers.ChoiceField(choices=["pending", "passed", "failed"], read_only=True)
-    reason = serializers.CharField(read_only=True)
-    started_at = serializers.DateTimeField(read_only=True)
-    completed_at = serializers.DateTimeField(read_only=True, allow_null=True)
-    applied_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    activated_at = serializers.DateTimeField(read_only=True)
     declaration_version = serializers.CharField(read_only=True)
     declaration_text = serializers.CharField(read_only=True)
 
@@ -102,7 +98,6 @@ class CompanyActivationSerializer(serializers.Serializer):
     lifecycle_revision = serializers.IntegerField(read_only=True)
     declaration_version = serializers.CharField(read_only=True)
     declaration_text = serializers.CharField(read_only=True)
-    latest_attempt = CompanyActivationAttemptSerializer(read_only=True, allow_null=True)
 
 
 class CompanyActivateSerializer(serializers.Serializer):

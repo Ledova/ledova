@@ -87,9 +87,9 @@ simulator observation does not establish them.
 
 ### Verification limited to ID checks
 
-Steps 2 and 3 of [#1491](https://github.com/Ledova/ledova/issues/1491) follow the removal of investor
-eligibility: activation stops looking the company up in the ABR, and then company documents and
-their staff verification go ([decision](decisions.md#verification-limited-to-id-checks)).
+Step 3 of [#1491](https://github.com/Ledova/ledova/issues/1491) follows the removal of investor
+eligibility and of the [ABR company check](decisions.md#abr-company-check-removed): company documents
+and their staff verification go ([decision](decisions.md#verification-limited-to-id-checks)).
 
 ### Deferred
 

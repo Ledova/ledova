@@ -6,10 +6,8 @@ from django.utils import timezone
 from companies.exceptions import (
     InvalidStatusTransitionException,
     OfficeholderAttestationRequiredException,
-    RegistryVerificationRequiredException,
 )
-from companies.identity import company_identity, officeholder_declaration
-from companies.models.registry_check import RegistryCheckPurpose, RegistryCheckStatus
+from companies.identity import officeholder_declaration
 from companies.querysets.company import CompanyQuerySet
 from companies.validators import (
     ABN_DOES_NOT_CARRY_ACN,
@@ -68,24 +66,6 @@ class Company(BaseModel):
         default=CompanyStatus.DRAFT,
     )
     lifecycle_revision = models.PositiveBigIntegerField(default=0, editable=False)
-    registry_check = models.ForeignKey(
-        "companies.CompanyRegistryCheck",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="+",
-        editable=False,
-    )
-    registry_status = models.CharField(
-        max_length=16, choices=RegistryCheckStatus.choices, default=RegistryCheckStatus.PENDING, editable=False
-    )
-    registry_reason = models.CharField(max_length=40, blank=True, editable=False)
-    registry_checked_at = models.DateTimeField(null=True, blank=True, editable=False)
-    registry_entity_name = models.CharField(max_length=255, blank=True, editable=False)
-    registry_entity_status = models.CharField(max_length=32, blank=True, editable=False)
-    registry_identity = models.JSONField(default=dict, blank=True, editable=False)
-    registry_revision = models.PositiveBigIntegerField(null=True, editable=False)
-    registry_purpose = models.CharField(max_length=16, blank=True, editable=False)
     declarant_name = models.CharField(max_length=255, blank=True)
     board_resolution_reference = models.CharField(max_length=255, blank=True)
     officeholder_attested_by = models.ForeignKey(
@@ -204,20 +184,11 @@ class Company(BaseModel):
 
     @property
     def has_initial_activation_provenance(self):
-        return self.registry_checks.filter(initiating_appointment__isnull=False, applied_at__isnull=False).exists()
+        return hasattr(self, "activation_receipt")
 
-    def _require_activation_check(self):
+    def _require_activation_basis(self):
         if not self.has_initial_activation_provenance:
             self._require_attestation()
-        if not (
-            self.registry_check_id
-            and self.registry_status == RegistryCheckStatus.PASSED
-            and self.registry_purpose == RegistryCheckPurpose.ACTIVATION
-            and self.registry_checked_at
-            and self.registry_revision == self.lifecycle_revision
-            and self.registry_identity == company_identity(self)
-        ):
-            raise RegistryVerificationRequiredException()
 
     def issue_warning(self, reason: str):
         self._require_status([CompanyStatus.ACTIVE], CompanyStatus.WARNING)
@@ -228,7 +199,7 @@ class Company(BaseModel):
 
     def resolve_warning(self):
         self._require_status([CompanyStatus.WARNING], CompanyStatus.ACTIVE)
-        self._require_activation_check()
+        self._require_activation_basis()
         self.status = CompanyStatus.ACTIVE
         self._save_transition(update_fields=["status", "updated_at"])
 
@@ -241,7 +212,7 @@ class Company(BaseModel):
 
     def reinstate(self):
         self._require_status([CompanyStatus.SUSPENDED], CompanyStatus.ACTIVE)
-        self._require_activation_check()
+        self._require_activation_basis()
         self.status = CompanyStatus.ACTIVE
         self._save_transition(update_fields=["status", "updated_at"])
 

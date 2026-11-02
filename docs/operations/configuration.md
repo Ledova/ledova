@@ -17,7 +17,6 @@ procedures belong in private [Ledova/infra](https://github.com/Ledova/infra).
 - [Identity verification providers](#identity-verification-providers)
 - [Email](#email)
 - [On-ramp](#on-ramp)
-- [Company registry lookup](#company-registry-lookup)
 - [Push notifications](#push-notifications)
 - [Clients](#clients)
 - [Contracts](#contracts)
@@ -254,19 +253,6 @@ share-payment provider
 | `TRANSAK_API_KEY`, `TRANSAK_API_SECRET`, `TRANSAK_API_URL`, `TRANSAK_API_GATEWAY_URL` | empty       | Yes to enable the widget |
 | `TRANSAK_REFERRER_DOMAIN`                                                             | `localhost` | No                       |
 | `TRANSAK_THEME_COLOR`                                                                 | `6366f1`    | No                       |
-
-## Company registry lookup
-
-`ABR_AUTH_GUID` is blank by default; obtain the free GUID from
-[ABR Web Services](https://abr.business.gov.au/Tools/WebServices). Without it, company activation
-retains a pending, unconfigured attempt without contacting ABR and leaves the company unchanged.
-
-Each lookup has a 15-second whole-call deadline, DNS and response reads included, in a supervised
-subprocess with a 1 MiB streamed response cap; the GUID reaches it through its input pipe, never
-its command line or inherited environment. What a lookup must match and the staff controls that
-remain are in
-[how the registry check matches](../business/companies.md#how-the-registry-check-matches) and
-[staff registry controls](../business/companies.md#staff-registry-controls).
 
 ## Push notifications
 

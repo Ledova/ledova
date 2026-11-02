@@ -141,7 +141,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   layout, without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such
-  as "Verify and activate your company", and a row that starts a task, such as "Prepare a non-paid
+  as "Activate your company", and a row that starts a task, such as "Prepare a non-paid
   transfer", are named for the step or the task; a record's row, such as a share class in Ledger,
   for the record; and a row that opens a section of a page, such as "Documents", for that
   section. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
