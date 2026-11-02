@@ -218,7 +218,9 @@ These route groups have no bundled client and are kept deliberately:
   counting no rows. No model references a publication's stored files any more, so the
   [orphan sweep](../operations/jobs-and-storage.md#previewing-the-upload-sweep) never deletes files
   under `companies/<uuid>/publications/`, and a database the migration refused keeps them while
-  later code runs.
+  later code runs. `shareholders/0003_remove_publication_jobs` then deletes the queued jobs that
+  have not started for the removed tasks (the publications purge, the resolution close and the
+  member notification), so the new worker never picks up a job it cannot run.
 - An app whose models are gone stays installed while an applied migration depends on it:
   `shared/0002_database_guards` depends on `shareholders/0001_initial`, so `shareholders` keeps its
   migrations and the two path functions that migration names, in `shareholders/models/event.py`
