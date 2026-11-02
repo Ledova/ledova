@@ -25,6 +25,10 @@ from tokens.models import (
     RegisterParticularsChange,
     ShareToken,
 )
+from tokens.services.company_pack_history import (
+    particulars_change_records,
+    particulars_changes,
+)
 
 
 class MemberAccessTest(CoreFixtures, APITransactionTestCase):
@@ -280,6 +284,7 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
             [("member", None, moved["full_name"]), ("member", None, profile_name)],
         )
         self.assertEqual([row["previousParticulars"]["name"] for row in history], [profile_name, award["name"]])
+        self.assertEqual([(row["submittedBy"], row["reviewedBy"]) for row in history], [(None, None), (None, None)])
         requests_endpoint = "/api/v1/tokens/member-certificate-requests/"
         certificate = {"operation_id": str(uuid4()), "association": association, "entry": issue_entry}
         self.assertEqual(self.client.get(requests_endpoint).status_code, 404)
@@ -307,6 +312,9 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(
             self.client.patch(profile_endpoint, {"full_name": "Synthetic Unlinked"}, format="json").status_code, 200
         )
+        with use_operator():
+            packed = particulars_changes(particulars_change_records(self.company))
+        self.assertEqual([row["reviewer"] for row in packed if row["provided_by"] == "member"], [None, None])
         self.client.force_authenticate(self.owner)
         company_edit.update(
             operation_id=str(uuid4()),
