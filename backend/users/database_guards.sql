@@ -12,9 +12,19 @@ CREATE OR REPLACE FUNCTION public.users_guard_provider_identity()
  RETURNS trigger
  LANGUAGE plpgsql
 AS $function$
+DECLARE
+    saver text := NULLIF(current_setting('app.profile_save', true), '');
 BEGIN
-    IF current_user <> @APP_ROLE@ THEN
+    IF current_user <> @APP_ROLE@ AND saver IS NULL THEN
         RETURN NEW;
+    END IF;
+    IF saver IS NOT NULL THEN
+        IF TG_OP <> 'UPDATE' THEN
+            RAISE EXCEPTION 'A profile save changes only the saving person''s own profile' USING ERRCODE = '23514';
+        END IF;
+        IF NEW.user_id::text IS DISTINCT FROM saver OR OLD.user_id IS DISTINCT FROM NEW.user_id THEN
+            RAISE EXCEPTION 'A profile save changes only the saving person''s own profile' USING ERRCODE = '23514';
+        END IF;
     END IF;
     IF TG_OP = 'INSERT' THEN
         IF NEW.is_id_verified OR NEW.verified_at IS NOT NULL OR NEW.review_result IS NOT NULL

@@ -4,6 +4,8 @@ export const REGISTER_PARTICULARS_COPY = {
   TITLE: 'Particulars changes',
   PREPARE: 'Change particulars',
   PROVIDED_BY_COMPANY: 'Provided by the company',
+  PROVIDED_BY_MEMBER: 'The member, in their Ledova profile',
+  FOLLOWS_PROFILE: 'They keep their name and address up to date in their Ledova profile.',
   AUTHORITY_NOTE:
     "Changing a member's particulars needs an appointment with administration, or with preparation, approval and " +
     'application.',

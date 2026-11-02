@@ -97,6 +97,9 @@ email and deadline, and accepts with **Accept invitation**; it reports acceptanc
 server does.
 An expired invitation, a changed recorded identity for the member, a revoked appointment of the
 inviting administrator, another person's account or a conflicting association is refused.
+Accepting brings the company's register up to the person's Profile in the same step: their full name
+and residential address replace the recorded ones, dated today, unless they match already
+([particulars from Profile](#particulars-from-profile)).
 
 ### What a member can read
 
@@ -104,9 +107,8 @@ An accepted member reads their own company-recorded particulars, share-class bal
 that changed their holding, and their employee-award terms, original vesting, endings and referenced reversals with net vested,
 issued, ended and remaining quantities; no wallet or company approval is needed. Other members' identities,
 private company decisions, financial documents and other members' parts of an entry are never shown. An
-award is an entitlement, not a holding. Editing the personal Profile does not change the register: a
-member whose recorded name or address is wrong tells the company directly, and the company records
-its own [particulars change](register.md#changing-a-members-particulars).
+award is an entitlement, not a holding. Their recorded name and residential address come from their
+own Profile while the link is current ([particulars from Profile](#particulars-from-profile)).
 
 The web **Dashboard** is one Ownership browser for all of the person's company relationships.
 [Choose the company on Dashboard](README.md#the-app-at-a-glance); Documents and Profile use that
@@ -140,6 +142,25 @@ the company.** It is not a second profile, takes no edits and sends no request. 
 changes those particulars the member gets no notice; the card shows the current ones. The entries
 that changed their holding in each class are in web **Documents** → **Certificates**. On mobile, **Documents** and a class card's **Certificates** open the same
 Certificates page for the selected company.
+
+### Particulars from Profile
+
+While the link is current, the register takes the member's name and residential address from their
+Profile ([decision](../decisions.md#register-particulars-follow-the-linked-members-profile)). Saving a
+full name or residential address on Profile updates every company register the person is linked to,
+in the same save: each records one particulars change dated today (UTC), with the particulars it
+replaced, marked as provided by the member. A Profile field left empty keeps what the register holds,
+saving unchanged details records nothing, an address over the register's 1,000 characters is
+refused, and the member gets no notice. The company cannot change those particulars itself while the
+link is current; it sees that the member keeps them up to date in their Ledova profile, and a
+register import records the member's holding without changing their name or address. Once the link
+ends, by revocation or because the account is deleted or loses its verified email, the register
+keeps the last particulars and the company changes them again with an ordinary [particulars
+change](register.md#changing-a-members-particulars).
+
+Members already linked when this was installed were brought up to their Profile once: each register
+whose name or address differed from the member's Profile recorded one change of the same kind, dated
+that day, using only the Profile fields that were filled in.
 
 ### Share-event notifications
 

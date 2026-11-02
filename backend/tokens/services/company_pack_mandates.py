@@ -315,7 +315,7 @@ def section(company):
                 "as_at": record.as_at,
             },
         )
-        for record in _records(RegisterParticularsChange, company)
+        for record in _records(RegisterParticularsChange, company).filter(member_association__isnull=True)
     ]
     grants = [
         _record(

@@ -95,8 +95,11 @@ admission without an ABR lookup, activation with one and later checked company d
 the identity, versioned acknowledgement and company authority checks in that path; resuming signup
 uses current administrator authority and a retained current Terms receipt without rewriting
 historical permissions or declarations.
-Member invitations and own records have one core journey, which also finds no certificate request
-route, and the tenant controls include foreign invitation and revoked association refusals. One
+Member invitations and own records have one core journey. It also finds no certificate request
+route and checks that the register follows a linked member's profile: linking and a profile save
+record the member's dated changes, the company's edit is refused until the link is revoked, and the
+database refuses a member's change to another member's particulars. The tenant controls include
+foreign invitation and revoked association refusals. One
 output case covers real company certificate PDFs, a register reader's access ending with their
 appointment, pack provenance and file integrity, and the purge of export records after the
 retention floor. Two mirror cases cover complete copied
@@ -111,7 +114,8 @@ their API and database boundaries: a privileged fixture connection alone does no
 isolation, and ordinary `SET ROLE` fixtures are not app-login evidence.
 `backend/shared/tests/test_scoped_access.py` holds them:
 session and principal handling, foreign reads and writes, exact-company binding, foreign approval
-and once-only issue. The PR description records the executed count, the scoped count and any skips.
+and once-only issue. The own-profile case also checks that the operator-connection profile save, with
+its serializer bypassed, cannot change provider identity results or another person's row. The PR description records the executed count, the scoped count and any skips.
 
 ## Client suites
 

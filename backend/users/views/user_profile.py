@@ -12,6 +12,7 @@ from users.serializers.account_actions import (
     DeletedAccountResponseSerializer,
 )
 from users.services import lifecycle
+from users.services.profile import save_profile
 
 
 class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, AuthenticatedGenericViewSet):
@@ -22,6 +23,15 @@ class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, Authent
     ordering_fields = ["created_at", "full_name"]
 
     scoped_model = UserProfile
+    operator_actions = frozenset({"partial_update"})
+    operator_actions_because = (
+        "A profile save that gives a full name or residential address brings the register particulars of every "
+        "company that currently links this person as a member up to date in the same transaction, and registers "
+        "are written only on the operator connection. narrow() binds the save to the signed-in person's own "
+        "locked profile row, and the save marks its transaction so the profile trigger still refuses provider "
+        "identity results and any other person's row; the register guards accept only this person's own current "
+        "links and their profile's values."
+    )
 
     def narrow(self, queryset):
         queryset = queryset.filter(user_id=self.request.user.pk)
@@ -31,7 +41,7 @@ class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, Authent
         return queryset
 
     def perform_update(self, serializer):
-        serializer.save()
+        save_profile(self.request.user, serializer)
 
     @atomic()
     def partial_update(self, request, *args, **kwargs):

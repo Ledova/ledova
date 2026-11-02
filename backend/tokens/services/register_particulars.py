@@ -4,7 +4,8 @@ from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
-from companies.models import CompanyAppointment, CompanyCapability
+from companies.models import Company, CompanyAppointment, CompanyCapability
+from companies.services.administration import company_operation
 from companies.services.authority_requests import _requester_principal
 from shared.db import use_operator
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
@@ -18,6 +19,7 @@ from tokens.models import (
     RegisterPosition,
 )
 from tokens.services.former_holders import member_left_on, retention_cutoff
+from tokens.services.member_events import current_associations
 from tokens.services.register_authority import (
     APPOINTMENT_NOT_FOUND,
     holds,
@@ -30,6 +32,15 @@ STALE = (
     "This member's recorded particulars changed after you read them. Check their current particulars and make the "
     "change again."
 )
+LINKED = (
+    "This member keeps their name and address up to date in their Ledova profile, so the company does not change "
+    "them here."
+)
+LONG_ADDRESS = (
+    f"A residential address may have at most {REGISTER_IMPORT_ADDRESS_LENGTH:,} characters, because the companies "
+    "whose registers you are linked to record it."
+)
+PROFILE = "member_particulars_profile"
 EDITORS = (CompanyCapability.PREPARE, CompanyCapability.APPROVE, CompanyCapability.APPLY)
 LIMITS = {
     "name": RegisterParticularsChange._meta.get_field("name").max_length,
@@ -115,6 +126,8 @@ def edit_particulars(*, actor, operation_id, appointment, member, name, resident
             ):
                 raise RegisterChangeConflict()
             return existing, False
+        if current_associations(company_id=company.pk, member=subject.pk).exists():
+            raise ValidationError(LINKED)
         held = RegisterMemberParticulars.objects.select_for_update().filter(member=subject).first()
         current = ("", "") if held is None else (held.name, held.residential_address)
         if current != seen:
@@ -143,19 +156,61 @@ def edit_particulars(*, actor, operation_id, appointment, member, name, resident
             change.save(force_insert=True)
         except IntegrityError:
             raise RegisterChangeConflict() from None
-        RegisterMemberParticulars.objects.update_or_create(
-            member=subject,
-            defaults={
-                "name": change.name,
-                "residential_address": change.residential_address,
-                "as_at": change.as_at,
-                "source_import": None,
-                "source_grant": None,
-                "source_allotment": None,
-                "source_transfer": None,
-                "source_award": None,
-                "source_registration": None,
-                "source_change": change,
-            },
-        )
+        _hold(change)
         return change, True
+
+
+def _hold(change):
+    RegisterMemberParticulars.objects.update_or_create(
+        member_id=change.member_id,
+        defaults={
+            "name": change.name,
+            "residential_address": change.residential_address,
+            "as_at": change.as_at,
+            "source_import": None,
+            "source_grant": None,
+            "source_allotment": None,
+            "source_transfer": None,
+            "source_award": None,
+            "source_registration": None,
+            "source_change": change,
+        },
+    )
+
+
+def _provided(value, kept):
+    return value if isinstance(value, str) and value.strip() else kept
+
+
+def apply_profile(actor, profile, association):
+    with company_operation(actor, association.company_id, PROFILE):
+        list(Company.objects.select_for_update().filter(pk=association.company_id).values_list("pk", flat=True))
+        held = RegisterMemberParticulars.objects.select_for_update().filter(member_id=association.member).first()
+        if held is None or not current_associations(pk=association.pk, user=actor).exists():
+            return None
+        name = _provided(profile.full_name, held.name)
+        address = _provided(profile.residential_address, held.residential_address)
+        if (name, address) == (held.name, held.residential_address):
+            return None
+        if len(address) > REGISTER_IMPORT_ADDRESS_LENGTH:
+            raise ValidationError({"residential_address": [LONG_ADDRESS]})
+        change = RegisterParticularsChange.objects.create(
+            company_id=association.company_id,
+            member_id=association.member,
+            member_association=association,
+            name=name,
+            residential_address=address,
+            as_at=timezone.now().date(),
+            evidence_fingerprint="",
+            evidence_snapshot={},
+            submitted_by=actor,
+            status="applied",
+            reviewed_by=actor,
+        )
+        _hold(change)
+        return change
+
+
+def follow_profile(actor, profile):
+    for association in current_associations(user=actor).order_by("company_id", "uuid"):
+        apply_profile(actor, profile, association)

@@ -53,6 +53,13 @@ from tokens.models import (
     ShareToken,
 )
 from users.models import UserProfile
+from users.serializers import UserProfileSerializer
+from users.services.profile import save_profile
+
+
+class Unguarded(UserProfileSerializer):
+    class Meta(UserProfileSerializer.Meta):
+        read_only_fields = ("uuid",)
 
 
 @override_settings(RLS_AMBIENT_ALIAS=APP_ALIAS, RLS_ROLE_PER_REQUEST=False)
@@ -241,6 +248,17 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         with use_operator():
             self.profile.refresh_from_db()
             self.foreign_profile.refresh_from_db()
+            for target, change in (
+                (self.profile, {"is_id_verified": False}),
+                (self.foreign_profile, {"full_name": "Forged"}),
+            ):
+                bypassed = Unguarded(target, data=change, partial=True)
+                self.assertTrue(bypassed.is_valid(), bypassed.errors)
+                with self.assertRaises(IntegrityError):
+                    save_profile(self.owner, bypassed)
+            self.profile.refresh_from_db()
+            self.foreign_profile.refresh_from_db()
+        self.assertTrue(self.profile.is_id_verified)
         self.assertEqual(self.profile.full_name, "Synthetic Updated Member")
         self.assertEqual(self.foreign_profile.full_name, "Synthetic core-foreign")
 

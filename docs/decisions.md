@@ -13,7 +13,7 @@ stay here as history and are marked where they appear.
 | Decision                                                                                                        | Date                                           | Status                                                                                                                             |
 | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                                          |
-| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476)                                                                        |
+| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476) and for linked members 2 November (#1492)                              |
 | [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148                                                                                   |
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148                                                                 |
 | [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148                                                                            |
@@ -35,9 +35,10 @@ stay here as history and are marked where they appear.
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                           | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
-| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; #1476; certificate requests removed 2 November                                                                            |
-| [One-step particulars edit](#one-step-particulars-edit)                                                         | 1 November 2026                                | Current; #1476                                                                                                                     |
+| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; linked members follow their profile (#1492)                               |
+| [One-step particulars edit](#one-step-particulars-edit)                                                         | 1 November 2026                                | Current; #1476; members without a current account link since 2 November (#1492)                                                    |
 | [Member certificate requests removed](#member-certificate-requests-removed)                                     | 2 November 2026                                | Current; #1476                                                                                                                     |
+| [Register particulars follow the linked member's profile](#register-particulars-follow-the-linked-members-profile) | 2 November 2026                                | Current; #1492                                                                                                                     |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                                            |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                                                                                            |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                                                                                            |
@@ -146,7 +147,9 @@ corrections and openings recorded on #864 and #860;
   as decided on 22 September 2026. Members editing their own particulars is
   separate work in [#866](https://github.com/Ledova/ledova/issues/866).
   _The reason and supporting document were superseded on 1 November 2026 by the
-  [one-step particulars edit](#one-step-particulars-edit): a change needs neither._
+  [one-step particulars edit](#one-step-particulars-edit): a change needs neither. Since 2 November
+  2026 a member with a current Ledova account link provides their own particulars from their
+  profile ([decision](#register-particulars-follow-the-linked-members-profile))._
 
 ### Company representative verification
 
@@ -1028,6 +1031,9 @@ The legal basis: under s169 of the Corporations Act 2001, a register of members 
 member's name and address. No law requires a member request workflow, a supporting document or an
 approval step for the member to tell the company about a change.
 
+_Since 2 November 2026 a member with a current Ledova account link no longer tells the company: the
+register follows their profile ([decision](#register-particulars-follow-the-linked-members-profile))._
+
 ### One-step particulars edit
 
 **Owner decision, 1 November 2026**, given in the session and tracked in
@@ -1045,6 +1051,10 @@ separate approval and application. The owner chose the recommended answer to eac
 Each change is kept as one immutable record of who made it, when, and the particulars it replaced.
 Earlier changes, their supporting documents and decisions are kept; one prepared or approved but
 never applied stays as history and is no longer decided.
+
+_Since 2 November 2026 the edit is for members without a current Ledova account link; a linked
+member's particulars follow their profile
+([decision](#register-particulars-follow-the-linked-members-profile))._
 
 ### Member certificate requests removed
 
@@ -1069,6 +1079,30 @@ within 2 months after an issue and 1 month after a transfer is lodged, so the is
 triggers the duty, not a request. Under s1070D, only a replacement for a lost or destroyed
 certificate starts with the holder applying, and that is between the holder and the company.
 Nothing requires a member to request a certificate through a platform.
+
+### Register particulars follow the linked member's profile
+
+**Owner decision, 2 November 2026**, given in the session and tracked in
+[#1492](https://github.com/Ledova/ledova/issues/1492). Reviewing Profile's "How {company} records
+you" card, the owner wrote: "we dont need this thing "How company records your" Company will record
+using the current profile and we should remove everything that over complicated that". Asked where
+the register should take a member's name and address from when the member has a Ledova account, the
+owner chose **"Their profile"**: "The register uses the member's current profile name and address.
+When they edit their profile, each company's register updates automatically, with a dated record in
+its history. Companies keep editing particulars only for members without an account."
+
+This changes the earlier particulars decisions for a member with a current link to a Ledova account,
+made by accepting the company's [invitation](#member-invitations-and-account-association). Their
+profile, not the company, provides their register name and residential address, and the member no
+longer tells the company directly about a change, as the [requests
+decision](#member-particulars-requests-removed) had them do. The
+[one-step particulars edit](#one-step-particulars-edit) stays for members without a current link, and
+it applies again when a link ends. A company's register import no longer changes such a member's
+name or address either, so the [5 October rule](#company-run-register-authority-and-evidence) that the
+latest "as at" date wins between imports and changes applies only to members without a current link.
+A member's change is recorded like the company's, as one immutable record of when it was made and the
+particulars it replaced, with no notice. Existing changes and their history stay as they were, and
+links that already existed were brought up to their members' profiles once, when this was installed.
 
 ## Minimum tests and fresh migrations
 

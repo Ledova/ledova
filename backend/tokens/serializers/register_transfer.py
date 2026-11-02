@@ -176,6 +176,10 @@ class RegisterMemberSelectionSerializer(serializers.Serializer):
     )
 
     has_awards = serializers.BooleanField(required=False)
+    follows_profile = serializers.BooleanField(
+        required=False,
+        help_text="Whether a current Ledova account link keeps the person's particulars up to date from their profile.",
+    )
 
 
 class RegisterAwardRecipientSerializer(serializers.Serializer):

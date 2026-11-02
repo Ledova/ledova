@@ -40,6 +40,9 @@ class RegisterParticularsChangeSerializer(RegisterDecidedSerializer):
     decisions = RegisterParticularsChangeDecisionSerializer(many=True, read_only=True)
     previous_particulars = RegisterParticularsHeldSerializer(read_only=True, allow_null=True)
 
+    def get_provided_by(self, obj) -> str:
+        return "member" if obj.member_association_id else super().get_provided_by(obj)
+
     class Meta:
         model = RegisterParticularsChange
         fields = [

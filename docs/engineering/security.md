@@ -176,6 +176,21 @@ operator query to it, exposing no private orders or wallets.
 Order creation is another bounded handoff
 ([create protocol](trading-protocols.md#creating-an-order)).
 
+A Profile save is a bounded operator write. `PATCH /api/user-profiles/<uuid>/` runs on the operator
+connection so that a saved full name or residential address reaches every register that currently
+links the person in the same transaction
+([particulars from Profile](../business/member-records.md#particulars-from-profile)). `narrow()` binds
+it to the signed-in person's own locked row, and the serializer keeps provider identity results and
+the email read-only. The save also marks its transaction with the person's ID in `app.profile_save`
+for the profile update alone, and the `users_provider_identity` trigger checks a marked write as it
+checks an app-role one: it refuses any change to provider identity results and any row but the
+saving person's own. Unmarked operator writes, the verification service's and account deletion's,
+are unchanged. The register guards accept a member's change only through the person's own
+current association for that company and member, with each value taken from their profile or kept,
+as an applied change over the exact current particulars, and they refuse a company's edit of a
+member who has a current association
+([particulars changes API](records.md#particulars-changes-api)).
+
 ## Private files
 
 Uploaded evidence is private in every storage mode and on every instance. File
@@ -299,9 +314,9 @@ captured boundaries and identity snapshots, and the company's evidence uploads, 
 automatic expiry. Every register decision retains a private copy of the company's upload with its
 size, type and SHA-256, except a one-step particulars change, which takes no upload; a particulars
 change also keeps its own copy of the recorded name and residential address and, when made in one
-step, of the particulars it replaced; and a staff-era proposal keeps its copy of the staff-verified
-document. The database refuses ordinary deletion of these rows; only copies left by a rolled-back
-or interrupted preparation fall under the orphan sweep.
+step or from a linked member's Profile, of the particulars it replaced; and a staff-era proposal
+keeps its copy of the staff-verified document. The database refuses ordinary deletion of these
+rows; only copies left by a rolled-back or interrupted preparation fall under the orphan sweep.
 
 Documents uploaded after an authority request belong to the company document record and do not
 alter the request. Production retention is decided before any real data, and account and company deletion still respect the

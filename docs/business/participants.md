@@ -340,9 +340,10 @@ Personal-details editing opens inline, with aligned Cancel and save actions.
 To change your full name, residential address or phone, choose **Edit personal details**, change
 them and choose **Save personal details**. These details are self-reported: editing them verifies
 nothing and leaves existing identity results unchanged. A Profile save creates no company
-appointment, member association or register instruction and does not change your register
-particulars, which only the company changes, recording who changed them and what they replaced
-([particulars](register.md#changing-a-members-particulars);
+appointment, member association or register instruction. While your account is linked to a member of
+a company's register, saving your full name or residential address also updates that register, with
+a dated record in its history; an empty field keeps what the register holds
+([particulars from Profile](member-records.md#particulars-from-profile);
 [member access](member-records.md#member-access)).
 
 On web and in the app, Supporting payslips belongs to Verification alongside classification claims,

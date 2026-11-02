@@ -4635,6 +4635,7 @@ DECLARE
     principal bigint;
     at_time timestamptz;
     previous jsonb;
+    own users_userprofile;
 BEGIN
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain particulars changes exactly as recorded' USING ERRCODE = '23514';
@@ -4645,14 +4646,7 @@ BEGIN
     previous := tokens_register_particulars_snapshot(NEW.member_id);
     IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL
         OR NEW.submitted_by_id IS DISTINCT FROM principal OR NEW.reviewed_by_id IS DISTINCT FROM principal
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_particulars_edit'
         OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text
-        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
-            'prepare', at_time)
-        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
-            'approve', at_time)
-        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
-            'apply', at_time)
         OR NEW.status <> 'applied' OR NEW.rejection_reason <> ''
         OR NOT EXISTS (SELECT 1 FROM tokens_registermember member WHERE member.uuid = NEW.member_id
             AND member.company_id = NEW.company_id)
@@ -4663,8 +4657,38 @@ BEGIN
         OR (NEW.name IS NOT DISTINCT FROM previous->>'name'
             AND NEW.residential_address IS NOT DISTINCT FROM previous->>'residential_address')
     THEN
-        RAISE EXCEPTION 'Particulars edits require exact current intent, company authority and new particulars'
+        RAISE EXCEPTION 'Particulars changes require exact current intent and new particulars'
             USING ERRCODE = '23514';
+    END IF;
+    IF NEW.member_association_id IS NULL THEN
+        IF current_setting('app.company_operation', true) IS DISTINCT FROM 'register_particulars_edit'
+            OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
+                'prepare', at_time)
+            OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
+                'approve', at_time)
+            OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
+                'apply', at_time)
+            OR EXISTS (SELECT 1 FROM tokens_memberassociation link WHERE link.company_id = NEW.company_id
+                AND link.member = NEW.member_id AND link.current
+                AND tokens_member_association_current(link.uuid, link.user_id))
+        THEN
+            RAISE EXCEPTION 'Particulars edits require exact current intent, company authority and an unlinked member'
+                USING ERRCODE = '23514';
+        END IF;
+    ELSE
+        SELECT * INTO own FROM users_userprofile WHERE user_id = principal;
+        IF current_setting('app.company_operation', true) IS DISTINCT FROM 'member_particulars_profile'
+            OR NEW.preparing_appointment_id IS NOT NULL OR NEW.reason <> '' OR previous IS NULL
+            OR NOT EXISTS (SELECT 1 FROM tokens_memberassociation link WHERE link.uuid = NEW.member_association_id
+                AND link.company_id = NEW.company_id AND link.member = NEW.member_id AND link.user_id = principal)
+            OR NOT tokens_member_association_current(NEW.member_association_id, principal)
+            OR (NEW.name IS DISTINCT FROM own.full_name AND NEW.name IS DISTINCT FROM previous->>'name')
+            OR (NEW.residential_address IS DISTINCT FROM own.residential_address
+                AND NEW.residential_address IS DISTINCT FROM previous->>'residential_address')
+        THEN
+            RAISE EXCEPTION 'A member changes only their own linked particulars, from their own profile'
+                USING ERRCODE = '23514';
+        END IF;
     END IF;
     NEW.previous_particulars := previous;
     NEW.reviewed_at := at_time;
@@ -4680,17 +4704,19 @@ CREATE OR REPLACE FUNCTION public.tokens_check_register_particulars_edit()
  SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
 BEGIN
-    IF NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, NEW.reviewed_by_id,
-            'prepare', clock_timestamp())
-        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, NEW.reviewed_by_id,
-            'approve', clock_timestamp())
-        OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, NEW.reviewed_by_id,
-            'apply', clock_timestamp())
+    IF NOT (CASE WHEN NEW.member_association_id IS NULL THEN
+            tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, NEW.reviewed_by_id,
+                'prepare', clock_timestamp())
+            AND tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, NEW.reviewed_by_id,
+                'approve', clock_timestamp())
+            AND tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, NEW.reviewed_by_id,
+                'apply', clock_timestamp())
+        ELSE tokens_member_association_current(NEW.member_association_id, NEW.reviewed_by_id) END)
         OR NOT EXISTS (SELECT 1 FROM tokens_registermemberparticulars held
             WHERE held.member_id = NEW.member_id AND held.source_change_id = NEW.uuid AND held.name = NEW.name
                 AND held.residential_address = NEW.residential_address AND held.as_at = NEW.as_at)
     THEN
-        RAISE EXCEPTION 'A particulars edit must record its particulars under current company authority at commit'
+        RAISE EXCEPTION 'A particulars change must record its particulars under current authority at commit'
             USING ERRCODE = '23514';
     END IF;
     RETURN NULL;

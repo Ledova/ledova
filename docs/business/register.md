@@ -114,8 +114,10 @@ its wallets (differing recorded identities, like differing live ones, make it Am
 particulars of the import or particulars change with the later "as at" date (or applied later, on a
 shared date), shown as "Recorded register particulars". Particulars never replace a live identity or
 hide an ambiguous one ([decision](../decisions.md#the-stored-register)), so profile changes reach
-the register and conflicts stay visible. Older issues with no recorded identity are not filled in by
-guessing.
+the register and conflicts stay visible. A member linked to a Ledova account through an invitation
+changes their own recorded particulars from their Profile
+([particulars from Profile](member-records.md#particulars-from-profile)). Older issues with no
+recorded identity are not filled in by guessing.
 
 An email address is never used as a member's name. A wallet owner who has not given a full name in
 Profile has no live identity, so without other recorded identity the member shows as Unidentified;
@@ -193,7 +195,10 @@ seven years, then purged for good ([retention](../engineering/security.md#retent
 An import mirrors the company's records for one share class. For a class with no entries and no
 contract it is the opening, creating the members, the Opening state entry and their particulars
 together; for a class opened from the chain it adds particulars and former members from before
-Ledova, and its holdings must match the stored register. On the web:
+Ledova, and its holdings must match the stored register. An import never changes the name or
+residential address of a member linked to a Ledova account: their holding and everything else the
+import records are applied, and the register keeps the particulars from their Profile
+([particulars from Profile](member-records.md#particulars-from-profile)). On the web:
 
 1. On Ledger, choose **Add share class**; or choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
@@ -341,9 +346,12 @@ On a class on chain the next reconciliation reports member and supply difference
 
 ### Changing a member's particulars
 
-The company keeps members' names and residential addresses current. A member whose recorded name or
-address is wrong tells the company directly; editing their own profile does not change the register
-([member profile](participants.md#member-profile)).
+The company keeps the names and residential addresses of members without a current Ledova account
+link up to date. A linked member keeps their own up to date in their Ledova profile, and each save
+records a particulars change provided by the member
+([particulars from Profile](member-records.md#particulars-from-profile)). For them the shareholder's
+page shows "They keep their name and address up to date in their Ledova profile." instead of
+**Change particulars**, and the company's edit is refused until the link ends.
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
    Recipient details on their award's page, and choose **Change particulars**.
@@ -356,18 +364,19 @@ address is wrong tells the company directly; editing their own profile does not 
 **Change particulars** is offered to an administrator, or to an appointment holding prepare, approve
 and apply: whoever could already finish a change alone
 ([decision](../decisions.md#one-step-particulars-edit)). There is no supporting document, approval
-or application step, and the member is not notified; they see the current particulars on Profile.
+or application step, and the member is not notified.
 Each change is kept with who made it and when, its reason if given, and the particulars it
 replaced. A change is refused if the recorded particulars changed after the form read them (read
-them again and retry), if it changes neither the name nor the address, or for a member who has held
-no shares in the company for the retention period. Names take up to 255 characters, and addresses
-and reasons up to 1,000.
+them again and retry), if it changes neither the name nor the address, while the member's account
+link is current, or for a member who has held no shares in the company for the retention period.
+Names take up to 255 characters, and addresses and reasons up to 1,000.
 
 The latest "as at" date wins between imports and changes
 ([identity order](#members-holder-types-and-identity)), so a later import replaces a change's
-particulars. Changes made before 1 November 2026 were prepared with a supporting document, then
-approved and applied. They are kept with their documents and decisions, and one never applied shows
-as Prepared, not applied or Approved, not applied, with no action.
+particulars, except a linked member's, which only their Profile changes. Changes made
+before 1 November 2026 were prepared with a supporting document, then approved and applied. They are
+kept with their documents and decisions, and one never applied shows as Prepared, not applied or
+Approved, not applied, with no action.
 
 ### Linking wallets to members
 
@@ -605,7 +614,8 @@ The same view holds the existing append-only correction and maintenance workflow
 corrections and particulars changes. Each is a titled record showing its snapshot, documents and
 decision trail; a copied opening's shareholders sit behind **Show the shareholders**, open while it
 awaits a decision, and a particulars change shows who changed the particulars and when, with the
-particulars before and after. Stages read Prepared, Approved, Applied or Rejected (for an import,
+particulars before and after; one a linked member made reads Changed by: The member, in their Ledova
+profile. Stages read Prepared, Approved, Applied or Rejected (for an import,
 Reviewed and Confirmed; for a particulars change from before the one-step edit that was never
 applied, Prepared, not applied or Approved, not applied), and an import, a correction or such an
 earlier particulars change has an Evidence row reading Provided by the company or, before the work
@@ -645,7 +655,9 @@ Each shareholder has a page, reached from Details on Shareholders, and so does e
 reached from Recipient details on their award's page. It shows:
 
 - Particulars: the name and residential address the company has recorded, with **Change
-  particulars** for an administrator or an appointment holding prepare, approve and apply;
+  particulars** for an administrator or an appointment holding prepare, approve and apply, or, for a
+  member linked to a Ledova account, "They keep their name and address up to date in their Ledova
+  profile." instead;
 - Holdings: per class, Shares held, % of class, Date added and Holder type, then
   any former holding with the shares held when it ended, its date, and whether they returned or the
   cessation was corrected;
@@ -689,7 +701,8 @@ coincide between different people; the stored member ID distinguishes them.
 
 An award recipient without shares has a person record from their first award. Every flow uses
 their member ID and current particulars, so an issue, a transfer or another award reaches the same
-person, and the company corrects their particulars with an ordinary particulars change. On a shareholder's
+person, and the company corrects their particulars with an ordinary particulars change (a linked
+recipient corrects them in their Profile). On a shareholder's
 page, **Issue shares to them** and, on each holding, **Transfer shares** start those flows with the
 person chosen.
 

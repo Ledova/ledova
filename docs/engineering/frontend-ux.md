@@ -323,7 +323,10 @@ impact and company authority grouped, and terms and documents on demand. Their a
 **Record issue**; approval alone changes no holding. Rejection also uses page review.
 A web particulars change has no review: it applies in one step, and its record shows the name,
 address and as-at date before and after in equal columns on wide screens, stacked on smaller
-screens, with any reason beneath.
+screens, with any reason beneath. A change a linked member made in their Profile reads **Changed
+by** The member, in their Ledova profile. For a member who follows their profile, the shareholder's
+page and the particulars page show one muted line, "They keep their name and address up to date in
+their Ledova profile.", in place of **Change particulars** and its form.
 Other decision families and separate API decisions keep their existing workflow.
 
 On the web, prefer editing a record's details in its existing card: replace the read view with the

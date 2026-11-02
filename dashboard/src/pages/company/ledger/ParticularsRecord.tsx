@@ -51,8 +51,12 @@ export function ParticularsRecord({
           <h3 className="font-medium text-text-primary">{member}</h3>
           <Rows>
             <RecordStage stage={change.stage}>{COPY.STAGES[change.stage] ?? change.stage}</RecordStage>
-            {change.preparedByName !== null && (
-              <Row label={edit ? 'Changed by' : 'Prepared by'}>{change.preparedByName || 'Not provided'}</Row>
+            {change.providedBy === 'member' ? (
+              <Row label="Changed by">{COPY.PROVIDED_BY_MEMBER}</Row>
+            ) : (
+              change.preparedByName !== null && (
+                <Row label={edit ? 'Changed by' : 'Prepared by'}>{change.preparedByName || 'Not provided'}</Row>
+              )
             )}
             <Row label={edit ? 'Changed on' : 'Prepared on'}>{formatDateTime(change.createdAt)}</Row>
           </Rows>

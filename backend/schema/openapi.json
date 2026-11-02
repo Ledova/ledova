@@ -16513,6 +16513,10 @@
             "nullable": true,
             "type": "string"
           },
+          "followsProfile": {
+            "description": "Whether a current Ledova account link keeps the person's particulars up to date from their profile.",
+            "type": "boolean"
+          },
           "hasAwards": {
             "type": "boolean"
           },
@@ -17123,6 +17127,7 @@
           "preparingAppointment": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
+            "nullable": true,
             "readOnly": true,
             "type": "string"
           },

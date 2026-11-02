@@ -28,6 +28,9 @@ chain actions run through the API only: the web app has no wallets or on-chain f
 removed on 31 October 2026; members tell the company directly
 ([decision](decisions.md#member-particulars-requests-removed)), and since 1 November the company
 changes a member's particulars in one step ([decision](decisions.md#one-step-particulars-edit)).
+Since 2 November a member linked to a Ledova account keeps their own register particulars up to date
+from their Profile
+([decision](decisions.md#register-particulars-follow-the-linked-members-profile)).
 Members' certificate requests were removed on 2 November 2026: the company prepares, signs and
 delivers its certificates, and Ledova keeps each one's fingerprint
 ([decision](decisions.md#member-certificate-requests-removed)).

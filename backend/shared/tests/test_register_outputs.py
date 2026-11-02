@@ -191,8 +191,12 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         for private in ("member-invitations", "member-associations"):
             listed = self.client.get(f"/api/v1/tokens/{private}/", {"company": str(self.company.pk)})
             self.assertEqual(listed.json()["count"], 0, private)
+        self.client.force_authenticate(self.owner)
+        linked = self.client.get(f"{company_endpoint}?sequence={entry.sequence}").json()["sourceDigest"]
+        self.assertNotEqual(linked, fields["source_digest"])
+        self.client.force_authenticate(self.foreign)
         reader_preview = self.client.get(f"{company_endpoint}?sequence={entry.sequence}")
-        self.assertEqual(reader_preview.json()["sourceDigest"], fields["source_digest"])
+        self.assertEqual(reader_preview.json()["sourceDigest"], linked)
         revoke_company_appointment(requester=self.owner, appointment_id=reader.pk)
         self.assertEqual(self.client.get(f"{company_endpoint}?sequence={entry.sequence}").status_code, 404)
         self.client.force_authenticate(self.owner)
