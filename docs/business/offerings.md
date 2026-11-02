@@ -87,7 +87,7 @@ while submitted or under review.
 
 ## Offer documents
 
-The company keeps its documents under **Eligibility → Supporting**
+The company keeps its documents under **Company documents**
 ([company information and documents](companies.md#company-information-and-documents)). The offering
 form lists only the offer types: prospectus or information memorandum, risk disclosure, business
 plan, financial statements, auditor report, constitution and shareholder agreement. Personal records
@@ -114,9 +114,10 @@ deleted.
 
 ## Investor access and eligibility
 
-Investors reach offerings through the directory, which a company's own
-[eligibility decision](participants.md#company-eligibility-decisions) opens, for that company only.
-In the last implementation:
+Investors reached offerings through the directory, which a company's own eligibility decision
+opened, for that company only. Company eligibility decisions and investor classification claims
+were removed on 2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)), so
+offerings that return need their own way to admit investors. In the last implementation:
 
 - an account first had to be ready to invest: an investing account with an active login, a verified
   email and [good standing](participants.md#account-standing). The Verification page showed
@@ -290,7 +291,8 @@ How the last implementation worked, for whoever restores it; the code is at the 
   sales and AUD settlement expansion is
   [not planned](../decisions.md#registry-focus-and-cancelled-expansion-tickets). Before offerings
   return, decide who reviews them, how money is collected, verified, reconciled and refunded, and
-  what the [regulatory pathway](../regulatory-pathway.md) requires.
+  what the [regulatory pathway](../regulatory-pathway.md) requires, and how investors are admitted
+  now that company eligibility decisions are gone.
 
 Next: [ways to issue shares today](issuing-shares.md#ways-to-issue-shares) and
-[participants and eligibility](participants.md).
+[investors and members](participants.md).

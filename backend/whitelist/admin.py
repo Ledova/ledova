@@ -1,13 +1,11 @@
 from django import forms
 from django.contrib import admin, messages
-from django.db import connections
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from web3 import Web3
 
 from shared.constants import BLOCKCHAIN_BASE
-from shared.db import current_alias
 from wallets.models import Wallet
 from whitelist.models import (
     WhitelistApproval,
@@ -17,33 +15,7 @@ from whitelist.models import (
 from whitelist.services.identity import entry_identity
 
 
-def entry_eligibility(wallet, company):
-    if wallet is None or company is None:
-        return None
-    with connections[current_alias()].cursor() as cursor:
-        cursor.execute(
-            "SELECT EXISTS (SELECT 1 FROM users_companyeligibilitydecision decision "
-            "JOIN users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id "
-            "WHERE proposal.user_account_id = %s AND proposal.company_id = %s "
-            "AND users_company_eligibility_decision_facts_current("
-            "decision.uuid, proposal.user_account_id, proposal.company_id, clock_timestamp()))",
-            [wallet.user_account_id, company.pk],
-        )
-        return cursor.fetchone()[0] is True
-
-
-def eligibility_warning(wallet):
-    if wallet is None:
-        return ""
-    return (
-        "Each company's current eligibility decision and private evidence are checked for new actions. "
-        "Whitelisting the address does not make its holder eligible."
-    )
-
-
 class WhitelistEntryAddForm(forms.ModelForm):
-
-    eligibility_warning = ""
 
     wallet_address = forms.CharField(
         max_length=100,
@@ -82,7 +54,6 @@ class WhitelistEntryAddForm(forms.ModelForm):
                 f"Wallet '{cleaned['wallet_address']}' not found. Give the entry a label to whitelist it as a "
                 "treasury or custodian address.",
             )
-        self.eligibility_warning = eligibility_warning(getattr(self, "_wallet", None))
         return cleaned
 
     def save(self, commit=True):
@@ -123,7 +94,6 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
     list_display = [
         "short_address",
         "wallet_owner",
-        "investor_eligibility",
         "holder_standing",
         "label",
         "approvals_summary",
@@ -207,21 +177,6 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
     wallet_owner.short_description = "Owner"
     wallet_owner.admin_order_field = "wallet__user_account__uuid"
 
-    @admin.display(description="Company eligibility decisions")
-    def investor_eligibility(self, obj):
-        if not obj.wallet_id:
-            return "-"
-        decisions = [
-            f"{approval.company.name}: "
-            + (
-                "current company decision; new actions recheck evidence"
-                if entry_eligibility(obj.wallet, approval.company)
-                else "no current company decision"
-            )
-            for approval in obj.approvals.all()
-        ]
-        return "; ".join(decisions) if decisions else "No company approval"
-
     @admin.display(description="Holder standing")
     def holder_standing(self, obj):
         if not obj.wallet_id:
@@ -234,12 +189,6 @@ class WhitelistEntryAdmin(admin.ModelAdmin):
             reverse("admin:users_useraccount_change", args=[account.pk]),
             account.get_account_status_display(),
         )
-
-    def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)
-        warning = getattr(form, "eligibility_warning", "")
-        if warning:
-            messages.warning(request, warning)
 
     def status_actions(self, obj):
         if obj.pk is None:

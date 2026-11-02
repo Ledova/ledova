@@ -1078,8 +1078,7 @@ bound to the session current when the export was requested and hands it to the s
 The document is `AccountExportData` in the schema: `exportedAt`, `user`, `profile`,
 `financialProfile`, `account`, `wallets`, `transactions` (every transaction of the account's
 wallets) and `portfolios`; a section with no row is `null`, or an empty list. Not in it:
-classification claims and their evidence, uploaded documents, per-asset holdings, orders,
-notifications, the transaction-alerts switch and register particulars.
+per-asset holdings, orders, notifications, the transaction-alerts switch and register particulars.
 
 ### Transaction evidence fields
 

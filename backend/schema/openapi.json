@@ -933,23 +933,6 @@
         ],
         "type": "string"
       },
-      "CategoryEnum": {
-        "description": "* `accountant_certificate` - Qualified accountant's certificate (s708(8)(c))\n* `professional_investor` - Professional investor (s708(11) / s761G(7)(d))",
-        "enum": [
-          "accountant_certificate",
-          "professional_investor"
-        ],
-        "type": "string"
-      },
-      "CertifierBodyEnum": {
-        "description": "* `ca_anz` - Chartered Accountants Australia and New Zealand\n* `cpa_australia` - CPA Australia\n* `ipa` - Institute of Public Accountants",
-        "enum": [
-          "ca_anz",
-          "cpa_australia",
-          "ipa"
-        ],
-        "type": "string"
-      },
       "ChangePasswordRequest": {
         "properties": {
           "currentPassword": {
@@ -2637,611 +2620,6 @@
         ],
         "type": "object"
       },
-      "CompanyEligibilityDecision": {
-        "properties": {
-          "appointment": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "decidedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "decidedBy": {
-            "readOnly": true,
-            "type": "integer"
-          },
-          "digest": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "expiresAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "outcome": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyEligibilityDecisionOutcomeEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "reason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "requestDigest": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "revocation": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyEligibilityRevocation"
-              }
-            ],
-            "nullable": true,
-            "readOnly": true
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "decidedAt",
-          "decidedBy",
-          "digest",
-          "expiresAt",
-          "idempotencyKey",
-          "outcome",
-          "reason",
-          "requestDigest",
-          "revocation",
-          "uuid"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityDecisionCreateRequest": {
-        "properties": {
-          "appointment": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "confirmation": {
-            "type": "boolean"
-          },
-          "expiresAt": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "outcome": {
-            "$ref": "#/components/schemas/CompanyEligibilityDecisionOutcomeEnum"
-          },
-          "previewDigest": {
-            "minLength": 1,
-            "pattern": "^[0-9a-f]{64}$",
-            "type": "string"
-          },
-          "reason": {
-            "default": "",
-            "maxLength": 500,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "confirmation",
-          "idempotencyKey",
-          "outcome",
-          "previewDigest"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityDecisionOutcomeEnum": {
-        "description": "* `accepted` - Accepted by the company\n* `refused` - Refused by the company",
-        "enum": [
-          "accepted",
-          "refused"
-        ],
-        "type": "string"
-      },
-      "CompanyEligibilityDecisionPreviewRequest": {
-        "properties": {
-          "appointment": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "expiresAt": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "outcome": {
-            "$ref": "#/components/schemas/CompanyEligibilityDecisionOutcomeEnum"
-          },
-          "reason": {
-            "default": "",
-            "maxLength": 500,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "outcome"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityDecisionPreviewResult": {
-        "properties": {
-          "canDecide": {
-            "type": "boolean"
-          },
-          "previewDigest": {
-            "type": "string"
-          },
-          "unmetRequirements": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "canDecide",
-          "previewDigest",
-          "unmetRequirements"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityRequest": {
-        "properties": {
-          "category": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CategoryEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "company": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "decision": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyEligibilityDecision"
-              }
-            ],
-            "nullable": true,
-            "readOnly": true
-          },
-          "digest": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "evidenceHash": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "outcome": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestOutcomeEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "requestedExpiresAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "sharedSummary": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyEligibilitySharedSummary"
-              }
-            ],
-            "readOnly": true
-          },
-          "source": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "sourceFingerprint": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "submittedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "submittedBy": {
-            "readOnly": true,
-            "type": "integer"
-          },
-          "userAccount": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "version": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "withdrawal": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestWithdrawal"
-              }
-            ],
-            "nullable": true,
-            "readOnly": true
-          }
-        },
-        "required": [
-          "category",
-          "company",
-          "decision",
-          "digest",
-          "evidenceHash",
-          "idempotencyKey",
-          "outcome",
-          "requestedExpiresAt",
-          "sharedSummary",
-          "source",
-          "sourceFingerprint",
-          "submittedAt",
-          "submittedBy",
-          "userAccount",
-          "uuid",
-          "version",
-          "withdrawal"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityRequestCreateRequest": {
-        "properties": {
-          "company": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "declarationAccepted": {
-            "type": "boolean"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "previewDigest": {
-            "minLength": 1,
-            "pattern": "^[0-9a-f]{64}$",
-            "type": "string"
-          },
-          "requestedExpiresAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "sharingAccepted": {
-            "type": "boolean"
-          },
-          "source": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "company",
-          "declarationAccepted",
-          "idempotencyKey",
-          "previewDigest",
-          "requestedExpiresAt",
-          "sharingAccepted",
-          "source"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityRequestOutcomeEnum": {
-        "description": "* `pending` - pending\n* `accepted` - accepted\n* `refused` - refused\n* `withdrawn` - withdrawn\n* `revoked` - revoked\n* `expired` - expired",
-        "enum": [
-          "pending",
-          "accepted",
-          "refused",
-          "withdrawn",
-          "revoked",
-          "expired"
-        ],
-        "type": "string"
-      },
-      "CompanyEligibilityRequestPreviewRequest": {
-        "properties": {
-          "company": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "requestedExpiresAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "source": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "company",
-          "requestedExpiresAt",
-          "source"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityRequestPreviewResult": {
-        "properties": {
-          "canSubmit": {
-            "type": "boolean"
-          },
-          "companyName": {
-            "type": "string"
-          },
-          "evidenceHash": {
-            "nullable": true,
-            "type": "string"
-          },
-          "previewDigest": {
-            "type": "string"
-          },
-          "sharedSummary": {
-            "$ref": "#/components/schemas/CompanyEligibilitySharedSummary"
-          },
-          "sourceFingerprint": {
-            "nullable": true,
-            "type": "string"
-          },
-          "unmetRequirements": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "version": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "canSubmit",
-          "companyName",
-          "evidenceHash",
-          "previewDigest",
-          "sharedSummary",
-          "sourceFingerprint",
-          "unmetRequirements",
-          "version"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityRequestWithdrawal": {
-        "properties": {
-          "digest": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "withdrawnAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "withdrawnBy": {
-            "readOnly": true,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "digest",
-          "idempotencyKey",
-          "uuid",
-          "withdrawnAt",
-          "withdrawnBy"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityRequestWithdrawalCreateRequest": {
-        "properties": {
-          "idempotencyKey": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "idempotencyKey"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityRevocation": {
-        "properties": {
-          "appointment": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "digest": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "reason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "revokedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "revokedBy": {
-            "readOnly": true,
-            "type": "integer"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "digest",
-          "idempotencyKey",
-          "reason",
-          "revokedAt",
-          "revokedBy",
-          "uuid"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilityRevocationCreateRequest": {
-        "properties": {
-          "appointment": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "reason": {
-            "maxLength": 500,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "idempotencyKey",
-          "reason"
-        ],
-        "type": "object"
-      },
-      "CompanyEligibilitySharedSummary": {
-        "properties": {
-          "category": {
-            "$ref": "#/components/schemas/CategoryEnum"
-          },
-          "certificateIssuedAt": {
-            "format": "date",
-            "nullable": true,
-            "type": "string"
-          },
-          "certifierBody": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/CertifierBodyEnum"
-              },
-              {
-                "$ref": "#/components/schemas/BlankEnum"
-              }
-            ]
-          },
-          "certifierMembershipNumber": {
-            "type": "string"
-          },
-          "certifierName": {
-            "type": "string"
-          },
-          "company": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "declarationText": {
-            "type": "string"
-          },
-          "participantName": {
-            "nullable": true,
-            "type": "string"
-          },
-          "requestedExpiresAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "source": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "submittedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
-          "userAccount": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "category",
-          "company",
-          "declarationText",
-          "requestedExpiresAt",
-          "source",
-          "submittedAt",
-          "userAccount"
-        ],
-        "type": "object"
-      },
       "CompanyList": {
         "properties": {
           "acn": {
@@ -4424,29 +3802,12 @@
             "readOnly": true,
             "type": "string"
           },
-          "decision": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
           "digest": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "eligibilityExpiresAt": {
-            "format": "date-time",
             "readOnly": true,
             "type": "string"
           },
           "proofCompletedAt": {
             "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "request": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
             "readOnly": true,
             "type": "string"
           },
@@ -4473,11 +3834,8 @@
           "address",
           "chain",
           "company",
-          "decision",
           "digest",
-          "eligibilityExpiresAt",
           "proofCompletedAt",
-          "request",
           "submittedAt",
           "unmetRequirements",
           "uuid"
@@ -4486,16 +3844,6 @@
       },
       "CompanyWalletSourceSnapshot": {
         "properties": {
-          "decision": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "eligibilityExpiresAt": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
           "nomination": {
             "format": "uuid",
             "nullable": true,
@@ -4506,11 +3854,6 @@
             "nullable": true,
             "type": "string"
           },
-          "request": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
           "targetChange": {
             "format": "uuid",
             "nullable": true,
@@ -4518,11 +3861,8 @@
           }
         },
         "required": [
-          "decision",
-          "eligibilityExpiresAt",
           "nomination",
           "proofCompletedAt",
-          "request",
           "targetChange"
         ],
         "type": "object"
@@ -4733,223 +4073,6 @@
           "android"
         ],
         "type": "string"
-      },
-      "Document": {
-        "properties": {
-          "attachedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "classification": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "documentType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserDocumentTypeEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "latestExtraction": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DocumentExtraction"
-              }
-            ],
-            "nullable": true,
-            "readOnly": true
-          },
-          "mimeType": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "note": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "originalFilename": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "purgedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "retentionUntil": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "attachedAt",
-          "classification",
-          "createdAt",
-          "documentType",
-          "latestExtraction",
-          "mimeType",
-          "note",
-          "originalFilename",
-          "purgedAt",
-          "retentionUntil",
-          "updatedAt",
-          "uuid"
-        ],
-        "type": "object"
-      },
-      "DocumentAttachmentRequest": {
-        "properties": {
-          "classification": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "classification"
-        ],
-        "type": "object"
-      },
-      "DocumentExtraction": {
-        "properties": {
-          "confidence": {
-            "format": "double",
-            "nullable": true,
-            "readOnly": true,
-            "type": "number"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "durationMs": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "integer"
-          },
-          "error": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "finishedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "modelName": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "parsedJson": {
-            "nullable": true,
-            "readOnly": true
-          },
-          "startedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DocumentExtractionStatusEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "warnings": {
-            "readOnly": true
-          }
-        },
-        "required": [
-          "confidence",
-          "createdAt",
-          "durationMs",
-          "error",
-          "finishedAt",
-          "modelName",
-          "parsedJson",
-          "startedAt",
-          "status",
-          "updatedAt",
-          "uuid",
-          "warnings"
-        ],
-        "type": "object"
-      },
-      "DocumentExtractionStatusEnum": {
-        "description": "* `pending` - Pending\n* `running` - Running\n* `succeeded` - Succeeded\n* `failed` - Failed",
-        "enum": [
-          "pending",
-          "running",
-          "succeeded",
-          "failed"
-        ],
-        "type": "string"
-      },
-      "DocumentUploadRequest": {
-        "properties": {
-          "classification": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "documentType": {
-            "$ref": "#/components/schemas/UserDocumentTypeEnum"
-          },
-          "file": {
-            "format": "binary",
-            "type": "string",
-            "writeOnly": true
-          },
-          "note": {
-            "maxLength": 255,
-            "type": "string"
-          }
-        },
-        "required": [
-          "file"
-        ],
-        "type": "object"
       },
       "EmailDeliveryEnum": {
         "description": "* `accepted` - accepted",
@@ -6017,199 +5140,6 @@
           "trading_crypto",
           "savings",
           "other"
-        ],
-        "type": "string"
-      },
-      "InvestorClassification": {
-        "properties": {
-          "category": {
-            "$ref": "#/components/schemas/CategoryEnum"
-          },
-          "categoryDisplay": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "certificateIssuedAt": {
-            "format": "date",
-            "nullable": true,
-            "type": "string"
-          },
-          "certifierBody": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/CertifierBodyEnum"
-              },
-              {
-                "$ref": "#/components/schemas/BlankEnum"
-              }
-            ]
-          },
-          "certifierMembershipNumber": {
-            "maxLength": 50,
-            "type": "string"
-          },
-          "certifierName": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "declarationAccepted": {
-            "type": "boolean"
-          },
-          "declarationText": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "declaredBasis": {
-            "type": "string"
-          },
-          "evidenceFileSize": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "integer"
-          },
-          "evidenceMimeType": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "expiresAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "isExpired": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "isLive": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "rejectionReason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "reviewNotes": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "reviewedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/InvestorClassificationStatusEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "statusDisplay": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "submittedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "userAccount": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "category",
-          "categoryDisplay",
-          "createdAt",
-          "declarationText",
-          "evidenceFileSize",
-          "evidenceMimeType",
-          "expiresAt",
-          "isExpired",
-          "isLive",
-          "rejectionReason",
-          "reviewNotes",
-          "reviewedAt",
-          "status",
-          "statusDisplay",
-          "submittedAt",
-          "userAccount",
-          "uuid"
-        ],
-        "type": "object"
-      },
-      "InvestorClassificationRequest": {
-        "properties": {
-          "category": {
-            "$ref": "#/components/schemas/CategoryEnum"
-          },
-          "certificateIssuedAt": {
-            "format": "date",
-            "nullable": true,
-            "type": "string"
-          },
-          "certifierBody": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/CertifierBodyEnum"
-              },
-              {
-                "$ref": "#/components/schemas/BlankEnum"
-              }
-            ]
-          },
-          "certifierMembershipNumber": {
-            "maxLength": 50,
-            "type": "string"
-          },
-          "certifierName": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "declarationAccepted": {
-            "type": "boolean"
-          },
-          "declaredBasis": {
-            "type": "string"
-          },
-          "evidenceFile": {
-            "format": "binary",
-            "type": "string",
-            "writeOnly": true
-          }
-        },
-        "required": [
-          "category",
-          "evidenceFile"
-        ],
-        "type": "object"
-      },
-      "InvestorClassificationStatusEnum": {
-        "description": "* `submitted` - Submitted\n* `verified` - Verified\n* `rejected` - Rejected\n* `revoked` - Revoked\n* `withdrawn` - Withdrawn",
-        "enum": [
-          "submitted",
-          "verified",
-          "rejected",
-          "revoked",
-          "withdrawn"
         ],
         "type": "string"
       },
@@ -8394,37 +7324,6 @@
         ],
         "type": "object"
       },
-      "PaginatedCompanyEligibilityRequestList": {
-        "properties": {
-          "count": {
-            "example": 123,
-            "type": "integer"
-          },
-          "next": {
-            "example": "http://api.example.org/accounts/?page=4",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "previous": {
-            "example": "http://api.example.org/accounts/?page=2",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/CompanyEligibilityRequest"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "count",
-          "results"
-        ],
-        "type": "object"
-      },
       "PaginatedCompanyListList": {
         "properties": {
           "count": {
@@ -8580,37 +7479,6 @@
         ],
         "type": "object"
       },
-      "PaginatedDocumentList": {
-        "properties": {
-          "count": {
-            "example": 123,
-            "type": "integer"
-          },
-          "next": {
-            "example": "http://api.example.org/accounts/?page=4",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "previous": {
-            "example": "http://api.example.org/accounts/?page=2",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/Document"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "count",
-          "results"
-        ],
-        "type": "object"
-      },
       "PaginatedFeatureFlagList": {
         "properties": {
           "count": {
@@ -8663,37 +7531,6 @@
           "results": {
             "items": {
               "$ref": "#/components/schemas/FinancialProfile"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "count",
-          "results"
-        ],
-        "type": "object"
-      },
-      "PaginatedInvestorClassificationList": {
-        "properties": {
-          "count": {
-            "example": 123,
-            "type": "integer"
-          },
-          "next": {
-            "example": "http://api.example.org/accounts/?page=4",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "previous": {
-            "example": "http://api.example.org/accounts/?page=2",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/InvestorClassification"
             },
             "type": "array"
           }
@@ -15993,10 +14830,6 @@
           "chainId": {
             "type": "integer"
           },
-          "eligibilityExpiresAt": {
-            "format": "date-time",
-            "type": "string"
-          },
           "expiresAt": {
             "format": "date-time",
             "type": "string"
@@ -16017,7 +14850,6 @@
           "address",
           "approval",
           "chainId",
-          "eligibilityExpiresAt",
           "expiresAt",
           "nomination",
           "proofCompletedAt",
@@ -21754,16 +20586,6 @@
         ],
         "type": "object"
       },
-      "UserDocumentTypeEnum": {
-        "description": "* `payslip` - Payslip\n* `bank_statement` - Bank Statement\n* `tax_return` - Tax Return\n* `other` - Other",
-        "enum": [
-          "payslip",
-          "bank_statement",
-          "tax_return",
-          "other"
-        ],
-        "type": "string"
-      },
       "UserPreferences": {
         "properties": {
           "transactionAlerts": {
@@ -22313,18 +21135,7 @@
             "readOnly": true,
             "type": "string"
           },
-          "decision": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
           "digest": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "eligibilityExpiresAt": {
-            "format": "date-time",
             "readOnly": true,
             "type": "string"
           },
@@ -22341,12 +21152,6 @@
           },
           "proofCompletedAt": {
             "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "request": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
             "readOnly": true,
             "type": "string"
           },
@@ -22382,13 +21187,10 @@
           "address",
           "chain",
           "company",
-          "decision",
           "digest",
-          "eligibilityExpiresAt",
           "operationId",
           "proof",
           "proofCompletedAt",
-          "request",
           "sharingAccepted",
           "submittedAt",
           "unmetRequirements",
@@ -22399,6 +21201,10 @@
       },
       "WalletNominationCreateRequest": {
         "properties": {
+          "company": {
+            "format": "uuid",
+            "type": "string"
+          },
           "operationId": {
             "format": "uuid",
             "type": "string"
@@ -22406,10 +21212,6 @@
           "previewDigest": {
             "minLength": 1,
             "pattern": "^[0-9a-f]{64}$",
-            "type": "string"
-          },
-          "request": {
-            "format": "uuid",
             "type": "string"
           },
           "sharingAccepted": {
@@ -22421,9 +21223,9 @@
           }
         },
         "required": [
+          "company",
           "operationId",
           "previewDigest",
-          "request",
           "sharingAccepted",
           "wallet"
         ],
@@ -22431,7 +21233,7 @@
       },
       "WalletNominationPreviewRequest": {
         "properties": {
-          "request": {
+          "company": {
             "format": "uuid",
             "type": "string"
           },
@@ -22441,7 +21243,7 @@
           }
         },
         "required": [
-          "request",
+          "company",
           "wallet"
         ],
         "type": "object"
@@ -22461,16 +21263,6 @@
             "format": "uuid",
             "type": "string"
           },
-          "decision": {
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "eligibilityExpiresAt": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          },
           "previewDigest": {
             "type": "string"
           },
@@ -22482,10 +21274,6 @@
           "proofCompletedAt": {
             "format": "date-time",
             "nullable": true,
-            "type": "string"
-          },
-          "request": {
-            "format": "uuid",
             "type": "string"
           },
           "unmetRequirements": {
@@ -22504,12 +21292,9 @@
           "canSubmit",
           "chain",
           "company",
-          "decision",
-          "eligibilityExpiresAt",
           "previewDigest",
           "proof",
           "proofCompletedAt",
-          "request",
           "unmetRequirements",
           "wallet"
         ],
@@ -23625,146 +22410,6 @@
               }
             },
             "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/investor-classifications/": {
-      "get": {
-        "operationId": "api_investor_classifications_list",
-        "parameters": [
-          {
-            "description": "Which field to use when ordering the results.",
-            "in": "query",
-            "name": "ordering",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A page number within the paginated result set.",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Number of results to return per page.",
-            "in": "query",
-            "name": "page_size",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedInvestorClassificationList"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "post": {
-        "operationId": "api_investor_classifications_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InvestorClassificationRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/InvestorClassificationRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/InvestorClassificationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvestorClassification"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/investor-classifications/{uuid}/": {
-      "delete": {
-        "operationId": "api_investor_classifications_destroy",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No response body"
           }
         },
         "security": [
@@ -25735,350 +24380,6 @@
         ]
       }
     },
-    "/api/v1/companies/{company_uuid}/eligibility-requests/": {
-      "get": {
-        "operationId": "api_v1_companies_eligibility_requests_list",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which field to use when ordering the results.",
-            "in": "query",
-            "name": "ordering",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "* `pending` - pending\n* `accepted` - accepted\n* `refused` - refused\n* `withdrawn` - withdrawn\n* `revoked` - revoked\n* `expired` - expired",
-            "in": "query",
-            "name": "outcome",
-            "schema": {
-              "enum": [
-                "accepted",
-                "expired",
-                "pending",
-                "refused",
-                "revoked",
-                "withdrawn"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "A page number within the paginated result set.",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Number of results to return per page.",
-            "in": "query",
-            "name": "page_size",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedCompanyEligibilityRequestList"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/": {
-      "get": {
-        "operationId": "api_v1_companies_eligibility_requests_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/decide/": {
-      "post": {
-        "operationId": "api_v1_companies_eligibility_requests_decide_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityDecisionCreateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityDecisionCreateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityDecisionCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/decision-preview/": {
-      "post": {
-        "operationId": "api_v1_companies_eligibility_requests_decision_preview_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityDecisionPreviewRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityDecisionPreviewRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityDecisionPreviewRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyEligibilityDecisionPreviewResult"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/revoke/": {
-      "post": {
-        "operationId": "api_v1_companies_eligibility_requests_revoke_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRevocationCreateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRevocationCreateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRevocationCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/companies/{uuid}/": {
       "get": {
         "operationId": "api_v1_companies_retrieve",
@@ -27041,513 +25342,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompanyAuthorityRequest"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/company-eligibility/requests/": {
-      "get": {
-        "operationId": "api_v1_company_eligibility_requests_list",
-        "parameters": [
-          {
-            "description": "Which field to use when ordering the results.",
-            "in": "query",
-            "name": "ordering",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A page number within the paginated result set.",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Number of results to return per page.",
-            "in": "query",
-            "name": "page_size",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedCompanyEligibilityRequestList"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "post": {
-        "operationId": "api_v1_company_eligibility_requests_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestCreateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestCreateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
-                }
-              }
-            },
-            "description": ""
-          },
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/company-eligibility/requests/preview/": {
-      "post": {
-        "operationId": "api_v1_company_eligibility_requests_preview_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestPreviewRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestPreviewRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestPreviewRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyEligibilityRequestPreviewResult"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/company-eligibility/requests/{uuid}/": {
-      "get": {
-        "operationId": "api_v1_company_eligibility_requests_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/company-eligibility/requests/{uuid}/withdraw/": {
-      "post": {
-        "operationId": "api_v1_company_eligibility_requests_withdraw_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestWithdrawalCreateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestWithdrawalCreateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyEligibilityRequestWithdrawalCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyEligibilityRequest"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/documents/": {
-      "get": {
-        "operationId": "api_v1_documents_list",
-        "parameters": [
-          {
-            "description": "Which field to use when ordering the results.",
-            "in": "query",
-            "name": "ordering",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A page number within the paginated result set.",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Number of results to return per page.",
-            "in": "query",
-            "name": "page_size",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedDocumentList"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "post": {
-        "operationId": "api_v1_documents_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DocumentUploadRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/DocumentUploadRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/DocumentUploadRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Document"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/documents/{uuid}/": {
-      "delete": {
-        "operationId": "api_v1_documents_destroy",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No response body"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "get": {
-        "operationId": "api_v1_documents_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Document"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/documents/{uuid}/attach/": {
-      "post": {
-        "operationId": "api_v1_documents_attach_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DocumentAttachmentRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/DocumentAttachmentRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/DocumentAttachmentRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Document"
                 }
               }
             },
@@ -35567,7 +33361,7 @@
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "description": "Server-sent events for one deployed share class. The connection opens with a `connected` event carrying `{\"status\": \"ok\"}`, then emits one named event per trading change with an empty data object: the event name is the whole signal, and the client refetches on it. A comment line `: heartbeat` is sent every 30 seconds so an idle connection is not closed by an intermediary. A current company-general secondary eligibility decision for this share class's issuer is required. An ineligible caller and a phantom token are the same 404. Access is checked again before the connection event, each matching trading event and every heartbeat; losing access closes the stream.",
+                  "description": "Server-sent events for one deployed share class. The connection opens with a `connected` event carrying `{\"status\": \"ok\"}`, then emits one named event per trading change with an empty data object: the event name is the whole signal, and the client refetches on it. A comment line `: heartbeat` is sent every 30 seconds so an idle connection is not closed by an intermediary. A live wallet approval from this share class's issuer for one of the caller's current investing accounts is required. A caller without one and a phantom token are the same 404. Access is checked again before the connection event, each matching trading event and every heartbeat; losing access closes the stream.",
                   "type": "string",
                   "x-sse-connection-event": "connected",
                   "x-sse-events": [
@@ -35853,7 +33647,7 @@
                 }
               }
             },
-            "description": "Retained eligibility refusal, or an ordinary signature refusal."
+            "description": "Retained refusal of a participant who is not current, or an ordinary signature refusal."
           },
           "404": {
             "content": {
@@ -35969,7 +33763,7 @@
                 }
               }
             },
-            "description": "Invalid request or new-order eligibility."
+            "description": "Invalid request or new-order terms."
           },
           "401": {
             "content": {
@@ -36285,7 +34079,7 @@
                 }
               }
             },
-            "description": "Recorded eligibility refusal or ordinary signature refusal."
+            "description": "Recorded refusal of a participant who is not current, or ordinary signature refusal."
           },
           "404": {
             "content": {
@@ -36456,7 +34250,7 @@
                 }
               }
             },
-            "description": "Recorded eligibility refusal or ordinary signature refusal."
+            "description": "Recorded refusal of a participant who is not current, or ordinary signature refusal."
           },
           "404": {
             "content": {
@@ -36627,7 +34421,7 @@
                 }
               }
             },
-            "description": "Recorded eligibility refusal or ordinary signature refusal."
+            "description": "Recorded refusal of a participant who is not current, or ordinary signature refusal."
           },
           "404": {
             "content": {
@@ -36798,7 +34592,7 @@
                 }
               }
             },
-            "description": "Recorded eligibility refusal or ordinary signature refusal."
+            "description": "Recorded refusal of a participant who is not current, or ordinary signature refusal."
           },
           "404": {
             "content": {
@@ -37964,14 +35758,6 @@
             "schema": {
               "type": "integer"
             }
-          },
-          {
-            "in": "query",
-            "name": "request",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -38289,14 +36075,6 @@
             "required": false,
             "schema": {
               "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "request",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
             }
           }
         ],

@@ -47,7 +47,7 @@ Ledova is never buyer or seller, and investors control their own wallet keys
 Trades settle in a configured stablecoin. An AUD price or an AUDY balance is not a direct AUD
 payment method, and no AUD settlement exists ([decision](../decisions.md#payments-and-settlement)).
 
-The company's eligibility decisions and wallet approvals feed the checks every trade passes
+The company's wallet approvals feed the checks every trade passes
 ([who may trade](#who-may-trade-and-who-sees-orders)), but a company appointment gives no access to
 investors' private orders and no authority to sign for their wallets.
 
@@ -59,20 +59,21 @@ settled transfers are deferred under #869.
 
 ## Who may trade and who sees orders
 
-Creating or changing an order and signing a settlement require the acting person to hold a current
-[eligibility decision](participants.md#company-eligibility-decisions) from the share class's
-company, a wallet the company has
+Creating or changing an order and signing a settlement require the acting person to be a
+[current participant](participants.md#account-standing), with a wallet the share class's company has
 [approved](participants.md#wallet-nominations-and-company-wallet-approvals) and the balance to cover
-the order. Either party may pass on the other's signature, so the check follows the signature: the
-account that signed must hold the decision. A party whose decision lapses or is revoked between the
-two keeps their signature but cannot add another, and the share token itself refuses the settlement.
+the order. No eligibility decision is involved
+([decision](../decisions.md#verification-limited-to-id-checks)). Either party may pass on the other's
+signature, so the check follows the signature: the account that signed must be current. A party who
+loses their standing, identity or approval between the two keeps their signature but cannot add
+another, and once the removal lands on chain the share token itself refuses the settlement.
 A buyer must already hold the settlement stablecoin when the buy order is created, so Ledova never
 accepts an unfunded offer.
 
 An order is private: only its owner sees and changes it. Platform staff see every order and
 settlement read-only in admin ([the market pages](../operations/operator-console.md#the-market)).
-Investors who hold a current general eligibility decision from a class's company see that class's
-market ([what a decision opens](participants.md#what-a-decision-opens)) as aggregated prices and
+Current participants whose wallet holds a live approval from a class's company see that class's
+market ([what an approval means](participants.md#what-an-approval-means-on-chain)) as aggregated prices and
 remaining quantities, from orders that passed the same checks a match needs. A quote is a snapshot, not a reservation or a promise of a
 match. An owner's orders stay listed for them when the share class is no longer listed or
 visible, under the class identity recorded when the order was placed; this makes no hidden class
@@ -161,5 +162,5 @@ and an owned receiving wallet before it contacts the provider. There is no way t
 money through Ledova.
 
 Next: [the register of members](register.md),
-[investors and eligibility](participants.md) and
+[investors and members](participants.md) and
 [trading protocols](../engineering/trading-protocols.md#intent-and-settlement).

@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router-dom';
-import { failureStatus } from '@ledova/shared';
 
 const SEARCH_DELAY_MS = 300;
 const SEARCH_MAX_LENGTH = 100;
@@ -72,12 +71,4 @@ export function useListParams<F extends string = never>(filterNames: readonly F[
     page,
     setPage: (next, replace = false) => update({ page: next > 1 ? String(next) : '' }, replace),
   };
-}
-
-export function useFirstPageWhenGone(list: ListParams<string>, error: unknown) {
-  const gone = list.page > 1 && failureStatus(error) === 404;
-  useEffect(() => {
-    if (gone) list.setPage(1, true);
-  }, [gone]);
-  return gone;
 }

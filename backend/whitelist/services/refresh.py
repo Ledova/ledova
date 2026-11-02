@@ -3,13 +3,11 @@ import logging
 from uuid import NAMESPACE_URL, uuid5
 
 from django.conf import settings
-from django.db import connections
 from django.utils import timezone
 from web3 import Web3
 
 from shared.db import current_alias, on_commit
 from shared.tasks.queue import defer
-from users.models import CompanyEligibilityDecision, InvestorClassification
 from whitelist.constants import WHITELIST_NO_EXPIRY, WHITELIST_REFRESH_LIMIT
 from whitelist.exceptions import WhitelistRemovalPending
 from whitelist.models import (
@@ -22,6 +20,7 @@ from whitelist.services import changes
 from whitelist.services.eligibility_invalidation import (
     command_for,
     invalidation_worker_context,
+    participant_current,
     record_invalidation,
 )
 from whitelist.services.whitelist import registry_contract
@@ -96,25 +95,16 @@ def _submission_id(command):
     return uuid5(NAMESPACE_URL, f"ledova:eligibility-invalidation:{identity}:{previous_failed or ''}")
 
 
-def _refresh_target(target, *, cause=None, decision_id=None, invalidation_id=None, client=None):
+def _refresh_target(target, *, cause=None, invalidation_id=None, client=None):
     target = _target_with_account(target)
     _recover_target(target)
     expiry = observed_expiry(target["registry"], target["address"], client)
     if expiry <= int(timezone.now().timestamp()):
         return None, False
-    command = command_for(target, cause=cause, decision_id=decision_id, invalidation_id=invalidation_id)
+    command = command_for(target, cause=cause, invalidation_id=invalidation_id)
     if command is None:
-        with connections[current_alias()].cursor() as cursor:
-            cursor.execute(
-                "SELECT EXISTS (SELECT 1 FROM users_companyeligibilitydecision decision "
-                "JOIN users_companyeligibilityrequest proposal ON proposal.uuid = decision.request_id "
-                "WHERE proposal.user_account_id = %s AND proposal.company_id = %s "
-                "AND users_company_eligibility_decision_facts_current("
-                "decision.uuid, proposal.user_account_id, proposal.company_id, clock_timestamp()))",
-                [target.get("account"), target["company"]],
-            )
-            if cursor.fetchone()[0] is True:
-                return None, False
+        if participant_current(target.get("account"), target["company"]):
+            return None, False
         logger.error(
             "Whitelist removal lacks retained cause: company=%s registry=%s", target["company"], target["registry"]
         )
@@ -125,15 +115,13 @@ def _refresh_target(target, *, cause=None, decision_id=None, invalidation_id=Non
     return change, False
 
 
-def refresh_targets(targets, actor=None, remove_only=False, *, cause=None, decision_id=None, invalidation_id=None):
+def refresh_targets(targets, actor=None, remove_only=False, *, cause=None, invalidation_id=None):
     with invalidation_worker_context():
         result = {"checked": 0, "submitted": 0, "unattributed": 0, "errors": 0}
         for target in targets:
             result["checked"] += 1
             try:
-                change, unattributed = _refresh_target(
-                    target, cause=cause, decision_id=decision_id, invalidation_id=invalidation_id
-                )
+                change, unattributed = _refresh_target(target, cause=cause, invalidation_id=invalidation_id)
                 result["submitted"] += int(change is not None)
                 result["unattributed"] += int(unattributed)
             except Exception:
@@ -146,7 +134,7 @@ def refresh_targets(targets, actor=None, remove_only=False, *, cause=None, decis
         return result
 
 
-def _defer(targets, *, using, delay=0, cause=None, decision_id=None, invalidation_id=None):
+def _defer(targets, *, using, delay=0, cause=None, invalidation_id=None):
     from whitelist.tasks import refresh_whitelist_targets
 
     if not targets:
@@ -157,36 +145,8 @@ def _defer(targets, *, using, delay=0, cause=None, decision_id=None, invalidatio
         schedule_in={"seconds": delay} if delay else None,
         targets=targets,
         cause=cause,
-        decision_id=str(decision_id) if decision_id is not None else None,
         invalidation_id=str(invalidation_id) if invalidation_id is not None else None,
     )
-
-
-def enqueue_for_decision(decision_id, cause, delay=0, *, using=None):
-    alias = using or current_alias()
-
-    def enqueue():
-        decision = CompanyEligibilityDecision.objects.using(alias).select_related("request").get(pk=decision_id)
-        targets = targets_for(
-            _approvals(
-                entry__wallet__user_account_id=decision.request.user_account_id, company_id=decision.request.company_id
-            ).using(alias)
-        )
-        _defer(targets, using=alias, delay=delay, cause=cause, decision_id=decision.pk)
-
-    on_commit(enqueue, using=alias)
-
-
-def enqueue_for_source(source_id, cause, delay=0):
-    alias = current_alias()
-
-    def enqueue():
-        source = InvestorClassification.objects.using(alias).get(pk=source_id)
-        decisions = CompanyEligibilityDecision.objects.using(alias).filter(request__source=source, outcome="accepted")
-        for decision in decisions:
-            enqueue_for_decision(decision.pk, cause, delay, using=alias)
-
-    on_commit(enqueue, using=alias)
 
 
 def enqueue_for_account(

@@ -17,7 +17,7 @@ from whitelist.models import (
 
 
 class WalletNominationPreviewSerializer(serializers.Serializer):
-    request = serializers.UUIDField()
+    company = serializers.UUIDField()
     wallet = serializers.UUIDField()
 
 
@@ -28,15 +28,12 @@ class WalletNominationCreateSerializer(WalletNominationPreviewSerializer):
 
 
 class WalletNominationPreviewResultSerializer(serializers.Serializer):
-    request = serializers.UUIDField()
-    decision = serializers.UUIDField(allow_null=True)
     company = serializers.UUIDField()
     wallet = serializers.UUIDField()
     address = serializers.CharField()
     chain = serializers.CharField()
     proof = serializers.UUIDField(allow_null=True)
     proof_completed_at = serializers.DateTimeField(allow_null=True)
-    eligibility_expires_at = serializers.DateTimeField(allow_null=True)
     preview_digest = serializers.CharField()
     can_submit = serializers.BooleanField()
     unmet_requirements = serializers.ListField(child=serializers.CharField())
@@ -46,20 +43,16 @@ class CompanyWalletNominationSerializer(serializers.ModelSerializer):
     address = serializers.CharField(source="snapshot.address", read_only=True)
     chain = serializers.CharField(source="snapshot.chain", read_only=True)
     proof_completed_at = serializers.DateTimeField(source="snapshot.proof_completed_at", read_only=True)
-    eligibility_expires_at = serializers.DateTimeField(source="snapshot.eligibility_expires_at", read_only=True)
     unmet_requirements = serializers.SerializerMethodField()
 
     class Meta:
         model = CompanyWalletNomination
         fields = [
             "uuid",
-            "request",
-            "decision",
             "company",
             "address",
             "chain",
             "proof_completed_at",
-            "eligibility_expires_at",
             "digest",
             "submitted_at",
             "unmet_requirements",
@@ -108,10 +101,7 @@ class CompanyWalletTargetSnapshotSerializer(serializers.Serializer):
 
 class CompanyWalletSourceSnapshotSerializer(serializers.Serializer):
     nomination = serializers.UUIDField(allow_null=True)
-    request = serializers.UUIDField(allow_null=True)
-    decision = serializers.UUIDField(allow_null=True)
     proof_completed_at = serializers.DateTimeField(allow_null=True)
-    eligibility_expires_at = serializers.DateTimeField(allow_null=True)
     target_change = serializers.UUIDField(allow_null=True)
 
 

@@ -1,6 +1,5 @@
 import users.admin.device_token
 import users.admin.financial_profile
-import users.admin.investor_classification
 import users.admin.notification
 import users.admin.user_account
 import users.admin.user_preferences

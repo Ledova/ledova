@@ -31,8 +31,8 @@ from tokens.models import (
 from tokens.services import token_transfer_service
 from tokens.services.signing_challenge import spend
 from tokens.services.trading_admission import (
-    eligibility_guard_refusal,
     participant_context,
+    participant_guard_refusal,
     prepare_admission,
 )
 from tokens.services.trading_order_service import TradingOrderService
@@ -288,9 +288,9 @@ def _execute_authorized_submission(actor, data):
                 )
         except (IntegrityError, *BUSINESS_REFUSALS) as exc:
             if isinstance(exc, IntegrityError):
-                if not eligibility_guard_refusal(exc):
+                if not participant_guard_refusal(exc):
                     raise
-                exc = InvestorNotEligibleException(("no_live_company_decision",))
+                exc = InvestorNotEligibleException(("participant_not_current",))
             if type(exc) not in BUSINESS_REFUSALS:
                 raise
             submission.status = OrderSubmissionStatus.REFUSED
@@ -299,7 +299,6 @@ def _execute_authorized_submission(actor, data):
         else:
             submission.status = OrderSubmissionStatus.CREATED
             submission.order = order
-            submission.eligibility_decision = admission.decision
             if match is not None:
                 submission.initial_counter_order = match[
                     "buy_order" if submission.order_type == TransferOrderType.SELL else "sell_order"
@@ -311,7 +310,6 @@ def _execute_authorized_submission(actor, data):
             update_fields=[
                 "status",
                 "order",
-                "eligibility_decision",
                 "initial_counter_order",
                 "initial_swap",
                 "refusal_code",

@@ -43,8 +43,7 @@ choice starts each option with its appointment date. Team's appointment rows sho
 person, actions, any delegation (**May delegate all of these** when it matches the actions), status
 or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
-acceptance or deadline and the appointment's expiry. Company documents (Eligibility → Supporting) has its own view, with Category and File in the inline upload.
-The remaining eligibility collections use this workspace frame, with
+acceptance or deadline and the appointment's expiry. Company documents has its own view, with Category and File in the inline upload.
 their creation and record actions in the same footer. Their short named/status summaries keep
 secondary facts and copyable technical references on demand.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
@@ -162,14 +161,13 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   each shows its facts and status, with its permitted action right-aligned at the row's end. On wide
   screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access and Team); on narrower screens it sits beneath the row's
-  facts, still at the right edge. The Account and Data and privacy rows, Verification's claim and
-  evidence rows and an action that stands on its own follow the same edge on web and in the app: Try
-  again after a failed read, **Retry original member action**, and in the app the Invitation page's
-  and empty Dashboard's actions. Load more keeps its place.
+  facts, still at the right edge. The Account and Data and privacy rows and an action that stands on
+  its own follow the same edge on web and in the app: Try again after a failed read, **Retry
+  original member action**, and in the app the Invitation page's and empty Dashboard's actions. Load
+  more keeps its place.
   Representative authority requests are `LinkRow`s that open each request's own page.
 - Optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished input
-  survives; the app's kit has the same `ShowMore`, a text toggle with its expanded state, used for
-  a payslip's **Show extraction details**. The sidebar's group caret is a separate navigation
+  survives. The sidebar's group caret is a separate navigation
   button. Substantial record reviews use the main page; brief confirmations can use dialogs.
 - `Popover`: compact secondary controls, such as filters and notifications, may open an anchored
   panel without moving page content. Filters use `FilterPopover`
@@ -326,9 +324,7 @@ On the web, prefer editing a record's details in its existing card: replace the 
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
 field when editing opens and return focus to Edit when it ends, if that action is still available.
 Company information and personal Profile details follow this pattern. Activation reviews its current
-company and declaration on the main page before explicit confirmation. Supporting payslips use
-document records that show their claim, or the form to attach one, directly, with **Show extraction
-details** and visible warnings; uploading opens an inline form.
+company and declaration on the main page before explicit confirmation.
 Class rights follows this pattern: Edit replaces its read view and previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
@@ -355,7 +351,7 @@ On mobile the backdrop closes it; a busy dialog holds the backdrop, Android Back
 Inside cards and dialogs nothing is boxed: fields share the card's surface with a hairline border
 (`rounded-lg border border-border bg-surface-raised`; `useDialogStyles` on mobile), steps are
 numbered lines, and warnings (beside an icon) and errors are coloured text, not tinted boxes. The
-exceptions are the dashed upload area for a claim's evidence, and sign-in and the sign-up steps, which keep
+exceptions are sign-in and the sign-up steps, which keep
 tinted fields and boxed outcomes within the same cards and titles. Addresses and hashes
 use the monospaced face (`font-mono`; `theme.fontFamily.mono`).
 
@@ -414,16 +410,11 @@ switches), **Account details** (**Member since** and **Last login**) and **Compa
 line and **Accept invitation**). Each row has its label on the left and its status, one short action
 or switch on the right, vertically centred at every width, and the facts are label and value rows. Keep export and deletion on Data and privacy, in the same rows (Export data with **Export**, Delete
 account with **Delete**), with their existing confirmations. The
-theme switch sits beside Sign out in the sidebar's footer, not in Settings. Payslip evidence
-belongs alongside investor classification claims, not on Profile. Show company
+theme switch sits beside Sign out in the sidebar's footer, not in Settings. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation.
-**Company eligibility** follows Documents for an administrator or a prepare or approve appointee,
-labelled **Eligibility**; for an administrator it uses
-the same pattern, its label opening its own page and its caret showing **Supporting** (Company
-documents).
-An investing account's **Eligibility** opens Verification, stays marked on Your company eligibility
-and sits above Settings; beside the company's own Eligibility item it reads **Your eligibility**.
+**Company files**, the Company documents page, follows Documents for an administrator, as its own item, until step 3 of
+[#1491](https://github.com/Ledova/ledova/issues/1491) removes it.
 **Settings** comes last whatever company is selected.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
@@ -446,8 +437,7 @@ page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. Dashboard is one
 company-centred explorer for all relationships, without a separate Your shares navigation mode.
 Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme shows as Employee
-scheme, Company eligibility and Verification as Eligibility, and Company documents as Supporting,
-each with the full name as the link's `title`. `DESTINATION_PARENTS`
+scheme and Company documents as Company files, each with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
 link in the title row for a contextual task: Back to Team on Representative authority, Back to
@@ -495,7 +485,7 @@ confirmation) or pressed, and comes in four forms:
   the title row's way back, Add share class, a shareholder's Details, Issue shares to them. While a
   held Ledger action blocks leaving, `disabled` shows it as a disabled action instead.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
-  it at once, such as the shown eligibility request.
+  it at once.
 
 All four are at least 44 px tall below `sm`, so they are easy to tap on a phone; wider screens keep
 the compact size. `MoreToggle`'s "Show …" text links get a 44 px tap area from an `after:` overlay,
@@ -530,14 +520,12 @@ same order as `FormActions`. Mobile's `Action` has no busy, pressed or destructi
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
-claim" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog:
+request" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog:
 its text is the dialog's description, its action needs whatever enabled the action that opened it,
-and it stays open and busy until the request ends. It confirms withdrawing a claim or a
-representative authority request; deleting a profile document; and revoking member access.
+and it stays open and busy until the request ends. It confirms withdrawing a representative
+authority request and revoking member access.
 Deleting a company document or the account, and revoking a company appointment, use the
-same destructive dialog with their own text. Company eligibility's request withdrawal and acceptance
-revocation are confirmed in their own review step instead, which shows the exact record and needs a
-confirming tick before its destructive action. Reversible actions, such as signing out, turning a switch off or removing a row from
+same destructive dialog with their own text. Reversible actions, such as signing out, turning a switch off or removing a row from
 an unsaved form, aren't confirmed. Dismissing a notification archives it at once. Register
 decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are
 confirmed by their own review, dialog or form. The dashboard uses no browser `confirm` or `alert`
@@ -561,9 +549,8 @@ rather than its identifier. It reports:
 - a prepared correction or non-paid transfer, or a made particulars change, on the record you land
   on in Ledger.
 
-Identity verification shows its result in its own dialog, sign-in and sign-up keep their boxed
-outcomes, and `CopyButton` (a company's request link) confirms a copy with Copied beside the button.
-When it hides the value, a failed copy shows it to copy by hand.
+Identity verification shows its result in its own dialog, and sign-in and sign-up keep their boxed
+outcomes.
 Ledger's other forms don't use `Outcome`. Mobile reports saved personal details as the web does, and
 a changed password, some failures and a few warnings in native alerts.
 
@@ -588,8 +575,7 @@ large register. Each one uses a searchable list built on Headless UI's `Combobox
 Selecting an existing record and creating one are separate choices. The shared search control
 keeps the same appearance and keyboard behaviour; each workflow explicitly decides whether it
 offers **New person**. Typing a name never creates or identifies a record by itself: a selection
-keeps the company's stored member ID. Company scope, current authority and eligibility remain
-server checks. A person need not have a login or shares in the selected class.
+keeps the company's stored member ID. Company scope and current authority remain server checks. A person need not have a login or shares in the selected class.
 
 On the web, both transfer parties are existing company people. A transferor holds shares in the
 class; a recipient may hold another class, be a former holder, have an award or have no shares yet.
@@ -694,11 +680,7 @@ answers. It asks for:
 - the authority for a correction;
 - whether a mirrored allotment is held for someone else;
 - a new share class's type;
-- the kind of issue on Ledger's Issue shares task, which opens that kind's form in place;
-- a company eligibility decision's outcome;
-- the professional body behind an accountant's certificate;
-- the type of a profile document, where answers not yet offered stay listed, disabled and marked
-  "coming soon".
+- the kind of issue on Ledger's Issue shares task, which opens that kind's form in place.
 
 A question with no answer yet shows no button chosen. The answer takes effect with the form or
 filter it belongs to. [Compact filters](#lists-search-filters-and-paging) use labelled selectors to
@@ -711,9 +693,7 @@ share classes or document types, or someone's appointments, is a
 native select in `SelectField` (`dashboard/src/components/SelectField.tsx`): the label above the
 field and options named in words:
 
-- an appointment reads as the date it was made, then its actions, so a phone keeps the date in view;
-- an evidence source reads as its kind, status and date, and a classification claim as its kind and
-  date.
+- an appointment reads as the date it was made, then its actions, so a phone keeps the date in view.
 
 These lists add a short record reference only to options that would otherwise read the same,
 as with people who share a name and address; a delegating appointment adds the time it was made
@@ -762,8 +742,7 @@ server:
   scope without repeating it in a header summary or badge. Certificates keeps labelled
   draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;
   Apply and Clear close the panel and return focus to its button. Shareholders' class filter
-  and company eligibility's Outcome apply
-  immediately, closing the panel on selection. Escape and an outside click dismiss
+  applies immediately, closing the panel on selection. Escape and an outside click dismiss
   it, and all controls remain keyboard
   accessible. Fit the panel within the viewport, scrolling inside when needed rather than
   overflowing or shifting the table. Preserve each page's URL, paging, full-history matching and
@@ -791,18 +770,15 @@ server:
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
-Company eligibility's request queue is paged by the server, with no search box: its one
-filter is the outcome, selected in the compact filter panel, which the server derives from each
-request's decision, withdrawal, revocation and expiry. While another page or outcome loads, its rows stay dimmed and
-their View buttons wait. Shareholders searches and pages the register the page has already read in
+Shareholders searches and pages the register the page has already read in
 full, since its ownership totals need every holding: Search people and the class filter share the
 popover, with the same search timing and pager. Search matches every word, ignoring case and accents
 (`searchRows` in `packages/shared/src/utils/search.ts`); selecting a class applies it immediately and
 closes the panel.
 
 The feeds are the notification bell, a class's register entries and each class's former
-shareholders, shown 25 at a time from the register already read. A list bounded by one person, such as their own documents or
-classification claims, reads every page. Other lists still read every page
+shareholders, shown 25 at a time from the register already read. A list bounded by one person
+reads every page. Other lists still read every page
 ([frontend](frontend.md#lists-figures-and-currency)).
 
 **The register's records are the one stated exception.** Each share class's allotments, transfers,
@@ -840,14 +816,14 @@ signed-in account shows `AccountCheck` (`dashboard/src/components/AccountCheck.t
 account…" while preferences load or refresh, then "Your account could not be loaded." with Try
 again.
 
-A failed read shows this block, not an empty state. The notification bell, profile documents and
-classification claims, which used to show an empty state, now show the failure. A failed refresh
+A failed read shows this block, not an empty state. The notification bell, which used to show an
+empty state, now shows the failure. A failed refresh
 shows the same block. Its sentence says what could not be loaded or refreshed. The block provides the retry
 where the affected records would appear; a separate Refresh action is unnecessary. Automatic reads
 and their recovery follow the [freshness standard](frontend.md#automatic-data-freshness).
 
-Both eligibility pages, member access and Home's member records read through shared hooks that also
-keep a reason of their own. While a read fails they show the block, with any such reason under it,
+Member access and Home's member records read through shared hooks that also keep a reason of
+their own. While a read fails they show the block, with any such reason under it,
 such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
 An empty list says it has none yet in one muted sentence, such as "No requests yet." or "No
@@ -881,8 +857,7 @@ Some messages keep their own form:
   `Field`, `Label` and `Description` around a `TextInput` or `TextArea` with the `FIELD_CLASS` look,
   or around Headless UI's `Select` in `SelectField`, so the label, the hint and any error are linked
   to the control and an error sets `aria-invalid`. The label sits above the control. In the app, a multiline
-  `Field` starts at the web textarea's height: two rows unless the web sets more, such as three for a
-  claim's basis. A standalone optional
+  `Field` starts at the web textarea's height: two rows unless the web sets more. A standalone optional
   field ends with "(optional)"; an optional group declares this once in its heading, without repeating it
   on each field. Repeatable sections added on demand use plain headings, such as
   **Allocation history** and **Documents** in ledger setup; an empty section requires no entry.
@@ -904,9 +879,7 @@ Some messages keep their own form:
   shows it passes `showUploadHint`, and its hint then starts with "PDF, PNG or JPEG, up to 10 MB."
   (class rights, bringing records, award adjustments and document attachments). Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
-  of up to 10 MB." on the field. The evidence in an eligibility claim keeps its dashed
-  area but applies the same rule. In the app, that evidence comes from the phone's document picker,
-  and `uploadRefusal` checks it as it is chosen.
+  of up to 10 MB." on the field.
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
 - **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
@@ -944,10 +917,8 @@ Some messages keep their own form:
   (`packages/shared/src/utils/date.ts`) is their default and their `max`, so a date the server
   would refuse as in the future can't be picked. A team invitation's deadline and appointment
   expiry, and a representative authority request's expiry, are the end of the chosen UTC day; the
-  deadline is bounded to the next 30 days. A certificate date is bounded to the two years an
-  accountant's certificate stays current.
-- **Other bases.** An inspection copy's request date is a Sydney date (`sydneyToday`). Company
-  eligibility expiries are a local date and time (`datetime-local`), labelled so.
+  deadline is bounded to the next 30 days.
+- **Other bases.** An inspection copy's request date is a Sydney date (`sydneyToday`).
 - **Helpers.** `isCalendarDate` checks a typed date, and `addCalendarDays` and `addCalendarYears`
   move a valid one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or
   split into a date in the dashboard's source.
@@ -966,12 +937,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     reads the form's problems, keyed by field, and forms that share one summary, such as Member
     access's invitation, revocation and certificate instruction, check only the fields their action
     needs. A box that must be ticked is a `CheckboxField`,
-    except the eligibility claim's long declaration and sign-up pre-screening's four declarations,
-    which keep their own layout with the same checks. The app's `CheckboxField`
-    (`mobile/src/components/register/RegisterFields.tsx`), a box ticked beside its label, serves
-    the claim's declaration. The app's `ErrorSummary` (`mobile/src/components/ErrorSummary.tsx`)
-    gives the claim form the same summary, without links, at the top of its scroll content: a
-    refused Save scrolls to it and moves the screen reader's focus there. Register import names each shareholder and allotment in its summary instead of linking
+    except sign-up pre-screening's four declarations,
+    which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
     to a field, and lists the problems current at the time. Its shareholder editor lists the problems
     with the shareholder being edited. A summary link focuses the control the field's label points
     to, or else the field's first control, including Headless UI checkboxes and radios.
@@ -1038,17 +1005,15 @@ by a local helper or a browser `toLocale…` call:
   holding too small to show and "Not recorded" without issued shares.
 - **Amounts** use `formatMoney`, which names its currency: "AUD 1,234.50".
 - **On screen** the dashboard's records format their dates, share counts and amounts: register
-  records, eligibility history and shared summaries, team invitations and confirmations. A
+  records, team invitations and confirmations. A
   register's amounts paid and unpaid show as recorded, without `formatMoney`, because the
   register cannot name a single currency for them
   ([amount paid](../business/register.md#amount-paid-and-date-entered)).
   Mobile's signed-in screens format their dates the same way.
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (companies), else a
-  shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
-  member invitations, and appointments; `investor-eligibility.ts`
-  for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
-  register entry kinds). Mobile shows no status codes and uses the same shared maps.
+  shared label map (`packages/shared/src/constants/business/labels.ts` for member invitations and
+  appointments, and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for register entry kinds). Mobile shows no status codes and uses the same shared maps.
 - **Identifiers.** Records show names, dates and amounts. Issue, transfer, award, import and
   correction records, former shareholders, certificates, inspection copies, member access, Team,
   representative authority and Profile show no internal references, register
@@ -1062,19 +1027,8 @@ by a local helper or a browser `toLocale…` call:
   the copied opening sits in its own **Opening records** card, its decisions reading **Review** and
   **Confirm**, its history **Reviewed** and **Confirmed**, and its shareholders behind **Show the
   shareholders**.
-  The eligibility pages list requests by category, outcome and submission time, the company's list
-  leading with the investor's name when the request shared one, and show their
-  history without request keys, digests or appointment references, and name a company from the
-  person's own companies (`Company` and its
-  `shortReference` when it is not among them). A request's shared summary shows its readable values,
-  and the investor's view names the company when it is one of theirs. Its references to the chosen
-  evidence source, the investor's account and the company are not shown: a request is sent only when
-  they match the chosen source and company and the signed-in account. Wallet addresses, such as an
-  import's Wallets row or a former shareholder's recorded wallet, stay exact. No page shows a
-  company's ID. An eligibility request takes its company from
-  the person's own companies or from the company's request link (`?to=`), which **Copy request
-  link** on Company eligibility copies, and the preview names the company. A link opened signed out
-  is kept for the session (`dashboard/src/utils/requestLink.ts`) and reopened after sign-in.
+  Wallet addresses, such as an import's Wallets row or a former shareholder's recorded wallet, stay
+  exact. No page shows a company's ID.
 - **Enforcement.** An ESLint rule in `dashboard/eslint.config.js` refuses `toLocaleString`,
   `toLocaleDateString` and `toLocaleTimeString` in the dashboard's source, beside the rule that
   refuses inline ISO date slicing ([forms](#forms)). Mobile's ESLint configuration has neither

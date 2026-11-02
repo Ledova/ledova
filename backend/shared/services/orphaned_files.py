@@ -5,8 +5,8 @@ from django.utils import timezone
 from shared.storage import (
     RETAINED_STORAGE_PATHS,
     SWEPT_STORAGE_PREFIXES,
+    private_file_fields,
     private_storage,
-    swept_file_fields,
 )
 
 GRACE = timedelta(hours=24)
@@ -14,7 +14,7 @@ GRACE = timedelta(hours=24)
 
 def referenced_names():
     names = set()
-    for model, field_name in swept_file_fields():
+    for model, field_name in private_file_fields():
         rows = (
             model.objects.exclude(**{field_name: ""})
             .exclude(**{f"{field_name}__isnull": True})

@@ -233,7 +233,6 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     memberUuids: [MEMBER_RECORD.uuid],
     canReadRegister: true,
     canManage: true,
-    canReviewEligibility: false,
     isOwner: false,
   };
   const context: CompanyContextValue = {

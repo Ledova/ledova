@@ -125,7 +125,7 @@ maintained in private
 
 Notification senders only defer a job, so the in-app inbox stays empty until a worker drains the
 queue ([notifications](../engineering/backend.md#notifications)). Check the provider's
-[configuration](configuration.md) before retrying a review or an extraction. A 200 from
+[configuration](configuration.md) before retrying an identity review. A 200 from
 `GET /health/` proves nothing beyond the process
 ([hosted instance checks](https://github.com/Ledova/infra/blob/main/docs/deployment.md#hosted-instance-checks)).
 

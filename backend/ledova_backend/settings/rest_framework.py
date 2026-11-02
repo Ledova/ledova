@@ -46,10 +46,6 @@ SPECTACULAR_SETTINGS = {
         "ClassRightsConversionTypeEnum": ["not_recorded", "convertible", "none", "custom"],
         "ClassRightsRedemptionTypeEnum": ["not_recorded", "redeemable", "not_redeemable", "custom"],
         "OutcomeEnum": "tokens.models.swap_approval_submission.ApprovalSubmissionOutcome.choices",
-        "CompanyEligibilityDecisionOutcomeEnum": (
-            "users.models.company_eligibility.CompanyEligibilityDecisionOutcome.choices"
-        ),
-        "CompanyEligibilityRequestOutcomeEnum": "users.serializers.company_eligibility.REQUEST_OUTCOME_CHOICES",
         "MemberInvitationStatusEnum": ["pending", "expired", "unavailable", "accepted", "revoked"],
         "CompanyAppointmentStatusEnum": ["active", "expired", "revoked"],
         "CompanyAppointmentSourceEnum": ["initial", "invitation", "legacy_owner"],
@@ -65,7 +61,6 @@ SPECTACULAR_SETTINGS = {
         "SwapOrderStatusEnum": "tokens.models.choices.SwapOrderStatus",
         "TransferOrderStatusEnum": "tokens.models.choices.TransferOrderStatus",
         "TransferOrderTypeEnum": "tokens.models.choices.TransferOrderType",
-        "UserDocumentTypeEnum": "documents.models.document.DocumentType",
         "UserVerificationStatusEnum": "integrations.kyc.constants.VERIFICATION_STATUS_CHOICES",
         "WalletSigningPreferenceEnum": "wallets.models.wallet.WalletSigningPreference.choices",
         "WhitelistActionEnum": "whitelist.models.change.WhitelistAction.choices",
@@ -74,7 +69,6 @@ SPECTACULAR_SETTINGS = {
         "RegisterCorrectionAuthorityEnum": "tokens.models.register_correction.RegisterCorrectionAuthority",
         "RegisterInstructionKindEnum": "tokens.models.register_instruction.RegisterInstructionKind",
         "RegisterEvidenceKindEnum": "tokens.models.register_evidence.RegisterEvidenceKind",
-        "CategoryEnum": "users.models.investor_classification.InvestorCategory",
         "RegisterMemberDocumentCategoryEnum": "tokens.models.register_member_document.RegisterMemberDocumentCategory",
         "RegisterDecisionKindEnum": "tokens.models.register_decision.RegisterDecisionKind",
         "ShareRegisterWaitingReasonEnum": "tokens.services.register_inclusions.WAITING_REASONS",

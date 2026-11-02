@@ -175,38 +175,6 @@ export interface ApiPaths {
     patch: ApiOperations['api_financial_profiles_partial_update'];
     trace?: never;
   };
-  '/api/investor-classifications/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_investor_classifications_list'];
-    put?: never;
-    post: ApiOperations['api_investor_classifications_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/investor-classifications/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete: ApiOperations['api_investor_classifications_destroy'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/notifications/': {
     parameters: {
       query?: never;
@@ -687,86 +655,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/companies/{company_uuid}/eligibility-requests/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_companies_eligibility_requests_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_companies_eligibility_requests_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/decide/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_companies_eligibility_requests_decide_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/decision-preview/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_companies_eligibility_requests_decision_preview_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/companies/{company_uuid}/eligibility-requests/{uuid}/revoke/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_companies_eligibility_requests_revoke_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/companies/{uuid}/': {
     parameters: {
       query?: never;
@@ -1017,118 +905,6 @@ export interface ApiPaths {
     get?: never;
     put?: never;
     post: ApiOperations['api_v1_company_authority_requests_withdraw_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/company-eligibility/requests/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_company_eligibility_requests_list'];
-    put?: never;
-    post: ApiOperations['api_v1_company_eligibility_requests_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/company-eligibility/requests/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_company_eligibility_requests_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/company-eligibility/requests/{uuid}/withdraw/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_company_eligibility_requests_withdraw_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/company-eligibility/requests/preview/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_company_eligibility_requests_preview_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/documents/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_documents_list'];
-    put?: never;
-    post: ApiOperations['api_v1_documents_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/documents/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_documents_retrieve'];
-    put?: never;
-    post?: never;
-    delete: ApiOperations['api_v1_documents_destroy'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/documents/{uuid}/attach/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_documents_attach_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -3976,8 +3752,6 @@ export interface ApiComponents {
       | 'executed'
       | 'failed'
       | 'superseded';
-    CategoryEnum: 'accountant_certificate' | 'professional_investor';
-    CertifierBodyEnum: 'ca_anz' | 'cpa_australia' | 'ipa';
     ChangePasswordRequest: {
       currentPassword: string;
       newPassword: string;
@@ -4322,122 +4096,6 @@ export interface ApiComponents {
       mimeType?: string;
       name: string;
     };
-    CompanyEligibilityDecision: {
-      appointment: string;
-      decidedAt: string;
-      decidedBy: number;
-      digest: string;
-      expiresAt: string | null;
-      idempotencyKey: string;
-      outcome: ApiComponents['schemas']['CompanyEligibilityDecisionOutcomeEnum'];
-      reason: string;
-      requestDigest: string;
-      revocation: ApiComponents['schemas']['CompanyEligibilityRevocation'] | null;
-      uuid: string;
-    };
-    CompanyEligibilityDecisionCreateRequest: {
-      appointment: string;
-      confirmation: boolean;
-      expiresAt?: string | null;
-      idempotencyKey: string;
-      outcome: ApiComponents['schemas']['CompanyEligibilityDecisionOutcomeEnum'];
-      previewDigest: string;
-      reason?: string;
-    };
-    CompanyEligibilityDecisionOutcomeEnum: 'accepted' | 'refused';
-    CompanyEligibilityDecisionPreviewRequest: {
-      appointment: string;
-      expiresAt?: string | null;
-      outcome: ApiComponents['schemas']['CompanyEligibilityDecisionOutcomeEnum'];
-      reason?: string;
-    };
-    CompanyEligibilityDecisionPreviewResult: {
-      canDecide: boolean;
-      previewDigest: string;
-      unmetRequirements: string[];
-    };
-    CompanyEligibilityRequest: {
-      category: ApiComponents['schemas']['CategoryEnum'];
-      company: string;
-      decision: ApiComponents['schemas']['CompanyEligibilityDecision'] | null;
-      digest: string;
-      evidenceHash: string;
-      idempotencyKey: string;
-      outcome: ApiComponents['schemas']['CompanyEligibilityRequestOutcomeEnum'];
-      requestedExpiresAt: string;
-      sharedSummary: ApiComponents['schemas']['CompanyEligibilitySharedSummary'];
-      source: string;
-      sourceFingerprint: string;
-      submittedAt: string;
-      submittedBy: number;
-      userAccount: string;
-      uuid: string;
-      version: string;
-      withdrawal: ApiComponents['schemas']['CompanyEligibilityRequestWithdrawal'] | null;
-    };
-    CompanyEligibilityRequestCreateRequest: {
-      company: string;
-      declarationAccepted: boolean;
-      idempotencyKey: string;
-      previewDigest: string;
-      requestedExpiresAt: string;
-      sharingAccepted: boolean;
-      source: string;
-    };
-    CompanyEligibilityRequestOutcomeEnum: 'pending' | 'accepted' | 'refused' | 'withdrawn' | 'revoked' | 'expired';
-    CompanyEligibilityRequestPreviewRequest: {
-      company: string;
-      requestedExpiresAt: string;
-      source: string;
-    };
-    CompanyEligibilityRequestPreviewResult: {
-      canSubmit: boolean;
-      companyName: string;
-      evidenceHash: string | null;
-      previewDigest: string;
-      sharedSummary: ApiComponents['schemas']['CompanyEligibilitySharedSummary'];
-      sourceFingerprint: string | null;
-      unmetRequirements: string[];
-      version: string;
-    };
-    CompanyEligibilityRequestWithdrawal: {
-      digest: string;
-      idempotencyKey: string;
-      uuid: string;
-      withdrawnAt: string;
-      withdrawnBy: number;
-    };
-    CompanyEligibilityRequestWithdrawalCreateRequest: {
-      idempotencyKey: string;
-    };
-    CompanyEligibilityRevocation: {
-      appointment: string;
-      digest: string;
-      idempotencyKey: string;
-      reason: string;
-      revokedAt: string;
-      revokedBy: number;
-      uuid: string;
-    };
-    CompanyEligibilityRevocationCreateRequest: {
-      appointment: string;
-      idempotencyKey: string;
-      reason: string;
-    };
-    CompanyEligibilitySharedSummary: {
-      category: ApiComponents['schemas']['CategoryEnum'];
-      certificateIssuedAt?: string | null;
-      certifierBody?: ApiComponents['schemas']['CertifierBodyEnum'] | ApiComponents['schemas']['BlankEnum'];
-      certifierMembershipNumber?: string;
-      certifierName?: string;
-      company: string;
-      declarationText: string;
-      participantName?: string | null;
-      requestedExpiresAt: string;
-      source: string;
-      submittedAt: string | null;
-      userAccount: string;
-    };
     CompanyList: {
       acn: string;
       administrativeAccess: ApiComponents['schemas']['CompanyAdministrativeAccess'];
@@ -4669,21 +4327,15 @@ export interface ApiComponents {
       address: string;
       chain: string;
       company: string;
-      decision: string;
       digest: string;
-      eligibilityExpiresAt: string;
       proofCompletedAt: string;
-      request: string;
       submittedAt: string;
       unmetRequirements: string[];
       uuid: string;
     };
     CompanyWalletSourceSnapshot: {
-      decision: string | null;
-      eligibilityExpiresAt: string | null;
       nomination: string | null;
       proofCompletedAt: string | null;
-      request: string | null;
       targetChange: string | null;
     };
     CompanyWalletTarget: {
@@ -4727,44 +4379,6 @@ export interface ApiComponents {
       detail: string;
     };
     DeviceTypeEnum: 'ios' | 'android';
-    Document: {
-      attachedAt: string | null;
-      classification: string | null;
-      createdAt: string;
-      documentType: ApiComponents['schemas']['UserDocumentTypeEnum'];
-      latestExtraction: ApiComponents['schemas']['DocumentExtraction'] | null;
-      mimeType: string;
-      note: string;
-      originalFilename: string;
-      purgedAt: string | null;
-      retentionUntil: string | null;
-      updatedAt: string;
-      uuid: string;
-    };
-    DocumentAttachmentRequest: {
-      classification: string;
-    };
-    DocumentExtraction: {
-      confidence: number | null;
-      createdAt: string;
-      durationMs: number | null;
-      error: string;
-      finishedAt: string | null;
-      modelName: string;
-      parsedJson: unknown;
-      startedAt: string | null;
-      status: ApiComponents['schemas']['DocumentExtractionStatusEnum'];
-      updatedAt: string;
-      uuid: string;
-      warnings: unknown;
-    };
-    DocumentExtractionStatusEnum: 'pending' | 'running' | 'succeeded' | 'failed';
-    DocumentUploadRequest: {
-      classification?: string | null;
-      documentType?: ApiComponents['schemas']['UserDocumentTypeEnum'];
-      file: Blob;
-      note?: string;
-    };
     EmailDeliveryEnum: 'accepted';
     EmailVerificationRequest: {
       email: string;
@@ -4966,42 +4580,6 @@ export interface ApiComponents {
       verifiedAt: string | null;
     };
     IntendedUseEnum: 'long_term_investment' | 'trading_crypto' | 'savings' | 'other';
-    InvestorClassification: {
-      category: ApiComponents['schemas']['CategoryEnum'];
-      categoryDisplay: string;
-      certificateIssuedAt?: string | null;
-      certifierBody?: ApiComponents['schemas']['CertifierBodyEnum'] | ApiComponents['schemas']['BlankEnum'];
-      certifierMembershipNumber?: string;
-      certifierName?: string;
-      createdAt: string;
-      declarationAccepted?: boolean;
-      declarationText: string;
-      declaredBasis?: string;
-      evidenceFileSize: number | null;
-      evidenceMimeType: string;
-      expiresAt: string | null;
-      isExpired: boolean;
-      isLive: boolean;
-      rejectionReason: string;
-      reviewedAt: string | null;
-      reviewNotes: string;
-      status: ApiComponents['schemas']['InvestorClassificationStatusEnum'];
-      statusDisplay: string;
-      submittedAt: string | null;
-      userAccount: string;
-      uuid: string;
-    };
-    InvestorClassificationRequest: {
-      category: ApiComponents['schemas']['CategoryEnum'];
-      certificateIssuedAt?: string | null;
-      certifierBody?: ApiComponents['schemas']['CertifierBodyEnum'] | ApiComponents['schemas']['BlankEnum'];
-      certifierMembershipNumber?: string;
-      certifierName?: string;
-      declarationAccepted?: boolean;
-      declaredBasis?: string;
-      evidenceFile: Blob;
-    };
-    InvestorClassificationStatusEnum: 'submitted' | 'verified' | 'rejected' | 'revoked' | 'withdrawn';
     IssuanceTypeEnum: 'initial' | 'additional' | 'bonus' | 'dividend' | 'transfer';
     KycProviderEnum: 'sumsub' | 'kycaid';
     MarkAllReadResponse: {
@@ -5438,12 +5016,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['CompanyAuthorityRequest'][];
     };
-    PaginatedCompanyEligibilityRequestList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['CompanyEligibilityRequest'][];
-    };
     PaginatedCompanyListList: {
       count: number;
       next?: string | null;
@@ -5474,12 +5046,6 @@ export interface ApiComponents {
       previous?: string | null;
       results: ApiComponents['schemas']['CompanyWalletTarget'][];
     };
-    PaginatedDocumentList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['Document'][];
-    };
     PaginatedFeatureFlagList: {
       count: number;
       next?: string | null;
@@ -5491,12 +5057,6 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['FinancialProfile'][];
-    };
-    PaginatedInvestorClassificationList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['InvestorClassification'][];
     };
     PaginatedMemberAssociationList: {
       count: number;
@@ -6951,7 +6511,6 @@ export interface ApiComponents {
       address: string;
       approval: string;
       chainId: number;
-      eligibilityExpiresAt: string;
       expiresAt: string;
       nomination: string;
       proofCompletedAt: string;
@@ -8057,7 +7616,6 @@ export interface ApiComponents {
       role?: ApiComponents['schemas']['RoleEnum'];
       uuid: string;
     };
-    UserDocumentTypeEnum: 'payslip' | 'bank_statement' | 'tax_return' | 'other';
     UserPreferences: {
       transactionAlerts?: boolean;
       userAccount: ApiComponents['schemas']['AccountSummary'] | null;
@@ -8158,13 +7716,10 @@ export interface ApiComponents {
       address: string;
       chain: string;
       company: string;
-      decision: string;
       digest: string;
-      eligibilityExpiresAt: string;
       operationId: string;
       proof: string;
       proofCompletedAt: string;
-      request: string;
       sharingAccepted: boolean;
       submittedAt: string;
       unmetRequirements: string[];
@@ -8172,14 +7727,14 @@ export interface ApiComponents {
       wallet: string;
     };
     WalletNominationCreateRequest: {
+      company: string;
       operationId: string;
       previewDigest: string;
-      request: string;
       sharingAccepted: boolean;
       wallet: string;
     };
     WalletNominationPreviewRequest: {
-      request: string;
+      company: string;
       wallet: string;
     };
     WalletNominationPreviewResult: {
@@ -8187,12 +7742,9 @@ export interface ApiComponents {
       canSubmit: boolean;
       chain: string;
       company: string;
-      decision: string | null;
-      eligibilityExpiresAt: string | null;
       previewDigest: string;
       proof: string | null;
       proofCompletedAt: string | null;
-      request: string;
       unmetRequirements: string[];
       wallet: string;
     };
@@ -8586,73 +8138,6 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['FinancialProfile'];
         };
-      };
-    };
-  };
-  api_investor_classifications_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        page?: number;
-        page_size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedInvestorClassificationList'];
-        };
-      };
-    };
-  };
-  api_investor_classifications_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['InvestorClassificationRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['InvestorClassificationRequest'];
-        'multipart/form-data': ApiComponents['schemas']['InvestorClassificationRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['InvestorClassification'];
-        };
-      };
-    };
-  };
-  api_investor_classifications_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
       };
     };
   };
@@ -9544,138 +9029,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_companies_eligibility_requests_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        outcome?: 'accepted' | 'expired' | 'pending' | 'refused' | 'revoked' | 'withdrawn';
-        page?: number;
-        page_size?: number;
-      };
-      header?: never;
-      path: {
-        company_uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedCompanyEligibilityRequestList'];
-        };
-      };
-    };
-  };
-  api_v1_companies_eligibility_requests_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        company_uuid: string;
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyEligibilityRequest'];
-        };
-      };
-    };
-  };
-  api_v1_companies_eligibility_requests_decide_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        company_uuid: string;
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyEligibilityDecisionCreateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyEligibilityDecisionCreateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyEligibilityDecisionCreateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyEligibilityRequest'];
-        };
-      };
-    };
-  };
-  api_v1_companies_eligibility_requests_decision_preview_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        company_uuid: string;
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyEligibilityDecisionPreviewRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyEligibilityDecisionPreviewRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyEligibilityDecisionPreviewRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyEligibilityDecisionPreviewResult'];
-        };
-      };
-    };
-  };
-  api_v1_companies_eligibility_requests_revoke_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        company_uuid: string;
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyEligibilityRevocationCreateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyEligibilityRevocationCreateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyEligibilityRevocationCreateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyEligibilityRequest'];
-        };
-      };
-    };
-  };
   api_v1_companies_retrieve: {
     parameters: {
       query?: never;
@@ -10136,250 +9489,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyAuthorityRequest'];
-        };
-      };
-    };
-  };
-  api_v1_company_eligibility_requests_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        page?: number;
-        page_size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedCompanyEligibilityRequestList'];
-        };
-      };
-    };
-  };
-  api_v1_company_eligibility_requests_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyEligibilityRequestCreateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyEligibilityRequestCreateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyEligibilityRequestCreateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyEligibilityRequest'];
-        };
-      };
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyEligibilityRequest'];
-        };
-      };
-    };
-  };
-  api_v1_company_eligibility_requests_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyEligibilityRequest'];
-        };
-      };
-    };
-  };
-  api_v1_company_eligibility_requests_withdraw_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyEligibilityRequestWithdrawalCreateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyEligibilityRequestWithdrawalCreateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyEligibilityRequestWithdrawalCreateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyEligibilityRequest'];
-        };
-      };
-    };
-  };
-  api_v1_company_eligibility_requests_preview_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyEligibilityRequestPreviewRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyEligibilityRequestPreviewRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyEligibilityRequestPreviewRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyEligibilityRequestPreviewResult'];
-        };
-      };
-    };
-  };
-  api_v1_documents_list: {
-    parameters: {
-      query?: {
-        ordering?: string;
-        page?: number;
-        page_size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedDocumentList'];
-        };
-      };
-    };
-  };
-  api_v1_documents_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['DocumentUploadRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['DocumentUploadRequest'];
-        'multipart/form-data': ApiComponents['schemas']['DocumentUploadRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['Document'];
-        };
-      };
-    };
-  };
-  api_v1_documents_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['Document'];
-        };
-      };
-    };
-  };
-  api_v1_documents_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  api_v1_documents_attach_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['DocumentAttachmentRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['DocumentAttachmentRequest'];
-        'multipart/form-data': ApiComponents['schemas']['DocumentAttachmentRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['Document'];
         };
       };
     };
@@ -15239,7 +14348,6 @@ export interface ApiOperations {
         ordering?: string;
         page?: number;
         page_size?: number;
-        request?: string;
       };
       header?: never;
       path?: never;
@@ -15391,7 +14499,6 @@ export interface ApiOperations {
         ordering?: string;
         page?: number;
         page_size?: number;
-        request?: string;
       };
       header?: never;
       path?: never;
