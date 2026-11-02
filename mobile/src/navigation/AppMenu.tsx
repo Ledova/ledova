@@ -9,7 +9,6 @@ import {
   HouseIcon,
   ListIcon,
   MoonIcon,
-  ShieldCheckIcon,
   SignOutIcon,
   SunIcon,
   XIcon,
@@ -18,21 +17,13 @@ import {
 import { useAppTheme, useThemeChoice } from '../contexts';
 import { SignOutModal } from '../components/auth/SignOutModal';
 import { LogoMark } from '../components/LogoMark';
-import { useRole } from '../hooks/useRole';
 import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { useMemberRecordsState } from '../screens/holdings/MemberRecordsProvider';
 
-export type Section = 'Dashboard' | 'Documents' | 'Eligibility' | 'Settings';
+export type Section = 'Dashboard' | 'Documents' | 'Settings';
 
-export type MenuRoute =
-  | 'Dashboard'
-  | 'Certificates'
-  | 'Notices'
-  | 'Verification'
-  | 'Settings'
-  | 'Account'
-  | 'DataPrivacy';
+export type MenuRoute = 'Dashboard' | 'Certificates' | 'Notices' | 'Settings' | 'Account' | 'DataPrivacy';
 
 type MenuItem = {
   name: Section;
@@ -55,12 +46,6 @@ const SECTIONS: MenuItem[] = [
     ],
   },
 ];
-const ELIGIBILITY: MenuItem = {
-  name: 'Eligibility',
-  label: 'Eligibility',
-  icon: ShieldCheckIcon,
-  route: 'Verification',
-};
 const YOURS: MenuItem[] = [
   {
     name: 'Settings',
@@ -150,8 +135,6 @@ export function AppMenu({
   const insets = useSafeAreaInsets();
   const { userProfile } = useUserProfile();
   const { company } = useMemberRecordsState();
-  const role = useRole();
-  const yours = role.isKnown && role.isInvestor ? [ELIGIBILITY, ...YOURS] : YOURS;
   const { signOut, signingOut } = useSignOut();
   const [progress] = useState(() => new Animated.Value(0));
   const [shown, setShown] = useState(visible);
@@ -308,7 +291,7 @@ export function AppMenu({
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: theme.spacing.md, gap: theme.spacing.lg }}
           >
             <View style={{ gap: 4 }}>{SECTIONS.map(item)}</View>
-            <View style={{ gap: 4 }}>{yours.map(item)}</View>
+            <View style={{ gap: 4 }}>{YOURS.map(item)}</View>
           </ScrollView>
           <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.border.subtle, padding: 12, gap: 4 }}>
             {person && (

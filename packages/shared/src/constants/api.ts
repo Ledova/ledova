@@ -41,10 +41,6 @@ export const IDENTITY_VERIFICATION_ENDPOINTS = {
   TOKEN: '/api/users/identity-verification/token/',
   STATUS: '/api/users/identity-verification/status/',
 } as const;
-export const INVESTOR_CLASSIFICATION_ENDPOINTS = {
-  BASE: '/api/investor-classifications/',
-  DETAIL: (uuid: string) => `/api/investor-classifications/${uuid}/` as const,
-} as const;
 export const DEVICE_TOKEN_ENDPOINTS = {
   REGISTER: '/api/device-tokens/register/',
   UNREGISTER: '/api/device-tokens/unregister/',
@@ -147,10 +143,4 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_PARTICULARS_CHANGES: '/api/v1/tokens/register-particulars-changes/',
   REGISTER_PARTICULARS_CHANGE_FILE: (uuid: string) =>
     `/api/v1/tokens/register-particulars-changes/${uuid}/file/` as const,
-} as const;
-
-export const USER_DOCUMENT_ENDPOINTS = {
-  BASE: '/api/v1/documents/',
-  DETAIL: (uuid: string) => `/api/v1/documents/${uuid}/` as const,
-  ATTACH: (uuid: string) => `/api/v1/documents/${uuid}/attach/` as const,
 } as const;

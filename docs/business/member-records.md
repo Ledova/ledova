@@ -67,8 +67,8 @@ register ([decision](../decisions.md#the-stored-register)).
 ## Member access
 
 Member access links one signed-in account to one member of one company's register, so the person can
-read their own records without a wallet. It gives no company appointment, holding, wallet link or
-investment eligibility ([decision](../decisions.md#member-invitations-and-account-association)).
+read their own records without a wallet. It gives no company appointment, holding or wallet link
+([decision](../decisions.md#member-invitations-and-account-association)).
 
 ### Inviting a member
 
@@ -371,7 +371,7 @@ and identity source.
 | Excluded                                                                                  | Why                                                                                                                                                                                                                |
 | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Members' email, phone, date of birth, citizenship and financial profile                   | What members gave Ledova, not the register's particulars ([position 10](../legal/positions.md#10-privacy))                                                                                                         |
-| Identity checks, classification claims and evidence, payslips and their extractions       | The person's records with Ledova, which the company never reads and which run on their own retention clock                                                                                                         |
+| Identity checks                                                                           | The person's records with Ledova, which the company never reads                                                                                                                                                    |
 | A ballot's member and choice, and who opened which publication                            | The company sees resolution tallies and read counts only                                                                                                                                                           |
 | Unmatched orders                                                                          | Investors' private orders                                                                                                                                                                                          |
 | Records of who took register outputs                                                      | Ledova's audit; the company sees records of its own inspection copies and packs only, never of an output produced in admin ([position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)) |

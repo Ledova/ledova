@@ -7,6 +7,11 @@
 [implementation index](README.md) lists the
 increments delivered under it and the remaining scope.
 
+Investor eligibility (classification claims, payslips and company eligibility decisions) was removed
+on 2 November 2026 ([decision](../../decisions.md#verification-limited-to-id-checks)). Where this
+plan names eligibility decisions or classification outcomes, Ledova no longer records them, and its
+only check of a person is the identity check.
+
 ## Decision
 
 **Ledova operates the platform. Companies operate their own share registers.**

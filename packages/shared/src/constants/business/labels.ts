@@ -1,13 +1,4 @@
-import type { CompanyEligibilityRequest, MemberInvitation, OwnCompanyAppointment } from '../../types';
-
-export const ELIGIBILITY_OUTCOME_LABELS: Record<CompanyEligibilityRequest['outcome'], string> = {
-  pending: 'Pending',
-  accepted: 'Accepted',
-  refused: 'Refused',
-  withdrawn: 'Withdrawn',
-  revoked: 'Revoked',
-  expired: 'Expired',
-};
+import type { MemberInvitation, OwnCompanyAppointment } from '../../types';
 
 export const MEMBER_INVITATION_STATUS_LABELS: Record<MemberInvitation['status'], string> = {
   pending: 'Pending',

@@ -13,8 +13,6 @@ export interface Destination {
 export const DESTINATIONS = {
   memberRecords: { path: '/member-records', title: 'My shares', audience: 'everyone' },
   home: { path: '/home', title: 'My shares', audience: 'everyone', views: { documents: 'Documents' } },
-  investorEligibility: { path: '/investor-eligibility', title: 'Verification', audience: 'investing' },
-  eligibilityRequests: { path: '/eligibility-requests', title: 'Your company eligibility', audience: 'investing' },
   publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
   companyClass: { path: '/company/ledger/:uuid', title: 'Share class', audience: 'everyone' },
   companyRegister: {
@@ -55,7 +53,6 @@ export const DESTINATIONS = {
     audience: 'company',
   },
   companyTeam: { path: '/company/team', title: 'Company team', audience: 'everyone' },
-  companyEligibility: { path: '/company/eligibility', title: 'Company eligibility', audience: 'everyone' },
   companyListing: { path: '/company/listing', title: 'Activation', audience: 'everyone' },
   companyPublications: { path: '/company/publications', title: 'Published to your members', audience: 'company' },
   certificates: { path: '/documents/certificates', title: 'Certificates', audience: 'everyone' },
@@ -74,7 +71,6 @@ export interface DestinationParent {
 
 export const DESTINATION_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   memberRecords: { destination: 'home', back: false },
-  eligibilityRequests: { destination: 'investorEligibility' },
   companyClass: { destination: 'companyRegister' },
   companyRegisterSetup: { destination: 'companyRegister', back: false },
   companyRegisterImport: { destination: 'companyRegister', back: false },

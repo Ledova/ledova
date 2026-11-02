@@ -18,7 +18,6 @@ networking overrides.
 - [Secret storage](#secret-storage)
 - [Native dependencies and randomness](#native-dependencies-and-randomness)
 - [Document view copies](#document-view-copies)
-- [Picked evidence copies](#picked-evidence-copies)
 
 ## Architecture
 
@@ -36,12 +35,11 @@ folder names, with relative imports and no path aliases:
 | `hooks/`, `contexts/` | `hooks/`                | App-wide hooks; the app-lock and theme contexts                               |
 | `services/`           | `services/`             | `apiClient`, the session scope, token storage, document copies, notifications |
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                    |
-| `testSupport/`        | `testSupport/`          | Test helpers                                                                  |
 
 Shared register UI (fields and document sharing) lives in `components/register`, and its styles in
-`hooks/`. Production screens import no other area's internals. Profile, operator, member,
-publication-list and investor classification reads, and the payslip documents' reads and commands,
-live in `packages/shared`, with native session, result and transport policies kept in the client.
+`hooks/`. Production screens import no other area's internals. Profile, operator, member and
+publication-list reads live in `packages/shared`, with native session, result and transport policies
+kept in the client.
 
 ### Shared package resolution
 
@@ -72,14 +70,13 @@ action (such as Switch company or Filters) and the notifications bell. Inside th
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede.
 The menu (`AppMenu`) slides in from the left like the
-web's phone drawer, 208 points wide: Dashboard and Documents, then Eligibility for an investing
-account (the web's rule: a known account whose role opens investing pages) and Settings, and a footer
+web's phone drawer, 208 points wide: Dashboard, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Documents for Certificates and Notices,
-Eligibility for Verification, Settings for Profile, Account and Data and privacy, Dashboard for
-Invitation. Choosing Dashboard returns to it. Documents opens Certificates, Eligibility opens
-Verification and Settings opens Profile, and like the web's groups each caret
+Settings for Profile, Account and Data and privacy, Dashboard for
+Invitation. Choosing Dashboard returns to it. Documents opens Certificates and Settings opens
+Profile, and like the web's groups each caret
 shows its pages beneath it, Certificates and Notices, or Profile, Account and Data and privacy, open
 while one of them is shown. Every other choice opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
@@ -106,32 +103,7 @@ button (`FilterPopover`) with Share class and Apply. Each record shows the share
 the entry and its date (and ledger date), with no action. A class the member is not recorded in says
 so, and a failed read offers Try again. Notices
 (`NoticesScreen`), under Documents, is the web's Notices page: every company's notices, each opened
-or voted on as on the web. Verification (`mobile/src/screens/eligibility/VerificationScreen.tsx`) is
-the web's page. Your claims lists each
-classification claim with its status from the shared `investorClaimState`, its dates and any reason
-given, and **Withdraw claim** on a submitted claim after the web's confirmation; the app has no Your
-company eligibility page yet, so there is no link to it. How you qualify offers each category with
-**Submit evidence**, or **Add evidence** once one of its claims is submitted, opening the web's claim
-form (`ClaimModal`): the accountant's certificate fields where they apply, the basis, one evidence
-file ([picked evidence copies](#picked-evidence-copies)) and the declaration, checked on Save with the
-shared `investorClaimChecks`, whose messages head the form in the
-[error summary](frontend-ux.md#validation) and sit beside their fields. A server refusal, such as a failed malware check,
-shows above the fields. The claims come from the shared `useInvestorEligibility`, and the withdrawal
-(`useInvestorWithdrawal`) and the upload carry the session epoch ([session scope](#session-scope)).
-Supporting payslips (`DocumentsPanel`) follows with the web's privacy sentence, states and wording:
-each payslip shows its type, date and extraction status (Queued, Extracting…, Extracted or Failed);
-an attached one shows its claim and how long it is kept, and an unattached one offers the claim
-choice with **Attach to claim**, the date it is removed and **Delete document** after the web's
-confirmation. A finished extraction keeps its details behind **Show extraction details**
-(`ShowMore` in the kit), with any warnings, and a failed one shows its error. **Upload a payslip**
-opens the web's inline form: the file ([picked evidence copies](#picked-evidence-copies)), a note and
-an optional claim, then **Upload and extract**; Cancel discards the draft with its picked copy. The
-shared document hooks read every page of the person's documents and send the upload with the epoch
-of its pick, and attachment and deletion with the current one. As on the web, a payslip's status is
-read every 3 seconds while its extraction is queued or running, or for a minute after upload before
-it starts, until the page closes; in the app these checks carry the epoch they started under and also
-stop when the page loses focus or the session changes. Pull to refresh rereads the claims and the
-payslips.
+or voted on as on the web.
 Settings has the web's three pages for a member
 (`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, keeps the web's two cards.
 Personal information shows the person's details, each label above its value, and **Edit personal
@@ -272,9 +244,9 @@ without declaring it, and `assert` and `util` arrive through `expo-notifications
 check confirms that the app's own imports reach declared runtime dependencies; imports inside
 `node_modules` are resolved by Metro when the app is bundled.
 
-`expo-document-picker` loads its native module when imported, and the app imports it at start
-through `mobile/src/services/documentCopies.ts`, so a development app built before the picker was
-added fails to start. Rebuild the development app, and make release builds from a fresh prebuild
+The document picker (`expo-document-picker`) went with the eligibility screens on 2 November 2026;
+the next native build drops its module, and a development app built with it still runs the current
+JavaScript. Make release builds from a fresh prebuild
 ([building from a clean checkout](mobile-releases.md#building-from-a-clean-checkout)).
 
 ## Document view copies
@@ -293,27 +265,6 @@ app still reading it then loses access. Neither platform says when a receiver ha
 (Android's chooser result does not wait, and the pinned iOS sharing module never settles a share
 whose follow-up dialog is cancelled), so the guard ends before the share opens and one unsettled
 share cannot block later views. Copies earlier builds wrote to the cache root are not found.
-
-## Picked evidence copies
-
-A claim's evidence and a payslip are chosen with Expo's document picker (`pickDocument` in
-`mobile/src/services/documentCopies.ts`, held by the eligibility screens' `usePickedDocument`),
-offering PDF, PNG and JPEG files, and the shared `uploadRefusal` checks each as it is chosen, as on
-the web. A file the picker gives no size is
-measured from its copy, and one without a type, or with `application/octet-stream`, takes the type
-its extension names (`uploadType`) before that check. The app uploads a private copy as React
-Native's `{ uri, name, type }`, with the session epoch of the pick: on Android the picker copies the
-file into its `DocumentPicker` folder in the cache, and on iOS the app uses the copy the system
-makes in a `-Inbox` folder in its temporary folder. The app deletes only files inside its own cache
-or, on iOS, temporary folder, so never a provider's original: a picked copy when another file
-replaces it, when it is removed, refused or saved, when the form or the page closes and on every
-session change. Every session change and each app start also sweep the picker's UUID-named files
-from the `DocumentPicker` folder and, on iOS, the files in the temporary folder's `-Inbox` folders,
-where a killed app leaves its copies; a session change also removes the upload copies earlier builds
-left in the cache.
-
-Test coverage of these lifetimes is in
-[what automated checks do not establish](mobile-releases.md#what-automated-checks-do-not-establish).
 
 Next: [mobile releases](mobile-releases.md), [frontend](frontend.md) and
 [authentication](security.md#authentication-and-sessions).

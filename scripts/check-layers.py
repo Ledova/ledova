@@ -38,7 +38,6 @@ SCOPING_CALLS = frozenset(
         "none",
         "get_object",
         "get_queryset",
-        "investor_eligibility",
     }
 )
 

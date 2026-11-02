@@ -2,7 +2,6 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, ProgrammingError, connections
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
@@ -14,8 +13,6 @@ from companies.models import Company
 from companies.services.administration import company_operation
 from companies.services.team import revoke_company_appointment
 from compliance.models import MonitoringRule
-from documents.models import Document
-from documents.tasks.extract import extract_document
 from shared.db import (
     APP_ALIAS,
     MIGRATE_ALIAS,
@@ -26,11 +23,11 @@ from shared.db import (
     set_principal,
     use_operator,
 )
+from shared.tasks.queue import defer
 from shared.tests.core_fixtures import (
     PASSWORD,
     CoreFixtures,
     import_payload,
-    pdf_bytes,
     populated_register,
     retained_evidence,
 )
@@ -52,7 +49,8 @@ from tokens.models import (
     RegisterPosition,
     ShareToken,
 )
-from users.models import UserProfile
+from users.models import Notification, UserProfile
+from users.tasks.notifications import send_push_notification
 
 
 @override_settings(RLS_AMBIENT_ALIAS=APP_ALIAS, RLS_ROLE_PER_REQUEST=False)
@@ -140,34 +138,39 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(anonymous.status_code, 401, anonymous.content)
         self.assertIn(principal_of(APP_ALIAS), (None, ""))
 
-        def upload_before_commit():
-            response = self.client.post(
-                "/api/v1/documents/",
-                {
-                    "documentType": "payslip",
-                    "file": SimpleUploadedFile("synthetic.pdf", pdf_bytes(), content_type="application/pdf"),
-                },
-                format="multipart",
+        def queue_before_commit():
+            set_principal(self.owner.pk, APP_ALIAS)
+            try:
+                notice = Notification.objects.using(APP_ALIAS).create(
+                    user=self.owner, title="Synthetic notice", body="Synthetic queued notice"
+                )
+                job_id = defer(
+                    send_push_notification,
+                    user_id=str(self.owner.pk),
+                    title=notice.title,
+                    body=notice.body,
+                    data={"record": str(notice.pk)},
+                    notification_type="general",
+                )
+            finally:
+                reset_principal(APP_ALIAS)
+            job = ProcrastinateJob.objects.using(APP_ALIAS).get(pk=job_id)
+            self.assertEqual(
+                (job.task_name, job.queue_name, job.args["user_id"]),
+                (send_push_notification.name, send_push_notification.queue, str(self.owner.pk)),
             )
-            self.assertEqual(response.status_code, 202, response.content)
-            document_id = response.json()["uuid"]
-            job = ProcrastinateJob.objects.using(APP_ALIAS).get(
-                task_name=extract_document.name, args__document_uuid=document_id
-            )
-            self.assertEqual(job.args, {"document_uuid": document_id, "principal_id": self.owner.pk})
-            self.assertEqual(job.queue_name, extract_document.queue)
-            self.assertFalse(Document.objects.using(OPERATOR_ALIAS).filter(pk=document_id).exists())
-            self.assertFalse(ProcrastinateJob.objects.using(OPERATOR_ALIAS).filter(pk=job.pk).exists())
-            return document_id, job.pk
+            self.assertFalse(Notification.objects.using(OPERATOR_ALIAS).filter(pk=notice.pk).exists())
+            self.assertFalse(ProcrastinateJob.objects.using(OPERATOR_ALIAS).filter(pk=job_id).exists())
+            return notice.pk, job_id
 
-        with self.assertRaisesMessage(RuntimeError, "Roll back the synthetic upload"), atomic(using=APP_ALIAS):
-            rolled_back_document, rolled_back_job = upload_before_commit()
-            raise RuntimeError("Roll back the synthetic upload")
-        self.assertFalse(Document.objects.using(OPERATOR_ALIAS).filter(pk=rolled_back_document).exists())
+        with self.assertRaisesMessage(RuntimeError, "Roll back the synthetic notice"), atomic(using=APP_ALIAS):
+            rolled_back_notice, rolled_back_job = queue_before_commit()
+            raise RuntimeError("Roll back the synthetic notice")
+        self.assertFalse(Notification.objects.using(OPERATOR_ALIAS).filter(pk=rolled_back_notice).exists())
         self.assertFalse(ProcrastinateJob.objects.using(OPERATOR_ALIAS).filter(pk=rolled_back_job).exists())
         with atomic(using=APP_ALIAS):
-            committed_document, committed_job = upload_before_commit()
-        self.assertTrue(Document.objects.using(OPERATOR_ALIAS).filter(pk=committed_document).exists())
+            committed_notice, committed_job = queue_before_commit()
+        self.assertTrue(Notification.objects.using(OPERATOR_ALIAS).filter(pk=committed_notice).exists())
         self.assertTrue(ProcrastinateJob.objects.using(OPERATOR_ALIAS).filter(pk=committed_job).exists())
 
         with use_operator():

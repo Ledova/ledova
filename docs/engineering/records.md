@@ -1149,7 +1149,7 @@ reader was the member, the company or staff; it carries no name, holding or file
 admin mutation path. The stored file is opened first and the read recorded second, so a record
 always names a file that could be served: a file that cannot be opened answers 503
 `publication_unopened` and records nothing, and a read that cannot be recorded answers 503
-`publication_read_unrecorded` and serves nothing, as [document reads](security.md#read-audit) do.
+`publication_read_unrecorded` and serves nothing ([read audit](security.md#read-audit)).
 Staff open a document or remittance evidence through `admin_file_path` routes in the publication
 admin.
 
@@ -1300,8 +1300,7 @@ bound to the session current when the export was requested and hands it to the s
 The document is `AccountExportData` in the schema: `exportedAt`, `user`, `profile`,
 `financialProfile`, `account`, `wallets`, `transactions` (every transaction of the account's
 wallets) and `portfolios`; a section with no row is `null`, or an empty list. Not in it:
-classification claims and their evidence, uploaded documents, per-asset holdings, orders,
-notifications, the transaction-alerts switch and register particulars.
+per-asset holdings, orders, notifications, the transaction-alerts switch and register particulars.
 
 ### Transaction evidence fields
 

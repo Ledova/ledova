@@ -12,10 +12,10 @@ SYSTEM_WIDE = {
     "on the operator connection, retaining its original target and signed transaction.",
     "tokens.tasks.deployment.check_pending_swap_approvals": "Recovers admitted swap approvals across issuers "
     "without reopening terminal outcomes or adopting historical deployments.",
-    "whitelist.tasks.refresh.refresh_whitelist_approvals": "Sweeps every company approval on the deployment, "
-    "comparing the expiry the recorded classifications call for with the one the registry holds. It belongs to "
-    "no tenant: it reads staff approvals and staff-reviewed classifications and submits under the staff member "
-    "whose review decided the outcome, listing for staff any row no actor can be attributed to.",
+    "whitelist.tasks.refresh.refresh_whitelist_approvals": "Sweeps every company approval on the deployment and "
+    "submits the removal a retained standing, identity or wallet loss calls for, under the actor that loss "
+    "recorded. It belongs to no tenant and lists for staff any approval whose holder is no longer current "
+    "without a recorded cause.",
     "whitelist.tasks.refresh.refresh_whitelist_targets": "Refreshes the named company approvals after the staff "
     "or holder action that changed them, under operator authority and attributed to that actor. The actor is an "
     "audit actor rather than a tenant principal: a holder can only reach it by removing their own wallet, and "
@@ -95,9 +95,6 @@ SYSTEM_WIDE = {
     "tokens.tasks.approval_submissions.recover_swap_approval_submissions": "Replays the exact recorded bytes of "
     "every pending participant-signed approval across both parties and records the receipt it finds; it signs "
     "nothing, allocates no nonce and reads the private journal on the operator connection.",
-    "users.tasks.retention.purge_classification_evidence": "Applies the retention clock across every account.",
-    "documents.tasks.retention.purge_document_evidence": "Purges expired supporting and unattached payslips "
-    "across all uploaders on the operator connection, without a requesting user.",
     "wallets.tasks.chain_observations.observe_wallet_chains": "Polls the chain for every submission whose "
     "watch is due, across all accounts. The chain answers about a transaction, not about whose it is.",
     "wallets.tasks.submissions.recover_wallet_submissions": "Retries every submission left pending across all "
@@ -137,13 +134,6 @@ PRINCIPAL_BEARING = {
     "sync write run inside that context. A user who lost account access after enqueue resolves no wallet, "
     "and the operator sweep remains able to finish it. Compliance screening is durably queued on the "
     "producer connection and handled by a separate operator task.",
-    "documents.tasks.extract.extract_document": "Reads one uploader's document and writes an "
-    "extraction against it. Converted: the principal is a required argument with no default, the "
-    "upload passes its uploader and the staff rerun passes None, because a re-extraction is the "
-    "operator's action and reaches documents no single customer owns. The whole body runs inside "
-    "that context, which is what puts the extraction service's three retention rechecks - the initial "
-    "locked check, the bytes read and the save - on the alias the enqueue chose, around an "
-    "external call no transaction can be held across.",
     "users.tasks.notifications.send_push_notification": "Sends to one user's device tokens. Converted: "
     "the required user_id was already the recipient principal, so the enqueue payload is unchanged and "
     "the whole body - lookup, preferences, inbox insert, device read and invalid-device deactivation - "
@@ -161,7 +151,6 @@ CONVERTED_IN = {
     "tokens.tasks.deployment.deploy_share_token_task": 545,
     "wallets.tasks.confirmation.confirm_pending_transaction": 327,
     "wallets.tasks.sync.sync_wallet": 544,
-    "documents.tasks.extract.extract_document": 525,
     "users.tasks.notifications.send_push_notification": 523,
     "users.tasks.notifications.send_transaction_notification": 523,
 }

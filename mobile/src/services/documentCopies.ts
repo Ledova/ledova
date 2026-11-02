@@ -1,29 +1,12 @@
-import { Platform } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
-import { uploadType } from '@ledova/shared';
-import { assertSessionEpoch, getSessionEpoch, subscribeSession } from './sessionScope';
+import { assertSessionEpoch, subscribeSession } from './sessionScope';
 
-const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
-const picked = new Set<string>();
 let viewing: number | undefined;
 
 interface DocumentView {
   name: string;
   type: string;
   bytes: Uint8Array;
-}
-
-export interface PickedDocument {
-  uri: string;
-  name: string;
-  type: string;
-  size: number;
-  epoch: number;
-}
-
-function temporaryDirectory(): Directory {
-  return new Directory(Paths.document, '..', 'tmp');
 }
 
 function local(uri: string): string {
@@ -36,7 +19,7 @@ function inside(file: File, directory: Directory): boolean {
 
 function removeCopy(file: File): void {
   try {
-    if (!inside(file, Paths.cache) && !(Platform.OS === 'ios' && inside(file, temporaryDirectory()))) return;
+    if (!inside(file, Paths.cache)) return;
     if (file.info().exists) file.delete();
     if (file.info().exists) throw new Error('Document copy remains.');
   } catch {
@@ -57,34 +40,13 @@ function entries(directory: Directory): (File | Directory)[] {
   }
 }
 
-function sweep(directory: Directory, owned: (name: string) => boolean = () => true): void {
-  for (const entry of entries(directory)) {
-    if (entry instanceof File && owned(entry.name)) removeCopy(entry);
-  }
-}
-
 function sweepViewCopies(): void {
-  sweep(viewDirectory());
-}
-
-export function sweepPickedCopies(): void {
-  sweep(new Directory(Paths.cache, 'DocumentPicker'), (name) => PICKER_NAME.test(name));
-  if (Platform.OS !== 'ios') return;
-  for (const entry of entries(temporaryDirectory())) {
-    if (entry instanceof Directory && entry.name.endsWith('-Inbox')) sweep(entry);
+  for (const entry of entries(viewDirectory())) {
+    if (entry instanceof File) removeCopy(entry);
   }
 }
 
-export function discardDocument(uri: string): void {
-  if (picked.delete(uri)) removeCopy(new File(uri));
-}
-
-subscribeSession(() => {
-  [...picked].forEach(discardDocument);
-  sweepPickedCopies();
-  sweep(new Directory(Paths.cache, 'ledova-upload-copies-v1'));
-  sweepViewCopies();
-});
+subscribeSession(sweepViewCopies);
 
 async function writeViewCopy(
   sessionEpoch: number,
@@ -100,12 +62,6 @@ async function writeViewCopy(
   copy.write(bytes);
   return { uri: copy.uri, type };
 }
-
-const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': '.pdf',
-  'image/png': '.png',
-  'image/jpeg': '.jpg',
-};
 
 export const UTI_BY_MIME_TYPE: Record<string, string> = {
   'application/pdf': 'com.adobe.pdf',
@@ -129,28 +85,4 @@ export async function shareDocumentCopy(
   assertSessionEpoch(sessionEpoch);
   guard?.();
   await share(copy.uri, copy.type);
-}
-
-export async function pickDocument(): Promise<PickedDocument | null> {
-  const epoch = getSessionEpoch();
-  const result = await DocumentPicker.getDocumentAsync({
-    type: Object.keys(EXTENSION_BY_MIME_TYPE),
-    copyToCacheDirectory: Platform.OS === 'android',
-    multiple: false,
-  });
-  const asset = result.assets?.[0];
-  if (result.canceled || !asset) return null;
-  picked.add(asset.uri);
-  if (epoch !== getSessionEpoch()) {
-    discardDocument(asset.uri);
-    return null;
-  }
-  const declared = asset.mimeType !== 'application/octet-stream' && asset.mimeType;
-  return {
-    uri: asset.uri,
-    name: asset.name,
-    type: declared || uploadType(asset.name) || '',
-    size: asset.size ?? new File(asset.uri).info().size ?? 0,
-    epoch,
-  };
 }

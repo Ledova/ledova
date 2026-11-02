@@ -284,7 +284,7 @@ export function AccountData() {
         <p className="text-sm text-text-muted">
           This deactivates your account and removes your name, date of birth, phone number and address from your
           profile. Your country of citizenship, financial profile, wallets, verification records and share register
-          entries are kept, and so are the eligibility requests you sent, with your name as each company received it.
+          entries are kept.
         </p>
         {deleteMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">

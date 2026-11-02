@@ -43,8 +43,8 @@ from tokens.services.signing_challenge import (
     spend,
 )
 from tokens.services.trading_admission import (
-    eligibility_guard_refusal,
     participant_context,
+    participant_guard_refusal,
     prepare_admission,
 )
 from tokens.services.trading_order_create import _lock_authorized_wallet
@@ -368,9 +368,9 @@ def execute_order_action(actor, order_id, purpose, data, credentials, *, ip_addr
                 result = _apply(action, challenge, observed_balance, ip_address, user_agent, admission)
         except (IntegrityError, *BUSINESS_REFUSALS) as exc:
             if isinstance(exc, IntegrityError):
-                if not eligibility_guard_refusal(exc):
+                if not participant_guard_refusal(exc):
                     raise
-                exc = InvestorNotEligibleException(("no_live_company_decision",))
+                exc = InvestorNotEligibleException(("participant_not_current",))
             if type(exc) not in BUSINESS_REFUSALS or BUSINESS_REFUSALS[type(exc)][0] != purpose:
                 raise
             _, action.refusal_code, action.refusal_status = BUSINESS_REFUSALS[type(exc)]
@@ -379,17 +379,12 @@ def execute_order_action(actor, order_id, purpose, data, credentials, *, ip_addr
         else:
             action.result = result
             action.status = OrderActionStatus.APPLIED
-            if purpose == OrderActionPurpose.MODIFY:
-                action.eligibility_decision_id = action.order.last_modification_eligibility_decision_id
-                action.eligibility_admitted_at = action.order.last_modified_at
         action.executed_challenge = challenge
         action.executed_by = actor
         action.resolved_at = timezone.now()
         action.save(
             update_fields=[
                 "status",
-                "eligibility_decision",
-                "eligibility_admitted_at",
                 "result",
                 "refusal_code",
                 "refusal_detail",

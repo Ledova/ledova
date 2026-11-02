@@ -55,7 +55,7 @@ The initial appointment gives you Manage company information and team personally
 capabilities as delegatable so that you can build the team afterwards. It records you, the company,
 the declaration version and text and the admission time.
 
-After signup, add optional supporting files at **Eligibility → Supporting** and invite users at
+After signup, add optional supporting files at **Company files** and invite users at
 **Settings → Team**.
 Later documents do not alter the retained signup request. The company remains Draft until
 activation passes the registry check: registration does not incorporate a company with ASIC,
@@ -120,8 +120,6 @@ appointments, the selected company's team and issued invitations; **Invite a com
 **Accept a company invitation** open focused inline forms. Someone with no appointments, other than
 a company's owner, lands straight on accepting an invitation. It also keeps the owner's contextual Representative authority
 task.
-[Company eligibility](participants.md#company-eligibility-decisions) remains available at
-`/company/eligibility` on web to authorised company users.
 
 1. To invite someone, choose one of your current appointments that can delegate for the selected
    company. Choose the personal capabilities and, separately, any onward delegation for the invitee. Set an
@@ -219,7 +217,7 @@ rechecks the captured details.
 ## Company information and documents
 
 A current company administrator reads and edits the company's basic information at
-**Settings → Profile**, and manages supporting files at **Eligibility → Supporting** on web
+**Settings → Profile**, and manages supporting files at **Company files** on web
 ([Settings](participants.md#profile-and-settings)). On web,
 [choose the company on Dashboard](README.md#the-app-at-a-glance).
 
@@ -266,12 +264,11 @@ needs a current verification of one of the company's documents and records its f
 
 ## Activation and the registry check
 
-A current personal administrator activates the company on the web. Activation is what
-allows participants to request the company's eligibility decisions. It establishes no share issue,
-payment, participant eligibility or wallet approval. Signup does not look the company up in the ABR; activation does. Before activation, the
+A current personal administrator activates the company on the web. Activation establishes no
+share issue, payment or wallet approval. Signup does not look the company up in the ABR; activation does. Before activation, the
 company's administrators can keep its own non-tokenised register records, such as the mirrored
-register, awards, allotments, transfers and member access, but eligibility decisions,
-chain deployments and issues, capital increases and company wallet instructions wait for an Active
+register, awards, allotments, transfers and member access, but wallet nominations, chain
+deployments and issues, capital increases and company wallet instructions wait for an Active
 company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
@@ -340,7 +337,7 @@ these status changes from a staff account without the change permission.
 Each instance chooses whether company representatives must have a verified identity; it is off by
 default. When it is on, the person's verified identity is required for every act of company
 authority: initial admission, accepting an invitation, activation, company administration,
-eligibility decisions, member invitations, and register and wallet decisions. Staff technical
+member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
 configured identity provider, from **Verify your identity** at signup review or later from
 **Settings → Account** on web with **Review identity check**, which Activation's identity step links to. With the requirement on and no
@@ -353,19 +350,18 @@ requirement is separate ([participants](participants.md#account-standing)).
 The company section of web **Settings → Profile** shows the selected company's details
 as provided by the company: status, trading name, type, ACN, ABN, email (administrators only), phone
 and address, and whether the ownership overview is shared with members. Administrators see
-**Edit company**. A company gives investors its request link from Company eligibility, not an ID
-([requesting a decision](participants.md#requesting-a-decision)).
+**Edit company**.
 
 On web, select the company in Dashboard. Settings opens Profile, combining personal and permitted
 company sections with separate editors and permissions, beside Account and Data and privacy. Team and
-Activation have their own Settings items, and **Eligibility** → **Supporting** holds the company's supporting
-documents, where current access permits, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
-**Eligibility** (Company eligibility) has its own sidebar item, and **Documents** → **Published**
-opens Published to your members ([the Published page](publications.md#the-published-page)), each
+Activation have their own Settings items, and **Company files** in the sidebar holds the company's supporting
+documents for its administrators, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
+**Documents** → **Published**
+opens Published to your members ([the Published page](publications.md#the-published-page)),
 where current access permits.
 
 Share classes are listed and added only in [Ledger](register.md#bringing-in-existing-records).
 
-Next: [participants and eligibility](participants.md) ·
+Next: [investors and members](participants.md) ·
 [register of members](register.md) ·
 [how a company decision works](README.md#how-a-company-decision-works)

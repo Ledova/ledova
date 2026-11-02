@@ -10,7 +10,7 @@ from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 from shared.seeds.synthetic.story import COMPANY_SPECS, DEMO_COMPANY
 from users.models import UserAccount
 from users.models.user_account import AccountRole
-from users.services.company_eligibility_consumption import company_eligibility
+from users.services.participants import participant_requirements
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 
@@ -65,18 +65,11 @@ def _base_wallets(account):
 def _investor(account, wallets, active):
     holder = account.user_profile.user
     with use_operator(), _requester_principal(holder.pk):
-        admitted = {
-            key: outcome
-            for key, company in active.items()
-            if (outcome := company_eligibility(account, company)).is_eligible
-        }
-    sources = [outcome.request.source for outcome in admitted.values()]
-    source_history = [source.reviewed_at or source.submitted_at for source in sources]
+        admitted = frozenset(key for key, company in active.items() if not participant_requirements(account, company))
     verified = account.user_profile.verified_at
-    ready = max([verified, min(source_history)]) if source_history and verified else None
     return {
-        "companies": frozenset(admitted),
-        "ready_at": ready,
+        "companies": admitted,
+        "ready_at": verified if admitted else None,
     }
 
 
