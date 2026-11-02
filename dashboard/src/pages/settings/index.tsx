@@ -9,7 +9,6 @@ import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { settingsPage } from '@utils/destinations';
-import { CompanyRecordedDetails } from './CompanyRecordedDetails';
 import { PersonalProfile } from './PersonalProfile';
 import { CompanyProfile } from './CompanyProfile';
 import { AccountData, AccountSettings } from './AccountSettings';
@@ -69,7 +68,6 @@ function Profile() {
       ) : null}
       {showCompany && <CompanyProfile />}
       <PersonalProfile profile={profile} />
-      {!!context?.company?.memberUuids.length && <CompanyRecordedDetails />}
     </Page>
   );
 }

@@ -21,7 +21,6 @@ import { resetFiles } from '../../testSupport/documentFiles';
 import { destinationOf } from '../../components/notifications/NotificationsModal';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { VerificationScreen } from '../eligibility/VerificationScreen';
-import { SettingsScreen } from '../settings';
 import { DashboardScreen } from './DashboardScreen';
 import { InvitationScreen } from './InvitationScreen';
 import { MemberRecordsProvider } from './MemberRecordsProvider';
@@ -261,7 +260,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const certificatesPage = (
     <CertificatesScreen route={{ key: 'certificates', name: 'Certificates', params: { record, token } }} />
   );
-  const profile = <SettingsScreen />;
   ownRecord = {
     ...OWNED_RECORD,
     awards: [
@@ -326,11 +324,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   expect(await screen.findByText('This company no longer records you as a member.')).toBeTruthy();
   expect(screen.queryByText('Certificate records')).toBeNull();
-  await view.rerender(profile);
-  expect(await screen.findByLabelText(`Name: ${MEMBER_RECORD.name}`)).toBeTruthy();
-  expect(screen.getByText(`How ${MEMBER_RECORD.company.name} records you`)).toBeTruthy();
-  expect(screen.getByLabelText(`Residential address: ${MEMBER_RECORD.residentialAddress}`)).toBeTruthy();
-  expect(screen.getByText('Wrong? Contact the company.')).toBeTruthy();
   await view.rerender(certificatesPage);
   await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();

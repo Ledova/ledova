@@ -106,11 +106,8 @@ Awards remain in a separate card below the ownership panel. Member awards show t
 nonzero lifecycle quantities, with the full breakdown and terms under **Show award details**. Issued
 award shares are already included in the holding. The Dashboard contains the overview and read-only
 awards; requests, documents and record-management actions stay on their focused pages.
-Profile shows one read-only card, after Personal information, for a member of the selected company,
-titled with the company's name (**How Example Pty Ltd records you**) so it never reads as a second
-profile. It holds aligned Name and Residential address rows, with addresses in full and their
-original line breaks, and the line **Wrong? Contact the company.** It has no action: the member asks
-the company directly. Keep these company records distinct from personal Profile edits.
+Profile holds Personal information alone, with **Edit** to open its form; it shows no company's
+recorded particulars.
 Share history and certificate tracking belong in Documents.
 Section spacing is scoped to
 the frame; sign-up keeps its own presentation.

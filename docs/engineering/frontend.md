@@ -800,9 +800,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   unapplied draft. Apply writes `class`, `q` and `certificate_status` to the URL; Clear preserves the
   class and removes search and status. Company entries are filtered on the server before paging;
   own-member history is read fully. Preparation opens a focused main-page form.
-- Certificates and Profile's company-recorded card share an owner-bound member-records controller.
-  Profile shows the selected company's recorded name and residential address read-only, with no
-  action. Choosing a class on Certificates reads that class's own entries. Active web reads follow
+- Certificates reads the member's records through an owner-bound member-records controller.
+  Choosing a class on Certificates reads that class's own entries. Active web reads follow
   [automatic data freshness](#automatic-data-freshness); the web takes no member action through it.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,

@@ -133,11 +133,9 @@ it starts, until the page closes; in the app these checks carry the epoch they s
 stop when the page loses focus or the session changes. Pull to refresh rereads the claims and the
 payslips.
 Settings has the web's three pages for a member
-(`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, keeps the web's two cards.
-Personal information shows the person's details, each label above its value, and **Edit personal
-details** opens their form in the card. The web's read-only card, titled with the company's name
-(**How Example Pty Ltd records you**), shows the selected company's recorded name and residential
-address with **Wrong? Contact the company.** Account (`Account`) shows the identity check status from the profile (the app has no
+(`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, is the web's Personal
+information card: the person's details, each label above its value, and **Edit** opens their form
+in the card. Pulling down refreshes the profile. Account (`Account`) shows the identity check status from the profile (the app has no
 identity check flow, so there is no **Review identity check**) and Change password, then the app's
 biometric sign-in and App lock switches; Manage account adds member since and last login and
 **Accept an invitation** (the member Invitation page), and Rate the app and Share with friends end the

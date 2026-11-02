@@ -68,7 +68,7 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
           {!isEditing && (
             <FormActions>
               <Action
-                label="Edit personal details"
+                label="Edit"
                 disabled={blocked}
                 onPress={() => {
                   setFullName(userProfile.fullName || '');
