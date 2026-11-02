@@ -9,6 +9,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from web3 import Web3
 
 from companies.models import Company
+from companies.services.administration import require_company_administration
 from companies.services.authority_requests import _requester_principal
 from shared.db import atomic, use_operator
 from tokens.constants import REGISTER_INSTRUCTION_REVIEW_MAX_AGE
@@ -253,7 +254,12 @@ def submit_instruction(
         raise NotFound(SHARE_CLASS_NOT_FOUND)
     proposal = None
     try:
-        with register_command(actor, company_id, "register_instruction_submit") as (company, current_actor, _, _):
+        with register_command(actor, company_id, "register_instruction_submit") as (
+            company,
+            current_actor,
+            profile,
+            operator,
+        ):
             token = ShareToken.objects.filter(pk=token_id, company=company).first()
             if token is None or company.owner_id != current_actor.pk:
                 raise NotFound(SHARE_CLASS_NOT_FOUND)
@@ -271,6 +277,7 @@ def submit_instruction(
             )
             if existing:
                 return existing
+            require_company_administration(company, current_actor, profile, operator)
             _check_on_chain(token)
             _check_items(kind, normalized, token, values["approving_director"])
             evidence = RegisterEvidence.objects.select_for_update().filter(pk=authority_evidence).first()

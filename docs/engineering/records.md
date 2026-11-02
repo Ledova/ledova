@@ -697,13 +697,17 @@ withdrawals and fulfilments with their guards, deleting each fulfilment's stored
 The workflow is in [retained issue
 instructions](../business/register.md#retained-issue-instructions) and [settled-transfer
 instructions](../business/register.md#settled-transfer-instructions). `POST register-instructions/`
-submits the company owner's instruction as a bounded company command on the operator connection:
-`authority_evidence` names an `authority` upload (`POST register-evidence/`) the owner made for the
-company, of which the instruction keeps its own copy, upload snapshot and SHA-256, as register
-commands do. Its database guard refuses any other evidence, a `source_document`, another submitter
-than the company's owner and an insert outside that command, and the app role writes no
-instruction. Reads list those of companies whose register the caller may
-read, and `{uuid}/file/` serves the retained authority file. The schema leaves `items` free-form: an
+submits the company owner's instruction as a bounded company command on the operator connection.
+The owner must be a current administrator of the company (a current personal `admin` appointment,
+with a verified identity where the operator requires it, or the draft setup exception), as
+`require_company_administration` checks; an identical retry returns the retained instruction
+first. `authority_evidence` names an `authority` upload (`POST register-evidence/`) the owner made
+for the company, of which the instruction keeps its own copy, upload snapshot and SHA-256, as
+register commands do. Its database guard refuses any other evidence, a `source_document`, another
+submitter than the company's owner, an owner who is not a current administrator
+(`companies_locked_administration`) and an insert outside that command, and the app role writes no
+instruction. Reads list those of companies whose register the caller may read, and `{uuid}/file/`
+serves the retained authority file. The schema leaves `items` free-form: an
 `issue` item is `{"request": "<uuid>", "recipient": "0x…", "amount": "100"}` and a `transfer` item
 `{"settlement": "<uuid>", "seller": "0x…", "buyer": "0x…", "amount": "25"}`, from the waiting list
 (a waiting transfer's `source` is the settlement, its `wallets` the seller's then the buyer's, its

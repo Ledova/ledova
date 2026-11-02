@@ -552,9 +552,10 @@ award, allotment and transfer keeps the files the company uploaded with it.
 
 The two API-only flows that relied on a staff-verified company document, retained issue instructions
 and settled-transfer instructions, take the company's own uploaded evidence instead, as the owner
-chose ("Company's own evidence"): the company owner names an `authority` upload they made for the
-company, Ledova keeps its own copy with the upload's SHA-256, and platform staff still review each
-instruction before it applies. One still waiting with a company document can only be rejected; the
+chose ("Company's own evidence"): the company owner, while a current administrator of the company
+(with a verified identity where the operator requires it), names an `authority` upload they made for
+the company, Ledova keeps its own copy with the upload's SHA-256, and platform staff still review
+each instruction before it applies. One still waiting with a company document can only be rejected; the
 company submits it again with its own evidence.
 
 The migration deletes every company document and its file. An instruction, or an earlier staff-era

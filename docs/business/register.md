@@ -485,10 +485,12 @@ decision covers: settled market transfers, and direct issues approved before iss
 company-run. Under one [owner decision](../decisions.md#the-stored-register), both keep a staff
 review, for settled transfers until [#869](https://github.com/Ledova/ledova/issues/869):
 
-1. The company owner submits an instruction listing the exact items a named director approved, with
-   the authority reference, a reason and the authority document they uploaded for the company, of
-   which Ledova keeps a private copy ([decision](../decisions.md#company-documents-removed)). Neither
-   app has a form for it; it goes through Ledova's API
+1. The company owner, while a current administrator of the company (with a verified identity where
+   your instance requires it), submits an instruction listing the exact items a named director
+   approved, with the authority reference, a reason and the authority document they uploaded for the
+   company, of which Ledova keeps a private copy
+   ([decision](../decisions.md#company-documents-removed)). Neither app has a form for it; it goes
+   through Ledova's API
    ([retained instructions API](../engineering/records.md#retained-register-instructions-api)).
 2. Platform staff with permission to change register instructions open it under Register
    instructions in admin, inspect the retained document, the

@@ -4054,6 +4054,7 @@ BEGIN
             OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text
             OR NEW.status <> 'submitted' OR NEW.reviewed_by_id IS NOT NULL OR NEW.reviewed_at IS NOT NULL
             OR NEW.rejection_reason <> '' OR owner IS DISTINCT FROM NEW.submitted_by_id OR NEW.kind NOT IN ('issue', 'transfer')
+            OR NOT companies_locked_administration(NEW.company_id)
             OR NOT EXISTS (SELECT 1 FROM tokens_sharetoken t WHERE t.uuid = NEW.token_id
                 AND t.company_id = NEW.company_id)
             OR length(btrim(NEW.approving_director)) = 0
