@@ -13,7 +13,6 @@ from companies.database_guards import install as install_companies
 from shared.db import atomic
 from shared.db.policy_sql import grant_reachable_tables
 from shared.db.policy_sql import install as install_policies
-from shareholders.database_guards import install as install_publications
 from tokens import (
     database_allotment_completion,
     database_award_agreement_guards,
@@ -177,7 +176,6 @@ def install(apps, schema_editor):
                 install_wallets,
                 install_tokens,
                 install_whitelist,
-                install_publications,
                 *FAMILY_GUARDS,
             ):
                 installer(apps, schema_editor)
