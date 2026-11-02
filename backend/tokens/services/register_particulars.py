@@ -211,6 +211,13 @@ def apply_profile(actor, profile, association):
         return change
 
 
+def lock_followed_companies(actor):
+    linked = current_associations(user=actor).order_by("company_id").values_list("company_id", flat=True)
+    for company_id in linked.distinct():
+        with company_operation(actor, company_id, PROFILE):
+            list(Company.objects.select_for_update().filter(pk=company_id).values_list("pk", flat=True))
+
+
 def follow_profile(actor, profile):
     for association in current_associations(user=actor).order_by("company_id", "uuid"):
         apply_profile(actor, profile, association)

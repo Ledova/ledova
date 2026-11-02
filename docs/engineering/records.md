@@ -444,8 +444,11 @@ A member with a current account link provides their own particulars instead
 [profile.py](../../backend/users/services/profile.py), which marks its transaction
 ([profile saves](security.md#requests-and-jobs)). When it gives `full_name` or `residential_address`,
 `follow_profile` in [register_particulars.py](../../backend/tokens/services/register_particulars.py)
-then brings every register the caller currently links up to the profile in the same transaction; accepting an invitation does the same for the new link
-through `apply_profile`. For each link it takes the company lock, keeps any register value whose
+then brings every register the caller currently links up to the profile in the same transaction;
+accepting an invitation does the same for the new link through `apply_profile`. A profile save locks
+those companies, in company order, before `narrow()` locks the profile row, the
+company-before-person order that register commands and acceptance use, so a save waits for them
+rather than deadlocking. For each link it takes the company lock, keeps any register value whose
 profile field is empty, records nothing when nothing differs, and refuses an address over 1,000
 characters with 400. Otherwise it records one `applied` change dated today (UTC) with
 `member_association` set, no `preparing_appointment`, no reason or evidence, and the member as
