@@ -3,7 +3,6 @@ import {
   AUTH_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   INVESTOR_CLASSIFICATION_ENDPOINTS as CLAIMS,
-  PUBLICATION_NOTICE,
   USER_DOCUMENT_ENDPOINTS as DOCUMENTS,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
@@ -131,7 +130,7 @@ const picked = (name: string, mimeType: string) => async () => {
   return { canceled: false as const, assets: [{ uri: `${PICKED}${name}`, name, mimeType, size: 4, lastModified: 0 }] };
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, refuses cached records after current read loss, routes each notification to its page and an old certificate notice nowhere, saves an eligibility claim only with accepted evidence in the session that picked it, whose copy is removed after saving and on a session change, and uploads a payslip only in the session that picked it, removing its copy, then stops checking its extraction after a session change', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, refuses cached records after current read loss, routes each notification to its page and an old certificate or publication notice nowhere, saves an eligibility claim only with accepted evidence in the session that picked it, whose copy is removed after saving and on a session change, and uploads a payslip only in the session that picked it, removing its copy, then stops checking its extraction after a session change', async () => {
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
@@ -336,9 +335,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   });
   await waitFor(() => expect(screen.queryByText('Certificate records')).toBeNull());
   expect(screen.queryByText('Transfer · ORD · entry 2')).toBeNull();
-  const notice = { type: PUBLICATION_NOTICE };
-  expect(destinationOf(notice)).toEqual({ screen: 'Notices' });
-  expect(destinationOf(notice)).not.toBe(destinationOf(notice));
+  expect(destinationOf({ type: 'publication', event: 'published', kind: 'meeting_notice' })).toBeUndefined();
   expect(destinationOf({ type: 'certificate', event: 'ready', company: MEMBER_RECORD.company.uuid })).toBeUndefined();
   const award = 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5';
   const vested = { type: 'award', event: 'vested', record: MEMBER_RECORD.uuid, award };

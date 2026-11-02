@@ -26,7 +26,8 @@ stay here as history and are marked where they appear.
 | [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                                                                                            |
 | [Register CSV download removed](#register-csv-download-removed)                                                 | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
 | [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                                                                                            |
-| [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion not planned (#870)                                                                                              |
+| [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Superseded 2 November 2026; publications removed (#1489)                                                                           |
+| [Shareholder publications removed](#shareholder-publications-removed)                                           | 2 November 2026                                | Current; #1489                                                                                                                     |
 | [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                                                                                              |
 | [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                                                                                            |
 | [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October; web wallet and chain controls removed 31 October                   |
@@ -648,6 +649,9 @@ redeploy.
 
 ## Shareholder publications
 
+_Superseded on 2 November 2026: shareholder publications were
+[removed](#shareholder-publications-removed). The rules below are kept as history._
+
 Platform staff publish, enter represented ballots and record payments on the
 company's written instruction. The proposed company-run expansion under
 [#870](https://github.com/Ledova/ledova/issues/870) was [closed as not planned](#registry-focus-and-cancelled-expansion-tickets).
@@ -711,8 +715,6 @@ proxies the issue's non-goals exclude.
   caller's rights and the member's own policy would narrow what it could read.
   The guarantee that a member casts only their own ballot stays in the database,
   and members, staff and the closing job share one write path and one lock.
-  [Shareholder publications](business/publications.md#resolutions)
-  describes the mechanism.
 
 - **Dividends round down to the cent for each holder**, and what rounding leaves
   over is recorded as undistributed rather than given to anyone, so the company
@@ -749,8 +751,36 @@ proxies the issue's non-goals exclude.
   votes and dividends are waiting on it. A person holding through two register
   members is counted as waiting while either holding is.
 
-[Shareholder publications](engineering/records.md#publications) owns the
-mechanism and [publishing to members](business/publications.md#publishing-on-the-companys-instruction) the procedure.
+Until their removal, [publication records](https://github.com/Ledova/ledova/blob/2bc869be2df7fe348a0dccf078ad40e5a366dd2d/docs/engineering/records.md#publications)
+owned the mechanism and
+[publishing to members](https://github.com/Ledova/ledova/blob/2bc869be2df7fe348a0dccf078ad40e5a366dd2d/docs/business/publications.md#publishing-on-the-companys-instruction)
+the procedure.
+
+## Shareholder publications removed
+
+**Owner decision, 2 November 2026**, given in the session and tracked in
+[#1489](https://github.com/Ledova/ledova/issues/1489). The owner reviewed members' Notices on the
+web and in the app and asked to see the page with notices. Nothing could be published to members in
+the current product:
+
+- **Publishing needed a share class on chain**, deployed or paused. Every class is register-only
+  since the [31 October decision](#wallets-removed-from-the-web-app) took wallets and the class's
+  on-chain features out of the web app, and publishing to register-only classes, part of
+  [#870](https://github.com/Ledova/ledova/issues/870), was
+  [closed as not planned](#registry-focus-and-cancelled-expansion-tickets).
+- **Publishing was a staff task** in Django admin, done on the company's written instruction, which
+  put Ledova between the company and its members, the pattern challenged in
+  [#1476](https://github.com/Ledova/ledova/issues/1476).
+
+Asked what should happen, the owner chose **"Remove Notices (Recommended)"**. The company gives
+notices to its members and pays dividends itself; Ledova keeps the register. Members' Notices on the
+web and in the app, the company's Published page, staff publishing, represented ballots and payment
+records in Django admin, the publications API, the company pack's publications folder and the
+backend behind them were removed, and the earlier
+[shareholder publications](#shareholder-publications) decision is kept above as history.
+Publication notices already in members' inboxes stay and open nothing. The removal's migration
+refuses a database that still holds a publication, so no retained publication is deleted before the
+owner decides what happens to it.
 
 ## Splits and consolidations
 
@@ -798,7 +828,9 @@ for reporting and portability, recorded in
   ([what never leaves](business/member-records.md#what-never-leaves-and-why);
   [#1139](https://github.com/Ledova/ledova/issues/1139#issuecomment-6262477255)).
 - **The company sees resolution tallies and read counts**, never how a member
-  voted or who opened what, while every vote's record still verifies.
+  voted or who opened what, while every vote's record still verifies. The pack's
+  publications, with their tallies, payment records and read counts, went when
+  publications were [removed](#shareholder-publications-removed) on 2 November 2026.
 - **The pack explains how control of the contracts would be handed over and
   does not hand it over.** The README names each contract, its current owner
   and the exact calls.
@@ -1939,7 +1971,8 @@ agreed the screens through [mockups](https://claude.ai/artifact/CHeXcDVycP9csCT3
   went with [members' certificate requests](#member-certificate-requests-removed) on 2 November 2026.
 - **Documents** gathers every company's certificates and notices, filtered by company. **Account**
   holds the profile, the details each company records (one change can go to every company),
-  invitations, app lock, notifications and appearance.
+  invitations, app lock, notifications and appearance. Notices went with
+  [shareholder publications](#shareholder-publications-removed) on 2 November 2026.
 - **Removed from mobile:** company administration, registration and activation, the deferred
   investing screens (wallets, buying and sending crypto, trading, activity, Directory, Applications
   and eligibility), identity verification, Help and the QR scanner, with their code. Mobile signup creates individual accounts. A company account
@@ -1971,6 +2004,7 @@ shareholder sees, on both: a selected company with the web's ownership overview,
 Profile for that company, and a company switcher. The top bar shows only the Ledova logo ("I dont
 think we need to display the name of the company … keep the logo Ledova"). The owner also put
 Notices under Documents on both, and kept details changes to one company at a time, as on the web.
+Notices were [removed](#shareholder-publications-removed) from both on 2 November 2026.
 
 **The phone top bar, also decided on 31 October 2026.** The owner then dropped the Ledova branding
 from the phone top bar on web and app ("I don't think we need to display the "Ledova" branding in the
@@ -2069,6 +2103,8 @@ company authority.
   selecting the owned company explicitly and showing stored documents and
   recorded tallies without member voting controls. (Owner decision, 26 September
   2026, on [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
+  Notices and the company's list were
+  [removed](#shareholder-publications-removed) on 2 November 2026.
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
 - **Applications keep their names.** Asked how an application should keep

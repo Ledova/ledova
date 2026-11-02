@@ -44,7 +44,7 @@ person, actions, any delegation (**May delegate all of these** when it matches t
 or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
 acceptance or deadline and the appointment's expiry. Company documents (Eligibility → Supporting) has its own view, with Category and File in the inline upload.
-The remaining publication and eligibility collections use this workspace frame, with
+The remaining eligibility collections use this workspace frame, with
 their creation and record actions in the same footer. Their short named/status summaries keep
 secondary facts and copyable technical references on demand.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
@@ -164,8 +164,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   Certificates, Member access and Team); on narrower screens it sits beneath the row's
   facts, still at the right edge. The Account and Data and privacy rows, Verification's claim and
   evidence rows and an action that stands on its own follow the same edge on web and in the app: Try
-  again after a failed read, **Retry original member action**, and in the app Notices' **Open** and the
-  Invitation page's and empty Dashboard's actions. Load more and the app's voting choices keep their place.
+  again after a failed read, **Retry original member action**, and in the app the Invitation page's
+  and empty Dashboard's actions. Load more keeps its place.
   Representative authority requests are `LinkRow`s that open each request's own page.
 - Optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished input
   survives; the app's kit has the same `ShowMore`, a text toggle with its expanded state, used for
@@ -183,8 +183,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   in the card. The theme switch is the icon beside Sign out on web and in the app, not a row. A choice
   saved with a form stays a checkbox.
 - `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event. Each
-  status family has its own tone map; shared resolution-result tones live in
-  `dashboard/src/components/statusTones.ts`. A status always names what it describes, and where a
+  status family has its own tone map. A status always names what it describes, and where a
   column header is hidden at phone width, the row carries the label.
 
 On workflow collections, show the saved records first, with class context once where needed.
@@ -402,8 +401,8 @@ an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
 Shareholders uses the same web pattern for **Employee scheme** and **Member access**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Published**, **Inspection copies** and **Company pack** where permitted, and **Notices** for a member of the
-selected company, with its label opening Certificates at `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
+**Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
+`/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
 **Team** and **Activation** where permitted, without an extra overview page. A group with only one
 permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
@@ -443,8 +442,8 @@ page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. Dashboard is one
 company-centred explorer for all relationships, without a separate Your shares navigation mode.
 Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme shows as Employee
-scheme, Company eligibility and Verification as Eligibility, Company documents as Supporting and
-Published to your members as Published, each with the full name as the link's `title`. `DESTINATION_PARENTS`
+scheme, Company eligibility and Verification as Eligibility, and Company documents as Supporting,
+each with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
 link in the title row for a contextual task: Back to Team on Representative authority, Back to
@@ -783,8 +782,8 @@ server:
   "1–25 of 1,240 requests", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it
   is loading.
-- **Feeds:** `LoadMore` ends a feed with "Load more notices" (or
-  notifications and so on), which names its work while it runs. When a later page fails, the shown
+- **Feeds:** `LoadMore` ends a feed with "Load more notifications" (or
+  entries and so on), which names its work while it runs. When a later page fails, the shown
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
 - **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
 
@@ -797,9 +796,8 @@ popover, with the same search timing and pager. Search matches every word, ignor
 (`searchRows` in `packages/shared/src/utils/search.ts`); selecting a class applies it immediately and
 closes the panel.
 
-The feeds are Notices, the notification bell, Published to
-your members, a class's register entries and each class's former shareholders, shown 25 at a time
-from the register already read. A list bounded by one person, such as their own documents or
+The feeds are the notification bell, a class's register entries and each class's former
+shareholders, shown 25 at a time from the register already read. A list bounded by one person, such as their own documents or
 classification claims, reads every page. Other lists still read every page
 ([frontend](frontend.md#lists-figures-and-currency)).
 
@@ -832,8 +830,8 @@ failed, such as "Imports could not be loaded." or "The register or your appointm
 not be loaded.", and adds a second sentence only for what the block can't otherwise say: a
 consequence, such as "The list is incomplete.", or a likely cause, such as "It may be unavailable
 to this account." Try again is described by that sentence, so a screen reader says which read it
-retries, and it stays disabled while the read runs again. Shared copy passes through unchanged,
-such as Notices' "What has been published to you could not be loaded." A page that waits for the
+retries, and it stays disabled while the read runs again. Shared copy passes through unchanged. A
+page that waits for the
 signed-in account shows `AccountCheck` (`dashboard/src/components/AccountCheck.tsx`): "Loading your
 account…" while preferences load or refresh, then "Your account could not be loaded." with Try
 again.
@@ -849,13 +847,13 @@ keep a reason of their own. While a read fails they show the block, with any suc
 such as "Your award records could not be confirmed. Refresh before continuing.", and no empty line.
 
 An empty list says it has none yet in one muted sentence, such as "No requests yet." or "No
-notices yet.", sometimes followed by where to add or find them, and an empty section keeps at
+register entries yet.", sometimes followed by where to add or find them, and an empty section keeps at
 most one action ([signed-in page conventions](#signed-in-page-conventions)). An
 empty class import instead invites bringing in the company's existing records. A list narrowed by
 a search or filter says what matched instead, such as "No shareholders match your search." or "No
 requests match."
 
-A class's awards, imports and non-paid transfers, and notices, take their empty sentence from
+A class's awards, imports and non-paid transfers take their empty sentence from
 shared copy in `packages/shared/src/constants/business/`. On the web, a section with no corrections,
 register entries or particulars changes is hidden instead. Other empty sentences are each client's
 own. A sentence that reports a state rather than an empty list keeps its own words, such as "No

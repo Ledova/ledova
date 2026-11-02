@@ -30,7 +30,7 @@ modules re-exported by `settings/__init__.py`.
 | `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens, notifications, classification sources, and company eligibility requests and decisions                                                                                     |
 | `companies`      | `Company`, its activation, `CompanyDocument`, representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                                      |
 | `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, member access and register outputs, and the trading models |
-| `shareholders`   | `Publication`, the `PublicationRecipient` roll frozen at a record date with each entitlement, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close and of a distribution's payment records                                                                     |
+| `shareholders`   | No models since shareholder publications were [removed](../decisions.md#shareholder-publications-removed); the app keeps the migrations that created and dropped them ([migrations](#migrations))                                                                                                           |
 | `whitelist`      | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands, wallet nominations and company wallet instructions, and the sync from each company's registry                                                                                                                     |
 | `wallets`        | `Wallet`, `Holding`, `Transaction`, balance sync and transfer confirmation                                                                                                                                                                                                                                  |
 | `assets`         | `Asset`, `AssetChainDeployment`, `AssetSnapshot`, `ExchangeRate`, price sync, asset identity                                                                                                                                                                                                                |
@@ -163,8 +163,7 @@ therefore revoke a verification; no customer path can grant one.
 
 Retained register instructions consume it through `verified_document_snapshot`, which recomputes
 the fingerprint from the current file: preparation locks the document and keeps a private copy,
-snapshot and fingerprint, and staff review rechecks the document and copy against them. Publishing
-to members needs a verified document of the class's company and records its fingerprint.
+snapshot and fingerprint, and staff review rechecks the document and copy against them.
 
 ## External API consumers
 
@@ -182,8 +181,8 @@ These route groups have no bundled client and are kept deliberately:
 - Since [#1452](https://github.com/Ledova/ledova/issues/1452), the wallet routes (`/api/wallets/`,
   `/api/transactions/`, `/api/assets/`, the on-ramp's `/api/fiat-purchases/` and the wallet
   nominations and instructions), the share-class chain decisions with the retained issuance and
-  capital-increase reads, the register's openings, wallet links and reconciliations with their
-  acknowledgements, and the publication summary. The
+  capital-increase reads, and the register's openings, wallet links and reconciliations with their
+  acknowledgements. The
   [31 October decision](../decisions.md#wallets-removed-from-the-web-app) keeps them, with their
   records, so the features can return.
 
@@ -207,6 +206,19 @@ secondary-market decision from at least one company (`secondary_company_ids`).
   transaction commits, as `tokens/0005_remove_member_certificate_requests` does. A callable an
   applied migration imports stays importable after its model goes, such as the path function in
   `tokens/models/member_certificate.py` that `tokens/0001_initial` names.
+- A migration that removes retained records the owner has not decided about refuses while any exist,
+  and changes nothing: `shareholders/0002_remove_publications` stops with a message naming the
+  publications, roll rows, events and read records it found, and otherwise drops their tables,
+  guard triggers, functions and policies. It counts with `row_security` off, so a migrating role
+  the policies would still filter stops with PostgreSQL's row-level security error instead of
+  counting no rows. No model references a publication's stored files any more, so the
+  [orphan sweep](../operations/jobs-and-storage.md#previewing-the-upload-sweep) never deletes files
+  under `companies/<uuid>/publications/`, and a database the migration refused keeps them while
+  later code runs.
+- An app whose models are gone stays installed while an applied migration depends on it:
+  `shared/0002_database_guards` depends on `shareholders/0001_initial`, so `shareholders` keeps its
+  migrations and the two path functions that migration names, in `shareholders/models/event.py`
+  and `shareholders/models/publication.py`.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.
@@ -592,7 +604,7 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | Kind (`data.type`) | Sent by                                                                                            | The bell opens |
 | ------------------ | -------------------------------------------------------------------------------------------------- | -------------- |
 | `company`          | Retained history only: the sender is retired, and no activation or company status change sends one | Activation     |
-| `publication`      | `shareholders/services/publications.py`, when a publication is announced to its roll               | Notices        |
+| `publication`      | Retained history only: the sender went with shareholder publications                               | Nothing        |
 | `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Nothing        |
 | `identity`         | `users/services/identity.py`, when the identity check's result changes                             | Profile        |
 | `certificate`      | Retained history only: the sender went with members' certificate requests                          | Nothing        |
@@ -603,10 +615,10 @@ A notice of any other kind, including identity notices sent before they carried 
 `particulars` notices sent before members' particulars requests were removed, stays where it is.
 The two member kinds go only to the member's current association and name the company, with the
 class for holding notices, but no quantities. Each carries `record` (the association), with `award`
-for a vesting and `token` for an issue. The mobile app opens publication notices and these two
-kinds, from its inbox or a tapped push ([mobile](mobile.md)); a `certificate` notice sent before
-members' certificate requests were removed stays in the inbox and opens nothing, on the web and in
-the app. Push registration and its settings
+for a vesting and `token` for an issue. The mobile app opens these two kinds, from its inbox or a
+tapped push ([mobile](mobile.md)). A `certificate` notice sent before members' certificate requests
+were removed, and a `publication` notice sent before shareholder publications were removed, stays in
+the inbox and opens nothing, on the web and in the app. Push registration and its settings
 are in [configuration](../operations/configuration.md#push-notifications).
 
 Next: [security model](security.md), [records engine](records.md), [testing](testing.md) and

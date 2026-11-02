@@ -54,22 +54,6 @@ SYSTEM_WIDE = {
     "class with an applied opening, that is one opened from the chain, with a fresh canonical chain snapshot and "
     "records the result; a register an import opened is not compared. It is the deployment's statutory register "
     "rather than any owner's data; it writes only reconciliation records.",
-    "shareholders.tasks.publications.purge_publications_past_the_clock": "Deletes publications, their frozen "
-    "rolls, their events (ballots, closes and payment records) and their read records seven years after the "
-    "publication, on the same clock and the same settings constant the register's own outputs use. It belongs to "
-    "no tenant: it sweeps every company's publications on the operator connection, and it is the only deletion "
-    "anyone may perform on those tables, because the app role's policy refuses all three write commands on the "
-    "publications, rolls and events and the app role has no grant on the read records at all.",
-    "shareholders.tasks.publications.tell_the_members": "Announces one publication to every member of the frozen "
-    "roll who has an account, by deferring one ordinary notification each. It belongs to no tenant: it reads a "
-    "whole company's roll on the operator connection, which no member and no issuer may do, and the members it "
-    "writes to are the company's rather than its own. It carries no holding and no document: the notice names "
-    "the publication, and the member's own route re-resolves and audits the read before anything is served.",
-    "shareholders.tasks.resolutions.close_resolutions_past_their_window": "Closes every resolution whose voting "
-    "window has passed and that has no close yet, writing the one close event whose tally the database computes "
-    "from the ballots on the chain. It belongs to no tenant: it sweeps every company's resolutions on the operator "
-    "connection, because the app role's policy refuses every write to the event chain. Two runs at once close each "
-    "resolution once: the trigger serialises them on the publication row and the second finds the close.",
     "tokens.tasks.former_holders.purge_former_members_past_the_clock": "Deletes former-member records "
     "seven years after the date they ceased, imported former members seven years after their date ceased, "
     "member particulars seven years after the member last held shares, and register export records seven "
@@ -177,11 +161,6 @@ OPERATOR_BOUNDARIES = {
     "the operator connection too.",
     "tokens.services.deployment_journal.mark_projected": "Commits the attributed token projection marker with "
     "one immutable swap approval disposition and its exact recovery job.",
-    "shareholders.services.resolutions.cast_ballot": "Records one member's ballot. The resolution and the "
-    "caller's own roll row are resolved first on the calling connection, under the policies, and a caller with "
-    "no roll row answers the same 404 as a resolution that does not exist. Only the insert runs on the operator "
-    "connection, because the app role may write nothing to the event chain, and the trigger refuses a member's "
-    "ballot whose actor is not the account that roll row names.",
 }
 
 

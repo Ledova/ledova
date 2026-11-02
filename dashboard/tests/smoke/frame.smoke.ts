@@ -286,11 +286,7 @@ async function openTheSidebar(page: Page, role: Role) {
       '/documents/certificates?company=company',
     );
     const documents = sidebar.getByRole('link', { name: 'Documents', exact: true }).locator('../..');
-    await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
-    await expect(documents.getByRole('link', { name: 'Notices', exact: true })).toHaveAttribute(
-      'href',
-      '/publications?company=company',
-    );
+    await expect(documents.getByRole('button', { name: 'Expand Documents navigation' })).toHaveCount(0);
     await expect(sidebar.getByRole('link', { name: 'Eligibility', exact: true })).toHaveAttribute(
       'href',
       '/investor-eligibility?company=company',
