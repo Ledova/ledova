@@ -27,7 +27,7 @@ export function PrivacyPolicy() {
     <>
       <PageHeader
         title="Privacy policy"
-        lead="For the ledova.io preview and the public source code · Updated 2&nbsp;November&nbsp;2026"
+        lead="For the ledova.io preview and the public source code · Updated 3&nbsp;November&nbsp;2026"
       />
       <section className="border-t border-border-subtle">
         <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
@@ -97,9 +97,8 @@ export function PrivacyPolicy() {
                 registrations can&apos;t be completed yet; use a demo account instead.
               </li>
               <li>
-                Apart from email you send us, no other service receives your information. Identity checks, company
-                register lookups and payment services are switched off, push notifications aren&apos;t set up, and there
-                is no error tracking.
+                Apart from email you send us, no other service receives your information. Identity checks and payment
+                services are switched off, push notifications aren&apos;t set up, and there is no error tracking.
               </li>
             </ul>
           </Section>
