@@ -156,6 +156,14 @@ ends, by revocation or because the account is deleted or loses its verified emai
 keeps the last particulars and the company changes them again with an ordinary [particulars
 change](register.md#changing-a-members-particulars).
 
+The register follows a Profile save, not every change to the Profile. Identity verification that fills
+an empty Profile name or address reaches the register only at the member's next Profile save. A link
+that lapses because the account's email is no longer verified, and later becomes current again, keeps
+any particulars change the company made meanwhile until the member next saves their Profile. Like a
+company's change, a member's change makes the company's pending grants, allotments and transfers that
+captured their earlier particulars stale (`member_particulars_changed`), so the company rejects them
+and prepares new ones.
+
 Members already linked when this was installed were brought up to their Profile once: each register
 whose name or address differed from the member's Profile recorded one change of the same kind, dated
 that day, using only the Profile fields that were filled in.

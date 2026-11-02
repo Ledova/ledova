@@ -215,26 +215,27 @@ function OwnShareholder({
                 <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
               </Rows>
             ))}
-            {recorded?.followsProfile ? (
-              <p className="text-sm text-text-muted">{REGISTER_PARTICULARS_COPY.FOLLOWS_PROFILE}</p>
-            ) : (
-              edit &&
-              (holdings.length > 0 || recorded?.onRegister === false) && (
-                <PageLink
-                  to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
-                  label={REGISTER_PARTICULARS_COPY.PREPARE}
-                  onClick={(event) => {
-                    try {
-                      guardEdit();
-                      setNavigationError(false);
-                    } catch {
-                      event.preventDefault();
-                      setNavigationError(true);
-                    }
-                  }}
-                />
-              )
-            )}
+            {settled(data.particulars) &&
+              (recorded?.followsProfile ? (
+                <p className="text-sm text-text-muted">{REGISTER_PARTICULARS_COPY.FOLLOWS_PROFILE}</p>
+              ) : (
+                edit &&
+                (holdings.length > 0 || recorded?.onRegister === false) && (
+                  <PageLink
+                    to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
+                    label={REGISTER_PARTICULARS_COPY.PREPARE}
+                    onClick={(event) => {
+                      try {
+                        guardEdit();
+                        setNavigationError(false);
+                      } catch {
+                        event.preventDefault();
+                        setNavigationError(true);
+                      }
+                    }}
+                  />
+                )
+              ))}
             {navigationError && (
               <Failure>Refresh the register and your current appointment before changing particulars.</Failure>
             )}

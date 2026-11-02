@@ -195,7 +195,7 @@ def particulars_changes(records) -> list:
             "provided_by": "member" if change.member_association_id else _provided_by(change),
             "decisions": _decisions(change),
             "status": change.status,
-            "reviewer": _name(change.reviewed_by),
+            "reviewer": None if change.member_association_id else _name(change.reviewed_by),
             "reviewed_at": change.reviewed_at,
             "rejection_reason": change.rejection_reason,
         }

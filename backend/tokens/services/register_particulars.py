@@ -1,6 +1,8 @@
 from uuid import UUID
 
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
@@ -211,11 +213,12 @@ def apply_profile(actor, profile, association):
         return change
 
 
-def lock_followed_companies(actor):
+def lock_profile_save(actor):
     linked = current_associations(user=actor).order_by("company_id").values_list("company_id", flat=True)
     for company_id in linked.distinct():
         with company_operation(actor, company_id, PROFILE):
             list(Company.objects.select_for_update().filter(pk=company_id).values_list("pk", flat=True))
+    get_object_or_404(get_user_model().objects.select_for_update(), pk=actor.pk, is_active=True)
 
 
 def follow_profile(actor, profile):

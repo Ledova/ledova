@@ -445,15 +445,18 @@ A member with a current account link provides their own particulars instead
 ([profile saves](security.md#requests-and-jobs)). When it gives `full_name` or `residential_address`,
 `follow_profile` in [register_particulars.py](../../backend/tokens/services/register_particulars.py)
 then brings every register the caller currently links up to the profile in the same transaction;
-accepting an invitation does the same for the new link through `apply_profile`. A profile save locks
-those companies, in company order, before `narrow()` locks the profile row, the
-company-before-person order that register commands and acceptance use, so a save waits for them
-rather than deadlocking. For each link it takes the company lock, keeps any register value whose
-profile field is empty, records nothing when nothing differs, and refuses an address over 1,000
-characters with 400. Otherwise it records one `applied` change dated today (UTC) with
+accepting an invitation does the same for the new link through `apply_profile`. A profile save first
+locks those companies, in company order, and then the person's user row, before `narrow()` locks the
+profile row: the company, person, profile order that register commands and acceptance use, so a save
+waits for them rather than deadlocking, and one that waited behind an account deletion finds the
+person inactive and answers 404. For each link it takes the company lock, keeps any register value
+whose profile field is empty, records nothing when nothing differs, and refuses an address over
+1,000 characters with 400. Otherwise it records one `applied` change dated today (UTC) with
 `member_association` set, no `preparing_appointment`, no reason or evidence, and the member as
 `submitted_by` and `reviewed_by`, then makes it the source of the member's particulars. The change
-reads `provided_by: member`, and a check constraint keeps exactly one of `preparing_appointment` and
+reads `provided_by: member`, and company readers see neither the person's account number nor their
+current profile name in it: the API returns its `submittedBy` and `reviewedBy` as null, and the
+company pack its `reviewer`. A check constraint keeps exactly one of `preparing_appointment` and
 `member_association` on every change. Acceptance runs its association's commit check
 (`SET CONSTRAINTS tokens_member_association_commit IMMEDIATE`) before the register follows the
 profile, because that check compares the invitation's snapshot with the particulars the profile then

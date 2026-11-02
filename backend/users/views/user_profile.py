@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from shared.db import atomic
 from shared.views.base import AuthenticatedGenericViewSet
-from tokens.services.register_particulars import lock_followed_companies
+from tokens.services.register_particulars import lock_profile_save
 from users.models.user_profile import UserProfile
 from users.serializers import UserProfileSerializer
 from users.serializers.account_actions import (
@@ -28,8 +28,9 @@ class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, Authent
     operator_actions_because = (
         "A profile save that gives a full name or residential address brings the register particulars of every "
         "company that currently links this person as a member up to date in the same transaction, and registers "
-        "are written only on the operator connection. Those companies are locked first, as register commands lock "
-        "a company before its people, then narrow() binds the save to the signed-in person's own "
+        "are written only on the operator connection. Those companies and then this person's account are locked "
+        "first, as register commands lock a company and then its actor, and a save that waited behind an account "
+        "deletion stops there; then narrow() binds the save to the signed-in person's own "
         "locked profile row, and the save marks its transaction so the profile trigger still refuses provider "
         "identity results and any other person's row; the register guards accept only this person's own current "
         "links and their profile's values."
@@ -47,7 +48,7 @@ class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, Authent
 
     @atomic()
     def partial_update(self, request, *args, **kwargs):
-        lock_followed_companies(request.user)
+        lock_profile_save(request.user)
         return super().partial_update(request, *args, **kwargs)
 
     @extend_schema(responses=DeletedAccountResponseSerializer)

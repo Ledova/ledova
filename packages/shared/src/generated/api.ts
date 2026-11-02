@@ -6675,7 +6675,7 @@ export interface ApiComponents {
       reviewedBy: number | null;
       stage: string;
       status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
-      submittedBy: number;
+      submittedBy: number | null;
       supportingEvidence: string | null;
       uuid: string;
     };

@@ -15667,6 +15667,7 @@
             "readOnly": true
           },
           "submittedBy": {
+            "nullable": true,
             "readOnly": true,
             "type": "integer"
           },
