@@ -441,7 +441,9 @@ account, standing Active (or Pending Verification while the operator does not re
 identity check), a verified identity when it does, and an active company
 ([rules](../business/participants.md#account-standing)). Since
 [#1491](https://github.com/Ledova/ledova/issues/1491) no classification source, document or company
-eligibility decision is involved, and orders, submissions and swaps no longer record one.
+eligibility decision is involved, and orders, submissions and swaps no longer record one. A company
+reading a nomination, a wallet instruction or an issue to a nominated wallet sees any participant
+lapse as `participant_not_current`; only the participant's own nomination preview names the reason.
 
 The market list and the trading events stream are bounded to the companies where one of the
 caller's current investing accounts has a wallet with a live company wallet approval. Inaccessible

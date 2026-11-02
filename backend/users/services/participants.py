@@ -3,6 +3,10 @@ from operators.models import Operator
 from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_PENDING
 from users.models.user_account import AccountRole
 
+PRIVATE_REASONS = frozenset(
+    {"participant_account_inactive", "participant_investor_account_required", "participant_identity_required"}
+)
+
 
 def participant_requirements(account, company):
     operator = Operator.configured()
@@ -23,3 +27,8 @@ def participant_requirements(account, company):
     if company.status != CompanyStatus.ACTIVE:
         problems.append("company_inactive")
     return problems
+
+
+def requirements_shown_to_the_company(requirements):
+    shown = [code for code in requirements if code not in PRIVATE_REASONS]
+    return [*shown, "participant_not_current"] if len(shown) < len(requirements) else shown

@@ -128,8 +128,8 @@ the company directly, and submitting it confirms that the address is shared with
 A nomination needs a current participant ([account standing](#account-standing)) and an active
 company; no eligibility decision is involved. One nomination selects one wallet, with no set
 maximum, withdrawal or replacement policy. The company sees only the nominated wallet's address and
-chain, when possession was proved and readiness; your other wallets, account and identity details,
-balances and the proof stay private.
+chain, when possession was proved and readiness, which says whether you are still current but
+never why; your other wallets, account and identity details, balances and the proof stay private.
 
 ### Company wallet instructions
 

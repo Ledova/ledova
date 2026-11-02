@@ -85,7 +85,8 @@ The backend suite covers:
 - Company A cannot read or change company B through the API or the database.
 - A user without the necessary appointment cannot approve, issue or allot, and a staff account
   without the company change permission cannot change a company's status.
-- A member without a full name is never named by their email address.
+- A member without a full name is never named by their email address, and a company sees only that
+  its wallet nominee is no longer current, never why.
 - Issued shares equal holdings, and a repeated request produces one issue.
 - One fake-scanner test refuses infected or unscannable uploads. The ordinary suite stubs the
   scanner and cache and needs no chain node or scanner service.

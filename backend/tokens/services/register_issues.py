@@ -634,9 +634,7 @@ def permanent_source_loss(proposal, unmet):
         code in unmet
         for code in (
             "company_source_expired",
-            "participant_account_inactive",
-            "participant_investor_account_required",
-            "participant_identity_required",
+            "participant_not_current",
             "company_inactive",
             "wallet_proof_required",
             "wallet_approval_lapsed",

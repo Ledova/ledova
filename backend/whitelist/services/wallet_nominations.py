@@ -11,7 +11,7 @@ from rest_framework.exceptions import ValidationError
 from companies.models import Company
 from companies.services.authority_requests import _requester_principal
 from shared.db import atomic, current_alias, use_operator
-from users.services.participants import participant_requirements
+from users.services.participants import participant_requirements, requirements_shown_to_the_company
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.services.possession_proof import current_possession_proof
@@ -160,5 +160,6 @@ def nomination_requirements(nomination):
             or proof.pk != nomination.proof_id
         ):
             unmet.append("wallet_proof_required")
-        unmet.extend(participant_requirements(wallet.user_account, nomination.company))
+        participant = participant_requirements(wallet.user_account, nomination.company)
+        unmet.extend(requirements_shown_to_the_company(participant))
     return sorted(set(unmet))
