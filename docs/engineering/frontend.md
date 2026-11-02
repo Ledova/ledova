@@ -374,16 +374,16 @@ gets its caret, with Supporting (Company documents, `/documents/company`) beneat
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
 Team and Activation where permitted. Its default is Profile (`/settings#profile`), combining personal
 details, permitted company information and how the selected company records a linked member. Account
-(`/settings#account`) is one compact card for identity status with Review identity check, Change
-password and Manage account, and Data and privacy (`/settings#data`) holds Export data and Delete
-account. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
+(`/settings#account`) has Security (identity status with Review, the password with Change), Account
+details and Company invitation cards, and Data and privacy (`/settings#data`) holds Export data and
+Delete account. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
 sections keep their separate records, editors and authority checks. Existing `/user-profile`,
 `/company` and `/settings#company-recorded-details` links, like any other Settings hash, redirect to
 Profile, and `/company#documents` redirects to Company documents. Activation's identity step links to
 Account.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
 Team remains available for company-invitation acceptance; Account keeps an acceptance
-entry under Manage account before company access is granted. The sidebar has no More group or Help & Support link;
+entry, its Company invitation card, before company access is granted. The sidebar has no More group or Help & Support link;
 pages without a sidebar item retain their existing audience and permission checks. Team keeps Representative
 authority as a contextual task, with its existing owner and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
@@ -893,9 +893,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 - Verification: the claim history has its own cache, and every claim page loads before a submission
   is offered, so a pending claim on a later page still prevents a second one.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
-  personal and company sections, keeping each editor's data and authority separate. Account's one
-  card holds relevant identity status, password and Manage account; Data and privacy holds export and
-  deletion. Payslip evidence lives with investor classification claims. Documents and Team
+  personal and company sections, keeping each editor's data and authority separate. Account's
+  Security, Account details and Company invitation cards hold identity status, password, account
+  dates and invitation acceptance; Data and privacy holds export and deletion. Payslip evidence
+  lives with investor classification claims. Documents and Team
   stay focused pages; Activation keeps its existing company workflow. Signup and mobile
   Settings keep their own navigation.
 - Data and privacy on web: account deletion clears cached account data after the server confirms.

@@ -35,9 +35,10 @@ Mobile signup creates individual accounts only: **Welcome to Ledova** takes the 
 type choice. On mobile, a company account that has not finished signup sees **This app is for
 shareholders** and can only sign out.
 
-Signup does not include identity verification. Complete it afterwards from Profile on the web with
-**Review identity check**; while the investor identity requirement is on, company eligibility waits
-for it ([account standing](#account-standing)). An unfinished account can sign in again and resume.
+Signup does not include identity verification. Complete it afterwards on the web with the identity
+check's **Review** in **Settings → Account**; while the investor identity requirement is on, company
+eligibility waits for it ([account standing](#account-standing)). An unfinished account can sign in
+again and resume.
 
 ### Going back and changing your email
 
@@ -361,16 +362,17 @@ Settings opens Profile, with **Account** and **Data and privacy** beside it for 
 Activation appear where company access permits, and company
 documents are under **Eligibility** → **Supporting**. Profile shows a linked member how the
 selected company records them. Team remains reachable for accepting
-a company invitation. Before company access is granted, **Settings → Account → Manage account**
-provides **Accept a company invitation**, opening the same guarded workflow. Member access stays
+a company invitation. Before company access is granted, **Settings → Account → Company invitation**
+provides **Accept invitation**, opening the same guarded workflow. Member access stays
 under company [Shareholders](register.md#the-register-page).
 
 **Profile** combines Personal information with permitted Company details. Each editor retains its own
 permissions; changing personal details does not update a company's records. **Activation** retains the
 [company activation workflow](companies.md#activation-and-the-registry-check).
 
-**Account** is one compact card: relevant identity status with **Review identity check**, **Change
-password**, and **Manage account** with member-since and last-login details. Existing company and
+**Account** has three cards: **Security** (the identity check's status with **Review**, and the
+password with **Change**), **Account details** (**Member since** and **Last login**, such as
+"2 Nov 2026, 1:38 pm") and **Company invitation** (**Accept invitation**). Existing company and
 investor verification requirements stay unchanged. The theme is the **Dark theme** switch beside Sign
 out (remembered in this browser with Paper as the default); the web app no longer offers transaction
 alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
@@ -390,13 +392,13 @@ residential address its register holds, read-only, with **Wrong? Contact the com
 separate from personal Profile edits; the member asks the company directly to correct it
 ([what a member can read](member-records.md#what-a-member-can-read)).
 
-On mobile, Settings has the same three pages for the selected company. Account shows the identity
-status but no **Review identity check**, since the app has no identity check flow, then biometric
-sign-in and **App lock** (biometrics after the app goes into the background); **Accept an
-invitation** opens the app's member [invitation](member-records.md#accepting-an-invitation), and
-**Rate the app** and **Share with friends** end the page. On Data and privacy, **Export data** saves
-or shares a private JSON file. **Sign out** and the **Dark theme** switch, saved on the device, are in
-the menu.
+On mobile, Settings has the same three pages for the selected company, and Account the web's three
+cards. Security shows the identity status but no **Review**, since the app has no identity check
+flow, then **Change** for the password and the biometric sign-in (such as **Face ID sign-in**) and
+**App lock** switches, App lock asking for biometrics when you come back to the app. **Accept
+invitation** opens the app's member [invitation](member-records.md#accepting-an-invitation). On
+Data and privacy, **Export data** saves or shares a private JSON file. **Sign out** and the **Dark
+theme** switch, saved on the device, are in the menu.
 
 Next: [company setup](companies.md) ·
 [issuing shares](issuing-shares.md) ·

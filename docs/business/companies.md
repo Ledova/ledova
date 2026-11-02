@@ -114,7 +114,7 @@ actions at the foot.
 ## Team invitations and appointments
 
 Open the team from **Settings → Team** for the selected company. Before company access is granted,
-open **Settings → Account → Manage account → Accept a company invitation**. Investor-only accounts
+open **Settings → Account → Company invitation → Accept invitation**. Investor-only accounts
 can open it too: accepting an invitation or reading your appointments needs no company appointment. The web page starts with
 appointments, the selected company's team and issued invitations; **Invite a company user** and
 **Accept a company invitation** open focused inline forms. Someone with no appointments, other than
@@ -343,7 +343,7 @@ authority: initial admission, accepting an invitation, activation, company admin
 eligibility decisions, member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
 configured identity provider, from **Verify your identity** at signup review or later from
-**Settings → Account** on web with **Review identity check**, which Activation's identity step links to. With the requirement on and no
+**Settings → Account** on web with the identity check's **Review**, which Activation's identity step links to. With the requirement on and no
 provider, every company decision is refused
 ([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
 requirement is separate ([participants](participants.md#account-standing)).

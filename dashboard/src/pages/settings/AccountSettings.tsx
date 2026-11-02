@@ -1,5 +1,5 @@
 import { Field, TextInput } from '@components/Field';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   FIELD_LIMITS,
   DESTINATIONS,
@@ -27,6 +27,18 @@ function ActionRow({ description, label, onClick }: { description: string; label
       <div className="justify-self-end">
         <PageAction label={label} onClick={onClick} />
       </div>
+    </div>
+  );
+}
+
+function SettingRow({ label, detail, action }: { label?: string; detail?: ReactNode; action: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3">
+      <div className="min-w-0 space-y-1 text-sm">
+        {label && <p className="break-words font-medium text-text-primary">{label}</p>}
+        {detail && <p className="break-words text-text-muted">{detail}</p>}
+      </div>
+      {action}
     </div>
   );
 }
@@ -110,53 +122,61 @@ export function AccountSettings() {
   };
   return (
     <>
-      <Section title="Account">
+      <Section title="Security">
         <div className="divide-y divide-border-subtle">
           {profile.userProfile && (
-            <div className="grid items-center gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <p className="text-sm text-text-muted">
-                Identity check{' '}
+            <SettingRow
+              label="Identity check"
+              detail={
                 <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
-              </p>
-              <div className="justify-self-end">
+              }
+              action={
                 <PageAction
-                  label="Review identity check"
+                  label="Review"
+                  context="identity check"
                   disabled={profile.isFetching}
                   onClick={() => setVerificationOpen(true)}
                 />
-              </div>
-            </div>
+              }
+            />
           )}
-          <ActionRow
-            description="Choose a new password for your account."
-            label="Change password"
-            onClick={() => {
-              setPasswordChanged(false);
-              setModal('password');
-            }}
+          <SettingRow
+            label="Password"
+            action={
+              <PageAction
+                label="Change"
+                context="password"
+                onClick={() => {
+                  setPasswordChanged(false);
+                  setModal('password');
+                }}
+              />
+            }
           />
         </div>
         <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
-        {(profile.userProfile || !context?.company?.canManage) && (
-          <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
-            <h3 className="text-sm font-medium text-text-primary">Manage account</h3>
-            {profile.userProfile && (
-              <Rows>
-                <Row label="Member since">{formatDate(profile.userProfile.dateJoined, 'Not available')}</Row>
-                <Row label="Last login">{formatDateTime(profile.userProfile.lastLogin)}</Row>
-              </Rows>
-            )}
-            {!context?.company?.canManage && (
-              <div className="flex justify-end py-3">
-                <PageLink
-                  to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
-                  label="Accept a company invitation"
-                />
-              </div>
-            )}
-          </div>
-        )}
       </Section>
+      {profile.userProfile && (
+        <Section title="Account details">
+          <Rows>
+            <Row label="Member since">{formatDate(profile.userProfile.dateJoined, 'Not available')}</Row>
+            <Row label="Last login">{formatDateTime(profile.userProfile.lastLogin)}</Row>
+          </Rows>
+        </Section>
+      )}
+      {!context?.company?.canManage && (
+        <Section title="Company invitation">
+          <SettingRow
+            detail="Joining a company on Ledova?"
+            action={
+              <PageLink
+                to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
+                label="Accept invitation"
+              />
+            }
+          />
+        </Section>
+      )}
       {verificationOpen && profile.userProfile && (
         <IdentityVerificationModal
           isOpen={verificationOpen}
