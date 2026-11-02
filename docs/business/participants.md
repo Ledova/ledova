@@ -376,7 +376,8 @@ investor verification requirements stay unchanged. The theme is the **Dark theme
 out (remembered in this browser with Paper as the default); the web app no longer offers transaction
 alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
 
-**Data and privacy** holds the less frequent actions:
+**Data and privacy** holds the less frequent actions, in the same rows as Account: each names the
+action and what it does on the left, with **Export** or **Delete** on the right.
 
 - **Export data** downloads the person's account data as a JSON file
   ([account-data export](../engineering/records.md#account-data-export)).
@@ -391,7 +392,7 @@ cards. Security shows the identity status but no **Review**, since the app has n
 flow, then **Change** for the password and the biometric sign-in (such as **Face ID sign-in**) and
 **App lock** switches, App lock asking for biometrics when you come back to the app. **Accept
 invitation** opens the app's member [invitation](member-records.md#accepting-an-invitation). On
-Data and privacy, **Export data** saves or shares a private JSON file. **Sign out** and the **Dark
+Data and privacy, **Export** saves or shares a private JSON file. **Sign out** and the **Dark
 theme** switch, saved on the device, are in the menu.
 
 Next: [company setup](companies.md) ·

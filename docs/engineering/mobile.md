@@ -139,9 +139,9 @@ shows the identity check status from the profile (the app has no identity check 
 **Biometric security is not available on this device.** beneath them only where that applies; Account
 details shows member since and last login; and Company invitation's **Accept invitation** opens the
 member Invitation page. Its rows follow the web's: the label on the left, and its status, one action
-or switch on the right. Data and privacy (`DataPrivacy`) has Export data, which saves or shares the file, and
-Delete account; each of its rows' actions carries the row's description, so a screen reader hears it
-once, with the action. The theme is the menu's switch. The member pages share one member-records state
+or switch on the right. Data and privacy (`DataPrivacy`) has the same rows: Export data, whose **Export** saves or shares the
+file, and Delete account with **Delete**; a screen reader hears the row and then the action, named
+Export data or Delete account. The theme is the menu's switch. The member pages share one member-records state
 (`MemberRecordsProvider`), so an invitation acceptance whose outcome is uncertain stays recoverable,
 with its original code, after leaving the page, and the pages show a loading line rather than an
 empty one while the list rereads. Only the focused page selects its record and class.

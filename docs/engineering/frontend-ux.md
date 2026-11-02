@@ -412,7 +412,8 @@ Account has three cards: **Security** (the identity check's status with **Review
 leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
 switches), **Account details** (**Member since** and **Last login**) and **Company invitation** (one
 line and **Accept invitation**). Each row has its label on the left and its status, one short action
-or switch on the right, vertically centred at every width, and the facts are label and value rows. Keep export and deletion on Data and privacy, with their existing confirmations. The
+or switch on the right, vertically centred at every width, and the facts are label and value rows. Keep export and deletion on Data and privacy, in the same rows (Export data with **Export**, Delete
+account with **Delete**), with their existing confirmations. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Payslip evidence
 belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
