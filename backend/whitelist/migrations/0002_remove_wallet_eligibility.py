@@ -22,6 +22,7 @@ def remove_decision_refreshes(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
+        ("shareholders", "0002_remove_publications"),
         ("users", "0002_eligibility_participant_name"),
         ("whitelist", "0001_initial"),
     ]

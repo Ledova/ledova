@@ -228,7 +228,10 @@ These route groups have no bundled client and are kept deliberately:
   are gone. The same migrations delete the queued jobs that have not started for the removed tasks
   (`extract_document` and the two evidence purges) and for whitelist refreshes that name an
   eligibility decision, and drop the empty `decision_id` argument from the other queued refreshes,
-  so a worker never picks up a job it cannot run.
+  so a worker never picks up a job it cannot run. `documents/0002_remove_documents`,
+  `tokens/0006_remove_trading_eligibility` and `whitelist/0002_remove_wallet_eligibility` depend on
+  `shareholders/0002_remove_publications`, so a database whose publications removal refuses stops
+  before any eligibility record or file is deleted.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.

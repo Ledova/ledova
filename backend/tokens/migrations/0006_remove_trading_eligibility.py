@@ -4,6 +4,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
+        ("shareholders", "0002_remove_publications"),
         ("tokens", "0005_remove_member_certificate_requests"),
         ("users", "0002_eligibility_participant_name"),
     ]

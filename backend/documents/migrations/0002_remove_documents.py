@@ -28,6 +28,7 @@ class Migration(migrations.Migration):
         ("contenttypes", "0002_remove_content_type_name"),
         ("documents", "0001_initial"),
         ("shared", "0002_database_guards"),
+        ("shareholders", "0002_remove_publications"),
     ]
 
     operations = [
