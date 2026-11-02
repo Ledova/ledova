@@ -142,10 +142,12 @@ export function AccountSettings() {
             <SettingRow
               label="Identity check"
               accessibilityLabel={`Identity check: ${verification.label}`}
-              detail={
-                <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'} muted>
-                  {verification.label}
-                </Status>
+              action={
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'} muted>
+                    {verification.label}
+                  </Status>
+                </View>
               }
             />
           )}

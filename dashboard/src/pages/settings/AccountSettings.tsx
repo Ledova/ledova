@@ -127,16 +127,16 @@ export function AccountSettings() {
           {profile.userProfile && (
             <SettingRow
               label="Identity check"
-              detail={
-                <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
-              }
               action={
-                <PageAction
-                  label="Review"
-                  context="identity check"
-                  disabled={profile.isFetching}
-                  onClick={() => setVerificationOpen(true)}
-                />
+                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+                  <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
+                  <PageAction
+                    label="Review"
+                    context="identity check"
+                    disabled={profile.isFetching}
+                    onClick={() => setVerificationOpen(true)}
+                  />
+                </div>
               }
             />
           )}
