@@ -370,7 +370,7 @@ Team and Activation where permitted. Its default is Profile (`/settings#profile`
 details and permitted company information. Account
 (`/settings#account`) has Security (identity status with Review, the password with Change), Account
 details and Company invitation cards, and Data and privacy (`/settings#data`) holds Export data and
-Delete account. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
+Delete account in the same rows, with **Export** and **Delete**. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
 sections keep their separate records, editors and authority checks. Existing `/user-profile`,
 `/company` and `/settings#company-recorded-details` links, like any other Settings hash, redirect to
 Profile, and `/company#documents` redirects to Company documents. Activation's identity step links to
