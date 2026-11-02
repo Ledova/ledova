@@ -149,7 +149,9 @@ plus the AUD consideration of later external investor allotments (blank stays bl
 import did not carry shows the consideration alone); any other later entry for the member, such as a
 non-paid grant or transfer, blanks it. An import records amounts paid and unpaid as the company
 enters them from its records, without a currency, so the register cannot name a single currency for
-them.
+them. A certificate states the amounts paid and unpaid on the shares it certifies, not on the
+holding, and only where the register records them for exactly those shares
+([what a certificate shows](member-records.md#what-a-certificate-shows)).
 
 Date entered is when the member went from no shares to some. The earliest completed allotment to one
 of its wallets replaces it only if earlier, with the holding continuous since; otherwise a member

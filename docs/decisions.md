@@ -41,7 +41,7 @@ stay here as history and are marked where they appear.
 | [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
 | [One-step particulars edit](#one-step-particulars-edit)                                                            | 1 November 2026                                | Current; #1476; members without a current account link since 2 November (#1492)                                                    |
-| [Member certificate requests removed](#member-certificate-requests-removed)                                        | 2 November 2026                                | Current; #1476                                                                                                                     |
+| [Member certificate requests removed](#member-certificate-requests-removed)                                        | 2 November 2026                                | Current; #1476; amounts paid and unpaid on certificates delivered 2 November                                                       |
 | [Register particulars follow the linked member's profile](#register-particulars-follow-the-linked-members-profile) | 2 November 2026                                | Current; #1492                                                                                                                     |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                          | 11 October 2026                                | Current                                                                                                                            |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                      | 11 October 2026                                | Current                                                                                                                            |
@@ -1215,6 +1215,12 @@ within 2 months after an issue and 1 month after a transfer is lodged, so the is
 triggers the duty, not a request. Under s1070D, only a replacement for a lost or destroyed
 certificate starts with the holder applying, and that is between the holder and the company.
 Nothing requires a member to request a certificate through a platform.
+
+_The owner's third answer in the same review, **"Print amount paid/unpaid"**, was delivered on
+2 November 2026: each certificate page states the amount paid and the amount unpaid on its shares
+(s1070C) where the register records them for exactly those shares, and Not recorded otherwise
+([what a certificate shows](business/member-records.md#what-a-certificate-shows)). The optional list
+of due dates for companies was not chosen._
 
 ### Register particulars follow the linked member's profile
 
