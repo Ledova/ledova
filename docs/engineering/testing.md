@@ -28,7 +28,7 @@ the replaced cases or the approval, and independent review checks them
 
 | Suite               | Delivered cases | Maximum | Essential coverage                                                                                                             |
 | ------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Backend, PostgreSQL | 28              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
+| Backend, PostgreSQL | 27              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
 | Dashboard unit      | 20              | 20      | Main pages, sign-in, core flows and the particulars edit's conflict baseline                                                   |
 | Playwright smoke    | 7               | 9       | Core browser journeys and route wiring                                                                                         |
 | Mobile Jest         | 5               | 10      | App start, sign-in, signup completion, member records, a retried invitation acceptance, claim evidence and a payslip upload    |
@@ -97,9 +97,9 @@ uses current administrator authority and a retained current Terms receipt withou
 historical permissions or declarations.
 Member invitations and own records have one core journey, which also finds no certificate request
 route, and the tenant controls include foreign invitation and revoked association refusals. One
-output case covers real company certificate PDFs, a register reader's access ending with their
-appointment, pack provenance and file integrity, and the purge of export records after the
-retention floor. Two mirror cases cover complete copied
+output case covers real company certificate PDFs, a register reader who lists no member invitations
+or associations and whose access ends with their appointment, pack provenance and file integrity,
+and the purge of export records after the retention floor. Two mirror cases cover complete copied
 holdings and allotments, once-only opening corrections, retained earlier snapshots, stale and
 incomplete requests, and refusal after later ownership or member-access activity. They exercise
 the API and PostgreSQL guards; they establish no genuine legal register or source verification.

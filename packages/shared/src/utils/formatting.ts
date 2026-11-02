@@ -1,5 +1,10 @@
 export const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
+export function formatMoney(amount: string, currency: string): string {
+  const [whole = '0', fraction = ''] = amount.split('.');
+  return `${currency}\u00a0${formatShareCount(whole)}.${fraction.padEnd(2, '0')}`;
+}
+
 export const shortReference = (uuid: string) => uuid.slice(0, 8);
 
 export const shareChange = (shares: string) =>

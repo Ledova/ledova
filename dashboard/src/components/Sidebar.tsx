@@ -363,20 +363,15 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
 
 function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
   const companyContext = useCompanyContext();
-  const { isCompany } = useRole();
   const location = useLocation();
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
   const selected =
     location.pathname === DESTINATIONS.certificates.path
       ? 'certificates'
-      : location.pathname === DESTINATIONS.companyPublications.path
-        ? 'publications'
-        : location.pathname === DESTINATIONS.publications.path
-          ? 'notices'
-          : location.pathname === path
-            ? documentView(location.hash.slice(1))
-            : undefined;
+      : location.pathname === path
+        ? documentView(location.hash.slice(1))
+        : undefined;
   const context = ledgerContext(location, state, companyContext?.companyUuid);
   const certificateTarget = certificatesLocation({ search: '', state: context });
   const certificatePath = `${certificateTarget.pathname}${certificateTarget.search}`;
@@ -390,23 +385,6 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
     current: selected === key,
     blocked: key === 'certificates' && certificatesBlocked,
   }));
-  if (companyContext?.company?.isOwner && isCompany)
-    items.splice(1, 0, {
-      key: 'publications',
-      label: 'Published',
-      title: pageTitle('companyPublications'),
-      to: DESTINATIONS.companyPublications.path,
-      current: selected === 'publications',
-      blocked: certificatesBlocked,
-    });
-  if (companyContext?.company?.memberUuids.length)
-    items.push({
-      key: 'notices',
-      label: pageTitle('publications'),
-      to: DESTINATIONS.publications.path,
-      current: selected === 'notices',
-      blocked: certificatesBlocked,
-    });
   const single = items.length === 1;
 
   return (
@@ -532,10 +510,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     location.pathname === DESTINATIONS.companyDocuments.path ||
     (location.pathname === DESTINATIONS.company.path && location.hash === '#documents')
       ? itemPath(ELIGIBILITY)
-      : location.pathname === DESTINATIONS.companyPublications.path ||
-          location.pathname === DESTINATIONS.publications.path
-        ? DESTINATIONS.certificates.path
-        : activeItem && itemPath(activeItem);
+      : activeItem && itemPath(activeItem);
 
   return (
     <aside className="flex h-full w-52 flex-col border-r border-border-subtle bg-surface-base">

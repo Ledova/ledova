@@ -338,7 +338,7 @@ Pending or Accepted, as a status mark.
 Profile shows Personal information (full name, email, phone, date of birth, address and citizenship).
 Personal-details editing opens inline, with aligned Cancel and save actions.
 
-To change your full name, residential address or phone, choose **Edit personal details**, change
+To change your full name, residential address or phone, choose **Edit**, change
 them and choose **Save personal details**. These details are self-reported: editing them verifies
 nothing and leaves existing identity results unchanged. A Profile save creates no company
 appointment, member association or register instruction and does not change your register
@@ -360,8 +360,7 @@ available records and actions; choosing a company grants neither.
 
 Settings opens Profile, with **Account** and **Data and privacy** beside it for everyone. Team and
 Activation appear where company access permits, and company
-documents are under **Eligibility** → **Supporting**. Profile shows a linked member how the
-selected company records them. Team remains reachable for accepting
+documents are under **Eligibility** → **Supporting**. Team remains reachable for accepting
 a company invitation. Before company access is granted, **Settings → Account → Company invitation**
 provides **Accept invitation**, opening the same guarded workflow. Member access stays
 under company [Shareholders](register.md#the-register-page).
@@ -386,11 +385,6 @@ alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
   records and share register entries are kept, and so are the eligibility requests they sent, with
   their name as each company received it. The confirmation says so, and the browser's copy of the
   account's data is cleared once the server confirms.
-
-For linked members, Profile also shows how the selected company records them: the name and
-residential address its register holds, read-only, with **Wrong? Contact the company.** It is
-separate from personal Profile edits; the member asks the company directly to correct it
-([what a member can read](member-records.md#what-a-member-can-read)).
 
 On mobile, Settings has the same three pages for the selected company, and Account the web's three
 cards. Security shows the identity status but no **Review**, since the app has no identity check

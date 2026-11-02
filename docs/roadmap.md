@@ -30,7 +30,9 @@ removed on 31 October 2026; members tell the company directly
 changes a member's particulars in one step ([decision](decisions.md#one-step-particulars-edit)).
 Members' certificate requests were removed on 2 November 2026: the company prepares, signs and
 delivers its certificates, and Ledova keeps each one's fingerprint
-([decision](decisions.md#member-certificate-requests-removed)).
+([decision](decisions.md#member-certificate-requests-removed)). Shareholder publications went the
+same day: the company gives notices to its members and pays dividends itself, and Ledova keeps the
+register ([decision](decisions.md#shareholder-publications-removed)).
 
 The development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
 closed 11 October) now uses fresh PostgreSQL migrations, minimum test suites
@@ -57,7 +59,8 @@ its phase issues:
 - Company-scoped on-chain approvals with expiry ([#648](https://github.com/Ledova/ledova/issues/648)).
 - Shareholder publications ([#649](https://github.com/Ledova/ledova/issues/649)):
   documents, resolutions and dividends published by platform staff on the
-  company's instruction ([shareholder publications](business/publications.md)).
+  company's instruction, removed on 2 November 2026
+  ([decision](decisions.md#shareholder-publications-removed)).
 - Reporting and portability ([#650](https://github.com/Ledova/ledova/issues/650)):
   the [company pack](business/member-records.md#the-company-pack) and the
   [account-data export](engineering/records.md#account-data-export).

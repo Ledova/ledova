@@ -14,14 +14,11 @@ from shared.seeds.synthetic.chain.story import (
 from shared.seeds.synthetic.clock import AEST, Calendar, utc
 from shared.seeds.synthetic.market.plan import (
     Approval,
-    Ballot,
     Deposit,
     Fill,
     MarketPlan,
-    Notice,
     Order,
 )
-from shared.seeds.synthetic.market.texts import NOTICE_SPECS
 from shared.seeds.synthetic.plan import SEED, stream
 
 MARKET_STREAM = "market"
@@ -36,9 +33,6 @@ FILLED = "completed"
 CANCELLED = "cancelled"
 HELD = "held"
 REST = "rest"
-FOR = "for"
-AGAINST = "against"
-ABSTAIN = "abstain"
 TESTER = DEMO_INVESTOR_EMAIL
 HISTORY_DAYS = 18
 SELL_SHARE = Decimal("0.5")
@@ -186,7 +180,6 @@ class MarketStory:
         orders = tuple(sorted(self.book.orders, key=lambda order: order.key))
         fills = tuple(self.book.fills)
         holdings = self._holdings(fills, orders)
-        notices = self._notices(self._holdings((), orders), holdings)
         return MarketPlan(
             now=self.now,
             listings=tuple(self.listings.values()),
@@ -194,7 +187,6 @@ class MarketStory:
             deposits=self._deposits(orders),
             orders=orders,
             fills=fills,
-            notices=notices,
             holdings=holdings,
         )
 
@@ -742,128 +734,3 @@ class MarketStory:
                 )
             )
         return extra
-
-    def _notices(self, morning, evening):
-        notices = []
-        for spec in NOTICE_SPECS:
-            listing = self.listings.get(spec.listing)
-            if listing is None:
-                continue
-            holdings = morning if spec.window == "closed" else evening
-            members = {investor: shares for (key, investor), shares in holdings.items() if key == spec.listing}
-            notices.append(self._notice(spec, listing, members))
-        return tuple(notices)
-
-    def _meeting(self, days, hour=10):
-        return self.at(-days, hour)
-
-    def _notice(self, spec, listing, members):
-        record = self.calendar.today
-        meeting = self._meeting(spec.meeting).astimezone(AEST)
-        lines = tuple(line.format(record=record, meeting=meeting) for line in spec.lines)
-        title = spec.title.format(record=record)
-        base = {
-            "key": spec.key,
-            "listing": spec.listing,
-            "kind": spec.kind,
-            "title": title,
-            "lines": lines,
-            "authority": spec.authority,
-        }
-        if spec.kind == "resolution":
-            opens_at = self.at(-spec.opens, 9) if spec.window == "upcoming" else None
-            closes_at = self._meeting(spec.meeting) if spec.window != "closed" else None
-            return Notice(
-                **base,
-                question=spec.question,
-                resolution_kind=spec.resolution_kind,
-                window=spec.window,
-                opens_at=opens_at,
-                closes_at=closes_at,
-                ballots=self._ballots(spec, listing, members),
-                carried=spec.outcome == "carried" if spec.window == "closed" else None,
-            )
-        if spec.kind == "distribution":
-            return Notice(
-                **base,
-                rate=Decimal(spec.rate),
-                declared_on=record - timedelta(days=spec.declared),
-                payment_date=record + timedelta(days=spec.payment),
-                paid=self._payees(spec, listing, members),
-            )
-        return Notice(**base)
-
-    def _voters(self, listing, members):
-        founder = next((holder.investor for holder in listing.holders if holder.role == "company"), None)
-        others = sorted(
-            (investor for investor in members if investor not in (founder, TESTER) and investor in self.traders),
-            key=lambda investor: (-members[investor], investor),
-        )
-        return founder if founder in members else None, others
-
-    def _ballots(self, spec, listing, members):
-        if spec.window == "upcoming" or not spec.outcome:
-            return ()
-        founder, others = self._voters(listing, members)
-        ballots = []
-        if spec.tester and TESTER in members:
-            ballots.append(Ballot(TESTER, spec.tester))
-        if spec.outcome == "some":
-            count = min(len(others), self.rng.randint(3, 5))
-            for investor in self.rng.sample(others, count):
-                ballots.append(Ballot(investor, self.rng.choice((FOR, FOR, FOR, AGAINST, ABSTAIN))))
-            return tuple(ballots)
-        carried = spec.outcome == "carried"
-        special = spec.resolution_kind == "special"
-        voters = self.rng.sample(others, min(len(others), self.rng.randint(5, 8)))
-        voters.sort(key=lambda investor: (-members[investor], investor))
-        for position, investor in enumerate(voters):
-            if carried:
-                choice = AGAINST if position == 1 else ABSTAIN if position == len(voters) - 1 else FOR
-            else:
-                choice = AGAINST if position < max(2, len(voters) // 2) else FOR
-            ballots.append(Ballot(investor, choice))
-        fixed = {TESTER}
-        if founder is not None:
-            fixed.add(founder)
-            choice = FOR if carried or special else ABSTAIN
-            settled = self._settle_outcome([*ballots, Ballot(founder, choice)], members, carried, special, fixed)
-            if settled is not None:
-                return tuple(settled)
-        settled = self._settle_outcome(ballots, members, carried, special, fixed)
-        if settled is None:
-            raise ValueError(f"The ballots planned for {spec.key} cannot reach the planned outcome.")
-        return tuple(settled)
-
-    @staticmethod
-    def _outcome(ballots, members, special):
-        shares = defaultdict(int)
-        for ballot in ballots:
-            shares[ballot.choice] += members.get(ballot.voter, 0)
-        if special:
-            return shares[FOR] + shares[AGAINST] > 0 and shares[FOR] * 4 >= (shares[FOR] + shares[AGAINST]) * 3
-        return shares[FOR] > shares[AGAINST]
-
-    def _settle_outcome(self, ballots, members, carried, special, fixed):
-        ballots = list(ballots)
-        right = FOR if carried else AGAINST
-        for _ in range(len(ballots) + 1):
-            if self._outcome(ballots, members, special) == carried:
-                return ballots
-            movable = [
-                index for index, ballot in enumerate(ballots) if ballot.choice != right and ballot.voter not in fixed
-            ]
-            if not movable:
-                return None
-            index = max(movable, key=lambda position: (members.get(ballots[position].voter, 0), position))
-            ballots[index] = Ballot(ballots[index].voter, right)
-        return None
-
-    def _payees(self, spec, listing, members):
-        if spec.paid == "none":
-            return ()
-        everyone = sorted(investor for investor in members if investor != TESTER)
-        if spec.paid == "all":
-            return ("*",)
-        count = max(1, len(everyone) // 2)
-        return tuple(sorted(self.rng.sample(everyone, count)))

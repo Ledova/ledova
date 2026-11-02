@@ -7,7 +7,6 @@ import { InSignedInFrame, type FrameOptions } from '../components/InSignedInFram
 import { NotificationsModal, useFollowPush } from '../components/notifications';
 import { useAppTheme } from '../contexts';
 import { CertificatesScreen } from '../screens/documents/CertificatesScreen';
-import { NoticesScreen } from '../screens/documents/NoticesScreen';
 import { VerificationScreen } from '../screens/eligibility/VerificationScreen';
 import { DashboardScreen } from '../screens/holdings/DashboardScreen';
 import { InvitationScreen } from '../screens/holdings/InvitationScreen';
@@ -19,7 +18,6 @@ import { TopBar } from './headers';
 export type SignedInStackParamList = {
   Dashboard: { record?: string; award?: string } | undefined;
   Certificates: { record?: string; token?: string } | undefined;
-  Notices: undefined;
   Verification: undefined;
   Settings: undefined;
   Account: undefined;
@@ -60,7 +58,6 @@ export function SignedInNavigator() {
           >
             <Stack.Screen name="Dashboard" component={DashboardScreen} options={topBar('Dashboard')} />
             <Stack.Screen name="Certificates" component={CertificatesScreen} options={topBar('Documents')} />
-            <Stack.Screen name="Notices" component={NoticesScreen} options={topBar('Documents')} />
             <Stack.Screen name="Verification" component={VerificationScreen} options={topBar('Eligibility')} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={topBar('Settings')} />
             <Stack.Screen name="Account" component={AccountScreen} options={topBar('Settings')} />

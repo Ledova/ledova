@@ -38,8 +38,8 @@ keeping every earlier record except what #1421 removed, and the demo data below 
 | Person              | Test role                             | Email                      | Password                                      | What to test                                                                     |
 | ------------------- | ------------------------------------- | -------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
 | Alex Demo           | Company administrator and shareholder | `director@ledova.io`       | `5TASnw2RJQcPhZ-u-gXvbmF6nk0cRLVM`            | Company Dashboard, Ledger, Shareholders, Employee scheme, Documents and Settings |
-| Taylor Demo         | Shareholder                           | `shareholder1@ledova.io`   | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares, member documents and company-recorded details                         |
-| Casey Demo          | Employee shareholder                  | `employee1@ledova.io`      | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records, certificates and company-recorded details     |
+| Taylor Demo         | Shareholder                           | `shareholder1@ledova.io`   | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares and member documents                                                   |
+| Casey Demo          | Employee shareholder                  | `employee1@ledova.io`      | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records and certificates                               |
 | Quinn Investor Demo | Investor                              | `investor1@ledova.io`      | `TwAFv-SU0E-nrW5je-idauWmZPly8-ZUcMXCTRJMVus` | My shares and investor certificate records                                       |
 | Jordan Ellis        | Second Purpose Demo officer           | `director@blueberry.money` | `sQS6zJDzdXdXO0SsAPCdksvL-kwhP42i`            | Purpose Demo Team and company authority                                          |
 
@@ -65,7 +65,7 @@ flowchart LR
     Login["One sign-in account"] --> Appointment["Company appointment"]
     Login --> Association["Accepted member invitation"]
     Appointment -->|Assigned capabilities| Admin["Company Dashboard, Ledger, Shareholders, Employee scheme and outputs"]
-    Association --> Member["Own shares, awards, certificates and company-recorded details"]
+    Association --> Member["Own shares, awards and certificates"]
 ```
 
 - **Alex Demo:** company administrator for three companies, and a member of Purpose Demo.
