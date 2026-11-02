@@ -482,8 +482,8 @@ Signed-in web pages do not poll while idle or refetch because of window focus, v
 reconnection. Web query defaults enforce that page-data policy. Another person's changes appear on a later
 entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
 content stable until a relevant read is needed, without mounting another workflow's reads behind
-an overview. Certificates re-reads the member list on entry and reads only while open; no other
-page reads member records.
+an overview. Certificates re-reads the member list on entry and reads only while open; Profile
+reads no member records.
 
 `dashboard/src/hooks/useEntryReads.ts` and
 `dashboard/src/pages/company/ledger/useIssueEntryRead.ts` retain ordered entry reads:

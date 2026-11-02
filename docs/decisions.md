@@ -1545,7 +1545,8 @@ also asked about Company-recorded details: "this page … does not seems to be o
 wonder if we can just merge into Profile". Company documents now sit under Documents at
 `/documents/company`, and the old address redirects there. Profile shows the selected company's
 recorded details for a linked member, with its update request, and the separate Settings item is
-gone. The update request was later removed ([decision](#member-particulars-requests-removed)).
+gone. The update request was later removed ([decision](#member-particulars-requests-removed)), and
+the card itself on 2 November 2026 (#1492).
 
 On 29 October 2026 the owner settled the pages that had no in-app link or only the notification
 bell ([#1416](https://github.com/Ledova/ledova/issues/1416)): "Start #1416 with your defaults:
