@@ -20,6 +20,7 @@ from companies.services.team import (
 from shared.db import use_operator
 from shared.tests.core_fixtures import CoreFixtures, retained_evidence
 from tokens.models import (
+    RegisterAllotment,
     RegisterEvidenceKind,
     RegisterExport,
     RegisterGrant,
@@ -103,6 +104,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         entry_id = applied.json()["registerEntry"]
         with use_operator():
             entry = RegisterTransfer.objects.get(pk=transfer.json()["uuid"]).register_entry
+            issue = RegisterAllotment.objects.get(pk=allotment.json()["uuid"]).register_entry
         entries_endpoint = f"/api/v1/tokens/{self.token.pk}/register/entries/"
         matching = {"certificate_status": "all", "search": "EMPLOYEE synthetic", "page_size": 1}
         first_match = self.client.get(entries_endpoint, matching)
@@ -161,6 +163,16 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         self.assertIn("Prepared unsigned", company_text)
         self.assertIn(f"Company event date: {transfer.json()['companyEventOn']}", company_text)
         self.assertIn(f"Recorded at: {entry.created_at.date().isoformat()}", company_text)
+        for amount in ("paid", "unpaid"):
+            self.assertEqual(company_text.count(f"Amount {amount} on these shares: Not recorded"), 2)
+        issue_digest = self.client.get(f"{company_endpoint}?sequence={issue.sequence}").json()["sourceDigest"]
+        issue_pdf = self.client.post(
+            company_endpoint, {**fields, "sequence": issue.sequence, "source_digest": issue_digest}, format="json"
+        )
+        self.assertEqual(issue_pdf.status_code, 200, issue_pdf.content)
+        with pymupdf.open(stream=issue_pdf.content, filetype="pdf") as document:
+            issue_text = "".join(page.get_text() for page in document)
+        self.assertIn("Amount paid on these shares: 250.00\nAmount unpaid on these shares: 0.00", issue_text)
         invitation = self.client.post(
             "/api/v1/tokens/member-invitations/", self.invitation_payload(member=award["member"]), format="json"
         )
@@ -320,9 +332,9 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(audit.requested_by_id, self.owner.pk)
             self.assertEqual(int(self.token.stored_register.issued_supply), 150)
             self.assertEqual(RegisterGrant.objects.get(pk=grant.json()["uuid"]).award_id, UUID(award["operation_id"]))
-            self.assertEqual(RegisterExport.objects.count(), 4)
+            self.assertEqual(RegisterExport.objects.count(), 5)
             self.assertEqual(
                 purge_register_exports(now=timezone.now() + timedelta(days=settings.FORMER_MEMBER_RETENTION_DAYS + 1)),
-                4,
+                5,
             )
             self.assertFalse(RegisterExport.objects.exists())
