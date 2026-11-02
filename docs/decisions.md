@@ -546,9 +546,9 @@ requires. A company still waiting on a lookup activates afresh. This supersedes 
 Step 3 of the [decision above](#verification-limited-to-id-checks)
 ([#1491](https://github.com/Ledova/ledova/issues/1491)), delivered on 2 November 2026: the company's
 supporting documents (Company files on the web) and platform staff's verification of them are
-removed. A company no longer keeps documents on Ledova apart from its register work, nobody reviews
-them, and the company pack carries no company documents. The register's own evidence stays: each
-register command, grant, award, allotment and transfer keeps the files the company uploaded with it.
+removed. A company no longer keeps documents on Ledova apart from its register work, and the company
+pack carries no company documents. The register's own evidence stays: each register command, grant,
+award, allotment and transfer keeps the files the company uploaded with it.
 
 The two API-only flows that relied on a staff-verified company document, retained issue instructions
 and settled-transfer instructions, take the company's own uploaded evidence instead, as the owner
@@ -559,10 +559,10 @@ company submits it again with its own evidence.
 
 The migration deletes every company document and its file. An instruction, or an earlier staff-era
 record, that relied on one keeps its own copy of the file with the snapshot and fingerprint it
-recorded, so the evidence behind an applied register effect stays; the document's own record,
-including who verified it and when, goes with it. The staff permissions to view and verify company
-documents go too, and producing the broader company pack in admin needs **Can view company pack** in
-their place. This supersedes the company documents of the
+recorded, so the evidence behind an applied register effect stays. The document's own record goes
+with it, while the admin log keeps each verification's staff user and time. The staff permissions to
+view and verify company documents go too, and producing the broader company pack in admin needs
+**Can view company pack** in their place. This supersedes the company documents of the
 [simple signup](#simple-signup-documents-and-team-after-registration) decision and the Company
 documents page of the [compact sidebar](#ownership-dashboard-and-compact-sidebar).
 

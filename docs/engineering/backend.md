@@ -222,7 +222,8 @@ These route groups have no bundled client and are kept deliberately:
   `company_document_path`, which `companies/0001_initial` names.
   `companies/0004_remove_company_documents` deletes each document's file through the storage API
   once its transaction commits, then the documents with their table, triggers, functions, content
-  type and permissions. It reads them with `row_security` off, so a migrating role the policies
+  type and permissions; admin log entries keep their staff user, time and object id, with the content
+  type cleared. It reads them with `row_security` off, so a migrating role the policies
   would still filter stops with PostgreSQL's row-level security error instead of leaving files
   behind. It replays `tokens_guard_register_instruction` and `tokens_guard_company_issue` from
   current source, because retained register instructions now take the company's own evidence, and
