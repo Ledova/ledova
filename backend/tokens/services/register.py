@@ -268,36 +268,14 @@ class MemberIdentity(NamedTuple):
     residential_address: str
     source: str
     stamped_at: object
-    user_id: int | None
-
-
-def _member_user(addresses, identities, holder_type, source):
-    if holder_type != HolderType.MEMBER.value or source != IDENTITY_LIVE:
-        return None
-    found = {
-        identity.user_id
-        for identity in (identities.get(address.lower(), UNIDENTIFIED) for address in addresses)
-        if identity.user_id
-    }
-    return found.pop() if len(found) == 1 else None
 
 
 def member_identities(token, member_ids) -> dict:
     particulars, wallets, identities, stamps = _identity_sources(token, member_ids)
-    resolved = {}
-    for member in member_ids:
-        holder_type, name, residential_address, source, stamped_at = _member_identity(
-            wallets[member], identities, stamps, particulars.get(member)
-        )
-        resolved[member] = MemberIdentity(
-            holder_type,
-            name,
-            residential_address,
-            source,
-            stamped_at,
-            _member_user(wallets[member], identities, holder_type, source),
-        )
-    return resolved
+    return {
+        member: MemberIdentity(*_member_identity(wallets[member], identities, stamps, particulars.get(member)))
+        for member in member_ids
+    }
 
 
 def _allotted(allotment, opened_on, ceased):

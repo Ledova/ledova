@@ -1,7 +1,6 @@
 import type { Document, ExtractionStatus, InvestorClassification, UserDocumentType } from '../types';
 import { formatDate } from './date';
-import { formatMoney } from './distributions';
-import { formatCryptoBalance, shortReference } from './formatting';
+import { formatCryptoBalance, formatMoney, shortReference } from './formatting';
 
 export const DOCUMENT_TYPE_LABELS: Record<UserDocumentType, string> = {
   payslip: 'Payslip',

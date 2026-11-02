@@ -245,9 +245,8 @@ Rules:
 
 Settled-transfer and retained issue instructions
 ([register](register.md#settled-transfer-instructions);
-[issuing shares](issuing-shares.md#retained-issue-instructions)) and
-[shareholder publications](publications.md) rely on a company document that platform staff have
-verified. Company register commands use the company's own evidence instead.
+[issuing shares](issuing-shares.md#retained-issue-instructions)) rely on a company document that
+platform staff have verified. Company register commands use the company's own evidence instead.
 
 1. In **Admin → Companies → Company documents**, choose **Review and verify document**. You need an
    active staff account with **Can change company document**.
@@ -260,8 +259,7 @@ or the wrong size, the document is rejected or its validity is not current; a we
 cannot establish content. Ledova clears the verification automatically when the company's
 identity, the document's details or its rejection reason change; the company may revoke a
 verification but cannot grant one. A register action that relies on the document rechecks the
-current file, the company and the validity dates against that fingerprint each time; a publication
-needs a current verification of one of the company's documents and records its fingerprint
+current file, the company and the validity dates against that fingerprint each time
 ([how verification is enforced](../engineering/backend.md#company-document-verification)).
 
 ## Activation and the registry check
@@ -360,9 +358,7 @@ On web, select the company in Dashboard. Settings opens Profile, combining perso
 company sections with separate editors and permissions, beside Account and Data and privacy. Team and
 Activation have their own Settings items, and **Eligibility** → **Supporting** holds the company's supporting
 documents, where current access permits, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
-**Eligibility** (Company eligibility) has its own sidebar item, and **Documents** → **Published**
-opens Published to your members ([the Published page](publications.md#the-published-page)), each
-where current access permits.
+**Eligibility** (Company eligibility) has its own sidebar item where current access permits.
 
 Share classes are listed and added only in [Ledger](register.md#bringing-in-existing-records).
 

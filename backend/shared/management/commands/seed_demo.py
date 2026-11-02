@@ -60,8 +60,8 @@ class Command(BaseCommand):
         "The first run also adds six months of synthetic history: staff, investors, companies, wallets, "
         "notifications and compliance work. When the local chain (31337) is configured, the first run on it "
         "also deploys share classes, approves wallets, mints and allots shares, opens the registers and "
-        "seeds issuance and capital requests, then mints AUDY deposits, settles trades, leaves an order "
-        "book and publishes notices to members; without it, nothing is written to any chain."
+        "seeds issuance and capital requests, then mints AUDY deposits, settles trades and leaves an order "
+        "book; without it, nothing is written to any chain."
     )
 
     def add_arguments(self, parser):
@@ -357,8 +357,6 @@ class Command(BaseCommand):
                 f"  held back      {owner}'s {side} of {quantity} {label} at {price}, since its match lapsed"
                 for owner, side, quantity, label, price in counts["held"]
             ),
-            f"  notices        {sum(counts['notices'].values())} ({listed(counts['notices'])}); resolutions "
-            f"{listed(counts['resolutions'])}; {counts['ballots']} ballots, {counts['payments']} dividend payments",
         ]
         self.stdout.write("\n".join(lines))
 
