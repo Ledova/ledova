@@ -413,7 +413,12 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
                 {"account_status": ACCOUNT_STATUS_SUSPENDED},
                 {"account_status": ACCOUNT_STATUS_ACTIVE},
             ),
-            ("participant_investor_account_required", account, {"role": AccountRole.COMPANY}, {"role": AccountRole.INVESTOR}),
+            (
+                "participant_investor_account_required",
+                account,
+                {"role": AccountRole.COMPANY},
+                {"role": AccountRole.INVESTOR},
+            ),
         ):
             with use_migrate():
                 rows.update(**lapsed)

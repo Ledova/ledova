@@ -11,7 +11,10 @@ from rest_framework.exceptions import ValidationError
 from companies.models import Company
 from companies.services.authority_requests import _requester_principal
 from shared.db import atomic, current_alias, use_operator
-from users.services.participants import participant_requirements, requirements_shown_to_the_company
+from users.services.participants import (
+    participant_requirements,
+    requirements_shown_to_the_company,
+)
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.services.possession_proof import current_possession_proof
