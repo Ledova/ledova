@@ -166,9 +166,11 @@ function OwnParticulars({
               </Row>
             </Rows>
           )}
-          <p className="text-sm text-text-muted">{COPY.PRECEDENCE_NOTE}</p>
+          <p className="text-sm text-text-muted">
+            {recorded?.followsProfile ? COPY.FOLLOWS_PROFILE : COPY.PRECEDENCE_NOTE}
+          </p>
         </Section>
-        {formOpen ? (
+        {recorded?.followsProfile ? null : formOpen ? (
           <Section title={COPY.PREPARE}>
             {stale && (
               <LoadError retry={retry} busy={fetching}>

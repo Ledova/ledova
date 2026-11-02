@@ -413,9 +413,13 @@ non-empty rows keep their complete particulars validation. The unchanged decisio
 one empty OPENING, no member or position, and zero issued supply. First grants, awards and
 allotments then use that applied import; no separate register mode or fabricated holder is added.
 
-Application creates the members, any opening entry and the particulars in one transaction. An
-opening correction keeps the previous snapshot, decisions and opening entry, adds the
-`mirror_correction` entry and records the new particulars.
+Application creates the members, any opening entry and the particulars in one transaction. It
+leaves the particulars of a member with a current association as they are, records everything else,
+and `tokens_validate_mirror_import` accepts those kept particulars in place of the import's, while
+`tokens_guard_register_member_particulars` refuses imported particulars for such a member
+([particulars from Profile](../business/member-records.md#particulars-from-profile)). An opening
+correction keeps the previous snapshot, decisions and opening entry, adds the `mirror_correction`
+entry and records the new particulars.
 
 ### Particulars changes API
 
@@ -426,25 +430,62 @@ register-particulars-changes/` is the whole change. Under its `operation_id` it 
 `expected`: the name and address the editor read, as empty strings when none are recorded. It trims
 the fields and needs the caller's current appointment holding `admin`, or `prepare`, `approve` and
 `apply` (otherwise not found). Under the company lock it answers 409 `register_change_conflict` when
-the recorded name or address no longer equals `expected`, and 400 when it changes neither, or for a
-member past the retention period. It records one `applied` change dated today (UTC), with the caller as
+the recorded name or address no longer equals `expected`, and 400 when it changes neither, while the
+member has a current account link, or for a member past the retention period. It records one
+`applied` change dated today (UTC), with the caller as
 `submitted_by` and `reviewed_by`, and makes it the source of the member's particulars in the same
 transaction. A retry under the same `operation_id` answers 200 with the original record; the same id
 with any difference answers 409. `previous_particulars` reads the replaced name, address and as-at
 date, or null.
 
-`tokens_guard_register_particulars_change` accepts only that insert, under the
-`register_particulars_edit` operation, with no evidence, today's date and particulars that differ
-from the current ones. It fills `previous_particulars` from `tokens_register_particulars_snapshot`
-and refuses every update and delete. `tokens_guard_register_member_particulars` writes a change's
-particulars only for that operation and principal while its `previous_particulars` still equals the
-member's current snapshot, so a change applies once and only over the particulars it recorded as
-replaced. The service's `expected` check under the company lock refuses an edit made over
-particulars the editor did not read, and the form keeps its draft's baseline until the editor
-loads the current particulars after a conflict. At commit, `tokens_check_register_particulars_edit` requires those particulars and the
-editor's authority to be current. Changes prepared before the one-step edit keep their supporting
-copies, decisions and stages; `tokens_guard_register_particulars_decision` refuses every new or
-changed decision, so one never applied stays `submitted`.
+A member with a current account link provides their own particulars instead
+([particulars from Profile](../business/member-records.md#particulars-from-profile)). A profile save
+(`PATCH /api/user-profiles/<uuid>/`) runs on the operator connection through `save_profile` in
+[profile.py](../../backend/users/services/profile.py), which marks its transaction
+([profile saves](security.md#requests-and-jobs)). When it gives `full_name` or `residential_address`,
+`follow_profile` in [register_particulars.py](../../backend/tokens/services/register_particulars.py)
+then brings every register the caller currently links up to the profile in the same transaction;
+accepting an invitation does the same for the new link through `apply_profile`. A profile save first
+locks those companies, in company order, and then the person's user row, before `narrow()` locks the
+profile row: the company, person, profile order that register commands and acceptance use, so a save
+waits for them rather than deadlocking, and one that waited behind an account deletion finds the
+person inactive and answers 404. For each link it takes the company lock, keeps any register value
+whose profile field is empty, records nothing when nothing differs, and refuses an address over
+1,000 characters with 400. Otherwise it records one `applied` change dated today (UTC) with
+`member_association` set, no `preparing_appointment`, no reason or evidence, and the member as
+`submitted_by` and `reviewed_by`, then makes it the source of the member's particulars. The change
+reads `provided_by: member`, and company readers see neither the person's account number nor their
+current profile name in it: the API returns its `submittedBy` and `reviewedBy` as null, and the
+company pack its `reviewer`. A check constraint keeps exactly one of `preparing_appointment` and
+`member_association` on every change. Acceptance runs its association's commit check
+(`SET CONSTRAINTS tokens_member_association_commit IMMEDIATE`) before the register follows the
+profile, because that check compares the invitation's snapshot with the particulars the profile then
+replaces. Nothing is sent to the member.
+
+`tokens_guard_register_particulars_change` accepts only those inserts, with no evidence, today's
+date and particulars that differ from the current ones. A company change needs the
+`register_particulars_edit` operation, the caller's current appointment holding `admin`, or
+`prepare`, `approve` and `apply`, and a member without a current association. A member's change needs the
+`member_particulars_profile` operation, no appointment or reason, recorded particulars to replace,
+and the caller's own current association for that company and member; each of its values must be
+the caller's profile value or the one it replaces. The guard fills `previous_particulars` from
+`tokens_register_particulars_snapshot` and refuses every update and delete.
+`tokens_guard_register_member_particulars` writes a change's particulars only under its own
+operation and principal while its `previous_particulars` still equals the member's current snapshot,
+so a change applies once and only over the particulars it recorded as replaced. The service's
+`expected` check under the company lock refuses an edit made over particulars the editor did not
+read, and the form keeps its draft's baseline until the editor loads the current particulars after a
+conflict. At commit, `tokens_check_register_particulars_edit` requires those particulars and the
+editor's authority, or the member's association, to be current. Changes prepared before the one-step
+edit keep their supporting copies, decisions and stages; `tokens_guard_register_particulars_decision`
+refuses every new or changed decision, so one never applied stays `submitted`.
+`tokens/0007_register_follows_profile` adds `member_association`, lets `preparing_appointment` be
+empty and adds the one-source constraint. It replays by name the five functions this changes: the
+three guards `0004` also replays, `tokens_validate_mirror_import` and `users_guard_provider_identity`.
+It then brings each existing current association's register up to the member's profile once, with
+the same rules as a profile save, except that an address longer than 1,000 characters keeps the
+register's: one member change dated that day per register that differs, under the member's own
+principal and the `member_particulars_profile` operation, and nothing where the values already match.
 
 ### Reconciliation acknowledgements API
 
@@ -635,7 +676,9 @@ The unchanged `POST member-invitations/` answers 201 with a one-time `code` (43 
 characters), and a retry 200 without it.
 Invitations and associations are listed to current personal `admin` appointees; `member-records/`
 returns only the caller's own associations, with a `ceasedOn` only within retention, and their entry
-deltas.
+deltas. The register's member rows carry `follows_profile`, true while the member has a current
+association, without naming the account. Accepting brings the register up to the person's profile
+([particulars changes API](#particulars-changes-api)).
 
 Fresh migrations install the association and the append-only invitation and revocation records with
 RLS forced and no application-role grants. Their guards require current company administration and
@@ -961,8 +1004,9 @@ facts `awards`, `vestings`, `award_ends`, `vesting_reversals`, `agreements` and 
 the upload id as `evidence`, `company_document`, fingerprint, `sha256`, name, `mime_type`, size and
 evidence `path`); `command` (authority, approving director, authority reference, reason and the
 family's own terms); and `result` (the register entry, request or executions it produced). Its
-`provided_by` is `company`, or `legacy_staff_workflow` when no preparing appointment exists. An
-appointment carries its appointee's name, capabilities, delegable capabilities, creation, expiry,
+`provided_by` is `company`, or `legacy_staff_workflow` when no preparing appointment exists; a
+particulars change a linked member made in their profile is not a company decision and is left out.
+An appointment carries its appointee's name, capabilities, delegable capabilities, creation, expiry,
 source (request, invitation, legacy owner, declaration version and text) and any revocation. A fact
 carries `recorded_at`, `recorded_by_name`, its preparing appointment, `sources` and `data`, with
 `provided_by: company`; an award states `is_entitlement: true`, and a contribution
@@ -990,7 +1034,8 @@ tenancy guard. An opening, import, correction or wallet link carries `provided_b
 names no company document: its copy is of the company's own upload, and its `document_type` is the
 upload's kind. A particulars change carries `previous_particulars`, the database's snapshot of the
 member's particulars it replaced (null where none were recorded, and for a change made before the
-one-step edit, whose `evidence` names its supporting copy instead). `approvals.json`'s `listed` is computed at the as-at time as the registry would, so
+one-step edit, whose `evidence` names its supporting copy instead), and `provided_by` `company` or,
+for a change a linked member made in their profile, `member`. `approvals.json`'s `listed` is computed at the as-at time as the registry would, so
 an active approval past its expiry is not listed, and `contracts.json` takes its registry addresses
 from it. `retain_until` is `FORMER_MEMBER_RETENTION_MONTHS` (84) after the member ceased
 ([s169(3)](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)).

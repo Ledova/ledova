@@ -199,7 +199,13 @@ These route groups have no bundled client and are kept deliberately:
   current source, substituting the role placeholders as the installer does, and drops removed
   triggers and functions, so an existing database ends as a fresh one does;
   `tokens/0004_one_step_particulars_edit` is the example. A function an earlier migration replays
-  from current source keeps its name and must still work against that migration's schema.
+  from current source keeps its name and must still work against that migration's schema:
+  `tokens/0007_register_follows_profile` changes three guards `0004` replays, and their new bodies
+  still install on `0004`'s schema because they read the added column only when they run.
+- A data step in a migration that also changes a guarded table settles its deferred checks
+  (`SET CONSTRAINTS ALL IMMEDIATE`) before Django runs the migration's deferred index and foreign-key
+  SQL, which PostgreSQL refuses while trigger events are pending; `tokens/0007` does this after its
+  backfill.
 - A migration that removes a model with stored files deletes them through the storage API once its
   transaction commits, as `tokens/0005_remove_member_certificate_requests` does. A callable an
   applied migration imports stays importable after its model goes, such as the path function in

@@ -6547,6 +6547,7 @@ export interface ApiComponents {
     RegisterMemberSelection: {
       currentShares: string;
       enteredOn: string | null;
+      followsProfile?: boolean;
       hasAwards?: boolean;
       lastCeasedOn: string | null;
       member: string;
@@ -6664,7 +6665,7 @@ export interface ApiComponents {
       member: string;
       name: string;
       preparedByName: string | null;
-      preparingAppointment: string;
+      preparingAppointment: string | null;
       previousParticulars: ApiComponents['schemas']['RegisterParticularsHeld'] | null;
       providedBy: string;
       reason: string;
@@ -6674,7 +6675,7 @@ export interface ApiComponents {
       reviewedBy: number | null;
       stage: string;
       status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
-      submittedBy: number;
+      submittedBy: number | null;
       supportingEvidence: string | null;
       uuid: string;
     };

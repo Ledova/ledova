@@ -36,6 +36,7 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.services.former_holders import retention_cutoff
+from tokens.services.member_events import current_associations
 from tokens.services.register import _member_identity, imported_membership_dates
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_decisions import DecisionFamily, decide, preview
@@ -678,14 +679,20 @@ def _apply(proposal, actor, decision):
                 effective_on=proposal.as_at,
                 recorded_by=actor,
             )
-    newer = {
+    imported = [row["member"] for row in proposal.members]
+    kept = {
         str(member)
         for member in RegisterMemberParticulars.objects.filter(
-            member_id__in=[row["member"] for row in proposal.members], as_at__gt=proposal.as_at
+            member_id__in=imported, as_at__gt=proposal.as_at
         ).values_list("member_id", flat=True)
+    } | {
+        str(member)
+        for member in current_associations(company_id=token.company_id, member__in=imported).values_list(
+            "member", flat=True
+        )
     }
     for row in proposal.members:
-        if row["member"] in newer:
+        if row["member"] in kept:
             continue
         RegisterMemberParticulars.objects.update_or_create(
             member_id=row["member"],

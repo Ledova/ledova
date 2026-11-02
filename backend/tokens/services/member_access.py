@@ -48,6 +48,7 @@ from tokens.services.register import (
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_awards import award_quantities
 from tokens.services.register_events import with_company_event_dates
+from tokens.services.register_particulars import apply_profile
 from users.models import UserAccount
 
 NOT_FOUND = "Member association or retained company record not found."
@@ -258,7 +259,7 @@ def accept_invitation(*, actor, code, user_account, confirmation):
         raise ValidationError("Confirm the invitation using the code supplied by the company.")
     digest = hashlib.sha256(code.encode()).hexdigest()
     invitation = get_object_or_404(MemberInvitation, code_sha256=digest)
-    with register_command(actor, invitation.company_id, "member_invitation_accept") as (company, current, _, _):
+    with register_command(actor, invitation.company_id, "member_invitation_accept") as (company, current, profile, _):
         _require_requester(current)
         invitation = MemberInvitation.objects.select_for_update().get(pk=invitation.pk)
         account = get_object_or_404(
@@ -279,7 +280,7 @@ def accept_invitation(*, actor, code, user_account, confirmation):
         with connections[current_alias()].cursor() as cursor:
             cursor.execute("SELECT set_config('app.member_invitation_code', %s, true)", [code])
         try:
-            return MemberAssociation.objects.create(
+            association = MemberAssociation.objects.create(
                 invitation=invitation,
                 company=company,
                 member=invitation.member,
@@ -287,8 +288,12 @@ def accept_invitation(*, actor, code, user_account, confirmation):
                 user_account=account,
                 accepted_email=invitation.intended_email,
             )
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute("SET CONSTRAINTS tokens_member_association_commit IMMEDIATE")
         except IntegrityError:
             raise RegisterChangeConflict() from None
+        apply_profile(current, profile, association)
+        return association
 
 
 def revoke_association(*, actor, association_id, appointment, idempotency_key, reason):

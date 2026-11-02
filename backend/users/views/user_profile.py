@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from shared.db import atomic
 from shared.views.base import AuthenticatedGenericViewSet
+from tokens.services.register_particulars import lock_profile_save
 from users.models.user_profile import UserProfile
 from users.serializers import UserProfileSerializer
 from users.serializers.account_actions import (
@@ -12,6 +13,7 @@ from users.serializers.account_actions import (
     DeletedAccountResponseSerializer,
 )
 from users.services import lifecycle
+from users.services.profile import save_profile
 
 
 class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, AuthenticatedGenericViewSet):
@@ -22,6 +24,17 @@ class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, Authent
     ordering_fields = ["created_at", "full_name"]
 
     scoped_model = UserProfile
+    operator_actions = frozenset({"partial_update"})
+    operator_actions_because = (
+        "A profile save that gives a full name or residential address brings the register particulars of every "
+        "company that currently links this person as a member up to date in the same transaction, and registers "
+        "are written only on the operator connection. Those companies and then this person's account are locked "
+        "first, as register commands lock a company and then its actor, and a save that waited behind an account "
+        "deletion stops there; then narrow() binds the save to the signed-in person's own "
+        "locked profile row, and the save marks its transaction so the profile trigger still refuses provider "
+        "identity results and any other person's row; the register guards accept only this person's own current "
+        "links and their profile's values."
+    )
 
     def narrow(self, queryset):
         queryset = queryset.filter(user_id=self.request.user.pk)
@@ -31,10 +44,11 @@ class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, Authent
         return queryset
 
     def perform_update(self, serializer):
-        serializer.save()
+        save_profile(self.request.user, serializer)
 
     @atomic()
     def partial_update(self, request, *args, **kwargs):
+        lock_profile_save(request.user)
         return super().partial_update(request, *args, **kwargs)
 
     @extend_schema(responses=DeletedAccountResponseSerializer)

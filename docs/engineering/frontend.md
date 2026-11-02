@@ -645,7 +645,8 @@ The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
 address: it chooses or creates a share class, then prepares the mirror import. The particulars
 change is one step: it sends the name and address the page read as `expected` and, once applied,
 lands on its record under Corrections. `appointmentForParticularsEdit` chooses its appointment: one
-holding `admin`, or `prepare`, `approve` and `apply`.
+holding `admin`, or `prepare`, `approve` and `apply`. A member row whose `followsProfile` is true
+gets no form: the page shows that the member keeps their particulars in their Ledova profile.
 Non-paid and employee-award grants are prepared inline in Issue shares.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
@@ -860,7 +861,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   renders the person only while the account, classes and holders are current; particulars, history
   and awards also need `hasCurrentRegisterReadAuthority` on settled appointments and their own settled
   read. Documents reads the person's retained attachments across classes; class details reads the
-  same links for its class. **Change particulars** rechecks a current appointment that can change
+  same links for its class. **Change particulars**, offered only when the member row's
+  `followsProfile` is not true, rechecks a current appointment that can change
   particulars (`appointmentForParticularsEdit`), adding documents rechecks current preparation
   authority, and attachment downloads require current register-read authority. While register work
   is held, Shareholders' Details links are disabled.

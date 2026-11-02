@@ -192,10 +192,10 @@ def particulars_changes(records) -> list:
             "reason": change.reason,
             "previous_particulars": change.previous_particulars,
             "evidence": _evidence(change),
-            "provided_by": _provided_by(change),
+            "provided_by": "member" if change.member_association_id else _provided_by(change),
             "decisions": _decisions(change),
             "status": change.status,
-            "reviewer": _name(change.reviewed_by),
+            "reviewer": None if change.member_association_id else _name(change.reviewed_by),
             "reviewed_at": change.reviewed_at,
             "rejection_reason": change.rejection_reason,
         }

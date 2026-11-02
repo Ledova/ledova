@@ -39,6 +39,17 @@ class RegisterParticularsChangeDecisionSerializer(RegisterDecisionSerializer):
 class RegisterParticularsChangeSerializer(RegisterDecidedSerializer):
     decisions = RegisterParticularsChangeDecisionSerializer(many=True, read_only=True)
     previous_particulars = RegisterParticularsHeldSerializer(read_only=True, allow_null=True)
+    submitted_by = serializers.SerializerMethodField()
+    reviewed_by = serializers.SerializerMethodField()
+
+    def get_provided_by(self, obj) -> str:
+        return "member" if obj.member_association_id else super().get_provided_by(obj)
+
+    def get_submitted_by(self, obj) -> int | None:
+        return None if obj.member_association_id else obj.submitted_by_id
+
+    def get_reviewed_by(self, obj) -> int | None:
+        return None if obj.member_association_id else obj.reviewed_by_id
 
     class Meta:
         model = RegisterParticularsChange
