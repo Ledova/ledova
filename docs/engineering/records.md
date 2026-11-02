@@ -889,9 +889,11 @@ has four sections, each after a heading row:
 Unknown company dates read `not recorded`; their retained ledger dates remain the period selector,
 not an inferred legal-event date. The report does not reconstruct missing history.
 
-An issue's amount paid is the money backing of the issuance it recorded and a member's the
-register's own; either reads the literal `not recorded` where not established exactly ([what the
-figures contain](../business/member-records.md#what-the-figures-contain)).
+An issue row's amount paid is the consideration of the fully paid external allotment that recorded
+it, when `_fully_paid_issues` returns its entry, even after a correction reverses it; any other
+issue row reads the literal `not recorded`. A member's amount paid is the register's own and reads
+`not recorded` where not established exactly ([what the figures
+contain](../business/member-records.md#what-the-figures-contain)).
 
 ### Outputs due computation
 
