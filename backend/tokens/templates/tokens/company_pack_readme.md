@@ -28,6 +28,8 @@ The pack carries the company, its share classes, each class's register of member
 | `classes/<class id>/class_rights.json` | Every company-supplied rights summary, retained class-document snapshot and historical plain document reference in revision order, with its actor, appointment, request key and recording time; these descriptions do not establish or verify legal rights |
 | `class_documents.json` | Each retained class document's company, class, rights revision, original filename, media type, size, SHA-256 and stored path |
 | `documents/evidence/class-rights/<evidence id>.<extension>` | The company-supplied class documents, with one copy of each file even when several rights revisions retain it |
+| `member_documents.json` | Under `links`, each document the company recorded for a member's holding in a class (a share certificate, shareholder agreement, subscription agreement or other supporting document): the member, the class, the opening it came from if any, its category, the snapshot recorded of the file, who recorded it under which appointment and when, and its path in the pack. Under `openings`, each document a register opening gave for a member: the member, the class, the opening and its status, its category, the snapshot recorded of the file, and its path |
+| `documents/evidence/shareholders/<evidence id>.<extension>` | The bytes of each of those member documents, as uploaded, named by the stored file's id |
 | `classes/<class id>/register.csv` | The class's register of members, present once its register has been opened |
 | `classes/<class id>/entries.json` | Every entry in the class's register, in order, each with the exact text its hash was computed over |
 | `classes/<class id>/authority.json` | The class's register openings, imports, corrections and register instructions: each one's authority, terms, evidence and decision, and for an opening the chain boundary it was prepared against |
@@ -123,7 +125,7 @@ Each settlement is the instrument of a transfer. `typed_data` is the order both 
 {% endif %}
 This pack carries {{ copies }} evidence cop{{ copies|pluralize:"y,ies" }}.
 
-Verification evidence Ledova holds for members is not in this pack: their identity checks. Each person gave it to Ledova to be verified, and it is not a record of the company. It runs on its own retention clock, and a verification does not carry over to another company or provider, which verifies members itself.
+Verification evidence Ledova holds for members is not in this pack: their identity checks. Each person gave it to Ledova to be verified, and it is not a record of the company. A verification does not carry over when the register moves: whoever keeps it next verifies members again.
 
 ## 3. What the evidence proves and does not
 
