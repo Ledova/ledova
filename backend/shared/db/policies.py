@@ -153,10 +153,6 @@ POLICIES = {
     "tokens_ordermodificationlog": (THROUGH_THE_ORDER_IT_MODIFIED, THROUGH_THE_ORDER_IT_MODIFIED),
     "tokens_shareissuance": (THROUGH_ITS_TOKEN, "false"),
     "tokens_orderactionsubmission": (_owned("owner_account_id"), _owned("owner_account_id")),
-    "companies_companydocument": (
-        _company("company_id", ADMINISTRABLE_COMPANIES),
-        "false",
-    ),
     "companies_companyauthorityrequest": (f"requester_id = {PRINCIPAL}", "false"),
     "companies_companyappointment": (f"appointee_id = {PRINCIPAL}", "false"),
     "companies_companyteaminvitation": (f"inviter_id = {PRINCIPAL}", "false"),
@@ -197,8 +193,7 @@ POLICIES = {
     "tokens_registerimport": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerinstruction": (
         f"{_company('company_id', VISIBLE_COMPANIES)} AND preparing_appointment_id IS NULL",
-        f"{_company('company_id', MANAGEABLE_COMPANIES)} AND preparing_appointment_id IS NULL "
-        f"AND submitted_by_id = {PRINCIPAL} AND status = 'submitted'",
+        "false",
     ),
     "tokens_registermemberparticulars": ("member_id IN (SELECT uuid FROM tokens_registermember)", "false"),
     "tokens_registergrant": (f"award_id IS NULL AND {_company('company_id', VISIBLE_COMPANIES)}", "false"),
@@ -240,7 +235,7 @@ READS_WIDER_THAN_OWNERSHIP = {
         "shared/db/policies.py companies_company read policy through app_company_discovery_ids",
         "The fixed-search-path definer returns only company UUIDs for a non-null principal and the existing "
         "deployed/nonempty-address market term. It stops company-token policy recursion "
-        "without admitting private company documents, profiles or basic administration.",
+        "without admitting private company profiles or basic administration.",
     ),
     "Current personal company administration": (
         "companies/querysets/company.py administrable_by; companies/services/administration.py company_contact",
@@ -412,7 +407,8 @@ OPERATOR_ONLY = {
     "connection. Class-document uploads require ADMIN; other kinds require preparation authority. "
     "The upload route returns only the uploader's own row; company-private shareholder and class attachments list "
     "their retained metadata and download through their exact record links. The "
-    "uploader's own prepare commands accept them through own_evidence_bytes, and grant preparation also accepts an "
+    "uploader's own prepare commands accept them through own_evidence_bytes, as does the company owner's retained "
+    "register instruction, submitted while a current administrator, and grant preparation also accepts an "
     "award's retained agreement evidence. Action-specific proposals, agreements, receipts, awards, vestings, endings "
     "and reversals keep their own copies; shareholder attachments retain immutable links to the original file. "
     "The pause and capital _state checks, run for their proposals "

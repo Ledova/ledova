@@ -375,7 +375,7 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
 
 ### What the pack carries
 
-- The company, its documents, and the evidence copy each register change relied on.
+- The company and the evidence copy each register change relied on.
 - Every share class with its register: the register CSV, every entry with the fingerprints that
   chain it, former members with the date s169(3) keeps each until, reconciliations with the chain
   and their acknowledgements, completed effects still waiting to be recorded, and the certificates
@@ -404,19 +404,18 @@ The README ends with the owner's statement of what the pack grants
 Of a member, only what the register holds leaves: name, residential address, holding, linked wallets
 and identity source.
 
-| Excluded                                                                                  | Why                                                                                                                                                                                                                |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Members' email, phone, date of birth, citizenship and financial profile                   | What members gave Ledova, not the register's particulars ([position 10](../legal/positions.md#10-privacy))                                                                                                         |
-| Identity checks                                                                           | The person's records with Ledova, which the company never reads                                                                                                                                                    |
-| Unmatched orders                                                                          | Investors' private orders                                                                                                                                                                                          |
-| Records of who took register outputs                                                      | Ledova's audit; the company sees records of its own inspection copies and packs only, never of an output produced in admin ([position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)) |
-| Signed transaction bytes                                                                  | They could still be broadcast                                                                                                                                                                                      |
-| The company owner's email                                                                 | Contact details of a platform account, not company records                                                                                                                                                         |
-| A company document's staff notes, rejection reason, verifier and verification fingerprint | Ledova's own review of the document, which the company's own view does not show                                                                                                                                    |
-| Ledova's source code                                                                      | The software licence is noncommercial; the pack carries the contract interface files and the owner's statement ([position 5](../legal/positions.md#5-software-licensing-and-commercial-permission))                |
+| Excluded                                                                | Why                                                                                                                                                                                                                |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Members' email, phone, date of birth, citizenship and financial profile | What members gave Ledova, not the register's particulars ([position 10](../legal/positions.md#10-privacy))                                                                                                         |
+| Identity checks                                                         | The person's records with Ledova, which the company never reads                                                                                                                                                    |
+| Unmatched orders                                                        | Investors' private orders                                                                                                                                                                                          |
+| Records of who took register outputs                                    | Ledova's audit; the company sees records of its own inspection copies and packs only, never of an output produced in admin ([position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)) |
+| Signed transaction bytes                                                | They could still be broadcast                                                                                                                                                                                      |
+| The company owner's email                                               | Contact details of a platform account, not company records                                                                                                                                                         |
+| Ledova's source code                                                    | The software licence is noncommercial; the pack carries the contract interface files and the owner's statement ([position 5](../legal/positions.md#5-software-licensing-and-commercial-permission))                |
 
 No file is built from these areas except the register's own particulars, and the only stored files
-the pack opens are the company's documents and evidence copies. Platform account numbers leave in
+the pack opens are evidence copies. Platform account numbers leave in
 two places only, even where the account is a member's: decision records give the number of each
 person who prepared or recorded one, or made one of its decisions, and of each appointee they relied
 on; the fingerprint input of each register entry carries the number of the account that recorded
@@ -442,7 +441,7 @@ records out, and the company asks platform staff for the broader pack.
 Platform staff produce the full pack only on the company's written instruction naming who it is
 for, or on a document that legally compels disclosure, referenced in its place
 ([decision](../decisions.md#the-company-pack)). You need an active staff account with **Can change
-company pack** and **Can view company document**; company permissions do not include the first.
+company pack** and **Can view company pack**; company permissions include neither.
 
 1. Keep the instruction or the compelling document, and note its reference and who the pack is for.
 2. In **Admin → Companies → Company packs**, find the company and choose **Produce a company pack**.
@@ -450,7 +449,7 @@ company pack** and **Can view company document**; company permissions do not inc
 
 The download, `company-pack-ACN-YYYYMMDDTHHMMSSZ.zip`, is named for the moment the records were
 read, in UTC. It carries members' names and residential addresses, decision-makers' names and the
-company's documents: give it unchanged to the recipient the instruction names.
+company's evidence copies: give it unchanged to the recipient the instruction names.
 
 ### Recording and refusals
 
@@ -487,9 +486,6 @@ What a recipient should know (the builder's own limits are in
   show.
 - An approval change still executing is carried with its status but not its transaction attempts;
   the README counts it as unresolved.
-- A company document has no fingerprint of its own apart from the manifest's, so a reader can check
-  an evidence copy against its record but a document only against the manifest. A document held
-  only as a web address is listed, not fetched.
 
 Next: [the register of members](register.md),
 [legal positions](../legal/positions.md) and

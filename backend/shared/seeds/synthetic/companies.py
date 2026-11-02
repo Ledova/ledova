@@ -3,12 +3,10 @@ from datetime import timedelta
 from django.utils import timezone
 
 from companies.identity import officeholder_declaration
-from companies.models import Company, CompanyStatus, DocumentType
+from companies.models import Company, CompanyStatus
 from companies.services.company import register_company
 from shared.db import atomic
 from shared.seeds.synthetic.clock import frozen
-from shared.seeds.synthetic.identities import spaced_abn
-from shared.seeds.synthetic.paper import acn_text, company_document, pdf, verified
 from wallets.models import Wallet
 
 ATTESTATION_FIELDS = (
@@ -25,14 +23,8 @@ ATTESTATION_FIELDS = (
 def apply_company(plan, seeded):
     company = _register(plan, seeded)
     seeded.companies[plan.key] = company
-    records = {document.document_type: _upload(document, plan, company) for document in plan.documents}
-    events = [(step.at, step, None) for step in plan.steps]
-    events += [(document.verified_at, None, document) for document in plan.documents if document.verified_at]
-    for at, step, document in sorted(events, key=lambda event: event[0]):
-        if step:
-            _transition(plan, step, records, seeded)
-        else:
-            verified(records[document.document_type], seeded.users["documents"], at=at)
+    for step in sorted(plan.steps, key=lambda step: step.at):
+        _transition(plan, step, seeded)
     seeded.companies[plan.key] = Company.objects.get(pk=company.pk)
     return seeded.companies[plan.key]
 
@@ -73,28 +65,6 @@ def _register(plan, seeded):
         return register_company(owner, plan.name, plan.acn, {"first_name": first, "last_name": last}, **_details(plan))
 
 
-def _upload(document, plan, company):
-    label = DocumentType(document.document_type).label
-    content = pdf(
-        label,
-        [
-            plan.name,
-            acn_text(plan.acn),
-            f"ABN {spaced_abn(plan.abn)}",
-            f"Document: {label}",
-            f"Prepared: {document.uploaded_at:%d %B %Y}",
-        ],
-    )
-    return company_document(
-        company,
-        document.document_type,
-        document.name,
-        content,
-        at=document.uploaded_at,
-        valid_from=document.valid_from,
-    )
-
-
 def _attest(company, plan, staff):
     company.declarant_name = plan.declarant_name
     company.board_resolution_reference = plan.board_resolution_reference
@@ -105,7 +75,7 @@ def _attest(company, plan, staff):
     company.save(update_fields=list(ATTESTATION_FIELDS))
 
 
-def _transition(plan, step, records, seeded):
+def _transition(plan, step, seeded):
     staff = seeded.users["operations"]
     company = Company.objects.get(acn=plan.acn)
     if step.method == "start_review":
@@ -137,11 +107,6 @@ def _transition(plan, step, records, seeded):
                 info_request_reason=step.reason,
                 additional_info_response="",
             )
-            for document in plan.documents:
-                if document.rejection_reason:
-                    record = records[document.document_type]
-                    record.rejection_reason = document.rejection_reason
-                    record.save(update_fields=["rejection_reason", "updated_at"])
         elif step.method == "resubmit":
             _historical_transition(
                 company,

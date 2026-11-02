@@ -54,7 +54,6 @@ SPECTACULAR_SETTINGS = {
         "ApprovalSufficientEnum": [(False, False)],
         "ProtocolVersionEnum": [(1, 1)],
         "CapitalRequestStatusEnum": "tokens.models.choices.RequestStatus",
-        "CompanyDocumentDocumentTypeEnum": "companies.models.document.DocumentType",
         "CompanyStatusEnum": "companies.models.company.CompanyStatus",
         "ShareTokenStatusEnum": "tokens.models.choices.ShareTokenStatus",
         "SupportedWalletChainEnum": "shared.constants.supported_chain_choices",

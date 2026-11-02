@@ -35,7 +35,7 @@ except Shareholders, which lists each person with only the classes they hold bel
 A stepped preparation (register setup, an investor issue, a transfer) is one card: its title names the class or
 the task, `FormSteps` sits at its top, each step has a small heading, and one primary action ends the step.
 Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
-Company information, company documents, authority records and company team use this workspace frame too.
+Company information, authority records and company team use this workspace frame too.
 Team invitations and acceptance replace their collection with one focused inline task, a card titled
 **Invite a company user** or **Accept a company invitation** that retains its mounted editors and
 drafts; someone with no appointments, other than a company's owner, opens straight on accepting one. The invitation's appointment
@@ -43,7 +43,7 @@ choice starts each option with its appointment date. Team's appointment rows sho
 person, actions, any delegation (**May delegate all of these** when it matches the actions), status
 or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
-acceptance or deadline and the appointment's expiry. Company documents has its own view, with Category and File in the inline upload.
+acceptance or deadline and the appointment's expiry.
 their creation and record actions in the same footer. Their short named/status summaries keep
 secondary facts and copyable technical references on demand.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
@@ -405,7 +405,7 @@ opening the people list. Documents uses the same pattern for **Certificates** (t
 one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
 **Team** and **Activation** where permitted, without an extra overview page. A group with only one
 permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
-there. Profile always holds personal information. Company documents, Team, Activation and
+there. Profile always holds personal information. Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
 Account has three cards: **Security** (the identity check's status with **Review**, which the app
 leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
@@ -416,8 +416,6 @@ account with **Delete**), with their existing confirmations. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation.
-**Company files**, the Company documents page, follows Documents for an administrator, as its own item, until step 3 of
-[#1491](https://github.com/Ledova/ledova/issues/1491) removes it.
 **Settings** comes last whatever company is selected.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
@@ -432,7 +430,7 @@ in page headers or a Company administration link card.
 `DESTINATIONS` (`packages/shared/src/constants/ui/destinations.ts`) names the signed-in pages,
 including Ledger, its views (Shareholders, Employee share scheme, Documents) and tasks
 (Issue shares, Transfer shares, History, Corrections), Set up your ledger, Home's Documents
-view, Certificates and Company documents. Old Dashboard and Ledger certificate links redirect to
+view and Certificates. Old Dashboard and Ledger certificate links redirect to
 Certificates with their company and class. The web exposes
 only Issue shares, Transfer shares and Corrections,
 replacing an incoming `#history` with `#corrections` while retaining company/class context. The web sidebar,
@@ -440,7 +438,7 @@ page titles and parent links use `pageTitle`
 (`dashboard/src/utils/destinations.ts`), which titles Home as Dashboard on the web. Dashboard is one
 company-centred explorer for all relationships, without a separate Your shares navigation mode.
 Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme shows as Employee
-scheme and Company documents as Company files, each with the full name as the link's `title`. `DESTINATION_PARENTS`
+scheme, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
 link in the title row for a contextual task: Back to Team on Representative authority, Back to
@@ -527,7 +525,7 @@ request" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx
 its text is the dialog's description, its action needs whatever enabled the action that opened it,
 and it stays open and busy until the request ends. It confirms withdrawing a representative
 authority request and revoking member access.
-Deleting a company document or the account, and revoking a company appointment, use the
+Deleting the account and revoking a company appointment use the
 same destructive dialog with their own text. Reversible actions, such as signing out, turning a switch off or removing a row from
 an unsaved form, aren't confirmed. Dismissing a notification archives it at once. Register
 decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are

@@ -1,4 +1,4 @@
-from companies.models import CompanyAppointment, CompanyDocument
+from companies.models import CompanyAppointment
 from tokens.exceptions import RegisterIntegrityError
 from tokens.models import (
     RegisterAgreement,
@@ -51,11 +51,6 @@ def _source(record, evidence_field, fingerprint_field, snapshot_field, document_
         evidence.company_id != record.company_id
         or evidence.sha256 != getattr(record, fingerprint_field)
         or evidence.sha256 != snapshot.get("sha256")
-    ):
-        _refuse(record)
-    if (
-        document_id is not None
-        and CompanyDocument.objects.filter(pk=document_id).exclude(company_id=record.company_id).exists()
     ):
         _refuse(record)
     if snapshot.get("company") is not None and snapshot["company"] != str(record.company_id):

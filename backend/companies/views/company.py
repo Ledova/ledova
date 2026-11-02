@@ -31,7 +31,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
     operator_actions = frozenset({"list", "retrieve", "activate", "pack", "packs"})
     operator_actions_because = (
         "Company metadata reads retain the exact current owner alongside current personal administration. "
-        "Private documents and contact remain separately administration-scoped. Activation requires "
+        "The contact remains separately administration-scoped. Activation requires "
         "the exact current personal administrator appointment and actor-bound service checks. Company pack "
         "download captures one supported complete archive, refuses restricted categories and rechecks the "
         "personal administrator and tenant before recording the immutable delivery audit. The list of earlier "

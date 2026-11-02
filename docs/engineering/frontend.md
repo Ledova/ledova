@@ -363,8 +363,6 @@ Certificates. There is no separate Your certificates item. Legacy
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
 preserving company, class and navigation state. A group without a meaningful overview opens its
 default child, without an extra Overview page or duplicate navigation.
-Company files, the Company documents page (`/documents/company`), follows Documents as its own item for a
-company administrator (`canManage`), with the page's full name as the link's `title`.
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
 Team and Activation where permitted. Its default is Profile (`/settings#profile`), combining personal
 details and permitted company information. Account
@@ -372,9 +370,8 @@ details and permitted company information. Account
 details and Company invitation cards, and Data and privacy (`/settings#data`) holds Export data and
 Delete account in the same rows, with **Export** and **Delete**. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
 sections keep their separate records, editors and authority checks. Existing `/user-profile`,
-`/company` and `/settings#company-recorded-details` links, like any other Settings hash, redirect to
-Profile, and `/company#documents` redirects to Company documents. Activation's identity step links to
-Account.
+`/company` (whatever its hash) and `/settings#company-recorded-details` links, like any other Settings
+hash, redirect to Profile. Activation's identity step links to Account.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
 Team remains available for company-invitation acceptance; Account keeps an acceptance
 entry, its Company invitation card, before company access is granted. The sidebar has no More group or Help & Support link;
@@ -745,7 +742,6 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [An employee award's page](../business/issuing-shares.md#employee-awards-and-vesting)                        | `/company/ledger/:uuid/awards/:award?company=`                                                                                                           | everyone |
 | [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid?company=`                                                                                                                         | everyone |
 | [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`, `/company/listing`                         | everyone |
-| [Company documents](../business/companies.md#company-information-and-documents)                              | `/documents/company`; legacy `/company#documents` redirects with company context                                                                         | everyone |
 | [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#account`, `/settings#data`; aliases `/user-profile`, `/company`, `/settings#company-recorded-details`          | everyone |
 
 ### Page mechanics
@@ -825,7 +821,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Company pack stays at company scope. `documentTask` isolates one focused output form in the existing
   frame. Its keyed forms retire previews when their context or source readiness changes; draft
   retention depends on each form's lifetime. Current appointment and exact-source validation still
-  apply. Supporting attachments stay with their person, class or company Settings. Employee share
+  apply. Supporting attachments stay with their person or class. Employee share
   scheme uses the
   shared class-card spacing and shows only the selected class, with one preparation action below its records.
   Share class selection lives in the page heading's Filters popover and locks while award preparation or its recovery is open; all class controllers stay

@@ -62,9 +62,6 @@ export const COMPANY_ENDPOINTS = {
   PACKS: (uuid: string) => `/api/v1/companies/${uuid}/packs/` as const,
   BASE: '/api/v1/companies/',
   DETAIL: (uuid: string) => `/api/v1/companies/${uuid}/` as const,
-  DOCUMENTS: (uuid: string) => `/api/v1/companies/${uuid}/documents/` as const,
-  DOCUMENT_DETAIL: (companyUuid: string, documentUuid: string) =>
-    `/api/v1/companies/${companyUuid}/documents/${documentUuid}/` as const,
   ACTIVATE: (uuid: string) => `/api/v1/companies/${uuid}/activate/` as const,
 } as const;
 

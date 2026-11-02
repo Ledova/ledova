@@ -1,18 +1,18 @@
 {% extends "admin/base_site.html" %}
 {% block content %}
 <h1>Review register instruction</h1>
-{% if original.kind == "transfer" %}<p>Approval records your verification that the named director's documentary authority approves registering exactly the settled transfers below, and that the director is neither their seller nor their buyer. Applying lets the register record each listed transfer, and records whatever was waiting for it; each entry names the seller, whose signed order is the instrument, as its recorder. Document verification alone does not establish director authority.</p>
-{% else %}<p>Approval records your verification that the named director's documentary authority approves exactly the issues below, and that the director is not their recipient. Applying approves each issuance request still awaiting approval with you as its reviewer, so the issue's register entry names you as its recorder. It records any listed issue approved before register instructions that has completed and is waiting. Document verification alone does not establish director authority.</p>
+{% if original.kind == "transfer" %}<p>Approval records your verification that the named director's documentary authority approves registering exactly the settled transfers below, and that the director is neither their seller nor their buyer. Applying lets the register record each listed transfer, and records whatever was waiting for it; each entry names the seller, whose signed order is the instrument, as its recorder. The evidence is the company's own upload.</p>
+{% else %}<p>Approval records your verification that the named director's documentary authority approves exactly the issues below, and that the director is not their recipient. Applying approves each issuance request still awaiting approval with you as its reviewer, so the issue's register entry names you as its recorder. It records any listed issue approved before register instructions that has completed and is waiting. The evidence is the company's own upload.</p>
 {% endif %}<dl>
-<dt>Company as submitted</dt><dd>{{ original.evidence_snapshot.company_identity.name }}</dd>
-<dt>Company identifiers</dt><dd>ACN {{ original.evidence_snapshot.company_identity.acn }}; ABN {{ original.evidence_snapshot.company_identity.abn }}</dd>
+<dt>Company</dt><dd>{{ original.company.name }}</dd>
+<dt>Company identifiers</dt><dd>ACN {{ original.company.acn }}; ABN {{ original.company.abn }}</dd>
 <dt>Share class</dt><dd>{{ original.token.symbol }}</dd>
 <dt>Instruction</dt><dd>{{ original.get_kind_display }}</dd>
 <dt>Approving director</dt><dd>{{ original.approving_director }}</dd>
 <dt>Authority reference</dt><dd>{{ original.authority_reference }}</dd>
 <dt>Reason</dt><dd>{{ original.reason }}</dd>
 <dt>Retained evidence</dt><dd>{{ evidence_link }}</dd>
-<dt>Verified evidence fingerprint</dt><dd>{{ original.evidence_fingerprint }}</dd>
+<dt>Evidence fingerprint</dt><dd>{{ original.evidence_fingerprint }}</dd>
 </dl>
 <table>
 {% if original.kind == "transfer" %}<thead><tr><th>Settlement</th><th>Seller wallet</th><th>Seller as identified</th><th>Buyer wallet</th><th>Buyer as identified</th><th>Shares</th><th>Class</th><th>Completed</th><th>State</th></tr></thead>

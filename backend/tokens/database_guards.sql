@@ -2795,7 +2795,7 @@ BEGIN
         IF NEW.member_id IS NOT NULL OR NEW.nomination_id IS NOT NULL OR NEW.wallet_approval_id IS NOT NULL OR NEW.request_id IS NOT NULL
             OR NEW.snapshot IS NOT NULL OR NEW.intent IS NOT NULL OR NEW.approval_decision_id IS NOT NULL
             OR NEW.terms_on IS NOT NULL OR NEW.terms IS NOT NULL OR NEW.acceptance_required IS NOT NULL
-            OR NEW.authority_evidence_id IS NOT NULL OR NEW.terms_evidence_id IS NOT NULL OR NEW.terms_fingerprint IS NOT NULL
+            OR NEW.terms_evidence_id IS NOT NULL OR NEW.terms_fingerprint IS NOT NULL
             OR NEW.terms_snapshot IS NOT NULL OR NULLIF(NEW.terms_file, '') IS NOT NULL OR NEW.acceptance_evidence_id IS NOT NULL
             OR NEW.acceptance_fingerprint IS NOT NULL OR NEW.acceptance_snapshot IS NOT NULL OR NULLIF(NEW.acceptance_file, '') IS NOT NULL
             OR NEW.intent_digest IS NOT NULL THEN
@@ -4027,6 +4027,8 @@ AS $function$
 DECLARE
     owner bigint;
     item_count bigint;
+    principal bigint;
+    authority_copy tokens_registerevidence;
 BEGIN
     IF TG_OP = 'DELETE' THEN
         RAISE EXCEPTION 'Retain register instructions and their authority evidence' USING ERRCODE = '23514';
@@ -4039,26 +4041,31 @@ BEGIN
     END IF;
     IF TG_OP = 'INSERT' THEN
         IF jsonb_typeof(NEW.items) IS DISTINCT FROM 'array' THEN
-            RAISE EXCEPTION 'Register instructions require exact current intent and verified company evidence'
+            RAISE EXCEPTION 'Register instructions require exact current intent and the company''s own evidence'
                 USING ERRCODE = '23514';
         END IF;
+        principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
         SELECT owner_id INTO owner FROM companies_company WHERE uuid = NEW.company_id FOR KEY SHARE;
+        SELECT * INTO authority_copy FROM tokens_registerevidence WHERE uuid = NEW.authority_evidence_id;
         SELECT count(*) INTO item_count FROM jsonb_array_elements(NEW.items);
-        IF NEW.status <> 'submitted' OR NEW.reviewed_by_id IS NOT NULL OR NEW.reviewed_at IS NOT NULL
+        IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL
+            OR NEW.submitted_by_id IS DISTINCT FROM principal
+            OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_instruction_submit'
+            OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text
+            OR NEW.status <> 'submitted' OR NEW.reviewed_by_id IS NOT NULL OR NEW.reviewed_at IS NOT NULL
             OR NEW.rejection_reason <> '' OR owner IS DISTINCT FROM NEW.submitted_by_id OR NEW.kind NOT IN ('issue', 'transfer')
+            OR NOT companies_locked_administration(NEW.company_id)
             OR NOT EXISTS (SELECT 1 FROM tokens_sharetoken t WHERE t.uuid = NEW.token_id
                 AND t.company_id = NEW.company_id)
             OR length(btrim(NEW.approving_director)) = 0
             OR length(btrim(NEW.authority_reference)) = 0 OR length(btrim(NEW.reason)) = 0
-            OR NEW.evidence_fingerprint !~ '^[0-9a-f]{64}$'
             OR NEW.file !~ ('^companies/' || NEW.company_id || '/register-instructions/' || NEW.uuid
                 || '/[0-9a-f-]{36}[.]bin$')
-            OR NOT EXISTS (SELECT 1 FROM companies_companydocument doc WHERE doc.uuid = NEW.source_document
-                AND doc.company_id = NEW.company_id AND doc.is_verified AND doc.verified_by_id IS NOT NULL
-                AND doc.verified_fingerprint = NEW.evidence_fingerprint)
-            OR NEW.evidence_snapshot->>'document' IS DISTINCT FROM NEW.source_document::text
-            OR NEW.evidence_snapshot->>'company' IS DISTINCT FROM NEW.company_id::text
-            OR COALESCE(NEW.evidence_snapshot->>'sha256', '') !~ '^[0-9a-f]{64}$'
+            OR NEW.source_document IS NOT NULL
+            OR authority_copy.uuid IS NULL OR authority_copy.company_id <> NEW.company_id
+            OR authority_copy.kind <> 'authority' OR authority_copy.uploaded_by_id <> NEW.submitted_by_id
+            OR NEW.evidence_fingerprint IS DISTINCT FROM authority_copy.sha256
+            OR NEW.evidence_snapshot IS DISTINCT FROM tokens_register_evidence_snapshot(authority_copy)
             OR item_count = 0
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.items) item
                 WHERE NEW.kind = 'transfer' AND (jsonb_typeof(item) IS DISTINCT FROM 'object'
@@ -4087,7 +4094,7 @@ BEGIN
                 COALESCE(item->>'request', item->>'settlement'))
                 FROM jsonb_array_elements(NEW.items) item)
         THEN
-            RAISE EXCEPTION 'Register instructions require exact current intent and verified company evidence'
+            RAISE EXCEPTION 'Register instructions require exact current intent and the company''s own evidence'
                 USING ERRCODE = '23514';
         END IF;
         RETURN NEW;

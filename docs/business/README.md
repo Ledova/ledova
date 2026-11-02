@@ -24,10 +24,9 @@ company, Ledova mirrors the ownership records the company supplies
 - Opening the mirror records shares that already exist. It is never a fresh issue, a payment or a
   chain mint, and a later tokenisation mirrors existing holdings rather than issuing them again.
 - Company details, uploaded documents, member particulars, the ASIC totals a company states and the
-  source references it gives are shown as provided by the company. Apart from the document check
-  behind retained instructions
-  ([staff verification](companies.md#staff-verification-of-a-company-document)), Ledova staff
-  verify none of them.
+  source references it gives are shown as provided by the company, and Ledova staff verify none of
+  them ([decision](../decisions.md#company-documents-removed)). Staff review only the directors'
+  instructions behind settled transfers and retained issues before applying them.
 - The company is responsible for its information, its ASIC filings and its legal obligations, as
   the Terms a representative accepts at signup say. Ledova checks neither a company's identifiers
   and name against a business register nor a representative's mandate.
@@ -75,8 +74,6 @@ Platform staff still perform these tasks, each described where linked:
 - review the director instructions behind settled market transfers and retained issues
   ([settled transfers](register.md#settled-transfer-instructions);
   [retained issues](register.md#retained-issue-instructions));
-- verify the company documents those instructions rely on
-  ([staff verification](companies.md#staff-verification-of-a-company-document));
 - issue a compliance warning, suspend, delist or reinstate a company
   ([staff company controls](companies.md#staff-company-controls));
 - review compliance alerts from identity screening and transaction monitoring
@@ -237,7 +234,6 @@ the company information they may read. The sidebar keeps focused tasks for the s
   Shareholders opens the people list, with Employee scheme and Member access.
   Documents opens one Certificates page for company and member records, with Inspection copies and
   Company pack where company access permits them.
-- Company files, the company's supporting documents on the Company documents page, follows for its administrators.
 - Settings comes last whatever company is selected. It keeps personal Profile, Account and Data and privacy, with company information, Team and Activation according
   to current access.
 

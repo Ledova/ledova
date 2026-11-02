@@ -34,8 +34,6 @@ export {
   registerCompany,
   getCompany,
   updateCompany,
-  uploadCompanyDocument,
-  deleteCompanyDocument,
   activateCompany,
   createCompanyPack,
   getCompanyPacks,

@@ -251,8 +251,7 @@ pickers or a workspace or role selector. Company appointments and actual member 
 available records and actions; choosing a company grants neither.
 
 Settings opens Profile, with **Account** and **Data and privacy** beside it for everyone. Team and
-Activation appear where company access permits, and company administrators open the company's
-documents from **Company files** in the sidebar. Team remains reachable for accepting
+Activation appear where company access permits. Team remains reachable for accepting
 a company invitation. Before company access is granted, **Settings → Account → Company invitation**
 provides **Accept invitation**, opening the same guarded workflow. Member access stays
 under company [Shareholders](register.md#the-register-page).

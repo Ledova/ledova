@@ -1,11 +1,11 @@
 import hashlib
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 
 from companies.models import CompanyCapability
-from companies.services.document_review import private_document_bytes
 from shared.uploads import read_bounded, validate_upload
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterEvidence, RegisterEvidenceKind
@@ -27,8 +27,9 @@ def evidence_snapshot(evidence):
 
 def matching_bytes(stored, size, digest):
     try:
-        raw = private_document_bytes(stored)
-    except ValidationError:
+        with stored.open("rb") as source:
+            raw = source.read(settings.UPLOAD_MAX_BYTES + 1)
+    except (OSError, ValueError):
         raw = b""
     if len(raw) != size or hashlib.sha256(raw).hexdigest() != digest:
         raise ValidationError("A retained evidence file no longer matches its record. Upload it and prepare again.")

@@ -241,8 +241,8 @@ removal of test data still respects. The API deletes neither a company nor a sha
 class instead. Deleting a wallet cascades its whitelist entry and that entry's company approvals and
 leaves the approval on chain; durable [whitelist commands](chain.md#whitelist-changes) keep their
 own identity. Allotment identity stamps keep the identity resolved at issue, which treasury
-relabelling or a current profile guess must not replace. Company documents and registry-check
-history are application evidence, not membership rows.
+relabelling or a current profile guess must not replace. Activation receipts are application
+evidence, not membership rows.
 
 ## Register commands
 
@@ -697,14 +697,25 @@ withdrawals and fulfilments with their guards, deleting each fulfilment's stored
 The workflow is in [retained issue
 instructions](../business/register.md#retained-issue-instructions) and [settled-transfer
 instructions](../business/register.md#settled-transfer-instructions). `POST register-instructions/`
-submits the company owner's instruction; reads list those of companies whose register the caller may
-read, and `{uuid}/file/` serves the retained authority file. The schema leaves `items` free-form: an
+submits the company owner's instruction as a bounded company command on the operator connection.
+The owner must be a current administrator of the company (a current personal `admin` appointment,
+with a verified identity where the operator requires it, or the draft setup exception), as
+`require_company_administration` checks; an identical retry returns the retained instruction
+first. `authority_evidence` names an `authority` upload (`POST register-evidence/`) the owner made
+for the company, of which the instruction keeps its own copy, upload snapshot and SHA-256, as
+register commands do. Its database guard refuses any other evidence, a `source_document`, another
+submitter than the company's owner, an owner who is not a current administrator
+(`companies_locked_administration`) and an insert outside that command, and the app role writes no
+instruction. Reads list those of companies whose register the caller may read, and `{uuid}/file/`
+serves the retained authority file. The schema leaves `items` free-form: an
 `issue` item is `{"request": "<uuid>", "recipient": "0x…", "amount": "100"}` and a `transfer` item
 `{"settlement": "<uuid>", "seller": "0x…", "buyer": "0x…", "amount": "25"}`, from the waiting list
 (a waiting transfer's `source` is the settlement, its `wallets` the seller's then the buyer's, its
 `shares` the amount). Staff review in admin rechecks a reviewer-bound, expiring confirmation, the
 retained evidence and every item under the company and share-class locks, then records whatever
-waited for the instruction in one transaction. Instructions are immutable and undeletable; identical
+waited for the instruction in one transaction. An instruction still waiting with a staff-verified
+company document, from before company documents were
+[removed](../decisions.md#company-documents-removed), can only be rejected. Instructions are immutable and undeletable; identical
 submissions and decisions are idempotent, and conflicting UUID reuse is refused.
 
 ### Operator transaction boundary
@@ -918,7 +929,7 @@ One builder, `_build_company_pack` in
 and the staff row action on **Company packs**, a `Company` proxy that only creates permissions
 (`produce_company_pack`, from [companies/admin/pack.py](../../backend/companies/admin/pack.py), the
 broader retained scope, needing `companies.change_companypack` and
-`companies.view_companydocument`).
+`companies.view_companypack`).
 
 The company route must run outside an existing transaction. It binds the exact current `admin`
 appointment in one durable transaction, builds the pack, then in a second rechecks the appointment,
@@ -964,9 +975,8 @@ table column, link or tag. Values Ledova produces are left as they are, and the 
 ### Pack files
 
 - `README.md`, `manifest.json`, `company.json`, `approvals.json`, `wallet_links.json`,
-  `particulars_changes.json`, `documents.json` and `company_mandates.json` ([decision
+  `particulars_changes.json` and `company_mandates.json` ([decision
   records](#company-decision-records)).
-- `documents/<document id>.<extension>`: each company document Ledova holds a file for, as uploaded.
 - `documents/evidence/<record kind>/<record id>.<extension>`: the retained copy behind each
   authority or decision record; `documents/evidence/<record kind>-<source>/<record id>.<extension>`
   a record's second source (an import's `asic` extract, a grant's or chain grant's `terms` and
@@ -1005,8 +1015,9 @@ facts `awards`, `vestings`, `award_ends`, `vesting_reversals`, `agreements` and 
 `appointments` any of them used. A decision record carries its company and class, preparer and
 `prepared_at`, `status`, `approval_decision`, reviewer, `reviewed_at` and `rejection_reason`;
 `decisions` (each with kind, appointment, decider, time, digest and reason); `sources` (each with
-the upload id as `evidence`, `company_document`, fingerprint, `sha256`, name, `mime_type`, size and
-evidence `path`); `command` (authority, approving director, authority reference, reason and the
+the upload id as `evidence` or, for a record made before company documents were removed, the
+`company_document` it relied on, which Ledova no longer holds; fingerprint, `sha256`, name,
+`mime_type`, size and evidence `path`); `command` (authority, approving director, authority reference, reason and the
 family's own terms); and `result` (the register entry, request or executions it produced). Its
 `provided_by` is `company`, or `legacy_staff_workflow` when no preparing appointment exists; a
 particulars change a linked member made in their profile is not a company decision and is left out.
@@ -1075,18 +1086,16 @@ README section 5 lists as unresolved a class `deploying`, its swap approval `pen
 
 ### Documents and evidence copies
 
-[company_pack_documents.py](../../backend/tokens/services/company_pack_documents.py) builds
-`documents.json` and chooses the stored files, all under `companies/<company id>/` ([private
-files](security.md#private-files)).
+[company_pack_documents.py](../../backend/tokens/services/company_pack_documents.py) chooses the
+stored files, all under `companies/<company id>/` ([private files](security.md#private-files)).
 
 - The history files' evidence copies come from the objects those files list, and `retained_sources`
   adds the decision records' copies from the same snapshot; a copy both name, such as a register
   instruction's authority copy, is one archive entry.
-- While streaming an evidence copy the builder computes its size and SHA-256 and refuses the pack,
-  naming the record, unless they are those its snapshot recorded. A company document has no
-  recorded digest, so only the manifest fixes its bytes.
-- Before writing, the builder sums the stored files, a company document by its recorded `file_size`
-  and everything else by the size storage reports. Above `COMPANY_PACK_MAX_STORED_BYTES`, 256 MiB in
+- While streaming a stored file the builder computes its size and SHA-256 and refuses the pack,
+  naming the record, unless they are those its snapshot recorded.
+- Before writing, the builder sums the stored files, a member or class document by the size its
+  snapshot recorded and everything else by the size storage reports. Above `COMPANY_PACK_MAX_STORED_BYTES`, 256 MiB in
   [constants.py](../../backend/tokens/constants.py), it refuses, naming the total, the ceiling and
   the next step: background production, built the first time a real pack exceeds it.
 - A missing or unreadable file refuses the pack, naming the record, whether it fails when its size
@@ -1103,9 +1112,6 @@ as history.
 - A swap approval observed already in place, a legacy settlement with no transaction record and a
   legacy mint journal are not exercised; a pause observed already in place is carried with its block
   and no operation.
-- The ceiling counts a company document by its recorded size, which staff can edit; uploads are
-  bounded at 10 MiB each (`UPLOAD_MAX_BYTES` by default), so the error is bounded by the number of
-  documents.
 - Production near the ceiling has not been measured; a proxy in front of the backend could time out
   a large download.
 

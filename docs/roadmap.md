@@ -35,9 +35,11 @@ Members' certificate requests were removed on 2 November 2026: the company prepa
 delivers its certificates, and Ledova keeps each one's fingerprint
 ([decision](decisions.md#member-certificate-requests-removed)). Shareholder publications went the
 same day: the company gives notices to its members and pays dividends itself, and Ledova keeps the
-register ([decision](decisions.md#shareholder-publications-removed)). Investor eligibility was removed the
-same day: classification claims, Supporting payslips and company eligibility decisions are gone, and
-the only verification of a person is the identity check
+register ([decision](decisions.md#shareholder-publications-removed)). Investor eligibility, the ABR
+company check and company documents went the same day: classification claims, Supporting payslips,
+company eligibility decisions, registry checks and company documents with their staff verification
+are gone, the only verification of a person is the identity check, and retained register
+instructions take the company's own evidence
 ([decision](decisions.md#verification-limited-to-id-checks)).
 
 The development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
@@ -84,12 +86,6 @@ records the joined web/company and iOS/member flow without routine platform-staf
 actions. Genuine physical-device and live human release checks remain under
 [#624](https://github.com/Ledova/ledova/issues/624); the controlled browser and
 simulator observation does not establish them.
-
-### Verification limited to ID checks
-
-Step 3 of [#1491](https://github.com/Ledova/ledova/issues/1491) follows the removal of investor
-eligibility and of the [ABR company check](decisions.md#abr-company-check-removed): company documents
-and their staff verification go ([decision](decisions.md#verification-limited-to-id-checks)).
 
 ### Deferred
 

@@ -4,7 +4,6 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from rest_framework.test import APITransactionTestCase
 
-from companies.models import CompanyDocument
 from companies.services.team import revoke_company_appointment
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import CoreFixtures, pdf_bytes, populated_register
@@ -92,5 +91,4 @@ class RegistrySafeguardsTest(CoreFixtures, APITransactionTestCase):
         unavailable = upload("unscannable.pdf")
         self.assertEqual(unavailable.status_code, 503, unavailable.content)
         self.assertEqual(RegisterEvidence.objects.count(), retained)
-        self.assertEqual(CompanyDocument.objects.count(), 0)
         self.assertEqual({path for path in self.root.rglob("*") if path.is_file()}, before)

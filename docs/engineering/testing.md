@@ -92,8 +92,8 @@ The backend suite covers:
   scanner and cache and needs no chain node or scanner service.
 
 The company setup journey covers signup without a supporting file, initial representative
-admission, activation with its retained receipt returned again to an identical retry, and later
-checked company documents, with the identity, versioned acknowledgement and company authority checks
+admission, activation with its retained receipt returned again to an identical retry, and a later
+checked upload of the company's own evidence, with the identity, versioned acknowledgement and company authority checks
 in that path; resuming signup
 uses current administrator authority and a retained current Terms receipt without rewriting
 historical permissions or declarations.

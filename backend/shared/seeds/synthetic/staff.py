@@ -31,15 +31,9 @@ PERMISSIONS = {
         "whitelist.view_whitelistentry",
         "whitelist.view_whitelistapproval",
     ),
-    "documents": (
-        "companies.view_company",
-        "companies.view_companydocument",
-        "companies.change_companydocument",
-    ),
     "operations": (
         "companies.view_company",
         "companies.change_company",
-        "companies.view_companydocument",
         "tokens.view_sharetoken",
         "tokens.change_sharetoken",
         "tokens.view_shareissuancerequest",

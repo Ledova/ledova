@@ -1,8 +1,7 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from companies.models import Company, CompanyCapability, CompanyDocument, CompanyStatus
-from companies.serializers.document import CompanyDocumentSerializer
+from companies.models import Company, CompanyCapability, CompanyStatus
 from companies.services.activation import company_activation
 from companies.services.administration import (
     company_administrative_access,
@@ -124,17 +123,6 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
     )
     email = serializers.SerializerMethodField()
     primary_contact = serializers.SerializerMethodField()
-    documents = serializers.SerializerMethodField()
-
-    @extend_schema_field(CompanyDocumentSerializer(many=True))
-    def get_documents(self, obj):
-        actor = getattr(self.context.get("request"), "user", None)
-        if actor is None:
-            return CompanyDocumentSerializer(obj.documents.all(), many=True, context=self.context).data
-        documents = CompanyDocument.objects.filter(
-            company_id=obj.pk, company__in=Company.objects.administrable_by(actor)
-        )
-        return CompanyDocumentSerializer(documents, many=True, context=self.context).data
 
     @extend_schema_field(serializers.EmailField(allow_null=True))
     def get_email(self, obj):
@@ -199,7 +187,6 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
             "ownership_sharing_changed_by",
             "ownership_sharing_changed_at",
             "primary_contact",
-            "documents",
             "created_at",
             "updated_at",
             "activation",

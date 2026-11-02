@@ -143,7 +143,6 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
           DESTINATIONS.memberRecords.path,
           DESTINATIONS.settings.path,
           DESTINATIONS.certificates.path,
-          DESTINATIONS.companyDocuments.path,
         ].some((path) => path === location.pathname)) ||
       token ||
       entered !== null ||

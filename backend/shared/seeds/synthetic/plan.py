@@ -154,16 +154,6 @@ class Person:
 
 
 @dataclass(frozen=True)
-class CompanyDocumentPlan:
-    document_type: str
-    name: str
-    uploaded_at: datetime
-    valid_from: date | None = None
-    verified_at: datetime | None = None
-    rejection_reason: str = ""
-
-
-@dataclass(frozen=True)
 class Step:
     method: str
     at: datetime
@@ -192,7 +182,6 @@ class CompanyPlan:
     declarant_name: str
     board_resolution_reference: str
     operator_wallet: str | None = None
-    documents: tuple = ()
     steps: tuple = ()
     existing: bool = False
 

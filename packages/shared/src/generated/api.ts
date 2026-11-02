@@ -607,54 +607,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/companies/{company_uuid}/documents/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_companies_documents_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/companies/{company_uuid}/documents/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete: ApiOperations['api_v1_companies_documents_destroy'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/companies/{company_uuid}/documents/{uuid}/file/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_companies_documents_file_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/companies/{uuid}/': {
     parameters: {
       query?: never;
@@ -4021,7 +3973,6 @@ export interface ApiComponents {
       createdAt: string;
       description?: string;
       displayName: string;
-      documents: ApiComponents['schemas']['CompanyDocument'][];
       email: string | null;
       foundedYear?: number | null;
       industry?: string;
@@ -4051,44 +4002,6 @@ export interface ApiComponents {
       uuid: string;
       withdrawalReason: string;
       withdrawnAt: string | null;
-    };
-    CompanyDocument: {
-      company: string;
-      createdAt: string;
-      documentType: ApiComponents['schemas']['CompanyDocumentDocumentTypeEnum'];
-      documentTypeDisplay: string;
-      fileSize?: number;
-      fileUrl: string;
-      isVerified: boolean;
-      mimeType?: string;
-      name: string;
-      uuid: string;
-      verifiedAt: string | null;
-    };
-    CompanyDocumentDocumentTypeEnum:
-      | 'cert_inc'
-      | 'asic'
-      | 'constitution'
-      | 'share_register'
-      | 'financials'
-      | 'auditor_report'
-      | 'director_id'
-      | 'beneficial_ownership'
-      | 'shareholder'
-      | 'business_plan'
-      | 'risk_disclosure'
-      | 'prospectus'
-      | 'legal_opinion'
-      | 'tax_return'
-      | 'bank_statement'
-      | 'other';
-    CompanyDocumentRequest: {
-      documentType: ApiComponents['schemas']['CompanyDocumentDocumentTypeEnum'];
-      externalUrl?: string;
-      file?: Blob;
-      fileSize?: number;
-      mimeType?: string;
-      name: string;
     };
     CompanyList: {
       acn: string;
@@ -6310,6 +6223,7 @@ export interface ApiComponents {
     };
     RegisterInstruction: {
       approvingDirector: string;
+      authorityEvidence: string | null;
       authorityReference: string;
       company: string;
       createdAt: string;
@@ -6329,8 +6243,8 @@ export interface ApiComponents {
     };
     RegisterInstructionCreateRequest: {
       approvingDirector: string;
+      authorityEvidence: string;
       authorityReference: string;
-      documentId: string;
       items: {
         [key: string]: string;
       }[];
@@ -8951,75 +8865,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyRegistered'];
-        };
-      };
-    };
-  };
-  api_v1_companies_documents_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        company_uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyDocumentRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyDocumentRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyDocumentRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyDocument'];
-        };
-      };
-    };
-  };
-  api_v1_companies_documents_destroy: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        company_uuid: string;
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  api_v1_companies_documents_file_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        company_uuid: string;
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': Blob;
         };
       };
     };

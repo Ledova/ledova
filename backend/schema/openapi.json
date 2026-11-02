@@ -2260,13 +2260,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "documents": {
-            "items": {
-              "$ref": "#/components/schemas/CompanyDocument"
-            },
-            "readOnly": true,
-            "type": "array"
-          },
           "email": {
             "format": "email",
             "nullable": true,
@@ -2426,7 +2419,6 @@
           "companyTypeDisplay",
           "createdAt",
           "displayName",
-          "documents",
           "email",
           "infoRequestReason",
           "infoRequestedAt",
@@ -2450,126 +2442,6 @@
           "uuid",
           "withdrawalReason",
           "withdrawnAt"
-        ],
-        "type": "object"
-      },
-      "CompanyDocument": {
-        "properties": {
-          "company": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "documentType": {
-            "$ref": "#/components/schemas/CompanyDocumentDocumentTypeEnum"
-          },
-          "documentTypeDisplay": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "fileSize": {
-            "type": "integer"
-          },
-          "fileUrl": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "isVerified": {
-            "readOnly": true,
-            "type": "boolean"
-          },
-          "mimeType": {
-            "type": "string"
-          },
-          "name": {
-            "maxLength": 255,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "verifiedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "company",
-          "createdAt",
-          "documentType",
-          "documentTypeDisplay",
-          "fileUrl",
-          "isVerified",
-          "name",
-          "uuid",
-          "verifiedAt"
-        ],
-        "type": "object"
-      },
-      "CompanyDocumentDocumentTypeEnum": {
-        "description": "* `cert_inc` - Certificate of Incorporation\n* `asic` - ASIC Company Extract\n* `constitution` - Company Constitution\n* `share_register` - Current Share Register\n* `financials` - Financial Statements\n* `auditor_report` - Auditor Report\n* `director_id` - Director Identification\n* `beneficial_ownership` - Beneficial Ownership Declaration\n* `shareholder` - Shareholder Agreement\n* `business_plan` - Business Plan\n* `risk_disclosure` - Risk Disclosure Statement\n* `prospectus` - Prospectus or Information Memorandum\n* `legal_opinion` - Legal Opinion\n* `tax_return` - Tax Return\n* `bank_statement` - Bank Statement\n* `other` - Other",
-        "enum": [
-          "cert_inc",
-          "asic",
-          "constitution",
-          "share_register",
-          "financials",
-          "auditor_report",
-          "director_id",
-          "beneficial_ownership",
-          "shareholder",
-          "business_plan",
-          "risk_disclosure",
-          "prospectus",
-          "legal_opinion",
-          "tax_return",
-          "bank_statement",
-          "other"
-        ],
-        "type": "string"
-      },
-      "CompanyDocumentRequest": {
-        "properties": {
-          "documentType": {
-            "$ref": "#/components/schemas/CompanyDocumentDocumentTypeEnum"
-          },
-          "externalUrl": {
-            "format": "uri",
-            "minLength": 1,
-            "type": "string",
-            "writeOnly": true
-          },
-          "file": {
-            "format": "binary",
-            "type": "string",
-            "writeOnly": true
-          },
-          "fileSize": {
-            "type": "integer"
-          },
-          "mimeType": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "name": {
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "documentType",
-          "name"
         ],
         "type": "object"
       },
@@ -13789,6 +13661,13 @@
             "readOnly": true,
             "type": "string"
           },
+          "authorityEvidence": {
+            "description": "Unique identifier (primary key)",
+            "format": "uuid",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "authorityReference": {
             "readOnly": true,
             "type": "string"
@@ -13874,6 +13753,7 @@
         },
         "required": [
           "approvingDirector",
+          "authorityEvidence",
           "authorityReference",
           "company",
           "createdAt",
@@ -13900,13 +13780,13 @@
             "minLength": 1,
             "type": "string"
           },
+          "authorityEvidence": {
+            "format": "uuid",
+            "type": "string"
+          },
           "authorityReference": {
             "maxLength": 255,
             "minLength": 1,
-            "type": "string"
-          },
-          "documentId": {
-            "format": "uuid",
             "type": "string"
           },
           "items": {
@@ -13939,8 +13819,8 @@
         },
         "required": [
           "approvingDirector",
+          "authorityEvidence",
           "authorityReference",
-          "documentId",
           "items",
           "kind",
           "operationId",
@@ -24177,161 +24057,6 @@
             "cookieAuth": [],
             "csrfCookie": [],
             "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{company_uuid}/documents/": {
-      "post": {
-        "operationId": "api_v1_companies_documents_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyDocumentRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyDocumentRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyDocumentRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyDocument"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{company_uuid}/documents/{uuid}/": {
-      "delete": {
-        "operationId": "api_v1_companies_documents_destroy",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No response body"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{company_uuid}/documents/{uuid}/file/": {
-      "get": {
-        "operationId": "api_v1_companies_documents_file_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "company_uuid",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
           }
         ],
         "tags": [

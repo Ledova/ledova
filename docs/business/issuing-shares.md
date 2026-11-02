@@ -74,8 +74,7 @@ time; leave it blank when unknown.
 **Documents** uses actual supporting files; no upload is required. The file's name identifies the
 document, with no category to choose. Each document is linked to the class and the rights
 revision that retained it, without assigning it to a shareholder. These files stay separate from
-[shareholder documents](register.md#shareholder-documents) and the company-wide
-[company documents](companies.md#company-information-and-documents).
+[shareholder documents](register.md#shareholder-documents).
 
 A current company register reader can read the latest record, earlier versions and their linked
 files. A current personal company administrator can edit; ownership or platform staff status alone

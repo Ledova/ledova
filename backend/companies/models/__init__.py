@@ -10,10 +10,6 @@ from companies.models.authority_request import (
     CompanyCapability,
 )
 from companies.models.company import Company, CompanyStatus, CompanyType
-from companies.models.document import (
-    CompanyDocument,
-    DocumentType,
-)
 from companies.models.legacy_owner import CompanyLegacyOwnerSource
 from companies.models.pack import CompanyPack
 from companies.models.signup_terms import CompanySignupTermsAcceptance
@@ -32,8 +28,6 @@ __all__ = [
     "CompanySignupTermsAcceptance",
     "CompanyStatus",
     "CompanyType",
-    "CompanyDocument",
     "CompanyPack",
-    "DocumentType",
     "REGISTER_READERS",
 ]

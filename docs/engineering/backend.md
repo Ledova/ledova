@@ -28,7 +28,7 @@ modules re-exported by `settings/__init__.py`.
 | `operators`      | The single `Operator` configuration row, `GET /api/operator/` (that configuration, read by signed-in clients), and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view`                                                                              |
 | `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes                                                                                                                                                                                                                                     |
 | `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens and notifications                                                                                                                                                          |
-| `companies`      | `Company`, its activation receipt (`CompanyActivation`), `CompanyDocument`, representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                        |
+| `companies`      | `Company`, its activation receipt (`CompanyActivation`), representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                           |
 | `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, member access and register outputs, and the trading models |
 | `shareholders`   | No models since shareholder publications were [removed](../decisions.md#shareholder-publications-removed); the app keeps the migrations that created and dropped them ([migrations](#migrations))                                                                                                           |
 | `whitelist`      | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands, wallet nominations and company wallet instructions, and the sync from each company's registry                                                                                                                     |
@@ -85,10 +85,10 @@ awkwardly: do not add one.
   service modules use plain functions ([the layer gate](gates.md#the-layer-gate)).
 - Use `shared.db.atomic` and `shared.db.on_commit` with an explicitly selected connection
   ([the connection-binding gate](gates.md#the-connection-binding-gate)).
-- No Django signals except the private-file lifecycle receivers that `shared/apps.py` connects
-  from `shared/storage.py`: `post_delete` deletes a private file once its row is gone, and
-  `pre_delete` protects a conditionally retained file. A cascade delete (a company's or a user's
-  documents) never reaches a service, so an explicit call in each delete path cannot cover it.
+- No Django signals except the private-file lifecycle receiver that `shared/apps.py` connects from
+  `shared/storage.py`: `post_delete` deletes a private file once its row is gone, whichever path
+  deleted the row. A cascade delete never reaches a service, so an explicit call in each delete path
+  cannot cover it.
 - No new manager packages. `CustomUserManager` is the existing exception; querysets use
   `as_manager()`.
 - Keep raised exceptions in the app's `exceptions.py` and use DRF's standard exceptions for
@@ -128,42 +128,10 @@ helper allowance.
 
 Admin fields keep the API's edit boundaries. `CompanyAdmin` edits go through the bounded
 `update_company` service and its `EDITABLE_FIELDS`
-([company information rules](../business/companies.md#company-information-and-documents)), which
+([company information rules](../business/companies.md#company-information)), which
 stay read-only unless the staff member personally holds a current `admin` appointment for that
 company or the draft-setup exception applies (`companies/admin/company.py`). It cannot add or
 delete a company, registration uses its bounded service, and the owner is read-only.
-
-### Company document verification
-
-The procedure is in
-[staff verification of a company document](../business/companies.md#staff-verification-of-a-company-document).
-`CompanyDocumentAdmin`'s row action `<uuid>/verify/` calls
-[document_review.py](../../backend/companies/services/document_review.py) on the operator
-connection, for active staff holding `companies.change_companydocument`. The preview signs the
-document, reviewer and fingerprint; confirmation accepts that signature for
-`DOCUMENT_REVIEW_MAX_AGE` (900 seconds), runs as the `document_review` company operation, locks
-the company, reviewer, profile and appointments (`lock_company_actor`) and then the document, and
-requires the recomputed fingerprint to equal the previewed one.
-
-The fingerprint is the SHA-256 of canonical JSON over the document and company UUIDs, the
-company's name, ACN, ABN, type and owner, the document's type, name, stored path, size, MIME type,
-external URL and validity dates, and the SHA-256 of its bytes. It is refused for a document with
-no stored file, a rejection reason or non-current validity, or a file that is unreadable, empty or
-not its recorded size.
-
-Triggers in [database_guards.sql](../../backend/companies/database_guards.sql):
-`companies_document_verification` refuses an app-role (customer) write that sets or changes a
-verification and clears all four verification fields when the document's company, type, name,
-file, size, MIME type, external URL, validity dates or rejection reason change;
-`companies_identity_document_verification` clears every document of a company whose name, ACN,
-ABN, type or owner changes; and `companies_document_administration` admits a document update only
-as that clearing, inside a current administrator's company `edit`, or as a `document_review`
-recording a permitted staff reviewer and changing only the verification fields. A company edit can
-therefore revoke a verification; no customer path can grant one.
-
-Retained register instructions consume it through `verified_document_snapshot`, which recomputes
-the fingerprint from the current file: preparation locks the document and keeps a private copy,
-snapshot and fingerprint, and staff review rechecks the document and copy against them.
 
 ## External API consumers
 
@@ -249,6 +217,20 @@ These route groups have no bundled client and are kept deliberately:
   delete. `companies/activation_guards.py` installs the receipt guards: `shared/0002_database_guards`
   runs it too but skips it while the table does not exist yet, so on a fresh database, as on an
   existing one, `companies/0003` installs them.
+- Removing company documents ([#1491](https://github.com/Ledova/ledova/issues/1491)) kept the
+  minimal source the applied migrations still import: `companies/models/document.py` keeps only
+  `company_document_path`, which `companies/0001_initial` names.
+  `companies/0004_remove_company_documents` deletes each document's file through the storage API
+  once its transaction commits, then the documents with their table, triggers, functions, content
+  type and permissions; admin log entries keep their staff user, time and object id, with the content
+  type cleared. It reads them with `row_security` off, so a migrating role the policies
+  would still filter stops with PostgreSQL's row-level security error instead of leaving files
+  behind. It replays `tokens_guard_register_instruction` and `tokens_guard_company_issue` from
+  current source, because retained register instructions now take the company's own evidence, and
+  reinstalls the policy catalogue, whose register instructions are no longer written by the app
+  role. No task served company documents, so it deletes no queued job. It depends on
+  `shareholders/0002_remove_publications`, so a database whose publications removal refuses stops
+  before any document or file is deleted.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.
@@ -298,8 +280,7 @@ steps; who may take each is in
 [how a company decision works](../business/README.md#how-a-company-decision-works). Employee
 awards, vesting events and member-access commands prepare under a retry key and take no decision;
 activation, authority requests and team commands take a retry key and, where needed, an exact
-declaration; company detail edits and document uploads act on the caller's current
-administration.
+declaration; company detail edits act on the caller's current administration.
 
 1. Prepare. The caller supplies a caller-scoped retry key (`idempotency_key`, or `operation_id`
    for register proposals) and, where company authority is needed, their exact appointment. The
@@ -330,7 +311,7 @@ never infers success from a lost response.
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Authority requests                  | `/api/v1/company-authority/requests/`                                                                                                                                                                                  | [Authority](../business/companies.md)                                                                                                                                                                                                                                               |
 | Team invitations and appointments   | `/api/v1/company-authority/invitations/`, `/appointments/`                                                                                                                                                             | [Team](../business/companies.md#team-invitations-and-appointments)                                                                                                                                                                                                                  |
-| Company details and documents       | `/api/v1/companies/`, `/api/v1/companies/{uuid}/documents/`                                                                                                                                                            | [Company information](../business/companies.md#company-information-and-documents)                                                                                                                                                                                                   |
+| Company details                     | `/api/v1/companies/`                                                                                                                                                                                                   | [Company information](../business/companies.md#company-information)                                                                                                                                                                                                                 |
 | Activation                          | `/api/v1/companies/{uuid}/activate/`                                                                                                                                                                                   | [Activation](../business/companies.md#activation)                                                                                                                                                                                                                                   |
 | Wallet nominations and instructions | `/api/v1/whitelist/wallet-nominations/`, `company-wallet-nominations/`, `company-wallet-instructions/`, `company-wallet-targets/`                                                                                      | [Wallet approvals](../business/participants.md#wallet-nominations-and-company-wallet-approvals)                                                                                                                                                                                     |
 | Register evidence and setup         | `/api/v1/tokens/register-evidence/`, `register-member-documents/`, `register-openings/`, `register-links/`, `register-imports/`, `register-corrections/`, `register-particulars-changes/`, `register-reconciliations/` | [Register](../business/register.md)                                                                                                                                                                                                                                                 |
@@ -477,7 +458,7 @@ ORM write skips field validators, but the `companies_administration` trigger
 changing the ACN or ABN, whose check digits fail or whose non-empty ABN is not the ACN with two
 check digits in front; only the migration role bypasses it. `Company.clean()` applies the one rule
 needing both fields, `abn_carries_acn`
-([rules](../business/companies.md#company-information-and-documents)). The ABN check is a modulus of
+([rules](../business/companies.md#company-information)). The ABN check is a modulus of
 89 and catches every single-digit error; the ACN check is a weighted modulus of 10 and does not.
 
 ## Identity providers

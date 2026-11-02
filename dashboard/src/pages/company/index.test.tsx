@@ -3,20 +3,15 @@
 import {
   addCalendarDays,
   utcToday,
-  COMPANY_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS,
   type Company,
-  type CompanyDocument,
   type OwnCompanyAppointment,
-  DESTINATIONS,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { Link, useLocation } from 'react-router-dom';
 import { CompanyProfile } from '@pages/settings/CompanyProfile';
-import CompanyDocumentsPage from '@pages/documents/company';
 import CompanyTeamPage from './team';
 import { APPOINTMENT, companyRecord, renderCompanyPage } from '../../testSupport/company';
 
@@ -29,19 +24,8 @@ const scrollIntoView = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 's
 let client: QueryClient;
 let company: Company;
 let failed: string | null;
-function CompanyView() {
-  return useLocation().pathname === DESTINATIONS.companyDocuments.path ? <CompanyDocumentsPage /> : <CompanyProfile />;
-}
 function show() {
-  return renderCompanyPage(
-    client,
-    <>
-      <CompanyView />
-      <Link to={DESTINATIONS.companyDocuments.path}>Open company documents</Link>
-    </>,
-    'Profile',
-    { entry: '/settings', path: '*' },
-  );
+  return renderCompanyPage(client, <CompanyProfile />, 'Profile', { entry: '/settings', path: '*' });
 }
 beforeEach(() => {
   vi.resetAllMocks();
@@ -71,7 +55,7 @@ afterEach(() => {
   else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
 });
 
-it('shows focused company details without share classes, and uploads documents to the selected company and type', async () => {
+it('shows focused company details without share classes, and keeps team drafts across closing', async () => {
   show();
   await screen.findByText(company.name);
   expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
@@ -93,69 +77,6 @@ it('shows focused company details without share classes, and uploads documents t
     expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
   );
   expect(screen.getByText('Shared with members')).toBeTruthy();
-
-  const file = new File(['Synthetic company supporting copy'], 'company-constitution.pdf', { type: 'application/pdf' });
-  const companyDocument: CompanyDocument = {
-    uuid: 'document-one',
-    company: company.uuid,
-    documentType: 'constitution',
-    documentTypeDisplay: 'Company Constitution',
-    name: file.name,
-    fileUrl: '/private/company-constitution.pdf',
-    createdAt: '2026-10-14T00:00:00Z',
-    isVerified: false,
-    verifiedAt: null,
-  };
-  api.post.mockImplementation(async (url: string, body: FormData, config: { ledovaSubmissionGuard: () => void }) => {
-    config.ledovaSubmissionGuard();
-    expect(url).toBe(`${COMPANY}documents/`);
-    expect(body.get('document_type')).toBe('constitution');
-    expect(body.get('name')).toBe(file.name);
-    expect((body.get('file') as File).name).toBe(file.name);
-    expect((body.get('file') as File).size).toBe(file.size);
-    company = { ...company, documents: [...company.documents, companyDocument] };
-    return { data: companyDocument };
-  });
-  fireEvent.click(screen.getByRole('link', { name: 'Open company documents' }));
-  const uploadOpener = await screen.findByRole('button', { name: 'Upload document' });
-  fireEvent.click(uploadOpener);
-  let uploadForm = await screen.findByRole('form', { name: 'Upload Other documents' });
-  expect(screen.queryByRole('dialog')).toBeNull();
-  fireEvent.click(within(uploadForm).getByRole('button', { name: 'Cancel' }));
-  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Upload document' })));
-  fireEvent.click(screen.getByRole('button', { name: 'Upload document' }));
-  uploadForm = await screen.findByRole('form', { name: 'Upload Other documents' });
-  fireEvent.change(within(uploadForm).getByLabelText('Category'), { target: { value: 'constitution' } });
-  uploadForm = await screen.findByRole('form', { name: 'Upload Company Constitution' });
-  fireEvent.change(within(uploadForm).getByLabelText('File'), { target: { files: [file] } });
-  company = {
-    ...company,
-    documents: [
-      {
-        ...companyDocument,
-        uuid: 'document-other-admin',
-        name: 'another-admin-constitution.pdf',
-        fileUrl: '/private/another-admin-constitution.pdf',
-      },
-    ],
-  };
-  await act(async () => {
-    await client.invalidateQueries({ queryKey: COMPANY_QUERY_KEY });
-  });
-  uploadForm = await screen.findByRole('form', { name: 'Upload Company Constitution' });
-  expect((within(uploadForm).getByLabelText('Category') as HTMLSelectElement).value).toBe('constitution');
-  expect(within(uploadForm).getByRole('option', { name: 'Company Constitution' })).toBeTruthy();
-  expect((within(uploadForm).getByLabelText('File') as HTMLInputElement).files?.[0]).toBe(file);
-  fireEvent.click(within(uploadForm).getByRole('button', { name: 'Upload' }));
-  await waitFor(() => expect(screen.queryByRole('form', { name: 'Upload Company Constitution' })).toBeNull());
-  expect(api.post).toHaveBeenCalledTimes(1);
-  expect(screen.getByRole('link', { name: `View ${file.name}` }).getAttribute('href')).toBe(companyDocument.fileUrl);
-  fireEvent.click(screen.getByRole('button', { name: 'Upload document' }));
-  uploadForm = await screen.findByRole('form', { name: 'Upload Other documents' });
-  expect(within(uploadForm).queryByRole('option', { name: 'Company Constitution' })).toBeNull();
-  expect(within(uploadForm).getByRole('option', { name: 'Other documents' })).toBeTruthy();
-  expect((within(uploadForm).getByLabelText('Category') as HTMLSelectElement).value).toBe('other');
-  fireEvent.click(within(uploadForm).getByRole('button', { name: 'Cancel' }));
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain(CLASSES);
 
   cleanup();
@@ -229,5 +150,5 @@ it('shows focused company details without share classes, and uploads documents t
   await screen.findAllByText('Your appointments could not be loaded.');
   expect(screen.queryAllByText('Private team administrator')).toHaveLength(0);
   expect((screen.getByRole('button', { name: 'Invite a company user' }) as HTMLButtonElement).disabled).toBe(true);
-  expect(api.post).toHaveBeenCalledTimes(1);
+  expect(api.post).not.toHaveBeenCalled();
 });

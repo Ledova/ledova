@@ -40,7 +40,6 @@ async function serveASignedInAccount(page: Page, role: Role) {
     acn: '929000000',
     isOwner: role !== 'investor',
     administrativeAccess: { draftSetup: role !== 'investor', capabilities: role === 'both' ? ['admin'] : [] },
-    documents: [],
   };
   const memberRecord = {
     uuid: 'own-record',
@@ -355,16 +354,7 @@ async function openTheSidebar(page: Page, role: Role) {
     await aside.getByRole('link', { name: 'Company pack', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Company pack', exact: true })).toBeVisible();
     aside = await visibleSidebar(page);
-    const companyDocuments = aside.getByRole('link', { name: 'Company files', exact: true });
-    await expect(companyDocuments).toHaveAttribute('href', '/documents/company?company=company');
-    await companyDocuments.click();
-    await expect(page).toHaveURL(/\/documents\/company\?company=company$/);
-    await expect(page.getByRole('heading', { name: 'Supporting documents', exact: true })).toBeVisible();
-    aside = await visibleSidebar(page);
-    await expect(aside.getByRole('link', { name: 'Company files', exact: true })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    await expect(aside.getByRole('link', { name: 'Company files', exact: true })).toHaveCount(0);
   }
   const settings = aside.getByRole('link', { name: 'Settings', exact: true }).locator('../..');
   const settingsLink = settings.getByRole('link', { name: 'Settings', exact: true });

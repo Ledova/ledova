@@ -3,7 +3,6 @@ import { lazy } from 'react';
 export const CertificatesPage = lazy(() => import('@pages/documents/certificates'));
 export const CompanyAuthorityPage = lazy(() => import('@pages/company/authority'));
 export const CompanyAuthorityRequestPage = lazy(() => import('@pages/company/authority/request'));
-export const CompanyDocumentsPage = lazy(() => import('@pages/documents/company'));
 export const CompanyPage = lazy(() => import('@pages/company'));
 export const CompanyRegisterAwardPage = lazy(() => import('@pages/company/ledger/award'));
 export const CompanyRegisterCorrectionPage = lazy(() => import('@pages/company/ledger/correct'));

@@ -87,9 +87,9 @@ while submitted or under review.
 
 ## Offer documents
 
-The company keeps its documents under **Company documents**
-([company information and documents](companies.md#company-information-and-documents)). The offering
-form lists only the offer types: prospectus or information memorandum, risk disclosure, business
+The company kept its documents under **Company documents** until they were
+[removed](../decisions.md#company-documents-removed) on 2 November 2026, so offerings need a home of
+their own for offer documents when they return. The offering form lists only the offer types: prospectus or information memorandum, risk disclosure, business
 plan, financial statements, auditor report, constitution and shareholder agreement. Personal records
 such as the share register or a director's identification are never one click from investors.
 
@@ -101,7 +101,7 @@ not recorded.
 
 While an offering is approved or closed, documents can be added with Add documents but never removed
 ([decision](../decisions.md#eligibility-and-ownership-records)), because investors may already have
-read them; deleting a company document that such an offering carries is refused. On a draft or
+read them; deleting a document that such an offering carries is refused. On a draft or
 rejected offering the attachments can be changed, and saving drops one no longer among the company's
 documents.
 
