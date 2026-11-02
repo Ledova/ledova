@@ -3,9 +3,8 @@
 [Business processes](README.md) · [Documentation](../README.md)
 
 How a company joins Ledova and who may act for it: signup and the representative's declaration,
-team invitations and appointments, company information and documents, and activation with the
-registry check. It is written for company representatives, support staff and anyone learning how
-company authority is established. The representative declares their own authority and Ledova does
+team invitations and appointments, company information and documents, and activation. It is written
+for company representatives, support staff and anyone learning how company authority is established. The representative declares their own authority and Ledova does
 not verify it ([self-declaration decision](../decisions.md#company-representative-verification));
 who holds which capability is in [company capabilities](README.md#company-capabilities). All of it
 happens on the web; the mobile app is for shareholders
@@ -17,7 +16,7 @@ happens on the web; the mobile app is for shareholders
 - [What an appointment records](#what-an-appointment-records)
 - [Who may administer a company](#who-may-administer-a-company)
 - [Company information and documents](#company-information-and-documents)
-- [Activation and the registry check](#activation-and-the-registry-check)
+- [Activation](#activation)
 - [Representative identity requirement](#representative-identity-requirement)
 - [The Company page](#the-company-page)
 
@@ -26,9 +25,8 @@ happens on the web; the mobile app is for shareholders
 Company signup and the representative's initial authority finish in one flow on the web
 ([combined signup decision](../decisions.md#combined-company-signup-and-initial-authority),
 as amended the [same day](../decisions.md#simple-signup-documents-and-team-after-registration)).
-Signup does not look the company up in the ABR; that happens at
-[activation](#activation-and-the-registry-check)
-([decision](../decisions.md#abr-company-lookup-at-activation)).
+Ledova does not look the company up in the ABR or any other register, at signup or at
+[activation](#activation) ([decision](../decisions.md#abr-company-check-removed)).
 
 1. Create your account, verify your email and choose **Company representative** as the account
    type.
@@ -57,9 +55,9 @@ the declaration version and text and the admission time.
 
 After signup, add optional supporting files at **Company files** and invite users at
 **Settings → Team**.
-Later documents do not alter the retained signup request. The company remains Draft until
-activation passes the registry check: registration does not incorporate a company with ASIC,
-appoint a director, activate the company or issue shares. Until then, the **Getting started** list
+Later documents do not alter the retained signup request. The company remains Draft until a current
+administrator activates it: registration does not incorporate a company with ASIC, appoint a
+director, activate the company or issue shares. Until then, the **Getting started** list
 on the web company Dashboard links its personal administrators to unfinished activation and register
 setup tasks; completed tasks disappear ([the Dashboard](README.md#the-app-at-a-glance)).
 
@@ -103,8 +101,7 @@ actions at the foot.
    capabilities, the expiry and any file, and shows what it captured.
 5. On the request's page, accept the displayed declaration of your workspace and team authority, which also accepts the
    Terms on the company's behalf, and admit the request. Where your instance requires a verified
-   identity, an unverified one leaves the request pending. Admission runs no registry check and does
-   not activate the company.
+   identity, an unverified one leaves the request pending. Admission does not activate the company.
 6. Read the appointment's personal and delegatable capabilities, expiry and status. An attached
    file stays available from the request's page (**Download evidence**).
 7. Withdraw a pending request you no longer want. After admission, **Revoke appointment** asks you
@@ -154,8 +151,8 @@ Invitation rules:
   company (even one that is temporarily ineffective), when the inviter no longer has the authority
   to offer it, or when the identity requirement is not met. After an earlier appointment expires or
   is revoked, a new invitation can be accepted.
-- No registry check runs for an invitation. Two people accepting the same code at once produce one
-  appointment, and the same account retrying gets its retained appointment back.
+- Two people accepting the same code at once produce one appointment, and the same account retrying
+  gets its retained appointment back.
 - Revoking the inviter blocks new acceptances of their invitations but does not revoke appointments
   already accepted.
 
@@ -234,10 +231,10 @@ Rules:
   and the officeholder declaration (the declarant's name and the board resolution reference) can
   change only while it is Draft or, for an older company, Additional Information Required.
 - An ACN and an ABN must pass their check digits, and an ASIC-registered company's ABN must be its
-  ACN with two check digits in front. A check-digit pass is a typo filter, not verification: only
-  the registry lookup says a number belongs to a real company.
-- Changing the registered name, ACN, ABN, company type or officeholder declaration sets the registry
-  check back to pending, so the next activation runs a fresh lookup.
+  ACN with two check digits in front. A check-digit pass is a typo filter, not verification: Ledova
+  does not confirm that a number belongs to a real company.
+- Changing the registered name, ACN, ABN, company type or officeholder declaration starts a new
+  company revision, which closes any open activation review.
 
 ### Staff verification of a company document
 
@@ -260,14 +257,15 @@ verification but cannot grant one. A register action that relies on the document
 current file, the company and the validity dates against that fingerprint each time
 ([how verification is enforced](../engineering/backend.md#company-document-verification)).
 
-## Activation and the registry check
+## Activation
 
-A current personal administrator activates the company on the web. Activation establishes no
-share issue, payment or wallet approval. Signup does not look the company up in the ABR; activation does. Before activation, the
-company's administrators can keep its own non-tokenised register records, such as the mirrored
-register, awards, allotments, transfers and member access, but wallet nominations, chain
-deployments and issues, capital increases and company wallet instructions wait for an Active
-company.
+A current personal administrator activates the company on the web. Activation records your
+declaration and, where your instance requires it, needs your verified identity; the company is not
+looked up in the ABR or any other register ([decision](../decisions.md#abr-company-check-removed)).
+It establishes no share issue, payment or wallet approval. Before activation, the company's
+administrators can keep its own non-tokenised register records, such as the mirrored register,
+awards, allotments, transfers and member access, but wallet nominations, chain deployments and
+issues, capital increases and company wallet instructions wait for an Active company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
 2. Open **Settings → Activation** on web, shown only to personal administrators, or use the same
@@ -276,59 +274,32 @@ company.
    investor can use the same page.
 3. Choose **Review activation**, read the company and the exact declaration on the main page on web, tick **I accept this
    declaration for this company** and choose **Confirm activation** once.
-4. Read the retained outcome. A passing attempt makes the company Active. A pending, failed or
-   unconfigured check leaves the status unchanged and stays in the record; resolve the stated
-   requirement, then choose **Try activation again**.
+4. The company becomes Active. Ledova keeps an activation receipt recording you, your appointment,
+   the declaration and your identity status at that moment.
 
 A change to your appointment, the company details or the declaration invalidates an open
-confirmation. If the reply is lost, the same unchanged request can be recovered without another
-lookup; a confirmed pending or failed result can be followed by a newly reviewed attempt.
-Activation readiness and attempt details disappear when personal administration ends. Activation
-sends no notification.
+confirmation. If the reply is lost, the same unchanged request returns the retained receipt without
+activating again. Where your instance requires a verified identity and yours is not verified,
+activation is refused and nothing is recorded; verify your identity and review activation again.
+Activation readiness disappears when personal administration ends. Activation sends no notification.
+
+Companies activated before the ABR check was removed keep their activation receipts; the lookup
+results, and attempts that never activated a company, were deleted
+([decision](../decisions.md#abr-company-check-removed)).
 
 The earlier owner submission and platform-staff review is retired. Its records remain, and older
 companies may still show its states (Submitted for Review, Under Review, Additional Information
 Required, Approved, Rejected or Withdrawn).
 
-### How the registry check matches
-
-The registry check looks the company up in the Australian Business Register (ABR). The instance
-must have the lookup configured
-([configuration](../operations/configuration.md#company-registry-lookup)); without it every
-attempt stays pending and nothing is sent to ABR. The lookup uses the ABN, or the ACN when the ABN
-is blank. An ABN the register reports is recorded with the attempt but does not replace the
-identifier the company supplied.
-
-A check passes only when all of these hold:
-
-- the ACN matches, and so does the ABN when one was supplied;
-- the registration is active;
-- the registered company name matches after ignoring case, spacing and Unicode form; trading names
-  and near matches do not count;
-- the company type matches: Proprietary Limited must be a private company (PRV), and a Public or
-  Unlisted Public Company a public company (PUB). ABR does not distinguish listed from unlisted
-  companies, so listing status is not checked.
-
-| Outcome | When                                                                                                                                         |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Passed  | Every condition above holds for the exact company details and revision the attempt captured                                                  |
-| Failed  | No record found, an identifier mismatch, a cancelled registration, a name mismatch, or a contradictory company type                          |
-| Pending | Lookup not configured, provider failure or time-out, an incomplete or suppressed record, an unknown status, or a missing or unsupported type |
-
-A passing result is applied only if the company, the person, the appointment and the company
-details are unchanged when it returns. There is no manual override and no fallback to an earlier
-pass.
-
-### Staff registry controls
+### Staff company controls
 
 Platform staff with the company change permission in admin keep bounded technical controls over an
-active company: issue a compliance warning, suspend, delist, retry the registry check, resolve a
-warning and reinstate. A registry retry does not change the status. Resolving a warning or
-reinstating returns the company to Active only after a fresh matching lookup and either the
-company's genuine applied activation or a historical officeholder attestation. These controls
-cannot activate a new draft or act as company appointment authority, and the status changes send
-no notification. They exist only in admin: there is no API for them, and the database refuses
-these status changes from a staff account without the change permission.
+active company: issue a compliance warning, suspend, delist, resolve a warning and reinstate.
+Resolving a warning or reinstating returns the company to Active only when it has an activation
+receipt or a historical officeholder attestation. These controls cannot activate a new draft or act
+as company appointment authority, and the status changes send no notification. They exist only in
+admin: there is no API for them, and the database refuses these status changes from a staff account
+without the change permission.
 
 ## Representative identity requirement
 

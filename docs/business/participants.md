@@ -259,7 +259,7 @@ under company [Shareholders](register.md#the-register-page).
 
 **Profile** combines Personal information with permitted Company details. Each editor retains its own
 permissions; changing personal details does not update a company's records. **Activation** retains the
-[company activation workflow](companies.md#activation-and-the-registry-check).
+[company activation workflow](companies.md#activation).
 
 **Account** has three cards: **Security** (the identity check's status with **Review**, and the
 password with **Change**), **Account details** (**Member since** and **Last login**, such as

@@ -127,8 +127,9 @@ non-tokenised register member.
 
 Bootstrap starts with fresh company and participant signup. Establish initial
 company access through the representative's authorisation declaration, retaining
-the existing representative identity check; the ABR company lookup runs at
-activation ([19 October decision](../../decisions.md#abr-company-lookup-at-activation)).
+the existing representative identity check; the ABR company lookup, which ran at
+activation, was removed on 2 November 2026
+([decision](../../decisions.md#abr-company-check-removed)).
 The selected [representative authority route](#representative-verification) is
 self-declaration, followed by scoped in-app delegation. It does not approve pending instructions
 or replace action-specific company approvals.
@@ -154,10 +155,10 @@ authorised to act for the company, which registers itself and remains
 responsible for its information, filings and legal obligations. Company details
 are shown as provided by the company, never verified by Ledova, and Ledova
 changes administrators only through existing administrators or at a court's or
-regulator's direction. The representative identity check and ABR lookup remain,
-the lookup at activation since 19 October, and a declaration turns neither into a
-success result. No impersonation or fraud verification is added unless a legal
-duty on Ledova requires it; such a duty is
+regulator's direction. The representative identity check remains, and a
+declaration does not turn it into a success result; the ABR lookup, at activation
+from 19 October, was removed on 2 November 2026. No impersonation or fraud
+verification is added unless a legal duty on Ledova requires it; such a duty is
 raised with the owner, not built. Other representatives receive in-app
 delegation within their recorded delegatable scope; self-declaration approves no
 issue or payment. The [authority guide](../../business/companies.md)
@@ -229,7 +230,8 @@ rather than issuing them a second time.
 - Company A's appointee cannot read or act on company B's private records; reject
   foreign company/class/member/document references, even for a shared owner.
 - Initial admission records the representative's authorisation declaration,
-  retaining the existing identity check; activation runs the ABR lookup. Company
+  retaining the existing identity check; activation records its own declaration
+  under the same identity check. Company
   details are attributed to the company, with responsibility stated in the terms, and never
   labelled verified by Ledova. Administrator changes require existing company
   administrators or court/regulator direction; own-account recovery remains separate.
