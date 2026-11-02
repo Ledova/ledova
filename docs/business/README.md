@@ -243,7 +243,7 @@ the company information they may read. The sidebar keeps focused tasks for the s
   Its sidebar label is Eligibility, and administrators find Supporting (the company's documents)
   beneath it.
 - Settings comes last whatever company is selected. It keeps personal Profile, Account and Data and privacy, with company information, Team and Activation according
-  to current access. Profile also shows the details a company holds about a linked member.
+  to current access.
 
 The sidebar has no More group or Help & Support link. Investing pages without a sidebar
 item retain their access rules. The person's name and selected company sit together in the footer

@@ -100,7 +100,7 @@ inviting administrator, another person's account or a conflicting association is
 
 ### What a member can read
 
-An accepted member reads their own company-recorded particulars, share-class balances, the entries
+An accepted member reads their own share-class balances, the entries
 that changed their holding, and their employee-award terms, original vesting, endings and referenced reversals with net vested,
 issued, ended and remaining quantities; no wallet or company approval is needed. Other members' identities,
 private company decisions, financial documents and other members' parts of an entry are never shown. An
@@ -133,11 +133,8 @@ separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
 breakdown and terms under **Show award details**. This read-only overview is the whole web Dashboard.
-**Settings** → **Profile** shows a member of the selected company how that company's register
-records them, on web and mobile: a read-only card headed with the company's name, such as **How
-Example Pty Ltd records you**, with the recorded name and residential address and **Wrong? Contact
-the company.** It is not a second profile, takes no edits and sends no request. When the company
-changes those particulars the member gets no notice; the card shows the current ones. The entries
+**Settings** → **Profile** shows the person's own Personal information, and Company details for a company
+administrator; it has no card for how a company's register records them. The entries
 that changed their holding in each class are in web **Documents** → **Certificates**. On mobile, **Documents** and a class card's **Certificates** open the same
 Certificates page for the selected company.
 

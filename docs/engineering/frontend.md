@@ -372,7 +372,7 @@ approve appointee (`canReviewEligibility`). Its sidebar label is Eligibility. A 
 gets its caret, with Supporting (Company documents, `/documents/company`) beneath it.
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
 Team and Activation where permitted. Its default is Profile (`/settings#profile`), combining personal
-details, permitted company information and how the selected company records a linked member. Account
+details and permitted company information. Account
 (`/settings#account`) is one compact card for identity status with Review identity check, Change
 password and Manage account, and Data and privacy (`/settings#data`) holds Export data and Delete
 account. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
@@ -481,9 +481,8 @@ Signed-in web pages do not poll while idle or refetch because of window focus, v
 reconnection. Web query defaults enforce that page-data policy. Another person's changes appear on a later
 entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
 content stable until a relevant read is needed, without mounting another workflow's reads behind
-an overview. Certificates re-reads the member list on entry; Profile's company-recorded card reads only the
-selected record, using the member list the company directory already holds, so opening Profile
-never empties the company context. Both read only while open.
+an overview. Certificates re-reads the member list on entry and reads only while open; Profile
+reads no member records.
 
 `dashboard/src/hooks/useEntryReads.ts` and
 `dashboard/src/pages/company/ledger/useIssueEntryRead.ts` retain ordered entry reads:
@@ -797,9 +796,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   unapplied draft. Apply writes `class`, `q` and `certificate_status` to the URL; Clear preserves the
   class and removes search and status. Company entries are filtered on the server before paging;
   own-member history is read fully. Preparation opens a focused main-page form.
-- Certificates and Profile's company-recorded card share an owner-bound member-records controller.
-  Profile shows the selected company's recorded name and residential address read-only, with no
-  action. Choosing a class on Certificates reads that class's own entries. Active web reads follow
+- Certificates reads the member's records through an owner-bound member-records controller.
+  Choosing a class on Certificates reads that class's own entries. Active web reads follow
   [automatic data freshness](#automatic-data-freshness); the web takes no member action through it.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
