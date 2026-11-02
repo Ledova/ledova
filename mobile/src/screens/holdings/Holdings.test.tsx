@@ -209,7 +209,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   const dashboard = <DashboardScreen route={{ key: 'dashboard', name: 'Dashboard', params: undefined }} />;
   const view = await render(dashboard, { wrapper });
-  await fireEvent.press(await screen.findByRole('button', { name: 'Accept an invitation' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Accept invitation' }));
   expect(mockNavigate).toHaveBeenCalledWith('Invitation');
   await view.rerender(<InvitationScreen />);
   await fireEvent.changeText(

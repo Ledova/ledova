@@ -1,5 +1,6 @@
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MS = 86_400_000;
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export function utcToday(at: Date = new Date()): string {
   return at.toISOString().slice(0, 10);
@@ -48,24 +49,15 @@ export function formatDate(
   }
 }
 
-export function formatDateTime(
-  dateString: string | null | undefined,
-  fallback: string = 'Never',
-  locale: string = 'en-AU',
-): string {
+export function formatDateTime(dateString: string | null | undefined, fallback: string = 'Never'): string {
   if (!dateString) return fallback;
-  if (CALENDAR_DATE.test(dateString)) return formatDate(dateString, fallback, locale);
-  try {
-    return new Date(dateString).toLocaleDateString(locale, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateString;
-  }
+  if (CALENDAR_DATE.test(dateString)) return formatDate(dateString, fallback);
+  const at = new Date(dateString);
+  if (Number.isNaN(at.getTime())) return dateString;
+  const day = `${at.getDate()} ${SHORT_MONTHS[at.getMonth()]} ${at.getFullYear()}`;
+  const hours = at.getHours();
+  const time = `${hours % 12 || 12}:${String(at.getMinutes()).padStart(2, '0')} ${hours < 12 ? 'am' : 'pm'}`;
+  return `${day}, ${time}`;
 }
 
 export function parseDateString(dateString: string): Date | undefined {

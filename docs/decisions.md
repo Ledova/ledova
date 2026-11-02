@@ -2032,6 +2032,18 @@ This replaces the [shareholder app](#mobile-app-for-shareholders)'s three tabs a
 and its shareholder-only scope as the investor's eligibility pages and phases 3 to 5 arrive. The app
 still has no links or hand-offs to the web.
 
+**Account, decided on 2 November 2026.** Finding Account messy and unorganised, the owner agreed a
+layout proposed with a mockup, the same on web and app
+([#1495](https://github.com/Ledova/ledova/issues/1495)): a Security card (the identity check with
+**Review** on the web, the password with **Change**, and the app's biometric sign-in and App lock),
+an Account details card (member since and last login, in one date-time format on both) and a Company
+invitation card (one line and **Accept invitation**), each row with its label on the left and its
+status, one short action or switch on the right. The owner also asked to remove the app's Rate the app
+and Share with friends, which went with their code. Reviewing the build, the owner asked for the
+identity check's status to sit on its line, aligned right like the buttons ("The verified with the
+green dot I think could be on same line of the identify check but aligned to the right"); on the web
+it sits before **Review**.
+
 ## The signed-in app
 
 The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).

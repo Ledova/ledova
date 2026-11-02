@@ -408,8 +408,11 @@ one-level group for **Profile** (the default), **Account** and **Data and privac
 permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
 there. Profile always holds personal information. Company documents, Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
-Use one compact Account card for relevant identity status, password and Manage account (member since
-and last login); keep export and deletion on Data and privacy, with their existing confirmations. The
+Account has three cards: **Security** (the identity check's status with **Review**, which the app
+leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
+switches), **Account details** (**Member since** and **Last login**) and **Company invitation** (one
+line and **Accept invitation**). Each row has its label on the left and its status, one short action
+or switch on the right, vertically centred at every width, and the facts are label and value rows. Keep export and deletion on Data and privacy, with their existing confirmations. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Payslip evidence
 belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
@@ -1023,8 +1026,10 @@ by a local helper or a browser `toLocale…` call:
 
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
   the server recorded.
-- **Date-times** use `formatDateTime`: "20 Oct 2026, 02:30 pm", in the viewer's local time. A
-  calendar date passed to it shows as a date, never with an invented time.
+- **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
+  same in the browser and the app. It builds the text from the date's own fields with three-letter
+  month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.
+  A calendar date passed to it shows as a date, never with an invented time.
 - **Share counts** use `formatShareCount`, a count with its noun uses `shareCount` ("1 share",
   "1,315 shares", or with a qualifier, "1 issued share") and a signed change uses `shareChange`
   ("+1,000"). Gathered in `packages/shared/src/utils/formatting.ts` with `sharePercentage`.
