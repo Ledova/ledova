@@ -7,7 +7,6 @@ import { MemberRecordsProvider } from '@components/member-records/MemberRecordsP
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { CompanyRecordedDetails } from '@pages/settings/CompanyRecordedDetails';
 
 import {
   ApiClientProvider,
@@ -41,7 +40,6 @@ function MemberPageLinks() {
     <nav>
       <Link to={context!.companyPath('/home')}>Dashboard</Link>
       <Link to={context!.companyPath('/home#documents')}>Documents</Link>
-      <Link to={context!.companyPath('/settings#profile')}>Settings</Link>
       <Link to="/home?company=unavailable-company">Open unavailable company</Link>
     </nav>
   );
@@ -284,7 +282,6 @@ it('invites and associates a walletless member, recovers one exact request and r
           <Routes>
             <Route path="/home" element={<MemberRecordsPage />} />
             <Route path={DESTINATIONS.certificates.path} element={<CertificatesPage />} />
-            <Route path="/settings" element={<CompanyRecordedDetails />} />
           </Routes>
         </CompanyContextProvider>
       </LedgerNavigationProvider>
@@ -511,17 +508,6 @@ it('invites and associates a walletless member, recovers one exact request and r
   await screen.findByText('Your issued shares');
   expect(screen.queryByRole('region', { name: 'Company ownership summary' })).toBeNull();
   expect(screen.queryByRole('group', { name: 'Ownership view' })).toBeNull();
-  fireEvent.click(screen.getByRole('link', { name: 'Settings' }));
-  const detailsCard = (await screen.findByText('Wrong? Contact the company.')).closest('section')!;
-  expect(
-    within(detailsCard).getByRole('heading', { name: `How ${MEMBER_RECORD.company.name} records you` }),
-  ).toBeTruthy();
-  expect(
-    within(detailsCard)
-      .getAllByRole('definition')
-      .map((item) => item.textContent),
-  ).toEqual([MEMBER_RECORD.name, MEMBER_RECORD.residentialAddress]);
-  expect(within(detailsCard).queryByRole('button')).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   const certificatesCard = (await screen.findByRole('heading', { name: 'Certificate records' })).closest('section')!;
   expect(await within(certificatesCard).findByText('+10 ORD shares')).toBeTruthy();

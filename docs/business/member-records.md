@@ -90,8 +90,9 @@ The email's **View invitation** link opens **Member invitation** on the web. The
 or creates an account, then returns to the invitation in the same tab. They review the company,
 shareholder and intended email before choosing **Accept invitation**; opening a link never grants
 access. Their verified email must match, and acceptance binds one current account to one member
-in that company. On mobile, **Accept an invitation** in **Settings** → **Account** (its Manage account), and
-on Dashboard before the first company, takes the pasted **View invitation** link
+in that company. On mobile, **Accept invitation** in **Settings** → **Account** (its Company
+invitation card), and **Accept invitation** on Dashboard before the first company, open the
+Invitation page. It takes the pasted **View invitation** link
 (or its code), shows the company, shareholder,
 email and deadline, and accepts with **Accept invitation**; it reports acceptance only once the
 server does.
@@ -103,7 +104,7 @@ and residential address replace the recorded ones, dated today, unless they matc
 
 ### What a member can read
 
-An accepted member reads their own company-recorded particulars, share-class balances, the entries
+An accepted member reads their own share-class balances, the entries
 that changed their holding, and their employee-award terms, original vesting, endings and referenced reversals with net vested,
 issued, ended and remaining quantities; no wallet or company approval is needed. Other members' identities,
 private company decisions, financial documents and other members' parts of an entry are never shown. An
@@ -135,11 +136,8 @@ separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full
 breakdown and terms under **Show award details**. This read-only overview is the whole web Dashboard.
-**Settings** → **Profile** shows a member of the selected company how that company's register
-records them, on web and mobile: a read-only card headed with the company's name, such as **How
-Example Pty Ltd records you**, with the recorded name and residential address and **Wrong? Contact
-the company.** It is not a second profile, takes no edits and sends no request. When the company
-changes those particulars the member gets no notice; the card shows the current ones. The entries
+**Settings** → **Profile** shows the person's own Personal information, and Company details for a company
+administrator; it has no card for how a company's register records them. The entries
 that changed their holding in each class are in web **Documents** → **Certificates**. On mobile, **Documents** and a class card's **Certificates** open the same
 Certificates page for the selected company.
 
@@ -375,8 +373,6 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
   actor, appointment and recording time. Earlier plain-text document references are retained as
   text, separate from the supporting files.
 - Wallet approvals, the transactions Ledova sent for the company and the settlements it executed.
-- What the company published to its members, with each resolution's result, each dividend's payment
-  records and read counts.
 - The contract information a successor needs, and a README that explains the files, how to check
   them and how control of the contracts would be handed over. The handover itself is not built.
 
@@ -393,7 +389,6 @@ and identity source.
 | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Members' email, phone, date of birth, citizenship and financial profile                   | What members gave Ledova, not the register's particulars ([position 10](../legal/positions.md#10-privacy))                                                                                                         |
 | Identity checks, classification claims and evidence, payslips and their extractions       | The person's records with Ledova, which the company never reads and which run on their own retention clock                                                                                                         |
-| A ballot's member and choice, and who opened which publication                            | The company sees resolution tallies and read counts only                                                                                                                                                           |
 | Unmatched orders                                                                          | Investors' private orders                                                                                                                                                                                          |
 | Records of who took register outputs                                                      | Ledova's audit; the company sees records of its own inspection copies and packs only, never of an output produced in admin ([position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)) |
 | Signed transaction bytes                                                                  | They could still be broadcast                                                                                                                                                                                      |
@@ -402,12 +397,11 @@ and identity source.
 | Ledova's source code                                                                      | The software licence is noncommercial; the pack carries the contract interface files and the owner's statement ([position 5](../legal/positions.md#5-software-licensing-and-commercial-permission))                |
 
 No file is built from these areas except the register's own particulars, and the only stored files
-the pack opens are the company's documents, evidence copies, publication documents and remittance
-evidence. Platform account numbers leave in two places only, even where the account is a member's:
-decision records give the number of each person who prepared or recorded one, or made one of its
-decisions, and of each appointee they relied on; the fingerprint input of each register entry and
-of each dividend payment record or withdrawal carries the number of the account that recorded it,
-without which it cannot be checked.
+the pack opens are the company's documents and evidence copies. Platform account numbers leave in
+two places only, even where the account is a member's: decision records give the number of each
+person who prepared or recorded one, or made one of its decisions, and of each appointee they relied
+on; the fingerprint input of each register entry carries the number of the account that recorded
+it, without which it cannot be checked.
 
 ### Producing a core pack
 
@@ -419,7 +413,7 @@ before the pack is recorded.
 
 This route produces only a complete core pack: every share class is an opened imported register
 never put on chain, and the company has no chain issues, settlements, deployments, capital increases, pause changes, wallet approvals, nominations,
-instructions or links, retained register instructions or publications. Such a pack carries its
+instructions or links, or retained register instructions. Such a pack carries its
 decisions, awards and their vesting, endings and reversals, external agreements, contributions and allotments with their
 original supporting files. Anything else refuses the whole download rather than silently leaving
 records out, and the company asks platform staff for the broader pack.
@@ -436,9 +430,8 @@ company pack** and **Can view company document**; company permissions do not inc
 3. Enter the reference and the recipient, then choose **Produce and download**.
 
 The download, `company-pack-ACN-YYYYMMDDTHHMMSSZ.zip`, is named for the moment the records were
-read, in UTC. It carries members' names and residential addresses, decision-makers' names, the
-company's documents and publication rolls: give it unchanged to the recipient the instruction
-names.
+read, in UTC. It carries members' names and residential addresses, decision-makers' names and the
+company's documents: give it unchanged to the recipient the instruction names.
 
 ### Recording and refusals
 
@@ -449,8 +442,6 @@ share class and only once the archive is complete. Either route refuses, and rec
 - a register entry no longer matches its stored fingerprint (the refusal names the class and entry;
   do not produce a pack until the register
   [verifies](../operations/recovery.md#verifying-stored-records));
-- a publication's roll digest or an event's hash no longer matches what was recorded (the refusal
-  names the publication);
 - the stored files it would carry exceed 256 MiB (the refusal names the total; background
   production is not built until a real pack exceeds it);
 - a document's or evidence copy's file is missing from private storage, or a stored file no longer
@@ -480,15 +471,7 @@ What a recipient should know (the builder's own limits are in
 - A company document has no fingerprint of its own apart from the manifest's, so a reader can check
   an evidence copy against its record but a document only against the manifest. A document held
   only as a web address is listed, not fetched.
-- A withheld ballot's fingerprint cannot be recomputed, nor a tally recounted: a reader checks the
-  ballots' links, the close and the tally against the roll and the number of ballots, and the split
-  between for, against and abstain rests on Ledova's own verifier. A roll's audience fingerprint
-  covers account numbers that do not leave, so a reader checks its row count and rows against the
-  register instead.
-- In a small company a tally, set against the roll's holdings, can show how members voted;
-  withholding ballots adds nothing to what the company can infer from Ledova.
 
 Next: [the register of members](register.md),
-[shareholder publications](publications.md),
 [legal positions](../legal/positions.md) and
 [register output formats](../engineering/records.md#output-formats).

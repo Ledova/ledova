@@ -286,11 +286,7 @@ async function openTheSidebar(page: Page, role: Role) {
       '/documents/certificates?company=company',
     );
     const documents = sidebar.getByRole('link', { name: 'Documents', exact: true }).locator('../..');
-    await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
-    await expect(documents.getByRole('link', { name: 'Notices', exact: true })).toHaveAttribute(
-      'href',
-      '/publications?company=company',
-    );
+    await expect(documents.getByRole('button', { name: 'Expand Documents navigation' })).toHaveCount(0);
     await expect(sidebar.getByRole('link', { name: 'Eligibility', exact: true })).toHaveAttribute(
       'href',
       '/investor-eligibility?company=company',
@@ -388,9 +384,7 @@ async function openTheSidebar(page: Page, role: Role) {
   await expect(settings.getByRole('link', { name: 'Documents', exact: true })).toHaveCount(0);
   await settingsLink.click();
   await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: `How ${LONG_NAME} records you`, exact: true })).toHaveCount(
-    role === 'company' ? 0 : 1,
-  );
+  await expect(page.getByRole('heading', { name: /records you$/ })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(
     role === 'investor' ? 0 : 1,
   );
@@ -419,12 +413,17 @@ async function openTheSidebar(page: Page, role: Role) {
   aside = await visibleSidebar(page);
   await aside.getByRole('link', { name: 'Account', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Manage account', exact: true })).toBeVisible();
+  for (const name of ['Security', 'Account details'])
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Review (identity check)' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Accept invitation', exact: true })).toHaveCount(
+    role === 'investor' ? 1 : 0,
+  );
   aside = await visibleSidebar(page);
   await aside.getByRole('link', { name: 'Data and privacy', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Data and privacy', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Export data', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Delete account', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export (account data)', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Delete (account)', exact: true })).toBeVisible();
   aside = await visibleSidebar(page);
   await expect(aside.getByText('More', { exact: true })).toHaveCount(0);
   await expect(aside.getByRole('link', { name: 'Help & Support' })).toHaveCount(0);

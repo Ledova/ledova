@@ -18,7 +18,6 @@ export * from './register-import';
 export * from './register-correction';
 export * from './register-particulars';
 export * from './operator';
-export * from './publication';
 
 export * from './register-allotment';
 

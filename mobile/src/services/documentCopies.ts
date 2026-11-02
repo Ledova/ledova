@@ -89,11 +89,9 @@ subscribeSession(() => {
 async function writeViewCopy(
   sessionEpoch: number,
   download: () => Promise<DocumentView>,
-  guard?: () => void,
 ): Promise<{ uri: string; type: string }> {
   const { name, type, bytes } = await download();
   assertSessionEpoch(sessionEpoch);
-  guard?.();
   sweepViewCopies();
   const copy = new File(viewDirectory(), name);
   copy.create({ intermediates: true, overwrite: true });
@@ -107,27 +105,18 @@ const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
   'image/jpeg': '.jpg',
 };
 
-export const UTI_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': 'com.adobe.pdf',
-  'image/png': 'public.png',
-  'image/jpeg': 'public.jpeg',
-};
-
 export async function shareDocumentCopy(
   sessionEpoch: number,
   download: () => Promise<DocumentView>,
   share: (uri: string, type: string) => Promise<void>,
-  guard?: () => void,
 ): Promise<void> {
   assertSessionEpoch(sessionEpoch);
-  guard?.();
   if (viewing === sessionEpoch) return;
   viewing = sessionEpoch;
-  const copy = await writeViewCopy(sessionEpoch, download, guard).finally(() => {
+  const copy = await writeViewCopy(sessionEpoch, download).finally(() => {
     if (viewing === sessionEpoch) viewing = undefined;
   });
   assertSessionEpoch(sessionEpoch);
-  guard?.();
   await share(copy.uri, copy.type);
 }
 

@@ -100,7 +100,7 @@ legal, signature or filing requirements resolved.
 Appointments carry flat capabilities (`admin`, `prepare`, `approve`, `apply`,
 `finance` and `read_register`) with invitations, expiry and revocation.
 `RegisterMember` remains a shareholder record, not an administrative role, and
-participant access to one's holding/notices does not imply company admin access.
+participant access to one's holding does not imply company admin access.
 
 Platform permissions and company appointments are independent. Company membership
 must not confer global staff privileges. Company capabilities come from recorded
@@ -177,8 +177,9 @@ are delivered.
 
 New integrated payments and marketplace settlement (#869), advanced
 publications/voting/distributions (#870), and filing preparation/submission
-(#872) are deferred. Preserve existing governed functionality and retained
-records. Neither a generated filing draft nor an external receipt establishes
+(#872) are deferred; the staff-run shareholder publications were
+[removed](../../decisions.md#shareholder-publications-removed) on 2 November 2026.
+Preserve existing governed functionality and retained records. Neither a generated filing draft nor an external receipt establishes
 lodgement, regulatory acceptance or share issuance. Future integration choices
 remain owner decisions.
 
@@ -245,7 +246,7 @@ rather than issuing them a second time.
 - Missing authority, director conflict, insufficient headroom,
   conflicting identity, chain reorganisation or changed finality policy produce
   actionable pending/refused outcomes, never invented completion.
-- Shareholders/employees read their own records/notices independently of unrelated
+- Shareholders/employees read their own records independently of unrelated
   offering eligibility; no wallet is required where no chain action is involved.
 - Receipt, issue authority, execution, holding and register effect remain separate
   and reconcile to the same quantity. Payment alone does not create an issue.

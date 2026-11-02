@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from shared.storage import (
+    RETAINED_STORAGE_PATHS,
     SWEPT_STORAGE_PREFIXES,
     private_storage,
     swept_file_fields,
@@ -52,7 +53,7 @@ def orphaned_files(moment=None, storage=None):
         name
         for prefix in SWEPT_STORAGE_PREFIXES
         for name in _walk(storage, prefix)
-        if name not in referenced and _settled_before(storage, name, cutoff)
+        if name not in referenced and not RETAINED_STORAGE_PATHS.match(name) and _settled_before(storage, name, cutoff)
     ]
     return sorted(found)
 

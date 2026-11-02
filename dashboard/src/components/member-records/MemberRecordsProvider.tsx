@@ -4,9 +4,9 @@ import { DESTINATIONS, useMemberRecords } from '@ledova/shared';
 import { MemberWorkspaceContext } from './useMemberWorkspace';
 
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
-  const { pathname, hash } = useLocation();
+  const { pathname } = useLocation();
   const certificates = pathname === DESTINATIONS.certificates.path;
-  const active = certificates || (pathname === DESTINATIONS.settings.path && hash === '#profile');
+  const active = certificates;
   const read = useMemberRecords(undefined, {
     coordinatedRefresh: true,
     enabled: active,

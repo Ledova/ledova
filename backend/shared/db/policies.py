@@ -130,27 +130,6 @@ THROUGH_ITS_TOKEN = (
 )
 
 
-ADDRESSED_TO_ME = (
-    "EXISTS (SELECT 1 FROM shareholders_publicationrecipient addressed "
-    f"WHERE addressed.publication_id = shareholders_publication.uuid AND addressed.user_id = {PRINCIPAL})"
-)
-MY_OWN_BALLOT = (
-    "kind = 'ballot' AND EXISTS (SELECT 1 FROM shareholders_publicationrecipient casting "
-    f"WHERE casting.uuid = shareholders_publicationevent.recipient_id AND casting.user_id = {PRINCIPAL})"
-)
-A_CLOSE_ON_MY_ROLL = (
-    "kind = 'close' AND EXISTS (SELECT 1 FROM shareholders_publicationrecipient addressed "
-    "WHERE addressed.publication_id = shareholders_publicationevent.publication_id "
-    f"AND addressed.user_id = {PRINCIPAL})"
-)
-A_CLOSE_OF_MY_COMPANY = f"kind = 'close' AND {_company('company_id', VISIBLE_COMPANIES)}"
-MY_OWN_PAYMENT_RECORDS = (
-    "kind IN ('payment', 'payment_void') AND EXISTS (SELECT 1 FROM shareholders_publicationrecipient owed "
-    f"WHERE owed.uuid = shareholders_publicationevent.recipient_id AND owed.user_id = {PRINCIPAL})"
-)
-PAYMENT_RECORDS_OF_MY_COMPANY = f"kind IN ('payment', 'payment_void') AND {_company('company_id', VISIBLE_COMPANIES)}"
-
-
 A_PARTY_TO_THE_SWAP = (
     "EXISTS (SELECT 1 FROM wallets party "
     "WHERE party.uuid IN (tokens_swaporder.seller_wallet_id, tokens_swaporder.buyer_wallet_id) "
@@ -270,19 +249,6 @@ POLICIES = {
     "tokens_registermembercessation": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_registerparticularschange": (_company("company_id", VISIBLE_COMPANIES), "false"),
     "tokens_importedformermember": ("token_id IN (SELECT token_id FROM tokens_shareregister)", "false"),
-    "shareholders_publication": (
-        f"{_company('company_id', VISIBLE_COMPANIES)} OR {ADDRESSED_TO_ME}",
-        "false",
-    ),
-    "shareholders_publicationrecipient": (
-        f"user_id = {PRINCIPAL} OR {_company('company_id', VISIBLE_COMPANIES)}",
-        "false",
-    ),
-    "shareholders_publicationevent": (
-        f"({MY_OWN_BALLOT}) OR ({A_CLOSE_ON_MY_ROLL}) OR ({A_CLOSE_OF_MY_COMPANY}) "
-        f"OR ({MY_OWN_PAYMENT_RECORDS}) OR ({PAYMENT_RECORDS_OF_MY_COMPANY})",
-        "false",
-    ),
     "blockchain_outgoingoperation": ("false", "false"),
     "blockchain_signingaccount": ("false", "false"),
     "blockchain_freshsignerbootstrap": ("false", "false"),
@@ -373,39 +339,6 @@ PUBLIC_TERM = {
     "only company UUIDs under an admitted principal; its token check avoids the Company-to-token-to-invoker "
     "owner-helper policy cycle. Current personal administration and genuine unrooted draft setup use their "
     "separate UUID helper, while customer basic selectors remain narrower than public discovery.",
-    "shareholders_publication": "A publication is the first investor-readable projection of the register, so its "
-    "read term has to reach past the company that made it: without the recipient term a member's app-role reads "
-    "- the summary, cast_ballot and the ballot response - would never reach the publication addressed to them. "
-    "Listing and opening the file run on the operator connection, where Publication.objects.for_reader binds the "
-    "company owner or a named recipient. The term is a member's own roll row and nothing else - it never reads a "
-    "wallet address, because Wallet is unique per (account, chain, address) and two accounts may hold one "
-    "address, so an address join would hand one member's statement to another. Identity is resolved once in "
-    "Python when the roll is frozen and stored as user_id, exactly the shape the notifications policy already "
-    "uses. No cycle: shareholders_publicationrecipient's own policy reads only its own columns and "
-    "companies_company through the visible-companies helper, and never reads publications back. Both tables are "
-    "read-only to the app role; only the operator writes them.",
-    "shareholders_publicationrecipient": "A roll row is readable by the member it names and by the company that "
-    "published it. The company term is the row's own "
-    "company_id rather than a join through the publication, because the publication's read term reads this table "
-    "and a term reading it back would be an infinite recursion in the policy. company_id is copied from the "
-    "publication at insert and the guard trigger refuses a row whose company differs from its publication's; "
-    "both rows are frozen at insert, so it cannot go stale.",
-    "shareholders_publicationevent": "A resolution's record is read by three parties, and each term is narrower than "
-    "the publication's own. A member reads their own ballot, found through the roll row it names, so a ballot a "
-    "staff member entered for them is theirs too; a member reads the close of any resolution they are on the roll "
-    "of, because the tally is the outcome every member was asked about; and the company that published reads the "
-    "close alone, on the row's own company_id, which is copied from the publication at insert and checked by the "
-    "trigger. No one but staff reads another member's ballot, and the company reads no ballot at all. A "
-    "distribution's payment records follow the same two sides: a member reads the records and withdrawals for "
-    "their own roll rows, found through the roll row each names, and never another member's; the company reads "
-    "every payment record of its own distributions on the row's company_id, because it is the payer and staff "
-    "record them on its written instruction. The write "
-    "term is false for all three commands: a member's ballot is resolved under this principal's policies and "
-    "inserted on the operator connection, where the trigger requires the actor to be the account the roll row "
-    "names, and payment records are written by staff on the operator connection alone. No cycle: the member terms "
-    "read shareholders_publicationrecipient, whose own policy reads only its own columns and companies_company "
-    "through the visible-companies helper, the company terms read that helper alone, and nothing reads this table "
-    "back.",
 }
 
 AWAITING_R0: dict[str, MissingOwnerColumns] = {}
@@ -597,12 +530,6 @@ OPERATOR_ONLY = {
     "register readers or administrators only the inspection copies and packs whose produced_through records the "
     "company's own pages, never one produced in platform admin. Only tokens/services/former_holders.py "
     "purge_register_exports deletes them, on the retention clock.",
-    "shareholders_publicationread": "Append-only records of who opened a publication a company made to its "
-    "members, or the remittance evidence of one of its payment records, written on the operator connection by "
-    "the delivery service for the publication file route and the publications admin, and read only by permitted "
-    "staff, including as per-publication counts in the staff company pack; only the retention purge deletes them. "
-    "They carry UUIDs and reader IDs, not names, holdings or file contents, and a delivery whose read cannot be "
-    "recorded is refused rather than served.",
     "compliance_compliancealert": "Raised automatically by the screening, monitoring and periodic review tasks and "
     "the KYCAID webhooks, or by compliance staff, and worked by staff in admin, all on the operator connection. It "
     "carries user_account_id but no queryset scopes it, so a policy would be a new rule rather than a "

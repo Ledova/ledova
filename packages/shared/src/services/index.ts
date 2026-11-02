@@ -99,13 +99,6 @@ export {
   deleteInvestorClassification,
 } from './investorClassifications';
 export { getOperator } from './operator';
-export {
-  getPublications,
-  getPublicationsNextPage,
-  openPublication,
-  downloadPublication,
-  castBallot,
-} from './publications';
 export * from './company-eligibility';
 
 export * from './register-allotments';

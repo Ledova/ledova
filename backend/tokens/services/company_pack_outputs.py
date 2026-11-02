@@ -24,7 +24,7 @@ UNSUPPORTED = (
 )
 
 
-def _require_core_contents(company, classes, approvals, published, mandate_source):
+def _require_core_contents(company, classes, approvals, mandate_source):
     restrictive = (
         "wallet_nominations",
         "wallet_instructions",
@@ -34,12 +34,7 @@ def _require_core_contents(company, classes, approvals, published, mandate_sourc
         "capital_increases",
         "pause_changes",
     )
-    if (
-        approvals["approvals"]
-        or approvals["changes"]
-        or published["listed"]
-        or any(mandate_source[family] for family in restrictive)
-    ):
+    if approvals["approvals"] or approvals["changes"] or any(mandate_source[family] for family in restrictive):
         raise ValidationError(UNSUPPORTED)
     for share_class in classes:
         token = share_class["token"]

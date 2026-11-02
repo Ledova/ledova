@@ -16,12 +16,10 @@ export const CompanyShareholderPage = lazy(() => import('@pages/company/ledger/m
 export const CompanyTeamPage = lazy(() => import('@pages/company/team'));
 export const DashboardPage = lazy(() => import('@pages/home'));
 export const InvestorEligibilityPage = lazy(() => import('@pages/investor-eligibility'));
-export const IssuerPublicationsPage = lazy(() => import('@pages/company/publications'));
 export const ListingPage = lazy(() => import('@pages/company/listing'));
 export const MemberInvitationPage = lazy(() => import('@pages/member-invitation'));
 export const NotFoundPage = lazy(() => import('@pages/not-found'));
 export const ParticipantEligibilityPage = lazy(() => import('@pages/eligibility-requests'));
-export const PublicationsPage = lazy(() => import('@pages/publications'));
 export const SettingsPage = lazy(() => import('@pages/settings'));
 export const ShareClassPage = lazy(() => import('@pages/company/ledger/detail'));
 export const SignInPage = lazy(() => import('@pages/signin'));

@@ -24,7 +24,6 @@ export {
   COMPANY_QUERY_KEY,
   ownCompaniesKey,
 } from './useCompanySelection';
-export { useResolutionStatus } from './useResolutionStatus';
 export {
   INVESTOR_CLASSIFICATIONS_QUERY_KEY,
   investorClassificationsKey,
@@ -79,4 +78,3 @@ export { OWN_APPOINTMENTS_QUERY_KEY, eligibilityRecordsKey } from './useCompanyE
 
 export { useUserProfile } from './useUserProfile';
 export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
-export { usePublications, PUBLICATIONS_QUERY_KEY, PERSONAL_NOTICES_QUERY_KEY } from './usePublications';
