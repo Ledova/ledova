@@ -1,12 +1,18 @@
+import { Platform } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
 import { assertSessionEpoch, subscribeSession } from './sessionScope';
 
+const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
 let viewing: number | undefined;
 
 interface DocumentView {
   name: string;
   type: string;
   bytes: Uint8Array;
+}
+
+function temporaryDirectory(): Directory {
+  return new Directory(Paths.document, '..', 'tmp');
 }
 
 function local(uri: string): string {
@@ -19,7 +25,7 @@ function inside(file: File, directory: Directory): boolean {
 
 function removeCopy(file: File): void {
   try {
-    if (!inside(file, Paths.cache)) return;
+    if (!inside(file, Paths.cache) && !(Platform.OS === 'ios' && inside(file, temporaryDirectory()))) return;
     if (file.info().exists) file.delete();
     if (file.info().exists) throw new Error('Document copy remains.');
   } catch {
@@ -40,13 +46,29 @@ function entries(directory: Directory): (File | Directory)[] {
   }
 }
 
-function sweepViewCopies(): void {
-  for (const entry of entries(viewDirectory())) {
-    if (entry instanceof File) removeCopy(entry);
+function sweep(directory: Directory, owned: (name: string) => boolean = () => true): void {
+  for (const entry of entries(directory)) {
+    if (entry instanceof File && owned(entry.name)) removeCopy(entry);
   }
 }
 
-subscribeSession(sweepViewCopies);
+function sweepViewCopies(): void {
+  sweep(viewDirectory());
+}
+
+export function sweepEarlierUploadCopies(): void {
+  sweep(new Directory(Paths.cache, 'DocumentPicker'), (name) => PICKER_NAME.test(name));
+  sweep(new Directory(Paths.cache, 'ledova-upload-copies-v1'));
+  if (Platform.OS !== 'ios') return;
+  for (const entry of entries(temporaryDirectory())) {
+    if (entry instanceof Directory && entry.name.endsWith('-Inbox')) sweep(entry);
+  }
+}
+
+subscribeSession(() => {
+  sweepEarlierUploadCopies();
+  sweepViewCopies();
+});
 
 async function writeViewCopy(
   sessionEpoch: number,

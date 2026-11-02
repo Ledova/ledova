@@ -9,9 +9,11 @@ import { AppFonts } from './src/components/AppFonts';
 
 import { ApiClientProvider } from '@ledova/shared';
 import { apiClient } from './src/services/apiClient';
+import { sweepEarlierUploadCopies } from './src/services/documentCopies';
 import { notificationsService } from './src/services/notificationsService';
 
 notificationsService.configure();
+sweepEarlierUploadCopies();
 
 const queryClient = new QueryClient({
   defaultOptions: {

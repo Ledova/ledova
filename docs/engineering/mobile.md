@@ -246,6 +246,13 @@ the next native build drops its module, and a development app built with it stil
 JavaScript. Make release builds from a fresh prebuild
 ([building from a clean checkout](mobile-releases.md#building-from-a-clean-checkout)).
 
+For one release, each app start and session change still delete the copies an earlier build's
+picker and uploads left behind (`sweepEarlierUploadCopies` in
+`mobile/src/services/documentCopies.ts`): the picker's UUID-named files in the cache's
+`DocumentPicker` folder, the old `ledova-upload-copies-v1` copies and, on iOS, the files in the
+temporary folder's `-Inbox` folders. It deletes only files inside the app's own cache or, on iOS,
+temporary folder, and needs only `expo-file-system`. The release after that removes it.
+
 ## Document view copies
 
 Viewing a document downloads it into the app-owned `ledova-document-views-v1` cache directory and
