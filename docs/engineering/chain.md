@@ -439,10 +439,10 @@ still move shares, and pausing the token is the operator's lever.
 `whitelist.services.refresh` keeps technical invalidation. It submits only REMOVE, under the
 actual retained standing, identity or wallet-loss cause, and never adds or renews approval,
 authorises a company instruction or treats a possession-proof refresh as wallet deletion. A
-participant who is current again explains why no removal is needed; absence of a genuine cause is
-diagnostic, not permission to write. The sweep reads the
-registry's expiry (an expired address needs no write) and recovers an unresolved predecessor first;
-missing receipts, time or membership never release a signed operation.
+participant who is current again explains why a standing or identity loss needs no removal, but a
+wallet removal still removes; absence of a genuine cause is diagnostic, not permission to write.
+The sweep reads the registry's expiry (an expired address needs no write) and recovers an
+unresolved predecessor first; missing receipts, time or membership never release a signed operation.
 
 Standing, identity or wallet verification loss and wallet deletion keep the actual prior facts and
 any actor, independent of any new company instruction. The eligibility causes (claim or request

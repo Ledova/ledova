@@ -93,13 +93,13 @@ dated relative to the day of the run. The modules under
 [`backend/shared/seeds/synthetic/`](../backend/shared/seeds/synthetic) are the description of
 record; the main ones:
 
-| Module                       | What it adds                                                                                                                                                                                                                                         |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reference.py`               | Countries, the operator's blank identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT prices and a USD to AUD rate                                                                                                          |
+| Module                       | What it adds                                                                                                                                                                                                               |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reference.py`               | Countries, the operator's blank identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT prices and a USD to AUD rate                                                                                |
 | `staff.py`                   | A compliance officer, a document reviewer, an operations officer who can open the operator console, and a deactivated former staff member                                                                                  |
 | `people.py`, `identities.py` | 60 investors unless `--investors` asks for at least 20, in every signup, identity and standing state, with wallets on Base, Ethereum and Bitcoin testnet, transactions, holdings, inactive device tokens and notifications |
-| `companies.py`               | Demo Robotics and two more active companies with verified documents, officeholder attestation and a passed ABR check from a synthetic observation, one company with information requested and one submitted                                          |
-| `alerts.py`                  | Alerts in every status, one with a suspicious matter report, with AUD amounts the rules compare and activation dates that make only customers in their first 30 days new                                                                             |
+| `companies.py`               | Demo Robotics and two more active companies with verified documents, officeholder attestation and a passed ABR check from a synthetic observation, one company with information requested and one submitted                |
+| `alerts.py`                  | Alerts in every status, one with a suspicious matter report, with AUD amounts the rules compare and activation dates that make only customers in their first 30 days new                                                   |
 
 The founder's wallet is development account #0, the operator's
 signer. The investor has seven wallets on the three networks, two unverified: development accounts

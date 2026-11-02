@@ -246,10 +246,10 @@ classified as retained, with a reason.
 
 ### Retention clocks
 
-| Record                                                                 | Clock                                                                                                                                                                                         | Purge                                                                                                                  |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days                                                                                                                                           | `purge_former_members_past_the_clock`, below                                                                           |
-| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                                                                                                                                                           | None, below                                                                                                            |
+| Record                                                                 | Clock                                               | Purge                                        |
+| ---------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------- |
+| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below |
+| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | None, below                                  |
 
 2,557 days is seven years including two leap days. `FORMER_MEMBER_RETENTION_DAYS` has a floor:
 `retention_cutoff` raises `ImproperlyConfigured` below 2,557 days, so the floor cannot be

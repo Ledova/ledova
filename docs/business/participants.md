@@ -174,7 +174,8 @@ identity or wallet is lost. Then:
 
 - the platform refuses new orders and signatures for that company at once;
 - the removal records the actual cause; the platform only removes, never adds or renews, an
-  approval on its own, and removes none while the participant is current again;
+  approval on its own. A lost standing or identity removes nothing once the participant is current
+  again, but a wallet that was removed or lost its verification loses its approval even then;
 - until the removal lands on chain, a direct contract call could still move shares; pausing the
   share class is the available lever
   ([whitelist changes](../engineering/chain.md#whitelist-changes));

@@ -22,10 +22,10 @@ installation redirects to the admin index. `GET /api/operator/` also creates the
 page does; other staff get the admin's refusal and nothing is created. Adding the row by hand also
 needs the add permission, and the row cannot be deleted.
 
-| Admin section | Fields                                                                       |
-| ------------- | ---------------------------------------------------------------------------- |
-| Identity      | `name`, `legal_name`, `abn`, `contact_email`, `website`                      |
-| Settlement    | `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
+| Admin section   | Fields                                                                       |
+| --------------- | ---------------------------------------------------------------------------- |
+| Identity        | `name`, `legal_name`, `abn`, `contact_email`, `website`                      |
+| Settlement      | `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
 | Identity checks | `investor_kyc_required` (default on), `issuer_kyc_required` (default off)    |
 
 The model normalises the ABN. Ledova holds no payment instructions or receiving wallet:

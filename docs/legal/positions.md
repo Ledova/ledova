@@ -146,11 +146,15 @@ former-member setting;
 purge rules. The classification-evidence and payslip clocks went with investor
 eligibility on 2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)).
 
-**The position.** Seven years, from review or expiry. The basis is the
+**The position.** Seven years, from review or expiry, while Ledova kept
+classification evidence and payslips. It keeps neither now: on 2 November 2026
+the removal migrations deleted every retained evidence file and payslip, with
+their records, whatever remained of each clock
+([decision](../decisions.md#verification-limited-to-id-checks)). The basis was the
 convergence of the two obligations above rather than a considered view of which
-one governs, and that is the weakness: they are different obligations with
-different triggers, and it is possible that neither runs from the moment this
-code measures from.
+one governs, and that was the weakness: they are different obligations with
+different triggers, and it is possible that neither ran from the moment the
+code measured from.
 
 **What would show this wrong.** A period that runs from the end of the
 relationship rather than from the review. That is a larger change than the
@@ -159,7 +163,8 @@ is the answer to watch for rather than the number.
 
 **Which way to be wrong.** Keeping evidence too long is a privacy exposure;
 destroying it too early is a compliance failure that cannot be undone. Where the
-two conflict, the code keeps the evidence, which is the recoverable direction.
+two conflicted, the code kept the evidence, the recoverable direction, until the
+owner chose deletion with the removal of investor eligibility.
 
 **Status.** Reviewed 2026-09-15; unchanged. Note that in neither historical
 analysis is an identity document collected until investor onboarding is
