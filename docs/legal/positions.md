@@ -216,9 +216,11 @@ of implemented controls. Fresh issues, grants, allotments and non-paid
 transfers are prepared, approved and applied by company appointees, retaining
 the company's authority document and named director with no staff verification
 ([implementation index](../plans/company-managed-registers/README.md)). Staff
-verification remains only in the retained instruction workflow for earlier
-direct issues and settled market transfers
-([runbook](../business/issuing-shares.md#retained-issue-instructions)).
+review remains only in the retained instruction workflow for earlier direct
+issues and settled market transfers
+([runbook](../business/issuing-shares.md#retained-issue-instructions)), which
+since 2 November 2026 also retains the company's own authority document rather
+than a staff-verified one ([decision](../decisions.md#company-documents-removed)).
 
 **The position.** A hosted register-of-members service is not a financial
 service while all of the following hold: entries are made only on written

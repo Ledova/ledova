@@ -16,15 +16,16 @@ stay here as history and are marked where they appear.
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                        | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476) and for linked members 2 November (#1492)                              |
 | [Company representative verification](#company-representative-verification)                                        | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                                       |
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                    | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                     |
-| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)       | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                                |
+| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)       | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148, removed 2 November; company documents removed 2 November (#1491)          |
 | [Identity verification after signup](#identity-verification-after-signup)                                          | 19 October 2026                                | Current; #1141                                                                                                                     |
 | [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)                  | 19 October 2026                                | Current; #1146                                                                                                                     |
 | [ABR company lookup at activation](#abr-company-lookup-at-activation)                                              | 19 October 2026                                | Superseded 2 November 2026; the ABR check was removed (#1491)                                                                      |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                            | 14 October 2026                                | Current; setup amended by #1029                                                                                                    |
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)             | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                                      |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                            | September to 6 October 2026                    | Eligibility superseded 2 November (#1491); offering parts removed under #1421                                                      |
-| [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Current; #1491; supersedes classification, eligibility, payslips and the ABR check; company documents follow                       |
+| [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Current; #1491; supersedes classification, eligibility, payslips, the ABR check and company documents                              |
 | [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; supersedes the 19 October ABR lookup at activation                                                          |
+| [Company documents removed](#company-documents-removed)                                                            | 2 November 2026                                | Current; #1491 step 3; retained instructions take the company's own evidence                                                       |
 | [The stored register](#the-stored-register)                                                                        | September 2026; staff review retired 5 October | Current                                                                                                                            |
 | [Register CSV download removed](#register-csv-download-removed)                                                    | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
 | [Company-scoped approvals](#company-scoped-approvals)                                                              | 19 September 2026                              | Current                                                                                                                            |
@@ -244,7 +245,8 @@ Signup requires no supporting file and has no separate administrator-delegation
 checkbox. The initial personal scope remains `admin`; its recorded delegation
 includes all six capabilities for team setup afterwards. Documents and invitations
 use the existing company dashboard settings, with current company authority and the checked
-private-file flow for actual uploads. Identity, ABR, immutable declarations,
+private-file flow for actual uploads; company documents were removed on 2 November 2026
+([decision](#company-documents-removed)). Identity, ABR, immutable declarations,
 tenant isolation, revocation and action-specific approvals remain; the ABR lookup
 later moved to activation ([19 October](#abr-company-lookup-at-activation)) and was
 removed on 2 November 2026 ([decision](#abr-company-check-removed)). A missing
@@ -539,6 +541,31 @@ requires. A company still waiting on a lookup activates afresh. This supersedes 
 [combined signup](#combined-company-signup-and-initial-authority) and
 [simple signup](#simple-signup-documents-and-team-after-registration) decisions that kept the ABR lookup.
 
+### Company documents removed
+
+Step 3 of the [decision above](#verification-limited-to-id-checks)
+([#1491](https://github.com/Ledova/ledova/issues/1491)), delivered on 2 November 2026: the company's
+supporting documents (Company files on the web) and platform staff's verification of them are
+removed. A company no longer keeps documents on Ledova apart from its register work, nobody reviews
+them, and the company pack carries no company documents. The register's own evidence stays: each
+register command, grant, award, allotment and transfer keeps the files the company uploaded with it.
+
+The two API-only flows that relied on a staff-verified company document, retained issue instructions
+and settled-transfer instructions, take the company's own uploaded evidence instead, as the owner
+chose ("Company's own evidence"): the company owner names an `authority` upload they made for the
+company, Ledova keeps its own copy with the upload's SHA-256, and platform staff still review each
+instruction before it applies. One still waiting with a company document can only be rejected; the
+company submits it again with its own evidence.
+
+The migration deletes every company document and its file. An instruction, or an earlier staff-era
+record, that relied on one keeps its own copy of the file with the snapshot and fingerprint it
+recorded, so the evidence behind an applied register effect stays; the document's own record,
+including who verified it and when, goes with it. The staff permissions to view and verify company
+documents go too, and producing the broader company pack in admin needs **Can view company pack** in
+their place. This supersedes the company documents of the
+[simple signup](#simple-signup-documents-and-team-after-registration) decision and the Company
+documents page of the [compact sidebar](#ownership-dashboard-and-compact-sidebar).
+
 ## The stored register
 
 The staff reviewer below was retired by the rules above, decided on 5 October
@@ -605,7 +632,9 @@ since become company decisions under the
 [company-run rules](#company-run-register-authority-and-evidence): non-paid
 register grants and chain grants, and paid issues until offerings were removed on
 29 October 2026. The instruction route remains for
-settled transfers until [#869](https://github.com/Ledova/ledova/issues/869).
+settled transfers until [#869](https://github.com/Ledova/ledova/issues/869). Since 2 November 2026 its
+documentary authority is the company's own uploaded evidence
+([decision](#company-documents-removed)).
 [The register](engineering/records.md#register-commands) owns the mechanisms.
 
 The same day the owner chose how the register's outputs are produced:
@@ -1684,7 +1713,8 @@ Later the same day the owner asked to move the company's supporting documents ou
 think this page [/company#documents] should be in documents section, not in settings". The owner
 also asked about Company-recorded details: "this page … does not seems to be offering much so I
 wonder if we can just merge into Profile". Company documents now sit under Documents at
-`/documents/company`, and the old address redirects there. Profile shows the selected company's
+`/documents/company`, and the old address redirects there (both removed on
+[2 November 2026](#company-documents-removed)). Profile shows the selected company's
 recorded details for a linked member, with its update request, and the separate Settings item is
 gone. The update request was later removed ([decision](#member-particulars-requests-removed)), and
 the card itself on 2 November 2026 (#1492).
@@ -1710,8 +1740,9 @@ chose: "Move Supporting under Company eligibility." Supporting is now Company el
 a company administrator. The group's caret leaves too little room for the full name on one line, so
 the sidebar labels it Eligibility, with Company eligibility as its title. _The group went with
 company eligibility on 2 November 2026 ([verification limited to ID checks](#verification-limited-to-id-checks)):
-company administrators open Company documents from its own top-level sidebar item, labelled Company files
-to fit on one line, until step 3 of #1491 removes it._
+company administrators opened Company documents from its own top-level sidebar item, labelled Company
+files to fit on one line, until step 3 of #1491 removed it later that day
+([decision](#company-documents-removed))._
 
 ### Dashboard, Settings and Register for a new company
 

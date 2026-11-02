@@ -416,7 +416,6 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
         wallet_links = history.wallet_links(links)
         changes = history.particulars_change_records(company)
         particulars_changes = history.particulars_changes(changes)
-        listed, held = documents.held(company)
         member_documents, member_files = documents.member_documents(company)
         class_documents, class_files = documents.class_documents(company)
         copies = documents.evidence(
@@ -446,7 +445,7 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
         copies.update(documents.retained_sources(source_records))
         if validate_contents is not None:
             validate_contents(company, classes, approvals, mandate_source)
-    stored = {**held, **copies, **member_files, **class_files}
+    stored = {**copies, **member_files, **class_files}
     documents.within_ceiling(company, stored)
     files = {
         "company.json": _json(record),
@@ -454,7 +453,6 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
         "approvals.json": _json(approvals),
         "wallet_links.json": _json(wallet_links),
         "particulars_changes.json": _json(particulars_changes),
-        "documents.json": _json(listed),
         "member_documents.json": _json(member_documents),
         "class_documents.json": _json(class_documents),
         "contracts/contracts.json": _json(contracts),
@@ -473,7 +471,6 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
             "classes": classes,
             "contracts": contracts,
             "approvals": approvals["approvals"],
-            "documents": listed,
             "copies": len(copies),
             "paused": any(share_class["token"].status == ShareTokenStatus.PAUSED for share_class in classes),
             "former": any(share_class["former"] for share_class in classes),

@@ -3,7 +3,7 @@
 [Business processes](README.md) · [Documentation](../README.md)
 
 How a company joins Ledova and who may act for it: signup and the representative's declaration,
-team invitations and appointments, company information and documents, and activation. It is written
+team invitations and appointments, company information, and activation. It is written
 for company representatives, support staff and anyone learning how company authority is established. The representative declares their own authority and Ledova does
 not verify it ([self-declaration decision](../decisions.md#company-representative-verification));
 who holds which capability is in [company capabilities](README.md#company-capabilities). All of it
@@ -15,7 +15,7 @@ happens on the web; the mobile app is for shareholders
 - [Team invitations and appointments](#team-invitations-and-appointments)
 - [What an appointment records](#what-an-appointment-records)
 - [Who may administer a company](#who-may-administer-a-company)
-- [Company information and documents](#company-information-and-documents)
+- [Company information](#company-information)
 - [Activation](#activation)
 - [Representative identity requirement](#representative-identity-requirement)
 - [The Company page](#the-company-page)
@@ -53,9 +53,9 @@ The initial appointment gives you Manage company information and team personally
 capabilities as delegatable so that you can build the team afterwards. It records you, the company,
 the declaration version and text and the admission time.
 
-After signup, add optional supporting files at **Company files** and invite users at
-**Settings → Team**.
-Later documents do not alter the retained signup request. The company remains Draft until a current
+After signup, invite users at **Settings → Team**. A company keeps no separate documents on Ledova;
+it uploads its own evidence with the register work that needs it
+([decision](../decisions.md#company-documents-removed)). The company remains Draft until a current
 administrator activates it: registration does not incorporate a company with ASIC, appoint a
 director, activate the company or issue shares. Until then, the **Getting started** list
 on the web company Dashboard links its personal administrators to unfinished activation and register
@@ -96,7 +96,7 @@ actions at the foot.
    Initial admission requires Manage company information and team personally. Set an expiry if
    needed. Selecting capabilities grants nothing.
 3. Optionally attach a supporting PDF, PNG or JPEG. It is checked and kept privately; no ASIC extract
-   is required, and files can instead be added later as company documents.
+   is required.
 4. Submit the request. The platform freezes the company and representative details, the
    capabilities, the expiry and any file, and shows what it captured.
 5. On the request's page, accept the displayed declaration of your workspace and team authority, which also accepts the
@@ -188,7 +188,7 @@ and revocations cannot be edited or deleted
 
 ## Who may administer a company
 
-Editing basic company information and uploading, reading or removing company documents need a
+Editing basic company information needs a
 current personal appointment with Manage company information and team for that exact company, or
 the draft setup exception below. Delegatable-only capabilities, ownership, shareholding and platform
 staff permissions supply no administration.
@@ -196,7 +196,7 @@ staff permissions supply no administration.
 ### The draft setup exception
 
 Before a company has its initial appointment, its current owner, if active and email-verified, can
-edit the draft and upload its documents. Any admitted initial appointment, or a legacy-owner
+edit the draft. Any admitted initial appointment, or a legacy-owner
 appointment, closes the exception for good; a revoked, expired or hidden initial appointment and a
 later change of owner cannot reopen it. A pending request leaves the draft editable, so admission
 rechecks the captured details.
@@ -208,22 +208,17 @@ rechecks the captured details.
 - Team reads need current administration of that exact company and never show another person's
   private declaration, identity or financial evidence, or signup file.
 - An owner whose administrative appointment has ended can still select the company and read its
-  basic details, but private documents and contact details stay hidden and every edit or file
-  action needs current administration.
+  basic details, but contact details stay hidden and every edit needs current administration.
 
-## Company information and documents
+## Company information
 
 A current company administrator reads and edits the company's basic information at
-**Settings → Profile**, and manages supporting files at **Company files** on web
-([Settings](participants.md#profile-and-settings)). On web,
+**Settings → Profile** on web ([Settings](participants.md#profile-and-settings)). On web,
 [choose the company on Dashboard](README.md#the-app-at-a-glance).
 
 1. Read the selected company's name, address, contact details and status.
 2. Choose **Edit company** to change the permitted fields inline on web, save, and wait for the confirmed receipt
    and refreshed information.
-3. In **Documents**, a separate Settings page on web, view a retained file, upload a document of a chosen type, or confirm
-   removal of an eligible document. Documents are optional; use Other documents for representative
-   authority records.
 
 Rules:
 
@@ -235,27 +230,6 @@ Rules:
   does not confirm that a number belongs to a real company.
 - Changing the registered name, ACN, ABN, company type or officeholder declaration starts a new
   company revision, which closes any open activation review.
-
-### Staff verification of a company document
-
-Settled-transfer and retained issue instructions
-([register](register.md#settled-transfer-instructions);
-[issuing shares](issuing-shares.md#retained-issue-instructions)) rely on a company document that
-platform staff have verified. Company register commands use the company's own evidence instead.
-
-1. In **Admin → Companies → Company documents**, choose **Review and verify document**. You need an
-   active staff account with **Can change company document**.
-2. Open the private file and review its company, document type and validity details.
-3. Confirm. The confirmation is bound to you and the document and expires after 15 minutes.
-
-Confirmation re-reads the file and records a fingerprint of its bytes and of the document's and
-company's identifying details. It is refused when the preview changed, the file is missing, empty
-or the wrong size, the document is rejected or its validity is not current; a web address alone
-cannot establish content. Ledova clears the verification automatically when the company's
-identity, the document's details or its rejection reason change; the company may revoke a
-verification but cannot grant one. A register action that relies on the document rechecks the
-current file, the company and the validity dates against that fingerprint each time
-([how verification is enforced](../engineering/backend.md#company-document-verification)).
 
 ## Activation
 
@@ -323,8 +297,7 @@ and address, and whether the ownership overview is shared with members. Administ
 
 On web, select the company in Dashboard. Settings opens Profile, combining personal and permitted
 company sections with separate editors and permissions, beside Account and Data and privacy. Team and
-Activation have their own Settings items, and **Company files** in the sidebar holds the company's supporting
-documents for its administrators, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
+Activation have their own Settings items, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
 
 Share classes are listed and added only in [Ledger](register.md#bringing-in-existing-records).
 

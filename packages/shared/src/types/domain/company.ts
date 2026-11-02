@@ -4,10 +4,6 @@ export type CompanyStatus = ApiSchema<'CompanyStatusEnum'>;
 
 export type CompanyType = ApiSchema<'CompanyTypeEnum'>;
 
-export type DocumentType = ApiSchema<'CompanyDocumentDocumentTypeEnum'>;
-
-export type CompanyDocument = ApiSchema<'CompanyDocument'>;
-
 export type Company = ApiResponse<'api_v1_companies_retrieve'>;
 
 export type CompanyListItem = ApiResponse<'api_v1_companies_list'>['results'][number];
@@ -23,9 +19,6 @@ export type CompanyRegistrationResponse = ApiResponse<'api_v1_companies_create'>
 export type CompanyActivate = ApiRequest<'api_v1_companies_activate_create'>;
 
 export type CompanyActivated = ApiResponse<'api_v1_companies_activate_create'>;
-
-export type DocumentUpload = ApiRequest<'api_v1_companies_documents_create'> &
-  Required<Pick<ApiRequest<'api_v1_companies_documents_create'>, 'file'>>;
 
 export type CompanyPackRequest = ApiRequest<'api_v1_companies_pack_create'>;
 export type CompanyPacks = ApiResponse<'api_v1_companies_packs_retrieve'>;

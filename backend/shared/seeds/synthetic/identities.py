@@ -128,7 +128,3 @@ def abn_for(acn_digits):
         if abn_is_valid(candidate):
             return candidate
     raise ValueError("No ABN prefix satisfies the check for this ACN.")
-
-
-def spaced_abn(abn):
-    return f"{abn[:2]} {abn[2:5]} {abn[5:8]} {abn[8:]}"

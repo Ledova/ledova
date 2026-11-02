@@ -3,13 +3,11 @@ from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils.html import format_html
 from rest_framework.exceptions import APIException
 
 from companies.models import (
     Company,
     CompanyActivation,
-    CompanyDocument,
     CompanyStatus,
 )
 from companies.services import transition_company
@@ -116,29 +114,6 @@ STATUS_BUTTONS = {
     CompanyStatus.WITHDRAWN: [("Application Withdrawn", None, "#e9ecef", "#6c757d")],
     CompanyStatus.DELISTED: [("Permanently Delisted", None, "#e9ecef", "#6c757d")],
 }
-
-
-class CompanyDocumentInline(admin.TabularInline):
-    model = CompanyDocument
-    extra = 0
-    fields = ["document_type", "name", "file_link", "is_verified", "created_at"]
-    readonly_fields = fields
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def file_link(self, obj):
-        if obj.pk is not None and obj.file:
-            url = reverse("admin:companies_companydocument_file", args=[obj.uuid])
-            return format_html('<a href="{}" target="_blank">View File</a>', url)
-        elif obj.external_url:
-            return format_html('<a href="{}" target="_blank">External Link</a>', obj.external_url)
-        return "-"
-
-    file_link.short_description = "File"
 
 
 class TransitionForm(forms.Form):
@@ -335,8 +310,6 @@ class CompanyAdmin(admin.ModelAdmin):
             },
         ),
     ]
-
-    inlines = [CompanyDocumentInline]
 
     actions = []
 

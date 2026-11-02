@@ -44,10 +44,6 @@ class Records:
     def operations(self):
         return self.staff["operations"]
 
-    @property
-    def documents(self):
-        return self.staff["documents"]
-
     def user(self, key):
         return User.objects.get(email=key)
 

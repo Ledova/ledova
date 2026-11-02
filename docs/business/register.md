@@ -58,8 +58,9 @@ changes have no admin page.
 
 Every change except a [particulars change](#changing-a-members-particulars) rests on evidence the
 company provides ([company-provided evidence](README.md#company-provided-evidence)). The authority
-document behind an opening, correction, wallet link or transfer is a director resolution naming the
-approving director or, except for a transfer, a court order with its reference. Uploads are PDF,
+document behind an opening, correction, wallet link, transfer or
+[retained instruction](#retained-director-instructions) is a director resolution naming the
+approving director or, except for a transfer or instruction, a court order with its reference. Uploads are PDF,
 PNG or JPEG files within the upload limit (10 MB by default); evidence downloads are not logged.
 
 ## What the register records
@@ -483,9 +484,9 @@ company-run. Under one [owner decision](../decisions.md#the-stored-register), bo
 review, for settled transfers until [#869](https://github.com/Ledova/ledova/issues/869):
 
 1. The company owner submits an instruction listing the exact items a named director approved, with
-   the authority reference, a reason and a company document that platform staff have
-   [verified](companies.md#staff-verification-of-a-company-document), of which Ledova keeps a
-   private copy. Neither app has a form for it; it goes through Ledova's API
+   the authority reference, a reason and the authority document they uploaded for the company, of
+   which Ledova keeps a private copy ([decision](../decisions.md#company-documents-removed)). Neither
+   app has a form for it; it goes through Ledova's API
    ([retained instructions API](../engineering/records.md#retained-register-instructions-api)).
 2. Platform staff with permission to change register instructions open it under Register
    instructions in admin, inspect the retained document, the
@@ -495,7 +496,9 @@ review, for settled transfers until [#869](https://github.com/Ledova/ledova/issu
 Submission, review and application refuse a director who is a party to a listed transfer or the
 recipient of a listed issue, and any instruction for a class an import opened. Applying records
 whatever waited for the instruction, in chain order. Instructions are kept unchanged and cannot be
-deleted ([retention](../engineering/security.md#retention-clocks)).
+deleted ([retention](../engineering/security.md#retention-clocks)). One submitted before
+2 November 2026 with a staff-verified company document, and still waiting, can only be rejected; the
+company submits it again with its own evidence.
 
 ### Settled-transfer instructions
 

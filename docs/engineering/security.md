@@ -72,7 +72,7 @@ the default connection and can bypass scope
 
 ### Company rows
 
-Company and `CompanyDocument` selectors admit a current personal `admin` appointment or the
+Company selectors admit a current personal `admin` appointment or the
 bounded draft-setup exception
 ([authority rules](../business/companies.md#who-may-administer-a-company)) through
 `app_company_administration_ids()`, which exposes only company UUIDs. `app_visible_company_ids()`
@@ -81,9 +81,9 @@ and `app_manageable_company_ids()` keep their owner terms for the retained owner
 locks. Share-class creation instead selects a current personal administrator or preparer and
 rechecks that authority inside the locked register command (`backend/tokens/services/creation.py`).
 
-App writes to Company, CompanyDocument, authority requests, appointments, invitations and
+App writes to Company, authority requests, appointments, invitations and
 legacy-owner sources are denied, and the app role has no grants on activation receipts; the
-actor-bound services in `companies/services/` (`administration.py`, `editing.py`, `documents.py`,
+actor-bound services in `companies/services/` (`administration.py`, `editing.py`,
 `authority_requests.py`, `team.py`, `activation.py`) carry the
 caller's principal, lock the company before the live account, profile, identity requirement and
 appointments, and check the clock after the wait. Policies scope authority requests to their
@@ -109,7 +109,7 @@ receiving blanket grants. The `AWAITING_R0` and `AWAITING_RLS` sets are empty.
   and public-discovery helpers return UUIDs through fixed-search-path `SECURITY DEFINER`
   functions, which prevents circular company and token policy evaluation. Public discovery keeps
   the deployed and non-empty-address term and requires a principal; it supplies no private
-  document, profile or basic administration access.
+  profile or basic administration access.
 - Accounts, wallets and profiles are readable only by their owner. A company's nullable
   operator-wallet link does not expose its owner's profile to an ordinary viewer of that company.
 - A member reads a company's row only through an account resolved once and stored, never through a
@@ -197,8 +197,8 @@ member who has a current association
 Uploaded evidence is private in every storage mode and on every instance. File
 ownership and the retention clock decide who can read or remove it; no upload is served by
 `/media/`, including in debug mode, and a public media URL never substitutes for an authenticated
-route. A company appointment reaches only that company's documents and tasks, never participants'
-private identity or financial evidence.
+route. A company appointment reaches only that company's register evidence and tasks, never
+participants' private identity or financial evidence.
 
 ### Storage
 
@@ -212,7 +212,6 @@ UUIDs in prefixes are pseudonymous.
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Representative authority request | `companies/<uuid>/authority-requests/`; retained with the immutable request; uncommitted-copy orphans are swept                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Company register decision        | `companies/<uuid>/register-evidence/` for the company's upload and a per-kind prefix for the decision's own copy: `register-openings/`, `register-imports/`, `register-corrections/`, `register-links/`, `register-particulars/`, `register-grants/`, `register-transfers/`, `register-capital-increases/`, `register-pause-changes/`, `register-instructions/`, `register-awards/`, `register-award-vestings/` and `register-allotments/`; both are retained with their rows; interrupted-copy orphans are swept |
-| Company document                 | `companies/<uuid>/documents/<type>/`; swept after becoming an orphan                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 ### Serving
 
@@ -221,9 +220,8 @@ rows return the same 404; anonymous requests return 401. Staff read company file
 (`admin_file_path`, [admin row actions](backend.md#admin-row-actions)) rather than widening
 customer ownership selectors; refused staff receive 403, matching the change page.
 
-The company document serializer returns the authenticated route as `file_url`. The dashboard opens a file by
-top-level navigation with its session cookie; mobile fetches with its bearer client
-([document view copies](mobile.md#document-view-copies)).
+The dashboard opens a file by top-level navigation with its session cookie; mobile fetches with its
+bearer client ([document view copies](mobile.md#document-view-copies)).
 
 Admin downloads are attachments; customer serving is inline only for the allowed PDF, PNG and JPEG
 MIME types, and an attachment otherwise. `stream_stored_file`, which every customer
@@ -233,12 +231,11 @@ directives through the admin's `never_cache`.
 
 ### Read audit
 
-Company documents carry no read audit, for the owner, staff in admin or an investor opening an
-offering's documents: they are offer information, not personal records.
+Register evidence downloads carry no read audit
+([decision](../decisions.md#company-run-register-authority-and-evidence)).
 
 A [company pack](records.md#documents-and-evidence-copies) carries only files stored under
-`companies/`: the company's documents and its register evidence copies. Nothing else leaves in a
-pack.
+`companies/`: the company's register evidence copies. Nothing else leaves in a pack.
 
 ## Deletion and retention
 
@@ -254,7 +251,8 @@ are gone. The nightly orphan sweep
 `companies/`, `documents/` and `users/` and requiring 24 hours without a change to protect the
 interval between file write and row commit. No current model stores files under `documents/` or
 `users/`; the sweep there removes any file of the removed investor evidence and payslips that its
-migration's deletion missed. It never deletes a file under `companies/<uuid>/publications/`
+migration's deletion missed, as it does under `companies/<uuid>/documents/` for the removed company
+documents. It never deletes a file under `companies/<uuid>/publications/`
 (`RETAINED_STORAGE_PATHS` in [storage.py](../../backend/shared/storage.py)), where shareholder
 publications kept their documents and payment evidence: no model references them since publications
 were [removed](../decisions.md#shareholder-publications-removed), and a database whose removal
@@ -286,12 +284,13 @@ captured boundaries and identity snapshots, and the company's evidence uploads, 
 automatic expiry. Every register decision retains a private copy of the company's upload with its
 size, type and SHA-256, except a one-step particulars change, which takes no upload; a particulars
 change also keeps its own copy of the recorded name and residential address and, when made in one
-step or from a linked member's Profile, of the particulars it replaced; and a staff-era proposal
-keeps its copy of the staff-verified document. The database refuses ordinary deletion of these
-rows; only copies left by a rolled-back or interrupted preparation fall under the orphan sweep.
+step or from a linked member's Profile, of the particulars it replaced; and a staff-era proposal or
+retained instruction keeps its copy of the staff-verified company document, which was itself
+deleted when company documents were [removed](../decisions.md#company-documents-removed). The
+database refuses ordinary deletion of these rows; only copies left by a rolled-back or interrupted
+preparation fall under the orphan sweep.
 
-Documents uploaded after an authority request belong to the company document record and do not
-alter the request. Production retention is decided before any real data, and account and company deletion still respect the
+Production retention is decided before any real data, and account and company deletion still respect the
 protected register relations.
 
 ## Upload validation

@@ -6,7 +6,6 @@ from companies.serializers.company import (
     CompanyRegistrationSerializer,
     CompanyUpdateSerializer,
 )
-from companies.serializers.document import CompanyDocumentSerializer
 
 __all__ = [
     "CompanyListSerializer",
@@ -15,5 +14,4 @@ __all__ = [
     "CompanyDetailSerializer",
     "CompanyRegistrationSerializer",
     "CompanyUpdateSerializer",
-    "CompanyDocumentSerializer",
 ]

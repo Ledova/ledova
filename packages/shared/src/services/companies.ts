@@ -7,10 +7,8 @@ import type {
   CompanyUpdateResponse,
   CompanyRegistration,
   CompanyRegistrationResponse,
-  CompanyDocument,
   CompanyPackRequest,
   CompanyPacks,
-  DocumentUpload,
   CompanyActivate,
   CompanyActivated,
   PaginatedResponse,
@@ -41,33 +39,6 @@ export const updateCompany = (
   config === undefined
     ? apiClient.patch<CompanyUpdateResponse>(COMPANY_ENDPOINTS.DETAIL(uuid), data)
     : apiClient.patch<CompanyUpdateResponse>(COMPANY_ENDPOINTS.DETAIL(uuid), data, config);
-
-export const uploadCompanyDocument = (
-  apiClient: AxiosInstance,
-  companyUuid: string,
-  data: DocumentUpload,
-  config?: AxiosRequestConfig,
-) => {
-  const formData = new FormData();
-  formData.append('file', data.file);
-  formData.append('document_type', data.documentType);
-  formData.append('name', data.name);
-
-  return apiClient.post<CompanyDocument>(COMPANY_ENDPOINTS.DOCUMENTS(companyUuid), formData, {
-    ...config,
-    headers: { ...config?.headers, 'Content-Type': 'multipart/form-data' },
-  });
-};
-
-export const deleteCompanyDocument = (
-  apiClient: AxiosInstance,
-  companyUuid: string,
-  documentUuid: string,
-  config?: AxiosRequestConfig,
-) =>
-  config === undefined
-    ? apiClient.delete(COMPANY_ENDPOINTS.DOCUMENT_DETAIL(companyUuid, documentUuid))
-    : apiClient.delete(COMPANY_ENDPOINTS.DOCUMENT_DETAIL(companyUuid, documentUuid), config);
 
 export const activateCompany = (
   apiClient: AxiosInstance,

@@ -7,7 +7,6 @@ export * from './register-transfers';
 export * from './register-imports';
 export * from './register-corrections';
 export * from './register-particulars';
-export * from './company-documents';
 export * from './company-authority';
 export * from './signup';
 export * from './company-activation';

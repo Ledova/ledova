@@ -4,7 +4,6 @@ from datetime import timedelta
 from decimal import ROUND_DOWN, Decimal
 from typing import NamedTuple
 
-from companies.models import DocumentType
 from shared.seeds.demo import (
     DEMO_ACN,
     DEMO_COMPANY_NAME,
@@ -23,7 +22,6 @@ from shared.seeds.synthetic.plan import (
     STEP_STATUS,
     WINDOW_DAYS,
     Attempt,
-    CompanyDocumentPlan,
     CompanyPlan,
     Device,
     Financial,
@@ -67,11 +65,10 @@ BLOCKS = {"base": (45_120_000, 2), "ethereum": (10_640_000, 12), "bitcoin": (4_6
 
 STAFF = (
     ("compliance", "helena.marsh", "Compliance officer", 198, None),
-    ("documents", "tomas.reyes", "Document reviewer", 196, None),
     ("operations", "grace.okafor", "Operations officer", 194, None),
     ("former", "daniel.burke", "Former operations officer", 199, 76),
 )
-STAFF_NAMES = (("Helena", "Marsh"), ("Tomas", "Reyes"), ("Grace", "Okafor"), ("Daniel", "Burke"))
+STAFF_NAMES = (("Helena", "Marsh"), ("Grace", "Okafor"), ("Daniel", "Burke"))
 
 SPECIAL_COHORTS = (
     ("unverified", 2),
@@ -117,25 +114,12 @@ INFO_REQUESTS = {
     "coralgum": (
         "Upload a signed beneficial ownership declaration; the copy provided is unsigned.",
         "Signed declaration uploaded.",
-        "beneficial_ownership",
     ),
     "saltbush": (
         "The ASIC company extract is more than 12 months old. Upload one issued in the last three months.",
         "",
-        "asic",
     ),
 }
-HISTORICAL_DOCUMENT_TYPES = (
-    "cert_inc",
-    "asic",
-    "constitution",
-    "share_register",
-    "financials",
-    "director_id",
-    "beneficial_ownership",
-    "business_plan",
-    "risk_disclosure",
-)
 HISTORICAL_APPLICATION_NOTIFICATIONS = {
     "submit": ("Application submitted", "{name} was submitted for review."),
     "resubmit": ("Application resubmitted", "{name} was resubmitted with your response."),
@@ -146,8 +130,6 @@ HISTORICAL_APPLICATION_NOTIFICATIONS = {
     "activate": ("Company activated", "{name} is now active."),
     "withdraw": ("Application withdrawn", "{name} was withdrawn."),
 }
-REQUIRED_TYPES = HISTORICAL_DOCUMENT_TYPES
-OPTIONAL_TYPES = tuple(choice.value for choice in DocumentType if choice.value not in REQUIRED_TYPES)
 
 
 class CompanySpec(NamedTuple):
@@ -693,8 +675,8 @@ class Story:
             archived = self.rng.random() < 0.12
         return Note(at=at, title=title, body=body, kind=kind, data=data, read_at=read_at, archived=archived)
 
-    def _company_steps(self, spec, documents_ready):
-        steps = [Step("submit", self.after(documents_ready, 180, 2880))]
+    def _company_steps(self, spec, ready):
+        steps = [Step("submit", self.after(ready, 180, 2880))]
         if spec.target == "submitted":
             return steps
         steps.append(Step("start_review", self.after(steps[-1].at, 1200, 3000)))
@@ -708,43 +690,6 @@ class Story:
         steps.append(Step("approve", self.after(steps[-1].at, 2880, 7200)))
         steps.append(Step("activate", self.after(steps[-1].at, 120, 1560)))
         return steps
-
-    def _company_documents(self, spec, registered, steps):
-        chosen = list(REQUIRED_TYPES)
-        if spec.target == "active":
-            chosen += OPTIONAL_TYPES
-        elif spec.target == "info_required":
-            chosen += OPTIONAL_TYPES[:2]
-        at = {step.method: step.at for step in steps}
-        reviews = [step.at for step in steps if step.method == "start_review"]
-        window_end = at.get("approve") or at.get("request_info")
-        info = INFO_REQUESTS.get(spec.key)
-        slug = identities.slug(spec.trading_name)
-        documents = []
-        for document_type in chosen:
-            uploaded = self.between(registered, steps[0].at)
-            replaced = info and info[2] == document_type
-            if replaced and "resubmit" in at:
-                uploaded = self.before(at["resubmit"], 30, 240)
-            rejected = replaced and spec.target == "info_required"
-            verified = None
-            if reviews and window_end and not rejected:
-                verified = self.between(max(reviews[-1], uploaded), window_end)
-            valid_from = None
-            if document_type == "asic":
-                valid_from = (uploaded - timedelta(days=430 if rejected else 3)).date()
-            label = DocumentType(document_type).label.lower().replace(" ", "-")
-            documents.append(
-                CompanyDocumentPlan(
-                    document_type=document_type,
-                    name=f"{slug}-{label}.pdf",
-                    uploaded_at=uploaded,
-                    valid_from=valid_from,
-                    verified_at=verified,
-                    rejection_reason=info[0] if rejected else "",
-                )
-            )
-        return tuple(sorted(documents, key=lambda document: document.uploaded_at))
 
     def _company(self, spec, owner_key, owner_name, registered, operator_wallet, acn):
         steps = self._company_steps(spec, self.after(registered, 1440, 7200))
@@ -774,7 +719,6 @@ class Story:
             declarant_name=owner_name,
             board_resolution_reference=f"Board resolution {registered:%Y}-{self.rng.randint(2, 9):02d}",
             operator_wallet=operator_wallet,
-            documents=self._company_documents(spec, registered, steps),
             steps=tuple(steps),
             existing=spec.key == DEMO_COMPANY.key,
         )

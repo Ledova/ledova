@@ -17,7 +17,6 @@ from companies.models import (
     Company,
     CompanyAppointment,
     CompanyCapability,
-    CompanyDocument,
     CompanySignupTermsAcceptance,
     CompanyStatus,
 )
@@ -42,6 +41,8 @@ from shared.tests.core_fixtures import (
     person,
 )
 from tokens.models import (
+    RegisterEvidence,
+    RegisterEvidenceKind,
     RegisterExport,
     RegisterGrant,
     RegisterGrantDecision,
@@ -315,10 +316,12 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(CompanyAppointment.objects.get(pk=appointment).appointee_id, user.pk)
         with patch("shared.upload_limits.reserve_request") as reserve:
             uploaded = self.client.post(
-                f"/api/v1/companies/{company.pk}/documents/",
+                "/api/v1/tokens/register-evidence/",
                 {
-                    "document_type": "other",
-                    "name": "Company authority document",
+                    "company_id": str(company.pk),
+                    "appointment": appointment,
+                    "kind": RegisterEvidenceKind.AUTHORITY,
+                    "idempotency_key": str(uuid4()),
                     "file": SimpleUploadedFile("authority.pdf", pdf_bytes(), content_type="application/pdf"),
                 },
                 format="multipart",
@@ -326,7 +329,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             reserve.assert_called_once_with(user.pk)
         self.assertEqual(uploaded.status_code, 201, uploaded.content)
         self.scanner.assert_called_once()
-        self.assertEqual(CompanyDocument.objects.get(pk=uploaded.json()["uuid"]).company_id, company.pk)
+        self.assertEqual(RegisterEvidence.objects.get(pk=uploaded.json()["uuid"]).company_id, company.pk)
         invited = self.client.post(
             "/api/v1/company-authority/invitations/",
             {

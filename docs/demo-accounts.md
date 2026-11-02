@@ -127,7 +127,9 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
     ([decision](decisions.md#verification-limited-to-id-checks)).
   - Certificate requests from Quinn and Casey, which `tokens/0005_remove_member_certificate_requests`
     deletes ([decision](decisions.md#member-certificate-requests-removed)).
-  - A constitution, a shareholders agreement and financial statements under Company files.
+  - A constitution, a shareholders agreement and financial statements under Company files, which
+    `companies/0004_remove_company_documents` deletes with their files
+    ([decision](decisions.md#company-documents-removed)).
   - An inspection copy and a company pack.
 - **Banksia:**
   - An allotment to a fund and a transfer to a family trust.

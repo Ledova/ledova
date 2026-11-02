@@ -6,7 +6,6 @@ import {
   BookOpenIcon,
   FilesIcon,
   UsersThreeIcon,
-  ShieldCheckIcon,
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
@@ -41,7 +40,6 @@ interface NavItem {
   destination: DestinationKey;
   icon: Icon;
   view?: string;
-  label?: string;
 }
 
 interface NavSection {
@@ -55,8 +53,6 @@ const COMPANY: NavItem[] = [
   { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
   { destination: 'certificates', icon: FilesIcon },
 ];
-
-const COMPANY_DOCUMENTS: NavItem = { destination: 'companyDocuments', icon: ShieldCheckIcon, label: 'Company files' };
 
 const PERSONAL: NavItem[] = [
   { destination: 'home', icon: HouseIcon },
@@ -123,12 +119,11 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
           if (context.openDashboard()) onNavigate?.();
         } else onNavigate?.();
       }}
-      title={item.label ? title : undefined}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? CURRENT_CLASS : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-      <span>{item.label ?? title}</span>
+      <span>{title}</span>
     </Link>
   );
 }
@@ -433,15 +428,12 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const context = useCompanyContext();
   const settings = useSettingsNavigation();
   const companyTasks = !!(context?.company?.canReadRegister || context?.company?.canManage);
-  const companyItems = [
-    ...(context?.company?.canReadRegister
-      ? COMPANY
-      : [
-          ...COMPANY.filter((item) => item.destination === 'home'),
-          ...(context?.company?.memberUuids.length ? [PERSONAL[1]!] : []),
-        ]),
-    ...(context?.company?.canManage ? [COMPANY_DOCUMENTS] : []),
-  ];
+  const companyItems = context?.company?.canReadRegister
+    ? COMPANY
+    : [
+        ...COMPANY.filter((item) => item.destination === 'home'),
+        ...(context?.company?.memberUuids.length ? [PERSONAL[1]!] : []),
+      ];
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
 
@@ -466,11 +458,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         allItems.find((item) => item.destination === place.destination && !item.view),
     )
     .find(Boolean);
-  const activePath =
-    location.pathname === DESTINATIONS.companyDocuments.path ||
-    (location.pathname === DESTINATIONS.company.path && location.hash === '#documents')
-      ? itemPath(COMPANY_DOCUMENTS)
-      : activeItem && itemPath(activeItem);
+  const activePath = activeItem && itemPath(activeItem);
 
   return (
     <aside className="flex h-full w-52 flex-col border-r border-border-subtle bg-surface-base">
