@@ -847,11 +847,11 @@ instruction, Recipient, Produced on, and "Produced more than 7 days after the re
 
 `prepare_certificate` reads one entry of the class's own register by its number, from one snapshot,
 and replays holdings from the entries up to and including it ([what a certificate
-shows](../business/member-records.md#what-a-certificate-shows)). A page's amount paid and unpaid
-are the allotment's consideration and 0.00 only when `_fully_paid_issues`, which
-`_external_amounts_paid` also reads, returns the entry: an applied AUD allotment whose exact Issue
-entry and company-recorded receipt match its consideration. Every other page prints Not recorded
-for both. PyMuPDF renders each page from
+shows](../business/member-records.md#what-a-certificate-shows)). A page's amount paid and unpaid are
+the allotment's consideration and 0.00 only when `_fully_paid_issues`, which
+`_external_amounts_paid` also reads, returns the entry: an applied AUD allotment with its exact
+Issue entry, whose company-recorded receipt equals its consideration. Every other page prints Not
+recorded for both. PyMuPDF renders each page from
 [share_certificate.html](../../backend/tokens/templates/tokens/share_certificate.html), escaping
 every value and embedding the glyphs non-Latin names need; it is imported only when a certificate is
 rendered ([legal position 12](../legal/positions.md#12-pymupdf-an-agpl-runtime-dependency)). Fonts

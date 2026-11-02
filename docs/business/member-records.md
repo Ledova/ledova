@@ -245,15 +245,15 @@ date and fingerprint, then an unsigned execution block. The company event date i
 where recorded; a retained unknown date stays not recorded.
 
 A page states an amount only where the register records it for exactly the shares the page
-certifies, and otherwise reads Not recorded. An
-[external allotment](issuing-shares.md#external-investor-allotments)'s page gives its consideration
-as the amount paid and 0.00 unpaid, because only fully paid allotments, with the company's recorded
-receipt of the consideration, are supported. Any other issue, such as a non-paid grant, an award's
-grant or a chain grant, records no amount paid. The register keeps amounts for holdings and for
-copied allotment history, not for each share, so a transfer's page and the transferor's balance
-certificate read Not recorded: it cannot tell what was paid or remains unpaid on the shares that
-moved or on those left. Amounts are printed as the register's are, without a currency
-([amount paid](register.md#amount-paid-and-date-entered)).
+certifies, and otherwise reads Not recorded. An [external
+allotment](issuing-shares.md#external-investor-allotments)'s page gives its consideration as the
+amount paid and 0.00 unpaid, because only fully paid allotments, with the company's recorded receipt
+of the consideration, are supported. Any other issue, such as a non-paid grant, an award's grant or
+a chain grant, records no amount paid. The register keeps amounts for holdings and for copied
+allotment history, not for each share, and does not track which shares a transfer moves, so a
+transfer's page and the transferor's balance certificate read Not recorded. Where a page reads Not
+recorded, the company completes the amounts before executing the certificate. Amounts are printed as
+the register's are, without a currency ([amount paid](register.md#amount-paid-and-date-entered)).
 
 Holdings are those immediately after the certified entry, so later entries do not change them;
 names and addresses are those the register gives when the certificate is prepared. Preparing the
