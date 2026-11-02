@@ -175,7 +175,7 @@ award, and when the company applies a grant or allotment that issues shares to t
 shares included). Each one names the company (and the class, for an issue) but no quantities,
 because notifications can show on a locked screen; on mobile it opens the matching screen. A
 **Certificate ready** notice sent before certificate requests were removed stays in the inbox and
-opens nothing. Nothing is sent for a revoked association, for changes recorded before the member
+opens nothing, and so does a notification of a company notice sent before Notices were removed. Nothing is sent for a revoked association, for changes recorded before the member
 accepted an invitation, for transfers, for a change to their particulars, or for shares recorded
 from the chain.
 
