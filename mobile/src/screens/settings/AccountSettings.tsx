@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { VERIFICATION_TONES, formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
-import { Action, Actions, Fact, FormActions, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
+import { Action, Actions, Fact, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useAppLock, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -13,20 +13,14 @@ import { useSettings } from './useSettings';
 function useAccountStyles() {
   return useThemedStyles((theme) => ({
     row: { gap: theme.spacing.smd, paddingVertical: theme.spacing.smd },
-    identity: {
+    setting: {
       flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
       alignItems: 'center' as const,
-      gap: theme.spacing.xs,
+      gap: 16,
       paddingVertical: theme.spacing.smd,
     },
-    manage: {
-      gap: theme.spacing.smd,
-      paddingTop: theme.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.subtle,
-    },
-    heading: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
+    text: { flex: 1, gap: theme.spacing.xs },
+    label: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
   }));
 }
 
@@ -45,9 +39,31 @@ function ActionRow({ description, label, onPress }: { description: string; label
   );
 }
 
+function SettingRow({
+  label,
+  detail,
+  action,
+  accessibilityLabel,
+}: {
+  label?: string;
+  detail?: ReactNode;
+  action?: ReactNode;
+  accessibilityLabel?: string;
+}) {
+  const look = useAccountStyles();
+  return (
+    <View style={look.setting}>
+      <View accessible={!!accessibilityLabel} accessibilityLabel={accessibilityLabel} style={look.text}>
+        {!!label && <Text style={look.label}>{label}</Text>}
+        {detail}
+      </View>
+      {!!action && <View>{action}</View>}
+    </View>
+  );
+}
+
 export function AccountSettings() {
   const styles = useCompanyStyles();
-  const look = useAccountStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const lock = useAppLock();
   const { userProfile } = useUserProfile();
@@ -61,7 +77,6 @@ export function AccountSettings() {
   const [error, setError] = useState<string | null>(null);
   const [securityPending, setSecurityPending] = useState(false);
   const [securityError, setSecurityError] = useState<string | null>(null);
-  const [appError, setAppError] = useState<string | null>(null);
   const busy = settings.isChangingPassword;
   const close = () => {
     if (busy) return;
@@ -88,7 +103,7 @@ export function AccountSettings() {
     if (enabled) void secure(lock.enableBiometricLogin);
     else
       Alert.alert(
-        `Disable ${lock.biometricType} sign in`,
+        `Disable ${lock.biometricType} sign-in`,
         'You will need your email and password next time you sign in.',
         [
           { text: 'Cancel', style: 'cancel' },
@@ -121,35 +136,44 @@ export function AccountSettings() {
   };
   return (
     <>
-      <Section title="Account">
+      <Section title="Security">
         <Rows>
           {userProfile && (
-            <View accessible accessibilityLabel={`Identity check: ${verification.label}`} style={look.identity}>
-              <Text style={styles.muted}>Identity check</Text>
-              <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'} muted>
-                {verification.label}
-              </Status>
-            </View>
+            <SettingRow
+              label="Identity check"
+              accessibilityLabel={`Identity check: ${verification.label}`}
+              action={
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'} muted>
+                    {verification.label}
+                  </Status>
+                </View>
+              }
+            />
           )}
-          <ActionRow
-            description="Choose a new password for your account."
-            label="Change password"
-            onPress={() => {
-              if (busy) return;
-              setError(null);
-              setChanging(true);
-            }}
+          <SettingRow
+            label="Password"
+            action={
+              <Action
+                label="Change"
+                accessibilityLabel="Change password"
+                onPress={() => {
+                  if (busy) return;
+                  setError(null);
+                  setChanging(true);
+                }}
+              />
+            }
           />
           <SwitchRow
-            label={`${lock.biometricType} sign in`}
-            description={`Sign in with ${lock.biometricType} instead of your password.`}
+            label={`${lock.biometricType} sign-in`}
             checked={lock.hasBiometricLogin}
             disabled={!lock.biometricsAvailable || securityPending}
             onChange={biometricLogin}
           />
           <SwitchRow
             label="App lock"
-            description={`Require ${lock.biometricType} after the app goes into the background.`}
+            description={`Ask for ${lock.biometricType} when you come back.`}
             checked={lock.isEnabled}
             disabled={!lock.biometricsAvailable || securityPending}
             onChange={(value) => void secure(() => lock.setEnabled(value))}
@@ -163,35 +187,20 @@ export function AccountSettings() {
             {securityError}
           </Text>
         )}
-        <View style={look.manage}>
-          <Text accessibilityRole="header" style={look.heading}>
-            Manage account
-          </Text>
-          {userProfile && (
-            <Rows>
-              <Fact label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Fact>
-              <Fact label="Last login">{formatDateTime(userProfile.lastLogin)}</Fact>
-            </Rows>
-          )}
-          <Actions>
-            <Action label="Accept an invitation" onPress={() => navigation.navigate('Invitation')} />
-          </Actions>
-        </View>
-        <FormActions>
-          <Action
-            label="Rate the app"
-            onPress={() => {
-              setAppError(null);
-              void settings.rateApp().catch(() => setAppError('The app-store listing could not be opened.'));
-            }}
-          />
-          <Action label="Share with friends" onPress={() => void settings.shareApp()} />
-        </FormActions>
-        {appError && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {appError}
-          </Text>
-        )}
+      </Section>
+      {userProfile && (
+        <Section title="Account details">
+          <Rows>
+            <Fact label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Fact>
+            <Fact label="Last login">{formatDateTime(userProfile.lastLogin)}</Fact>
+          </Rows>
+        </Section>
+      )}
+      <Section title="Company invitation">
+        <SettingRow
+          detail={<Text style={styles.muted}>Joining a company on Ledova?</Text>}
+          action={<Action label="Accept invitation" onPress={() => navigation.navigate('Invitation')} />}
+        />
       </Section>
       <CustomModal
         visible={changing}

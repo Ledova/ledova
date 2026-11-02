@@ -91,8 +91,7 @@ through the administration check and exclude private identity, financial and aut
 Triggers attached in `companies/database_guards.sql`, with functions there and in
 `companies/authority_guards.sql`, refuse any update or deletion of authority requests, withdrawals,
 appointments, invitations, revocations and legacy-owner sources, and check admission, withdrawal,
-acceptance and revocation. Publication selectors bind the exact retained company owner or named
-roll recipient ([who may read a publication](../business/publications.md#who-may-read-a-publication)).
+acceptance and revocation.
 
 ### Policy catalogue
 
@@ -196,8 +195,6 @@ UUIDs in prefixes are pseudonymous.
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Representative authority request | `companies/<uuid>/authority-requests/`; retained with the immutable request; uncommitted-copy orphans are swept                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Company register decision        | `companies/<uuid>/register-evidence/` for the company's upload and a per-kind prefix for the decision's own copy: `register-openings/`, `register-imports/`, `register-corrections/`, `register-links/`, `register-particulars/`, `register-grants/`, `register-transfers/`, `register-capital-increases/`, `register-pause-changes/`, `register-instructions/`, `register-awards/`, `register-award-vestings/` and `register-allotments/`; both are retained with their rows; interrupted-copy orphans are swept |
-| Publication to members           | `companies/<uuid>/publications/`; retained with its row until the publication purge                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| Dividend payment evidence        | `companies/<uuid>/publications/<publication>/payments/`; retained with its payment record until the publication purge                                                                                                                                                                                                                                                                                                                                                                                             |
 | Company document                 | `companies/<uuid>/documents/<type>/`; swept after becoming an orphan                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 ### Serving
@@ -219,16 +216,12 @@ directives through the admin's `never_cache`.
 
 ### Read audit
 
-A publication to members audits each member's document reads, and an audit write failure refuses
-delivery ([publication reads](records.md#publication-policies-and-read-audit)); its purge deletes
-them.
-
 Company documents carry no read audit, for the owner, staff in admin or an investor opening an
 offering's documents: they are offer information, not personal records.
 
 A [company pack](records.md#documents-and-evidence-copies) carries only files stored under
-`companies/`: the company's documents, its register evidence copies, its publications' documents
-and its payment records' remittance evidence. Nothing else leaves in a pack.
+`companies/`: the company's documents and its register evidence copies. Nothing else leaves in a
+pack.
 
 ## Deletion and retention
 
@@ -244,16 +237,19 @@ are gone. The nightly orphan sweep
 `companies/`, `documents/` and `users/` and requiring 24 hours without a change to protect the
 interval between file write and row commit. No current model stores files under `documents/` or
 `users/`; the sweep there removes any file of the removed investor evidence and payslips that its
-migration's deletion missed. New private fields must be swept or explicitly classified as
-retained, with a reason.
+migration's deletion missed. It never deletes a file under `companies/<uuid>/publications/`
+(`RETAINED_STORAGE_PATHS` in [storage.py](../../backend/shared/storage.py)), where shareholder
+publications kept their documents and payment evidence: no model references them since publications
+were [removed](../decisions.md#shareholder-publications-removed), and a database whose removal
+migration refused still holds their rows. New private fields must be swept or explicitly
+classified as retained, with a reason.
 
 ### Retention clocks
 
-| Record                                                                 | Clock                                                                                                                                                                                         | Purge                                                                                                                        |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days                                                                                                                                           | `purge_former_members_past_the_clock`, below                                                                                 |
-| Publications to members                                                | The same setting and floor, from the publication                                                                                                                                              | `purge_publications_past_the_clock` removes the publication, its roll, event chain and read records, and with them its files |
-| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                                                                                                                                                           | None, below                                                                                                                  |
+| Record                                                                 | Clock                                                                                                                                                                                         | Purge                                                                                                                  |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days                                                                                                                                           | `purge_former_members_past_the_clock`, below                                                                           |
+| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                                                                                                                                                           | None, below                                                                                                            |
 
 2,557 days is seven years including two leap days. `FORMER_MEMBER_RETENTION_DAYS` has a floor:
 `retention_cutoff` raises `ImproperlyConfigured` below 2,557 days, so the floor cannot be

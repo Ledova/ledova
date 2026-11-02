@@ -24,7 +24,6 @@ export {
   COMPANY_QUERY_KEY,
   ownCompaniesKey,
 } from './useCompanySelection';
-export { useResolutionStatus } from './useResolutionStatus';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { SIGNUP_RESTART_FIELDS, useSignupRestart } from './useSignupRestart';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
@@ -53,4 +52,3 @@ export { OWN_APPOINTMENTS_QUERY_KEY } from './useCompanyActivation';
 
 export { useUserProfile } from './useUserProfile';
 export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
-export { usePublications, PUBLICATIONS_QUERY_KEY, PERSONAL_NOTICES_QUERY_KEY } from './usePublications';

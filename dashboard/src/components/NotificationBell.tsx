@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BellIcon, XIcon } from '@phosphor-icons/react';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
-import { formatDateTime, DESTINATIONS, PUBLICATION_NOTICE, useNotifications } from '@ledova/shared';
+import { formatDateTime, DESTINATIONS, useNotifications } from '@ledova/shared';
 import { ICON_SM, ICON_MD } from './iconSizes';
 import { LoadMore } from './List';
 import type { DestinationKey, Notification } from '@ledova/shared';
@@ -10,7 +10,6 @@ import { LoadError, Loading } from './Ledger';
 
 const NOTICE_PAGES: Record<string, DestinationKey> = {
   company: 'companyListing',
-  [PUBLICATION_NOTICE]: 'publications',
   identity: 'userProfile',
 };
 

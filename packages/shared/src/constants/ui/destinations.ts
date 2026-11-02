@@ -13,7 +13,6 @@ export interface Destination {
 export const DESTINATIONS = {
   memberRecords: { path: '/member-records', title: 'My shares', audience: 'everyone' },
   home: { path: '/home', title: 'My shares', audience: 'everyone', views: { documents: 'Documents' } },
-  publications: { path: '/publications', title: 'Notices', audience: 'everyone' },
   companyClass: { path: '/company/ledger/:uuid', title: 'Share class', audience: 'everyone' },
   companyRegister: {
     path: '/company/ledger',
@@ -54,7 +53,6 @@ export const DESTINATIONS = {
   },
   companyTeam: { path: '/company/team', title: 'Company team', audience: 'everyone' },
   companyListing: { path: '/company/listing', title: 'Activation', audience: 'everyone' },
-  companyPublications: { path: '/company/publications', title: 'Published to your members', audience: 'company' },
   certificates: { path: '/documents/certificates', title: 'Certificates', audience: 'everyone' },
   companyDocuments: { path: '/documents/company', title: 'Company documents', audience: 'everyone' },
   userProfile: { path: '/user-profile', title: 'Profile', audience: 'everyone' },

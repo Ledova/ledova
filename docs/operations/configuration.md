@@ -282,11 +282,11 @@ inbox works without push configuration but needs a running worker
 Client variables are public build configuration embedded in the bundle, so they must never hold a
 secret. `VITE_MARKETING_URL` and `EXPO_PUBLIC_MARKETING_URL` hold the public site's URL.
 
-| File                   | Variables                                                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `.env` in `dashboard/` | `VITE_API_URL`, `VITE_MARKETING_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                        |
-| `.env` in `site/`      | `VITE_LEDOVA_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                                           |
-| `.env` in `mobile/`    | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_DEV_API_HOST`, `EXPO_PUBLIC_MARKETING_URL`, `EXPO_PUBLIC_APP_STORE_URL` |
+| File                   | Variables                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| `.env` in `dashboard/` | `VITE_API_URL`, `VITE_MARKETING_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS` |
+| `.env` in `site/`      | `VITE_LEDOVA_URL`, `VITE_HOST`, `VITE_PORT`, `VITE_ALLOWED_HOSTS`                    |
+| `.env` in `mobile/`    | `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_DEV_API_HOST`, `EXPO_PUBLIC_MARKETING_URL`       |
 
 The production images never read these files, because the `.dockerignore` files keep every `.env`
 out of the build context. Pass the public origins as build arguments instead:

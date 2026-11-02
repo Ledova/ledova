@@ -12,17 +12,16 @@ Company appointments authorise register decisions; platform-staff permissions do
 Staff procedures that carry out a business workflow on a company's written instruction belong
 with that workflow.
 
-| Reference | Guide |
-| --- | --- |
-| Software settings, database roles and provider inputs | [Configuration](configuration.md) |
-| Local chains, contract ownership and finality | [Chains and keys](chains.md) |
-| Local workers, job schedule, private files, scanner and upload behaviour | [Jobs and storage](jobs-and-storage.md) |
-| Operator console, local reference seeds and review queues | [Operator console](operator-console.md) |
-| Unresolved application work and record verification | [Application recovery](recovery.md) |
-| Publishing on a company's written instruction | [Publishing to members](../business/publications.md#publishing-on-the-companys-instruction) |
-| Notice figures, due list and company pack on written instruction | [Notice figures](../business/member-records.md#preparing-notice-figures), [due list](../business/member-records.md#working-the-due-list), [company pack](../business/member-records.md#producing-the-broader-pack-in-admin) |
-| Product image builds and publication | [Image publication](../engineering/README.md#image-publication) |
-| Native builds and physical-device acceptance | [Mobile checks](../engineering/mobile-releases.md) |
+| Reference                                                                | Guide                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Software settings, database roles and provider inputs                    | [Configuration](configuration.md)                                                                                                                                                                                           |
+| Local chains, contract ownership and finality                            | [Chains and keys](chains.md)                                                                                                                                                                                                |
+| Local workers, job schedule, private files, scanner and upload behaviour | [Jobs and storage](jobs-and-storage.md)                                                                                                                                                                                     |
+| Operator console, local reference seeds and review queues                | [Operator console](operator-console.md)                                                                                                                                                                                     |
+| Unresolved application work and record verification                      | [Application recovery](recovery.md)                                                                                                                                                                                         |
+| Notice figures, due list and company pack on written instruction         | [Notice figures](../business/member-records.md#preparing-notice-figures), [due list](../business/member-records.md#working-the-due-list), [company pack](../business/member-records.md#producing-the-broader-pack-in-admin) |
+| Product image builds and publication                                     | [Image publication](../engineering/README.md#image-publication)                                                                                                                                                             |
+| Native builds and physical-device acceptance                             | [Mobile checks](../engineering/mobile-releases.md)                                                                                                                                                                          |
 
 ## ledova.io
 

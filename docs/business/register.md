@@ -120,15 +120,12 @@ guessing.
 An email address is never used as a member's name. A wallet owner who has not given a full name in
 Profile has no live identity, so without other recorded identity the member shows as Unidentified;
 a share issue to them waits until they add their name, as it does for a missing residential
-address. A publication roll made meanwhile keeps
-them without an account, like any member the register cannot name
-([frozen roll](publications.md#the-frozen-roll)). Entries recorded earlier keep what they
-recorded.
+address. Entries recorded earlier keep what they recorded.
 
 A treasury label names an address, not a person, and gives no residential address: a member at a
 labelled treasury address stays Treasury, named by its recorded particulars or else the label. A
-treasury address beside another identity is Ambiguous. Every register output, publication roll and
-former-member record reads a member this way.
+treasury address beside another identity is Ambiguous. Every register output and former-member
+record reads a member this way.
 
 The shareholder table shows no residential address; addresses appear on a shareholder's page for
 someone with a current register appointment, in recorded outputs such as inspection copies, and in the

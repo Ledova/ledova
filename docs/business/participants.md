@@ -33,10 +33,10 @@ Mobile signup creates individual accounts only: **Welcome to Ledova** takes the 
 type choice. On mobile, a company account that has not finished signup sees **This app is for
 shareholders** and can only sign out.
 
-Signup does not include identity verification. Complete it afterwards from Profile on the web with
-**Review identity check**; while the investor identity requirement is on, wallet nominations and
-trading through the API wait for it ([account standing](#account-standing)). An unfinished account
-can sign in again and resume.
+Signup does not include identity verification. Complete it afterwards on the web with the identity
+check's **Review** in **Settings → Account**; while the investor identity requirement is on, wallet
+nominations and trading through the API wait for it ([account standing](#account-standing)). An
+unfinished account can sign in again and resume.
 
 ### Going back and changing your email
 
@@ -234,7 +234,7 @@ risk assessment, transaction and any company decision stay as they are.
 Profile shows Personal information (full name, email, phone, date of birth, address and citizenship).
 Personal-details editing opens inline, with aligned Cancel and save actions.
 
-To change your full name, residential address or phone, choose **Edit personal details**, change
+To change your full name, residential address or phone, choose **Edit**, change
 them and choose **Save personal details**. These details are self-reported: editing them verifies
 nothing and leaves existing identity results unchanged. A Profile save creates no company
 appointment, member association or register instruction and does not change your register
@@ -250,18 +250,18 @@ available records and actions; choosing a company grants neither.
 
 Settings opens Profile, with **Account** and **Data and privacy** beside it for everyone. Team and
 Activation appear where company access permits, and company administrators open the company's
-documents from **Company files** in the sidebar. Profile shows a linked member how the
-selected company records them. Team remains reachable for accepting
-a company invitation. Before company access is granted, **Settings → Account → Manage account**
-provides **Accept a company invitation**, opening the same guarded workflow. Member access stays
+documents from **Company files** in the sidebar. Team remains reachable for accepting
+a company invitation. Before company access is granted, **Settings → Account → Company invitation**
+provides **Accept invitation**, opening the same guarded workflow. Member access stays
 under company [Shareholders](register.md#the-register-page).
 
 **Profile** combines Personal information with permitted Company details. Each editor retains its own
 permissions; changing personal details does not update a company's records. **Activation** retains the
 [company activation workflow](companies.md#activation-and-the-registry-check).
 
-**Account** is one compact card: relevant identity status with **Review identity check**, **Change
-password**, and **Manage account** with member-since and last-login details. Existing company and
+**Account** has three cards: **Security** (the identity check's status with **Review**, and the
+password with **Change**), **Account details** (**Member since** and **Last login**, such as
+"2 Nov 2026, 1:38 pm") and **Company invitation** (**Accept invitation**). Existing company and
 investor verification requirements stay unchanged. The theme is the **Dark theme** switch beside Sign
 out (remembered in this browser with Paper as the default); the web app no longer offers transaction
 alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
@@ -275,18 +275,13 @@ alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
   records and share register entries are kept. The confirmation says so, and the browser's copy of
   the account's data is cleared once the server confirms.
 
-For linked members, Profile also shows how the selected company records them: the name and
-residential address its register holds, read-only, with **Wrong? Contact the company.** It is
-separate from personal Profile edits; the member asks the company directly to correct it
-([what a member can read](member-records.md#what-a-member-can-read)).
-
-On mobile, Settings has the same three pages for the selected company. Account shows the identity
-status but no **Review identity check**, since the app has no identity check flow, then biometric
-sign-in and **App lock** (biometrics after the app goes into the background); **Accept an
-invitation** opens the app's member [invitation](member-records.md#accepting-an-invitation), and
-**Rate the app** and **Share with friends** end the page. On Data and privacy, **Export data** saves
-or shares a private JSON file. **Sign out** and the **Dark theme** switch, saved on the device, are in
-the menu.
+On mobile, Settings has the same three pages for the selected company, and Account the web's three
+cards. Security shows the identity status but no **Review**, since the app has no identity check
+flow, then **Change** for the password and the biometric sign-in (such as **Face ID sign-in**) and
+**App lock** switches, App lock asking for biometrics when you come back to the app. **Accept
+invitation** opens the app's member [invitation](member-records.md#accepting-an-invitation). On
+Data and privacy, **Export data** saves or shares a private JSON file. **Sign out** and the **Dark
+theme** switch, saved on the device, are in the menu.
 
 Next: [company setup](companies.md) ·
 [issuing shares](issuing-shares.md) ·

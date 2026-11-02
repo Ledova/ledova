@@ -114,7 +114,7 @@ actions at the foot.
 ## Team invitations and appointments
 
 Open the team from **Settings → Team** for the selected company. Before company access is granted,
-open **Settings → Account → Manage account → Accept a company invitation**. Investor-only accounts
+open **Settings → Account → Company invitation → Accept invitation**. Investor-only accounts
 can open it too: accepting an invitation or reading your appointments needs no company appointment. The web page starts with
 appointments, the selected company's team and issued invitations; **Invite a company user** and
 **Accept a company invitation** open focused inline forms. Someone with no appointments, other than
@@ -243,9 +243,8 @@ Rules:
 
 Settled-transfer and retained issue instructions
 ([register](register.md#settled-transfer-instructions);
-[issuing shares](issuing-shares.md#retained-issue-instructions)) and
-[shareholder publications](publications.md) rely on a company document that platform staff have
-verified. Company register commands use the company's own evidence instead.
+[issuing shares](issuing-shares.md#retained-issue-instructions)) rely on a company document that
+platform staff have verified. Company register commands use the company's own evidence instead.
 
 1. In **Admin → Companies → Company documents**, choose **Review and verify document**. You need an
    active staff account with **Can change company document**.
@@ -258,8 +257,7 @@ or the wrong size, the document is rejected or its validity is not current; a we
 cannot establish content. Ledova clears the verification automatically when the company's
 identity, the document's details or its rejection reason change; the company may revoke a
 verification but cannot grant one. A register action that relies on the document rechecks the
-current file, the company and the validity dates against that fingerprint each time; a publication
-needs a current verification of one of the company's documents and records its fingerprint
+current file, the company and the validity dates against that fingerprint each time
 ([how verification is enforced](../engineering/backend.md#company-document-verification)).
 
 ## Activation and the registry check
@@ -340,7 +338,7 @@ authority: initial admission, accepting an invitation, activation, company admin
 member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
 configured identity provider, from **Verify your identity** at signup review or later from
-**Settings → Account** on web with **Review identity check**, which Activation's identity step links to. With the requirement on and no
+**Settings → Account** on web with the identity check's **Review**, which Activation's identity step links to. With the requirement on and no
 provider, every company decision is refused
 ([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
 requirement is separate ([participants](participants.md#account-standing)).
@@ -356,9 +354,6 @@ On web, select the company in Dashboard. Settings opens Profile, combining perso
 company sections with separate editors and permissions, beside Account and Data and privacy. Team and
 Activation have their own Settings items, and **Company files** in the sidebar holds the company's supporting
 documents for its administrators, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
-**Documents** → **Published**
-opens Published to your members ([the Published page](publications.md#the-published-page)),
-where current access permits.
 
 Share classes are listed and added only in [Ledger](register.md#bringing-in-existing-records).
 

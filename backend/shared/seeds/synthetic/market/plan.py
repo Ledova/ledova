@@ -89,33 +89,6 @@ class Fill:
 
 
 @dataclass(frozen=True)
-class Ballot:
-    voter: str
-    choice: str
-
-
-@dataclass(frozen=True)
-class Notice:
-    key: str
-    listing: str
-    kind: str
-    title: str
-    lines: tuple
-    authority: str
-    question: str = ""
-    resolution_kind: str = ""
-    window: str = ""
-    opens_at: datetime | None = None
-    closes_at: datetime | None = None
-    ballots: tuple = ()
-    carried: bool | None = None
-    rate: Decimal | None = None
-    declared_on: date | None = None
-    payment_date: date | None = None
-    paid: tuple = ()
-
-
-@dataclass(frozen=True)
 class MarketPlan:
     now: datetime
     listings: tuple
@@ -123,7 +96,6 @@ class MarketPlan:
     deposits: tuple
     orders: tuple
     fills: tuple
-    notices: tuple
     holdings: dict = field(default_factory=dict)
 
     def order(self, key):

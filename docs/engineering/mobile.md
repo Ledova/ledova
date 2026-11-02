@@ -37,9 +37,8 @@ folder names, with relative imports and no path aliases:
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                    |
 
 Shared register UI (fields and document sharing) lives in `components/register`, and its styles in
-`hooks/`. Production screens import no other area's internals. Profile, operator, member and
-publication-list reads live in `packages/shared`, with native session, result and transport policies
-kept in the client.
+`hooks/`. Production screens import no other area's internals. Profile, operator and member reads
+live in `packages/shared`, with native session, result and transport policies kept in the client.
 
 ### Shared package resolution
 
@@ -73,12 +72,11 @@ The menu (`AppMenu`) slides in from the left like the
 web's phone drawer, 208 points wide: Dashboard, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
-loses focus, and it marks the section the page belongs to: Documents for Certificates and Notices,
-Settings for Profile, Account and Data and privacy, Dashboard for
-Invitation. Choosing Dashboard returns to it. Documents opens Certificates and Settings opens
-Profile, and like the web's groups each caret
-shows its pages beneath it, Certificates and Notices, or Profile, Account and Data and privacy, open
-while one of them is shown. Every other choice opens
+loses focus, and it marks the section the page belongs to: Documents for Certificates, Settings for
+Profile, Account and Data and privacy, Dashboard for Invitation. Choosing Dashboard returns to it.
+Documents opens Certificates and Settings opens Profile. Documents is one link, as the web shows a
+member, and like the web's groups Settings' caret shows its pages beneath it, Profile, Account and
+Data and privacy, open while one of them is shown. Every other choice opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
 (`Section`) use the web's phone sizes: 16-point margins and gaps, and cards with 16-point padding and
 corners under a 20-point title; the page's own title is the top bar's. Dashboard
@@ -101,28 +99,27 @@ member-records state, reporting acceptance only once the server does. Documents,
 share class, newest first. For a member with more than one class, Filters opens the web's panel under its
 button (`FilterPopover`) with Share class and Apply. Each record shows the shareholder and change,
 the entry and its date (and ledger date), with no action. A class the member is not recorded in says
-so, and a failed read offers Try again. Notices
-(`NoticesScreen`), under Documents, is the web's Notices page: every company's notices, each opened
-or voted on as on the web.
+so, and a failed read offers Try again.
 Settings has the web's three pages for a member
-(`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, keeps the web's two cards.
-Personal information shows the person's details, each label above its value, and **Edit personal
-details** opens their form in the card. The web's read-only card, titled with the company's name
-(**How Example Pty Ltd records you**), shows the selected company's recorded name and residential
-address with **Wrong? Contact the company.** Account (`Account`) shows the identity check status from the profile (the app has no
-identity check flow, so there is no **Review identity check**) and Change password, then the app's
-biometric sign-in and App lock switches; Manage account adds member since and last login and
-**Accept an invitation** (the member Invitation page), and Rate the app and Share with friends end the
-card. Data and privacy (`DataPrivacy`) has Export data, which saves or shares the file, and Delete
-account. Each of these rows' actions carries the row's description, so a screen reader hears it once,
-with the action. The theme is the menu's switch. The member pages share one member-records state
+(`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, is the web's Personal
+information card: the person's details, each label above its value, and **Edit** opens their form
+in the card. Pulling down refreshes the profile. Account (`Account`) has the web's three cards. Security
+shows the identity check status from the profile (the app has no identity check flow, so there is no
+**Review**), **Change** for the password, and the app's biometric sign-in and App lock switches, with
+**Biometric security is not available on this device.** beneath them only where that applies; Account
+details shows member since and last login; and Company invitation's **Accept invitation** opens the
+member Invitation page. Its rows follow the web's: the label on the left, and its status, one action
+or switch on the right. Data and privacy (`DataPrivacy`) has Export data, which saves or shares the file, and
+Delete account; each of its rows' actions carries the row's description, so a screen reader hears it
+once, with the action. The theme is the menu's switch. The member pages share one member-records state
 (`MemberRecordsProvider`), so an invitation acceptance whose outcome is uncertain stays recoverable,
 with its original code, after leaving the page, and the pages show a loading line rather than an
 empty one while the list rereads. Only the focused page selects its record and class.
-A notification, tapped in that list or as a push, opens its screen: a notice opens Notices, vested
-shares Dashboard on the award's company (with its class, where the overview lists it) and issued
-shares Certificates for that class, each saying so when that company no longer records you. A
-certificate-ready notice sent before members' certificate requests were removed opens nothing.
+A notification, tapped in that list or as a push, opens its screen: vested shares open Dashboard on
+the award's company (with its class, where the overview lists it) and issued shares Certificates for
+that class, each saying so when that company no longer records you. A certificate-ready notice sent
+before members' certificate requests were removed, and a publication notice sent before shareholder
+publications were removed, opens nothing.
 Screens set their own titles inside the page.
 
 ## Theme and appearance
@@ -166,7 +163,7 @@ passes the epoch captured at its start to the API client as `ledovaSessionEpoch`
 `ledovaSubmissionGuard`; the request interceptor (`mobile/src/services/apiClient.ts`) checks both
 before and after reading the stored access token, and refresh and replay check again. Credential
 lookup, token refresh and late UI callbacks therefore cannot carry a result into a replacement
-session, nor an old upload acquire a newer sign-in's credentials. Document copies, ballots and
+session, nor an old upload acquire a newer sign-in's credentials. Document copies and
 drafts are bound to the account, company and session they opened under; a change of any retires a
 pending document action.
 
@@ -252,9 +249,8 @@ JavaScript. Make release builds from a fresh prebuild
 ## Document view copies
 
 Viewing a document downloads it into the app-owned `ledova-document-views-v1` cache directory and
-hands the copy to the share sheet (`shareDocumentCopy`). Every document view works this way:
-publication documents. Data and privacy shares the
-[account-data export](records.md#account-data-export) the same way, as one JSON copy.
+hands the copy to the share sheet (`shareDocumentCopy`). Data and privacy shares the
+[account-data export](records.md#account-data-export) this way, as one JSON copy.
 
 A view is bound to the session current when tapped: its download carries that epoch
 ([session scope](#session-scope)), and a session change before the write stops it without an alert.

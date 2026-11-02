@@ -2,7 +2,6 @@ import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS as URLS,
-  PUBLICATION_NOTICE,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
   type OwnMemberRecord,
@@ -15,7 +14,6 @@ import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 import { destinationOf } from '../../components/notifications/NotificationsModal';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
-import { SettingsScreen } from '../settings';
 import { DashboardScreen } from './DashboardScreen';
 import { InvitationScreen } from './InvitationScreen';
 import { MemberRecordsProvider } from './MemberRecordsProvider';
@@ -95,7 +93,7 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, shows how the company records them on Profile, refuses cached records after current read loss, and routes each notification to its page and an old certificate notice nowhere', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
@@ -160,7 +158,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   const dashboard = <DashboardScreen route={{ key: 'dashboard', name: 'Dashboard', params: undefined }} />;
   const view = await render(dashboard, { wrapper });
-  await fireEvent.press(await screen.findByRole('button', { name: 'Accept an invitation' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Accept invitation' }));
   expect(mockNavigate).toHaveBeenCalledWith('Invitation');
   await view.rerender(<InvitationScreen />);
   await fireEvent.changeText(
@@ -210,7 +208,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const certificatesPage = (
     <CertificatesScreen route={{ key: 'certificates', name: 'Certificates', params: { record, token } }} />
   );
-  const profile = <SettingsScreen />;
   ownRecord = {
     ...OWNED_RECORD,
     awards: [
@@ -275,11 +272,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   expect(await screen.findByText('This company no longer records you as a member.')).toBeTruthy();
   expect(screen.queryByText('Certificate records')).toBeNull();
-  await view.rerender(profile);
-  expect(await screen.findByLabelText(`Name: ${MEMBER_RECORD.name}`)).toBeTruthy();
-  expect(screen.getByText(`How ${MEMBER_RECORD.company.name} records you`)).toBeTruthy();
-  expect(screen.getByLabelText(`Residential address: ${MEMBER_RECORD.residentialAddress}`)).toBeTruthy();
-  expect(screen.getByText('Wrong? Contact the company.')).toBeTruthy();
   await view.rerender(certificatesPage);
   await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
@@ -292,9 +284,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   });
   await waitFor(() => expect(screen.queryByText('Certificate records')).toBeNull());
   expect(screen.queryByText('Transfer · ORD · entry 2')).toBeNull();
-  const notice = { type: PUBLICATION_NOTICE };
-  expect(destinationOf(notice)).toEqual({ screen: 'Notices' });
-  expect(destinationOf(notice)).not.toBe(destinationOf(notice));
+  expect(destinationOf({ type: 'publication', event: 'published', kind: 'meeting_notice' })).toBeUndefined();
   expect(destinationOf({ type: 'certificate', event: 'ready', company: MEMBER_RECORD.company.uuid })).toBeUndefined();
   const award = 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5';
   const vested = { type: 'award', event: 'vested', record: MEMBER_RECORD.uuid, award };

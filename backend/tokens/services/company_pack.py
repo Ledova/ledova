@@ -47,7 +47,6 @@ from tokens.services import company_pack_chain as chain
 from tokens.services import company_pack_documents as documents
 from tokens.services import company_pack_history as history
 from tokens.services import company_pack_mandates as mandates
-from tokens.services import company_pack_publications as publications
 from tokens.services.register import (
     REGISTER_HEADERS,
     _sheet,
@@ -447,7 +446,6 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
             [*links, *changes, *(item for share_class in classes for item in share_class["evidence"])]
         )
         contracts = _contracts(classes, approvals["registries"])
-        published = publications.section(company)
         mandate_source = mandates.section(company)
         mandate_records = _json(mandate_source)
         source_records = [
@@ -470,8 +468,8 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
         ]
         copies.update(documents.retained_sources(source_records))
         if validate_contents is not None:
-            validate_contents(company, classes, approvals, published, mandate_source)
-    stored = {**held, **copies, **member_files, **class_files, **published["stored"]}
+            validate_contents(company, classes, approvals, mandate_source)
+    stored = {**held, **copies, **member_files, **class_files}
     documents.within_ceiling(company, stored)
     files = {
         "company.json": _json(record),
@@ -488,7 +486,6 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
         files[f"contracts/{name}.json"] = (Path(settings.BASE_DIR) / "contracts" / f"{name}.json").read_bytes()
     for share_class in classes:
         files.update(share_class["files"])
-    files.update({path: _json(record) for path, record in published["files"].items()})
     files[README] = render_to_string(
         "tokens/company_pack_readme.md",
         {
@@ -501,7 +498,6 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
             "approvals": approvals["approvals"],
             "documents": listed,
             "copies": len(copies),
-            "publications": published["listed"],
             "paused": any(share_class["token"].status == ShareTokenStatus.PAUSED for share_class in classes),
             "former": any(share_class["former"] for share_class in classes),
             "due": any(share_class["due"] for share_class in classes),
@@ -534,7 +530,6 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
                 }
                 for share_class in classes
             ],
-            "publications": publications.heads(published["listed"]),
         },
     )
     digest = _digest(manifest)

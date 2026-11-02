@@ -3,7 +3,7 @@
 [Operations](README.md) · [Documentation](../README.md)
 
 What to do when work is left unresolved, family by family, and how to verify that stored registers
-and publications are intact. It is for platform staff and operators. Each section names the sweep,
+are intact. It is for platform staff and operators. Each section names the sweep,
 the admin action and what never to do; every sweep follows the
 [outgoing signing](../engineering/chain.md#outgoing-signing-foundation) invariants and runs on the
 [schedule](jobs-and-storage.md#schedule).
@@ -190,25 +190,6 @@ every import-opened register, is refused. Discrepancies are logged at error leve
 alert. The scheduled job tries every class and then fails if any could not be reconciled; a class
 whose run raised keeps its previous result in the CSV summary, so the failed job is the signal to
 look at.
-
-### Verifying publications
-
-```bash
-python manage.py publications verify --publication PUBLICATION_UUID
-```
-
-Leaving `--publication` out checks every publication. The command recomputes each publication's
-frozen roll and prints its row count and digest, failing and naming the publication whose roll no
-longer matches what it recorded. That proves the audience a publication was addressed to has not
-changed since, not that the register is sound, which `register_foundation verify` answers.
-
-For a resolution the command also replays its event chain and prints the number of events, the
-head hash, the number of ballots and the tally, `null` until it has closed. For a dividend it
-replays its payment records, rechecks the arithmetic and prints the number of events, the head
-hash, the number of standing payment records and the undistributed amount. It fails, naming the
-publication, on any fault listed under
-[verifying publications](../engineering/records.md#verifying-publications). Nothing the application
-does can cause these faults: they mean someone with the schema owner's rights rewrote the chain.
 
 Next: [jobs and storage](jobs-and-storage.md),
 [outgoing signing](../engineering/chain.md#outgoing-signing-foundation) or

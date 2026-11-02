@@ -94,13 +94,6 @@ export {
   downloadRegisterParticularsChangeFile,
 } from './register-particulars';
 export { getOperator } from './operator';
-export {
-  getPublications,
-  getPublicationsNextPage,
-  openPublication,
-  downloadPublication,
-  castBallot,
-} from './publications';
 
 export * from './register-allotments';
 

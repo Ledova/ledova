@@ -1,6 +1,5 @@
 export * from './user-accounts';
 export * from './investments';
-export * from './publications';
 export * from './register';
 export * from './register-grants';
 export * from './register-awards';

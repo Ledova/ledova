@@ -1,4 +1,5 @@
 import os
+import re
 
 from django.apps import apps
 from django.conf import settings
@@ -10,6 +11,8 @@ from shared.db import on_commit
 PRIVATE_STORAGE_ALIAS = "private"
 
 SWEPT_STORAGE_PREFIXES = ("companies", "documents", "users")
+
+RETAINED_STORAGE_PATHS = re.compile(r"companies/[^/]+/publications/")
 
 
 class PrivateMediaStorage(FileSystemStorage):

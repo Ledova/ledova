@@ -144,7 +144,7 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
               awards.
             </Text>
             <Actions>
-              <Action label="Accept an invitation" primary onPress={() => navigation.navigate('Invitation')} />
+              <Action label="Accept invitation" primary onPress={() => navigation.navigate('Invitation')} />
             </Actions>
           </Section>
         )
