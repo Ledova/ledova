@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import { REGISTER_PARTICULARS_COPY, type OrderSubmissionOwner, type OwnCompanyAppointment } from '@ledova/shared';
@@ -71,7 +71,7 @@ it("keeps an edit's baseline after a conflict until the editor loads the current
   fireEvent.click(screen.getByRole('button', { name: REGISTER_PARTICULARS_COPY.SUBMIT }));
   const reload = await screen.findByRole('button', { name: REGISTER_PARTICULARS_COPY.RELOAD });
   expect(onConflict).toHaveBeenCalledTimes(1);
-  expect(document.activeElement).toBe(reload);
+  await waitFor(() => expect(document.activeElement).toBe(reload));
   expect(api.post.mock.calls[0][1].expected).toEqual({ name: 'Old Name', residentialAddress: '1 Old Street' });
   const save = screen.getByRole('button', { name: REGISTER_PARTICULARS_COPY.SUBMIT }) as HTMLButtonElement;
   expect(save.disabled).toBe(true);
