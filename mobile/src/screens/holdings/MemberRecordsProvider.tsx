@@ -135,7 +135,7 @@ export function RecordGate({
   return <>{children}</>;
 }
 
-export function useMemberRefresh(read: Read, testID?: string, also?: () => Promise<unknown>) {
+export function useMemberRefresh(read: Read, testID?: string) {
   const theme = useAppTheme();
   const [refreshing, setRefreshing] = useState(false);
   return (
@@ -146,7 +146,7 @@ export function useMemberRefresh(read: Read, testID?: string, also?: () => Promi
       onRefresh={() => {
         if (read.busy || refreshing) return;
         setRefreshing(true);
-        void Promise.all([read.refresh(), also?.()]).finally(() => setRefreshing(false));
+        void read.refresh().finally(() => setRefreshing(false));
       }}
     />
   );

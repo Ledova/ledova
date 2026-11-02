@@ -35,7 +35,7 @@ stay here as history and are marked where they appear.
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                           | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
-| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; #1476; certificate requests removed 2 November                                                                            |
+| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed 2 November (#1492)                                   |
 | [One-step particulars edit](#one-step-particulars-edit)                                                         | 1 November 2026                                | Current; #1476                                                                                                                     |
 | [Member certificate requests removed](#member-certificate-requests-removed)                                     | 2 November 2026                                | Current; #1476                                                                                                                     |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                                            |
@@ -1017,9 +1017,9 @@ on the web, the app and the backend: the member's **Request update** and **Updat
 company's **Details update** requests under **Shareholders** → **Member requests** and preparing a
 particulars change from one, the notifications about decided requests, the app's draft and retry
 handling for the request, and the backend's request records and API. Members tell the company
-directly. Profile keeps a small read-only view of how the selected company's register records the
-member, their name and residential address, with a short line to contact the company, titled so it
-does not read as a second profile. Certificate requests stay; they were
+directly. Profile kept a small read-only view of how the selected company's register records the
+member, their name and residential address, with a short line to contact the company, until the
+owner removed it on 2 November 2026 (#1492). Certificate requests stay; they were
 [removed](#member-certificate-requests-removed) on 2 November 2026. The company's own particulars change,
 prepared, approved and applied with a supporting document, is unchanged by this decision and is to
 be simplified separately. It became [one step](#one-step-particulars-edit) on 1 November 2026.
@@ -1982,7 +1982,7 @@ page then starts with its content.
 
 **Settings pages, also decided on 31 October 2026.** Finding the single Profile page cluttered ("maybe
 we should create submenus so we have profile, account and etc"), the owner chose, from the options
-offered, to make Settings a group of three pages, the same on web and app: Profile (personal information and company-recorded details), Account
+offered, to make Settings a group of three pages, the same on web and app: Profile (personal information, and company-recorded details until #1492 removed them on 2 November 2026), Account
 (identity check, password, the app's biometric sign-in and App lock, Manage account with accepting an
 invitation, and the app's Rate the app and Share with friends) and Data and privacy (export and
 deletion). The Dark theme row goes, since the theme switch sits beside Sign out.

@@ -29,7 +29,7 @@ Every signed-in page renders in `Page` (`dashboard/src/components/Page.tsx`,
 ([forms](#forms)). `Page narrow` bounds
 simple task forms and most detailed records, including compact tables. Profile, ownership dashboards,
 company shareholder records, top-level record and document collections, stepped Ledger preparation pages, signed-in member
-invitation reviews, company-recorded member details and wide tables take the standard workspace width. Inline preparation, review
+invitation reviews and wide tables take the standard workspace width. Inline preparation, review
 and result states retain their collection's frame. Tables scroll within their card on small screens,
 except Shareholders, which lists each person with only the classes they hold below `md`.
 A stepped preparation (register setup, an investor issue, a transfer) is one card: its title names the class or
@@ -106,8 +106,8 @@ Awards remain in a separate card below the ownership panel. Member awards show t
 nonzero lifecycle quantities, with the full breakdown and terms under **Show award details**. Issued
 award shares are already included in the holding. The Dashboard contains the overview and read-only
 awards; requests, documents and record-management actions stay on their focused pages.
-Profile holds Personal information alone, with **Edit** to open its form; it shows no company's
-recorded particulars.
+Profile holds Personal information, with **Edit** to open its form, and Company details for a company
+administrator; it shows no company's recorded particulars.
 Share history and certificate tracking belong in Documents.
 Section spacing is scoped to
 the frame; sign-up keeps its own presentation.
@@ -408,14 +408,13 @@ one-level group for **Profile** (the default), **Account** and **Data and privac
 **Team** and **Activation** where permitted, without an extra overview page. A group with only one
 permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
 there. Profile always holds personal information. Company documents, Team, Activation and
-Company details follow current company access; Profile's company-recorded name and address follow an
-actual member association. Personal edits never change company-recorded particulars.
+Company details follow current company access. Personal edits never change company-recorded particulars.
 Use one compact Account card for relevant identity status, password and Manage account (member since
 and last login); keep export and deletion on Data and privacy, with their existing confirmations. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Payslip evidence
 belongs alongside investor classification claims, not on Profile. Show company
 and member destinations from current access and context; Team stays available for accepting a company
-invitation. Company-recorded particulars are a Profile card for a member of the selected company.
+invitation.
 **Company eligibility** follows Documents for an administrator or a prepare or approve appointee,
 labelled **Eligibility**; for an administrator it uses
 the same pattern, its label opening its own page and its caret showing **Supporting** (Company
