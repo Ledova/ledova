@@ -155,16 +155,16 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   a row for that row's record alone. A web collection's primary creation action sits beneath its
   cards, aligned right. Actions do not wait for a row to be selected.
 - `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
-  that shows or hides long optional content in place, such as **Show all 5 share changes** or
-  **Show other certificate requests (2)**. `ShowMore` pairs it with the content it shows: a saved
+  that shows or hides long optional content in place, such as **Show all 5 share changes**.
+  `ShowMore` pairs it with the content it shows: a saved
   issue or transfer record and its review start with **Show details and documents** closed, and
   long lists sit behind **Show other shareholders (N)**, **Show former shareholders (N)** or **Show
   the shareholders (N)**. Corrections' corrections and particulars changes are titled records with
   their details shown, and people without shares show their address beneath their name.
-  Certificates, Corrections' **Changes**, Member access, Member requests and Team rows don't expand:
+  Certificates, Corrections' **Changes**, Member access and Team rows don't expand:
   each shows its facts and status, with its permitted action right-aligned at the row's end. On wide
   screens the action has its own fixed-width column (from `xl` for
-  Certificates, Member access, Member requests and Team); on narrower screens it sits beneath the row's
+  Certificates, Member access and Team); on narrower screens it sits beneath the row's
   facts, still at the right edge. The Account and Data and privacy rows, Verification's claim and
   evidence rows and an action that stands on its own follow the same edge on web and in the app: Try
   again after a failed read, **Retry original member action**, and in the app Notices' **Open** and the
@@ -187,7 +187,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   saved with a form stays a checkbox.
 - `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event. Each
   status family has its own tone map; shared resolution-result tones live in
-  `dashboard/src/components/statusTones.ts`.
+  `dashboard/src/components/statusTones.ts`. A status always names what it describes, and where a
+  column header is hidden at phone width, the row carries the label.
 
 On workflow collections, show the saved records first, with class context once where needed.
 The sidebar footer identifies the current company. Keep each recipient, status and key facts
@@ -256,11 +257,11 @@ survive navigation. Documents has one **Certificates** page for company and memb
 **Inspection copies** and **Company pack** where company access permits them. Inspection
 copies shows one selected class, with **Share class** in the page heading's Filters popover when there is more than one.
 Certificates keeps the class visible in each record and in its filter panel. An icon button named
-**Filters**, with a tooltip, opens the popover for class selection, shareholder search and certificate
-status in the page heading's top-right actions. The collection heading has no repeated filter summary or match-count line. Fields are drafts
-until **Apply** updates the URL; **Clear** removes search and status while keeping the class. Filter
-the complete permitted history, not just loaded rows, and keep older or other-class requests outside
-these entry filters.
+**Filters**, with a tooltip, opens the popover in the page heading's top-right actions: class
+selection, shareholder search and certificate status for a register reader, and class selection
+alone for a member with more than one class. The collection heading has no repeated filter summary
+or match-count line. Fields are drafts until **Apply** updates the URL; **Clear** removes search and
+status while keeping the class. Filter the complete permitted history, not just loaded rows.
 Company pack stays at company scope. Each uses the existing workspace frame, cards, responsive
 field grid and action footer, opening one focused main-page preparation at a time. Certificate
 preparation uses the existing labelled summary rows for share movements, company date, entry number,
@@ -273,38 +274,24 @@ Correction and particulars forms use the same
 responsive field grid; their records group document and decision actions in one wrapping footer, left out when no action applies. Keep current source and appointment validation and error retries, without routine
 refresh controls.
 
-Certificates uses one list for the selected company and class. Company readers see permitted
-company entries; members see only their own history, request status and actions. Mixed-role accounts
-see matching entries once. Each aligned row shows the shareholder or change, shares, kind, class and
-entry number, the date (with the ledger date beneath when it differs) and status with the latest request's date, and its permitted action at the row's
-end: **Prepare certificate**, **Request certificate**, **Withdraw request** or **Download PDF**. While
-the latest request is pending, **Withdraw request** takes the place of **Request certificate**. Rows
-don't expand; earlier requests for the same entry are listed beneath the row, each with its action on
-its own line.
-Company-only rows show certificate eligibility; request status comes only from an actual readable
-request. Older or other-class requests sit behind **Show other certificate requests (N)** with their
-own actions. Preparing a company PDF never marks a member request fulfilled.
+Certificates uses one list for the selected company and class. Register readers see the company's
+issue and transfer entries; a member who is not one sees only their own history. Each aligned row shows the shareholder or change, shares, kind, class and entry
+number, and the date (with the ledger date beneath when it differs). A register reader's row adds
+the certificate's status, **Can prepare** or **None due, the entry was reversed**, labelled
+**Certificate:** at phone width, and **Prepare certificate** at the row's end. A member's empty
+class reads **No register entries for this class yet.** Rows don't expand.
 
 The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
 Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order,
 with compact rows aligned under Person, Linked or Invited, and Status. People retains current and
-revoked access records; invitations remain separate records. **Member requests** uses one **Requests**
-card for members' certificate requests, with Person, Request, Requested and Status columns. Identify
-each request as an unsigned certificate, with its share class when available. Keep all retained
-statuses in the list. The page heading's top-right actions hold the Filters icon; its panel searches the person's
-name, applied after 300 ms. Match the complete permitted request array, with a simple no-match
-state. Keep request rows and active workflows mounted: filters only
-hide other rows and cannot hide a held preparation or its recovery. Both views use the standard
+revoked access records; invitations remain separate records. The view uses the standard
 workspace width and Ledger's aligned change-row pattern;
 headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
 or class context and genuine dates in the row, without repeating the page title inside a card.
 A current person's Member access row ends with **Revoke access**, which opens the reason form beneath the
-row; its confirmation says what revocation does. A pending or expired invitation shows its acceptance deadline. Member requests rows don't expand: each
-shows the creation date of a fulfilled certificate, with **Prepare certificate** at the row's end
-when the request can be prepared.
-Requests, access and invitation records show no internal references, fingerprints or file sizes; these
-remain in the audit records. A certificate request does not supply a share quantity;
-do not substitute the member's current holding. Keep unavailable reads and their retries distinct
+row; its confirmation says what revocation does. A pending or expired invitation shows its acceptance deadline.
+Access and invitation records show no internal references, fingerprints or file sizes; these
+remain in the audit records. Keep unavailable reads and their retries distinct
 from confirmed empty collections.
 Invite a member sits in a right-aligned row beneath the Invitations card. Invitation preparation replaces
 the collection with a focused view across the workspace, with member and email fields in the existing
@@ -313,16 +300,8 @@ out of visible fields: the email link opens one focused Member invitation page, 
 signup in the same tab. Show company, shareholder, intended email and expiry before an explicit
 Accept invitation action; opening the link must never accept it. The company sees acceptance status
 and an honest sending result, with a retry on failure; provider acceptance is not inbox delivery.
-Show an action reason only for a selected revocation, and certificate instruction fields only with
-an actual request. Preserve drafts, current authority, failed-read
-retries and original-action recovery; there is no routine refresh control.
-Selecting a certificate request replaces the collection with focused **Prepare certificate** and
-**Review certificate** views, keeping its controllers mounted. Group the member, exact class,
-request date and unsigned single-recipient PDF summary together. The preparation owns the required
-**Company instruction** field; the review shows the captured instruction and entry number beneath
-the summary. Keep the privacy and signing reminder
-visible, with one right-aligned Cancel/Preview or Cancel/Create certificate row. The focused views
-span the workspace; the Member requests collection returns when the task closes.
+Show an action reason only for a selected revocation. Preserve drafts, current authority,
+failed-read retries and original-action recovery; there is no routine refresh control.
 
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep the class and exact decision target clear, then the issue or transfer summary, ownership
@@ -424,7 +403,7 @@ The sidebar owns navigation between sections. A related group has one level of c
 opens a meaningful overview or the default child, and a separate caret expands the children, without
 an extra Overview page or item.
 Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
-Shareholders uses the same web pattern for **Employee scheme**, **Member access** and **Member requests**, with its parent
+Shareholders uses the same web pattern for **Employee scheme** and **Member access**, with its parent
 opening the people list. Documents uses the same pattern for **Certificates** (the default),
 **Published**, **Inspection copies** and **Company pack** where permitted, and **Notices** for a member of the
 selected company, with its label opening Certificates at `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
@@ -531,7 +510,7 @@ request, on pages and in dialogs, including:
 - previews and preparations;
 - identity verification;
 - establishing an appointment;
-- member and certificate requests;
+- member invitations and access;
 - register setup's review step (editing the records, loading and confirming the decision).
 
 Read on entry and after relevant actions under the [freshness standard](frontend.md#automatic-data-freshness),
@@ -554,9 +533,8 @@ An action that deletes, withdraws or revokes something saved asks first, in a di
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
 claim" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog:
 its text is the dialog's description, its action needs whatever enabled the action that opened it,
-and it stays open and busy until the request ends. It confirms withdrawing a claim, a certificate
-request or a representative authority request; deleting a profile document; and revoking member
-access.
+and it stays open and busy until the request ends. It confirms withdrawing a claim or a
+representative authority request; deleting a profile document; and revoking member access.
 Deleting a company document or the account, and revoking a company appointment, use the
 same destructive dialog with their own text. Company eligibility's request withdrawal and acceptance
 revocation are confirmed in their own review step instead, which shows the exact record and needs a
@@ -564,8 +542,8 @@ confirming tick before its destructive action. Reversible actions, such as signi
 an unsaved form, aren't confirmed. Dismissing a notification archives it at once. Register
 decisions, such as rejecting a proposal, and evidence forms, such as ending unissued rights, are
 confirmed by their own review, dialog or form. The dashboard uses no browser `confirm` or `alert`
-(ESLint's `no-alert`). Mobile asks first before withdrawing a certificate request or deleting the
-account, and also before signing out and, in a native alert, before turning off biometric sign-in.
+(ESLint's `no-alert`). Mobile asks first before deleting the account, and also before signing out
+and, in a native alert, before turning off biometric sign-in.
 
 ## Feedback
 
@@ -580,7 +558,7 @@ rather than its identifier. It reports:
 - a changed password and saved personal details;
 - the downloaded unsigned certificate, inspection copy and company pack;
 - a recorded team invitation, an accepted invitation and a representative authority request;
-- member access's recorded invitation and certificate fulfilment;
+- member access's recorded invitation;
 - a prepared correction or non-paid transfer, or a made particulars change, on the record you land
   on in Ledger.
 
@@ -786,8 +764,7 @@ server:
   draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;
   Apply and Clear close the panel and return focus to its button. Shareholders' class filter
   and company eligibility's Outcome apply
-  immediately, closing the panel on selection. Member requests' person search stays inside its panel
-  and uses the existing 300 ms timing, without an Apply action. Escape and an outside click dismiss
+  immediately, closing the panel on selection. Escape and an outside click dismiss
   it, and all controls remain keyboard
   accessible. Fit the panel within the viewport, scrolling inside when needed rather than
   overflowing or shifting the table. Preserve each page's URL, paging, full-history matching and
@@ -1069,13 +1046,12 @@ by a local helper or a browser `toLocale…` call:
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (companies), else a
   shared label map (`packages/shared/src/constants/business/labels.ts` for eligibility outcomes,
-  member invitations and requests, and appointments; `investor-eligibility.ts`
+  member invitations, and appointments; `investor-eligibility.ts`
   for investor categories and certifier bodies; and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for
-  register entry kinds). Mobile shows no status codes: its request statuses come from the shared
-  maps, and its certificate and pending-change tags use its own words.
+  register entry kinds). Mobile shows no status codes and uses the same shared maps.
 - **Identifiers.** Records show names, dates and amounts. Issue, transfer, award, import and
-  correction records, former shareholders, certificates, inspection copies, member access and
-  requests, Team, representative authority and Profile show no internal references, register
+  correction records, former shareholders, certificates, inspection copies, member access, Team,
+  representative authority and Profile show no internal references, register
   sequences, block numbers, gas or fingerprints, and have no **Record details** or **Technical
   details** section; an award shows who recorded it and when as one muted line. Where only an
   identifier tells records apart, such as two shareholders with one name or two options that read

@@ -1,4 +1,4 @@
-import type { MemberCertificateRequest, RegisterCertificatePreview, RegisterEntry } from '../../src';
+import type { RegisterCertificatePreview, RegisterEntry } from '../../src';
 import { APPOINTMENT, REGISTER } from './employee-awards';
 import { MEMBER_ENTRY, MEMBER_RECORD } from './member-access';
 
@@ -47,26 +47,4 @@ export const OUTPUT_PREVIEW: RegisterCertificatePreview = {
   registerSequence: OUTPUT_ENTRY.sequence,
   pageCount: 1,
   sourceDigest: 'a'.repeat(64),
-};
-export const MEMBER_PDF = Uint8Array.from('%PDF synthetic recipient', (value) => value.charCodeAt(0));
-export const FULFILLED_CERTIFICATE: MemberCertificateRequest = {
-  uuid: '33333333-3333-4333-8333-333333333333',
-  association: MEMBER_RECORD.uuid,
-  company: MEMBER_RECORD.company.uuid,
-  member: MEMBER_RECORD.member,
-  token: OUTPUT_REGISTER.token.uuid,
-  entry: OUTPUT_ENTRY.uuid,
-  status: 'fulfilled',
-  requestedBy: 1,
-  createdAt: MEMBER_ENTRY.createdAt,
-  fulfilment: {
-    uuid: '44444444-4444-4444-8444-444444444444',
-    producedBy: 2,
-    appointment: OUTPUT_APPOINTMENT.uuid,
-    instruction: 'Synthetic recipient certificate instruction',
-    sourceDigest: OUTPUT_PREVIEW.sourceDigest,
-    digest: '63ea80f0af59928afc20d529c511a893a40ca4d4daf31839a0d6ecd3d9906e6f',
-    fileSize: MEMBER_PDF.byteLength,
-    createdAt: MEMBER_ENTRY.createdAt,
-  },
 };

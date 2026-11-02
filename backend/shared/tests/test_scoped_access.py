@@ -38,9 +38,6 @@ from tokens.models import (
     ClassRightsRevision,
     MemberAssociation,
     MemberAssociationRevocation,
-    MemberCertificateFulfilment,
-    MemberCertificateRequest,
-    MemberCertificateWithdrawal,
     MemberInvitation,
     RegisterAgreement,
     RegisterAllotment,
@@ -417,8 +414,6 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             healthy = self.client.get(f"{capital_detail}{suffix}")
             self.assertEqual(healthy.status_code, 200, getattr(healthy, "content", b""))
             healthy.close()
-        with use_operator():
-            opening_entry = self.token.stored_register.entries.get(kind="opening").pk
         sharing = self.client.patch(
             f"/api/v1/companies/{self.company.pk}/", {"share_ownership_with_members": True}, format="json"
         )
@@ -469,27 +464,10 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(
             self.client.get(f"/api/v1/tokens/member-invitations/{invitation_payload['operation_id']}/").status_code, 404
         )
-        false_certificate = self.client.post(
-            "/api/v1/tokens/member-certificate-requests/",
-            {
-                "operation_id": str(uuid4()),
-                "association": association_id,
-                "entry": str(opening_entry),
-            },
-            format="json",
-        )
-        self.assertEqual(false_certificate.status_code, 400, false_certificate.content)
         with use_operator(), self.assertRaises(IntegrityError), atomic():
             MemberAssociation.objects.filter(pk=association_id).update(member=uuid4())
         set_principal(self.foreign.pk, APP_ALIAS)
-        for model in (
-            MemberInvitation,
-            MemberAssociation,
-            MemberAssociationRevocation,
-            MemberCertificateRequest,
-            MemberCertificateWithdrawal,
-            MemberCertificateFulfilment,
-        ):
+        for model in (MemberInvitation, MemberAssociation, MemberAssociationRevocation):
             with self.assertRaises(ProgrammingError) as read:
                 model.objects.using(APP_ALIAS).count()
             self.assertEqual(read.exception.__cause__.sqlstate, "42501")

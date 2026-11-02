@@ -78,10 +78,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   CLASS_RIGHTS: (uuid: string) => `/api/v1/tokens/${uuid}/class-rights/` as const,
   CLASS_RIGHTS_FILE: (uuid: string) => `/api/v1/tokens/${uuid}/class-rights-file/` as const,
   REGISTER_CERTIFICATE: (uuid: string) => `/api/v1/tokens/${uuid}/register/certificate/` as const,
-  MEMBER_CERTIFICATE_PREVIEW: (uuid: string) =>
-    `/api/v1/tokens/member-certificate-requests/${uuid}/fulfilment-preview/` as const,
-  MEMBER_CERTIFICATE_FULFIL: (uuid: string) => `/api/v1/tokens/member-certificate-requests/${uuid}/fulfil/` as const,
-  MEMBER_CERTIFICATE_FILE: (uuid: string) => `/api/v1/tokens/member-certificate-requests/${uuid}/file/` as const,
   MEMBER_INVITATIONS: '/api/v1/tokens/member-invitations/',
   MEMBER_INVITATION_ACCEPT: '/api/v1/tokens/member-invitations/accept/',
   MEMBER_INVITATION_SEND_EMAIL: '/api/v1/tokens/member-invitations/send-email/',
@@ -91,9 +87,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   MEMBER_RECORDS: '/api/v1/tokens/member-records/',
   MEMBER_RECORD: (uuid: string) => `/api/v1/tokens/member-records/${uuid}/` as const,
   MEMBER_ENTRIES: (uuid: string) => `/api/v1/tokens/member-records/${uuid}/entries/` as const,
-  MEMBER_CERTIFICATE_REQUESTS: '/api/v1/tokens/member-certificate-requests/',
-  MEMBER_CERTIFICATE_REQUEST_WITHDRAW: (uuid: string) =>
-    `/api/v1/tokens/member-certificate-requests/${uuid}/withdraw/` as const,
   BASE: '/api/v1/tokens/',
   DETAIL: (uuid: string) => `/api/v1/tokens/${uuid}/` as const,
   REGISTER: '/api/v1/tokens/register/',

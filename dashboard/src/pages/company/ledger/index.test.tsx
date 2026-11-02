@@ -275,7 +275,6 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getAllByRole('button', { name: 'Filters' })).toHaveLength(1);
   expect(screen.getByRole('button', { name: 'Filters' }).closest('header')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Member access' })).toBeNull();
-  expect(screen.queryByRole('heading', { name: 'Member requests' })).toBeNull();
   for (const name of ['Issue shares', 'Transfer shares', 'Corrections'])
     expect(screen.queryByRole('button', { name })).toBeNull();
   const formerSection = screen.getByRole('heading', { name: 'Former shareholders' }).closest('section')!;
@@ -987,12 +986,7 @@ it('reads every class page and groups exact holdings by member identity with sea
       };
     if (url === APPOINTMENTS)
       return revoked ? empty : { data: { results: [reader], count: 1, next: null, previous: null } };
-    if (
-      url === COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARDS ||
-      url.endsWith('/register/entries/') ||
-      url.includes('member-certificate-requests')
-    )
-      return empty;
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARDS || url.endsWith('/register/entries/')) return empty;
     throw new Error(`Unexpected read ${url}`);
   });
   show('company', <CompanyShareholderPage />, 'Shareholder', {

@@ -31,7 +31,7 @@ the replaced cases or the approval, and independent review checks them
 | Backend, PostgreSQL | 28              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
 | Dashboard unit      | 20              | 20      | Main pages, sign-in, core flows and the particulars edit's conflict baseline                                                   |
 | Playwright smoke    | 7               | 9       | Core browser journeys and route wiring                                                                                         |
-| Mobile Jest         | 5               | 10      | App start, sign-in, signup completion, member records, a recoverable certificate request, claim evidence and a payslip upload  |
+| Mobile Jest         | 5               | 10      | App start, sign-in, signup completion, member records, a retried invitation acceptance, claim evidence and a payslip upload    |
 | Shared package      | 9               | 10      | Essential shared behaviour                                                                                                     |
 | Contracts           | 14              | 20      | Who can mint, pause and transfer                                                                                               |
 
@@ -95,10 +95,11 @@ admission without an ABR lookup, activation with one and later checked company d
 the identity, versioned acknowledgement and company authority checks in that path; resuming signup
 uses current administrator authority and a retained current Terms receipt without rewriting
 historical permissions or declarations.
-Member invitations, own records and certificate requests have one core journey, and the
-tenant controls include foreign invitation and revoked association refusals. One output case covers
-real company and member PDFs, pack provenance and file integrity; a request creates no output until
-company fulfilment retains the actual recipient-only file. Two mirror cases cover complete copied
+Member invitations and own records have one core journey, which also finds no certificate request
+route, and the tenant controls include foreign invitation and revoked association refusals. One
+output case covers real company certificate PDFs, a register reader's access ending with their
+appointment, pack provenance and file integrity, and the purge of export records after the
+retention floor. Two mirror cases cover complete copied
 holdings and allotments, once-only opening corrections, retained earlier snapshots, stale and
 incomplete requests, and refusal after later ownership or member-access activity. They exercise
 the API and PostgreSQL guards; they establish no genuine legal register or source verification.

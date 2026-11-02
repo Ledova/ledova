@@ -100,13 +100,11 @@ pasted invitation link or its code (the text after the last `#`, trimmed), previ
 company, the recorded shareholder, the invited email and the deadline, and accepts it through the
 member-records state, reporting acceptance only once the server does. Documents, and a class's
 **Certificates**, open the selected company's Certificates page
-(`mobile/src/screens/documents/CertificatesScreen.tsx`), the web's: the certificate records of one share class, newest first. Filters opens the web's panel
-under its button (`FilterPopover`): Share class, Shareholder and Certificate status, then Clear and
-Apply. Each record shows the shareholder and change, the entry, its date (and ledger date) and the
-certificate status from the shared `certificateStatus`, with Request certificate, Withdraw request
-(after the web's confirmation) and Share PDF, then any earlier requests. The company's other
-certificate requests, including those the filters hide, open on demand. A class the member is not
-recorded in says so, and a failed read offers Try again. Notices
+(`mobile/src/screens/documents/CertificatesScreen.tsx`), the web's: the member's own entries in one
+share class, newest first. For a member with more than one class, Filters opens the web's panel under its
+button (`FilterPopover`) with Share class and Apply. Each record shows the shareholder and change,
+the entry and its date (and ledger date), with no action. A class the member is not recorded in says
+so, and a failed read offers Try again. Notices
 (`NoticesScreen`), under Documents, is the web's Notices page: every company's notices, each opened
 or voted on as on the web. Verification (`mobile/src/screens/eligibility/VerificationScreen.tsx`) is
 the web's page. Your claims lists each
@@ -146,13 +144,13 @@ biometric sign-in and App lock switches; Manage account adds member since and la
 card. Data and privacy (`DataPrivacy`) has Export data, which saves or shares the file, and Delete
 account. Each of these rows' actions carries the row's description, so a screen reader hears it once,
 with the action. The theme is the menu's switch. The member pages share one member-records state
-(`MemberRecordsProvider`), so a request whose outcome is uncertain stays recoverable, with its
-original operation, after leaving the page, and the pages show a loading line rather than an
+(`MemberRecordsProvider`), so an invitation acceptance whose outcome is uncertain stays recoverable,
+with its original code, after leaving the page, and the pages show a loading line rather than an
 empty one while the list rereads. Only the focused page selects its record and class.
-A notification, tapped in that list or as a push, opens its screen: a notice opens Notices, a
-ready certificate Certificates for that company, vested
+A notification, tapped in that list or as a push, opens its screen: a notice opens Notices, vested
 shares Dashboard on the award's company (with its class, where the overview lists it) and issued
-shares Certificates for that class, each saying so when that company no longer records you.
+shares Certificates for that class, each saying so when that company no longer records you. A
+certificate-ready notice sent before members' certificate requests were removed opens nothing.
 Screens set their own titles inside the page.
 
 ## Theme and appearance
@@ -282,8 +280,8 @@ added fails to start. Rebuild the development app, and make release builds from 
 ## Document view copies
 
 Viewing a document downloads it into the app-owned `ledova-document-views-v1` cache directory and
-hands the copy to the share sheet (`shareDocumentCopy`). Every document view works this way: a
-member's own certificates and publication documents. Data and privacy shares the
+hands the copy to the share sheet (`shareDocumentCopy`). Every document view works this way:
+publication documents. Data and privacy shares the
 [account-data export](records.md#account-data-export) the same way, as one JSON copy.
 
 A view is bound to the session current when tapped: its download carries that epoch

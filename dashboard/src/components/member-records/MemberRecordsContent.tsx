@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { LoadError, Loading, Section, Failure } from '@components/Ledger';
-import { PageAction } from '@components/Page';
 import { useMemberWorkspace } from './useMemberWorkspace';
 import { AccountCheck } from '@components/AccountCheck';
 
@@ -20,24 +19,15 @@ export function MemberRecordsContent({ children }: { children: ReactNode }) {
             setRetrying(true);
             return read.refresh().finally(() => setRetrying(false));
           }}
-          busy={retrying || read.busy || read.refreshing}
+          busy={retrying || read.refreshing}
         >
           Your member records could not be loaded.
         </LoadError>
       )}
       {!read.readFailed && read.error && <Failure>{read.error}</Failure>}
-      {read.retry && (
-        <div className="flex justify-end">
-          <PageAction
-            label="Retry original member action"
-            disabled={read.busy || read.refreshing || read.readFailed || !read.owner}
-            onClick={() => void read.recover()}
-          />
-        </div>
-      )}
       {!read.owner ? (
         <AccountCheck />
-      ) : read.loading || retrying || read.refreshing || (read.busy && read.records.length === 0) ? (
+      ) : read.loading || retrying || read.refreshing ? (
         <Loading>Loading member records…</Loading>
       ) : (
         <>

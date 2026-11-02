@@ -73,8 +73,7 @@ SYSTEM_WIDE = {
     "tokens.tasks.former_holders.purge_former_members_past_the_clock": "Deletes former-member records "
     "seven years after the date they ceased, imported former members seven years after their date ceased, "
     "member particulars seven years after the member last held shares, and register export records seven "
-    "years after the export, except exports retained by a member certificate fulfilment. These are the only "
-    "deletions anyone may perform on those tables - the app "
+    "years after the export. These are the only deletions anyone may perform on those tables - the app "
     "role's policy refuses all three write commands on the former-member and particulars tables, and the "
     "app role has no grant on export records at all.",
     "tokens.tasks.signing_challenge.purge_signing_challenges": "Deletes challenges that expired unused, past the "

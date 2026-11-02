@@ -6,11 +6,6 @@ import { hasValidOwnMemberAward } from '../utils/register-awards';
 import type {
   MemberAssociation,
   MemberAssociationRevoke,
-  MemberCertificateRequest,
-  MemberCertificateFulfilmentPreview,
-  MemberCertificateFulfilmentCreate,
-  MemberCertificateRequestCreate,
-  MemberCertificateRequestWithdraw,
   MemberInvitation,
   MemberInvitationAccept,
   MemberInvitationCreate,
@@ -63,35 +58,3 @@ export const revokeMemberAssociation = (
   data: MemberAssociationRevoke,
   config: AxiosRequestConfig = {},
 ) => api.post<MemberAssociation>(URLS.MEMBER_ASSOCIATION_REVOKE(uuid), data, config);
-export const getMemberCertificateRequests = (
-  api: AxiosInstance,
-  params: { association?: string; company?: string; page: number },
-  config: AxiosRequestConfig = {},
-) => api.get<PaginatedResponse<MemberCertificateRequest>>(URLS.MEMBER_CERTIFICATE_REQUESTS, { ...config, params });
-export const createMemberCertificateRequest = (
-  api: AxiosInstance,
-  data: MemberCertificateRequestCreate,
-  config: AxiosRequestConfig = {},
-) => api.post<MemberCertificateRequest>(URLS.MEMBER_CERTIFICATE_REQUESTS, data, config);
-export const withdrawMemberCertificateRequest = (
-  api: AxiosInstance,
-  uuid: string,
-  data: MemberCertificateRequestWithdraw,
-  config: AxiosRequestConfig = {},
-) => api.post<MemberCertificateRequest>(URLS.MEMBER_CERTIFICATE_REQUEST_WITHDRAW(uuid), data, config);
-
-export const getMemberCertificateFulfilmentPreview = (
-  api: AxiosInstance,
-  uuid: string,
-  config: AxiosRequestConfig = {},
-) => api.get<MemberCertificateFulfilmentPreview>(URLS.MEMBER_CERTIFICATE_PREVIEW(uuid), config);
-export const fulfilMemberCertificateRequest = (
-  api: AxiosInstance,
-  uuid: string,
-  data: MemberCertificateFulfilmentCreate,
-  config: AxiosRequestConfig = {},
-) => api.post<MemberCertificateRequest>(URLS.MEMBER_CERTIFICATE_FULFIL(uuid), data, config);
-export const getMemberCertificateFile = (api: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
-  api.get<Blob>(URLS.MEMBER_CERTIFICATE_FILE(uuid), { ...config, responseType: 'blob' });
-export const getMemberCertificateFileBytes = (api: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
-  api.get<ArrayBuffer>(URLS.MEMBER_CERTIFICATE_FILE(uuid), { ...config, responseType: 'arraybuffer' });

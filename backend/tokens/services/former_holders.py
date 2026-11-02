@@ -263,7 +263,7 @@ def purge_member_cessations(now=None) -> int:
 
 def purge_register_exports(now=None) -> int:
     cutoff = retention_cutoff(now)
-    removed, _ = RegisterExport.objects.filter(created_at__date__lt=cutoff, member_fulfilment__isnull=True).delete()
+    removed, _ = RegisterExport.objects.filter(created_at__date__lt=cutoff).delete()
     if removed:
         logger.info(f"Removed {removed} register export records that passed the seven-year clock")
     return removed

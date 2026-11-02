@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   matchPath,
   useBeforeUnload,
@@ -15,7 +15,6 @@ import { documentView } from '@utils/destinations';
 import { lastCompany, rememberCompany } from '@utils/lastCompany';
 import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';
 import { Confirmation } from './Modal';
-import { MemberWorkspaceContext } from './member-records/useMemberWorkspace';
 
 function ledgerParams(pathname: string) {
   return Object.values(DESTINATIONS)
@@ -51,7 +50,6 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const ledger = useLedgerNavigation();
-  const member = useContext(MemberWorkspaceContext);
   const dirtyForms = useRef(new WeakSet<HTMLFormElement>());
   const requested = useRef(false);
   const [blockedAt, setBlockedAt] = useState<{
@@ -65,12 +63,10 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
     lastCompany(owner),
   );
   const company = directory.companies.find(({ uuid }) => uuid === companyUuid);
-  const ledgerHeld =
+  const held =
     (location.pathname === DESTINATIONS.companyRegister.path ||
       !!matchPath(DESTINATIONS.companyRegisterAward.path, location.pathname)) &&
     !!ledger.state?.held;
-  const memberHeld = !!member?.read.busy || !!member?.read.retry;
-  const held = ledgerHeld || memberHeld;
   const allowed = (uuid: string | null) =>
     !!owner && boundary.get() === owner && !held && (!uuid || directory.companies.some((row) => row.uuid === uuid));
   const isDirty = useCallback(
@@ -93,8 +89,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         const changingCompany = target !== companyUuid;
         const hash = nextLocation.hash.slice(1);
         if (
-          ledgerHeld &&
-          !memberHeld &&
+          held &&
           !changingCompany &&
           currentLocation.pathname === DESTINATIONS.companyRegister.path &&
           nextLocation.pathname === currentLocation.pathname &&
@@ -113,7 +108,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
         if (blocked) setBlockedAt({ owner, location: currentLocation.key });
         return blocked;
       },
-      [owner, boundary, companyUuid, directory.companies, held, ledgerHeld, memberHeld, ledger.state, isDirty],
+      [owner, boundary, companyUuid, directory.companies, held, ledger.state, isDirty],
     ),
   );
   useBeforeUnload(

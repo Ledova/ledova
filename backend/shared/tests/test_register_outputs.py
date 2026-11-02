@@ -3,12 +3,10 @@ import io
 import json
 import zipfile
 from datetime import timedelta
-from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pymupdf
 from django.conf import settings
-from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
@@ -19,10 +17,9 @@ from companies.services.team import (
     issue_team_invitation,
     revoke_company_appointment,
 )
-from shared.db import atomic, use_operator
+from shared.db import use_operator
 from shared.tests.core_fixtures import CoreFixtures, retained_evidence
 from tokens.models import (
-    MemberCertificateFulfilment,
     RegisterEvidenceKind,
     RegisterExport,
     RegisterGrant,
@@ -118,10 +115,11 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         self.assertNotEqual(later_match.json()["results"][0]["uuid"], entry_id)
         self.assertEqual(self.client.get(entries_endpoint).json()["count"], 4)
         self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "all"}).json()["count"], 3)
-        self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "not_applicable"}).json()["count"], 0)
+        self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "can_prepare"}).json()["count"], 3)
+        self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "reversed"}).json()["count"], 0)
         self.assertEqual(self.client.get(entries_endpoint, {"search": "no matching person"}).json()["count"], 0)
         self.assertEqual(self.client.get(entries_endpoint, {"search": "x" * 101}).status_code, 400)
-        self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "invented"}).status_code, 400)
+        self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "requested"}).status_code, 400)
         company_endpoint = f"/api/v1/tokens/{self.token.pk}/register/certificate/"
         preview = self.client.get(f"{company_endpoint}?sequence={entry.sequence}")
         self.assertEqual(preview.status_code, 200, preview.content)
@@ -178,14 +176,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(accepted.status_code, 200, accepted.content)
-        own_filters = {"association": accepted.json()["uuid"], "page_size": 1}
-        self.assertEqual(
-            self.client.get(entries_endpoint, {**own_filters, "certificate_status": "all"}).status_code, 404
-        )
-        self.client.force_authenticate(self.owner)
-        self.assertEqual(
-            self.client.get(entries_endpoint, {**own_filters, "certificate_status": "all"}).status_code, 404
-        )
+        self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "all"}).status_code, 404)
         _, team_code, _ = issue_team_invitation(
             requester=self.owner,
             company_id=self.company.pk,
@@ -196,121 +187,14 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         reader = accept_team_invitation(
             requester=self.foreign, code=team_code, declaration_version=DECLARATION_VERSION, accept_declaration=True
         )
-        self.client.force_authenticate(self.foreign)
-        available = self.client.get(entries_endpoint, {**own_filters, "certificate_status": "not_requested"})
-        self.assertEqual(available.status_code, 200, available.content)
-        self.assertEqual(available.json()["count"], 2)
-        self.assertEqual(
-            self.client.get(entries_endpoint, {**own_filters, "certificate_status": "can_prepare"}).json()["count"], 1
-        )
-        told = self.enterContext(patch("tokens.services.member_events.defer"))
-        requested = self.client.post(
-            "/api/v1/tokens/member-certificate-requests/",
-            {
-                "operation_id": str(uuid4()),
-                "association": accepted.json()["uuid"],
-                "entry": entry_id,
-            },
-            format="json",
-        )
-        self.assertEqual(requested.status_code, 201, requested.content)
-        filtered_request = self.client.get(entries_endpoint, {**own_filters, "certificate_status": "requested"})
-        self.assertEqual(filtered_request.status_code, 200, filtered_request.content)
-        self.assertEqual(filtered_request.json()["count"], 1)
-        self.assertEqual(filtered_request.json()["results"][0]["uuid"], entry_id)
-        request_endpoint = f"/api/v1/tokens/member-certificate-requests/{requested.json()['uuid']}/"
-        self.client.force_authenticate(self.owner)
-        preview = self.client.get(f"{request_endpoint}fulfilment-preview/")
-        self.assertEqual(preview.status_code, 200, preview.content)
-        self.assertEqual(preview.json()["pageCount"], 1)
-        fulfil = {
-            "operation_id": str(uuid4()),
-            "appointment": str(self.appointment.pk),
-            "source_digest": preview.json()["sourceDigest"],
-            "instruction": "SYNTHETIC-MEMBER-UNSIGNED-CERTIFICATE",
-        }
-        stale_member = self.client.post(
-            f"{request_endpoint}fulfil/", {**fulfil, "source_digest": "0" * 64}, format="json"
-        )
-        self.assertEqual(stale_member.status_code, 409, stale_member.content)
-        fulfilled = self.client.post(f"{request_endpoint}fulfil/", fulfil, format="json")
-        self.assertEqual(fulfilled.status_code, 200, fulfilled.content)
-        self.assertEqual(fulfilled.json()["status"], "fulfilled")
-        self.assertEqual(
-            self.client.post(f"{request_endpoint}fulfil/", fulfil, format="json").json()["fulfilment"]["uuid"],
-            fulfil["operation_id"],
-        )
-        changed_retry = self.client.post(
-            f"{request_endpoint}fulfil/", {**fulfil, "instruction": "Different instruction"}, format="json"
-        )
-        self.assertEqual(changed_retry.status_code, 409, changed_retry.content)
-        self.assertEqual(
-            [(call.kwargs["user_id"], call.kwargs["data"]) for call in told.call_args_list],
-            [
-                (
-                    str(self.foreign.pk),
-                    {
-                        "type": "certificate",
-                        "event": "ready",
-                        "company": str(self.company.pk),
-                        "record": accepted.json()["uuid"],
-                    },
-                )
-            ],
-        )
-        self.client.force_authenticate(self.foreign)
-        self.assertEqual(
-            self.client.get(entries_endpoint, {**own_filters, "certificate_status": "fulfilled"}).json()["count"], 1
-        )
-        newest_request = self.client.post(
-            "/api/v1/tokens/member-certificate-requests/",
-            {"operation_id": str(uuid4()), "association": accepted.json()["uuid"], "entry": entry_id},
-            format="json",
-        )
-        self.assertEqual(newest_request.status_code, 201, newest_request.content)
-        self.assertEqual(
-            self.client.get(entries_endpoint, {**own_filters, "certificate_status": "fulfilled"}).json()["count"], 0
-        )
-        self.assertEqual(
-            self.client.get(entries_endpoint, {**own_filters, "certificate_status": "requested"}).json()["count"], 1
-        )
-        cancelled_request = self.client.post(
-            f"/api/v1/tokens/member-certificate-requests/{newest_request.json()['uuid']}/withdraw/",
-            {"idempotency_key": str(uuid4())},
-            format="json",
-        )
-        self.assertEqual(cancelled_request.status_code, 200, cancelled_request.content)
-        self.assertEqual(
-            self.client.get(entries_endpoint, {**own_filters, "certificate_status": "withdrawn"}).json()["count"], 1
-        )
-        self.assertEqual(
-            self.client.get(entries_endpoint, {**own_filters, "certificate_status": "reversed"}).json()["count"], 0
-        )
+        self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "can_prepare"}).json()["count"], 3)
+        for private in ("member-invitations", "member-associations"):
+            listed = self.client.get(f"/api/v1/tokens/{private}/", {"company": str(self.company.pk)})
+            self.assertEqual(listed.json()["count"], 0, private)
+        reader_preview = self.client.get(f"{company_endpoint}?sequence={entry.sequence}")
+        self.assertEqual(reader_preview.json()["sourceDigest"], fields["source_digest"])
         revoke_company_appointment(requester=self.owner, appointment_id=reader.pk)
-        own_pdf = self.client.get(f"{request_endpoint}file/")
-        self.assertEqual(own_pdf.status_code, 200, own_pdf.content)
-        with pymupdf.open(stream=own_pdf.content, filetype="pdf") as document:
-            self.assertEqual(document.page_count, 1)
-            own_text = "".join(page.get_text() for page in document)
-        self.assertIn("Synthetic Employee", own_text)
-        self.assertIn("2 Example Street", own_text)
-        self.assertNotIn("Synthetic Member", own_text)
-        self.assertNotIn("1 Example Street", own_text)
-        self.assertIn("Prepared unsigned", own_text)
-        with use_operator():
-            output = MemberCertificateFulfilment.objects.get(pk=fulfil["operation_id"])
-            self.assertEqual((output.digest, output.export.digest), (hashlib.sha256(own_pdf.content).hexdigest(),) * 2)
-            self.assertEqual(MemberCertificateFulfilment.objects.count(), 1)
-            with self.assertRaises(IntegrityError), atomic():
-                MemberCertificateFulfilment.objects.filter(pk=output.pk).update(instruction="Forged instruction")
-            with output.file.open("wb") as target:
-                target.write(b"corrupt synthetic PDF")
-        corrupt = self.client.get(f"{request_endpoint}file/")
-        self.assertEqual(corrupt.status_code, 400, corrupt.content)
-        with use_operator(), output.file.open("wb") as target:
-            target.write(own_pdf.content)
-        withdrawal = self.client.post(f"{request_endpoint}withdraw/", {"idempotency_key": str(uuid4())}, format="json")
-        self.assertEqual(withdrawal.status_code, 400, withdrawal.content)
+        self.assertEqual(self.client.get(f"{company_endpoint}?sequence={entry.sequence}").status_code, 404)
         self.client.force_authenticate(self.owner)
         ending_evidence = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
         ending = self.client.post(
@@ -432,26 +316,9 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(audit.requested_by_id, self.owner.pk)
             self.assertEqual(int(self.token.stored_register.issued_supply), 150)
             self.assertEqual(RegisterGrant.objects.get(pk=grant.json()["uuid"]).award_id, UUID(award["operation_id"]))
-            self.assertEqual(RegisterExport.objects.count(), 5)
+            self.assertEqual(RegisterExport.objects.count(), 4)
             self.assertEqual(
                 purge_register_exports(now=timezone.now() + timedelta(days=settings.FORMER_MEMBER_RETENTION_DAYS + 1)),
                 4,
             )
-            self.assertEqual(list(RegisterExport.objects.values_list("pk", flat=True)), [output.export_id])
-            output.refresh_from_db()
-            with output.file.open("rb") as original:
-                self.assertEqual(original.read(), own_pdf.content)
-        revoked = self.client.post(
-            f"/api/v1/tokens/member-associations/{accepted.json()['uuid']}/revoke/",
-            {
-                "appointment": str(self.appointment.pk),
-                "idempotency_key": str(uuid4()),
-                "reason": "End own output access",
-            },
-            format="json",
-        )
-        self.assertEqual(revoked.status_code, 200, revoked.content)
-        self.client.force_authenticate(self.foreign)
-        self.assertEqual(self.client.get(request_endpoint).json()["status"], "fulfilled")
-        hidden_pdf = self.client.get(f"{request_endpoint}file/")
-        self.assertEqual(hidden_pdf.status_code, 404, hidden_pdf.content)
+            self.assertFalse(RegisterExport.objects.exists())

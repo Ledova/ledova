@@ -61,7 +61,7 @@ Today the [users](../product.md#1-who-uses-ledova) act as follows.
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up and activate the company, appoint the team, record share classes through the API, run the register, record awards and allotments, decide participant eligibility, invite members and prepare outputs.                           |
 | The registering account (company owner) | The account that registered the company. Ownership grants no appointment and supplies no register decision. It keeps some earlier owner-only workflows: submitting the directors' register instructions for settled market transfers and retained issues, opening Representative authority and Published to your members. It can also read the register. |
-| Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards and obtain their own certificates, and tell the company of changes ([member records](member-records.md)). Being a member grants no company authority.          |
+| Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards, and ask the company for certificates and tell it of changes ([member records](member-records.md)). Being a member grants no company authority.                |
 | Investors                               | People with an investing account. They verify their identity, share evidence with a company to obtain its eligibility decision ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                                                               |
 | Platform staff                          | Run hosting, security, integrations, background jobs and support, and recover technical failures. Separately authorised staff handle crypto, screening and payment operations. Staff permissions never count as a company appointment.                                                                                                                   |
 | Automation                              | Validates and applies exact company-approved instructions, signs chain transactions with the platform's operator key, reconciles records and reports failures. It records the human decision behind each effect and never supplies company authority.                                                                                                    |
@@ -236,10 +236,10 @@ administers a company and holds its shares sees that company once, with their ow
 the company information they may read. The sidebar keeps focused tasks for the selected company:
 
 - Ledger opens the class overview, with Issue shares, Transfer shares and Corrections beneath it.
-  Shareholders opens the people list, with Employee scheme, Member access and Member requests.
+  Shareholders opens the people list, with Employee scheme and Member access.
   Documents opens one Certificates page for company and member records, with Published (what the
   company published to its members), Inspection copies and Company pack where company access permits
-  them. Matching company and own records appear once.
+  them.
 - Company eligibility follows for its administrators and the people appointed to prepare or approve.
   Its sidebar label is Eligibility, and administrators find Supporting (the company's documents)
   beneath it.
@@ -275,8 +275,8 @@ and charts rather than showing zero. Detailed history and every action are on th
 
 The same web Dashboard shows the person's own register records, with no wallet needed. A company can opt into sharing an aggregate ownership overview with its current
 linked members on the web: all class totals and each member's own position, without other
-shareholders' identities or private records. Mobile retains its own-records view. Certificates and certificate
-requests are in Documents → Certificates on the web and on mobile
+shareholders' identities or private records. Mobile retains its own-records view. A member's
+certificate records are in Documents → Certificates on the web and on mobile
 ([member records](member-records.md)).
 
 The mobile app has the web's phone frame: a top bar with the menu and the notifications bell, and a
@@ -307,7 +307,7 @@ Follow a company and its participants through Ledova:
 4. [Issuing shares](issuing-shares.md): share classes, employee awards and vesting,
    grants and externally arranged allotments.
 5. [Member access and register outputs](member-records.md): member invitations,
-   own records and requests, inspection copies, certificates, notice figures and the company pack.
+   own records, inspection copies, certificates, notice figures and the company pack.
 6. [Shareholder publications](publications.md): documents, resolutions and
    ballots, and distributions with their payment records.
 7. [Wallets, transfers and trading](trading.md): the API's wallet sends and experimental market,

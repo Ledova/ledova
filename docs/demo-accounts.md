@@ -123,7 +123,8 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 - **Purpose Demo:**
   - Eligibility requests, each sharing the investor's name: Quinn's and Taylor's accepted, one of
     Casey's refused and two pending, the newer one sent with a later certificate after the refusal.
-  - Member requests: certificate requests from Quinn and Casey.
+  - Certificate requests from Quinn and Casey, which `tokens/0005_remove_member_certificate_requests`
+    deletes ([decision](decisions.md#member-certificate-requests-removed)).
   - A constitution, a shareholders agreement and financial statements under Supporting.
   - An inspection copy and a company pack.
 - **Banksia:**

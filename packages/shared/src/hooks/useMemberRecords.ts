@@ -2,14 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   acceptMemberInvitation,
-  createMemberCertificateRequest,
-  getMemberCertificateRequests,
   getOwnMemberEntries,
   getOwnMemberRecord,
   getOwnMemberRecords,
-  withdrawMemberCertificateRequest,
 } from '../services/member-access';
-import type { OwnMemberRecord, MemberCertificateRequest } from '../types';
+import type { OwnMemberRecord } from '../types';
 import { failureStatus, failureSentence } from '../utils/errors';
 import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
@@ -17,17 +14,13 @@ import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 import { useApiClient } from './useApiClient';
 
-type Command =
-  | { kind: 'accept'; code: string; userAccount: string; confirmation: true }
-  | { kind: 'certificate'; operationId: string; association: string; token: string; entry: string }
-  | { kind: 'withdraw'; uuid: string; idempotencyKey: string };
+type Command = { code: string; userAccount: string; confirmation: true };
 
 export function ownMemberRecordsKey(owner: OrderSubmissionOwner | null, epoch = 0) {
   return ['member-records', owner?.userUuid, owner?.ownerAccountUuid, epoch] as const;
 }
 
 export function useMemberRecords(
-  newKey: () => string,
   session?: OrderSubmissionSession,
   {
     coordinatedRefresh = false,
@@ -50,7 +43,6 @@ export function useMemberRecords(
   current.current = { selected, token, owner };
   const key = ownMemberRecordsKey(owner, session?.getEpoch() ?? 0);
   const detailKey = [...key, selected];
-  const requestsKey = [...detailKey, 'requests'];
   const entriesKey = [...detailKey, 'entries', token];
   useEffect(() => {
     live.current = true;
@@ -131,27 +123,6 @@ export function useMemberRecords(
     if (state?.status !== 'success' || state.fetchStatus !== 'idle')
       throw new Error('Refresh the selected member record before continuing.');
   };
-  const requests = useQuery({
-    ...refreshOptions,
-    queryKey: requestsKey,
-    enabled: enabled && !!selected && detail.isSuccess && !detail.isFetching && list.isSuccess && !list.isFetching,
-    queryFn: async () => {
-      const certificates = await readEveryPage(async (page) => {
-        guardRecord();
-        const response = await getMemberCertificateRequests(api, { association: selected, page }, config(guardRecord));
-        guardRecord();
-        return response;
-      });
-      const record = client.getQueryData<OwnMemberRecord>(detailKey)!;
-      if (
-        certificates.some(
-          (row) => row.association !== selected || row.company !== record.company.uuid || row.member !== record.member,
-        )
-      )
-        throw new Error('The requests do not belong to your selected member record.');
-      return { certificates };
-    },
-  });
   const entries = useQuery({
     ...refreshOptions,
     queryKey: entriesKey,
@@ -181,13 +152,6 @@ export function useMemberRecords(
       return data.entries;
     },
   });
-  const guardAction = () => {
-    guardRecord();
-    const requestsState = client.getQueryState(requestsKey);
-    const entriesState = client.getQueryState(entriesKey);
-    if (requestsState?.status !== 'success' || requestsState.fetchStatus !== 'idle' || entriesState?.status === 'error')
-      throw new Error('Refresh your current member requests before continuing.');
-  };
   const refresh = async () => {
     guard();
     if (coordinatedRefresh) setRefreshing(true);
@@ -199,10 +163,7 @@ export function useMemberRecords(
         const hasToken =
           !!token && client.getQueryData<OwnMemberRecord>(detailKey)?.classes.some((row) => row.uuid === token);
         if (token && !hasToken) setToken('');
-        await Promise.all([
-          requests.refetch({ throwOnError: true }),
-          ...(hasToken ? [entries.refetch({ throwOnError: true })] : []),
-        ]);
+        if (hasToken) await entries.refetch({ throwOnError: true });
       }
     } finally {
       if (coordinatedRefresh && live.current && boundary.get() === owner) setRefreshing(false);
@@ -215,75 +176,16 @@ export function useMemberRecords(
     setBusy(true);
     setError(null);
     try {
-      const check = () => {
-        if (command.kind === 'accept') guard();
-        else guardAction();
-        if (command.kind === 'certificate' && current.current.token !== command.token)
-          throw new Error('The certificate request share class changed.');
-      };
-      check();
-      if (command.kind !== 'accept' && command.kind !== 'withdraw' && command.association !== selected)
-        throw new Error('The request belongs to a different association.');
-      if (command.kind === 'certificate') {
-        const state = client.getQueryState(entriesKey);
-        const entry = client
-          .getQueryData<{ uuid: string; kind: string; delta: string }[]>(entriesKey)
-          ?.find((row) => row.uuid === command.entry);
-        if (
-          state?.status !== 'success' ||
-          state.fetchStatus !== 'idle' ||
-          !entry ||
-          !['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase()) ||
-          BigInt(entry.delta) <= 0n
-        )
-          throw new Error('Select a genuine positive own issue or transfer entry.');
-      }
-      if (command.kind === 'withdraw') {
-        const state = client.getQueryState(requestsKey);
-        const request = client
-          .getQueryData<{ certificates: { uuid: string; status: string }[] }>(requestsKey)
-          ?.certificates.find((row) => row.uuid === command.uuid);
-        if (state?.status !== 'success' || state.fetchStatus !== 'idle' || !request)
-          throw new Error('Refresh your own certificate request before withdrawing it.');
-      }
-      const record = client.getQueryData<OwnMemberRecord>(detailKey);
+      guard();
       setRetry(command);
-      if (command.kind === 'accept') {
-        const { data } = await acceptMemberInvitation(
-          api,
-          { code: command.code, userAccount: command.userAccount, confirmation: true },
-          config(check),
-        );
-        check();
-        if (data.userAccount !== owner!.ownerAccountUuid || !data.current || !data.member || !data.company)
-          throw new Error('The accepted member association could not be confirmed. Retry the same invitation.');
-      } else if (command.kind === 'certificate') {
-        const { data } = await createMemberCertificateRequest(
-          api,
-          { operationId: command.operationId, association: command.association, entry: command.entry },
-          config(check),
-        );
-        check();
-        if (
-          data.uuid !== command.operationId ||
-          data.association !== selected ||
-          data.company !== record?.company.uuid ||
-          data.member !== record.member ||
-          data.token !== command.token ||
-          data.entry !== command.entry
-        )
-          throw new Error('The certificate request could not be confirmed. Retry the unchanged request.');
-      } else {
-        const { data } = await withdrawMemberCertificateRequest(
-          api,
-          command.uuid,
-          { idempotencyKey: command.idempotencyKey },
-          config(check),
-        );
-        check();
-        if (data.uuid !== command.uuid || data.association !== selected || data.status !== 'withdrawn')
-          throw new Error('The withdrawal could not be confirmed. Retry the unchanged request.');
-      }
+      const { data } = await acceptMemberInvitation(
+        api,
+        { code: command.code, userAccount: command.userAccount, confirmation: true },
+        config(),
+      );
+      guard();
+      if (data.userAccount !== owner!.ownerAccountUuid || !data.current || !data.member || !data.company)
+        throw new Error('The accepted member association could not be confirmed. Retry the same invitation.');
       setRetry(null);
       confirmed = true;
       await refresh();
@@ -311,9 +213,8 @@ export function useMemberRecords(
     detail.isSuccess &&
     detail.fetchStatus === 'idle' &&
     list.data.some((row) => row.uuid === selected) &&
-    !requests.isError &&
     !entries.isError;
-  const readFailed = [list, detail, requests, entries].some((read) => read.isError);
+  const readFailed = [list, detail, entries].some((read) => read.isError);
   return {
     scopeOwner: owner,
     owner: available ? owner : null,
@@ -324,24 +225,6 @@ export function useMemberRecords(
     record: ready ? detail.data : null,
     entriesReady: ready && entries.isSuccess && entries.fetchStatus === 'idle',
     entries: ready && entries.isSuccess && entries.fetchStatus === 'idle' ? entries.data : [],
-    requests: ready && requests.isSuccess && requests.fetchStatus === 'idle' ? requests.data : null,
-    guardCertificate: (uuid: string) => {
-      guardAction();
-      const request = client
-        .getQueryData<{ certificates: MemberCertificateRequest[] }>(requestsKey)
-        ?.certificates.find((row) => row.uuid === uuid);
-      if (
-        !request ||
-        request.status !== 'fulfilled' ||
-        !request.fulfilment ||
-        request.association !== selected ||
-        !/^[a-f0-9]{64}$/.test(request.fulfilment.digest) ||
-        !Number.isSafeInteger(request.fulfilment.fileSize) ||
-        request.fulfilment.fileSize < 1
-      )
-        throw new Error('Refresh your current certificate fulfilment before downloading it.');
-      return request.fulfilment;
-    },
     busy,
     refreshing,
     retry,
@@ -366,11 +249,7 @@ export function useMemberRecords(
     selectToken: (uuid: string) => {
       if (!retry && !busy) setToken(uuid);
     },
-    accept: (code: string) =>
-      owner && execute({ kind: 'accept', code, userAccount: owner.ownerAccountUuid, confirmation: true }),
-    requestCertificate: (entry: string) =>
-      execute({ kind: 'certificate', operationId: newKey(), association: selected, token, entry }),
-    withdraw: (uuid: string) => execute({ kind: 'withdraw', uuid, idempotencyKey: newKey() }),
+    accept: (code: string) => owner && execute({ code, userAccount: owner.ownerAccountUuid, confirmation: true }),
     recover: () => retry && execute(retry),
   };
 }

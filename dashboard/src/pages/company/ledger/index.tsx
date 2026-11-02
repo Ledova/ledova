@@ -66,9 +66,7 @@ function RegisterPage({ sections, task, children }: { sections?: ReactNode; task
                         ? 'Who holds shares and what they hold in each class.'
                         : hash === '#member-access'
                           ? 'Invite people to their records and manage their access.'
-                          : hash === '#member-requests'
-                            ? 'Review requests to update details or prepare certificates.'
-                            : 'Share classes and current ownership.'
+                          : 'Share classes and current ownership.'
         }
       >
         {children}
@@ -103,11 +101,7 @@ function OwnRegister({
 }) {
   const { setState: setLedgerNavigation } = useLedgerNavigation();
   const companyContext = useCompanyContext();
-  const [memberHeldView, setMemberHeldView] = useState<'access' | 'requests' | null>(null);
-  const memberHeld = memberHeldView !== null;
-  const memberHeldChange = useCallback((held: boolean, view: 'access' | 'requests') => {
-    setMemberHeldView(held ? view : null);
-  }, []);
+  const [memberHeld, setMemberHeld] = useState(false);
   const [personHeld, setPersonHeld] = useState(false);
   const [documentTask, setDocumentTask] = useState<string | null>(null);
   const documentEditing = useCallback((task: string, open: boolean) => {
@@ -124,8 +118,7 @@ function OwnRegister({
       { replace: true, state: location.state },
     );
   }, [location, navigate]);
-  const includeEmptyCompanies =
-    ['#shareholders', '#member-access', '#member-requests'].includes(hash) || documents === 'company-pack';
+  const includeEmptyCompanies = ['#shareholders', '#member-access'].includes(hash) || documents === 'company-pack';
   const [heldClasses, setHeldClasses] = useState<ReadonlySet<string>>(() => new Set());
   const [editingAwards, setEditingAwards] = useState<ReadonlySet<string>>(() => new Set());
   const awardEditing = useCallback((token: string, editing: boolean) => {
@@ -266,18 +259,14 @@ function OwnRegister({
           ? 'shareholders'
           : hash === '#member-access'
             ? 'member-access'
-            : hash === '#member-requests'
-              ? 'member-requests'
-              : 'register';
+            : 'register';
   const heldShareholderView = personHeld
     ? 'shareholders'
-    : memberHeldView === 'access'
+    : memberHeld
       ? 'member-access'
-      : memberHeldView === 'requests'
-        ? 'member-requests'
-        : [...heldClasses].some((key) => key.startsWith('awards/'))
-          ? 'awards'
-          : undefined;
+      : [...heldClasses].some((key) => key.startsWith('awards/'))
+        ? 'awards'
+        : undefined;
   const requestedToken =
     scope && scope.company.uuid === registerCompany && scope.registers.some(({ token }) => token.uuid === registerToken)
       ? registerToken
@@ -369,8 +358,7 @@ function OwnRegister({
     scope,
   ]);
 
-  const membersVisible =
-    (view === 'member-access' || view === 'member-requests') && (!memberHeld || view === heldShareholderView);
+  const membersVisible = view === 'member-access' && (!memberHeld || view === heldShareholderView);
   return (
     <RegisterPage
       task={view === 'register' ? selectedTask : undefined}
@@ -380,15 +368,13 @@ function OwnRegister({
             <div hidden={!membersVisible}>
               <CompanyMemberAccess
                 key={`members/${scope.company.uuid}`}
-                view={view === 'member-requests' ? 'requests' : 'access'}
                 owner={owner}
                 guard={guard}
                 company={scope.company.uuid}
                 registers={scope.registers}
                 sourceReady={sourceReady}
-                visible={membersVisible}
                 inviteMember={inviteMember}
-                onHeldChange={memberHeldChange}
+                onHeldChange={setMemberHeld}
               />
             </div>
             <div

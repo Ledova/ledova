@@ -8,32 +8,31 @@ import type { CertificateClass } from './CertificateRecords';
 import { CERTIFICATE_STATUSES } from '@ledova/shared';
 import type { CertificateFilterValues } from './useCompanyCertificates';
 
+const UNFILTERED: CertificateFilterValues = { search: '', status: 'all' };
+
 export function CertificateFilters({
   classes,
   selected,
   applied,
   disabled,
-  companyReader,
-  ownRecord,
 }: {
   classes: CertificateClass[];
   selected?: CertificateClass;
-  applied: CertificateFilterValues;
+  applied?: CertificateFilterValues;
   disabled: boolean;
-  companyReader: boolean;
-  ownRecord: boolean;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const current = applied ?? UNFILTERED;
   const requested = new URLSearchParams(location.search).get('class') ?? selected?.uuid ?? '';
-  const version = JSON.stringify([requested, applied.search, applied.status]);
+  const version = JSON.stringify([requested, current.search, current.status]);
   const [seen, setSeen] = useState(version);
-  const [draft, setDraft] = useState({ ...applied, classUuid: requested });
+  const [draft, setDraft] = useState({ ...current, classUuid: requested });
   const toggle = useRef<HTMLButtonElement>(null);
   const returning = useRef(false);
   if (seen !== version) {
     setSeen(version);
-    setDraft({ ...applied, classUuid: requested });
+    setDraft({ ...current, classUuid: requested });
   }
   useEffect(() => {
     if (returning.current) {
@@ -41,6 +40,7 @@ export function CertificateFilters({
       toggle.current?.focus();
     }
   }, [version]);
+  if (!applied && classes.length < 2) return null;
   const update = (values: typeof draft, close: () => void) => {
     if (disabled || !CERTIFICATE_STATUSES.some(([value]) => value === values.status)) return;
     const query = new URLSearchParams(location.search);
@@ -57,15 +57,8 @@ export function CertificateFilters({
     close();
     navigate({ search: query.toString(), hash: location.hash }, { state: location.state });
   };
-  const choices = CERTIFICATE_STATUSES.filter(
-    ([value]) =>
-      value === 'all' ||
-      value === 'reversed' ||
-      value === applied.status ||
-      (value === 'can_prepare' ? companyReader : ownRecord),
-  );
   return (
-    <FilterPopover ref={toggle} resetKey={version} active={!!applied.search || applied.status !== 'all'}>
+    <FilterPopover ref={toggle} resetKey={version} active={!!current.search || current.status !== 'all'}>
       {(close) => (
         <>
           {classes.length > 1 && (
@@ -77,32 +70,38 @@ export function CertificateFilters({
               onChange={(classUuid) => setDraft({ ...draft, classUuid })}
             />
           )}
-          <Field label="Shareholder">
-            <TextInput
-              type="search"
-              maxLength={100}
-              value={draft.search}
-              disabled={disabled}
-              onChange={(event) => setDraft({ ...draft, search: event.target.value })}
-            />
-          </Field>
-          <SelectField
-            label="Certificate status"
-            options={choices.map(([value, label]) => ({ value, label }))}
-            value={draft.status}
-            disabled={disabled}
-            onChange={(status) => {
-              const choice = choices.find(([value]) => value === status);
-              if (choice) setDraft({ ...draft, status: choice[0] });
-            }}
-          />
+          {applied && (
+            <>
+              <Field label="Shareholder">
+                <TextInput
+                  type="search"
+                  maxLength={100}
+                  value={draft.search}
+                  disabled={disabled}
+                  onChange={(event) => setDraft({ ...draft, search: event.target.value })}
+                />
+              </Field>
+              <SelectField
+                label="Certificate status"
+                options={CERTIFICATE_STATUSES.map(([value, label]) => ({ value, label }))}
+                value={draft.status}
+                disabled={disabled}
+                onChange={(status) => {
+                  const choice = CERTIFICATE_STATUSES.find(([value]) => value === status);
+                  if (choice) setDraft({ ...draft, status: choice[0] });
+                }}
+              />
+            </>
+          )}
           <FormActions>
-            <PageAction
-              label="Clear"
-              context="certificate filters"
-              disabled={disabled}
-              onClick={() => update({ classUuid: requested, search: '', status: 'all' }, close)}
-            />
+            {applied && (
+              <PageAction
+                label="Clear"
+                context="certificate filters"
+                disabled={disabled}
+                onClick={() => update({ classUuid: requested, ...UNFILTERED }, close)}
+              />
+            )}
             <PageAction
               label="Apply"
               context="certificate filters"

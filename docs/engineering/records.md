@@ -58,8 +58,8 @@ PostgreSQL enforces the ledger, not Python.
 [database_guards.sql](../../backend/tokens/database_guards.sql) with the family files
 `database_award_guards.sql`, `database_allotment_guards.sql` and `database_member_guards.sql`,
 enables and forces RLS on the member-access, award and allotment tables, and revokes every privilege
-on them from the application role. Shared migrations install `database_output_guards.sql` (member
-certificate fulfilment) and `database_mirror_guards.sql` (mirror imports);
+on them from the application role. Shared migrations install `database_mirror_guards.sql` (mirror
+imports);
 [database_mirror_guards.py](../../backend/tokens/database_mirror_guards.py) re-installs the entry
 guard so it admits `mirror_correction`. Every register table's write term is `false` for the
 application role, so register commands write on the operator connection inside a bounded company
@@ -646,17 +646,19 @@ The unchanged `POST member-invitations/` answers 201 with a one-time `code` (43 
 characters), and a retry 200 without it.
 Invitations and associations are listed to current personal `admin` appointees; `member-records/`
 returns only the caller's own associations, with a `ceasedOn` only within retention, and their entry
-deltas. Certificate fulfilment is under [output routes](#output-routes).
+deltas.
 
-Fresh migrations install the association and the append-only invitation, revocation, certificate
-request and withdrawal records with RLS forced and no application-role grants. Their guards require
-current company administration and one exact recorded member and recipient for an invitation; the
-exact invited recipient, current source and an owned account for acceptance; exact current company
-revocation to end an association; and a genuine uncorrected receiving ISSUE or TRANSFER of the
-associated member for a certificate request. Constraint triggers recheck identity and authority at
-commit. `tokens/0003_remove_member_particulars_requests` drops the members' particulars requests,
-their guards and the change's `member_request` link from existing databases
-([decision](../decisions.md#member-particulars-requests-removed)).
+Fresh migrations install the association and the append-only invitation and revocation records with
+RLS forced and no application-role grants. Their guards require current company administration and
+one exact recorded member and recipient for an invitation; the exact invited recipient, current
+source and an owned account for acceptance; and exact current company revocation to end an
+association. Constraint triggers recheck identity and authority at commit.
+`tokens/0003_remove_member_particulars_requests` drops the members' particulars requests, their
+guards and the change's `member_request` link from existing databases
+([decision](../decisions.md#member-particulars-requests-removed)), and
+`tokens/0005_remove_member_certificate_requests` drops the members' certificate requests,
+withdrawals and fulfilments with their guards, deleting each fulfilment's stored PDF and keeping its
+`certificate` export record ([decision](../decisions.md#member-certificate-requests-removed)).
 
 ### Retained register instructions API
 
@@ -732,25 +734,14 @@ locked company operation binding the exact current register-reading appointment 
 output is built; ownership and staff permission supply no output authority. The inspection source
 digest is the SHA-256 of `<class id>/<register sequence>\n` followed by the base CSV bytes; the
 certificate's, of `<class id>/<entry id>/<register sequence>\n` followed by the PDF bytes. A changed
-source refuses with a conflict.
-
-A member's certificate (`member-certificate-requests/{uuid}/fulfilment-preview/`, `fulfil/`,
-`file/`) is filtered to the requesting member before anyone else's particulars are read, uses the
-member's retained company-recorded particulars, and must be one page of at most 1 MiB. Fulfilment
-retains `MemberCertificateFulfilment`: the request, producer, appointment, instruction,
-`certificate` export record, source snapshot and digest (`tokens_member_certificate_source_digest`),
-file digest and size, and the bytes privately. Its guard requires exact current company authority,
-the member's own receiving effect, the captured source and the audited bytes, and refuses rewrites.
-The file route serves `member-certificate-<uuid>.pdf` only when the bytes match the retained size
-and digest, to a current own association or company reader. Notice figures have no API route; staff
-prepare them in admin. The pack route is in [building the pack](#building-and-recording-the-pack).
+source refuses with a conflict. Notice figures have no API route; staff prepare them in admin. The pack route is in [building the pack](#building-and-recording-the-pack).
 
 ### Export records
 
 Ledova keeps a fingerprint, not the file. Each output is recorded in `RegisterExport` once its bytes
 are built, with the requester's id, the class, the kind, the register sequence, the current- and
 former-member row counts, the time and `produced_through`: `company` for the company's pages
-(inspection copies, certificates, member certificates and core packs) or `admin` for platform admin
+(inspection copies, certificates and core packs) or `admin` for platform admin
 (notice figures and packs produced there), blank on records made before the route was stored; a
 refused or failed output records nothing. Check constraints
 require each kind's fields and refuse another kind's:
@@ -769,9 +760,10 @@ require each kind's fields and refuse another kind's:
 
 A trigger refuses every update. The table is operator-only: the app role has no grant, and every
 route that touches it runs on the operator connection. Each output, from a company route, the
-staff register outputs page or either company pack, and each member certificate fulfilment records
-its row there. The register outputs page and the company pack read the existing rows to list the
-certificates and notice figures still owed. Staff query it in admin. The class's Inspection copies
+staff register outputs page or either company pack, records its row there; the rows that members'
+certificate fulfilments recorded before they were removed stay. The register outputs page and the
+company pack read the existing rows to list the certificates and notice figures still owed. Staff
+query it in admin. The class's Inspection copies
 and the company's Company pack pages list, to current register readers and administrators, only
 the inspection copies and packs whose route is `company`
 (`backend/tokens/services/output_history.py`). Its purge is in

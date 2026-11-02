@@ -16,11 +16,8 @@ from .issuance_execution import IssuanceExecutionStatus, ShareIssuanceExecution
 from .member_access import (
     MemberAssociation,
     MemberAssociationRevocation,
-    MemberCertificateRequest,
-    MemberCertificateWithdrawal,
     MemberInvitation,
 )
-from .member_certificate import MemberCertificateFulfilment
 from .mint_request import MintRequest, MintRequestStatus
 from .nav_update import NAVUpdate, NAVUpdateMode, NAVUpdateStatus
 from .order_action import OrderActionPurpose, OrderActionStatus, OrderActionSubmission
@@ -111,12 +108,9 @@ from .yield_token import YieldToken
 
 __all__ = [
     "ClassRightsRevision",
-    "MemberCertificateFulfilment",
     "MemberInvitation",
     "MemberAssociation",
     "MemberAssociationRevocation",
-    "MemberCertificateRequest",
-    "MemberCertificateWithdrawal",
     "ApprovalSubmissionOutcome",
     "SwapApprovalSubmission",
     "PauseAuthority",

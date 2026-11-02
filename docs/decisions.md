@@ -34,9 +34,10 @@ stay here as history and are marked where they appear.
 | [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                         | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md)                                       |
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                           | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
-| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October                                          |
-| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; #1476; certificate requests and the company's own particulars change stay                                                 |
+| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
+| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; #1476; certificate requests removed 2 November                                                                            |
 | [One-step particulars edit](#one-step-particulars-edit)                                                         | 1 November 2026                                | Current; #1476                                                                                                                     |
+| [Member certificate requests removed](#member-certificate-requests-removed)                                     | 2 November 2026                                | Current; #1476                                                                                                                     |
 | [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                                            |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                                                                                            |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                                                                                            |
@@ -991,7 +992,9 @@ requests. Company review remains separate from member confirmation, and
 certificate fulfilment follows the supported #871 outputs. This selects the
 first linking flow; the implementation index records delivery separately.
 Particulars requests were removed on 31 October 2026
-([decision](#member-particulars-requests-removed)).
+([decision](#member-particulars-requests-removed)), and certificate requests
+and their fulfilment on 2 November 2026
+([decision](#member-certificate-requests-removed)).
 
 On 24 October 2026 the owner replaced web users' manual code sharing and entry with an emailed
 invitation link under [#1165](https://github.com/Ledova/ledova/issues/1165). The company sends it to
@@ -1016,7 +1019,8 @@ particulars change from one, the notifications about decided requests, the app's
 handling for the request, and the backend's request records and API. Members tell the company
 directly. Profile keeps a small read-only view of how the selected company's register records the
 member, their name and residential address, with a short line to contact the company, titled so it
-does not read as a second profile. Certificate requests stay. The company's own particulars change,
+does not read as a second profile. Certificate requests stay; they were
+[removed](#member-certificate-requests-removed) on 2 November 2026. The company's own particulars change,
 prepared, approved and applied with a supporting document, is unchanged by this decision and is to
 be simplified separately. It became [one step](#one-step-particulars-edit) on 1 November 2026.
 
@@ -1041,6 +1045,30 @@ separate approval and application. The owner chose the recommended answer to eac
 Each change is kept as one immutable record of who made it, when, and the particulars it replaced.
 Earlier changes, their supporting documents and decisions are kept; one prepared or approved but
 never applied stays as history and is no longer decided.
+
+### Member certificate requests removed
+
+**Owner decision, 2 November 2026**, given in the session and tracked in
+[#1476](https://github.com/Ledova/ledova/issues/1476). The owner reviewed members' certificate
+requests with the same lens as [particulars requests](#member-particulars-requests-removed) and chose
+the recommended answer each time:
+
+- **"Remove them":** members' certificate requests go from the web, the app and the backend: the
+  member's **Request certificate** and **Withdraw request**, the downloads of fulfilled requests and
+  the app's **Share PDF**, the company's **Member requests** page and its fulfilment flow, and the
+  "Certificate ready" notice. Members keep their own issue and transfer history on Certificates.
+  Companies keep **Prepare certificate** for any uncorrected issue or transfer, and execute and
+  deliver their certificates themselves.
+- **"Delete, keep fingerprints":** the existing request records and the PDFs stored for fulfilled
+  requests are deleted, and each certificate's register fingerprint, its output record, is kept. This
+  restores the [October rule](#the-stored-register) that Ledova keeps a fingerprint, not the file,
+  and the company signs.
+
+The legal basis: under s1071H of the Corporations Act 2001, a company must have certificates ready
+within 2 months after an issue and 1 month after a transfer is lodged, so the issue or transfer
+triggers the duty, not a request. Under s1070D, only a replacement for a lost or destroyed
+certificate starts with the holder applying, and that is between the holder and the company.
+Nothing requires a member to request a certificate through a platform.
 
 ## Minimum tests and fresh migrations
 
@@ -1906,7 +1934,8 @@ agreed the screens through [mockups](https://claude.ai/artifact/CHeXcDVycP9csCT3
   that have ended sit under Past holdings. Percentages are not shown, because members do not
   receive class totals.
 - **Detail on demand:** a company, then one class with its history and a certificate for each
-  change, then the certificate to share or save. Each award has its own page.
+  change, then the certificate to share or save. Each award has its own page. Sharing a certificate
+  went with [members' certificate requests](#member-certificate-requests-removed) on 2 November 2026.
 - **Documents** gathers every company's certificates and notices, filtered by company. **Account**
   holds the profile, the details each company records (one change can go to every company),
   invitations, app lock, notifications and appearance.
@@ -1915,7 +1944,8 @@ agreed the screens through [mockups](https://claude.ai/artifact/CHeXcDVycP9csCT3
   and eligibility), identity verification, Help and the QR scanner, with their code. Mobile signup creates individual accounts. A company account
   that has not finished signup is told the app is for shareholders.
 - **Notifications for share events** (a certificate ready, shares vested or issued, a details
-  change decided) needed new server notifications; S7 (#1344) adds them.
+  change decided) needed new server notifications; S7 (#1344) adds them. The certificate-ready
+  notice was removed on 2 November 2026.
 
 ## Mobile app like the web at phone width
 

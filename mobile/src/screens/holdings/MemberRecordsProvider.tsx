@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Crypto from 'expo-crypto';
 import { RefreshControl, Text } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { useMemberRecords, type OwnMemberRecord } from '@ledova/shared';
@@ -22,7 +21,7 @@ interface MemberRecords {
 const MemberRecordsContext = createContext<MemberRecords | null>(null);
 
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
-  const read = useMemberRecords(Crypto.randomUUID, orderSubmissionSession);
+  const read = useMemberRecords(orderSubmissionSession);
   const busy = read.busy || !!read.retry;
   const companies = useMemo(
     () => [...read.records].sort((left, right) => left.company.name.localeCompare(right.company.name)),
@@ -95,7 +94,6 @@ export function useCompanyRecord(uuid: string) {
 
 export function MemberNotice({ read }: { read: Read }) {
   const styles = useCompanyStyles();
-  const pending = read.retry && read.retry.kind !== 'accept' ? read.record?.company.name : undefined;
   return (
     <>
       {read.error && (
@@ -103,7 +101,6 @@ export function MemberNotice({ read }: { read: Read }) {
           {read.error}
         </Text>
       )}
-      {pending && <Text style={styles.muted}>Your request to {pending} is waiting to be retried.</Text>}
       {read.retry && (
         <Actions>
           <Action label="Retry original member action" disabled={read.busy} onPress={() => void read.recover()} />

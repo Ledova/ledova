@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import BadHeaderError
 from django.core.validators import URLValidator
 from django.db import IntegrityError, connections
-from django.db.models import BooleanField, F, Func, Q, Value
+from django.db.models import BooleanField, F, Func, Value
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -22,7 +22,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 
 from authentication.email import normalize_email
 from companies.constants import TEAM_INVITATION_DEFAULT_DAYS, TEAM_INVITATION_MAX_DAYS
-from companies.models import REGISTER_READERS, CompanyAppointment, CompanyCapability
+from companies.models import CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation
 from companies.services.authority_requests import _require_requester
 from integrations.sendgrid_email import sendgrid_client
@@ -32,9 +32,6 @@ from tokens.exceptions import InvitationEmailUnavailable, RegisterChangeConflict
 from tokens.models import (
     MemberAssociation,
     MemberAssociationRevocation,
-    MemberCertificateFulfilment,
-    MemberCertificateRequest,
-    MemberCertificateWithdrawal,
     MemberInvitation,
     RegisterAward,
     RegisterEntry,
@@ -70,20 +67,17 @@ def _identity(company, member):
     return identity
 
 
-def _appointment_companies(actor, capability=None):
+def company_administered(queryset, actor):
     if not actor.is_authenticated:
-        return CompanyAppointment.objects.none().values("company_id")
-    return (
+        return queryset.none()
+    administered = (
         CompanyAppointment.objects.current_of(
             actor, at=timezone.now(), identity_required=Operator.get().issuer_kyc_required
         )
-        .holding_any([capability] if capability else REGISTER_READERS)
+        .holding_any([CompanyCapability.ADMIN])
         .values("company_id")
     )
-
-
-def company_readable(queryset, actor, *, admin=False):
-    return queryset.filter(company_id__in=_appointment_companies(actor, CompanyCapability.ADMIN if admin else None))
+    return queryset.filter(company_id__in=administered)
 
 
 def own_associations(queryset, actor):
@@ -96,24 +90,8 @@ def own_associations(queryset, actor):
     ).filter(access_current=True)
 
 
-def own_company_association(*, actor, association_id, company):
-    return get_object_or_404(
-        own_associations(MemberAssociation.objects.all(), actor), pk=association_id, company_id=company
-    )
-
-
-def request_readable(queryset, actor):
-    if not actor.is_authenticated or not actor.is_active or not actor.is_email_verified:
-        return queryset.none()
-    return queryset.filter(
-        Q(association__user=actor, association__user_account__user_profile__user=actor)
-        | Q(company_id__in=_appointment_companies(actor))
-    )
-
-
-def _own(association, actor, *, lock=False):
-    queryset = MemberAssociation.objects.select_for_update() if lock else MemberAssociation.objects.all()
-    result = own_associations(queryset, actor).filter(pk=association).first()
+def _own(association, actor):
+    result = own_associations(MemberAssociation.objects.all(), actor).filter(pk=association).first()
     if result is None:
         raise NotFound(NOT_FOUND)
     return result
@@ -314,7 +292,7 @@ def accept_invitation(*, actor, code, user_account, confirmation):
 
 
 def revoke_association(*, actor, association_id, appointment, idempotency_key, reason):
-    subject = get_object_or_404(company_readable(MemberAssociation.objects.all(), actor, admin=True), pk=association_id)
+    subject = get_object_or_404(company_administered(MemberAssociation.objects.all(), actor), pk=association_id)
     with register_command(actor, subject.company_id, "member_association_revoke") as (
         company,
         current,
@@ -344,58 +322,6 @@ def revoke_association(*, actor, association_id, appointment, idempotency_key, r
         except IntegrityError:
             raise RegisterChangeConflict() from None
         return subject
-
-
-def request_certificate(*, actor, operation_id, association, entry):
-    subject = _own(association, actor)
-    with register_command(actor, subject.company_id, "member_certificate_request") as (company, current, _, _):
-        _require_requester(current)
-        subject = _own(subject.pk, current, lock=True)
-        effect = get_object_or_404(
-            RegisterEntry.objects.select_related("register"), pk=entry, register__company=company
-        )
-        values = {
-            "association_id": subject.pk,
-            "company_id": company.pk,
-            "member": subject.member,
-            "requested_by_id": current.pk,
-            "token_id": effect.register.token_id,
-            "entry_id": effect.pk,
-        }
-        existing = MemberCertificateRequest.objects.filter(pk=operation_id).first()
-        if existing:
-            _same(existing, values)
-            return existing, False
-        if not _query("tokens_member_certificate_entry", subject.pk, effect.pk):
-            raise ValidationError("Select a genuine uncorrected issue or receiving transfer for this member.")
-        try:
-            return MemberCertificateRequest.objects.create(uuid=operation_id, **values), True
-        except IntegrityError:
-            raise RegisterChangeConflict() from None
-
-
-def withdraw_certificate(*, actor, request_id, idempotency_key):
-    request = get_object_or_404(MemberCertificateRequest, pk=request_id, association__user=actor)
-    with register_command(actor, request.company_id, "member_certificate_withdraw") as (_, current, _, _):
-        _require_requester(current)
-        request = MemberCertificateRequest.objects.select_for_update().get(pk=request.pk)
-        _own(request.association_id, current, lock=True)
-        values = {"request_id": request.pk, "withdrawn_by_id": current.pk}
-        existing = MemberCertificateWithdrawal.objects.filter(
-            withdrawn_by=current, idempotency_key=idempotency_key
-        ).first()
-        if existing:
-            _same(existing, values)
-            return request
-        if MemberCertificateFulfilment.objects.filter(request=request).exists():
-            raise ValidationError("This request already has a retained certificate and cannot be withdrawn.")
-        if MemberCertificateWithdrawal.objects.filter(request=request).exists():
-            raise RegisterChangeConflict()
-        try:
-            MemberCertificateWithdrawal.objects.create(idempotency_key=idempotency_key, **values)
-        except IntegrityError:
-            raise RegisterChangeConflict() from None
-        return request
 
 
 def own_record(association, *, actor):

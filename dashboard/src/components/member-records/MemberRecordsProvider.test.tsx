@@ -54,10 +54,10 @@ async function ownShares(quantity: string) {
   await waitFor(() => expect(screen.getByText('Your issued shares').nextElementSibling?.textContent).toBe(quantity));
 }
 
-async function certificateRequest() {
+async function certificateRecords() {
   const records = await screen.findByRole('list', { name: 'Certificate records' });
   await within(records).findByText(MEMBER_RECORD.name);
-  return screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 1)' });
+  return records;
 }
 
 async function openCompanySwitch() {
@@ -145,7 +145,6 @@ it('updates ownership and member workflows after invalidation without idle refre
     }
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid)) return { data: { entries: [MEMBER_ENTRY] } };
     if (url === URLS.MEMBER_ENTRIES(otherRecord.uuid)) return { data: { entries: [{ ...MEMBER_ENTRY, delta: '25' }] } };
-    if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return { data: { results: [], next: null, count: 0 } };
     throw new Error(`Unexpected request: ${url}`);
   });
   const view = render(
@@ -170,7 +169,7 @@ it('updates ownership and member workflows after invalidation without idle refre
       </ApiClientProvider>
     </QueryClientProvider>,
   );
-  await screen.findByText('No eligible certificate records in the loaded entries.');
+  await screen.findByText('No register entries yet.');
   const activeReads = api.get.mock.calls.length;
   await act(async () => {
     fireEvent(window, new Event('focus'));
@@ -183,7 +182,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   await waitFor(() => expect(client.isFetching()).toBe(0));
   record = MEMBER_RECORD;
   await refreshRead();
-  await certificateRequest();
+  await certificateRecords();
   expect(screen.queryByRole('button', { name: 'Ordinary · ORD' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await ownShares('10');
@@ -206,7 +205,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   expect(screen.queryByRole('button', { name: 'Share history' })).toBeNull();
   expect(screen.queryByRole('button', { name: `Open ${MEMBER_RECORD.company.name} member record` })).toBeNull();
   expect(screen.queryByText('Recent changes · Ordinary')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
+  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   record = {
     ...MEMBER_RECORD,
     classes: [{ ...MEMBER_RECORD.classes[0], shares: '15' }],
@@ -321,12 +320,12 @@ it('updates ownership and member workflows after invalidation without idle refre
   await refreshRead();
   expect(await screen.findByText(MEMBER_RECORD.residentialAddress)).toBeTruthy();
   expect(api.get.mock.calls.some(([url]) => url === URLS.HOLDERS(MEMBER_RECORD.classes[0].uuid))).toBe(false);
-  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
+  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   expect(await screen.findByRole('heading', { name: 'Certificates', level: 1 })).toBeTruthy();
   expect(screen.queryByText('Your issued shares')).toBeNull();
   expect(screen.queryByRole('img')).toBeNull();
-  expect(await certificateRequest()).toBeTruthy();
+  expect(await certificateRecords()).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await ownShares('10');
   expect(screen.getByRole('list', { name: 'Share classes' })).toBeTruthy();
@@ -342,7 +341,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   await screen.findByText('Your ownership records could not be loaded.');
   await waitFor(() => expect(screen.queryByText('Your issued shares')).toBeNull());
   expect(screen.queryByRole('img')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
+  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   expect(screen.getByText('Your ownership records could not be loaded.')).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Get access to your shares' })).toBeNull();
   expect(screen.queryByText('No issued shares yet.')).toBeNull();
@@ -364,9 +363,9 @@ it('updates ownership and member workflows after invalidation without idle refre
   expect(await screen.findByRole('heading', { name: `How ${MEMBER_RECORD.company.name} records you` })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Test Documents navigation' }));
   await chooseMemberCompany(otherRecord.company.name);
-  await screen.findByText('No eligible certificate records in the loaded entries.');
+  await screen.findByText('No register entries yet.');
   await chooseMemberCompany(MEMBER_RECORD.company.name);
-  await certificateRequest();
+  await certificateRecords();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   otherRecord = otherRecordWithShares;
   await refreshRead();
@@ -375,7 +374,7 @@ it('updates ownership and member workflows after invalidation without idle refre
   await screen.findByText('Your ownership records could not be loaded.');
   expect(screen.queryByRole('img')).toBeNull();
   expect(screen.queryByText('Your issued shares')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Request certificate (Ordinary, entry 1)' })).toBeNull();
+  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   expect((await openCompanySwitch()).disabled).toBe(false);
   await choose('Your companies', otherRecord.company.name);
   await ownShares('25');

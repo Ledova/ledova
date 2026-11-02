@@ -359,8 +359,8 @@ key. Ledger's label opens its overview; a separate caret
 expands Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`),
 marking the active child and opening the group on Ledger routes. The web replaces an incoming
 `#history` with `#corrections` without dropping company/class context; shared task names retain
-History. Shareholders' label opens its people list, with the same caret pattern for Employee scheme,
-Member access and Member requests.
+History. Shareholders' label opens its people list, with the same caret pattern for Employee scheme
+and Member access.
 Documents opens one Certificates page (`/documents/certificates`), with Published (Published to
 your members, `/company/publications`, for the company's own account), Inspection copies and Company
 pack where company access permits them, and Notices (`/publications`) for a member of the selected
@@ -483,9 +483,8 @@ reconnection. Web query defaults enforce that page-data policy. Another person's
 entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
 content stable until a relevant read is needed, without mounting another workflow's reads behind
 an overview. Certificates re-reads the member list on entry; Profile's company-recorded card reads only the
-selected record and its requests, using the member list the company directory already holds, so opening Profile
-never empties the company context. Both read only while open, retaining original-request recovery across
-navigation.
+selected record, using the member list the company directory already holds, so opening Profile
+never empties the company context. Both read only while open.
 
 `dashboard/src/hooks/useEntryReads.ts` and
 `dashboard/src/pages/company/ledger/useIssueEntryRead.ts` retain ordered entry reads:
@@ -526,8 +525,7 @@ Every list follows these rules:
 - Web list filters use the UI-only `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`); pages retain their data and field state. Certificates
   keeps Apply/Clear drafts until a session recheck replaces its list, while Shareholders' class and company eligibility's outcome
-  retain immediate selection. Member requests uses debounced person
-  search inside its panel. Shareholders keeps Search people inside
+  retain immediate selection. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts.
   Every filter icon sits in the page heading's top-right actions, without a separate row or
   card-specific placement, apart from Dashboard's class details card
@@ -745,21 +743,21 @@ display text and Instrument Sans for everything else (`@fontsource-variable`).
 Each page links to its business section. Shared destinations use their `DESTINATIONS` audience;
 web-only routes declare the same guard beside their address ([guards](#routes-audiences-and-guards)).
 
-| Page and business section                                                                                    | Routes                                                                                                                                                                       | Audience  |
-| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| [Dashboard](../business/README.md#the-app-at-a-glance)                                                       | `/home`, `/company/dashboard` and `/member-records` (web aliases); company/class query context                                                                               | everyone  |
-| [Certificates](../business/member-records.md#certificates)                                                   | `/documents/certificates`; legacy Dashboard `#documents` and `/company/ledger#certificates` or `#documents` redirect with company/class context                              | everyone  |
-| [Ledger, Shareholders, Employee share scheme and company outputs](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#inspection-copies` (legacy `#ledger-exports`), `#company-pack`; preparation routes | everyone  |
-| [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                                                   | everyone  |
-| [An employee award's page](../business/issuing-shares.md#employee-awards-and-vesting)                        | `/company/ledger/:uuid/awards/:award?company=`                                                                                                                               | everyone  |
-| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid?company=`                                                                                                                                             | everyone  |
-| [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`, `/company/listing`                                             | everyone  |
-| [Company documents](../business/companies.md#company-information-and-documents)                              | `/documents/company`; legacy `/company#documents` redirects with company context                                                                                             | everyone  |
-| [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                                       | everyone  |
-| [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                                                      | company   |
-| [Notices](../business/publications.md#the-notices-page)                                                      | `/publications`                                                                                                                                                              | everyone  |
-| [Verification, Your company eligibility](../business/participants.md#the-verification-page)                  | `/investor-eligibility`, `/eligibility-requests`                                                                                                                             | investing |
-| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#account`, `/settings#data`; aliases `/user-profile`, `/company`, `/settings#company-recorded-details`                              | everyone  |
+| Page and business section                                                                                    | Routes                                                                                                                                                   | Audience  |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| [Dashboard](../business/README.md#the-app-at-a-glance)                                                       | `/home`, `/company/dashboard` and `/member-records` (web aliases); company/class query context                                                           | everyone  |
+| [Certificates](../business/member-records.md#certificates)                                                   | `/documents/certificates`; legacy Dashboard `#documents` and `/company/ledger#certificates` or `#documents` redirect with company/class context          | everyone  |
+| [Ledger, Shareholders, Employee share scheme and company outputs](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#awards`, `#inspection-copies` (legacy `#ledger-exports`), `#company-pack`; preparation routes | everyone  |
+| [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                               | everyone  |
+| [An employee award's page](../business/issuing-shares.md#employee-awards-and-vesting)                        | `/company/ledger/:uuid/awards/:award?company=`                                                                                                           | everyone  |
+| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid?company=`                                                                                                                         | everyone  |
+| [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`, `/company/listing`                         | everyone  |
+| [Company documents](../business/companies.md#company-information-and-documents)                              | `/documents/company`; legacy `/company#documents` redirects with company context                                                                         | everyone  |
+| [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                   | everyone  |
+| [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                                  | company   |
+| [Notices](../business/publications.md#the-notices-page)                                                      | `/publications`                                                                                                                                          | everyone  |
+| [Verification, Your company eligibility](../business/participants.md#the-verification-page)                  | `/investor-eligibility`, `/eligibility-requests`                                                                                                         | investing |
+| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#account`, `/settings#data`; aliases `/user-profile`, `/company`, `/settings#company-recorded-details`          | everyone  |
 
 ### Page mechanics
 
@@ -787,29 +785,28 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Getting started lists only incomplete company-administrator tasks and disappears once they are
   complete. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
   quantities above their full breakdown and terms in **Show award details**.
-- The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) combines company-authorised
-  certificate preparation and association-bound member tracking in one class-selected list. Company
-  reads mount only with confirmed register access; member-only access never reads the full company register.
-  `CertificateRecords.tsx` merges matching company and own entries without duplicate rows. Aligned
-  rows show the shareholder or change, shares, entry, date and status, with permitted actions at the
-  row's end and earlier requests beneath; rows don't expand. Each record keeps its class visible; the page heading's
-  top-right icon button with the accessible name and tooltip Filters opens `FilterPopover` for draft class,
-  shareholder search and certificate status. The heading has no repeated filter summary or match
-  count; dismissing the panel preserves the unapplied draft.
-  Apply writes `class`, `q` and `certificate_status` to the URL; Clear preserves the class and removes search and
-  status. Company entries are filtered on the server before paging; own-member history is read
-  fully and filtered locally. Other certificate requests remain outside the entry filters. Request
-  status always comes from the person's own readable requests, separately from company certificate
-  eligibility. Preparation opens a focused main-page form. The existing
-  preparation, request, withdrawal and recipient-download controllers retain their separate guards;
-  preparing a company PDF does not fulfil a member request.
+- The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) shows a register
+  reader the company's certificate preparation and a member who is not one their own entries, in one
+  class-selected list. Company reads mount only with confirmed register access; member-only access
+  never reads the full company register, and a register reader's view uses no member record.
+  `CertificateRecords.tsx` renders aligned rows with the shareholder or change, shares, entry and
+  date, and for a register reader the certificate's status (**Can prepare** or **None due, the
+  entry was reversed**, labelled **Certificate:** below `md`) and **Prepare certificate** at the
+  row's end; rows don't expand. Each record keeps its class visible;
+  the page heading's top-right icon button with the accessible name and tooltip Filters opens
+  `FilterPopover`. A register reader's panel holds draft class, shareholder search and certificate
+  status; a member's holds only the class, and appears only when they have more than one. The
+  heading has no repeated filter summary or match count; dismissing the panel preserves the
+  unapplied draft. Apply writes `class`, `q` and `certificate_status` to the URL; Clear preserves the
+  class and removes search and status. Company entries are filtered on the server before paging;
+  own-member history is read fully. Preparation opens a focused main-page form.
 - Certificates and Profile's company-recorded card share an owner-bound member-records controller.
   Profile shows the selected company's recorded name and residential address read-only, with no
   action. Choosing a class on Certificates reads that class's own entries. Active web reads follow
-  [automatic data freshness](#automatic-data-freshness); they never replay a member action.
+  [automatic data freshness](#automatic-data-freshness); the web takes no member action through it.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
-  Member requests, Employee share scheme, Inspection copies and Company pack views by hash.
+  Employee share scheme, Inspection copies and Company pack views by hash.
   Legacy certificate hashes redirect to the dedicated Certificates page.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
@@ -818,11 +815,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   ownership overview or header task switches. It keeps every class's controllers for register
   decisions mounted, merely hidden, so changing view, task or class (the Share class selector)
   keeps an unfinished request with its class, payload and retry key. People and member controllers
-  also stay mounted across the three Shareholders views. Member requests keeps the full permitted
-  certificate request array for selected requests and
-  recovery. Member requests stores `q` in the URL; `searchRows` matches every
-  name word, ignoring case and accents, before unmatched rows are hidden. Held work disables its
-  controls and bypasses filtering for the active workflow, without changing any request's status.
+  also stay mounted across the Shareholders views. Held work disables its controls.
   Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
   their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
@@ -844,8 +837,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Company pack stays at company scope. `documentTask` isolates one focused output form in the existing
   frame. Its keyed forms retire previews when their context or source readiness changes; draft
   retention depends on each form's lifetime. Current appointment and exact-source validation still
-  apply. Supporting attachments stay with their person, class or company Settings; member-request
-  fulfilment stays under Shareholders. Employee share scheme uses the
+  apply. Supporting attachments stay with their person, class or company Settings. Employee share
+  scheme uses the
   shared class-card spacing and shows only the selected class, with one preparation action below its records.
   Share class selection lives in the page heading's Filters popover and locks while award preparation or its recovery is open; all class controllers stay
   mounted. Preparation replaces that class's award list while preserving its controllers. Each award row

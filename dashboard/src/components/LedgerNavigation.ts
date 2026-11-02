@@ -5,7 +5,7 @@ export interface LedgerNavigationState {
   company?: string;
   token?: string;
   task?: LedgerTask;
-  shareholderView?: 'shareholders' | 'awards' | 'member-access' | 'member-requests';
+  shareholderView?: 'shareholders' | 'awards' | 'member-access';
   blocked: boolean;
   held?: boolean;
 }

@@ -457,18 +457,12 @@ OPERATOR_ONLY = {
     "appointment and appointee. The bounded acceptance command writes them on the operator connection, and own "
     "appointment serialization reads only that appointee's exact receipt on that connection. The app role has "
     "no grants and forced row-level security admits no direct rows.",
-    "tokens_membercertificatefulfilment": "Immutable private recipient-only certificates served through current "
-    "own association or personal company register appointment, with original producing authority and export.",
     "tokens_memberinvitation": "Immutable intended-recipient company member invitations issued by current "
     "ADMIN appointments.",
     "tokens_memberassociation": "Exact signed-in user/account member associations served only through "
     "bounded own or company projections.",
     "tokens_memberassociationrevocation": "Append-only exact company administration ending member access "
     "without deleting attribution.",
-    "tokens_membercertificaterequest": "Own genuine receiving-effect certificate requests with truthful "
-    "recorded status and current company queues.",
-    "tokens_membercertificatewithdrawal": "Append-only own requester withdrawals without invented "
-    "certificate fulfilment.",
     "tokens_registeragreement": "Retained private external agreements served through current exact-company "
     "register appointments and the staff company pack, CompanyPackAdmin.produce.",
     "tokens_registercontribution": "Immutable company-recorded AUD receipts served through current "
@@ -593,7 +587,6 @@ OPERATOR_ONLY = {
     "it. Every writer is on the operator connection: tokens/services/register.py "
     "prepare_inspection_copy and prepare_certificate for ShareTokenViewSet's register_inspection_copy and "
     "register_certificate actions; prepare_notice_figures for the register outputs admin; "
-    "tokens/services/member_certificates.py fulfil_member_certificate for MemberCertificateRequestViewSet.fulfil; "
     "and tokens/services/company_pack.py _record for the issuer's "
     "CompanyViewSet.pack through tokens/services/company_pack_outputs.py prepare_company_pack and for "
     "CompanyPackAdmin.produce through produce_company_pack. The readers are on the same connection: "
@@ -602,10 +595,8 @@ OPERATOR_ONLY = {
     "tokens/services/output_history.py inspection_copy_history and company_pack_history for "
     "ShareTokenViewSet.register_inspection_copies and CompanyViewSet.packs, which list to a company's current "
     "register readers or administrators only the inspection copies and packs whose produced_through records the "
-    "company's own pages, never one produced in platform admin; "
-    "and the trigger function tokens_guard_member_certificate_fulfilment, which checks the export a member "
-    "certificate is bound to. Only tokens/services/former_holders.py purge_register_exports deletes them, on the "
-    "retention clock, and it keeps every export bound to a member certificate fulfilment.",
+    "company's own pages, never one produced in platform admin. Only tokens/services/former_holders.py "
+    "purge_register_exports deletes them, on the retention clock.",
     "shareholders_publicationread": "Append-only records of who opened a publication a company made to its "
     "members, or the remittance evidence of one of its payment records, written on the operator connection by "
     "the delivery service for the publication file route and the publications admin, and read only by permitted "

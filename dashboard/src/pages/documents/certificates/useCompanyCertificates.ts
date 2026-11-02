@@ -12,7 +12,6 @@ import {
   type OwnCompanyAppointment,
   CERTIFICATE_STATUSES,
   type CertificateStatus,
-  type MemberCertificateRequest,
 } from '@ledova/shared';
 import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { registerClassesKey, registerHoldersKey, useRegisterClasses } from '@hooks/useRegisterClasses';
@@ -28,10 +27,7 @@ export function useCompanyCertificates(
   currentOwner: () => OrderSubmissionOwner | null,
   company: string,
   requested: string | null,
-  preferred: string,
   filters: CertificateFilterValues,
-  association?: string,
-  requests: readonly MemberCertificateRequest[] = [],
 ) {
   const client = useQueryClient();
   const accountGuard = useMemo(
@@ -46,12 +42,8 @@ export function useCompanyCertificates(
   const classes = useRegisterClasses(owner, accountGuard);
   const options = classes.data?.filter((item) => item.companyUuid === company) ?? [];
   const token = useMemo(
-    () =>
-      requested ??
-      (classes.data?.some((item) => item.companyUuid === company && item.uuid === preferred)
-        ? preferred
-        : (classes.data?.find((item) => item.companyUuid === company)?.uuid ?? '')),
-    [classes.data, company, preferred, requested],
+    () => requested ?? classes.data?.find((item) => item.companyUuid === company)?.uuid ?? '',
+    [classes.data, company, requested],
   );
   const guard = useMemo(
     () => () => {
@@ -88,25 +80,7 @@ export function useCompanyCertificates(
     },
     ...READ_TIMING,
   });
-  const requestVersion =
-    filters.status === 'all'
-      ? ''
-      : JSON.stringify(
-          requests
-            .filter((item) => item.token === token)
-            .map((item) => [item.uuid, item.status, item.createdAt])
-            .sort((left, right) => left[0]!.localeCompare(right[0]!)),
-        );
-  const queryKey = [
-    ...registerKey(owner),
-    'entries',
-    token,
-    'certificates',
-    filters.search,
-    filters.status,
-    association ?? '',
-    requestVersion,
-  ];
+  const queryKey = [...registerKey(owner), 'entries', token, 'certificates', filters.search, filters.status];
   const history = useInfiniteQuery({
     queryKey,
     enabled:
@@ -123,7 +97,6 @@ export function useCompanyCertificates(
           page: pageParam,
           search: filters.search || undefined,
           certificate_status: filters.status,
-          ...(association ? { association } : {}),
         },
         { ledovaSubmissionGuard: guard },
       );

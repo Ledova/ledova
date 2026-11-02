@@ -189,9 +189,6 @@ function OwnShareholder({
       : recorded?.name || former[0]?.row.name || REGISTER_PARTICULARS_COPY.UNNAMED_MEMBER;
     const current = access.access?.associations.find((row) => row.member === member && row.current);
     const invited = access.access?.invitations.find((row) => row.member === member && row.status === 'pending');
-    const waiting = (access.requests?.certificates ?? []).filter(
-      (row) => row.member === member && row.status === 'requested',
-    );
     const issueClass = [...holdings.map(({ register }) => register), ...registers].find(
       (register) => register.initialized && register.token.status === 'draft',
     )?.token.uuid;
@@ -356,28 +353,14 @@ function OwnShareholder({
               />
             </Section>
           )}
-          {waiting.length > 0 && (
-            <Section title="Requests from them">
-              {waiting.map((row) => (
-                <p key={row.uuid} className="text-sm text-text-primary">
-                  They asked the company for a certificate.
-                </p>
-              ))}
-              <PageLink
-                to={`${DESTINATIONS.companyRegister.path}?company=${company}#member-requests`}
-                state={{ registerCompany: company }}
-                label="Open member requests"
-              />
-            </Section>
-          )}
           {access.access && (
             <Section title="Access to their own records">
               <p className="text-sm text-text-primary">
                 {current
-                  ? 'They can see their own holdings, history and certificates.'
+                  ? 'They can see their own holdings and history.'
                   : invited
                     ? `Invited, waiting for them to accept until ${formatDateTime(invited.acceptanceDeadline)}.`
-                    : 'No access yet. An invitation lets them see their own holdings, history and certificates.'}
+                    : 'No access yet. An invitation lets them see their own holdings and history.'}
               </p>
               {!current && !invited && (
                 <PageLink
