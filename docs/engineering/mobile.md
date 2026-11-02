@@ -101,8 +101,7 @@ company, the recorded shareholder, the invited email and the deadline, and accep
 member-records state, reporting acceptance only once the server does. Documents, and a class's
 **Certificates**, open the selected company's Certificates page
 (`mobile/src/screens/documents/CertificatesScreen.tsx`), the web's: the member's own entries in one
-share class, newest first, beneath the web's line that the company prepares, signs and delivers
-their certificates. For a member with more than one class, Filters opens the web's panel under its
+share class, newest first. For a member with more than one class, Filters opens the web's panel under its
 button (`FilterPopover`) with Share class and Apply. Each record shows the shareholder and change,
 the entry and its date (and ledger date), with no action. A class the member is not recorded in says
 so, and a failed read offers Try again. Notices

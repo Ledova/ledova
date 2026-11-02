@@ -525,11 +525,6 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   const certificatesCard = (await screen.findByRole('heading', { name: 'Certificate records' })).closest('section')!;
   expect(await within(certificatesCard).findByText('+10 ORD shares')).toBeTruthy();
-  expect(
-    within(certificatesCard).getByText(
-      'The company prepares, signs and delivers your certificates. Need one? Ask the company.',
-    ),
-  ).toBeTruthy();
   const certificateRow = within(certificatesCard).getByText(MEMBER_RECORD.name).closest('li')!;
   expect(within(certificateRow).getByText('Not recorded')).toBeTruthy();
   expect(within(certificatesCard).queryByRole('button')).toBeNull();

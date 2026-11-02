@@ -107,9 +107,6 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
       ) : (
         <RecordGate read={read} record={record} ready={!!selected}>
           <Section title="Certificate records">
-            <Text style={look.muted}>
-              The company prepares, signs and delivers your certificates. Need one? Ask the company.
-            </Text>
             {unknownClass ? (
               <Text style={look.muted}>Your account has no member record for this share class.</Text>
             ) : !listed ? (

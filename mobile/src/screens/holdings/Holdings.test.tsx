@@ -318,9 +318,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ownRecord = MEMBER_RECORD;
   await view.rerender(certificatesPage);
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
-  expect(
-    screen.getByText('The company prepares, signs and delivers your certificates. Need one? Ask the company.'),
-  ).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Filters|Request certificate|Withdraw request|Share PDF/ })).toBeNull();
   await view.rerender(
     <CertificatesScreen

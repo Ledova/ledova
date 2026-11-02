@@ -133,9 +133,6 @@ function PersonalCertificates({ company }: { company: string }) {
     return <Loading>Loading your certificate records…</Loading>;
   return (
     <CertificateWorkspace classes={classes} selected={selected} disabled={held} failure={read.error}>
-      <p className="text-sm text-text-muted">
-        The company prepares, signs and delivers your certificates. Need one? Ask the company.
-      </p>
       {requested && !selected ? (
         <p className="text-sm text-text-muted">Your account has no member record for this share class.</p>
       ) : selected && (token !== selected.uuid || !read.entriesReady) ? (

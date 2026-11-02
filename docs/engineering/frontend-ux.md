@@ -275,9 +275,7 @@ responsive field grid; their records group document and decision actions in one 
 refresh controls.
 
 Certificates uses one list for the selected company and class. Register readers see the company's
-issue and transfer entries; a member who is not one sees only their own history, beneath one line
-saying that the company prepares, signs and delivers their certificates and to ask the company if
-they need one. Each aligned row shows the shareholder or change, shares, kind, class and entry
+issue and transfer entries; a member who is not one sees only their own history. Each aligned row shows the shareholder or change, shares, kind, class and entry
 number, and the date (with the ledger date beneath when it differs). A register reader's row adds
 the certificate's status, **Can prepare** or **None due, the entry was reversed**, labelled
 **Certificate:** at phone width, and **Prepare certificate** at the row's end. A member's empty

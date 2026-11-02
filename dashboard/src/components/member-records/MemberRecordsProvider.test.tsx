@@ -183,9 +183,6 @@ it('updates ownership and member workflows after invalidation without idle refre
   record = MEMBER_RECORD;
   await refreshRead();
   await certificateRecords();
-  expect(
-    screen.getByText('The company prepares, signs and delivers your certificates. Need one? Ask the company.'),
-  ).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Ordinary · ORD' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Test Dashboard navigation' }));
   await ownShares('10');
