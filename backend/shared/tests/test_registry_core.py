@@ -23,6 +23,7 @@ from companies.models import (
 )
 from companies.services import transition_company
 from companies.services.authority import (
+    DECLARATION_TEXT,
     DECLARATION_VERSION,
     SIGNUP_DECLARATION_TEXT,
     SIGNUP_DECLARATION_VERSION,
@@ -37,7 +38,6 @@ from shared.db import atomic, use_migrate, use_operator
 from shared.tests.core_fixtures import (
     PASSWORD,
     CoreFixtures,
-    matching_observation,
     pdf_bytes,
     person,
 )
@@ -282,11 +282,9 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         missing = self.client.get(f"/api/v1/company-authority/requests/{response.json()['uuid']}/file/")
         self.assertEqual(missing.status_code, 404, missing.content)
         declaration = {"declaration_version": SIGNUP_DECLARATION_VERSION, "accept_declaration": True}
-        with patch("companies.services.registry.lookup_company") as lookup:
-            admitted = self.client.post(
-                f"/api/v1/company-authority/requests/{response.json()['uuid']}/admit/", declaration, format="json"
-            )
-            lookup.assert_not_called()
+        admitted = self.client.post(
+            f"/api/v1/company-authority/requests/{response.json()['uuid']}/admit/", declaration, format="json"
+        )
         self.assertEqual(admitted.status_code, 200, admitted.content)
         appointment = admitted.json()["appointment"]["uuid"]
         self.assertEqual(admitted.json()["appointment"]["declarationText"], SIGNUP_DECLARATION_TEXT)
@@ -297,19 +295,21 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(accepted_terms.status_code, 200, accepted_terms.content)
         self.assertEqual(accepted_terms.json()["signupTerms"]["declarationText"], SIGNUP_DECLARATION_TEXT)
         self.assertEqual(CompanySignupTermsAcceptance.objects.count(), 0)
-        with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
-            activated = self.client.post(
-                f"/api/v1/companies/{company.pk}/activate/",
-                {
-                    "declaration_version": DECLARATION_VERSION,
-                    "accept_declaration": True,
-                    "appointment": appointment,
-                    "idempotency_key": str(uuid4()),
-                    "lifecycle_revision": company.lifecycle_revision,
-                },
-                format="json",
-            )
+        activation = {
+            "declaration_version": DECLARATION_VERSION,
+            "accept_declaration": True,
+            "appointment": appointment,
+            "idempotency_key": str(uuid4()),
+            "lifecycle_revision": company.lifecycle_revision,
+        }
+        activated = self.client.post(f"/api/v1/companies/{company.pk}/activate/", activation, format="json")
+        retried = self.client.post(f"/api/v1/companies/{company.pk}/activate/", activation, format="json")
         self.assertEqual(activated.status_code, 200, activated.content)
+        self.assertEqual(retried.json()["receipt"], activated.json()["receipt"])
+        self.assertEqual(
+            (activated.json()["receipt"]["appointment"], activated.json()["receipt"]["declarationText"]),
+            (appointment, DECLARATION_TEXT),
+        )
         company.refresh_from_db()
         self.assertEqual(company.status, "active")
         self.assertEqual(CompanyAppointment.objects.get(pk=appointment).appointee_id, user.pk)

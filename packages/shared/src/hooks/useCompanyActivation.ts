@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { awaitsActivation } from '../constants';
 import { activateCompany } from '../services/companies';
-import type { Company, CompanyActivate, CompanyActivationAttempt } from '../types';
+import type { Company, CompanyActivate } from '../types';
 import { createUserFriendlyError, failureStatus, failureSentence } from '../utils/errors';
 import { isUuid } from '../utils/validation';
 import { ownCompaniesKey, type useCompanySelection } from './useCompanySelection';
@@ -134,33 +134,27 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
     setBusy(true);
     setError(null);
     try {
-      const before = guard(target);
+      guard(target);
       retry.current = { signature: target.signature, key: target.request.idempotencyKey };
       const result = await activateCompany(apiClient, target.company, target.request, {
         ...read.requestConfig(target.company, 'personal'),
         ledovaSubmissionGuard: () => guard(target),
       });
       guard(target);
-      const { company, attempt } = result.data;
+      const { company, receipt } = result.data;
       if (
         result.status !== 200 ||
         !company ||
-        !attempt ||
+        !receipt ||
         company.uuid !== target.company ||
-        !isUuid(attempt.uuid) ||
-        typeof attempt.reason !== 'string' ||
-        !Number.isFinite(Date.parse(attempt.startedAt)) ||
-        (attempt.completedAt !== null && !Number.isFinite(Date.parse(attempt.completedAt))) ||
-        (attempt.appliedAt !== null && !Number.isFinite(Date.parse(attempt.appliedAt))) ||
-        attempt.idempotencyKey !== target.request.idempotencyKey ||
-        attempt.appointment !== target.request.appointment ||
-        attempt.lifecycleRevision !== target.request.lifecycleRevision ||
-        attempt.declarationVersion !== target.request.declarationVersion ||
-        attempt.declarationText !== target.text ||
-        !['pending', 'passed', 'failed'].includes(attempt.status) ||
-        (attempt.appliedAt
-          ? attempt.status !== 'passed' || company.status !== 'active'
-          : company.status !== before.status)
+        company.status !== 'active' ||
+        !isUuid(receipt.uuid) ||
+        !Number.isFinite(Date.parse(receipt.activatedAt)) ||
+        receipt.idempotencyKey !== target.request.idempotencyKey ||
+        receipt.appointment !== target.request.appointment ||
+        receipt.lifecycleRevision !== target.request.lifecycleRevision ||
+        receipt.declarationVersion !== target.request.declarationVersion ||
+        receipt.declarationText !== target.text
       )
         throw createUserFriendlyError('The activation outcome could not be confirmed. Refresh before retrying.');
       confirmation.current = null;
@@ -191,12 +185,10 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
   };
   const company = read.company;
   const activation = read.canPersonalAdmin ? company?.activation : null;
-  const latestAttempt: CompanyActivationAttempt | null = activation?.latestAttempt ?? null;
   return {
     preview: read.canPersonalAdmin ? preview : null,
     busy,
     error,
-    latestAttempt,
     canActivate: !!activation?.appointment && !!company && awaitsActivation(company) && !busy,
     open,
     confirm,

@@ -223,7 +223,7 @@ def _nomination(record):
 
 
 def _appointment_record(appointment):
-    for source in (appointment.request, appointment.invitation, appointment.legacy_owner, appointment.registry_check):
+    for source in (appointment.request, appointment.invitation, appointment.legacy_owner):
         _related(appointment, source)
     revocation = getattr(appointment, "revocation", None)
     return {

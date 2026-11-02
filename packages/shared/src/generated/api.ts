@@ -3917,9 +3917,9 @@ export interface ApiComponents {
       summary: string;
     };
     CompanyActivated: {
-      attempt: ApiComponents['schemas']['CompanyActivationAttempt'];
       company: ApiComponents['schemas']['CompanyDetail'];
       message: string;
+      receipt: ApiComponents['schemas']['CompanyActivationReceipt'];
     };
     CompanyActivateRequest: {
       acceptDeclaration: boolean;
@@ -3932,23 +3932,17 @@ export interface ApiComponents {
       appointment: string;
       declarationText: string;
       declarationVersion: string;
-      latestAttempt: ApiComponents['schemas']['CompanyActivationAttempt'] | null;
       lifecycleRevision: number;
     };
-    CompanyActivationAttempt: {
-      appliedAt: string | null;
+    CompanyActivationReceipt: {
+      activatedAt: string;
       appointment: string;
-      completedAt: string | null;
       declarationText: string;
       declarationVersion: string;
       idempotencyKey: string;
       lifecycleRevision: number;
-      reason: string;
-      startedAt: string;
-      status: ApiComponents['schemas']['CompanyActivationAttemptStatusEnum'];
       uuid: string;
     };
-    CompanyActivationAttemptStatusEnum: 'pending' | 'passed' | 'failed';
     CompanyAdministrativeAccess: {
       capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       draftSetup: boolean;

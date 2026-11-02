@@ -181,7 +181,6 @@ class CompanyPlan:
     industry: str
     description: str
     founded_year: int
-    incorporated_on: date
     phone: str
     address_line_1: str
     address_line_2: str

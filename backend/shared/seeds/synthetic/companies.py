@@ -3,22 +3,10 @@ from datetime import timedelta
 from django.utils import timezone
 
 from companies.identity import officeholder_declaration
-from companies.models import (
-    Company,
-    CompanyRegistryCheck,
-    CompanyStatus,
-    DocumentType,
-    RegistryCheckPurpose,
-)
+from companies.models import Company, CompanyStatus, DocumentType
 from companies.services.company import register_company
-from companies.services.registry import (
-    ABR_COMPANY_TYPES,
-    begin_registry_check,
-    complete_registry_check,
-)
-from integrations.abr.client import RegistryObservation
 from shared.db import atomic
-from shared.seeds.synthetic.clock import AEST, frozen
+from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.identities import spaced_abn
 from shared.seeds.synthetic.paper import acn_text, company_document, pdf, verified
 from wallets.models import Wallet
@@ -107,28 +95,6 @@ def _upload(document, plan, company):
     )
 
 
-def _observation(plan, at):
-    return RegistryObservation(
-        acn=plan.acn,
-        abn=plan.abn,
-        entity_name=plan.name.upper(),
-        entity_type=ABR_COMPANY_TYPES[plan.company_type],
-        entity_status="Active",
-        effective_from=plan.incorporated_on,
-        retrieved_at=at.astimezone(AEST).isoformat(timespec="milliseconds"),
-        register_updated_at=(at - timedelta(days=1)).date(),
-    )
-
-
-def _registry_check(company, purpose, plan, at, staff):
-    with atomic(), frozen(at):
-        check = begin_registry_check(company, purpose, staff)
-    completed = at + timedelta(seconds=3)
-    with frozen(completed):
-        complete_registry_check(check, _observation(plan, completed))
-    CompanyRegistryCheck.objects.filter(pk=check.pk).update(started_at=at)
-
-
 def _attest(company, plan, staff):
     company.declarant_name = plan.declarant_name
     company.board_resolution_reference = plan.board_resolution_reference
@@ -145,7 +111,6 @@ def _transition(plan, step, records, seeded):
     if step.method == "start_review":
         with atomic(), frozen(step.at):
             _historical_transition(company, status=CompanyStatus.REVIEW, review_started_at=timezone.now())
-        _registry_check(company, RegistryCheckPurpose.REVIEW, plan, step.at + timedelta(seconds=1), staff)
         return
     if step.method == "activate":
         with atomic(), frozen(step.at):
@@ -153,8 +118,6 @@ def _transition(plan, step, records, seeded):
                 user_account__user_profile__user=company.owner
             )
             company.save(update_fields=["operator_wallet", "updated_at"])
-        _registry_check(company, RegistryCheckPurpose.ACTIVATION, plan, step.at, staff)
-        company = Company.objects.get(pk=company.pk)
         with atomic(), frozen(step.at + timedelta(seconds=5)):
             _historical_transition(company, status=CompanyStatus.ACTIVE, activated_at=timezone.now())
         return

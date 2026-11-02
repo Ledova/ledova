@@ -16,7 +16,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from companies.models import Company, CompanyRegistryCheck
+from companies.models import Company
 from shared.db import atomic
 from shared.utils.typed_data import DOMAIN_NAME, DOMAIN_VERSION
 from tokens.constants import COMPANY_PACK_SPOOL_BYTES
@@ -133,29 +133,6 @@ def _company(company) -> dict:
         "owner_name": owner or "",
         "declarant_name": company.declarant_name,
         "board_resolution_reference": company.board_resolution_reference,
-        "registry_status": company.registry_status,
-        "registry_checks": list(
-            CompanyRegistryCheck.objects.filter(company=company)
-            .order_by("started_at", "uuid")
-            .values(
-                "purpose",
-                "status",
-                "reason",
-                "started_at",
-                "completed_at",
-                "requested_name",
-                "requested_acn",
-                "requested_abn",
-                "registry_acn",
-                "registry_abn",
-                "entity_name",
-                "entity_type",
-                "entity_status",
-                "effective_from",
-                "retrieved_at",
-                "register_updated_at",
-            )
-        ),
     }
 
 

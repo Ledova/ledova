@@ -1,6 +1,6 @@
 from companies.serializers.company import (
     CompanyActivateSerializer,
-    CompanyActivationAttemptSerializer,
+    CompanyActivationReceiptSerializer,
     CompanyDetailSerializer,
     CompanyListSerializer,
     CompanyRegistrationSerializer,
@@ -11,7 +11,7 @@ from companies.serializers.document import CompanyDocumentSerializer
 __all__ = [
     "CompanyListSerializer",
     "CompanyActivateSerializer",
-    "CompanyActivationAttemptSerializer",
+    "CompanyActivationReceiptSerializer",
     "CompanyDetailSerializer",
     "CompanyRegistrationSerializer",
     "CompanyUpdateSerializer",

@@ -8,8 +8,8 @@ from rest_framework.exceptions import APIException
 
 from companies.models import (
     Company,
+    CompanyActivation,
     CompanyDocument,
-    CompanyRegistryCheck,
     CompanyStatus,
 )
 from companies.services import transition_company
@@ -40,7 +40,6 @@ STATUS_COLORS = {
 TRANSITIONS = {
     "resolve-warning": dict(method="resolve_warning", done="Warning resolved for '{name}'. Company is now active."),
     "reinstate": dict(method="reinstate", done="Company '{name}' has been reinstated and is now active."),
-    "retry-registry": dict(method="retry_registry", done="Registry check recorded for '{name}'."),
     "issue-warning": dict(
         method="issue_warning",
         title="Issue Warning",
@@ -118,47 +117,6 @@ STATUS_BUTTONS = {
     CompanyStatus.DELISTED: [("Permanently Delisted", None, "#e9ecef", "#6c757d")],
 }
 
-for review_status in (
-    CompanyStatus.ACTIVE,
-    CompanyStatus.WARNING,
-    CompanyStatus.SUSPENDED,
-):
-    STATUS_BUTTONS[review_status].append(("Retry Registry Check", "retry-registry", "#007bff"))
-
-
-class CompanyRegistryCheckInline(admin.TabularInline):
-    model = CompanyRegistryCheck
-    fk_name = "company"
-    extra = 0
-    fields = (
-        "started_at",
-        "completed_at",
-        "initiated_by",
-        "purpose",
-        "requested_name",
-        "requested_acn",
-        "requested_abn",
-        "status",
-        "reason",
-        "entity_name",
-        "entity_status",
-        "registry_acn",
-        "registry_abn",
-    )
-    readonly_fields = fields
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def has_view_permission(self, request, obj=None):
-        return request.user.has_perm("companies.view_company")
-
 
 class CompanyDocumentInline(admin.TabularInline):
     model = CompanyDocument
@@ -224,11 +182,6 @@ class CompanyAdmin(admin.ModelAdmin):
     search_fields = ["name", "trading_name", "acn", "abn", "owner__email"]
     readonly_fields = [
         "status",
-        "registry_status",
-        "registry_reason",
-        "registry_checked_at",
-        "registry_entity_name",
-        "registry_entity_status",
         "declarant_name",
         "board_resolution_reference",
         "officeholder_attested_by",
@@ -284,14 +237,9 @@ class CompanyAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Registry and officeholder review",
+            "Officeholder declaration",
             {
                 "fields": [
-                    "registry_status",
-                    "registry_reason",
-                    "registry_checked_at",
-                    "registry_entity_name",
-                    "registry_entity_status",
                     "declarant_name",
                     "board_resolution_reference",
                     "officeholder_attested_by",
@@ -388,7 +336,7 @@ class CompanyAdmin(admin.ModelAdmin):
         ),
     ]
 
-    inlines = [CompanyDocumentInline, CompanyRegistryCheckInline]
+    inlines = [CompanyDocumentInline]
 
     actions = []
 
@@ -497,7 +445,7 @@ class CompanyAdmin(admin.ModelAdmin):
                 "form": form,
                 "transition": spec,
                 "intro": spec["intro"].format(name=company.name, acn=company.acn),
-                "registry_checks": company.registry_checks.all(),
+                "activation": CompanyActivation.objects.filter(company=company).select_related("activated_by").first(),
             }
             return render(request, "admin/companies/company/transition_form.html", context)
         kwargs = {spec["actor"]: request.user} if "actor" in spec else {}

@@ -4,8 +4,8 @@ from django.conf import settings
 
 from blockchain.database_guards import install as install_outgoing
 from companies import (
+    activation_guards,
     authority_guards,
-    database_admission_guards,
     database_workflow_guards,
     signup_terms_guards,
 )
@@ -52,7 +52,6 @@ FAMILY_GUARDS = (
     database_event_date_guards.install,
     database_award_agreement_guards.install,
     database_award_entitlement_guards.install,
-    database_admission_guards.install,
     database_workflow_guards.install,
     database_member_name_guards.install,
     database_class_rights.install,
@@ -63,6 +62,7 @@ FAMILY_GUARDS = (
     database_allotment_completion.install,
     database_people.install,
     database_transfer_completion.install,
+    activation_guards.install,
 )
 
 CREATE_ROLES = """

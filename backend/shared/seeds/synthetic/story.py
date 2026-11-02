@@ -1,6 +1,6 @@
 import math
 from dataclasses import replace
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import ROUND_DOWN, Decimal
 from typing import NamedTuple
 
@@ -763,7 +763,6 @@ class Story:
             industry=spec.industry,
             description=spec.description,
             founded_year=spec.founded_year,
-            incorporated_on=date(spec.founded_year, self.rng.randint(1, 12), self.rng.randint(1, 28)),
             phone=f"+61 {area} {self.rng.choice(('5550', '7010'))} {self.rng.randint(0, 9999):04d}",
             address_line_1=street,
             address_line_2="",

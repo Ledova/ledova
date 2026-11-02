@@ -98,7 +98,7 @@ record; the main ones:
 | `reference.py`               | Countries, the operator's blank identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT prices and a USD to AUD rate                                                                                |
 | `staff.py`                   | A compliance officer, a document reviewer, an operations officer who can open the operator console, and a deactivated former staff member                                                                                  |
 | `people.py`, `identities.py` | 60 investors unless `--investors` asks for at least 20, in every signup, identity and standing state, with wallets on Base, Ethereum and Bitcoin testnet, transactions, holdings, inactive device tokens and notifications |
-| `companies.py`               | Demo Robotics and two more active companies with verified documents, officeholder attestation and a passed ABR check from a synthetic observation, one company with information requested and one submitted                |
+| `companies.py`               | Demo Robotics and two more active companies with verified documents and officeholder attestation, one company with information requested and one submitted                                                                 |
 | `alerts.py`                  | Alerts in every status, one with a suspicious matter report, with AUD amounts the rules compare and activation dates that make only customers in their first 30 days new                                                   |
 
 The founder's wallet is development account #0, the operator's
@@ -111,7 +111,7 @@ A later run finds the population, adds nothing and says so. Synthetic people use
 `@demo.ledova.test` addresses, ACMA fictional phone numbers and made-up addresses; the companies use
 ACNs in the unissued 9xx range with matching ABNs; wallet keys come from a namespaced hash, except
 the testers' development accounts. The seed sends nothing and queues no job: no email, push
-notification, identity check or ABR lookup. To start over, run `make dev-clean`, then `make dev-up`
+notification or identity check. To start over, run `make dev-clean`, then `make dev-up`
 and `make dev-seed`; a run that stopped part-way says to start over.
 
 The chain layer ([`seeds/synthetic/chain/`](../backend/shared/seeds/synthetic/chain)) and the market

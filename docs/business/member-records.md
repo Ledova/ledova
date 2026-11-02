@@ -375,8 +375,7 @@ stated limits, not proof of a bank payment, current contract ownership or a lodg
 
 ### What the pack carries
 
-- The company, its business-register checks and documents, and the evidence copy each register
-  change relied on.
+- The company, its documents, and the evidence copy each register change relied on.
 - Every share class with its register: the register CSV, every entry with the fingerprints that
   chain it, former members with the date s169(3) keeps each until, reconciliations with the chain
   and their acknowledgements, completed effects still waiting to be recorded, and the certificates

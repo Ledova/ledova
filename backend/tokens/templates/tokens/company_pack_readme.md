@@ -16,7 +16,7 @@ The pack carries the company, its share classes, each class's register of member
 | --- | --- |
 | `README.md` | This document |
 | `manifest.json` | The format name and version, the company, the as-at time, the instruction and recipient, each share class's register sequence and head hash, and every other file's path, size in bytes and SHA-256 |
-| `company.json` | The company as Ledova holds it, the name of the account that instructs for it, and its business-register checks |
+| `company.json` | The company as Ledova holds it and the name of the account that instructs for it |
 | `approvals.json` | The company's registry addresses; each wallet approval with its status, its expiry and whether it was listed at the as-at time; and each change to an approval, with its action, expiry, authority, status and transaction |
 | `wallet_links.json` | Each link of wallets to members of the company: its authority, terms, evidence and decisions |
 | `particulars_changes.json` | Each change to a member's name and residential address, made by the company or by a linked member in their Ledova profile: the member, the new particulars and the ones they replaced, the date the company's register records them, any reason, and for an earlier change its supporting document and each decision |

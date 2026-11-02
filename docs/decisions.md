@@ -14,16 +14,17 @@ stay here as history and are marked where they appear.
 | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                            | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                                          |
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                        | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476) and for linked members 2 November (#1492)                              |
-| [Company representative verification](#company-representative-verification)                                        | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148                                                                                   |
-| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                    | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148                                                                 |
-| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)       | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148                                                                            |
+| [Company representative verification](#company-representative-verification)                                        | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                                       |
+| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                    | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                     |
+| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)       | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                                |
 | [Identity verification after signup](#identity-verification-after-signup)                                          | 19 October 2026                                | Current; #1141                                                                                                                     |
 | [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)                  | 19 October 2026                                | Current; #1146                                                                                                                     |
-| [ABR company lookup at activation](#abr-company-lookup-at-activation)                                              | 19 October 2026                                | Current; #1148                                                                                                                     |
+| [ABR company lookup at activation](#abr-company-lookup-at-activation)                                              | 19 October 2026                                | Superseded 2 November 2026; the ABR check was removed (#1491)                                                                      |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                            | 14 October 2026                                | Current; setup amended by #1029                                                                                                    |
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)             | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                                      |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                            | September to 6 October 2026                    | Eligibility superseded 2 November (#1491); offering parts removed under #1421                                                      |
-| [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Current; #1491; supersedes classification, eligibility and payslips; ABR check and company documents follow                        |
+| [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Current; #1491; supersedes classification, eligibility, payslips and the ABR check; company documents follow                       |
+| [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; supersedes the 19 October ABR lookup at activation                                                          |
 | [The stored register](#the-stored-register)                                                                        | September 2026; staff review retired 5 October | Current                                                                                                                            |
 | [Register CSV download removed](#register-csv-download-removed)                                                    | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
 | [Company-scoped approvals](#company-scoped-approvals)                                                              | 19 September 2026                              | Current                                                                                                                            |
@@ -181,7 +182,8 @@ block #862–#873. A declaration can establish the initial representative's
 authority in the initial admission workflow. The existing representative identity
 check and ABR company lookup remain unchanged, as do tenant isolation and
 signed-transaction safeguards; the lookup later moved from admission to
-activation ([19 October](#abr-company-lookup-at-activation)). The
+activation ([19 October](#abr-company-lookup-at-activation)) and was removed on
+2 November 2026 ([ABR company check removed](#abr-company-check-removed)). The
 [authority guide](business/companies.md)
 describes the delivered admission, invitation, delegation and revocation
 workflows.
@@ -206,7 +208,8 @@ submission alone is not admission.
 The [same-day amendment below](#simple-signup-documents-and-team-after-registration)
 supersedes the file and delegation choices in the original decision that follows,
 and the [19 October decision](#abr-company-lookup-at-activation) moves its ABR
-lookup to activation.
+lookup to activation, which stopped looking companies up on
+[2 November 2026](#abr-company-check-removed).
 
 The initial personal scope is `admin`. Delegation is a separate visible choice:
 it is empty by default and includes `admin` only when explicitly selected.
@@ -243,7 +246,8 @@ includes all six capabilities for team setup afterwards. Documents and invitatio
 use the existing company dashboard settings, with current company authority and the checked
 private-file flow for actual uploads. Identity, ABR, immutable declarations,
 tenant isolation, revocation and action-specific approvals remain; the ABR lookup
-later moved to activation ([19 October](#abr-company-lookup-at-activation)). A missing
+later moved to activation ([19 October](#abr-company-lookup-at-activation)) and was
+removed on 2 November 2026 ([decision](#abr-company-check-removed)). A missing
 or failed required provider check cannot be treated as success. This replaces
 the mandatory signup file and optional administrator-delegation choice under
 #1020; it does not make evidence optional for later actions that require it.
@@ -300,6 +304,9 @@ saved draft company stays with the account instead of being cleared; weakening
 that safeguard was not authorised.
 
 ### ABR company lookup at activation
+
+_Superseded on 2 November 2026: activation no longer looks the company up in the ABR
+([ABR company check removed](#abr-company-check-removed)). The decision below is kept as history._
 
 Later on 19 October 2026 the owner decided
 ([#1148](https://github.com/Ledova/ledova/issues/1148)) that the ABR company
@@ -418,7 +425,7 @@ payslips and company eligibility decisions were removed. The amount-paid rule an
 `issuer_kyc_required` switch below stand._
 
 Under the 3 October decision, company
-[activation](business/companies.md#activation-and-the-registry-check) and
+[activation](business/companies.md#activation) and
 company eligibility decisions
 replaced staff company activation and classification review on 6 October 2026
 (#863). The scope, privacy and expiry requirements below remain; a reusable
@@ -511,6 +518,26 @@ For classification, eligibility and payslips this supersedes the
 [offerings deferred](#offerings-deferred-from-the-first-release) kept, the sidebar's Company
 eligibility group ([compact sidebar](#ownership-dashboard-and-compact-sidebar)) and the app's
 [eligibility brought forward](#mobile-app-like-the-web-at-phone-width). Their history stays.
+
+### ABR company check removed
+
+Step 2 of the [decision above](#verification-limited-to-id-checks)
+([#1491](https://github.com/Ledova/ledova/issues/1491)): activation no longer looks the company up in
+the Australian Business Register. A current personal administrator activates the company with the
+2026-10-04 declaration and, when the operator requires it, their verified identity; neither the
+company's identifiers nor its name are checked against any register. The ABR lookup and its
+configuration go, and so do the staff registry controls: the registry retry in Django admin and the
+fresh lookup that resolving a warning or reinstating waited for. Staff warning, suspension,
+delisting, warning resolution and reinstatement stay.
+
+The registry-check records and their lookup results are deleted. Each activation applied before the
+change keeps its receipt (the administrator, their appointment, the declaration and their identity
+status when they activated), because that is the record of the declaration activation still
+requires. A company still waiting on a lookup activates afresh. This supersedes the
+[19 October decision](#abr-company-lookup-at-activation), kept above as history, and the parts of the
+[4 October](#company-representative-verification) decision and the 14 October
+[combined signup](#combined-company-signup-and-initial-authority) and
+[simple signup](#simple-signup-documents-and-team-after-registration) decisions that kept the ABR lookup.
 
 ## The stored register
 
