@@ -1,12 +1,6 @@
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
-import {
-  DESTINATIONS,
-  awaitsActivation,
-  companyActivationOutcome,
-  useCompanyActivation,
-  useCompanySelection,
-} from '@ledova/shared';
+import { DESTINATIONS, awaitsActivation, useCompanyActivation, useCompanySelection } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
 import { ShowMore, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent, Failure } from '@components/Ledger';
 import { CheckboxField } from '@components/Field';
@@ -69,20 +63,14 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
           <>
             <Section title="Activation status">
               <p className="text-sm text-text-muted">
-                Company information is provided by the company. Activation records your declaration and the configured
-                identity and ABR checks. It does not issue shares or approve a wallet.
+                Company information is provided by the company. Activation records your declaration and, where your
+                instance requires it, your verified identity. It does not issue shares or approve a wallet.
               </p>
               <Rows>
                 <Row label="Status">
                   <CompanyStatusMark status={company.status} label={company.statusDisplay} />
                 </Row>
               </Rows>
-              {action.latestAttempt && (
-                <div className="space-y-2 text-sm text-text-muted">
-                  <p>{companyActivationOutcome(action.latestAttempt)}</p>
-                  <p>This attempt was recorded from your administrator appointment.</p>
-                </div>
-              )}
               {events.length > 0 && (
                 <ShowMore show="Show the historical record" hide="Hide the historical record">
                   <Timeline events={events} />
@@ -105,7 +93,7 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                   <PageAction
                     ref={opener}
                     primary
-                    label={action.latestAttempt ? 'Try activation again' : 'Review activation'}
+                    label="Review activation"
                     onClick={() => void action.open()}
                     disabled={action.busy || read.isRefreshing}
                   />
@@ -159,10 +147,6 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
             disabled={action.busy}
             onChange={(event) => setAcceptance(event.target.checked ? target : null)}
           />
-          <p className="text-sm text-text-muted">
-            The configured ABR lookup must match before activation can be applied. A failed or unavailable check remains
-            in the record.
-          </p>
         </Section>
         <FormActions>
           <PageAction label="Cancel" disabled={action.busy} onClick={action.cancel} />
