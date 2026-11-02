@@ -6,13 +6,7 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { OUTPUT_APPOINTMENT, OUTPUT_ENTRY, OUTPUT_PREVIEW, OUTPUT_REGISTER } from '../../../testSupport/company';
-import {
-  MEMBER_RECORD,
-  MEMBER_ENTRY,
-  FULFILLED_CERTIFICATE,
-  prepareCompanyClient,
-  renderCompanyPage,
-} from '../../../testSupport/company';
+import { MEMBER_RECORD, MEMBER_ENTRY, prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
 import { ClassCertificate } from '../../documents/certificates/ClassCertificate';
 import { CompanyPack } from './CompanyPack';
 import CertificatesPage from '../../documents/certificates';
@@ -207,10 +201,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(OUTPUT_REGISTER.token.uuid)) {
       if (refusedHistory || (config.params.page === 2 && refusedMore)) throw new Error('Synthetic history refusal');
       const selected = [OUTPUT_ENTRY, otherEntry, olderEntry].filter((entry) => {
-        const status =
-          entry.uuid === OUTPUT_ENTRY.uuid && config.params.association === MEMBER_RECORD.uuid
-            ? 'fulfilled'
-            : 'can_prepare';
+        const status = entry.correctedBy ? 'reversed' : 'can_prepare';
         return (
           (!config.params.search ||
             entry.changes.some((change) =>
@@ -234,7 +225,6 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     if (url === COMPANY_TOKEN_ENDPOINTS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: MEMBER_RECORD };
     if (url === COMPANY_TOKEN_ENDPOINTS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
       return { data: { entries: [MEMBER_ENTRY] } };
-    if (url === COMPANY_TOKEN_ENDPOINTS.MEMBER_CERTIFICATE_REQUESTS) return page([FULFILLED_CERTIFICATE]);
     throw new Error(`Unexpected certificate read ${url}`);
   });
   const company = {
@@ -280,7 +270,8 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   expect(within(records).queryByText('You')).toBeNull();
   expect(within(records).getAllByText(MEMBER_RECORD.name)).toHaveLength(1);
   expect(within(records).getByText('Other shareholder')).toBeTruthy();
-  expect(within(records).getByText('Fulfilled', { exact: true })).toBeTruthy();
+  expect(within(records).getAllByText('Can prepare', { exact: true })).toHaveLength(2);
+  expect(within(records).getAllByText('Certificate:')).toHaveLength(2);
   expect(within(records).queryByText('Earlier shareholder')).toBeNull();
   expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
@@ -303,7 +294,6 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
       params: expect.objectContaining({
         search: 'Earlier',
         certificate_status: 'can_prepare',
-        association: MEMBER_RECORD.uuid,
         page: 1,
       }),
     }),
@@ -313,12 +303,10 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   records = await screen.findByRole('list', { name: 'Certificate records' });
   await within(records).findByText('Other shareholder');
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
-  fireEvent.change(screen.getByRole('combobox', { name: 'Certificate status' }), { target: { value: 'fulfilled' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Certificate status' }), { target: { value: 'reversed' } });
   fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
-  records = await screen.findByRole('list', { name: 'Certificate records' });
-  await within(records).findByText('Fulfilled', { exact: true });
-  expect(within(records).getAllByRole('listitem')).toHaveLength(1);
-  expect(within(records).queryByText('Other shareholder')).toBeNull();
+  expect((await screen.findByText('No certificate records match these filters.')).getAttribute('role')).toBe('status');
+  expect(within(screen.getByRole('list', { name: 'Certificate records' })).queryByRole('listitem')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Clear (certificate filters)' }));
   records = await screen.findByRole('list', { name: 'Certificate records' });
@@ -357,5 +345,4 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   await screen.findByText('Certificate records could not be loaded.');
   expect(screen.queryByText('Other shareholder')).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
-  expect(screen.queryByRole('button', { name: /Request certificate/ })).toBeNull();
 });

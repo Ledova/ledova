@@ -26,7 +26,7 @@ from tokens.models import (
 
 class MemberAccessTest(CoreFixtures, APITransactionTestCase):
     @override_settings(DASHBOARD_BASE_URL="https://dashboard.example.test")
-    def test_exact_walletless_association_own_entitlement_holdings_requests_and_revocation(self):
+    def test_exact_walletless_association_own_entitlement_holdings_and_revocation(self):
         told = self.enterContext(patch("tokens.services.member_events.defer"))
         award = self.award_payload()
         response = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
@@ -226,24 +226,10 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.client.force_authenticate(self.foreign)
         own = self.client.get(record_endpoint).json()
         self.assertEqual((own["name"], own["residentialAddress"]), (award["name"], award["residential_address"]))
+        requests_endpoint = "/api/v1/tokens/member-certificate-requests/"
         certificate = {"operation_id": str(uuid4()), "association": association, "entry": issue_entry}
-        requested = self.client.post("/api/v1/tokens/member-certificate-requests/", certificate, format="json")
-        self.assertEqual(requested.status_code, 201, requested.content)
-        self.assertEqual(requested.json()["status"], "requested")
-        self.assertNotIn("file", requested.json())
-        certificate_id = requested.json()["uuid"]
-        withdrawal = {"idempotency_key": str(uuid4())}
-        withdrawn = self.client.post(
-            f"/api/v1/tokens/member-certificate-requests/{certificate_id}/withdraw/", withdrawal, format="json"
-        )
-        self.assertEqual(withdrawn.status_code, 200, withdrawn.content)
-        self.assertEqual(withdrawn.json()["status"], "withdrawn")
-        self.assertEqual(
-            self.client.post(
-                f"/api/v1/tokens/member-certificate-requests/{certificate_id}/withdraw/", withdrawal, format="json"
-            ).status_code,
-            200,
-        )
+        self.assertEqual(self.client.get(requests_endpoint).status_code, 404)
+        self.assertEqual(self.client.post(requests_endpoint, certificate, format="json").status_code, 405)
         self.client.force_authenticate(self.owner)
         revocation = {
             "appointment": str(self.appointment.pk),
@@ -264,10 +250,6 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(self.client.post(preview_endpoint, {"code": invitation_code}, format="json").status_code, 400)
         self.assertEqual(self.client.get(record_endpoint).status_code, 404)
         self.assertEqual(self.client.get("/api/v1/tokens/member-records/").json()["count"], 0)
-        self.assertEqual(
-            self.client.get(f"/api/v1/tokens/member-certificate-requests/{certificate_id}/").json()["status"],
-            "withdrawn",
-        )
         copied_user, copied_profile = person("copied-award-recipient")
         self.client.force_authenticate(self.owner)
         copied_award = self.award_payload(name="Synthetic Copied Employee")

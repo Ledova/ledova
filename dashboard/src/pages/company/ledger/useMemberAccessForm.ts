@@ -12,11 +12,11 @@ import { type Problems } from '@hooks/useErrorSummary';
 import { invitationMembers } from '@ledova/shared';
 import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
-type MemberField = 'member' | 'email' | 'reason' | 'instruction';
+type MemberField = 'member' | 'email' | 'reason';
 
 export const INVITATION_FIELDS: readonly MemberField[] = ['member', 'email'];
 
-export function useCompanyMemberRequests({
+export function useMemberAccessForm({
   company,
   owner,
   guard,
@@ -72,13 +72,11 @@ export function useCompanyMemberRequests({
   if (invitation.company !== company || (recipientsReady && invitation.member && !member))
     setInvitation({ company, member: '', email: '' });
   const [reason, setReason] = useState('');
-  const [certificateInstruction, setCertificateInstruction] = useState('');
   const held = access.busy || !!access.retry;
   const problems: Problems<MemberField> = {
     member: !member && 'Choose the member or award recipient.',
     email: !email.trim() && 'Give the intended recipient’s email.',
     reason: !!access.admin && !reason.trim() && 'Give the company action reason.',
-    instruction: !certificateInstruction.trim() && 'Give the certificate instruction reference.',
   };
   const refresh = async () => {
     await access.refresh();
@@ -96,8 +94,6 @@ export function useCompanyMemberRequests({
     setInvitation,
     reason,
     setReason,
-    certificateInstruction,
-    setCertificateInstruction,
     held,
     problems,
     refresh,

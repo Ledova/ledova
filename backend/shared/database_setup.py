@@ -25,7 +25,6 @@ from tokens import (
     database_member_documents,
     database_member_name_guards,
     database_mirror_guards,
-    database_output_guards,
     database_people,
     database_transfer_completion,
     database_transfer_guards,
@@ -47,7 +46,6 @@ UNBOUNDED_NUMERIC_COLUMNS = (
 )
 
 FAMILY_GUARDS = (
-    database_output_guards.install,
     authority_guards.install,
     signup_terms_guards.install,
     database_transfer_guards.install,

@@ -160,6 +160,4 @@ export {
   OUTPUT_REGISTER,
   OUTPUT_ENTRY,
   OUTPUT_PREVIEW,
-  MEMBER_PDF,
-  FULFILLED_CERTIFICATE,
 } from '../../../packages/shared/tests/fixtures/register-outputs';

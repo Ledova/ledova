@@ -15,7 +15,6 @@ from django.db import connections
 from django.db.models import (
     BigIntegerField,
     BooleanField,
-    Case,
     CharField,
     Exists,
     F,
@@ -24,7 +23,6 @@ from django.db.models import (
     OuterRef,
     Subquery,
     Value,
-    When,
 )
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -44,7 +42,6 @@ from tokens.constants import (
 from tokens.exceptions import RegisterChangeConflict, RegisterNotInitialized
 from tokens.models import (
     ImportedFormerMember,
-    MemberCertificateRequest,
     RegisterAllotment,
     RegisterEntry,
     RegisterEntryKind,
@@ -581,48 +578,14 @@ def _search_entries(entries, token, search):
     ).filter(matches_shareholder=True)
 
 
-def _certificate_entries(entries, certificate_status, association):
+def _certificate_entries(entries, certificate_status):
     entries = entries.filter(kind__in=CERTIFICATE_ENTRY_KINDS)
     if certificate_status == "all":
         return entries
-    if certificate_status == "not_applicable":
-        return entries.none()
-    latest = MemberCertificateRequest.objects.none()
-    receiving = Value(False, output_field=BooleanField())
-    if association is not None:
-        latest = MemberCertificateRequest.objects.filter(association=association, entry_id=OuterRef("pk"))
-        receiving = Func(
-            Value(association.pk), F("pk"), function="tokens_member_certificate_entry", output_field=BooleanField()
-        )
-    latest = latest.annotate(
-        filter_status=Case(
-            When(fulfilment__isnull=False, then=Value("fulfilled")),
-            When(withdrawal__isnull=False, then=Value("withdrawn")),
-            default=Value("requested"),
-            output_field=CharField(),
-        )
-    ).order_by("-created_at", "-uuid")
-    return (
-        entries.annotate(
-            latest_certificate_status=Subquery(latest.values("filter_status")[:1]),
-            own_receiving=receiving,
-        )
-        .annotate(
-            certificate_filter_status=Case(
-                When(latest_certificate_status__isnull=False, then=F("latest_certificate_status")),
-                When(corrected_by__isnull=False, then=Value("reversed")),
-                When(own_receiving=True, then=Value("not_requested")),
-                default=Value("can_prepare"),
-                output_field=CharField(),
-            )
-        )
-        .filter(certificate_filter_status=certificate_status)
-    )
+    return entries.filter(corrected_by__isnull=certificate_status == "can_prepare")
 
 
-def stored_entries(
-    token, paginate, wanted=(), member=None, *, search="", certificate_status=None, association=None
-) -> list[dict]:
+def stored_entries(token, paginate, wanted=(), member=None, *, search="", certificate_status=None) -> list[dict]:
     entries = with_company_event_dates(RegisterEntry.objects.filter(register__token=token))
     if wanted:
         entries = entries.filter(pk__in=wanted)
@@ -634,7 +597,7 @@ def stored_entries(
         )
         entries = _search_entries(entries, token, search)
         if certificate_status is not None:
-            entries = _certificate_entries(entries, certificate_status, association)
+            entries = _certificate_entries(entries, certificate_status)
         entries = paginate(entries.order_by("-sequence"))
         people = member_identities(
             token, sorted({UUID(change["member"]) for entry in entries for change in entry.changes})
@@ -781,35 +744,18 @@ def _holdings_after(entry, members) -> dict:
     return held
 
 
-def _certificate_pages(token, entry, only_member=None) -> list[dict]:
+def _certificate_pages(token, entry) -> list[dict]:
     moved = {UUID(change["member"]): int(change["shares"]) for change in entry.changes}
     held = _holdings_after(entry, moved)
     parties = [(member, shares, False) for member, shares in moved.items() if shares > 0]
     parties += [(member, held[member], True) for member, shares in moved.items() if shares < 0 and held[member]]
-    if only_member is not None:
-        parties = [
-            (member, shares, balance) for member, shares, balance in parties if member == only_member and not balance
-        ]
-        held_identity = RegisterMemberParticulars.objects.filter(
-            member_id=only_member, member__company_id=token.company_id
-        ).first()
-        if held_identity is None:
-            raise ValidationError("A member certificate needs retained company-recorded particulars.")
-    else:
-        particulars, wallets, identities, stamps = _identity_sources(token, [member for member, _, _ in parties])
+    particulars, wallets, identities, stamps = _identity_sources(token, [member for member, _, _ in parties])
     pages = []
     for index, (member, shares, balance) in enumerate(parties, 1):
         number = f"{entry.sequence}-{index}"
-        if only_member is not None:
-            holder_type, name, residential_address = (
-                HolderType.MEMBER.value,
-                held_identity.name,
-                held_identity.residential_address,
-            )
-        else:
-            holder_type, name, residential_address, _, _ = _member_identity(
-                wallets[member], identities, stamps, particulars.get(member)
-            )
+        holder_type, name, residential_address, _, _ = _member_identity(
+            wallets[member], identities, stamps, particulars.get(member)
+        )
         if holder_type == HolderType.AMBIGUOUS.value:
             raise ValidationError(
                 f"Certificate {number} cannot be prepared: member {member}'s wallets resolve to different people."
@@ -851,7 +797,7 @@ def _certificate_pdf(token, entry, pages) -> bytes:
         return document.tobytes(garbage=3, deflate=True, no_new_id=True)
 
 
-def _certificate_source(token, sequence, only_member=None):
+def _certificate_source(token, sequence):
     entry = RegisterEntry.objects.select_related("register").filter(register__token=token, sequence=sequence).first()
     if entry is None:
         raise ValidationError(f"This share class's register has no entry {sequence}.")
@@ -862,7 +808,7 @@ def _certificate_source(token, sequence, only_member=None):
         raise ValidationError(
             f"Entry {sequence} was reversed by correction entry {reversed_by}, so it has no certificate."
         )
-    pages = _certificate_pages(token, entry, only_member=only_member)
+    pages = _certificate_pages(token, entry)
     if not 1 <= len(pages) <= 2:
         raise ValidationError("This entry does not produce one or two supported certificate pages.")
     content = _certificate_pdf(token, entry, pages)

@@ -7,7 +7,7 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const { pathname, hash } = useLocation();
   const certificates = pathname === DESTINATIONS.certificates.path;
   const active = certificates || (pathname === DESTINATIONS.settings.path && hash === '#profile');
-  const read = useMemberRecords(() => crypto.randomUUID(), undefined, {
+  const read = useMemberRecords(undefined, {
     coordinatedRefresh: true,
     enabled: active,
     readList: certificates,
@@ -42,9 +42,9 @@ function MemberState({
   const [token, setToken] = useState('');
   const selectionOwner = useRef<typeof read.owner>(null);
   const initialHistory = useRef('');
-  const held = read.busy || read.refreshing || read.readFailed || !read.owner || !!read.retry;
+  const held = read.refreshing || read.readFailed || !read.owner;
   useEffect(() => {
-    if (!active || !read.owner || !read.listReady || read.busy || read.refreshing || read.retry) return;
+    if (!active || !read.owner || !read.listReady || read.refreshing) return;
     const wanted = requested ? (read.records.find(({ company }) => company.uuid === requested)?.uuid ?? '') : '';
     if (selectionOwner.current !== read.owner || read.selectedUuid !== wanted) {
       selectionOwner.current = read.owner;
@@ -52,18 +52,7 @@ function MemberState({
       setToken('');
       read.select(wanted);
     }
-  }, [
-    read.owner,
-    read.listReady,
-    read.busy,
-    read.refreshing,
-    read.retry,
-    read.records,
-    read.selectedUuid,
-    read.select,
-    requested,
-    active,
-  ]);
+  }, [read.owner, read.listReady, read.refreshing, read.records, read.selectedUuid, read.select, requested, active]);
   useEffect(() => {
     if (!certificates) {
       if (!initialHistory.current || held) return;

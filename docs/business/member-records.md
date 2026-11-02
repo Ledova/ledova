@@ -12,7 +12,6 @@ Contents:
 
 - [Outputs at a glance](#outputs-at-a-glance)
 - [Member access](#member-access)
-- [Member requests](#member-requests)
 - [Inspection copies](#inspection-copies)
 - [Certificates](#certificates)
 - [Notice figures](#notice-figures)
@@ -33,26 +32,27 @@ administration or any register capability (read, prepare, approve or apply). Own
 shareholding, member access and staff permissions give no output authority.
 
 On web, **Documents** opens one **Certificates** page for the selected company. Register readers
-can prepare permitted company outputs; members can request, track and download only their own
-certificates. A person with both kinds of access sees matching entries once. Existing request
-fulfilment remains in **Shareholders** → **Member requests**.
+prepare the company's certificates there; a member who is not a register reader sees the entries that
+changed their own holding.
 **Inspection copies** and **Company pack** remain alongside Certificates where company access permits
 them. Certificates and Inspection copies use one selected share class. Certificates keeps the class
-visible in each record; the **Filters** icon opens a compact panel with **Share class** when there is
-more than one, shareholder search and certificate status. **Apply** filters the full permitted history;
-**Clear** removes search and status while keeping the class. Company pack covers the company. Supporting attachments stay
+visible in each record, and a register reader's rows show each certificate as **Can prepare** or
+**None due, the entry was reversed**. For a register reader the **Filters** icon opens a compact
+panel with **Share class** when there is more than one, shareholder search and certificate status (**All**,
+**Can prepare** or **Reversed**); **Apply** filters the full permitted history and **Clear** removes
+search and status while keeping the class. A member's Filters hold only **Share class**, when they
+have more than one. Company pack covers the company. Supporting attachments stay
 with the person, share class or company Settings.
 
-| Output               | Who prepares it                            | Where                                  | What Ledova keeps                                        |
-| -------------------- | ------------------------------------------ | -------------------------------------- | -------------------------------------------------------- |
-| Inspection copy      | A register reader                          | **Documents** → **Inspection copies**  | SHA-256, instruction, request date, recipient, late flag |
-| Certificate          | A register reader                          | **Documents** → **Certificates**       | SHA-256 and instruction                                  |
-| Member's certificate | A register reader, on the member's request | **Shareholders** → **Member requests** | The PDF itself, as a certificate record                  |
-| Notice figures       | Platform staff, on written instruction     | Admin, **Register outputs**            | SHA-256, period and instruction                          |
-| Core company pack    | A company administrator                    | **Documents** → **Company pack**       | Manifest SHA-256, instruction, recipient, per class      |
-| Broader company pack | Platform staff, on written instruction     | Admin, **Company packs**               | As for a core pack                                       |
+| Output               | Who prepares it                        | Where                                 | What Ledova keeps                                        |
+| -------------------- | -------------------------------------- | ------------------------------------- | -------------------------------------------------------- |
+| Inspection copy      | A register reader                      | **Documents** → **Inspection copies** | SHA-256, instruction, request date, recipient, late flag |
+| Certificate          | A register reader                      | **Documents** → **Certificates**      | SHA-256 and instruction                                  |
+| Notice figures       | Platform staff, on written instruction | Admin, **Register outputs**           | SHA-256, period and instruction                          |
+| Core company pack    | A company administrator                | **Documents** → **Company pack**      | Manifest SHA-256, instruction, recipient, per class      |
+| Broader company pack | Platform staff, on written instruction | Admin, **Company packs**              | As for a core pack                                       |
 
-Ledova keeps a fingerprint, not the file, except for a member's certificate. Output records cannot
+Ledova keeps a fingerprint, not the file. Output records cannot
 be rewritten, and each records whether it was produced through the company's pages or platform
 admin. Platform staff read them all. **Inspection copies** lists a class's copies to its current
 register readers, and **Company pack** lists the company's packs to its current administrators.
@@ -137,18 +137,20 @@ breakdown and terms under **Show award details**. This read-only overview is the
 records them, on web and mobile: a read-only card headed with the company's name, such as **How
 Example Pty Ltd records you**, with the recorded name and residential address and **Wrong? Contact
 the company.** It is not a second profile, takes no edits and sends no request. When the company
-changes those particulars the member gets no notice; the card shows the current ones. Share history,
-certificates and certificate requests are in web **Documents** → **Certificates**. On mobile,
-**Documents** and a class card's **Certificates** open the same Certificates page for the selected
-company, with the same requests and actions; the PDF is shared rather than downloaded.
+changes those particulars the member gets no notice; the card shows the current ones. The entries
+that changed their holding in each class are in web **Documents** → **Certificates**, with a line
+saying that the company prepares, signs and delivers their certificates and to ask the company if
+they need one. On mobile, **Documents** and a class card's **Certificates** open the same
+Certificates page for the selected company.
 
 ### Share-event notifications
 
-A member with a current association receives an ordinary notification when a certificate they
-requested is ready, when shares vest under their award, and when the company applies a grant or
-allotment that issues shares to them (an award's shares included). Each one names the company (and
-the class, for a certificate or an issue) but no quantities, because notifications can show on a locked screen; on mobile it opens
-the matching screen. Nothing is sent for a revoked association, for changes recorded before the member
+A member with a current association receives an ordinary notification when shares vest under their
+award, and when the company applies a grant or allotment that issues shares to them (an award's
+shares included). Each one names the company (and the class, for an issue) but no quantities,
+because notifications can show on a locked screen; on mobile it opens the matching screen. A
+**Certificate ready** notice sent before certificate requests were removed stays in the inbox and
+opens nothing. Nothing is sent for a revoked association, for changes recorded before the member
 accepted an invitation, for transfers, for a change to their particulars, or for shares recorded
 from the chain.
 
@@ -156,47 +158,16 @@ from the chain.
 
 A company administrator opens **Shareholders** → **Member access** in the web sidebar and chooses
 **Revoke access** on the person's row under **People**, supplying a reason for that action;
-relinking needs a new invitation. Revocation
-stops the person's own-record access, file access and new requests, though they can still read the
-status of requests they made.
+relinking needs a new invitation. Revocation stops the person's own-record access.
 
-The web sidebar separates **Member access** from **Member requests** under Shareholders. Member access
-shows **People** and **Invitations**; Member requests is one list of members' certificate requests,
-each with its share class, date and status. Its Filters icon searches by person name across the
-complete permitted request list, including retained statuses. Filtering changes no request
-and leaves active preparation and recovery available. The rows keep names and relevant details together;
-internal references stay in the audit records.
-Task fields open only when needed;
-an empty queue does not ask for a company reason or certificate reference. Web reads update on entry
-and after a completed action, without idle polling or focus/reconnect refreshes; a failed read offers a retry.
+**Member access** shows **People** and **Invitations**. The rows keep names and relevant details
+together; internal references stay in the audit records. Task fields open only when needed. Web
+reads update on entry and after a completed action, without idle polling or focus/reconnect
+refreshes; a failed read offers a retry.
 Every action rechecks the person's account, session, association and the company's authority; a
 failed refresh hides cached private records, and an uncertain reply is recovered against the
 original request
 ([when the outcome is uncertain](README.md#when-the-outcome-is-uncertain)).
-
-## Member requests
-
-Members ask the company only for their own certificates through Ledova. A change to their recorded
-name or residential address is not a request here: the member tells the company directly, and the
-company records it as its own
-[particulars change](register.md#changing-a-members-particulars)
-([decision](../decisions.md#member-particulars-requests-removed)).
-
-A member can request a certificate for an uncorrected issue or transfer that gave them shares
-(**Request certificate** in **Documents** → **Certificates**), and withdraw it (**Withdraw request**) until the company
-[fulfils it](#fulfilling-a-members-certificate-request).
-It reads **fulfilled** only once a real file exists, which the member downloads or shares
-(**Download PDF** on web, **Share PDF** on mobile) through their
-current access, checked against its record. Nothing is signed automatically and no legal
-recognition is claimed.
-
-Web **Documents** → **Certificates** shows each shareholder or change, shares, entry, date and status
-in one aligned row, with its permitted action at the row's end and earlier requests for the entry
-beneath it. **Show other certificate requests** lists older or other-class requests independently of the entry
-filters, including their permitted withdrawals and downloads. Company preparation and member
-requests keep their separate permissions: company certificate eligibility is not a member request
-status, and generating a company PDF does not fulfil a member request or make it available as a
-recipient's retained file.
 
 ## Inspection copies
 
@@ -232,7 +203,10 @@ retire a prepared request, and a failed preview delivers no file.
 A company must have a certificate ready within 2 months after an issue and 1 month after a transfer
 is lodged (s1071H). A register reader requests the unsigned file for the company;
 the company executes and delivers it, and platform staff do not prepare certificates
-([decision](../decisions.md#the-stored-register)).
+([decision](../decisions.md#the-stored-register)). Members do not request certificates through
+Ledova: the issue or transfer starts the company's duty, and a member who needs one, such as a
+replacement for a lost or destroyed certificate (s1070D), asks the company
+([decision](../decisions.md#member-certificate-requests-removed)).
 
 ### What a certificate shows
 
@@ -265,22 +239,6 @@ register, or a correction has since reversed the entry (the refusal names the co
 
 A register change after the preview invalidates it, and the appointment is rechecked before the
 fingerprint is recorded.
-
-### Fulfilling a member's certificate request
-
-1. On web, choose **Prepare certificate** on the member's **Unsigned certificate** request in
-   **Shareholders** → **Member requests**. The focused view shows the member, share class
-   and request date. Enter the required
-   **Company instruction**, then choose **Preview**.
-2. Check **Review certificate**: its unsigned single-recipient PDF summary, the entry number and the
-   captured instruction.
-   Choose **Create certificate**, or **Cancel** to return without fulfilling the request. The privacy
-   and signing reminder stays visible; the member-request records return after the task closes.
-
-This keeps one unchangeable single-page PDF of that member's page only, with its request,
-producer, appointment, instruction and fingerprint, recorded as a certificate for the entry; no
-other member's particulars are read. Company readers can download it too, and a fulfilled request
-cannot be withdrawn.
 
 ## Notice figures
 

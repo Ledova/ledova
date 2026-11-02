@@ -7,21 +7,17 @@ import {
   USER_DOCUMENT_ENDPOINTS as DOCUMENTS,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
-  formatDateTime,
   type OwnMemberRecord,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import * as Crypto from 'expo-crypto';
 import { getDocumentAsync } from 'expo-document-picker';
 import { File } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import type { AxiosInstance } from 'axios';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
-import { FULFILLED_CERTIFICATE, MEMBER_PDF } from '../../../../packages/shared/tests/fixtures/register-outputs';
-import { cache, resetFiles } from '../../testSupport/documentFiles';
+import { resetFiles } from '../../testSupport/documentFiles';
 import { destinationOf } from '../../components/notifications/NotificationsModal';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { VerificationScreen } from '../eligibility/VerificationScreen';
@@ -39,22 +35,6 @@ jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (effect: () => void) =>
     jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
-jest.mock('expo-crypto', () => ({
-  randomUUID: jest.fn(),
-  CryptoDigestAlgorithm: { SHA256: 'SHA-256' },
-  digest: jest.fn(
-    async (_algorithm: string, bytes: Uint8Array) =>
-      Uint8Array.from(
-        jest
-          .requireActual<{
-            createHash: (name: string) => { update: (value: Uint8Array) => { digest: () => Uint8Array } };
-          }>('crypto')
-          .createHash('sha256')
-          .update(bytes)
-          .digest(),
-      ).buffer,
-  ),
-}));
 jest.mock('expo-file-system', () => jest.requireActual('../../testSupport/documentFiles').nativeFileSystem);
 jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => {}) }));
@@ -63,11 +43,8 @@ const api = { get: jest.mocked(apiClient.get), post: jest.mocked(apiClient.post)
 const client = new QueryClient({
   defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: 0 } },
 });
-let release: (() => void) | undefined;
 afterEach(async () => {
   jest.useRealTimers();
-  await act(async () => release?.());
-  release = undefined;
   await cleanup();
   client.clear();
   resetFiles();
@@ -94,19 +71,6 @@ const PAST_RECORD = {
     { ...MEMBER_RECORD.classes[0], uuid: '16161616-1616-4616-8616-161616161616', shares: '0', ceasedOn: '2026-03-31' },
   ],
   awards: [],
-};
-const OPEN_REQUEST = {
-  ...FULFILLED_CERTIFICATE,
-  uuid: '17171717-1717-4717-8717-171717171717',
-  status: 'requested',
-  fulfilment: null,
-  createdAt: '2026-10-02T00:00:00Z',
-};
-const WITHDRAWN_REQUEST = {
-  ...OPEN_REQUEST,
-  uuid: '18181818-1818-4818-8818-181818181818',
-  status: 'withdrawn',
-  createdAt: '2026-10-03T00:00:00Z',
 };
 const OWNED_RECORD = {
   ...MEMBER_RECORD,
@@ -168,18 +132,13 @@ const picked = (name: string, mimeType: string) => async () => {
   return { canceled: false as const, assets: [{ uri: `${PICKED}${name}`, name, mimeType, size: 4, lastModified: 0 }] };
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, opens its certificates but none from another company for an ended association, shows how the company records them on Profile, keeps an interrupted certificate request recoverable across screens, refuses cached records and a late action after current read loss, routes each notification to its page, saves an eligibility claim only with accepted evidence in the session that picked it, whose copy is removed after saving and on a session change, and uploads a payslip only in the session that picked it, removing its copy, then stops checking its extraction after a session change', async () => {
-  let keys = 0;
-  jest
-    .mocked(Crypto.randomUUID)
-    .mockImplementation(() => `00000000-0000-4000-8000-${String(++keys).padStart(12, '0')}`);
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, shows how the company records them on Profile, refuses cached records after current read loss, routes each notification to its page and an old certificate notice nowhere, saves an eligibility claim only with accepted evidence in the session that picked it, whose copy is removed after saving and on a session change, and uploads a payslip only in the session that picked it, removing its copy, then stops checking its extraction after a session change', async () => {
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   let ownRecord: OwnMemberRecord = OWNED_RECORD;
   let associated = false;
   let refused = false;
-  let certificates: Record<string, unknown>[] = [FULFILLED_CERTIFICATE, OPEN_REQUEST, WITHDRAWN_REQUEST];
   let claims: Record<string, unknown>[] = [];
   let documents: Record<string, unknown>[] = [];
   api.get.mockReset().mockImplementation(async (url) => {
@@ -196,9 +155,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.MEMBER_RECORD(MEMBER_RECORD.uuid)) return { data: ownRecord };
     if (url === URLS.MEMBER_ENTRIES(MEMBER_RECORD.uuid))
       return { data: { entries: [{ ...MEMBER_ENTRY, companyEventOn: null }, SECOND_ENTRY] } };
-    if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) return page(certificates);
-    if (url === URLS.MEMBER_CERTIFICATE_FILE(FULFILLED_CERTIFICATE.uuid))
-      return { data: MEMBER_PDF.buffer, headers: { 'content-type': 'application/pdf' } };
     throw new Error(`Unexpected GET ${url}`);
   });
   api.post.mockReset().mockImplementation(async (url, value, options) => {
@@ -226,6 +182,13 @@ it('associates a member by invitation code, switches to their company on Dashboa
     }
     if (url === URLS.MEMBER_INVITATION_ACCEPT) {
       associated = true;
+      if (
+        body.code === OTHER_CODE &&
+        api.post.mock.calls.filter(
+          ([target, sent]) => target === url && (sent as Record<string, string>).code === OTHER_CODE,
+        ).length === 1
+      )
+        throw new Error('Synthetic interrupted acceptance receipt');
       return {
         data: {
           uuid: MEMBER_RECORD.uuid,
@@ -236,22 +199,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
           current: true,
         },
       };
-    }
-    if (url === URLS.MEMBER_CERTIFICATE_REQUESTS) {
-      const request = {
-        ...body,
-        uuid: body.operationId,
-        company: MEMBER_RECORD.company.uuid,
-        member: MEMBER_RECORD.member,
-        token: MEMBER_RECORD.classes[0].uuid,
-        status: 'requested',
-      };
-      certificates = [request];
-      if (api.post.mock.calls.filter(([target]) => target === url).length === 1)
-        throw new Error('Synthetic interrupted request receipt');
-      return new Promise((resolve) => {
-        release = () => resolve({ data: request });
-      });
     }
     throw new Error(`Unexpected POST ${url}`);
   });
@@ -286,9 +233,21 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByText('You: 10')).toBeTruthy();
   await view.rerender(<InvitationScreen />);
   await fireEvent.changeText(screen.getByLabelText('Link or code from the email'), OTHER_CODE);
-  expect(await screen.findByRole('button', { name: 'Accept invitation' })).toBeTruthy();
+  const acceptOther = await screen.findByRole('button', { name: 'Accept invitation' });
   expect(screen.queryByText('Invitation accepted. Your company records are available.')).toBeNull();
+  await fireEvent.press(acceptOther);
+  await screen.findByRole('button', { name: 'Retry original member action' });
+  await view.rerender(
+    <CertificatesScreen route={{ key: 'past', name: 'Certificates', params: { record: PAST_RECORD.uuid } }} />,
+  );
+  expect(screen.getByText('Retry or finish your pending request before opening this company.')).toBeTruthy();
+  expect(screen.queryByText('Certificate records')).toBeNull();
   await view.rerender(dashboard);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Retry original member action' }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Retry original member action' })).toBeNull());
+  const acceptances = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_INVITATION_ACCEPT);
+  expect(acceptances).toHaveLength(3);
+  expect(acceptances[1][1]).toEqual(acceptances[2][1]);
   await fireEvent.press(
     await screen.findByRole('button', {
       name: 'Explore Ordinary (ORD), 40 issued shares, 100.00% of company issued shares, You: 10',
@@ -358,22 +317,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   ownRecord = MEMBER_RECORD;
   await view.rerender(certificatesPage);
-  expect(await screen.findByText('Withdrawn')).toBeTruthy();
-  expect(screen.getByText('Requested 3 October 2026')).toBeTruthy();
+  expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
   expect(
-    screen.getByRole('button', { name: `Withdraw request (requested ${formatDateTime(OPEN_REQUEST.createdAt)})` }),
+    screen.getByText('The company prepares, signs and delivers your certificates. Need one? Ask the company.'),
   ).toBeTruthy();
-  await fireEvent.press(
-    screen.getByRole('button', {
-      name: `Share PDF (unsigned certificate requested ${formatDateTime(FULFILLED_CERTIFICATE.createdAt)})`,
-    }),
-  );
-  await waitFor(() =>
-    expect(Sharing.shareAsync).toHaveBeenCalledWith(
-      `${cache}ledova-document-views-v1/member-certificate-${FULFILLED_CERTIFICATE.uuid}.pdf`,
-      { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' },
-    ),
-  );
+  expect(screen.queryByRole('button', { name: /Filters|Request certificate|Withdraw request|Share PDF/ })).toBeNull();
   await view.rerender(
     <CertificatesScreen
       route={{ key: 'ended', name: 'Certificates', params: { record: 'ended-association', token } }}
@@ -381,12 +329,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   expect(await screen.findByText('This company no longer records you as a member.')).toBeTruthy();
   expect(screen.queryByText('Certificate records')).toBeNull();
-  await view.rerender(
-    <CertificatesScreen
-      route={{ key: 'ready', name: 'Certificates', params: { company: MEMBER_RECORD.company.uuid } }}
-    />,
-  );
-  expect(await screen.findByText('Certificate records')).toBeTruthy();
   await view.rerender(profile);
   expect(await screen.findByLabelText(`Name: ${MEMBER_RECORD.name}`)).toBeTruthy();
   expect(screen.getByText(`How ${MEMBER_RECORD.company.name} records you`)).toBeTruthy();
@@ -394,22 +336,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByText('Wrong? Contact the company.')).toBeTruthy();
   await view.rerender(certificatesPage);
   await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
-  await fireEvent.press(await screen.findByRole('button', { name: 'Request certificate (Ordinary, entry 2)' }));
-  await screen.findByRole('button', { name: 'Retry original member action' });
-  await view.rerender(dashboard);
-  expect(await screen.findByRole('button', { name: 'Retry original member action' })).toBeEnabled();
-  expect(screen.getByText(`Your request to ${MEMBER_RECORD.company.name} is waiting to be retried.`)).toBeTruthy();
-  await view.rerender(
-    <CertificatesScreen route={{ key: 'past', name: 'Certificates', params: { record: PAST_RECORD.uuid } }} />,
-  );
-  expect(screen.getByText('Retry or finish your pending request before opening this company.')).toBeTruthy();
-  expect(screen.queryByText('Certificate records')).toBeNull();
-  await view.rerender(certificatesPage);
-  await fireEvent.press(screen.getByRole('button', { name: 'Retry original member action' }));
-  await waitFor(() => expect(typeof release).toBe('function'));
-  const commands = api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS);
-  expect(commands).toHaveLength(2);
-  expect(commands[0][1]).toEqual(commands[1][1]);
+  expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
   refused = true;
   await act(async () => {
     await client.refetchQueries({
@@ -417,19 +344,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
       exact: true,
     });
   });
-  await waitFor(() => expect(screen.queryByRole('button', { name: /^Request certificate/ })).toBeNull());
-  expect(screen.queryByText('Certificate records')).toBeNull();
-  await act(async () => release!());
-  expect(screen.queryByRole('button', { name: /^Request certificate/ })).toBeNull();
-  expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_CERTIFICATE_REQUESTS)).toHaveLength(2);
+  await waitFor(() => expect(screen.queryByText('Certificate records')).toBeNull());
+  expect(screen.queryByText('Transfer · ORD · entry 2')).toBeNull();
   const notice = { type: PUBLICATION_NOTICE };
   expect(destinationOf(notice)).toEqual({ screen: 'Notices' });
   expect(destinationOf(notice)).not.toBe(destinationOf(notice));
-  const company = MEMBER_RECORD.company.uuid;
-  expect(destinationOf({ type: 'certificate', event: 'ready', company })).toEqual({
-    screen: 'Certificates',
-    params: { company },
-  });
+  expect(destinationOf({ type: 'certificate', event: 'ready', company: MEMBER_RECORD.company.uuid })).toBeUndefined();
   const award = 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5';
   const vested = { type: 'award', event: 'vested', record: MEMBER_RECORD.uuid, award };
   expect(destinationOf(vested)).toEqual({

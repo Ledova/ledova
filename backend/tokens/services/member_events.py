@@ -32,15 +32,6 @@ def _tell(association, title, body, data):
     )
 
 
-def certificate_ready(request):
-    _tell(
-        _current(pk=request.association_id),
-        "Certificate ready",
-        f"{request.company.name} · {request.token.name}",
-        {"type": "certificate", "event": "ready", "company": str(request.company_id)},
-    )
-
-
 def shares_vested(vesting):
     _tell(
         _current(company_id=vesting.company_id, member=vesting.award.member),

@@ -18,7 +18,7 @@ import { TopBar } from './headers';
 
 export type SignedInStackParamList = {
   Dashboard: { record?: string; award?: string } | undefined;
-  Certificates: { record?: string; token?: string; company?: string } | undefined;
+  Certificates: { record?: string; token?: string } | undefined;
   Notices: undefined;
   Verification: undefined;
   Settings: undefined;

@@ -59,7 +59,6 @@ from tokens.services.class_rights import (
     record_class_rights,
 )
 from tokens.services.former_holders import fold_is_stale, former_members_of
-from tokens.services.member_access import own_company_association
 from tokens.services.output_history import inspection_copy_history
 from tokens.services.ownership import class_ownership_holders, company_ownership
 from tokens.services.register import (
@@ -398,14 +397,7 @@ class ShareTokenViewSet(
             member = UUID(request.query_params["member"]) if "member" in request.query_params else None
         except ValueError:
             raise ValidationError({"member": "Name the member by their UUID."}) from None
-        token = self.get_object()
-        values = filters.validated_data
-        association = values.pop("association", None)
-        if association is not None:
-            association = own_company_association(
-                actor=request.user, association_id=association, company=token.company_id
-            )
-        rows = stored_entries(token, self.paginate_queryset, wanted, member, association=association, **values)
+        rows = stored_entries(self.get_object(), self.paginate_queryset, wanted, member, **filters.validated_data)
         return self.get_paginated_response(ShareRegisterEntrySerializer(rows, many=True).data)
 
     @extend_schema(responses=RegisterOpeningHoldersSerializer)

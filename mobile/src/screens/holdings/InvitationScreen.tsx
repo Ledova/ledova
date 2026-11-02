@@ -71,7 +71,7 @@ export function InvitationScreen() {
     if (read.owner && valid && !read.busy) void refetchPreview({ cancelRefetch: false });
   }, [read.owner, valid, read.busy, refetchPreview]);
   const shown = read.owner && valid && preview.isSuccess ? preview.data : null;
-  const accepted = shown?.status === 'accepted' && read.retry?.kind !== 'accept';
+  const accepted = shown?.status === 'accepted' && !read.retry;
   const held = read.busy || !!read.retry;
   return (
     <Page testID="invitation-scroll" title="Invitation">

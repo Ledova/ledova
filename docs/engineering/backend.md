@@ -203,6 +203,10 @@ secondary-market decision from at least one company (`secondary_company_ids`).
   triggers and functions, so an existing database ends as a fresh one does;
   `tokens/0004_one_step_particulars_edit` is the example. A function an earlier migration replays
   from current source keeps its name and must still work against that migration's schema.
+- A migration that removes a model with stored files deletes them through the storage API once its
+  transaction commits, as `tokens/0005_remove_member_certificate_requests` does. A callable an
+  applied migration imports stays importable after its model goes, such as the path function in
+  `tokens/models/member_certificate.py` that `tokens/0001_initial` names.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.
@@ -292,7 +296,7 @@ never infers success from a lost response.
 | Grants, awards and allotments       | `/api/v1/tokens/register-grants/`, `register-awards/`, `register-award-vestings/`, `register-allotments/`                                                                                                              | [Grants](../business/issuing-shares.md#grants-to-walletless-members), [awards](../business/issuing-shares.md#employee-awards-and-vesting), [allotments](../business/issuing-shares.md#external-investor-allotments)                                                                 |
 | Transfers and retained instructions | `/api/v1/tokens/register-transfers/`, `register-instructions/`                                                                                                                                                         | [Transfers](../business/register.md#non-paid-transfers-between-members)                                                                                                                                                                                                             |
 | Share-class chain decisions         | `/api/v1/tokens/register-deployments/`, `register-issues/`, `register-capital-increases/`, `register-pause-changes/`                                                                                                   | [Deployments](../business/issuing-shares.md#deploying-an-empty-class), [issues](../business/issuing-shares.md#non-paid-chain-grants), [capital](../business/issuing-shares.md#raising-the-authorised-shares), [pauses](../business/issuing-shares.md#pausing-and-unpausing-a-class) |
-| Member access                       | `/api/v1/tokens/member-invitations/`, `member-associations/`, `member-records/`, `member-certificate-requests/`                                                                                                        | [Member access](../business/member-records.md#member-access)                                                                                                                                                                                                                        |
+| Member access                       | `/api/v1/tokens/member-invitations/`, `member-associations/`, `member-records/`                                                                                                                                        | [Member access](../business/member-records.md#member-access)                                                                                                                                                                                                                        |
 | Register outputs                    | `/api/v1/tokens/{uuid}/register/` (`certificate/`, `inspection-copy/`), `/api/v1/companies/{uuid}/pack/`                                                                                                               | [Outputs](../business/member-records.md#outputs-at-a-glance)                                                                                                                                                                                                                        |
 
 Owning apps are in [backend apps](#backend-apps). Register routes and family requirement codes
@@ -591,17 +595,18 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | `publication`      | `shareholders/services/publications.py`, when a publication is announced to its roll               | Notices        |
 | `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Nothing        |
 | `identity`         | `users/services/identity.py`, when the identity check's result changes                             | Profile        |
-| `certificate`      | `tokens/services/member_events.py`, when a member's certificate request is fulfilled               | Nothing        |
+| `certificate`      | Retained history only: the sender went with members' certificate requests                          | Nothing        |
 | `award`            | `tokens/services/member_events.py`, when shares vest under a member's award                        | Nothing        |
 | `holding`          | `tokens/services/member_events.py`, when a grant or allotment issues shares to a member            | Nothing        |
 
 A notice of any other kind, including identity notices sent before they carried a type and
 `particulars` notices sent before members' particulars requests were removed, stays where it is.
-The three member kinds go only to the member's current association and name the company, with the
-class for certificate and holding notices, but no quantities. Each carries `record` (the
-association), with `company` for a certificate, `award` for a vesting and `token` for an issue. The
-mobile app opens publication notices and these three kinds, from its inbox or a tapped push
-([mobile](mobile.md)). Push registration and its settings
+The two member kinds go only to the member's current association and name the company, with the
+class for holding notices, but no quantities. Each carries `record` (the association), with `award`
+for a vesting and `token` for an issue. The mobile app opens publication notices and these two
+kinds, from its inbox or a tapped push ([mobile](mobile.md)); a `certificate` notice sent before
+members' certificate requests were removed stays in the inbox and opens nothing, on the web and in
+the app. Push registration and its settings
 are in [configuration](../operations/configuration.md#push-notifications).
 
 Next: [security model](security.md), [records engine](records.md), [testing](testing.md) and

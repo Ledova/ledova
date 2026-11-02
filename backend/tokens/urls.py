@@ -3,7 +3,6 @@ from rest_framework.routers import DefaultRouter
 from tokens import views
 from tokens.views.member_access import (
     MemberAssociationViewSet,
-    MemberCertificateRequestViewSet,
     MemberInvitationViewSet,
     MemberRecordViewSet,
 )
@@ -39,7 +38,6 @@ router = DefaultRouter()
 router.register(r"member-invitations", MemberInvitationViewSet, basename="member-invitations")
 router.register(r"member-associations", MemberAssociationViewSet, basename="member-associations")
 router.register(r"member-records", MemberRecordViewSet, basename="member-records")
-router.register(r"member-certificate-requests", MemberCertificateRequestViewSet, basename="member-certificate-requests")
 router.register(r"register-people", RegisterPersonViewSet, basename="register-people")
 router.register(r"register-pause-changes", RegisterPauseChangeViewSet, basename="register-pause-changes")
 router.register(r"register-capital-increases", RegisterCapitalIncreaseViewSet, basename="register-capital-increases")

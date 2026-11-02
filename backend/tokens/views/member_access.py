@@ -1,4 +1,3 @@
-from django.http import HttpResponse
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiTypes,
@@ -9,27 +8,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from shared.views import AuthenticatedReadOnlyViewSet
-from tokens.models import (
-    MemberAssociation,
-    MemberCertificateRequest,
-    MemberInvitation,
-)
+from tokens.models import MemberAssociation, MemberInvitation
 from tokens.serializers import member_access as schema
-from tokens.serializers.register_certificate import (
-    MemberCertificateFulfilmentCreateSerializer,
-    MemberCertificateFulfilmentPreviewSerializer,
-)
 from tokens.services import member_access as service
-from tokens.services.member_certificates import (
-    fulfil_member_certificate,
-    member_certificate_bytes,
-    preview_member_certificate,
-)
 
 FILTERS = [
     OpenApiParameter("company", OpenApiTypes.UUID),
     OpenApiParameter("member", OpenApiTypes.UUID),
-    OpenApiParameter("association", OpenApiTypes.UUID),
 ]
 
 
@@ -45,17 +30,13 @@ class MemberAccessViewSet(AuthenticatedReadOnlyViewSet):
             "preview",
             "revoke",
             "entries",
-            "withdraw",
-            "fulfilment_preview",
-            "fulfil",
-            "file",
         }
     )
     http_method_names = ["get", "post", "head", "options"]
 
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset)
-        for field in ("company", "member", "association"):
+        for field in ("company", "member"):
             value = self.request.query_params.get(field)
             if value and field in {item.name for item in queryset.model._meta.fields}:
                 queryset = queryset.filter(**{field: value})
@@ -67,7 +48,7 @@ class MemberAccessViewSet(AuthenticatedReadOnlyViewSet):
         return serializer.validated_data
 
 
-@extend_schema_view(list=extend_schema(parameters=FILTERS[:2]))
+@extend_schema_view(list=extend_schema(parameters=FILTERS))
 class MemberInvitationViewSet(MemberAccessViewSet):
     scoped_model = MemberInvitation
     queryset = MemberInvitation.objects.none()
@@ -126,7 +107,7 @@ class MemberInvitationViewSet(MemberAccessViewSet):
         return Response(schema.MemberAssociationSerializer(association).data)
 
 
-@extend_schema_view(list=extend_schema(parameters=FILTERS[:2]))
+@extend_schema_view(list=extend_schema(parameters=FILTERS))
 class MemberAssociationViewSet(MemberAccessViewSet):
     scoped_model = MemberAssociation
     queryset = MemberAssociation.objects.none()
@@ -193,67 +174,3 @@ class MemberRecordViewSet(MemberAccessViewSet):
 
         token = serializers.UUIDField().run_validation(request.query_params.get("token"))
         return Response(schema.MemberRecordEntriesSerializer(service.own_entries(self.get_object(), token)).data)
-
-
-@extend_schema_view(list=extend_schema(parameters=FILTERS))
-class MemberCertificateRequestViewSet(MemberAccessViewSet):
-    scoped_model = MemberCertificateRequest
-    queryset = MemberCertificateRequest.objects.none()
-    serializer_class = schema.MemberCertificateRequestSerializer
-    operator_actions_because = (
-        "Own associated members request only genuine receiving ISSUE or TRANSFER effects; current personal "
-        "company register appointments read the exact queue and produce one immutable recipient-only unsigned "
-        "certificate bound to the current source and audited private bytes. File access requires a current own "
-        "association or personal company reader; fulfilled requests cannot be withdrawn."
-    )
-
-    def narrow(self, queryset):
-        return service.request_readable(queryset.select_related("withdrawal", "fulfilment"), self.request.user)
-
-    @extend_schema(
-        request=schema.MemberCertificateRequestCreateSerializer,
-        responses={201: schema.MemberCertificateRequestSerializer, 200: schema.MemberCertificateRequestSerializer},
-    )
-    def create(self, request):
-        source, created = service.request_certificate(
-            actor=request.user, **self.body(schema.MemberCertificateRequestCreateSerializer)
-        )
-        return Response(schema.MemberCertificateRequestSerializer(source).data, status=201 if created else 200)
-
-    @extend_schema(
-        request=schema.MemberCertificateWithdrawSerializer, responses=schema.MemberCertificateRequestSerializer
-    )
-    @action(detail=True, methods=["post"])
-    def withdraw(self, request, uuid=None):
-        source = service.withdraw_certificate(
-            actor=request.user, request_id=uuid, **self.body(schema.MemberCertificateWithdrawSerializer)
-        )
-        return Response(schema.MemberCertificateRequestSerializer(source).data)
-
-    @extend_schema(responses=MemberCertificateFulfilmentPreviewSerializer)
-    @action(detail=True, methods=["get"], url_path="fulfilment-preview")
-    def fulfilment_preview(self, request, uuid=None):
-        return Response(
-            MemberCertificateFulfilmentPreviewSerializer(
-                preview_member_certificate(actor=request.user, request_id=uuid)
-            ).data
-        )
-
-    @extend_schema(
-        request=MemberCertificateFulfilmentCreateSerializer, responses=schema.MemberCertificateRequestSerializer
-    )
-    @action(detail=True, methods=["post"])
-    def fulfil(self, request, uuid=None):
-        source, _ = fulfil_member_certificate(
-            actor=request.user, request_id=uuid, **self.body(MemberCertificateFulfilmentCreateSerializer)
-        )
-        return Response(schema.MemberCertificateRequestSerializer(source).data)
-
-    @extend_schema(responses={(200, "application/pdf"): OpenApiTypes.BINARY})
-    @action(detail=True, methods=["get"])
-    def file(self, request, uuid=None):
-        content = member_certificate_bytes(actor=request.user, request_id=uuid)
-        response = HttpResponse(content, content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="member-certificate-{uuid}.pdf"'
-        response["Cache-Control"] = "private, no-store"
-        return response

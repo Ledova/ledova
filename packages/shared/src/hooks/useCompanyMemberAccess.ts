@@ -5,10 +5,7 @@ import {
   sendMemberInvitationEmail,
   getMemberInvitations,
   getMemberAssociations,
-  getMemberCertificateRequests,
   revokeMemberAssociation,
-  getMemberCertificateFulfilmentPreview,
-  fulfilMemberCertificateRequest,
 } from '../services/member-access';
 import { hasCurrentRegisterReadAuthority } from '../utils/register-commands';
 import { isCurrentEligibilityAppointment } from './useCompanyEligibilityRecords';
@@ -17,18 +14,11 @@ import { readEveryPage } from '../utils/pagination';
 import { useSubmissionOwner } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 import type { OrderSubmissionSession } from './useSubmissionOwner';
-import type {
-  MemberInvitationCreate,
-  OwnCompanyAppointment,
-  MemberCertificateRequest,
-  MemberCertificateFulfilmentPreview,
-  MemberCertificateFulfilmentCreate,
-} from '../types';
+import type { MemberInvitationCreate, OwnCompanyAppointment } from '../types';
 import { useApiClient } from './useApiClient';
 
 type Command =
   | { kind: 'invite'; payload: MemberInvitationCreate }
-  | { kind: 'fulfil'; uuid: string; payload: MemberCertificateFulfilmentCreate }
   | { kind: 'revoke'; uuid: string; payload: { appointment: string; idempotencyKey: string; reason: string } };
 
 export function useCompanyMemberAccess(
@@ -49,13 +39,8 @@ export function useCompanyMemberAccess(
   const [retry, setRetry] = useState<Command | null>(null);
   const [notice, setNotice] = useState('');
   const [invitationReceipt, setInvitationReceipt] = useState('');
-  const [certificateTarget, setCertificateTarget] = useState<{
-    preview: MemberCertificateFulfilmentPreview;
-    command: Extract<Command, { kind: 'fulfil' }>;
-  } | null>(null);
   const scope = ['company-member-access', owner?.userUuid, owner?.ownerAccountUuid, session?.getEpoch() ?? 0, company];
   const appointmentKey = [...scope, 'appointments'];
-  const queueKey = [...scope, 'requests'];
   const adminKey = [...scope, 'admin'];
   useEffect(() => {
     live.current = true;
@@ -67,7 +52,6 @@ export function useCompanyMemberAccess(
     setRetry(null);
     setNotice('');
     setInvitationReceipt('');
-    setCertificateTarget(null);
     setError(null);
   }, [owner, company]);
   const guardOwner = () => {
@@ -118,31 +102,6 @@ export function useCompanyMemberAccess(
     preferences.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(rows, company);
   const admin = adminAppointment(rows);
-  const queue = useQuery({
-    queryKey: queueKey,
-    enabled: readable,
-    queryFn: async () => {
-      const certificates = await readEveryPage(async (page) => {
-        guardRead();
-        const response = await getMemberCertificateRequests(api, { company, page }, config(guardRead));
-        guardRead();
-        return response;
-      });
-      if (certificates.some((row) => row.company !== company))
-        throw new Error('The member requests belong to another company.');
-      return { certificates };
-    },
-  });
-  const guardQueue = () => {
-    guardRead();
-    const state = client.getQueryState(queueKey);
-    if (
-      state?.status !== 'success' ||
-      state.fetchStatus !== 'idle' ||
-      client.getQueryState(adminKey)?.status === 'error'
-    )
-      throw new Error('Refresh current member requests before continuing.');
-  };
   const guardAdmin = () => {
     guardRead();
     if (!adminAppointment(currentAppointments())) throw new Error('Current personal ADMIN authority is required.');
@@ -180,7 +139,6 @@ export function useCompanyMemberAccess(
     guardOwner();
     await appointments.refetch({ throwOnError: true });
     guardRead();
-    await queue.refetch({ throwOnError: true });
     if (adminAppointment(currentAppointments())) await access.refetch({ throwOnError: true });
   };
   const execute = async (command: Command) => {
@@ -189,20 +147,13 @@ export function useCompanyMemberAccess(
     setBusy(true);
     setError(null);
     try {
-      const check = command.kind === 'fulfil' ? guardQueue : guardAccess;
-      check();
-      const appointment =
-        command.kind === 'fulfil'
-          ? currentAppointments().find(
-              (row) => row.uuid === command.payload.appointment && hasCurrentRegisterReadAuthority([row], company),
-            )
-          : adminAppointment(currentAppointments());
-      if (appointment?.uuid !== command.payload.appointment)
+      guardAccess();
+      if (adminAppointment(currentAppointments())?.uuid !== command.payload.appointment)
         throw new Error('Your exact company appointment changed. Refresh before continuing.');
       setRetry(command);
       if (command.kind === 'invite') {
-        const { data } = await sendMemberInvitationEmail(api, command.payload, config(check));
-        check();
+        const { data } = await sendMemberInvitationEmail(api, command.payload, config(guardAccess));
+        guardAccess();
         if (
           data.uuid !== command.payload.operationId ||
           data.company !== company ||
@@ -215,39 +166,11 @@ export function useCompanyMemberAccess(
           throw new Error('The invitation email could not be confirmed. Retry the original action.');
         setInvitationReceipt(data.uuid);
         setNotice('The invitation email was accepted for sending. Awaiting the recipient’s acceptance.');
-      } else if (command.kind === 'revoke') {
-        const { data } = await revokeMemberAssociation(api, command.uuid, command.payload, config(check));
-        check();
+      } else {
+        const { data } = await revokeMemberAssociation(api, command.uuid, command.payload, config(guardAccess));
+        guardAccess();
         if (data.uuid !== command.uuid || data.company !== company || data.current)
           throw new Error('The association revocation could not be confirmed.');
-      } else {
-        const original = client
-          .getQueryData<{ certificates: MemberCertificateRequest[] }>(queueKey)
-          ?.certificates.find((row) => row.uuid === command.uuid);
-        if (!original || original.status === 'withdrawn')
-          throw new Error('The original certificate request is unavailable.');
-        const { data } = await fulfilMemberCertificateRequest(api, command.uuid, command.payload, config(check));
-        check();
-        if (
-          data.uuid !== command.uuid ||
-          data.company !== company ||
-          data.member !== original.member ||
-          data.token !== original.token ||
-          data.entry !== original.entry ||
-          data.association !== original.association ||
-          data.status !== 'fulfilled' ||
-          !data.fulfilment ||
-          data.fulfilment.uuid !== command.payload.operationId ||
-          data.fulfilment.appointment !== command.payload.appointment ||
-          data.fulfilment.sourceDigest !== command.payload.sourceDigest ||
-          data.fulfilment.instruction !== command.payload.instruction ||
-          !/^[a-f0-9]{64}$/.test(data.fulfilment.digest) ||
-          !Number.isSafeInteger(data.fulfilment.fileSize) ||
-          data.fulfilment.fileSize < 1
-        )
-          throw new Error('The certificate fulfilment does not match the original request. Retry the original action.');
-        setCertificateTarget(null);
-        setNotice('The unsigned recipient certificate is recorded. The member can download their own PDF.');
       }
       setRetry(null);
       await refresh();
@@ -260,73 +183,12 @@ export function useCompanyMemberAccess(
       if (live.current) setBusy(false);
     }
   };
-  const previewCertificate = async (uuid: string, instruction: string) => {
-    if (pending.current || retry) return;
-    pending.current = true;
-    setBusy(true);
-    setError(null);
-    setCertificateTarget(null);
-    try {
-      guardQueue();
-      const original = client
-        .getQueryData<{ certificates: MemberCertificateRequest[] }>(queueKey)
-        ?.certificates.find((row) => row.uuid === uuid && row.status === 'requested');
-      if (!original) throw new Error('Refresh the original member certificate request.');
-      const { data } = await getMemberCertificateFulfilmentPreview(api, uuid, config(guardQueue));
-      guardQueue();
-      if (
-        data.memberRequest !== uuid ||
-        data.company !== company ||
-        data.member !== original.member ||
-        data.token !== original.token ||
-        data.entry !== original.entry ||
-        !currentAppointments().some(
-          (row) => row.uuid === data.appointment && hasCurrentRegisterReadAuthority([row], company),
-        ) ||
-        !/^[a-f0-9]{64}$/.test(data.sourceDigest) ||
-        !Number.isSafeInteger(data.sequence) ||
-        data.sequence < 1 ||
-        !Number.isSafeInteger(data.registerSequence) ||
-        data.registerSequence < data.sequence ||
-        !Number.isSafeInteger(data.pageCount) ||
-        data.pageCount !== 1
-      )
-        throw new Error('The certificate preview does not identify the requested member and entry.');
-      setCertificateTarget({
-        preview: Object.freeze({ ...data }),
-        command: {
-          kind: 'fulfil',
-          uuid,
-          payload: Object.freeze({
-            operationId: newKey(),
-            appointment: data.appointment,
-            sourceDigest: data.sourceDigest,
-            instruction,
-          }),
-        },
-      });
-    } catch (failure) {
-      if (live.current && boundary.get() === owner)
-        setError(failureSentence(failure, 'The certificate preview could not be confirmed.'));
-    } finally {
-      pending.current = false;
-      if (live.current) setBusy(false);
-    }
-  };
-  const queueReady = readable && queue.isSuccess && queue.fetchStatus === 'idle' && !access.isError;
   const accessReady = readable && !!admin && access.isSuccess && access.fetchStatus === 'idle';
-  const readFailed = [appointments, queue, access].some((query) => query.isError);
+  const readFailed = [appointments, access].some((query) => query.isError);
   return {
     readable,
-    certificateTarget: queueReady ? certificateTarget : null,
-    previewCertificate,
-    editCertificate: () => {
-      if (!pending.current && !retry) setCertificateTarget(null);
-    },
-    fulfilCertificate: () => certificateTarget && execute(certificateTarget.command),
     admin: accessReady ? admin : undefined,
     canAdminister: readable && !!admin,
-    requests: queueReady ? queue.data : null,
     access: accessReady ? access.data : null,
     busy,
     retry,
@@ -334,8 +196,7 @@ export function useCompanyMemberAccess(
     invitationReceipt: accessReady ? invitationReceipt : '',
     readFailed,
     failure: error,
-    error:
-      error ?? (readFailed ? 'Current member access or requests could not be read. Refresh before continuing.' : null),
+    error: error ?? (readFailed ? 'Current member access could not be read. Refresh before continuing.' : null),
     refresh: () =>
       refresh().catch((failure) => {
         if (live.current && boundary.get() === owner)
