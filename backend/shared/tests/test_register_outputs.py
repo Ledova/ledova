@@ -1,8 +1,9 @@
+import csv
 import hashlib
 import io
 import json
 import zipfile
-from datetime import timedelta
+from datetime import date, timedelta
 from uuid import UUID, uuid4
 
 import pymupdf
@@ -28,6 +29,7 @@ from tokens.models import (
 )
 from tokens.services.company_pack import produce_company_pack
 from tokens.services.former_holders import purge_register_exports
+from tokens.services.register import prepare_notice_figures
 
 
 class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
@@ -338,3 +340,15 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
                 5,
             )
             self.assertFalse(RegisterExport.objects.exists())
+            figures, _ = prepare_notice_figures(
+                self.token, self.owner, period_from=date(2000, 1, 1), instruction="SYNTHETIC-NOTICE-FIGURES"
+            )
+        amounts = [
+            (row[0], row[1], row[9]) for row in csv.reader(io.StringIO(figures.decode())) if row and row[0].isdigit()
+        ]
+        self.assertIn((str(issue.sequence), "Issue", "250.00"), amounts)
+        other_issues = {
+            amount for sequence, kind, amount in amounts if kind == "Issue" and sequence != str(issue.sequence)
+        }
+        self.assertEqual(other_issues, {"not recorded"})
+        self.assertEqual({amount for _, kind, amount in amounts if kind == "Transfer"}, {""})

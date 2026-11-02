@@ -847,12 +847,15 @@ def _paid_or_not_recorded(amount) -> str:
     return NOT_RECORDED if amount is None else f"{amount:.2f}"
 
 
-def _period_entry_rows(entry, people) -> list[list]:
+def _period_entry_rows(entry, people, fully_paid) -> list[list]:
     corrects = "" if entry.corrects_id is None else entry.corrects.sequence
+    allotment = fully_paid.get(entry.pk)
     rows = []
     for change in entry.changes:
         member, shares = UUID(change["member"]), int(change["shares"])
-        paid = NOT_RECORDED if entry.kind == RegisterEntryKind.ISSUE else ""
+        paid = ""
+        if entry.kind == RegisterEntryKind.ISSUE:
+            paid = _paid_or_not_recorded(allotment.consideration if allotment else None)
         rows.append(
             [
                 entry.sequence,
@@ -901,6 +904,7 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
         }
         current = {UUID(row["member"]): row for row in register["rows"]}
         paid = [row["amount_paid"] for row in register["rows"]]
+        fully_paid = _fully_paid_issues(ShareRegister.objects.get(token=token))
         rows = [
             [NOTICE_FIGURES_HEADING],
             [SHARE_CLASS_ROW, f"{token.name} ({token.symbol})"],
@@ -911,7 +915,7 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
             [],
             [PERIOD_ENTRIES_HEADING],
             PERIOD_ENTRY_HEADERS,
-            *(row for entry in entries for row in _period_entry_rows(entry, people)),
+            *(row for entry in entries for row in _period_entry_rows(entry, people, fully_paid)),
             [],
             [CLASS_HEADING],
             [ISSUED_SUPPLY_ROW, register["issued_supply"]],
