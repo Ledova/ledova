@@ -12,7 +12,7 @@ import type { AxiosInstance } from 'axios';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
-import { destinationOf } from '../../components/notifications/NotificationsModal';
+import { destinationOf } from '../../components/notifications/NotificationsPanel';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { InvitationScreen } from './InvitationScreen';

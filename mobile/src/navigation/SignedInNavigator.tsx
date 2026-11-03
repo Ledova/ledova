@@ -3,8 +3,9 @@ import { View } from 'react-native';
 import { createNativeStackNavigator, type NativeStackHeaderProps } from '@react-navigation/native-stack';
 import type { NavigationProp } from '@react-navigation/native';
 import { useNotifications } from '@ledova/shared';
+import type { Anchor } from '../components/AnchoredPanel';
 import { InSignedInFrame, type FrameOptions } from '../components/InSignedInFrame';
-import { NotificationsModal, useFollowPush } from '../components/notifications';
+import { NotificationsPanel, useFollowPush } from '../components/notifications';
 import { useAppTheme } from '../contexts';
 import { CertificatesScreen } from '../screens/documents/CertificatesScreen';
 import { DashboardScreen } from '../screens/holdings/DashboardScreen';
@@ -27,11 +28,10 @@ const Stack = createNativeStackNavigator<SignedInStackParamList>();
 
 export function SignedInNavigator() {
   const theme = useAppTheme();
-  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsAnchor, setNotificationsAnchor] = useState<Anchor | null>(null);
   const { unreadCount } = useNotifications();
-  const closeNotifications = useCallback(() => setShowNotifications(false), []);
+  const closeNotifications = useCallback(() => setNotificationsAnchor(null), []);
   useFollowPush(closeNotifications);
-  const openNotifications = () => setShowNotifications(true);
   const topBar = (current: Section) => ({
     headerShown: true,
     header: ({ navigation, route, options }: NativeStackHeaderProps) => (
@@ -41,7 +41,8 @@ export function SignedInNavigator() {
         title={options.title}
         action={(options as FrameOptions).action}
         current={current}
-        onNotifications={openNotifications}
+        onNotifications={setNotificationsAnchor}
+        notificationsOpen={!!notificationsAnchor}
         unreadCount={unreadCount}
       />
     ),
@@ -61,7 +62,7 @@ export function SignedInNavigator() {
             <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} options={topBar('Settings')} />
             <Stack.Screen name="Invitation" component={InvitationScreen} options={topBar('Dashboard')} />
           </Stack.Navigator>
-          <NotificationsModal visible={showNotifications} onClose={closeNotifications} />
+          <NotificationsPanel anchor={notificationsAnchor} onClose={closeNotifications} />
         </View>
       </InSignedInFrame.Provider>
     </MemberRecordsProvider>
