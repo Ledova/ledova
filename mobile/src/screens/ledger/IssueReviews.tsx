@@ -17,7 +17,7 @@ import { Fact, Rows, Section, ShowMore } from '../../components/Ledger';
 import { useThemedStyles } from '../../contexts';
 import { useLedgerStyles } from './useLedgerStyles';
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+export function Group({ title, children }: { title: string; children: ReactNode }) {
   const look = useLedgerStyles();
   return (
     <View>
@@ -29,7 +29,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Details({ children }: { children: ReactNode }) {
+export function Details({ children }: { children: ReactNode }) {
   return (
     <ShowMore show="Show details and documents" hide="Hide details and documents">
       {children}

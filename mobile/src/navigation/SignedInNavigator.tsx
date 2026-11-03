@@ -15,6 +15,8 @@ import { InvitationScreen } from '../screens/holdings/InvitationScreen';
 import { IssueSharesScreen } from '../screens/ledger/IssueSharesScreen';
 import { LedgerScreen } from '../screens/ledger/LedgerScreen';
 import { ShareClassScreen } from '../screens/ledger/ShareClassScreen';
+import { TransferPreparationScreen } from '../screens/ledger/TransferPreparationScreen';
+import { TransferSharesScreen } from '../screens/ledger/TransferSharesScreen';
 import { AccountScreen, DataPrivacyScreen, SettingsScreen } from '../screens/settings';
 import { ActivationScreen } from '../screens/settings/ActivationScreen';
 import { AuthorityRequestScreen } from '../screens/settings/AuthorityRequestScreen';
@@ -34,6 +36,8 @@ export type SignedInStackParamList = {
   Ledger: undefined;
   ShareClass: { company: string; token: string };
   IssueShares: { company: string; token: string; member?: string; award?: string; record?: string } | undefined;
+  TransferShares: { company: string; token: string; record?: string; outcome?: string } | undefined;
+  TransferPreparation: { company: string; token: string; fromMember?: string };
   Shareholders: undefined;
   Shareholder: { company: string; member: string; outcome?: string };
   ShareholderParticulars: { company: string; member: string };
@@ -88,6 +92,8 @@ export function SignedInNavigator() {
             <Stack.Screen name="Ledger" component={LedgerScreen} options={topBar('Ledger')} />
             <Stack.Screen name="ShareClass" component={ShareClassScreen} options={topBar('Ledger')} />
             <Stack.Screen name="IssueShares" component={IssueSharesScreen} options={topBar('Ledger')} />
+            <Stack.Screen name="TransferShares" component={TransferSharesScreen} options={topBar('Ledger')} />
+            <Stack.Screen name="TransferPreparation" component={TransferPreparationScreen} options={topBar('Ledger')} />
             <Stack.Screen name="Shareholders" component={ShareholdersScreen} options={topBar('Shareholders')} />
             <Stack.Screen name="Shareholder" component={ShareholderScreen} options={topBar('Shareholders')} />
             <Stack.Screen

@@ -246,7 +246,8 @@ Transfer date and Status in a labelled summary grid that wraps on smaller screen
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
 **Show details and documents**. Emphasise the review for the current stage. Keep transfer preparation beside
 the final record's decision actions in one right-aligned row, wrapping only when needed; an empty
-collection keeps its own preparation row.
+collection keeps its own preparation row. The app's Transfer shares has the same records, two facts to a
+row, the same row of actions and the same review in place of the records.
 Hide a successfully read empty family when another has records,
 and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 

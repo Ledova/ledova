@@ -4,8 +4,8 @@
 
 How a company keeps the register of members of each share class in Ledova, and what the web Ledger
 page shows; of the register administration, the mobile app has the Ledger overview, each share class's
-page, Issue shares, Shareholders, a shareholder's page, the Employee share scheme with each award's
-page, and Member access
+page, Issue shares, Transfer shares, Shareholders, a shareholder's page, the Employee share scheme with
+each award's page, and Member access
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). It is for company representatives,
 product owners, support staff and engineers learning the domain. Issuing shares is in
 [share classes and issuing shares](issuing-shares.md); copies, certificates and member access are in
@@ -412,9 +412,10 @@ A company can record a genuine non-paid transfer between members of an imported 
 has no contract, when neither has a linked wallet anywhere in the company. It creates no wallet,
 account, payment, application or chain transaction.
 
-1. In Ledger choose Transfer shares, the class, then Prepare a non-paid transfer, or open
-   **Transfer shares** on a holding on the shareholder page, which chooses the transferor. For a
-   class that uses the chain the task says "Transfers for a class that uses the chain aren’t available in the web app."
+1. On the web or in the app, in Ledger choose Transfer shares, the class, then Prepare a non-paid
+   transfer, or open **Transfer shares** on a holding on the shareholder page, which chooses the
+   transferor. For a class that uses the chain the task says "Transfers for a class that uses the chain
+   aren’t available in the web app."
 2. In **People and shares**, choose the transferor, recipient and shares
    ([choosing a person](#choosing-a-person)), and give the company transfer date. An
    existing company recipient keeps their member ID, including someone holding only another class,
@@ -439,6 +440,11 @@ account, payment, application or chain transaction.
    transaction records no new approval or movement; retrying the same request cannot move the shares
    twice. Rejection also uses page review. The preparation action shares the final record's action
    row, or stands alone when no transfers exist. The API keeps its separate decision steps.
+
+The mobile app's Transfer shares has the same records, form, reviews and decisions at phone width, for
+a register reader of the selected company. **Share class** is in Filters and stays locked while a review
+is open, the preparation has its own page, each transfer's documents go to the phone's share sheet, and
+a chain class says its transfers aren’t available in the app.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the
@@ -600,9 +606,10 @@ The Ledger view shows:
   [register setup](#bringing-in-existing-records) for the selected company.
 
 The mobile app's Ledger shows the same cards, each with **Class details**, for a register reader of the
-selected company, and lists Issue shares beneath it
-([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)); register setup, and so **Add
-share class**, Transfer shares and Corrections stay on the web.
+selected company, and lists Issue shares and Transfer shares beneath it
+([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
+[non-paid transfers](#non-paid-transfers-between-members)); register setup, and so **Add share class**,
+and Corrections stay on the web.
 
 Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the overview cards: Issue shares
@@ -691,7 +698,7 @@ Details show only while the account, the classes and the holdings read are curre
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger. The app's shareholder page shows
 the same sections and **Change particulars**, with award rows opening their pages and **Open Employee
-share scheme**, and **Issue shares to them**; it leaves out Documents and **Transfer shares**.
+share scheme**, **Issue shares to them** and, on a holding, **Transfer shares**; it leaves out Documents.
 
 ### Choosing a person
 
@@ -706,7 +713,7 @@ Each flow keeps its own rule for who can be chosen:
 
 - issues and awards: people without a linked wallet whose particulars are retained;
 - a transfer: a transferor holding shares in the class, and a recipient without a linked wallet;
-  on the web both must already be recorded by the company;
+  on the web and in the app both must already be recorded by the company;
 - register setup: everyone on the list;
 - invitations: current and former members and award recipients.
 
