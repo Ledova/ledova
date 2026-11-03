@@ -372,7 +372,8 @@ unsigned certificate, inspection copy and company pack arrive as bytes, through 
 in `mobile/src/services/documentCopies.ts`, the app's file delivery for the shared output hooks
 ([downloads](frontend.md#client-sessions-and-caches)): checked as on the web, by the response's
 content type, since React Native's Android blobs carry none, and shared under the web's file name.
-Their form reports the download once the share sheet opens, without waiting for it to close.
+Every share goes through `shareFile`: a sheet that fails to open reports the failure, and one still
+open after 1.5 seconds counts as delivered, because iOS never settles a cancelled Save to Files.
 
 A view is bound to the session current when tapped: its download carries that epoch
 ([session scope](#session-scope)), and a session change before the write stops it without an alert.

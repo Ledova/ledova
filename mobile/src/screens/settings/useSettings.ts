@@ -5,7 +5,7 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, exportAccountData, changePassword } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
-import { shareDocumentCopy } from '../../services/documentCopies';
+import { shareDocumentCopy, shareFile } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { clearTokens } from '../../services/tokenStorage';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -70,7 +70,7 @@ export function useSettings() {
           };
         },
         (uri, type) =>
-          Sharing.shareAsync(uri, { mimeType: type, UTI: 'public.json', dialogTitle: 'Ledova - Account Data Export' }),
+          shareFile(uri, { mimeType: type, UTI: 'public.json', dialogTitle: 'Ledova - Account Data Export' }),
       );
       return true;
     } catch {

@@ -36,7 +36,7 @@ import { PUBLIC_LINKS } from '../../config/publicLinks';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
-import { shareDocumentCopy } from '../../services/documentCopies';
+import { shareDocumentCopy, shareFile } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { getSessionEpoch } from '../../services/sessionScope';
 
@@ -48,7 +48,7 @@ async function shareEvidence(data: ArrayBuffer, request: CompanyAuthorityRequest
   await shareDocumentCopy(
     sessionEpoch,
     async () => ({ name: request.originalFilename, type: request.mimeType, bytes: new Uint8Array(data) }),
-    (uri, type) => Sharing.shareAsync(uri, { mimeType: type }),
+    (uri, type) => shareFile(uri, { mimeType: type }),
   );
 }
 
