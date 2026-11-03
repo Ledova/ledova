@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { Field, TextInput } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { FormActions, PageAction } from '@components/Page';
 import { Outcome, Failure } from '@components/Ledger';
 import {
@@ -10,8 +11,8 @@ import {
   type OwnCompanyAppointment,
   addCalendarDays,
   utcToday,
+  useTeamInvitationForm,
 } from '@ledova/shared';
-import { useTeamInvitationForm } from './useTeamInvitationForm';
 
 export function TeamInvitationForm({
   source,
@@ -30,6 +31,7 @@ export function TeamInvitationForm({
   onBusy: (value: boolean) => void;
   onCancel: () => void;
 }) {
+  const dates = useIncompleteDates<'deadline' | 'expiry'>();
   const {
     personal,
     setPersonal,
@@ -42,7 +44,6 @@ export function TeamInvitationForm({
     busy,
     error,
     problems,
-    watchDate,
     recorded,
     setRecorded,
     keyRef,
@@ -56,6 +57,7 @@ export function TeamInvitationForm({
     guard,
     onRecorded,
     onBusy,
+    incomplete: dates.incomplete,
   });
   const checks = useErrorSummary(problems);
   const actions = checks.field('actions');
@@ -156,7 +158,7 @@ export function TeamInvitationForm({
               min={utcToday()}
               max={addCalendarDays(utcToday(), 29)}
               value={deadline}
-              {...watchDate('deadline')}
+              {...dates.watch('deadline')}
               disabled={disabled || busy}
               onChange={(event) => change(() => setDeadline(event.target.value))}
             />
@@ -166,7 +168,7 @@ export function TeamInvitationForm({
               type="date"
               min={utcToday()}
               value={expiry}
-              {...watchDate('expiry')}
+              {...dates.watch('expiry')}
               disabled={disabled || busy}
               onChange={(event) => change(() => setExpiry(event.target.value))}
             />

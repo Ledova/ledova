@@ -5,10 +5,12 @@ import {
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
   APPOINTMENT_STATUS_LABELS,
+  currentAppointment,
+  delegationLabel,
+  scopeLabels,
 } from '@ledova/shared';
 import { MoreToggle } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { currentAppointment, delegationLabel, scopeLabels } from '@pages/company/shared/appointments';
 
 const SOURCES: Record<(OwnCompanyAppointment | CompanyTeamAppointment)['source'], string> = {
   initial: 'Initial self-declaration',

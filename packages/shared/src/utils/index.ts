@@ -50,6 +50,14 @@ export {
 export type { SignInErrorReading, ApiErrorReading, ReadApiErrorOptions } from './errors';
 export { readIdentityVerification } from './identity-verification';
 export {
+  appointmentReceipt,
+  currentAppointment,
+  delegationLabel,
+  invitationOpen,
+  sameScope,
+  scopeLabels,
+} from './appointments';
+export {
   appointmentForParticularsEdit,
   appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,

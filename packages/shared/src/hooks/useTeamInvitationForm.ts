@@ -1,17 +1,12 @@
-import {
-  addCalendarDays,
-  createCompanyTeamInvitation,
-  type CompanyCapability,
-  type OwnCompanyAppointment,
-  failureSentence,
-  isCalendarDate,
-  utcToday,
-} from '@ledova/shared';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { useIncompleteDates } from '@hooks/useIncompleteDates';
-import { sameScope } from '@pages/company/shared/appointments';
-import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
+import { createCompanyTeamInvitation } from '../services/company-authority';
+import type { CompanyCapability, OwnCompanyAppointment } from '../types';
+import { sameScope } from '../utils/appointments';
+import { addCalendarDays, isCalendarDate, utcToday } from '../utils/date';
+import { failureSentence } from '../utils/errors';
+import { useApiClient } from './useApiClient';
+import { hasProblems, type Problems } from './useErrorSummary';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 
 export function useTeamInvitationForm({
   source,
@@ -20,6 +15,9 @@ export function useTeamInvitationForm({
   guard,
   onRecorded,
   onBusy,
+  incomplete = {},
+  session,
+  newKey = () => crypto.randomUUID(),
 }: {
   source: OwnCompanyAppointment;
   available: CompanyCapability[];
@@ -27,7 +25,11 @@ export function useTeamInvitationForm({
   guard: () => void;
   onRecorded: () => void;
   onBusy: (value: boolean) => void;
+  incomplete?: Partial<Record<'deadline' | 'expiry', boolean>>;
+  session?: OrderSubmissionSession;
+  newKey?: () => string;
 }) {
+  const apiClient = useApiClient();
   const [personal, setPersonal] = useState<CompanyCapability[]>([]);
   const [delegatable, setDelegatable] = useState<CompanyCapability[]>([]);
   const [deadline, setDeadline] = useState('');
@@ -56,15 +58,14 @@ export function useTeamInvitationForm({
   const toggle = (values: CompanyCapability[], value: CompanyCapability) =>
     values.includes(value) ? values.filter((item) => item !== value) : [...values, value].sort();
   const today = utcToday();
-  const dates = useIncompleteDates<'deadline' | 'expiry'>();
   const problems: Problems<'actions' | 'deadline' | 'expiry'> = {
     actions: !personal.length && !delegatable.length && 'Choose at least one action for the appointee or to delegate.',
     deadline:
-      (dates.incomplete.deadline ||
+      (incomplete.deadline ||
         (!!deadline && (!isCalendarDate(deadline) || deadline < today || deadline > addCalendarDays(today, 29)))) &&
       'Enter an invitation deadline from today to 29 days ahead (UTC), or clear it.',
     expiry:
-      (dates.incomplete.expiry || (!!expiry && (!isCalendarDate(expiry) || expiry < today))) &&
+      (incomplete.expiry || (!!expiry && (!isCalendarDate(expiry) || expiry < today))) &&
       'Enter an appointment expiry no earlier than today (UTC), or clear it.',
   };
   const send = async () => {
@@ -77,7 +78,7 @@ export function useTeamInvitationForm({
       check();
       if (![...personal, ...delegatable].every((value) => available.includes(value)))
         throw new Error('Your delegation scope changed. Choose the permitted actions again.');
-      keyRef.current ??= crypto.randomUUID();
+      keyRef.current ??= newKey();
       const { data, status } = await createCompanyTeamInvitation(
         apiClient,
         {
@@ -89,7 +90,7 @@ export function useTeamInvitationForm({
           ...(deadline ? { acceptanceDeadline: `${deadline}T23:59:59Z` } : {}),
           ...(expiry ? { appointmentExpiresAt: `${expiry}T23:59:59Z` } : {}),
         },
-        { ledovaSubmissionGuard: check },
+        { ...session?.requestConfig(), ledovaSubmissionGuard: check },
       );
       check();
       if (
@@ -140,7 +141,6 @@ export function useTeamInvitationForm({
     busy,
     error,
     problems,
-    watchDate: dates.watch,
     recorded,
     setRecorded,
     keyRef,
